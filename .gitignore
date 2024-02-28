@@ -4,8 +4,13 @@ src/fivetran_custom_sdk.egg-info/
 **/.idea
 **/__pycache__
 examples/**/files/
+examples/**/build/
+examples/**/dist/
 
 .DS_Store
 **/*_pb2.py
 **/*_pb2.pyi
 **/*_pb2_grpc.py
+*.spec
+**/__run.py
+**/Dockerfile
