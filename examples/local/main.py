@@ -22,9 +22,6 @@ def schema(configuration: dict):
 
 
 def update(configuration: dict, state: dict):
-    print("Configuration:", configuration)
-    print("State:", state)
-
     cursor = state['cursor'] if 'cursor' in state else 0
 
     row = SOURCE_DATA[cursor]
