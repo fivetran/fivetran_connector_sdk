@@ -1,5 +1,5 @@
 
-from fivetran_custom_sdk import Connector, upsert, checkpoint
+from fivetran_customer_sdk import Connector, upsert, checkpoint
 
 
 SOURCE_DATA = [
@@ -38,10 +38,8 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 
-# The following code block optional, to be able to run the connector code in an IDE easily
 if __name__ == "__main__":
     result = connector.debug()
     if result:
         print("Success! You can publish your code now if you like: "
               "`DEPLOY_KEY=XXXX python -m fivetran_custom_sdk main.py --deploy`")
-
