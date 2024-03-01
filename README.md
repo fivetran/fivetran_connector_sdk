@@ -1,20 +1,20 @@
 # Requirements
-- Python >= 3.9
+- Python >= 3.10
 - Docker >= 4.23.0
 
 # Installation
 Create a virtual environment and install package from PyPI:
 ```
-$ pip install fivetran-custom-sdk
+$ pip install fivetran-customer-sdk
 ```
 # Development
 1. Create a folder for your project or open one of the examples in the `/examples` folder
 2. To debug the project in your local environment, execute the following command:
 ```
 $ cd <project-folder-path>
-$ python -m fivetran_custom_sdk <project-folder-path> --debug
+$ fivetran debug
 ```
-3. If you'd like to debug the project in an IDE, add a `main` block like the following to `main.py` file: 
+3. If you'd like to debug the project in an IDE, add a `main` to `main.py` file: 
 ```python
 if __name__ == "__main__":
     connector.debug()
@@ -24,5 +24,18 @@ if __name__ == "__main__":
 # Deployment
 When your connector is ready to deploy to Fivetran, you can do so with the following command:
 ```
-$ python -m fivetran_custom_sdk <project-folder-path> --deploy --key=<DEPLOY-KEY>
+$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connector <CONNECTOR-NAME>
 ```
+
+# Examples
+
+There are several examples available under `/examples` folder
+
+## hello
+Simplest example, append-only
+
+## local
+Emulated source, without any calls out to the internet
+
+## weather
+Real API, fetching data from NOAA
