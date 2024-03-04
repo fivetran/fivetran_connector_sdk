@@ -39,3 +39,9 @@ Emulated source, without any calls out to the internet
 
 ## weather
 Real API, fetching data from NOAA
+
+## specified_types
+Declares a schema and upserts all data types
+
+## unspecified_types
+Upserts all data types without specifying a schema
