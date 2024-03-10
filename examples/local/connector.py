@@ -1,5 +1,5 @@
-
-from fivetran_customer_sdk import Connector, upsert, checkpoint
+from fivetran_customer_sdk import Connector
+from fivetran_customer_sdk import Operations as op
 
 
 SOURCE_DATA = [
@@ -26,13 +26,13 @@ def update(configuration: dict, state: dict):
 
     row = SOURCE_DATA[cursor]
 
-    yield upsert(table="hello_world", data=row)
+    yield op.upsert(table="hello_world", data=row)
 
     new_state = {
         "cursor": cursor + 1
     }
 
-    yield checkpoint(new_state)
+    yield op.checkpoint(new_state)
 
 
 connector = Connector(update=update, schema=schema)
