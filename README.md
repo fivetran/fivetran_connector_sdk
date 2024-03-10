@@ -1,6 +1,6 @@
 # Requirements
 - Python >= 3.10
-- Docker >= 4.23.0
+- Docker Desktop >= 4.23.0
 
 # Installation
 Create a virtual environment and install Fivetran Customer SDK package from PyPI:
