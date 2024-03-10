@@ -1,6 +1,6 @@
 # Requirements
 - Python >= 3.10
-- Docker Desktop >= 4.23.0
+- Docker Desktop >= 4.23.0 or [Rancher Desktop](https://rancherdesktop.io/) >= 1.12.1
 
 # Installation
 Create a virtual environment and install Fivetran Customer SDK package from PyPI:
