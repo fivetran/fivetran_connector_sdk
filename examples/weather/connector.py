@@ -1,5 +1,6 @@
 
-from fivetran_customer_sdk import Connector, upsert, checkpoint
+from fivetran_customer_sdk import Connector
+from fivetran_customer_sdk import Operations as op
 from datetime import datetime
 import requests as rq
 
@@ -36,17 +37,18 @@ def update(configuration: dict, state: dict):
         if str2dt(period['startTime']) < str2dt(cursor):
             continue
 
-        yield upsert("period", data={
-                "name": period["name"],
-                "startTime": period["startTime"],
-                "endTime": period["endTime"],
-                "temperature": period["temperature"]
-        })
+        yield op.upsert("period",
+                        data={
+                            "name": period["name"],
+                            "startTime": period["startTime"],
+                            "endTime": period["endTime"],
+                            "temperature": period["temperature"]
+                        })
 
         cursor = period['endTime']
 
     # save cursor for next sync
-    yield checkpoint({
+    yield op.checkpoint({
         "startTime": cursor
     })
 
