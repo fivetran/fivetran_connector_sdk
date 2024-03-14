@@ -1,5 +1,5 @@
 # Requirements
-- Python >= 3.10
+- Python >= 3.9
 - Docker Desktop >= 4.23.0 or [Rancher Desktop](https://rancherdesktop.io/) >= 1.12.1
 
 # Installation
@@ -26,6 +26,7 @@ Use the following command to deploy your project to Fivetran:
 ```
 $ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME>
 ```
+`DEPLOY-KEY` is your regular [Fivetran API key](https://fivetran.com/docs/rest-api/getting-started#scopedapikey)  
 
 # Examples
 There are several examples available under `/examples`:
