@@ -3,8 +3,8 @@ from fivetran_customer_sdk import Operations as op
 
 
 def update(configuration: dict, state: dict):
-    yield op.upsert("hello_world",
-                    {"id": 1, "message": "hello, world!"})
+    yield op.upsert("hello",
+                    {"message": "hello, world!"})
 
 
 connector = Connector(update=update)
