@@ -8,8 +8,9 @@ Create a virtual environment and install Fivetran Customer SDK package from PyPI
 $ pip install fivetran-customer-sdk
 ```
 # Development
-1. Create a folder for your project or open one of the examples in the `/examples` folder
-2. The following command will debug your project locally on your computer:
+1. Create a folder for your project with a `connector.py` file to contain your connector code. Tip: Use one of the examples in the `/examples` folder as a template.
+2. Write your connector.
+3. The following command will debug your project locally on your computer:
 ```
 $ cd <project-folder-path>
 $ fivetran debug
