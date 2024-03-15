@@ -29,6 +29,11 @@ $ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <C
 ```
 `DEPLOY-KEY` is your regular [Fivetran API key](https://fivetran.com/docs/rest-api/getting-started#scopedapikey)  
 
+If your connector uses configuration include it when you deploy your connection like this:
+```
+$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME> --configuration {"KEY":"VALUE"}
+```
+
 # Examples
 There are several examples available under `/examples`:
 
