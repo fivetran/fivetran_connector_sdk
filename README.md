@@ -31,7 +31,7 @@ $ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <C
 
 If your connector uses configuration include it when you deploy your connection like this:
 ```
-$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME> --configuration {"KEY":"VALUE"}
+$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME> --configuration "{\"KEY\":\"VALUE\"}"
 ```
 
 # Examples
