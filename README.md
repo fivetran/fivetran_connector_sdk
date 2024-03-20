@@ -49,5 +49,8 @@ Declares a schema and upserts all data types
 ## unspecified_types
 Upserts all data types without specifying a schema
 
+## three_operations
+Shows how to use upsert, update and delete operations
+
 ## weather
 Real API, fetching data from NOAA
