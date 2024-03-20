@@ -7,7 +7,7 @@ import uuid
 def schema(configuration: dict):
     return [
             {
-                "table": "triplet",
+                "table": "three",
                 "primary_key": ["id"],
             }
     ]
