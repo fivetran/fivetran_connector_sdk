@@ -53,4 +53,7 @@ Upserts all data types without specifying a schema
 Shows how to use upsert, update and delete operations
 
 ## weather
-Real API, fetching data from NOAA
+A realistic example, using a public API, fetching data from NOAA
+
+## configuration
+Shows how to use secrets
