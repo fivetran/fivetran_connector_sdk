@@ -1,6 +1,6 @@
 
-from fivetran_customer_sdk import Connector
-from fivetran_customer_sdk import Operations as op
+from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Operations as op
 from datetime import datetime
 import requests as rq
 
