@@ -3,9 +3,9 @@
 - Docker Desktop >= 4.23.0 or [Rancher Desktop](https://rancherdesktop.io/) >= 1.12.1
 
 # Installation
-Create a virtual environment and install Fivetran Customer SDK package from PyPI:
+Create a virtual environment and install Fivetran Connector SDK package from PyPI:
 ```
-$ pip install fivetran-customer-sdk
+$ pip install fivetran-connector-sdk
 ```
 # Development
 1. Create a folder for your project with a `connector.py` file to contain your connector code. Tip: Use one of the examples in the `/examples` folder as a template.
