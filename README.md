@@ -1,7 +1,7 @@
 # Pre-install steps
 You need to have installed the following before you begin:
 - Python (version >= 3.9)
-- Docker Desktop (version >= 4.23.0) or [Rancher Desktop](https://rancherdesktop.io/) (version >= 1.12.1)
+- [Docker Desktop](https://docs.docker.com/desktop) (version >= 4.23.0)
 
 # Installation
 Create a virtual environment and install Fivetran Connector SDK package from PyPI:
