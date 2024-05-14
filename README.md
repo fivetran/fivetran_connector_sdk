@@ -10,18 +10,20 @@ Create a virtual environment and install Fivetran Connector SDK package from PyP
 ```
 # Development
 1. Create a folder for your project with a `connector.py` file to contain your connector code. Tip: Use one of the examples in the `/examples` folder as a template.
+```
+ cd <project-folder-path>
+```
 2. Write your connector.
 3. The following command will debug your project locally on your computer:
 ```
- cd <project-folder-path>
  fivetran debug
 ```
-3. If you'd like to debug your project in an IDE, add the following code block to `connector.py` file: 
+4. If you'd like to debug your project in an IDE, add the following code block to `connector.py` file: 
 ```python
 if __name__ == "__main__":
     connector.debug()
 ```
-4. When you run `connector.py` in your local environment, your connector will sync and generate files in `<project-folder-path>/files`. Once the sync is done running, it will persist the records in `warehouse.db` file. This is an instance of DuckDB database. You can connect to it to validate the results of your sync using [DuckDB CLI](https://duckdb.org/docs/api/cli) or [DBeaver](https://duckdb.org/docs/guides/sql_editors/dbeaver).
+5. When you run `connector.py` in your local environment, your connector will sync and generate files in `<project-folder-path>/files`. Once the sync is done running, it will persist the records in `warehouse.db` file. This is an instance of DuckDB database. You can connect to it to validate the results of your sync using [DuckDB CLI](https://duckdb.org/docs/api/cli) or [DBeaver](https://duckdb.org/docs/guides/sql_editors/dbeaver).
 
 # Deployment
 Use the following command to deploy your project to Fivetran:
