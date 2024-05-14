@@ -5,16 +5,16 @@ You need to have installed the following before you begin:
 
 # Installation
 Create a virtual environment and install Fivetran Connector SDK package from PyPI:
-```console
-$ pip install fivetran-connector-sdk
+```
+ pip install fivetran-connector-sdk
 ```
 # Development
 1. Create a folder for your project with a `connector.py` file to contain your connector code. Tip: Use one of the examples in the `/examples` folder as a template.
 2. Write your connector.
 3. The following command will debug your project locally on your computer:
-```console
-$ cd <project-folder-path>
-$ fivetran debug
+```
+ cd <project-folder-path>
+ fivetran debug
 ```
 3. If you'd like to debug your project in an IDE, add the following code block to `connector.py` file: 
 ```python
@@ -25,14 +25,14 @@ if __name__ == "__main__":
 
 # Deployment
 Use the following command to deploy your project to Fivetran:
-```console
-$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME>
+```
+ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME>
 ```
 `DEPLOY-KEY` is your regular [Fivetran API key](https://fivetran.com/docs/rest-api/getting-started#scopedapikey)  
 
 If your connector uses configuration include it when you deploy your connection like this:
-```console
-$ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME> --configuration "{\"KEY\":\"VALUE\"}"
+```
+ fivetran deploy --deploy-key <DEPLOY-KEY> --group <GROUP-NAME> --connection <CONNECTION-NAME> --configuration "{\"KEY\":\"VALUE\"}"
 ```
 
 # Examples
