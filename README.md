@@ -1,3 +1,9 @@
+# Requirements
+- Python 3.9 or later
+- Operating System:
+  - Windows 10 or later
+  - MacOS 13 (Ventura) or later
+
 # Getting started
 See [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk) pages on Fivetran website for information and instructions.
 
