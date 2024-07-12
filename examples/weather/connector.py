@@ -1,6 +1,7 @@
 
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log
 from datetime import datetime
 import requests as rq
 
@@ -37,6 +38,7 @@ def update(configuration: dict, state: dict):
         if str2dt(period['startTime']) < str2dt(cursor):
             continue
 
+        log.info(f"period={period['name']}")
         yield op.upsert("period",
                         data={
                             "name": period["name"],
