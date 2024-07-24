@@ -33,12 +33,18 @@ def update(configuration: dict, state: dict):
 
     data = response.json()
     periods = data['properties']['periods']
+
+    # This message will show both during debugging and in production
+    log.info(f"number of periods={len(periods)}")
+
     for period in periods:
         # Skip data points we already synced
         if str2dt(period['startTime']) < str2dt(cursor):
             continue
-
-        log.info(f"period={period['name']}")
+        
+        # This log message will only show while debugging
+        log.fine(f"period={period['name']}")
+        
         yield op.upsert("period",
                         data={
                             "name": period["name"],
