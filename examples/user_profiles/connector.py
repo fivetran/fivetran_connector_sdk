@@ -88,7 +88,7 @@ def get_data(cursor):
     location_df = pd.DataFrame([])
     login_df = pd.DataFrame([])
 
-    for i in range(3):
+    for i in range(10):
         # Increment primary key
         cursor += 1
 
