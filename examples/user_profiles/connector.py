@@ -35,7 +35,7 @@ def schema(configuration: dict):
             }
         },
         {
-            "table": "Login",
+            "table": "login",
             "primary_key": ["profileId"],
             "columns": {
                 "profileId": "INT",
