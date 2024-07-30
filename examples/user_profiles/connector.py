@@ -142,7 +142,3 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     connector.debug()
-
-        
-
-
