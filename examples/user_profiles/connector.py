@@ -24,9 +24,9 @@ def schema (configuration: dict):
         },
         {
             "table": "location",
-            "primary_key": ["locationId"],
+            "primary_key": ["profileId"],
             "columns": {
-                "locationId": "INT",
+                "profileId": "INT",
                 "street": "STRING",
                 "city": "STRING",
                 "state": "STRING",
@@ -36,9 +36,9 @@ def schema (configuration: dict):
         },
         {
             "table": "Login",
-            "primary_key": ["loginId"],
+            "primary_key": ["profileId"],
             "columns": {
-                "loginId": "INT",
+                "profileId": "INT",
                 "uuid": "STRING",
                 "username": "STRING",
                 "password": "STRING"
@@ -66,7 +66,7 @@ def update(configuration: dict, state: dict):
     for index, row in location_df.iterrows(): 
         yield op.upsert("location", { col: row[col] for col in location_df.columns})
         if index%5 == 0: 
-            state["location_cursor"] = row["locationId"]
+            state["location_cursor"] = row["profileId"]
             yield op.checkpoint(state)
     # Checkpointing at last
     state["location_cursor"] = cursor
@@ -76,7 +76,7 @@ def update(configuration: dict, state: dict):
     for index, row in login_df.iterrows(): 
         yield op.upsert("login", { col: row[col] for col in login_df.columns})
         if index%5 == 0: 
-            state["login_cursor"] = row["loginId"]
+            state["login_cursor"] = row["profileId"]
             yield op.checkpoint(state)
     # Checkpointing at last
     state["login_cursor"] = cursor
@@ -115,7 +115,7 @@ def get_data(cursor):
         # get "location" table data
         location_details = data["location"]
         location_data = {
-            "locationId": cursor,
+            "profileId": cursor,
             "street": str(location_details["street"]["number"]) + " " + location_details["street"]["name"],
             "city": location_details["city"],
             "state": location_details["state"],
@@ -127,7 +127,7 @@ def get_data(cursor):
         # get "Login" table data
         login_details = data["login"]
         login_data = {
-            "loginId": cursor, 
+            "profileId": cursor, 
             "uuid": login_details["uuid"],
             "username": login_details["username"],
             "password": login_details["password"]
