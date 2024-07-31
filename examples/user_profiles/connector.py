@@ -5,7 +5,7 @@ import requests as rq
 import pandas as pd
 
 
-def schema (configuration: dict):
+def schema(configuration: dict):
     return [
         {
             "table": "profile",
@@ -53,19 +53,19 @@ def update(configuration: dict, state: dict):
     profile_df, location_df, login_df, cursor = get_data(profile_cursor)
 
     # UPSERT all profile table data and checkpointing after every 5 records
-    for index,row in profile_df.iterrows():
-        yield op.upsert("profile", { col: row[col] for col in profile_df.columns})
-        if index%5 == 0: 
+    for index, row in profile_df.iterrows():
+        yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
+        if index % 5 == 0:
             state["profile_cursor"] = row["id"]
             yield op.checkpoint(state)
     # Checkpointing at last
     state["profile_cursor"] = cursor
     yield op.checkpoint(state)
-    
+
     # Upserting data in "location" table in below loop
-    for index, row in location_df.iterrows(): 
-        yield op.upsert("location", { col: row[col] for col in location_df.columns})
-        if index%5 == 0: 
+    for index, row in location_df.iterrows():
+        yield op.upsert("location", {col: row[col] for col in location_df.columns})
+        if index % 5 == 0:
             state["location_cursor"] = row["profileId"]
             yield op.checkpoint(state)
     # Checkpointing at last
@@ -73,9 +73,9 @@ def update(configuration: dict, state: dict):
     yield op.checkpoint(state)
 
     # Upserting data in "login" table in below loop
-    for index, row in login_df.iterrows(): 
-        yield op.upsert("login", { col: row[col] for col in login_df.columns})
-        if index%5 == 0: 
+    for index, row in login_df.iterrows():
+        yield op.upsert("login", {col: row[col] for col in login_df.columns})
+        if index % 5 == 0:
             state["login_cursor"] = row["profileId"]
             yield op.checkpoint(state)
     # Checkpointing at last
@@ -110,7 +110,7 @@ def get_data(cursor):
             "mobile": data["cell"],
             "nationality": data["nat"]
         }
-        profile_df = pd.concat([profile_df, pd.DataFrame([profile_data])], ignore_index= True)
+        profile_df = pd.concat([profile_df, pd.DataFrame([profile_data])], ignore_index=True)
 
         # get "location" table data
         location_details = data["location"]
@@ -127,18 +127,17 @@ def get_data(cursor):
         # get "Login" table data
         login_details = data["login"]
         login_data = {
-            "profileId": cursor, 
+            "profileId": cursor,
             "uuid": login_details["uuid"],
             "username": login_details["username"],
             "password": login_details["password"]
         }
         login_df = pd.concat([login_df, pd.DataFrame([login_data])], ignore_index=True)
-    
+
     return profile_df, location_df, login_df, cursor
 
 
 connector = Connector(update=update, schema=schema)
-
 
 if __name__ == "__main__":
     connector.debug()
