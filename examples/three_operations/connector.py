@@ -5,7 +5,9 @@
 
 import uuid  # Import the uuid module to generate unique identifiers.
 
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 
@@ -23,7 +25,7 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and will be used to perform operations in the connector.
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
@@ -36,23 +38,26 @@ def update(configuration: dict, state: dict):
 
     # Loop through the generated ids and yield an upsert operation for each.
     for ii, id in enumerate(ids):
-        print(f"adding {id}")
+        log.fine(f"adding {id}")
         # Yield an upsert operation to insert/update the row in the "three" table.
         yield op.upsert(table="three", data={"id": id, "val1": id, "val2": ii})
 
-    print(f"updating {ids[1]} to 'abc'")
+    log.fine(f"updating {ids[1]} to 'abc'")
     # Yield an update operation to modify the row with the second id in the "three" table.
     yield op.update(table="three", modified={"id": ids[1], "val1": "abc"})
 
-    print(f"deleting {ids[2]}")
+    log.fine(f"deleting {ids[2]}")
     # Yield a delete operation to remove the row with the third id from the "three" table.
     yield op.delete(table="three", keys={"id": ids[2]})
 
 
-# Instantiate a Connector object from the Connector class, passing the update and schema functions as parameters.
-# This creates a new connector that will use these functions to define its behavior.
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()

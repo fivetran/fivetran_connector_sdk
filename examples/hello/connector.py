@@ -3,11 +3,13 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 
-# Define the update function, which is a required function, which will be used to perform operations in the connector.
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
@@ -20,13 +22,17 @@ def update(configuration: dict, state: dict):
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into, in this case, "hello".
     # - The second argument is a dictionary containing the data to be upserted,
-    yield op.upsert("hello", {"message": "hello, world!"})
+    log.fine(f"upserting to table 'hello'")
+    yield op.upsert(table="hello", data={"message": "hello, world!"})
 
 
-# Instantiate a Connector object from the Connector class, passing the update function as a parameter.
-# This creates a new connector that will use the update function to run updates.
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()

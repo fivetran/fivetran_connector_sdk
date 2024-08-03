@@ -7,6 +7,7 @@
 from datetime import datetime  # Import datetime for handling date and time conversions.
 
 import requests as rq  # Import the requests module for making HTTP requests, aliased as rq.
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector  # Import the Connector class from the fivetran_connector_sdk module.
 from fivetran_connector_sdk import Logging as log  # Import the Logging class from the fivetran_connector_sdk module, aliased as log.
 from fivetran_connector_sdk import Operations as op  # Import the Operations class from the fivetran_connector_sdk module, aliased as op.
@@ -37,7 +38,7 @@ def str2dt(incoming: str) -> datetime:
     return datetime.strptime(incoming, "%Y-%m-%dT%H:%M:%S%z")
 
 
-# Define the update function, which is a required function, and will be used to perform operations in the connector.
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
@@ -68,7 +69,7 @@ def update(configuration: dict, state: dict):
         log.fine(f"period={period['name']}")
 
         # Yield an upsert operation to insert/update the row in the "period" table.
-        yield op.upsert("period",
+        yield op.upsert(table="period",
                         data={
                             "name": period["name"],  # Name of the period.
                             "startTime": period["startTime"],  # Start time of the period.
@@ -80,15 +81,18 @@ def update(configuration: dict, state: dict):
         cursor = period['endTime']
 
     # Save the cursor for the next sync by yielding a checkpoint operation.
-    yield op.checkpoint({
+    yield op.checkpoint(state={
         "startTime": cursor
     })
 
 
-# Instantiate a Connector object from the Connector class, passing the update and schema functions as parameters.
-# This creates a new connector that will use these functions to define its behavior.
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug()

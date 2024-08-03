@@ -3,7 +3,9 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 
@@ -17,12 +19,12 @@ def schema(configuration: dict):
         {
             "table": "unspecified",  # Name of the table in the destination.
             "primary_key": ["id"],  # Primary key column(s) for the table.
-            # Note: No columns are defined, meaning the types will be inferred.
+            # No columns are defined, meaning the types will be inferred.
         },
     ]
 
 
-# Define the update function, which is a required function, and will be used to perform operations in the connector.
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
@@ -33,6 +35,7 @@ def update(configuration: dict, state: dict):
     # Yield an upsert operation to insert/update the row in the "unspecified" table.
     # The data dictionary contains various data types.
     # Since the schema does not specify column types, they will be inferred from the data.
+    log.fine("upserting to table 'unspecified'")
     yield op.upsert(
         table="unspecified",
         data={
@@ -55,10 +58,13 @@ def update(configuration: dict, state: dict):
     )
 
 
-# Instantiate a Connector object from the Connector class, passing the update and schema functions as parameters.
-# This creates a new connector that will use these functions to define its behavior.
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     result = connector.debug()

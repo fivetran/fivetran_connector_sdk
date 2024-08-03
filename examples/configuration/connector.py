@@ -8,7 +8,9 @@ import json  # Import the json module to handle JSON data.
 
 # Import the Fernet class from the cryptography module for encryption and decryption. The cryptography module is listed as a requirement in requirements.txt
 from cryptography.fernet import Fernet
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # This is an encrypted message that will be decrypted using a key from the configuration.
@@ -29,11 +31,12 @@ def schema(configuration: dict):
         {
             "table": "crypto",  # Name of the table in the destination.
             "primary_key": ["msg"],  # Primary key column(s) for the table.
+            # No columns are defined, meaning the types will be inferred.
         }
     ]
 
 
-# Define the update function, which is a required function, and will be used to perform operations in the connector.
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
@@ -47,18 +50,23 @@ def update(configuration: dict, state: dict):
     f = Fernet(key.encode())
 
     # Decrypt the encrypted message using the Fernet object.
+    log.fine("decrypting the message")
     message = f.decrypt(encrypted_message)
 
     # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
-    yield op.upsert(table="crypto", data={
-        'msg': message.decode()  # Decode the decrypted message to a string.
-    })
+    yield op.upsert(table="crypto",
+                    data={
+                        'msg': message.decode()  # Decode the decrypted message to a string.
+                    })
 
 
-# Instantiate a Connector object from the Connector class, passing the update and schema functions as parameters.
-# This creates a new connector that will use these functions to define its behavior.
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
     with open("configuration.json", 'r') as f:
