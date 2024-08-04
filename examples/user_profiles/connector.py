@@ -47,6 +47,10 @@ def update(configuration: dict, state: dict):
     # Fetch new data and return DataFrames for profile, location, and login tables
     profile_df, location_df, login_df, cursor = get_data(profile_cursor)
 
+
+    # Approaches to upsert the records from dataFrame
+
+    # APPROACH - 1
     # UPSERT all profile table data, checkpoint periodically to save progress. In this example every 5 records.
     for index, row in profile_df.iterrows():
         yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
@@ -58,23 +62,21 @@ def update(configuration: dict, state: dict):
     state["profile_cursor"] = cursor
     yield op.checkpoint(state)
 
-    # UPSERT all location table data, checkpoint periodically to save progress. In this example every 5 records.
-    for index, row in location_df.iterrows():
-        yield op.upsert("location", {col: row[col] for col in location_df.columns})
-        if index % 5 == 0:
-            state["location_cursor"] = row["profileId"]
-            yield op.checkpoint(state)
-    
+    # APPROACH - 2
+    # UPSERT all location table data.
+    # Iterate over each row in the DataFrame, converting it to a dictionary
+    for row in location_df.to_dict("records"):
+        yield op.upsert("location", row)
+
     # Checkpointing at the end of the "location" table data processing
     state["location_cursor"] = cursor
     yield op.checkpoint(state)
 
-    # UPSERT all login table data, checkpoint periodically to save progress. In this example every 5 records.
-    for index, row in login_df.iterrows():
-        yield op.upsert("login", {col: row[col] for col in login_df.columns})
-        if index % 5 == 0:
-            state["login_cursor"] = row["profileId"]
-            yield op.checkpoint(state)
+    # APPROACH - 3
+    # UPSERT all login table data.
+    # Iterate over the values of the dictionary (which are the DataFrame rows)
+    for value in login_df.to_dict("index").values():
+        yield op.upsert("login", value)
     
     # Checkpointing at the end of the "login" table data processing
     state["login_cursor"] = cursor
