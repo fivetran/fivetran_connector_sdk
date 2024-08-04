@@ -89,7 +89,7 @@ def get_data(cursor):
     login_df = pd.DataFrame([])
 
     # Fetch data for 10 iterations, each with a new profile
-    for i in range(10):
+    for i in range(2):
         # Increment primary key
         cursor += 1
 
@@ -108,7 +108,7 @@ def get_data(cursor):
             "date": data["dob"]["date"],
             "mobile": data["cell"],
             "nationality": data["nat"],
-            "picture": data["picture"] # Store the JSON data
+            "picture": data["picture"] # Stores the JSON data e.g. {"large":"https://randomuser.me/api/portraits/women/67.jpg","medium":"https://randomuser.me/api/portraits/med/women/67.jpg","thumbnail":"https://randomuser.me/api/portraits/thumb/women/67.jpg"}
         }
         profile_df = pd.concat([profile_df, pd.DataFrame([profile_data])], ignore_index=True)
 
