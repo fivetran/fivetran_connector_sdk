@@ -1,105 +1,104 @@
+# This is a simple example for how to work with the fivetran_connector_sdk module.
+# It shows the use of a requirements.txt file and a connector that calls a publicly available API to get random profile data
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
-import requests as rq
+import requests as rq # Import the requests module for making HTTP requests, aliased as rq.
 import pandas as pd
 
-
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     return [
         {
             "table": "profile",
             "primary_key": ["id"],
-            "columns": {
-                "id": "INT",
-                "gender": "STRING",
-                "fullName": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "date": "STRING",
-                "mobile": "STRING",
-                "nationality": "STRING"
-            }
-
+            # Columns and data types will be inferred by Fivetran
         },
         {
             "table": "location",
             "primary_key": ["profileId"],
-            "columns": {
-                "profileId": "INT",
-                "street": "STRING",
-                "city": "STRING",
-                "state": "STRING",
-                "country": "STRING",
-                "postcode": "STRING"
-            }
+            # Columns and data types will be inferred by Fivetran
         },
         {
             "table": "login",
             "primary_key": ["profileId"],
-            "columns": {
-                "profileId": "INT",
-                "uuid": "STRING",
-                "username": "STRING",
-                "password": "STRING"
-            }
+            # Columns and data types will be inferred by Fivetran
         }
     ]
 
-
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
+# - state: a dictionary containing the state checkpointed during the prior sync.
+#   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    # Retrieve the last processed profile ID from state or set it to 0 if not present
     profile_cursor = state["profile_cursor"] if "profile_cursor" in state else 0
 
+    # Fetch new data and return DataFrames for profile, location, and login tables
     profile_df, location_df, login_df, cursor = get_data(profile_cursor)
 
-    # UPSERT all profile table data and checkpointing after every 5 records
+    # UPSERT all profile table data, checkpoint periodically to save progress. In this example every 5 records.
     for index, row in profile_df.iterrows():
         yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
         if index % 5 == 0:
             state["profile_cursor"] = row["id"]
             yield op.checkpoint(state)
-    # Checkpointing at last
+    
+    # Checkpointing at the end of the "profile" table data processing
     state["profile_cursor"] = cursor
     yield op.checkpoint(state)
 
-    # Upserting data in "location" table in below loop
+    # UPSERT all location table data, checkpoint periodically to save progress. In this example every 5 records.
     for index, row in location_df.iterrows():
         yield op.upsert("location", {col: row[col] for col in location_df.columns})
         if index % 5 == 0:
             state["location_cursor"] = row["profileId"]
             yield op.checkpoint(state)
-    # Checkpointing at last
+    
+    # Checkpointing at the end of the "location" table data processing
     state["location_cursor"] = cursor
     yield op.checkpoint(state)
 
-    # Upserting data in "login" table in below loop
+    # UPSERT all login table data, checkpoint periodically to save progress. In this example every 5 records.
     for index, row in login_df.iterrows():
         yield op.upsert("login", {col: row[col] for col in login_df.columns})
         if index % 5 == 0:
             state["login_cursor"] = row["profileId"]
             yield op.checkpoint(state)
-    # Checkpointing at last
+    
+    # Checkpointing at the end of the "login" table data processing
     state["login_cursor"] = cursor
     yield op.checkpoint(state)
 
 
+# Function to fetch data from an API and process it into DataFrames
 def get_data(cursor):
+    # Initialize empty DataFrames for profile, location, and login tables
     profile_df = pd.DataFrame([])
     location_df = pd.DataFrame([])
     login_df = pd.DataFrame([])
 
+    # Fetch data for 10 iterations, each with a new profile
     for i in range(10):
         # Increment primary key
         cursor += 1
 
-        # Request for fetching profile data
+        # Request data from an external API
         response = rq.get("https://randomuser.me/api/")
-
-        # extract and process data
         data = response.json()
         data = data["results"][0]
 
-        # get "profile" table data
+        # Process and store profile data
         profile_data = {
             "id": cursor,
             "fullName": data["name"]["title"] + " " + data["name"]["first"] + " " + data["name"]["last"],
@@ -108,11 +107,12 @@ def get_data(cursor):
             "age": data["dob"]["age"],
             "date": data["dob"]["date"],
             "mobile": data["cell"],
-            "nationality": data["nat"]
+            "nationality": data["nat"],
+            "picture": data["picture"] # Store the JSON data
         }
         profile_df = pd.concat([profile_df, pd.DataFrame([profile_data])], ignore_index=True)
 
-        # get "location" table data
+        # Process and store location data
         location_details = data["location"]
         location_data = {
             "profileId": cursor,
@@ -124,7 +124,7 @@ def get_data(cursor):
         }
         location_df = pd.concat([location_df, pd.DataFrame([location_data])], ignore_index=True)
 
-        # get "Login" table data
+        # Process and store login data
         login_details = data["login"]
         login_data = {
             "profileId": cursor,
@@ -136,8 +136,13 @@ def get_data(cursor):
 
     return profile_df, location_df, login_df, cursor
 
-
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug()
