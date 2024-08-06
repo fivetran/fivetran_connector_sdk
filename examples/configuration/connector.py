@@ -72,3 +72,11 @@ if __name__ == "__main__":
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
+
+# Resulting table:
+# ┌────────────────────────────────────────────────┐
+# │                      msg                       │
+# │                    varchar                     │
+# ├────────────────────────────────────────────────┤
+# │ If you can read this, you have the correct key │
+# └────────────────────────────────────────────────┘

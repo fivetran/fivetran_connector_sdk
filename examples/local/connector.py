@@ -73,3 +73,11 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
+
+# Resulting table:
+# ┌───────┬─────────────┐
+# │  id   │   message   │
+# │ int32 │   varchar   │
+# ├───────┼─────────────┤
+# │    10 │ Hello world │
+# └───────┴─────────────┘

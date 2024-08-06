@@ -38,3 +38,11 @@ connector = Connector(update=update)
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
+
+# Resulting table:
+# ┌───────────────┐
+# │    message    │
+# │    varchar    │
+# ├───────────────┤
+# │ hello, world! │
+# └───────────────┘
