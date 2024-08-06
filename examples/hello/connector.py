@@ -1,5 +1,6 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # It defines a simple `update` method, which upserts some data to a table named "hello".
+# This example is the simplest possible as it doesn't define a schema() function, however it does not therefore provide a good template for writing a real connector.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -26,7 +27,8 @@ def update(configuration: dict, state: dict):
     yield op.upsert(table="hello", data={"message": "hello, world!"})
 
 
-# This creates the connector object that will use the update and schema functions defined in this connector.py file.
+# This creates the connector object that will use the update function defined in this connector.py file.
+# This example does not use the schema() function, if it did it would need to be included in the connector object definition. 
 connector = Connector(update=update)
 
 # Check if the script is being run as the main module.

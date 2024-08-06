@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
-# Define the SOURCE_DATA which simulates the source data that will be upstarted to Fivetran.
+# Define the SOURCE_DATA which simulates the source data that will be upserted to Fivetran.
 SOURCE_DATA = [
     {"id": 10, "message": "Hello world"},
     {"id": 20, "message": "Hello again"},
@@ -29,7 +29,7 @@ def schema(configuration: dict):
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "message": "STRING",  # Contains a dictionary of column names and data types
-            },
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
@@ -42,7 +42,7 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    # Retrieve the cursor from the state to determine the current position in the SOURCE_DATA.
+    # Retrieve the cursor from the state object to determine the current position in the SOURCE_DATA.
     # If the cursor is not present in the state, start from the beginning (cursor = 0).
     cursor = state['cursor'] if 'cursor' in state else 0
     log.fine(f"current cursor is {repr(cursor)}")
@@ -72,7 +72,4 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
-    result = connector.debug()
-    if result:
-        print("Success! You can publish your code now if you like: "
-              "`DEPLOY_KEY=XXXX python -m fivetran_custom_sdk main.py --deploy`")
+    connector.debug()

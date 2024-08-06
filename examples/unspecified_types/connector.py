@@ -20,6 +20,7 @@ def schema(configuration: dict):
             "table": "unspecified",  # Name of the table in the destination.
             "primary_key": ["id"],  # Primary key column(s) for the table.
             # No columns are defined, meaning the types will be inferred.
+            # Column names will be taken directly from the keys sent in the data
         },
     ]
 
@@ -38,7 +39,7 @@ def update(configuration: dict, state: dict):
     log.fine("upserting to table 'unspecified'")
     yield op.upsert(
         table="unspecified",
-        data={
+        data={  # The keys sent here, e.g. id, _bool, _short, _ndatetime etc,. will be used as column names
             "id": 1,  # Primary key.
             "_bool": True,  # Boolean value.
             "_short": 15,  # Short integer value.

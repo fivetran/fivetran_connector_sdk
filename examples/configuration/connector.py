@@ -1,6 +1,5 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # It shows the use of a requirements.txt file and a configuration.json file to pass a credential key into the connector code and use it to decrypt a message
-# to get the weather forecast data for Myrtle Beach in South Carolina, USA.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
