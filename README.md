@@ -25,6 +25,9 @@ Upserts all data types without specifying a schema
 ## three_operations
 Shows how to use upsert, update and delete operations
 
+## user_profiles
+Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+
 ## weather
 A realistic example, using a public API, fetching data from NOAA
 
