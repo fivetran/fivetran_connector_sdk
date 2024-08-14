@@ -118,6 +118,11 @@ def sync_items(current_url, params, state):
 #
 # Api response looks like:
 # {
+#   "data": [
+#     {"id": 1, "name": "Widget A", "description": "A basic widget", ... },
+#     {"id": 2, "name": "Widget B", "description": "A more advanced widget", ... },
+#     ...
+#   ],
 #   "pages": {
 #     "type": "pages",
 #     "next": {
@@ -128,7 +133,6 @@ def sync_items(current_url, params, state):
 #     "per_page": 100,
 #     "total_pages": 50
 #   }
-#   ...
 # }
 #
 # For real API example you can refer Drift's Account Listing API: https://devdocs.drift.com/docs/listing-accounts
@@ -162,6 +166,7 @@ def should_continue_pagination(current_url, params, response_page):
 def get_api_response(current_url, params):
     log.info(f"Making API call to url: {current_url} with params: {params}")
     response = rq.get(current_url, params=params)
+    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     response_page = response.json()
     return response_page
 

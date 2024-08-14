@@ -1,13 +1,13 @@
-# This is a simple example for how to work with page-number-based pagination for a REST API.
+# This is a simple example of how to work with key-based pagination for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "item".
-# THIS EXAMPLE IS THE JUST FOR UNDERSTANDING AND NEEDS MODIFICATION OF A REAL API URL TO MAKE IT WORK.
+# THIS EXAMPLE IS JUST FOR UNDERSTANDING AND NEEDS MODIFICATION OF A REAL API URL TO MAKE IT WORK.
 # See the Technical Reference documentation
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-# Import requests to make HTTP calls to API
+# Import requests to make HTTP calls to API.
 import requests as rq
-# Import required classes from fivetran_connector_sdk
+# Import required classes from fivetran_connector_sdk.
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
@@ -38,9 +38,9 @@ def schema(configuration: dict):
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector.
+# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
+# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
     base_url = "https://example.com/api/items/"  # TODO: REPLACE WITH ACTUAL URL BEFORE RUNNING
 
@@ -66,10 +66,10 @@ def update(configuration: dict, state: dict):
 # 4. Saves the state periodically to ensure the sync can resume from the correct point.
 # 5. Continues fetching and processing data from the API until all pages are processed.
 #
-# The function takes four parameters:
+# The function takes three parameters:
 # - base_url: The URL to the API endpoint.
 # - params: A dictionary of query parameters to be sent with the API request.
-# - state: A dictionary representing the current state of the sync, including the last processed page number.
+# - state: A dictionary representing the current state of the sync, including the last retrieved key.
 def sync_items(base_url, params, state):
     more_data = True
 
@@ -77,10 +77,10 @@ def sync_items(base_url, params, state):
         # Get response from API call.
         response_page = get_api_response(base_url, params)
 
-        # Process the items
+        # Process the items.
         items = response_page.get("data", [])
         if not items:
-            break  # End pagination if there are no records in response
+            break  # End pagination if there are no records in response.
 
         # Iterate over each item in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
@@ -93,50 +93,46 @@ def sync_items(base_url, params, state):
         # from the correct position in case of interruptions.
         op.checkpoint(state)
 
-        more_data, params = should_continue_pagination(params, response_page)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of interruptions.
+        more_data = should_continue_pagination(params, response_page)
 
 
-# The should_continue_pagination function determines whether the pagination process should continue
-# based on the current page and total pages in the API response.
+# The should_continue_pagination function determines whether pagination should continue based on the presence of a
+# 'scroll_param' in the API response.
 # It performs the following tasks:
-# 1. Retrieves the current page number and total number of pages from the API response.
-# 2. Checks if the current page is less than the total number of pages.
-# 3. If more pages are available, increments the page number in the parameters for the next request.
-# 4. If no more pages are available, sets the flag to end the pagination process.
+# 1. Retrieves the 'scroll_param' value from the API response, which is used to fetch the next page of data.
+# 2. If a 'next_key' is found, updates the parameters with this key to be used in the next API request.
+# 3. If no 'next_key' is present, sets the flag to end the pagination process.
 #
-# The function takes two parameters:
-# - params: A dictionary of query parameters used in the API request, which will be updated with the next page number.
+# Parameters:
+# - params: A dictionary of query parameters used in the API request. It will be updated with the 'next_key' if found.
 # - response_page: A dictionary representing the parsed JSON response from the API.
 #
 # Returns:
 # - has_more_pages: A boolean indicating whether there are more pages to retrieve.
+# - params: The updated query parameters for the next API request, including the 'scroll_param' if present.
 #
 # API response will look like the following structure:
 # {
 #   "data": [
-#     {"id": 1, "name": "Widget E", "description": "An eco-friendly widget", ... },
-#     {"id": 2, "name": "Widget F", "description": "A smart widget", ... }
+#     {"id": 1, "name": "Widget G", "description": "A green widget", ... },
+#     {"id": 2, "name": "Widget H", "description": "A futuristic widget", ... }
 #   ],
-#   "page": 3,       // Current page number
-#   "page_size": 10, // Number of items per page
-#   "total_pages": 10, // Total number of pages
-#   "total_items": 100 // Total number of items available (optional)
+#   "total_count": 100,
+#   "scroll_param": "n3h3nbj23n-213f-wef2-344s-9n3idn34if"
 # }
 #
-# For real API example you can refer Jamf's API Roles API: https://developer.jamf.com/jamf-pro/reference/getallapiroles
+# For real API example you can refer Intercom's Companies Scroll API:
+# https://developers.intercom.com/docs/references/rest-api/api.intercom.io/companies/scrolloverallcompanies
 def should_continue_pagination(params, response_page):
     has_more_pages = True
 
-    # Determine if there are more pages to continue the pagination
-    current_page = response_page.get("page")
-    total_pages = response_page.get("total_pages")
-
-    if current_page and total_pages and current_page < total_pages:
-        # Increment the page number for the next request in params
-        params["page"] = current_page + 1
+    next_key = response_page.get("scroll_param")
+    if next_key:
+        params["scroll_param"] = next_key
     else:
-        has_more_pages = False  # End pagination if there is no more pages pending.
-
+        has_more_pages = False  # End pagination if no next_key is provided.
     return has_more_pages, params
 
 
@@ -177,8 +173,8 @@ if __name__ == "__main__":
 # │  id   │      name     │          description        │        updatedAt         │        createdAt          │
 # │ string│      string   │           string            │      timestamp with UTC  │      timestamp with UTC   │
 # ├───────┼───────────────┼─────────────────────────────┼──────────────────────────┼───────────────────────────┤
-# │ 001   │ Widget E      │ An eco-friendly widget      │ 2024-08-08T08:10:00Z     │ 2024-08-05T14:25:00Z      │
-# │ 002   │ Widget F      │ A smart widget              │ 2024-08-07T07:10:00Z     │ 2024-08-06T15:30:00Z      │
+# │ 001   │ Widget G      │ A green widget              │ 2024-08-09T09:11:00Z     │ 2024-08-05T14:25:00Z      │
+# │ 002   │ Widget H      │ A futuristic widget         │ 2024-08-08T08:12:00Z     │ 2024-08-06T15:30:00Z      │
 # ├───────┴───────────────┴─────────────────────────────┴──────────────────────────┴───────────────────────────┤
 # │  2 rows                                                                                          5 columns │
 # └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
