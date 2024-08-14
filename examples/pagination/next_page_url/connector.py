@@ -93,7 +93,7 @@ def sync_items(current_url, params, state):
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
-        op.checkpoint(state)
+        yield op.checkpoint(state)
 
         current_url, more_data, params = should_continue_pagination(current_url, params, response_page)
 
