@@ -16,6 +16,13 @@ Simplest example, append-only
 ## local
 Emulated source, without any calls out to the internet
 
+## pagination
+Simple pagination example templates for following types of paginations:
+- keyset
+- next_page_url
+- offset_based
+- page_number
+
 ## specified_types
 Declares a schema and upserts all data types
 
