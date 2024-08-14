@@ -45,7 +45,8 @@ def update(configuration: dict, state: dict):
     base_url = "https://example.com/api/items/"  # TODO: REPLACE WITH ACTUAL URL BEFORE RUNNING
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
-    # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
+    # If the cursor is not present in the state (initial sync or full resync case), start from the beginning of time
+    # ('0001-01-01T00:00:00Z'). Make sure the format is time is valid for parsing.
     cursor = state['last_updated_at'] if 'last_updated_at' in state else '0001-01-01T00:00:00Z'
 
     params = {
