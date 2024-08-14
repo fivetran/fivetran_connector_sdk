@@ -95,7 +95,7 @@ def sync_items(base_url, params, state):
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
-        more_data = should_continue_pagination(params, response_page)
+        more_data, params = should_continue_pagination(params, response_page)
 
 
 # The should_continue_pagination function determines whether pagination should continue based on the presence of a

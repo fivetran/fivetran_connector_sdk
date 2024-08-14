@@ -93,7 +93,7 @@ def sync_items(base_url, params, state):
         op.checkpoint(state)
 
         # Determine if we should continue pagination based on the total items and the current offset.
-        more_data = should_continue_pagination(params, response_page, len(items))
+        more_data, params = should_continue_pagination(params, response_page, len(items))
 
 
 # The should_continue_pagination function determines whether pagination should continue based on the
