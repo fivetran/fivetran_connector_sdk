@@ -16,8 +16,11 @@ Simplest example, append-only
 ## local
 Emulated source, without any calls out to the internet
 
+## multiple_tables_with_cursors
+The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
+
 ## pagination
-Simple pagination example templates for following types of paginations:
+Simple pagination example templates for the following types of paginations:
 - keyset
 - next_page_url
 - offset_based
