@@ -1,27 +1,28 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-
-
+# This shows key based replication from DB sources.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-from datetime import datetime  # Import datetime for handling date and time conversions.
-
-import duckdb  # import duckdb to interact with DuckDB databases from within your Python code.
-import json  # Import the json module to handle JSON data.
+# Import datetime for handling date and time conversions.
+from datetime import datetime
+# import duckdb to interact with DuckDB databases from within your Python code.
+import duckdb
+# Import the json module to handle JSON data.
+import json
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
+timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
+time_based_column = "updated_at"
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
-
-timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
 def schema(configuration: dict):
     return [
         {
@@ -49,15 +50,20 @@ def dt2str(incoming: datetime) -> str:
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    last_synced = state["last_synced"] if "last_synced" in state else '2024-01-01T00:00:00Z'
-    conn = duckdb.connect("source_warehouse.db", read_only=True)
-    time_based_column = "updated_at"
-    log.fine(f"fetching records from `customer` table modified after {last_synced}")
+    # If the cursor is not present in the state, start from ('0001-01-01T00:00:00Z') to mimic incremental syncs.
+    last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
 
+    # Connect to duckdb instance.
+    conn = duckdb.connect("source_warehouse.db", read_only=True)
+
+    # Fetch records from DB sorted in ascending order.
     query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {time_based_column} > "
-             f"'{last_synced}' ORDER BY {time_based_column}")  # Replace with your actual table name
+             f"'{last_updated_at}' ORDER BY {time_based_column}")
+    # This log message will only show while debugging.
+    log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     result = conn.execute(query).fetchall()
 
+    # Yield an upsert operation to insert/update the row in the "customers" table.
     for row in result:
         yield op.upsert(table="customers",
                         data={
@@ -67,8 +73,12 @@ def update(configuration: dict, state: dict):
                             "email": row[3],  # Email id.
                             "updated_at": dt2str(row[4])  # record updated at.
                         })
-        last_synced = dt2str(row[4])
-    state["last_synced"] = last_synced
+        # Storing `updated_at` of last fetched record
+        last_updated_at = dt2str(row[4])
+
+    # Update the state to the updated_at of the last record.
+    state["last_updated_at"] = last_updated_at
+    # Save the cursor for the next sync by yielding a checkpoint operation.
     yield op.checkpoint(state)
 
 
