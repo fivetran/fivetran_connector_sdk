@@ -44,9 +44,7 @@ def dt2str(incoming: datetime) -> str:
     return incoming.strftime(timestamp_format)
 
 
-def setup_source_warehouse():
-    conn = duckdb.connect("files/source_warehouse.db")
-
+def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
     create_query = ("CREATE TABLE IF NOT EXISTS customers "
                     "(customer_id INTEGER PRIMARY KEY, "
                     "first_name VARCHAR, "
@@ -71,7 +69,6 @@ def setup_source_warehouse():
                     "updated_at = EXCLUDED.updated_at")
 
     conn.execute(insert_query)
-    conn.close()
 
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -82,13 +79,12 @@ def setup_source_warehouse():
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    # Connect to your database instance instance.
+    conn = duckdb.connect()
     # This is not required. This is just for example illustration purposes.
-    setup_source_warehouse()
+    setup_source_warehouse(conn)
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
     last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
-
-    # Connect to your database instance instance.
-    conn = duckdb.connect("files/source_warehouse.db", read_only=True)
 
     # Fetch records from DB sorted in ascending order.
     query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {time_based_column} > "
@@ -124,11 +120,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the state.json file and load its contents into a dictionary.
-    with open("state.json", 'r') as f:
-        state = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
-    connector.debug(state=state)
+    connector.debug()
 
 # Source table:
 # ┌───────────────────┬───────────────────┬───────────────────────────────────────────┬────────────────────────────┐
