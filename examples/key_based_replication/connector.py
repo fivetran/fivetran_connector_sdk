@@ -14,7 +14,8 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
-time_based_column = "updated_at"
+# This column is the replication key which helps determine which records are updated
+replication_key = "updated_at"
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -89,8 +90,8 @@ def update(configuration: dict, state: dict):
     last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
 
     # Fetch records from DB sorted in ascending order.
-    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {time_based_column} > "
-             f"'{last_updated_at}' ORDER BY {time_based_column}")
+    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {replication_key} > "
+             f"'{last_updated_at}' ORDER BY {replication_key}")
     # This log message will only show while debugging.
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     result = conn.execute(query).fetchall()
