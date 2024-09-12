@@ -7,8 +7,6 @@
 from datetime import datetime
 # import duckdb to interact with DuckDB databases from within your Python code.
 import duckdb
-# Import the json module to handle JSON data.
-import json
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -45,6 +43,7 @@ def dt2str(incoming: datetime) -> str:
 
 
 def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
+    # Creating a table.
     create_query = ("CREATE TABLE IF NOT EXISTS customers "
                     "(customer_id INTEGER PRIMARY KEY, "
                     "first_name VARCHAR, "
@@ -52,8 +51,10 @@ def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
                     "email VARCHAR, "
                     "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
 
+    # Executing create query.
     conn.execute(create_query)
 
+    # Inserting records to the table.
     insert_query = ("INSERT INTO customers (customer_id, first_name, last_name, email, updated_at) "
                     "VALUES "
                     "('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'), "
@@ -68,6 +69,7 @@ def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
                     "email = EXCLUDED.email, "
                     "updated_at = EXCLUDED.updated_at")
 
+    # Executing insert query.
     conn.execute(insert_query)
 
 
