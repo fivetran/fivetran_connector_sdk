@@ -1,5 +1,7 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # This shows key based replication from DB sources.
+# Replication keys are columns that are used to identify new and updated data for replication.
+# When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
@@ -13,9 +15,9 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
-timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
+TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # This column is the replication key which helps determine which records are updated
-replication_key = "updated_at"
+REPLICATION_KEY = "updated_at"
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -34,13 +36,14 @@ def schema(configuration: dict):
                 "last_name": "STRING",  # String column for the last name.
                 "email": "STRING",  # String column for the email.
                 "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
+                # In this example we are using `updated_at` as the replication key
             },
         }
     ]
 
 
 def dt2str(incoming: datetime) -> str:
-    return incoming.strftime(timestamp_format)
+    return incoming.strftime(TIMESTAMP_FORMAT)
 
 
 def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
@@ -90,8 +93,8 @@ def update(configuration: dict, state: dict):
     last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
 
     # Fetch records from DB sorted in ascending order.
-    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {replication_key} > "
-             f"'{last_updated_at}' ORDER BY {replication_key}")
+    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {REPLICATION_KEY} > "
+             f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}")
     # This log message will only show while debugging.
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     result = conn.execute(query).fetchall()
@@ -111,7 +114,8 @@ def update(configuration: dict, state: dict):
 
     # Update the state to the updated_at of the last record.
     state["last_updated_at"] = last_updated_at
-    # Save the cursor for the next sync by yielding a checkpoint operation.
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process
+    # can resume from the correct position in case of interruptions.
     yield op.checkpoint(state)
 
 
