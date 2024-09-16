@@ -1,6 +1,5 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-#
-#
+# This is an example to show how we can sync records from redshift DB via Connector SDK
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
