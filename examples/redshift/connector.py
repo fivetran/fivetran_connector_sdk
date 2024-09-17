@@ -109,26 +109,28 @@ def update(configuration: dict, state: dict):
     # This log message will only show while debugging.
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     cursor.execute(query)
-    result = cursor.fetchall()
 
-    # Yield an upsert operation to insert/update the row in the "customers" table.
-    for row in result:
-        yield op.upsert(table="customers",
-                        data={
-                            "customer_id": row[0],  # Customer id.
-                            "first_name": row[1],  # First Name.
-                            "last_name": row[2],  # Last name.
-                            "email": row[3],  # Email id.
-                            "updated_at": dt2str(row[4])  # record updated at.
-                        })
-        # Storing `updated_at` of last fetched record
-        last_updated_at = dt2str(row[4])
-
-    # Update the state to the updated_at of the last record.
-    state["last_updated_at"] = last_updated_at
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process
-    # can resume from the correct position in case of interruptions.
-    yield op.checkpoint(state)
+    while True:
+        result = cursor.fetchmany(2)
+        if len(result) == 0:
+            break
+        # Yield an upsert operation to insert/update the row in the "customers" table.
+        for row in result:
+            yield op.upsert(table="customers",
+                            data={
+                                "customer_id": row[0],  # Customer id.
+                                "first_name": row[1],  # First Name.
+                                "last_name": row[2],  # Last name.
+                                "email": row[3],  # Email id.
+                                "updated_at": dt2str(row[4])  # record updated at.
+                            })
+            # Storing `updated_at` of last fetched record
+            last_updated_at = dt2str(row[4])
+        # Update the state to the updated_at of the last record.
+        state["last_updated_at"] = last_updated_at
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process
+        # can resume from the correct position in case of interruptions.
+        yield op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
