@@ -7,17 +7,17 @@ from fivetran_connector_sdk import Logging as log
 import boto3
 import aws_dynamodb_parallel_scan
 
-def getDynamoDbClient(awsAccessKeyId: str, awsSecretAccessKey: str, roleArn: str, region: str):
+def getDynamoDbClient(configuration: dict):
     # create security token service client
     sts = boto3.client(
         'sts',
-       aws_access_key_id=awsAccessKeyId,
-       aws_secret_access_key=awsSecretAccessKey
+       aws_access_key_id=configuration['AWS_ACCESS_KEY_ID'],
+       aws_secret_access_key=configuration['AWS_SECRET_ACCESS_KEY']
     )
 
     # get role credentials
     credentials = sts.assume_role(
-        RoleArn=roleArn,
+        RoleArn=configuration['ROLE_ARN'],
         RoleSessionName="sdkSession"
     )['Credentials']
 
@@ -27,18 +27,13 @@ def getDynamoDbClient(awsAccessKeyId: str, awsSecretAccessKey: str, roleArn: str
         aws_access_key_id=credentials['AccessKeyId'],
         aws_secret_access_key=credentials['SecretAccessKey'],
         aws_session_token=credentials['SessionToken'],
-        region_name=region
+        region_name=configuration['REGION']
     )
 
     return dynamodbClient
 
 def schema(configuration: dict):
-    dynamoClient = getDynamoDbClient(
-        configuration['AWS_ACCESS_KEY_ID'],
-        configuration['AWS_SECRET_ACCESS_KEY'],
-        configuration['ROLE_ARN'],
-        configuration['REGION']
-    )
+    dynamoClient = getDynamoDbClient(configuration)
     schema = []
 
     try:
@@ -57,12 +52,7 @@ def schema(configuration: dict):
     return schema
 
 def update(configuration: dict, state: dict):
-    dynamoClient = getDynamoDbClient(
-        configuration['AWS_ACCESS_KEY_ID'],
-        configuration['AWS_SECRET_ACCESS_KEY'],
-        configuration['ROLE_ARN'],
-        configuration['REGION']
-    )
+    dynamoClient = getDynamoDbClient(configuration)
 
     try:
         # get paginator for parallel scan
