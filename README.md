@@ -46,3 +46,4 @@ Shows how to use secrets
 
 ## aws dynamo db authentication
 Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
+boto3 package is used to create aws client. Refer its [Docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
