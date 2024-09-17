@@ -43,3 +43,6 @@ A realistic example, using a public API, fetching data from NOAA
 
 ## configuration
 Shows how to use secrets
+
+## aws dynamo db authentication
+Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
