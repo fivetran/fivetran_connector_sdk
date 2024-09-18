@@ -103,6 +103,7 @@ def update(configuration: dict, state: dict):
     last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
 
     # Fetch records from DB sorted in ascending order.
+    # REPLICATION_KEY is updated_at column.
     query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM testers.customers WHERE {REPLICATION_KEY} > "
              f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}")
 
@@ -111,6 +112,7 @@ def update(configuration: dict, state: dict):
     cursor.execute(query)
 
     while True:
+        # Fetching 2 rows at a time so that we keep checkpointing in intervals.
         result = cursor.fetchmany(2)
         if len(result) == 0:
             break
