@@ -59,15 +59,15 @@ def setup_db(cursor):
     cursor.execute("DROP TABLE IF EXISTS testers.customers;")
 
     cursor.execute("CREATE TABLE IF NOT EXISTS testers.customers "
-                   "(customer_id INTEGER NOT NULL, "
+                   "(customer_id INTEGER PRIMARY KEY, "
                    "first_name VARCHAR, "
                    "last_name VARCHAR, "
                    "email VARCHAR, "
                    "city VARCHAR, "
                    "state VARCHAR, "
                    "country VARCHAR, "
-                   "updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP)"
-                   " DISTSTYLE KEY DISTKEY (customer_id) SORTKEY (updated_at)")
+                   "updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP) "
+                   "SORTKEY (updated_at)")
 
     cursor.execute("INSERT INTO testers.customers "
                    "(customer_id, first_name, last_name, email, city, state, country, updated_at) "
