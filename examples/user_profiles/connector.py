@@ -9,6 +9,7 @@ from fivetran_connector_sdk import Operations as op
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import pandas as pd
+import traceback
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -46,45 +47,53 @@ def schema(configuration: dict):
 
 
 def update(configuration: dict, state: dict):
-    # Retrieve the last processed profile ID from state or set it to 0 if not present
-    profile_cursor = state["profile_cursor"] if "profile_cursor" in state else 0
+    try: 
+        # Retrieve the last processed profile ID from state or set it to 0 if not present
+        profile_cursor = state["profile_cursor"] if "profile_cursor" in state else 0
 
-    # Fetch new data and return DataFrames for profile, location, and login tables
-    profile_df, location_df, login_df, cursor = get_data(profile_cursor)
+        # Fetch new data and return DataFrames for profile, location, and login tables
+        profile_df, location_df, login_df, cursor = get_data(profile_cursor)
 
-    # Approaches to upsert the records from dataFrame
+        # Approaches to upsert the records from dataFrame
 
-    # APPROACH 1: Gives you direct access to individual row values by column name, Slower approach, helpful for custom row handling
-    # UPSERT all profile table data, checkpoint periodically to save progress. In this example every 5 records.
-    for index, row in profile_df.iterrows():
-        yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
-        if index % 5 == 0:
-            state["profile_cursor"] = row["id"]
-            yield op.checkpoint(state)
+        # APPROACH 1: Gives you direct access to individual row values by column name, Slower approach, helpful for custom row handling
+        # UPSERT all profile table data, checkpoint periodically to save progress. In this example every 5 records.
+        for index, row in profile_df.iterrows():
+            yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
+            if index % 5 == 0:
+                state["profile_cursor"] = row["id"]
+                yield op.checkpoint(state)
 
-    # Checkpointing at the end of the "profile" table data processing
-    state["profile_cursor"] = cursor
-    yield op.checkpoint(state)
+        # Checkpointing at the end of the "profile" table data processing
+        state["profile_cursor"] = cursor
+        yield op.checkpoint(state)
 
-    # APPROACH 2: Generally faster and more memory-efficient, Simplifies the code since rows are already dictionaries and can be used directly
-    # UPSERT all location table data.
-    # Iterate over each row in the DataFrame, converting it to a dictionary
-    for row in location_df.to_dict("records"):
-        yield op.upsert("location", row)
+        # APPROACH 2: Generally faster and more memory-efficient, Simplifies the code since rows are already dictionaries and can be used directly
+        # UPSERT all location table data.
+        # Iterate over each row in the DataFrame, converting it to a dictionary
+        for row in location_df.to_dict("records"):
+            yield op.upsert("location", row)
 
-    # Checkpointing at the end of the "location" table data processing
-    state["location_cursor"] = cursor
-    yield op.checkpoint(state)
+        # Checkpointing at the end of the "location" table data processing
+        state["location_cursor"] = cursor
+        yield op.checkpoint(state)
 
-    # APPROACH 3: Faster approach, Keeps track of the original indices of the rows, which can be useful for certain operations that require indexing information.
-    # UPSERT all login table data.
-    # Iterate over the values of the dictionary (which are the DataFrame rows)
-    for value in login_df.to_dict("index").values():
-        yield op.upsert("login", value)
+        # APPROACH 3: Faster approach, Keeps track of the original indices of the rows, which can be useful for certain operations that require indexing information.
+        # UPSERT all login table data.
+        # Iterate over the values of the dictionary (which are the DataFrame rows)
+        for value in login_df.to_dict("index").values():
+            yield op.upsert("login", value)
 
-    # Checkpointing at the end of the "login" table data processing
-    state["login_cursor"] = cursor
-    yield op.checkpoint(state)
+        # Checkpointing at the end of the "login" table data processing
+        state["login_cursor"] = cursor
+        yield op.checkpoint(state)
+
+    except Exception as e:
+        exception_message = str(e)
+        stack_trace = traceback.format_exc()
+
+        detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
+        raise Exception(detailed_message)
 
 
 # Function to fetch data from an API and process it into DataFrames
