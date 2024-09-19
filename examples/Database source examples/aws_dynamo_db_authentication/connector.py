@@ -1,4 +1,11 @@
+# This is a simple example for how to work with the fivetran_connector_sdk module.
+# This shows how to authenticate to Aws using IAM role credentials and connector to DynamoDb to fetch records.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+
 # Refer boto3 docs (https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html)
+
+import json  # Import the json module to handle JSON data.
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -32,6 +39,11 @@ def getDynamoDbClient(configuration: dict):
 
     return dynamodbClient
 
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     dynamoClient = getDynamoDbClient(configuration)
     schema = []
@@ -51,6 +63,13 @@ def schema(configuration: dict):
 
     return schema
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
+# - state: a dictionary containing the state checkpointed during the prior sync.
+#   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
     dynamoClient = getDynamoDbClient(configuration)
 
@@ -93,5 +112,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug()
+    connector.debug(configuration=configuration)
