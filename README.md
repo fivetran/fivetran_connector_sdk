@@ -47,3 +47,12 @@ Shows how to use secrets
 ## aws dynamo db authentication
 Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
 boto3 package is used to create aws client. Refer its [Docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
+
+## redshift
+This is an example to show how we can sync records from redshift DB via Connector SDK.
+You would need to provide your redshift credentials for this example to work.
+
+## key based replication
+This shows key based replication from DB sources.
+Replication keys are columns that are used to identify new and updated data for replication.
+When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
