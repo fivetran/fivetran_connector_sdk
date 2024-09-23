@@ -10,36 +10,67 @@ See [Quickstart guide](https://fivetran.com/docs/connectors/connector-sdk/quicks
 # Examples
 There are several examples available under `/examples`:
 
-## hello
+<details>
+  <summary>
+    Quick start examples
+  </summary>
+
+### hello
 Simplest example, append-only
 
-## local
+### local
 Emulated source, without any calls out to the internet
 
-## multiple_tables_with_cursors
+### configuration
+Shows how to use secrets
+
+### user_profiles
+Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+
+### weather
+A realistic example, using a public API, fetching data from NOAA
+</details>
+
+<details>
+<summary>
+Common patterns for connectors
+</summary>
+
+### multiple_tables_with_cursors
 The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
 
-## pagination
+### pagination
 Simple pagination example templates for the following types of paginations:
 - keyset
 - next_page_url
 - offset_based
 - page_number
 
-## specified_types
+### specified_types
 Declares a schema and upserts all data types
 
-## unspecified_types
+### unspecified_types
 Upserts all data types without specifying a schema
 
-## three_operations
+### three_operations
 Shows how to use upsert, update and delete operations
+</details>
 
-## user_profiles
-Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+<details>
+<summary>
+Database source examples
+</summary>
 
-## weather
-A realistic example, using a public API, fetching data from NOAA
+### aws dynamo db authentication
+Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
+boto3 package is used to create aws client. Refer its [Docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
 
-## configuration
-Shows how to use secrets
+### redshift
+This is an example to show how we can sync records from redshift DB via Connector SDK.
+You would need to provide your redshift credentials for this example to work.
+
+### key based replication
+This shows key based replication from DB sources.
+Replication keys are columns that are used to identify new and updated data for replication.
+When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
+</details>
