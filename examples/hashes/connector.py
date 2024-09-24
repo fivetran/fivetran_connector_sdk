@@ -23,7 +23,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "user",  # Name of the table in the destination.
-            "primary_key": ["_fivetran_id"],  # Primary key column(s) for the table. Should we change the name?
+            "primary_key": ["_fivetran_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "first_name": "STRING",  # String column for the first name.
                 "last_name": "STRING",  # String column for the last name.
