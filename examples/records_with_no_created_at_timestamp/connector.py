@@ -34,14 +34,25 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
 
     # Represents a record fetched from source
-    row = {
+    row_1 = {
         "id": 123,
         "first_name": "John",  # First name.
         "last_name": "Doe",  # Last name.
+        "designation": "Manager",  # Designation
         "updated_at": "2007-12-03T10:15:30Z"  # Updated at timestamp.
     }
 
-    yield op.upsert(table="user", data=row)
+    # Represents another record fetched from source
+    row_2 = {
+        "id": 456,
+        "first_name": "Jane",  # First name.
+        "last_name": "Dalton",  # Last name.
+        "designation": "VP",  # Designation
+        "updated_at": "2008-11-12T00:00:20Z"  # Updated at timestamp.
+    }
+
+    yield op.upsert(table="user", data=row_1)
+    yield op.upsert(table="user", data=row_2)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
@@ -57,20 +68,30 @@ if __name__ == "__main__":
 
 # Resulting table:
 # ┌───────────┬───────────────────┬────────────────────────────────────────────┬────────────────────────────┐
-# │    id     │   first_name      │     last_name     │       email            │         updated_at         │
+# │    id     │   first_name      │     last_name     │    Designation         │         updated_at         │
 # │  integer  │     varchar       │      varchar      │      varchar           |  timestamp with time zone  │
 # ├───────────┼───────────────────┼───────────────────┼────────────────────────┤────────────────────────────│
-# │    123    │       John        │        Doe        │ john.doe@example.com   │    2007-12-03T10:15:30Z    │
+# │    123    │       John        │        Doe        │        Manager         │    2007-12-03T10:15:30Z    │
+# │    456    │       Jane        │       Dalton      │          VP            │    2007-12-03T10:15:30Z    │
 # └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-# Now lets say the record gets updated in source. This update will be synced to your destination table in the
-# successive sync. The table will look like the below after the successive sync:
-# ┌───────────┬───────────────────┬────────────────────────────────────────────┬────────────────────────────┐
-# │    id     │   first_name      │     last_name     │       email            │         updated_at         │
-# │  integer  │     varchar       │      varchar      │      varchar           |  timestamp with time zone  │
-# ├───────────┼───────────────────┼───────────────────┼────────────────────────┤────────────────────────────│
-# │    123    │       John        │        Doe        │ john.doe@example.com   │    2007-12-03T10:15:30Z    │
-# │    123    │       John        │        Doe        │ john.doe@example.com   │    2008-01-04T23:44:21Z    │
+# Now lets say the record represented by row_1 gets updated in source as below:
+# row_1_new = {
+#           "id": 123,
+#           "first_name": "John",
+#           "last_name": "Doe",
+#           "designation": "Senior Manager",      --> Value changed
+#           "updated_at": "2008-01-04T23:44:21Z"  --> Updated at timestamp changed.
+#       }
+# This update will be synced to your destination table in the successive sync.
+# The table will look like the below after the successive sync:
+# ┌───────────┬───────────────────┬───────────────────┬────────────────────────┬────────────────────────────┐
+# │    id     │   first_name      │     last_name     │    Designation         │         updated_at         │
+# │  integer  │     varchar       │      varchar      |      varchar           │  timestamp with time zone  │
+# ├───────────┼───────────────────┼───────────────────┤────────────────────────┼────────────────────────────│
+# │    123    │       John        │        Doe        │      Manager           │    2007-12-03T10:15:30Z    │
+# │    123    │       John        │        Doe        │   Senior Manager       │    2008-01-04T23:44:21Z    │
+# │    456    │       Jane        │       Dalton      │        VP              │    2007-12-03T10:15:30Z    │
 # └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 # Each sync will capture the latest update and will sync it as an additional record in the destination.
 # Updates between syncs cannot be captured this way. For explanation see https://fivetran.com/docs/core-concepts/sync-modes/history-mode#changestodatabetweensyncs
