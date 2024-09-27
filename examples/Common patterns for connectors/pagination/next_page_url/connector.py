@@ -21,12 +21,15 @@ from fivetran_connector_sdk import Operations as op
 def schema(configuration: dict):
     return [
         {
-            "table": "item",
+            "table": "user",
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
                 "name": "STRING",
-                "description": "STRING",
+                "email": "STRING",
+                "address": "STRING",
+                "company": "STRING",
+                "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
                 "createdAt": "UTC_DATETIME",
             },
@@ -42,7 +45,7 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    base_url = "https://example.com/api/items/"  # TODO: REPLACE WITH ACTUAL URL BEFORE RUNNING
+    base_url = "http://127.0.0.1:5052/pagination/next_page_url"
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
@@ -51,8 +54,8 @@ def update(configuration: dict, state: dict):
     params = {
         "order_by": "updatedAt",
         "order": "asc",
-        "since": cursor,
-        "per_page": 100,
+        "updated_since": cursor,
+        "per_page": 10,
     }
 
     current_url = base_url  # Start with the base URL and initial params
@@ -80,16 +83,16 @@ def sync_items(current_url, params, state):
         response_page = get_api_response(current_url, params)
 
         # Process the items
-        items = response_page.get("items", [])
+        items = response_page.get("data", [])
         if not items:
             more_data = False  # End pagination if there are no records in response
 
         # Iterate over each item in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        for item in items:
-            yield op.upsert(table="item", data=item)
-            state["last_updated_at"] = item["updatedAt"]
+        for user in items:
+            yield op.upsert(table="user", data=user)
+            state["last_updated_at"] = user["updatedAt"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
@@ -98,48 +101,9 @@ def sync_items(current_url, params, state):
         current_url, more_data, params = should_continue_pagination(current_url, params, response_page)
 
 
-# The should_continue_pagination function checks whether pagination should continue based on the presence of a
-# next page URL in the API response.
-# It performs the following tasks:
-# 1. Retrieves the URL for the next page of data using the get_next_page_url_from_response function.
-# 2. If a next page URL is found, updates the current URL to this new URL and clears the existing query parameters,
-# as they are included in the next URL.
-# 3. If no next page URL is found, sets the flag to end the pagination process.
-#
-# Parameters:
-# - current_url: The current URL being used to fetch data from the API. It will be updated if a next page URL is found.
-# - params: A dictionary of query parameters used in the API request. It will be cleared if a next page URL is found.
-# - response_page: A dictionary representing the parsed JSON response from the API.
-#
-# Returns:
-# - current_url: The updated URL for the next page, or the same URL if no next page URL is found.
-# - has_more_pages: A boolean indicating whether there are more pages to retrieve.
-# - params: The updated or cleared query parameters for the next API request.
-#
-# Api response looks like:
-# {
-#   "data": [
-#     {"id": 1, "name": "Widget A", "description": "A basic widget", ... },
-#     {"id": 2, "name": "Widget B", "description": "A more advanced widget", ... },
-#     ...
-#   ],
-#   "pages": {
-#     "type": "pages",
-#     "next": {
-#       "page": "https://example.com/api/items?order_by=updatedAt
-#                                   &order=asc&since=0001-01-01T00:00:00Z&per_page=100&page=2"
-#     },
-#     "page": 1,
-#     "per_page": 100,
-#     "total_pages": 50
-#   }
-# }
-#
-# For real API example you can refer Drift's Account Listing API: https://devdocs.drift.com/docs/listing-accounts
 def should_continue_pagination(current_url, params, response_page):
     has_more_pages = True
 
-    # Check if there is a next page URL in the response to continue the pagination
     next_page_url = get_next_page_url_from_response(response_page)
 
     if next_page_url:
@@ -151,18 +115,6 @@ def should_continue_pagination(current_url, params, response_page):
     return current_url, has_more_pages, params
 
 
-# The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
-# It performs the following tasks:
-# 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
-# 2. Makes the API request using the 'requests' library, passing the URL and parameters.
-# 3. Parses the JSON response from the API and returns it as a dictionary.
-#
-# The function takes two parameters:
-# - current_url: The URL to which the API request is made.
-# - params: A dictionary of query parameters to be included in the API request.
-#
-# Returns:
-# - response_page: A dictionary containing the parsed JSON response from the API.
 def get_api_response(current_url, params):
     log.info(f"Making API call to url: {current_url} with params: {params}")
     response = rq.get(current_url, params=params)
@@ -171,16 +123,8 @@ def get_api_response(current_url, params):
     return response_page
 
 
-# The get_next_page_url_from_response function extracts the URL for the next page of data from the API response.
-#
-# The function takes one parameter:
-# - response_page: A dictionary representing the parsed JSON response from the API.
-#
-# Returns:
-# - The URL for the next page if it exists, otherwise None.
-
 def get_next_page_url_from_response(response_page):
-    return response_page.get("pages", {}).get("next", {}).get("page")  # TODO: UPDATE AS PER YOUR API RESPONSE
+    return response_page.get("next_page_url")
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
