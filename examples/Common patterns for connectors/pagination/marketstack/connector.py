@@ -131,14 +131,14 @@ def get_tickers(api_key, ticker_offset):
         api_response = api_result.json()
         insert_ticker_records = api_response["data"]
     except rq.exceptions.RequestException as e:
-            raise Exception(f"Request failed: {e}")
+        raise Exception(f"Request failed: {str(e)}")
     except json.JSONDecodeError as e:
-        raise Exception(f"Failed to parse JSON response: {e}")
+        raise Exception(f"Failed to parse JSON response: {str(e)}")
     except KeyError as e:
-        raise Exception(f"Missing expected key in response: {e}")
+        raise Exception(f"Missing expected key in response: {str(e)}")
     except Exception as e:
         raise RuntimeError("Failed Fetching ticker, Error: " + str(e))
-    
+
     return insert_ticker_records
 
 
@@ -176,14 +176,15 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
             else:
                 break
         except rq.exceptions.RequestException as e:
-            raise Exception(f"Request failed: {e}")
+            raise Exception(f"Request failed: {str(e)}")
         except json.JSONDecodeError as e:
-            raise Exception(f"Failed to parse JSON response: {e}")
+            raise Exception(f"Failed to parse JSON response: {str(e)}")
         except KeyError as e:
-            raise Exception(f"Missing expected key in response: {e}")
+            raise Exception(f"Missing expected key in response: {str(e)}")
         except Exception as e:
-            raise RuntimeError("Failed Fetching ticker prices, Error: " + e)
-        
+            raise RuntimeError(
+                "Failed Fetching ticker prices, Error: " + str(e))
+
     return insert_ticker_price_records
 
 
