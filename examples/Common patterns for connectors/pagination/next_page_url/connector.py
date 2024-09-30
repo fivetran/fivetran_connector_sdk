@@ -1,6 +1,7 @@
 # This is a simple example for how to work with next-page-url pagination for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "item".
-# THIS EXAMPLE IS THE JUST FOR UNDERSTANDING AND NEEDS MODIFICATION OF A REAL API URL TO MAKE IT WORK.
+# THIS EXAMPLE IS THE JUST FOR UNDERSTANDING AND NEEDS FIVETRAN-API-PLAYGROUND
+# (https://pypi.org/project/fivetran-api-playground/) TO MAKE IT WORK.
 # See the Technical Reference documentation
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
@@ -21,12 +22,15 @@ from fivetran_connector_sdk import Operations as op
 def schema(configuration: dict):
     return [
         {
-            "table": "item",
+            "table": "user",
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
                 "name": "STRING",
-                "description": "STRING",
+                "email": "STRING",
+                "address": "STRING",
+                "company": "STRING",
+                "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
                 "createdAt": "UTC_DATETIME",
             },
@@ -42,7 +46,9 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    base_url = "https://example.com/api/items/"  # TODO: REPLACE WITH ACTUAL URL BEFORE RUNNING
+    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    base_url = "http://127.0.0.1:5001/pagination/next_page_url"
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
@@ -50,9 +56,9 @@ def update(configuration: dict, state: dict):
 
     params = {
         "order_by": "updatedAt",
-        "order": "asc",
-        "since": cursor,
-        "per_page": 100,
+        "order_type": "asc",
+        "updated_since": cursor,
+        "per_page": 50,
     }
 
     current_url = base_url  # Start with the base URL and initial params
@@ -80,16 +86,16 @@ def sync_items(current_url, params, state):
         response_page = get_api_response(current_url, params)
 
         # Process the items
-        items = response_page.get("items", [])
+        items = response_page.get("data", [])
         if not items:
             more_data = False  # End pagination if there are no records in response
 
         # Iterate over each item in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        for item in items:
-            yield op.upsert(table="item", data=item)
-            state["last_updated_at"] = item["updatedAt"]
+        for user in items:
+            yield op.upsert(table="item", data=user)
+            state["last_updated_at"] = user["updatedAt"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
@@ -119,19 +125,14 @@ def sync_items(current_url, params, state):
 # Api response looks like:
 # {
 #   "data": [
-#     {"id": 1, "name": "Widget A", "description": "A basic widget", ... },
-#     {"id": 2, "name": "Widget B", "description": "A more advanced widget", ... },
+#     {"id": "c8fda876-6869-4aae-b989-b514a8e45dc6", "name": "Mark Taylor", ... },
+#     {"id": "3910cbb0-27d4-47f5-9003-a401338eff6e", "name": "Alan Taylor", ... }
 #     ...
 #   ],
-#   "pages": {
-#     "type": "pages",
-#     "next": {
-#       "page": "https://example.com/api/items?order_by=updatedAt
-#                                   &order=asc&since=0001-01-01T00:00:00Z&per_page=100&page=2"
-#     },
-#     "page": 1,
-#     "per_page": 100,
-#     "total_pages": 50
+#   "total_items": 200,
+#   "page": 1,
+#   "per_page": 10,
+#   "next_page_url": "http://127.0.0.1:5001/pagination/next_page_url?page=2&per_page=10&order_by=updatedAt&order_type=asc"
 #   }
 # }
 #
@@ -180,7 +181,7 @@ def get_api_response(current_url, params):
 # - The URL for the next page if it exists, otherwise None.
 
 def get_next_page_url_from_response(response_page):
-    return response_page.get("pages", {}).get("next", {}).get("page")  # TODO: UPDATE AS PER YOUR API RESPONSE
+    return response_page.get("next_page_url")
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
@@ -196,15 +197,12 @@ if __name__ == "__main__":
     connector.debug()
 
 # Resulting table:
-# ┌───────┬───────────────┬─────────────────────────────┬──────────────────────────┬───────────────────────────┐
-# │  id   │      name     │          description        │        updatedAt         │        createdAt          │
-# │ string│      string   │           string            │      timestamp with UTC  │      timestamp with UTC   │
-# ├───────┼───────────────┼─────────────────────────────┼──────────────────────────┼───────────────────────────┤
-# │ 001   │ Widget A      │ A basic widget              │ 2024-08-12T15:30:00Z     │ 2024-08-01T10:00:00Z      │
-# │ 002   │ Widget B      │ A more advanced widget      │ 2024-08-11T14:45:00Z     │ 2024-08-02T11:15:00Z      │
-# │ 003   │ Widget C      │ The ultimate widget         │ 2024-08-10T09:20:00Z     │ 2024-08-03T12:30:00Z      │
-# │ 004   │ Widget D      │ A special edition widget    │ 2024-08-09T16:05:00Z     │ 2024-08-04T13:40:00Z      │
-# │ 005   │ Widget E      │ An eco-friendly widget      │ 2024-08-08T08:10:00Z     │ 2024-08-05T14:25:00Z      │
-# ├───────┴───────────────┴─────────────────────────────┴──────────────────────────┴───────────────────────────┤
-# │  5 rows                                                                                          5 columns │
-# └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+# ┌───────────────────────────────────────┬───────────────┬────────────────────────┬──────────────────────────┬───────────────────────────┐
+# │                 id                    │      name     │         job            │        updatedAt         │        createdAt          │
+# │               string                  │     string    │       string           │      timestamp with UTC  │      timestamp with UTC   │
+# ├───────────────────────────────────────┼───────────────┼────────────────────────┼──────────────────────────┼───────────────────────────┤
+# │ c8fda876-6869-4aae-b989-b514a8e45dc6  │ Mark Taylor   │   Pilot, airline       │ 2024-09-22T19:35:41Z     │ 2024-09-22T18:50:06Z      │
+# │ 3910cbb0-27d4-47f5-9003-a401338eff6e  │ Alan Taylor   │   Dispensing optician  │ 2024-09-22T20:28:11Z     │ 2024-09-22T19:58:38Z      │
+# ├───────────────────────────────────────┴───────────────┴────────────────────────┴──────────────────────────┴───────────────────────────┤
+# │  2 rows                                                                                                                     5 columns │
+# └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
