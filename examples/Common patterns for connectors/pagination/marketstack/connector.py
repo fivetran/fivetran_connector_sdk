@@ -122,15 +122,23 @@ def get_tickers(api_key, ticker_offset):
         'offset': ticker_offset,
         'limit': 100
     }
-    api_response = None
+
+    insert_ticker_records = []
+
     try:
         api_result = rq.get(
             'http://api.marketstack.com/v1/tickers', params)
         api_response = api_result.json()
         insert_ticker_records = api_response["data"]
-    except:
-        raise Exception("Failed Fetching tickers, Error: " +
-                        json.dumps(api_response))
+    except rq.exceptions.RequestException as e:
+            raise Exception(f"Request failed: {e}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Failed to parse JSON response: {e}")
+    except KeyError as e:
+        raise Exception(f"Missing expected key in response: {e}")
+    except Exception as e:
+        raise RuntimeError("Failed Fetching ticker, Error: " + str(e))
+    
     return insert_ticker_records
 
 
@@ -175,6 +183,7 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
             raise Exception(f"Missing expected key in response: {e}")
         except Exception as e:
             raise RuntimeError("Failed Fetching ticker prices, Error: " + e)
+        
     return insert_ticker_price_records
 
 
