@@ -12,6 +12,8 @@ import json
 from datetime import date
 import time
 import traceback
+
+
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
@@ -54,7 +56,7 @@ def update(configuration: dict, state: dict):
             yield op.upsert("tickers", ticker)
 
         for ticker_price in insert["tickers_price"]:
-            yield op.upsert("tickers_price",ticker_price)
+            yield op.upsert("tickers_price", ticker_price)
 
         yield op.checkpoint(state=updated_state)
 
@@ -184,13 +186,13 @@ def initialize_state(state: dict):
         json: State of the connector
     """
 
-    if(not state):
+    if not state:
         state["ticker_offset"] = 0
         state["ticker_start_cursor"] = "2000-01-01"
         state["ticker_end_cursor"] = str(date.today())
 
     # Fetch data till the latest date if ticker_offset is 0
-    if(state["ticker_offset"] == 0):
+    if state["ticker_offset"] == 0:
         state["ticker_end_cursor"] = str(date.today())
     return state
 
