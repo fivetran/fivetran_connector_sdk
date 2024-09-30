@@ -80,12 +80,12 @@ if __name__ == "__main__":
 
 # Resulting table:
 # ┌───────────┬────────────────────────────┬───────────────────┬───────────────────┬────────────────────────┐
-# │    id     │         updated_at         │   first_name      │     last_name     │    designation         │
-# │  integer  │  timestamp with time zone  │     varchar       │      varchar      │      varchar           │
+# │    id     │         updated_at         │   first_name      │     last_name     │      designation       │
+# │  integer  │  timestamp with time zone  │     varchar       │      varchar      │        varchar         │
 # ├───────────┼────────────────────────────│───────────────────┼───────────────────┤────────────────────────│
-# │    123    │    2007-12-03T10:15:30Z    │       John        │        Doe        │      Manager           │
-# │    123    │    2008-01-04T23:44:21Z    │       John        │        Doe        │   Senior Manager       │
-# │    456    │    2008-11-12T00:00:20Z    │       Jane        │       Dalton      │        VP              │
+# │    123    │    2007-12-03T10:15:30Z    │       John        │        Doe        │        Manager         │
+# │    123    │    2008-01-04T23:44:21Z    │       John        │        Doe        │     Senior Manager     │
+# │    456    │    2008-11-12T00:00:20Z    │       Jane        │       Dalton      │          VP            │
 # └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 # Each sync will capture the latest update and will sync it as an additional record in the destination.
 # Multiple updates between syncs cannot be captured this way. For explanation see https://fivetran.com/docs/core-concepts/sync-modes/history-mode#changestodatabetweensyncs
