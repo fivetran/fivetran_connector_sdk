@@ -23,7 +23,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "user",  # Name of the table in the destination.
-            "primary_key": ["_fivetran_id"],  # Primary key column(s) for the table.
+            "primary_key": ["hash_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "first_name": "STRING",  # String column for the first name.
                 "last_name": "STRING",  # String column for the last name.
@@ -52,7 +52,7 @@ def update(configuration: dict, state: dict):
     }
 
     # Generate hash and add this as a key in the dictionary
-    row_1["_fivetran_id"] = generate_row_hash(row_1) # Fivetran recommends to name the hash column as _fivetran_id
+    row_1["hash_id"] = generate_row_hash(row_1)
 
     # This source record has None for the email field
     row_2 = {
@@ -62,7 +62,7 @@ def update(configuration: dict, state: dict):
         "updated_at": "2014-05-10T00:00:30Z"  # Updated at timestamp.
     }
 
-    row_2["_fivetran_id"] = generate_row_hash(row_2)  # Fivetran recommends to name the hash column as _fivetran_id
+    row_2["hash_id"] = generate_row_hash(row_2)
 
     # This source record has the field email missing in the source
     row_3 = {
@@ -71,9 +71,9 @@ def update(configuration: dict, state: dict):
         "updated_at": None  # Updated at timestamp.
     }
 
-    row_3["_fivetran_id"] = generate_row_hash(row_3)  # Fivetran recommends to name the hash column as _fivetran_id
+    row_3["hash_id"] = generate_row_hash(row_3)
 
-    # Yield an upsert operation to insert/update the row in the "hello_world" table.
+    # Yield an upsert operation to insert/update the row in the "user" table.
     yield op.upsert(table="user", data=row_1)
     yield op.upsert(table="user", data=row_2)
     yield op.upsert(table="user", data=row_3)
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
 # Resulting table:
 # ┌─────────────────────────────────────────────┬───────────────────┬────────────────────────────────────────────┬───────────────────────────────┐
-# │                 _fivetran_id                │   first_name      │     last_name     │       email            │         updated_at            │
+# │                     hash_id                 │   first_name      │     last_name     │       email            │         updated_at            │
 # │                     varchar                 │     varchar       │      varchar      │      varchar           |  timestamp with time zone     │
 # ├─────────────────────────────────────────────┼───────────────────┼───────────────────┼────────────────────────┤───────────────────────────────│
 # │    9507eb591ddb60eb68452d06cf70696d8d5e8140 │       John        │        Doe        │ john.doe@example.com   │ 2007-12-03 10:15:30.000 +0000 │
