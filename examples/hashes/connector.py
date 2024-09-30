@@ -13,6 +13,7 @@ from fivetran_connector_sdk import Operations as op
 import hashlib
 import json
 
+
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
@@ -42,7 +43,6 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-
     # Represents a record fetched from source
     row_1 = {
         "first_name": "John",  # First name
