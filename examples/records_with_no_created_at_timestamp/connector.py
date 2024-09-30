@@ -11,6 +11,7 @@
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 
+
 def schema(configuration: dict):
     return [
         {
@@ -24,6 +25,8 @@ def schema(configuration: dict):
             },
         }
     ]
+
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -32,7 +35,6 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-
     # Represents a record fetched from source
     row_1 = {
         "id": 123,
@@ -40,6 +42,15 @@ def update(configuration: dict, state: dict):
         "last_name": "Doe",  # Last name.
         "designation": "Manager",  # Designation
         "updated_at": "2007-12-03T10:15:30Z"  # Updated at timestamp.
+    }
+
+    # Now lets say the record represented by row_1 gets updated in source as below:
+    row_1_updated = {
+        "id": 123,
+        "first_name": "John",
+        "last_name": "Doe",
+        "designation": "Senior Manager",  # Value changed
+        "updated_at": "2008-01-04T23:44:21Z"  # Updated at changed
     }
 
     # Represents another record fetched from source
@@ -52,6 +63,7 @@ def update(configuration: dict, state: dict):
     }
 
     yield op.upsert(table="user", data=row_1)
+    yield op.upsert(table="user", data=row_1_updated)
     yield op.upsert(table="user", data=row_2)
 
 
@@ -67,31 +79,13 @@ if __name__ == "__main__":
     connector.debug()
 
 # Resulting table:
-# ┌───────────┬───────────────────┬────────────────────────────────────────────┬────────────────────────────┐
-# │    id     │   first_name      │     last_name     │    Designation         │         updated_at         │
-# │  integer  │     varchar       │      varchar      │      varchar           |  timestamp with time zone  │
-# ├───────────┼───────────────────┼───────────────────┼────────────────────────┤────────────────────────────│
-# │    123    │       John        │        Doe        │        Manager         │    2007-12-03T10:15:30Z    │
-# │    456    │       Jane        │       Dalton      │          VP            │    2007-12-03T10:15:30Z    │
-# └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-# Now lets say the record represented by row_1 gets updated in source as below:
-# row_1_new = {
-#           "id": 123,
-#           "first_name": "John",
-#           "last_name": "Doe",
-#           "designation": "Senior Manager",      --> Value changed
-#           "updated_at": "2008-01-04T23:44:21Z"  --> Updated at timestamp changed.
-#       }
-# This update will be synced to your destination table in the successive sync.
-# The table will look like the below after the successive sync:
-# ┌───────────┬───────────────────┬───────────────────┬────────────────────────┬────────────────────────────┐
-# │    id     │   first_name      │     last_name     │    Designation         │         updated_at         │
-# │  integer  │     varchar       │      varchar      |      varchar           │  timestamp with time zone  │
-# ├───────────┼───────────────────┼───────────────────┤────────────────────────┼────────────────────────────│
-# │    123    │       John        │        Doe        │      Manager           │    2007-12-03T10:15:30Z    │
-# │    123    │       John        │        Doe        │   Senior Manager       │    2008-01-04T23:44:21Z    │
-# │    456    │       Jane        │       Dalton      │        VP              │    2007-12-03T10:15:30Z    │
+# ┌───────────┬────────────────────────────┬───────────────────┬───────────────────┬────────────────────────┐
+# │    id     │         updated_at         │   first_name      │     last_name     │    designation         │
+# │  integer  │  timestamp with time zone  │     varchar       │      varchar      │      varchar           │
+# ├───────────┼────────────────────────────│───────────────────┼───────────────────┤────────────────────────│
+# │    123    │    2007-12-03T10:15:30Z    │       John        │        Doe        │      Manager           │
+# │    123    │    2008-01-04T23:44:21Z    │       John        │        Doe        │   Senior Manager       │
+# │    456    │    2008-11-12T00:00:20Z    │       Jane        │       Dalton      │        VP              │
 # └─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 # Each sync will capture the latest update and will sync it as an additional record in the destination.
-# Updates between syncs cannot be captured this way. For explanation see https://fivetran.com/docs/core-concepts/sync-modes/history-mode#changestodatabetweensyncs
+# Multiple updates between syncs cannot be captured this way. For explanation see https://fivetran.com/docs/core-concepts/sync-modes/history-mode#changestodatabetweensyncs
