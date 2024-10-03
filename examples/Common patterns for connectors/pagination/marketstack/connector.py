@@ -128,14 +128,14 @@ def get_tickers(api_key, ticker_offset):
     try:
         api_result = rq.get(
             'http://api.marketstack.com/v1/tickers', params)
-        api_response = api_result.json()
-        insert_ticker_records = api_response["data"]
+        response = api_result.json()
+        insert_ticker_records = response["data"]
     except rq.exceptions.RequestException as e:
-        raise Exception(f"Request failed: {str(e)}")
+        raise RuntimeError(f"Request failed: {str(e)}")
     except json.JSONDecodeError as e:
-        raise Exception(f"Failed to parse JSON response: {str(e)}")
+        raise RuntimeError(f"Failed to parse JSON response: {str(e)}")
     except KeyError as e:
-        raise Exception(f"Missing expected key in response: {str(e)}")
+        raise RuntimeError(f"Missing expected key in response: {str(e)}")
     except Exception as e:
         raise RuntimeError("Failed Fetching ticker, Error: " + str(e))
 
@@ -176,11 +176,11 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
             else:
                 break
         except rq.exceptions.RequestException as e:
-            raise Exception(f"Request failed: {str(e)}")
+            raise RuntimeError(f"Request failed: {str(e)}")
         except json.JSONDecodeError as e:
-            raise Exception(f"Failed to parse JSON response: {str(e)}")
+            raise RuntimeError(f"Failed to parse JSON response: {str(e)}")
         except KeyError as e:
-            raise Exception(f"Missing expected key in response: {str(e)}")
+            raise RuntimeError(f"Missing expected key in response: {str(e)}")
         except Exception as e:
             raise RuntimeError(
                 "Failed Fetching ticker prices, Error: " + str(e))
@@ -215,5 +215,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug()
+    connector.debug(configuration=configuration)
