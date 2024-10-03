@@ -21,10 +21,7 @@ class TimestampSerializer:
         raise ValueError(f"Timestamp format not recognized: {timestamp_str}")
 
     @classmethod
-    def serialize(cls, input_json):
-        # Parse the input JSON, process the timestamp, and serialize it
-        # Load the JSON string into a Python dictionary
-        data = json.loads(input_json)
+    def serialize(cls, data):
 
         # Process the timestamp field
         if 'timestamp' in data:

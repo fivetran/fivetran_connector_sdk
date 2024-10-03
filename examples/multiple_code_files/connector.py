@@ -3,6 +3,7 @@
 # This example is the simplest possible as it doesn't define a schema() function, however it does not therefore provide a good template for writing a real connector.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+import csv
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -39,23 +40,14 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     serializer = TimestampSerializer()
 
-    input_json = '''
-        {
-            "name": "Event1",
-            "timestamp": "2024/09/24 14:30:45"
-        }
-        '''
+    # Open the CSV file
+    with open('data.csv', mode='r') as file:
+        # Create a CSV DictReader object
+        csv_reader = csv.DictReader(file)
 
-    yield op.upsert(table="event", data=serializer.serialize(input_json))
-
-    input_json = '''
-            {
-                "name": "Event2",
-                "timestamp": "2024-09-24 10:30:45"
-            }
-            '''
-
-    yield op.upsert(table="event", data=serializer.serialize(input_json))
+        # Iterate over each row
+        for row in csv_reader:
+            yield op.upsert(table="event", data=serializer.serialize(row))
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
@@ -71,9 +63,10 @@ if __name__ == "__main__":
     connector.debug()
 
 # Resulting table:
-# ┌───────────────┐
-# │    message    │
-# │    varchar    │
-# ├───────────────┤
-# │ hello, world! │
-# └───────────────┘
+# ┌───────────────────┬────────────────────────────┐
+# │       name        │        timestamp           │
+# │      varchar      │  timestamp with time zone  │
+# ├───────────────────┼────────────────────────────│
+# │         1         │   2023-12-31 23:59:59.000  │
+# │         2         │   2024-01-31 23:04:39.000  │
+# └────────────────────────────────────────────────┘
