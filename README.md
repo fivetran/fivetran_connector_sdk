@@ -75,5 +75,12 @@ Replication keys are columns that are used to identify new and updated data for 
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 </details>
 
-# Disclaimers
-Running these examples to sync data will incur MAR. This MAR is free during the [connector trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) - the first 14 days of usage of a connector. If you wish to avoid costs for example connectors after the trial period, please ensure the connectors you created to run these examples are paused or deleted before the 14-day timeframe is complete.
+# Friendly reminders
+
+These Examples are provided to help you successfully use Fivetran's Connector SDK. We have where possible tested the code, however Fivetran is not responsible if connector SDK written based on these examples ends up having unexpected or negative consequences.
+
+API calls made by an SDK Connector may count against your total allocation for a service and could cause you to trigger service rate-limits that impact other uses of the source’s APIs.
+
+Using the wrong pattern for a particular service’s APIs could result in data integrity issues, review all our examples and pick the one that works for your target API - it is possible that your target API doesn’t support a pattern we currently have an example for.
+
+Running examples will generate MAR for your Fivetran account - As with other new connectors, SDK connectors have a [trial period of 14 days where MAR is not charged](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod), after that time MAR will be charged, please ensure the connectors you created to run these examples are paused or deleted before the 14-day timeframe is complete.
