@@ -19,9 +19,10 @@ def schema(configuration: dict):
             "primary_key": ["id", "updated_at"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "id": "INT",
+                "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
                 "first_name": "STRING",  # String column for the first name.
                 "last_name": "STRING",  # String column for the last name.
-                "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
+                "designation": "STRING"
             },
         }
     ]
