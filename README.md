@@ -24,6 +24,10 @@ Emulated source, without any calls out to the internet
 ### configuration
 Shows how to use secrets
 
+### hashes
+Shows how to calculate hash of fields and use it as primary key. Useful in scenarios where the
+incoming rows do not have any field suitable to be used as a Primary Key.
+
 ### user_profiles
 Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
