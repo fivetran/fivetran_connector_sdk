@@ -1,7 +1,7 @@
 # This is a simple example of how to work with offset-based pagination for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "item".
-# THIS EXAMPLE IS THE JUST FOR UNDERSTANDING AND NEEDS FIVETRAN-API-PLAYGROUND
-# (https://pypi.org/project/fivetran-api-playground/) TO MAKE IT WORK.
+# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
 # See the Technical Reference documentation
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -91,8 +91,10 @@ def sync_items(base_url, params, state):
         # Iterate over each user in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
+        summary_first_item = {'id': items[0]['id'], 'name': items[0]['name']}
+        log.info(f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}")
         for user in items:
-            yield op.upsert(table="item", data=user)
+            yield op.upsert(table="user", data=user)
             state["last_updated_at"] = user["updatedAt"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
