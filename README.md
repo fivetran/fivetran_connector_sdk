@@ -36,8 +36,17 @@ A realistic example, using a public API, fetching data from NOAA
 Common patterns for connectors
 </summary>
 
+<details>
+<summary>
+cursors
+</summary>
+
 ### multiple_tables_with_cursors
 The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
+
+### marketstack
+This code retrieves different stock tickers and the daily price for those tickers using public API available.
+</details>
 
 ### pagination
 Simple pagination example templates for the following types of paginations:
