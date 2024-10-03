@@ -21,14 +21,13 @@ class TimestampSerializer:
         raise ValueError(f"Timestamp format not recognized: {timestamp_str}")
 
     @classmethod
-    def serialize(cls, data):
+    def serialize(cls, timestamp):
 
         # Process the timestamp field
-        if 'timestamp' in data:
-            # Parse the timestamp using the custom logic
-            parsed_timestamp = cls.parse_timestamp(data['timestamp'])
-            # Optionally, reformat the timestamp to a standardized format (Fivetran recommends ISO 8601 format)
-            data['timestamp'] = parsed_timestamp.isoformat()
+        # Parse the timestamp using the custom logic
+        parsed_timestamp = cls.parse_timestamp(timestamp)
+        # Optionally, reformat the timestamp to a standardized format (Fivetran recommends ISO 8601 format)
+        formatted_timestamp = parsed_timestamp.isoformat()
 
         # Return the dictionary
-        return data
+        return formatted_timestamp

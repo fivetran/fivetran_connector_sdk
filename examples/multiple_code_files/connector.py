@@ -3,12 +3,14 @@
 # This example is the simplest possible as it doesn't define a schema() function, however it does not therefore provide a good template for writing a real connector.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-import csv
+
+import csv # Import the csv module to handle CSV data
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 
+# Import self written modules
 from timestamp_serializer import TimestampSerializer
 
 
@@ -47,7 +49,8 @@ def update(configuration: dict, state: dict):
 
         # Iterate over each row
         for row in csv_reader:
-            yield op.upsert(table="event", data=serializer.serialize(row))
+            row['timestamp'] = serializer.serialize(row['timestamp'])
+            yield op.upsert(table="event", data=row)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
