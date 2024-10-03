@@ -75,12 +75,12 @@ Replication keys are columns that are used to identify new and updated data for 
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 </details>
 
-# Friendly reminders
+# Additional considerations
 
-These Examples are provided to help you successfully use Fivetran's Connector SDK. We have where possible tested the code, however Fivetran is not responsible if connector SDK written based on these examples ends up having unexpected or negative consequences.
+We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using SDK connectors developed based on these examples.
 
-API calls made by an SDK Connector may count against your total allocation for a service and could cause you to trigger service rate-limits that impact other uses of the source’s APIs.
+Note that API calls made by your SDK connector may count against your service’s API call allocation. Exceeding this limit could trigger rate limits, potentially affecting other uses of the source API.
 
-Using the wrong pattern for a particular service’s APIs could result in data integrity issues, review all our examples and pick the one that works for your target API - it is possible that your target API doesn’t support a pattern we currently have an example for.
+It's important to choose the right design pattern for your target API. Using an inappropriate pattern may lead to data integrity issues. Review all our examples carefully to select the one that best suits your target API. Keep in mind that some APIs may not support patterns for which we currently have examples.
 
-Running examples will generate MAR for your Fivetran account - As with other new connectors, SDK connectors have a [trial period of 14 days where MAR is not charged](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod), after that time MAR will be charged, please ensure the connectors you created to run these examples are paused or deleted before the 14-day timeframe is complete.
+As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connectors you created to run these examples before the trial ends.
