@@ -40,16 +40,16 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    serializer = TimestampSerializer()
+    timestamp_serializer = TimestampSerializer()
 
     # Open the CSV file
-    with open('data.csv', mode='r') as file:
+    with open('data.csv', mode='r') as file: # Make sure that the file to be read (data.csv in this case) is present in the same directory as the connector.py file
         # Create a CSV DictReader object
         csv_reader = csv.DictReader(file)
 
         # Iterate over each row
         for row in csv_reader:
-            row['timestamp'] = serializer.serialize(row['timestamp'])
+            row['timestamp'] = timestamp_serializer.serialize(row['timestamp'])
             yield op.upsert(table="event", data=row)
 
 
