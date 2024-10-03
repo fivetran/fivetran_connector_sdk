@@ -8,7 +8,25 @@
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 
-from examples.multiple_code_files.timestamp_serializer import TimestampSerializer
+from timestamp_serializer import TimestampSerializer
+
+
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
+def schema(configuration: dict):
+    return [
+        {
+            "table": "event",  # Name of the table in the destination.
+            "primary_key": ["name"],  # Primary key column(s) for the table.
+            "columns": {  # Define the columns and their data types.
+                "name": "STRING",  # String column for the name.
+                "timestamp": "UTC_DATETIME",  # UTC date-time column for the timestamp
+            },
+        }
+    ]
 
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -19,13 +37,6 @@ from examples.multiple_code_files.timestamp_serializer import TimestampSerialize
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    # The yield statement returns a generator object.
-    # This generator will yield an upsert operation to the Fivetran connector.
-    # The op.upsert method is called with two arguments:
-    # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-    # - The second argument is a dictionary containing the data to be upserted,
-    # Example usage
-
     serializer = TimestampSerializer()
 
     input_json = '''
@@ -34,6 +45,7 @@ def update(configuration: dict, state: dict):
             "timestamp": "2024/09/24 14:30:45"
         }
         '''
+
     yield op.upsert(table="event", data=serializer.serialize(input_json))
 
     input_json = '''
