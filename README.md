@@ -74,3 +74,6 @@ This shows key based replication from DB sources.
 Replication keys are columns that are used to identify new and updated data for replication.
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 </details>
+
+# Disclaimers
+Running these examples to sync data will incur MAR. This MAR is free during the [connector trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) - the first 14 days of usage of a connector. If you wish to avoid costs for example connectors after the trial period, please ensure the connectors you created to run these examples are paused or deleted before the 14-day timeframe is complete.
