@@ -1,6 +1,7 @@
 # This is a simple example of how to work with offset-based pagination for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "item".
-# THIS EXAMPLE IS JUST FOR UNDERSTANDING AND NEEDS MODIFICATION OF A REAL API URL TO MAKE IT WORK.
+# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
 # See the Technical Reference documentation
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -21,12 +22,15 @@ from fivetran_connector_sdk import Operations as op
 def schema(configuration: dict):
     return [
         {
-            "table": "item",
+            "table": "user",
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
                 "name": "STRING",
-                "description": "STRING",
+                "email": "STRING",
+                "address": "STRING",
+                "company": "STRING",
+                "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
                 "createdAt": "UTC_DATETIME",
             },
@@ -42,7 +46,9 @@ def schema(configuration: dict):
 # - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
 # The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
-    base_url = "https://example.com/api/items/"  # TODO: REPLACE WITH ACTUAL URL BEFORE RUNNING
+    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    base_url = "http://127.0.0.1:5001/pagination/offset"
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state (initial sync or full resync case), start from the beginning of time
@@ -51,9 +57,9 @@ def update(configuration: dict, state: dict):
 
     params = {
         "order_by": "updatedAt",
-        "order": "asc",
-        "since": cursor,
-        "limit": 100,
+        "order_type": "asc",
+        "updated_since": cursor,
+        "limit": 50,
     }
 
     yield from sync_items(base_url, params, state)
@@ -82,12 +88,14 @@ def sync_items(base_url, params, state):
         if not items:
             break  # End pagination if there are no records in response.
 
-        # Iterate over each item in the 'items' list and yield an upsert operation.
+        # Iterate over each user in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        for item in items:
-            yield op.upsert(table="item", data=item)
-            state["last_updated_at"] = item["updatedAt"]
+        summary_first_item = {'id': items[0]['id'], 'name': items[0]['name']}
+        log.info(f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}")
+        for user in items:
+            yield op.upsert(table="user", data=user)
+            state["last_updated_at"] = user["updatedAt"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
@@ -117,8 +125,8 @@ def sync_items(base_url, params, state):
 # API response will look like the following structure:
 # {
 #   "data": [
-#     {"id": 1, "name": "Item 1", "description": "A new item", ... },
-#     {"id": 2, "name": "Item 2", "description": "Another new item", ... }
+#     {"id": "c8fda876-6869-4aae-b989-b514a8e45dc6", "name": "Mark Taylor", ... },
+#     {"id": "3910cbb0-27d4-47f5-9003-a401338eff6e", "name": "Alan Taylor", ... }
 #   ],
 #   "offset": 20, // Current offset
 #   "limit": 100,  // Number of items per page
@@ -171,12 +179,12 @@ if __name__ == "__main__":
     connector.debug()
 
 # Resulting table:
-# ┌───────┬───────────────┬─────────────────────────────┬──────────────────────────┬───────────────────────────┐
-# │  id   │      name     │          description        │        updatedAt         │        createdAt          │
-# │ string│      string   │           string            │      timestamp with UTC  │      timestamp with UTC   │
-# ├───────┼───────────────┼─────────────────────────────┼──────────────────────────┼───────────────────────────┤
-# │ 001   │ Item 1        │ A new item                  │ 2024-08-10T12:00:00Z     │ 2024-08-08T09:00:00Z      │
-# │ 002   │ Item 2        │ Another new item            │ 2024-08-11T14:00:00Z     │ 2024-08-09T11:00:00Z      │
-# ├───────┴───────────────┴─────────────────────────────┴──────────────────────────┴───────────────────────────┤
-# │  2 rows                                                                                          5 columns │
-# └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+# ┌───────────────────────────────────────┬───────────────┬────────────────────────┬──────────────────────────┬───────────────────────────┐
+# │                 id                    │      name     │         job            │        updatedAt         │        createdAt          │
+# │               string                  │     string    │       string           │      timestamp with UTC  │      timestamp with UTC   │
+# ├───────────────────────────────────────┼───────────────┼────────────────────────┼──────────────────────────┼───────────────────────────┤
+# │ c8fda876-6869-4aae-b989-b514a8e45dc6  │ Mark Taylor   │   Pilot, airline       │ 2024-09-22T19:35:41Z     │ 2024-09-22T18:50:06Z      │
+# │ 3910cbb0-27d4-47f5-9003-a401338eff6e  │ Alan Taylor   │   Dispensing optician  │ 2024-09-22T20:28:11Z     │ 2024-09-22T19:58:38Z      │
+# ├───────────────────────────────────────┴───────────────┴────────────────────────┴──────────────────────────┴───────────────────────────┤
+# │  2 rows                                                                                                                     5 columns │
+# └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
