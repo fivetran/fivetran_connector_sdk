@@ -1,15 +1,17 @@
-# This is an example to show how to work with records where the source does not provide a created_at(or equivalent) field.
-# If you want to keep track of when the record was first observed, then the updated_at(or equivalent, eg, modified_at etc)
-# field can be made part of the composite Primary Key. By doing this you can ensure that successive syncs do not rewrite the
-# updated_at field in the existing row in the destination. Instead, it creates a new row with the new updated_at.
-# Now, the record with earliest value of _fivetran_synced system column represents when the record was first observed in source.
-# Refer to the Resulting table section at the bottom of this file for a detailed demonstration.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# This example demonstrates how to handle records when the source does not provide a created_at (or equivalent) field.
+# If you want to track when a record was first observed, the updated_at (or an equivalent, e.g., modified_at) field can
+# be made part of the composite primary key. This ensures that successive syncs do not overwrite the updated_at field in
+# the existing row in the destination. Instead, a new row is created with the new updated_at value.
+# The record with the earliest value of the _fivetran_synced system column will indicate when the record was first
+# observed in the source.
+# See the Technical Reference documentation
+# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -26,7 +28,7 @@ def schema(configuration: dict):
                 "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
                 "first_name": "STRING",  # String column for the first name.
                 "last_name": "STRING",  # String column for the last name.
-                "designation": "STRING"
+                "designation": "STRING"  # String column for the designation.
             },
         }
     ]
