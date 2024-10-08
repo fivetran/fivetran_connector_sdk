@@ -67,6 +67,11 @@ Upserts all data types without specifying a schema
 
 ### three_operations
 Shows how to use upsert, update and delete operations
+
+### priority_first_sync_for_high_volume_initial_syncs
+Priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy
+which prioritises fetching the most recent data first so that it's quickly ready for you to use.
+This is a simple example of how the pfs strategy looks like.
 </details>
 
 <details>
