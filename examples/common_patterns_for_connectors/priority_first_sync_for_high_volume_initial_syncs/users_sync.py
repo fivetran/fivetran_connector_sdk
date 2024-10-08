@@ -10,7 +10,7 @@ def sync_users(base_url, params, state, is_historical_sync):
 
     while more_data:
         # Get response page from mock API call.
-        response_page = mock_api.get_api_response(base_url, params)
+        response_page = mock_api.get_api_response(base_url, last_updated_at)
 
         # Process the items.
         items = response_page.get("data", [])
@@ -23,12 +23,9 @@ def sync_users(base_url, params, state, is_historical_sync):
 
         if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(
                 connector.get_pfs_historical_cursor_for_endpoint(state, 'user')).astimezone(timezone.utc):
-            connector.set_pfs_historical_cursor_for_endpoint(state, 'user', params['updated_since'])
             break
 
         more_data = mock_api.should_continue_pagination(response_page)
-        if more_data:
-            params['updated_since'] = last_updated_at
 
     if is_historical_sync:
         # move the historical cursor backwards

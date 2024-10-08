@@ -1,6 +1,6 @@
 # Priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy
-# which prioritises fetching the most recent data first so that it's quickly ready for you to use.
-# This is a simple example of how the pfs strategy looks like.
+# which prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
+# This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
 # There is 1 table/endpoint in the example,i.e. "user".
 # The `update` method is the starting point for the sync strategy.
 # See the Technical Reference documentation
@@ -147,7 +147,7 @@ def initialize_pfs_cursors_for_each_endpoint(state, endpoints):
             state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR] = state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR]
             state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
     if IS_INCREMENTAL_SYNC not in state[PFS_CURSORS]:
-        state[PFS_CURSORS][IS_INCREMENTAL_SYNC] = True
+        set_pfs_incremental_sync(state, True)
 
 def is_pfs_incremental_sync(state):
     return state[PFS_CURSORS][IS_INCREMENTAL_SYNC]

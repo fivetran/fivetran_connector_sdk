@@ -7,9 +7,9 @@ import connector
 
 fake = Faker()
 
-def get_api_response(base_url, params):
-    log.info(f"Making API call to url: {base_url} with params: {params}")
-    updated_since = connector.get_datetime_object(params['updated_since'])
+def get_api_response(base_url, from_cursor):
+    log.info(f"Making API call to url: {base_url} with from_cursor: {from_cursor}")
+    updated_since = connector.get_datetime_object(from_cursor)
     until = updated_since + timedelta(days=1)
     if until > datetime.now(timezone.utc):
         until = datetime.now(timezone.utc)
