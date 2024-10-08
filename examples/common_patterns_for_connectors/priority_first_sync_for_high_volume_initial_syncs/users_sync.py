@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import timezone
 
 from fivetran_connector_sdk import Operations as op
 import mock_api
@@ -9,7 +9,7 @@ def sync_users(base_url, params, state, is_historical_sync):
     last_updated_at = params['updated_since']
 
     while more_data:
-        # Get response from API call.
+        # Get response page from mock API call.
         response_page = mock_api.get_mock_api_response(base_url, params)
 
         # Process the items.
@@ -24,17 +24,18 @@ def sync_users(base_url, params, state, is_historical_sync):
         if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(connector.get_pfs_historical_cursor(state, 'user')).astimezone(timezone.utc):
             connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
             break
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of interruptions.
-        yield op.checkpoint(state)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of interruptions.
         more_data = mock_api.should_continue_pagination(response_page)
         if more_data:
             params['updated_since'] = last_updated_at
 
     if is_historical_sync:
+        # move the historical cursor backwards
         connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
     else:
+        # move the incremental cursor forwards
         connector.set_pfs_incremental_cursor(state, 'user', last_updated_at)
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of interruptions.
+    yield op.checkpoint(state)

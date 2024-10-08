@@ -1,36 +1,17 @@
-# Read Priority-first sync documentation (https://fivetran.com/docs/using-fivetran/features#priorityfirstsync)
 # Priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy
 # which prioritises fetching the most recent data first so that it's quickly ready for you to use.
 # This is a simple example of how the pfs strategy looks like.
-# There are 2 tables/endpoints in the example, "user" and "customer".
+# There is 1 table/endpoint in the example,i.e. "user".
 # The `update` method is the starting point for the sync strategy.
-# 1st step is to create a list of endpoints which will sync using pfs flow.
-# 2nd step is to initialize bidirectional cursors for EACH endpoint, if not already created.
-# Bidirectional cursor is dict with fields initialized as below:
-# * incremental_cursor: initialized to time.now() minus recent data fetch duration, 1 day is used here
-# * historical_cursor: initialized to time.now() minus recent data fetch duration, 1 day is used here
-# * historical_limit: earliest timestamp upto which to fetch data in historical sync, it can be EPOCH or more recent
-# state['is_incremental_sync'] is a boolean which decides whether to do a forward or backward sync. It's value is alternated
-# every sync, so that syncs alternate between forward and backward sync to keep fetching recent data as the historical
-# sync is in progress.
-# Bidirection cursor fields are used as explained below:
-# * incremental_cursor: incremental sync cursor, to fetch recent data
-# * historical_cursor: historical sync cursor, sync fetch happens in the reverse direction,i.e. it moves towards historical_limit
-# * historical_limit: it's used to check if historical sync has completed. If historical_cursor <= historical_limit, historical sync
-# is complete.
-# Forward sync strategy is straight forward. It syncs all data from incremental_cursor until now for each endpoint. Plain simple.
-# Backward sync strategy is as follows:
-# * Fetch data in batches, with each batch moving the historical_cursor by 1 day in this example. The 1 day duration can be tweaked.
-# Duration should be such that volume is not too high or too low.
-# * For each batch `backward_sync` method is called which will fetch 1 days worth of data.
-# * If backward sync completes, then set historical_cursor to historical_limit, so that future syncs can check it is completed
+
+import json  # Import the json module to handle JSON data.
+from datetime import datetime, timedelta, timezone
+import traceback
 
 # Import required classes from fivetran_connector_sdk.
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
-from datetime import datetime, timedelta, timezone
-import traceback
 
 import users_sync
 
@@ -44,6 +25,7 @@ HISTORICAL_CURSOR = 'historical_cursor'
 HISTORICAL_LIMIT = 'historical_limit'
 IS_INCREMENTAL_SYNC = 'is_incremental_sync'
 SYNC_DURATION_THRESHOLD = 6
+HISTORICAL_SYNC_BATCH_DURATION = 1
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -85,10 +67,12 @@ def update(configuration: dict, state: dict):
         if is_pfs_incremental_sync(state) or is_historical_syncs_complete(state, endpoints):
             log.info('starting incremental syncs')
             yield from run_incremental_syncs(state, endpoints)
+            # try running historical sync in the next sync
             set_pfs_incremental_sync(state, False)
         else:
             log.info('starting historical syncs')
             yield from run_historical_syncs(state, endpoints)
+            # try running incremental sync in the next sync
             set_pfs_incremental_sync(state, True)
 
         yield op.checkpoint(state)
@@ -98,6 +82,7 @@ def update(configuration: dict, state: dict):
 
 def is_historical_syncs_complete(state, endpoints):
     for endpoint in endpoints:
+        # if historical_cursor is after the historical_limit for any endpoint, it means historical sync is not complete
         if get_datetime_object(get_pfs_historical_cursor(state, endpoint)) > get_datetime_object(get_pfs_historical_limit(state, endpoint)):
             return False
     return True
@@ -131,27 +116,26 @@ def incremental_sync(state, endpoint):
         yield from users_sync.sync_users(base_url, params, state, False)
 
 def historical_sync(state, endpoint):
-        updated_since = (get_datetime_object(get_pfs_historical_cursor(state, endpoint)) - timedelta(days=1))
-        if updated_since < get_datetime_object(get_pfs_historical_limit(state, endpoint)):
-            updated_since = get_datetime_object(get_pfs_historical_limit(state, endpoint))
-        params = {
-            "updated_since": updated_since.isoformat()
-        }
+    # set updated_since to historical cursor minus 1 day. If updated_since is before historical_limit, sets it to historical limit
+    # data is fetched for time range updated_since until historical cursor
+    updated_since = (get_datetime_object(get_pfs_historical_cursor(state, endpoint)) - timedelta(days=HISTORICAL_SYNC_BATCH_DURATION))
+    if updated_since < get_datetime_object(get_pfs_historical_limit(state, endpoint)):
+        updated_since = get_datetime_object(get_pfs_historical_limit(state, endpoint))
+    params = {
+        "updated_since": updated_since.isoformat()
+    }
 
-        if endpoint == 'user':
-            yield from users_sync.sync_users(base_url, params, state, True)
+    if endpoint == 'user':
+        yield from users_sync.sync_users(base_url, params, state, True)
 
 def initialize_pfs_cursors(state, endpoints):
     if PFS_CURSORS not in state:
         state[PFS_CURSORS] = {}
-    # init bidirectional cursors
     for endpoint in endpoints:
-        # Retrieve the cursor from the state to determine the current position in the data sync.
-        # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
         if endpoint not in state[PFS_CURSORS]:
             state[PFS_CURSORS][endpoint] = {}
-            # forward cursor is used in incremental syncs
-            # backward cursor is used in historical syncs
+            # incremental_cursor is used in incremental syncs
+            # historical_cursor is used in historical syncs
             # historical_limit is the earliest timestamp upto which to fetch for historical syncs
             # historical_limit may be EPOCH in actual usage. 5 days is used here.
             state[PFS_CURSORS][endpoint][INCREMENTAL_CURSOR] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
@@ -198,6 +182,9 @@ connector = Connector(update=update, schema=schema)
 # Note this method is not called by Fivetran when executing your connector in production. Please test using the
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the state.json file and load its contents into a dictionary.
+    with open("state.json", 'r') as f:
+        state = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
     # your IDE.
-    connector.debug()
+    connector.debug(state=state)
