@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # This class allows you to parse timestamp strings in two specific formats and then convert them into a standardized ISO 8601 format,
-# which is widely recommended, including by Fivetran.
+# which is widely recommended, including by Fivetran. Also, this class assumes that the incoming timestamps are in UTC timezone.
 class TimestampSerializer:
     # Define the acceptable formats for the timestamp
     TIMESTAMP_FORMATS = [
@@ -25,8 +25,9 @@ class TimestampSerializer:
     def serialize(cls, timestamp):
 
         # Process the timestamp field
-        # Parse the timestamp using the custom logic
-        parsed_timestamp = cls.parse_timestamp(timestamp)
+        # Parse the timestamp using the custom logic and add UTC timezone
+        parsed_timestamp = cls.parse_timestamp(timestamp).replace(tzinfo=timezone.utc)
+
         # Optionally, reformat the timestamp to a standardized format (Fivetran recommends ISO 8601 format)
         formatted_timestamp = parsed_timestamp.isoformat()
 

@@ -57,7 +57,7 @@ def update(configuration: dict, state: dict):
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 # This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
-connector = Connector(update=update)
+connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
@@ -67,11 +67,11 @@ if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
 
-# Resulting table: TODO : Check why name is not being picked up as PK
-# ┌───────────────────┬───────────────────┬────────────────────────┐
-# │      name         │    _fivetran_id   │       timestamp        │
-# │     varchar       │      varchar      │        varchar         │
-# ├───────────────────┼───────────────────┤────────────────────────│
-# │       Event1      │     941607216     │  2024-09-24T14:30:45   │
-# │       Event2      │     1338900493    │  2024-09-24T10:30:45   │
-# └────────────────────────────────────────────────────────────────┘
+# Resulting table:
+# ┌───────────────────┬──────────────────────────────────┐
+# │      name         │             timestamp            │
+# │     varchar       │      timestamp with time zone    │
+# ├───────────────────┼──────────────────────────────────│
+# │      Event1       │  2024-09-24 14:30:45.000 +0000   │
+# │      Event2       │  2024-09-24 10:30:45.000 +0000   │
+# └──────────────────────────────────────────────────────┘
