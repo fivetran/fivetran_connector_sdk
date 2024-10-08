@@ -35,7 +35,7 @@ import traceback
 import users_sync
 
 base_url = "http://127.0.0.1:5001/pagination/keyset"
-syncStart = datetime.now().astimezone(timezone.utc)
+sync_start = datetime.now().astimezone(timezone.utc)
 
 # Constants
 PFS_CURSORS = 'pfs_cursors'
@@ -43,6 +43,7 @@ INCREMENTAL_CURSOR = 'incremental_cursor'
 HISTORICAL_CURSOR = 'historical_cursor'
 HISTORICAL_LIMIT = 'historical_limit'
 IS_INCREMENTAL_SYNC = 'is_incremental_sync'
+SYNC_DURATION_THRESHOLD = 6
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -69,13 +70,19 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     try:
+        # list of endpoints for pfs flow mapped from table names
         endpoints = []
         for table_schema in schema(configuration):
-            endpoints.append(table_schema["table"])
+            endpoints.append(table_schema['table'])
 
+        # initializes pfs cursors in state for new endpoints
         initialize_pfs_cursors(state, endpoints)
 
-        if is_pfs_incremental_sync(state) is True or is_historical_syncs_complete(state, endpoints):
+        # perform incremental sync based on `is_incremental_sync` state field and also checking
+        # if all historical syncs have completed else perform historical sync and finally
+        # switch value of `is_incremental_sync` state field to try alternate incremental and
+        # historical sync
+        if is_pfs_incremental_sync(state) or is_historical_syncs_complete(state, endpoints):
             log.info('starting incremental syncs')
             yield from run_incremental_syncs(state, endpoints)
             set_pfs_incremental_sync(state, False)
@@ -86,12 +93,8 @@ def update(configuration: dict, state: dict):
 
         yield op.checkpoint(state)
     except Exception:
+        # logs stack trace
         log.severe(traceback.format_exc())
-
-def isSyncDurationLongerThan6Hrs():
-    if ((datetime.now().astimezone(timezone.utc) - syncStart).total_seconds() / 60 / 60) >= 6:
-        return True
-    return False
 
 def is_historical_syncs_complete(state, endpoints):
     for endpoint in endpoints:
@@ -110,9 +113,14 @@ def run_historical_syncs(state, endpoints):
         while datetime.fromisoformat(get_pfs_historical_cursor(state, endpoint)) > datetime.fromisoformat(
                 get_pfs_historical_limit(state, endpoint)):
             yield from historical_sync(state, endpoint)
-            if isSyncDurationLongerThan6Hrs():
-                log.info("Stopping sync to flush data to destination...")
+            if is_sync_duration_threshold_breached():
+                log.info('Sync duration breached sync_duration_threshold. Stopping sync to flush data to destination...')
                 return
+
+def is_sync_duration_threshold_breached():
+    if ((datetime.now().astimezone(timezone.utc) - sync_start).total_seconds() / 60 / 60) >= SYNC_DURATION_THRESHOLD:
+        return True
+    return False
 
 def incremental_sync(state, endpoint):
     params = {
@@ -176,7 +184,7 @@ def get_pfs_historical_cursor(state, endpoint):
 def get_pfs_historical_limit(state, endpoint):
     return state[PFS_CURSORS][endpoint][HISTORICAL_LIMIT]
 
-def formatIsoDatetime(date_time):
+def format_datetime(date_time):
     return date_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
