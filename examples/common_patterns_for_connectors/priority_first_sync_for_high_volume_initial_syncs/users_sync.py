@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 
 from fivetran_connector_sdk import Operations as op
 import mock_api
+import connector
 
-def sync_users(base_url, params, state, is_backward_sync):
+def sync_users(base_url, params, state, is_historical_sync):
     more_data = True
     last_updated_at = params['updated_since']
 
@@ -20,8 +21,8 @@ def sync_users(base_url, params, state, is_backward_sync):
             yield op.upsert(table="user", data=user)
             last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
 
-        if is_backward_sync and datetime.fromisoformat(last_updated_at) >= datetime.fromisoformat(state['user']['backward_cursor']).astimezone(timezone.utc):
-            state['user']['backward_cursor'] = params['updated_since']
+        if is_historical_sync and datetime.fromisoformat(last_updated_at) >= datetime.fromisoformat(connector.get_pfs_historical_cursor(state, 'user')).astimezone(timezone.utc):
+            connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
             break
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
@@ -33,7 +34,7 @@ def sync_users(base_url, params, state, is_backward_sync):
         if more_data:
             params['updated_since'] = last_updated_at
 
-    if is_backward_sync:
-        state['user']['backward_cursor'] = params['updated_since']
+    if is_historical_sync:
+        connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
     else:
-        state['user']['forward_cursor'] = last_updated_at
+        connector.set_pfs_incremental_cursor(state, 'user', last_updated_at)

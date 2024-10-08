@@ -10,6 +10,8 @@ def get_mock_api_response(base_url, params):
     log.info(f"Making API call to url: {base_url} with params: {params}")
     updated_since = datetime.fromisoformat(params['updated_since']).astimezone(timezone.utc)
     until = updated_since + timedelta(days=1)
+    if (until > connector.syncStart):
+        until = connector.syncStart
     response_page = {
         "data": []
     }
