@@ -85,6 +85,7 @@ def update(configuration: dict, state: dict):
 
         if state['isForwardSync'] is True or isPendingBackwardSyncsEmpty(state, endpoints):
             yield from run_forward_syncs(state, endpoints)
+            state['isForwardSync'] = False
         else:
             yield from run_backward_syncs(state, endpoints)
             state['isForwardSync'] = True
@@ -107,7 +108,6 @@ def isPendingBackwardSyncsEmpty(state, endpoints):
 def run_forward_syncs(state, endpoints):
     for endpoint in endpoints:
         yield from forward_sync(state, endpoint)
-    state['isForwardSync'] = False
 
 def run_backward_syncs(state, endpoints):
     for endpoint in endpoints:
