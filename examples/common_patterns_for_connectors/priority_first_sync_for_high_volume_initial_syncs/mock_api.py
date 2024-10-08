@@ -6,11 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 import connector
 
-mock_id = 1
-
 def get_mock_api_response(base_url, params):
     log.info(f"Making API call to url: {base_url} with params: {params}")
-    global mock_id
     updated_since = datetime.fromisoformat(params['updated_since']).astimezone(timezone.utc)
     until = updated_since + timedelta(days=1)
     response_page = {
@@ -19,17 +16,16 @@ def get_mock_api_response(base_url, params):
     while updated_since <= until:
         response_page['data'].append(
             {
-                "id": str(mock_id),
-                "name": string_generator(),
-                "email": string_generator(),
-                "address": string_generator(),
-                "company": string_generator(),
-                "job": string_generator(),
-                "updatedAt": updated_since.isoformat(),
-                "createdAt": connector.formatIsoDatetime(updated_since),
+                "id": string_generator(),
+                "name": string_generator(chars=string.ascii_lowercase),
+                "email": string_generator(chars=string.ascii_lowercase),
+                "address": string_generator(chars=string.ascii_lowercase),
+                "company": string_generator(chars=string.ascii_lowercase),
+                "job": string_generator(chars=string.ascii_lowercase),
+                "updated_at": updated_since.isoformat(),
+                "created_at": connector.formatIsoDatetime(updated_since),
             }
         )
-        mock_id += 1
         updated_since = updated_since + timedelta(hours=1)
     if updated_since < connector.syncStart:
         response_page['has_more'] = True

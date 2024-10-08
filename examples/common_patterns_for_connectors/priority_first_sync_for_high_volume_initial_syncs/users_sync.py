@@ -19,7 +19,7 @@ def sync_users(base_url, params, state, is_backward_sync):
 
         for user in items:
             yield op.upsert(table="user", data=user)
-            last_updated_at = user["updatedAt"] # Assuming the API returns the data in ascending order
+            last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
 
         if is_backward_sync and datetime.fromisoformat(last_updated_at) >= datetime.fromisoformat(state['user']['backward_cursor']).astimezone(timezone.utc):
             state['user']['backward_cursor'] = params['updated_since']

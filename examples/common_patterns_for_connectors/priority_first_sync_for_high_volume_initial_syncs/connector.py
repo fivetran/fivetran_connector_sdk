@@ -55,8 +55,8 @@ def schema(configuration: dict):
                 "address": "STRING",
                 "company": "STRING",
                 "job": "STRING",
-                "updatedAt": "UTC_DATETIME",
-                "createdAt": "UTC_DATETIME",
+                "updated_at": "UTC_DATETIME",
+                "created_at": "UTC_DATETIME",
             },
         },
         {
@@ -69,8 +69,8 @@ def schema(configuration: dict):
                 "address": "STRING",
                 "company": "STRING",
                 "job": "STRING",
-                "updatedAt": "UTC_DATETIME",
-                "createdAt": "UTC_DATETIME",
+                "updated_at": "UTC_DATETIME",
+                "created_at": "UTC_DATETIME",
             },
         }
     ]
@@ -84,27 +84,39 @@ def update(configuration: dict, state: dict):
         initBidirectionalCursors(state, endpoints)
 
         if state['isForwardSync'] is True or isPendingBackwardSyncsEmpty(state, endpoints):
-            for endpoint in endpoints:
-                yield from forward_sync(state, endpoint)
-            state['isForwardSync'] = False
+            yield from run_forward_syncs(state, endpoints)
         else:
-            for endpoint in endpoints:
-                while datetime.fromisoformat(state[endpoint]['backward_cursor']) > datetime.fromisoformat(state[endpoint]['backward_limit']):
-                    yield from backward_sync(state, endpoint)
-                    if ((datetime.now().astimezone(timezone.utc) - syncStart).total_seconds() / 60 / 60) >= 6:
-                        log.info("Stopping sync to flush data to destination...")
-                        break
+            yield from run_backward_syncs(state, endpoints)
             state['isForwardSync'] = True
 
         yield op.checkpoint(state)
     except Exception:
-        print(traceback.format_exc())
+        log.severe(traceback.format_exc())
+
+def isSyncDurationLongerThan6Hrs():
+    if ((datetime.now().astimezone(timezone.utc) - syncStart).total_seconds() / 60 / 60) >= 6:
+        return True
+    return False
 
 def isPendingBackwardSyncsEmpty(state, endpoints):
     for endpoint in endpoints:
         if datetime.fromisoformat(state[endpoint]['backward_cursor']) > datetime.fromisoformat(state[endpoint]['backward_limit']):
             return False
     return True
+
+def run_forward_syncs(state, endpoints):
+    for endpoint in endpoints:
+        yield from forward_sync(state, endpoint)
+    state['isForwardSync'] = False
+
+def run_backward_syncs(state, endpoints):
+    for endpoint in endpoints:
+        while datetime.fromisoformat(state[endpoint]['backward_cursor']) > datetime.fromisoformat(
+                state[endpoint]['backward_limit']):
+            yield from backward_sync(state, endpoint)
+            if isSyncDurationLongerThan6Hrs():
+                log.info("Stopping sync to flush data to destination...")
+                return
 
 def forward_sync(state, endpoint):
     params = {
