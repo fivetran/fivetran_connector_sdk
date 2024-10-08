@@ -4,7 +4,6 @@
 # There is 1 table/endpoint in the example,i.e. "user".
 # The `update` method is the starting point for the sync strategy.
 
-import json  # Import the json module to handle JSON data.
 from datetime import datetime, timedelta, timezone
 import traceback
 
@@ -182,9 +181,6 @@ connector = Connector(update=update, schema=schema)
 # Note this method is not called by Fivetran when executing your connector in production. Please test using the
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the state.json file and load its contents into a dictionary.
-    with open("state.json", 'r') as f:
-        state = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
     # your IDE.
-    connector.debug(state=state)
+    connector.debug()
