@@ -3,6 +3,9 @@
 # This is a simple example of how the pfs strategy looks like.
 # There is 1 table/endpoint in the example,i.e. "user".
 # The `update` method is the starting point for the sync strategy.
+# See the Technical Reference documentation
+# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 from datetime import datetime, timedelta, timezone
 import traceback
