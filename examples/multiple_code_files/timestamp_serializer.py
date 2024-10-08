@@ -30,5 +30,5 @@ class TimestampSerializer:
         # Optionally, reformat the timestamp to a standardized format (Fivetran recommends ISO 8601 format)
         formatted_timestamp = parsed_timestamp.isoformat()
 
-        # Return the dictionary
+        # Return the formatted timestamp
         return formatted_timestamp

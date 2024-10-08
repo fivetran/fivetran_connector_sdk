@@ -67,11 +67,11 @@ if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
 
-# Resulting table:
-# ┌───────────────────┬────────────────────────────┐
-# │       name        │        timestamp           │
-# │      varchar      │  timestamp with time zone  │
-# ├───────────────────┼────────────────────────────│
-# │         1         │   2023-12-31 23:59:59.000  │
-# │         2         │   2024-01-31 23:04:39.000  │
-# └────────────────────────────────────────────────┘
+# Resulting table: TODO : Check why name is not being picked up as PK
+# ┌───────────────────┬───────────────────┬────────────────────────┐
+# │      name         │    _fivetran_id   │       timestamp        │
+# │     varchar       │      varchar      │        varchar         │
+# ├───────────────────┼───────────────────┤────────────────────────│
+# │       Event1      │     941607216     │  2024-09-24T14:30:45   │
+# │       Event2      │     1338900493    │  2024-09-24T10:30:45   │
+# └────────────────────────────────────────────────────────────────┘
