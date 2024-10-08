@@ -21,7 +21,7 @@ def sync_users(base_url, params, state, is_historical_sync):
             yield op.upsert(table="user", data=user)
             last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
 
-        if is_historical_sync and datetime.fromisoformat(last_updated_at) >= datetime.fromisoformat(connector.get_pfs_historical_cursor(state, 'user')).astimezone(timezone.utc):
+        if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(connector.get_pfs_historical_cursor(state, 'user')).astimezone(timezone.utc):
             connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
             break
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

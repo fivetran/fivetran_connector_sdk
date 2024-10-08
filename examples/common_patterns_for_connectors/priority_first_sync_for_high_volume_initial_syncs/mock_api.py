@@ -8,10 +8,10 @@ import connector
 
 def get_mock_api_response(base_url, params):
     log.info(f"Making API call to url: {base_url} with params: {params}")
-    updated_since = datetime.fromisoformat(params['updated_since']).astimezone(timezone.utc)
+    updated_since = connector.get_datetime_object(params['updated_since'])
     until = updated_since + timedelta(days=1)
-    if (until > connector.sync_start):
-        until = connector.sync_start
+    if (until > datetime.now(timezone.utc)):
+        until = datetime.now(timezone.utc)
     response_page = {
         "data": []
     }
@@ -25,7 +25,7 @@ def get_mock_api_response(base_url, params):
                 "company": string_generator(chars=string.ascii_lowercase),
                 "job": string_generator(chars=string.ascii_lowercase),
                 "updated_at": updated_since.isoformat(),
-                "created_at": connector.format_datetime(updated_since),
+                "created_at": updated_since.isoformat(),
             }
         )
         updated_since = updated_since + timedelta(hours=1)
