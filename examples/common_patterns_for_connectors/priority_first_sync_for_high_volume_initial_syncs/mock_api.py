@@ -33,3 +33,6 @@ def get_mock_api_response(base_url, params):
 
 def string_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
+
+def should_continue_pagination(response_page):
+    return response_page.get("has_more")

@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 
 from fivetran_connector_sdk import Operations as op
-import connector
-from mock_api import get_mock_api_response
+import mock_api
 
 def sync_customers(base_url, params, state, is_backward_sync):
     more_data = True
@@ -10,7 +9,7 @@ def sync_customers(base_url, params, state, is_backward_sync):
 
     while more_data:
         # Get response from API call.
-        response_page = get_mock_api_response(base_url, params)
+        response_page = mock_api.get_mock_api_response(base_url, params)
 
         # Process the items.
         items = response_page.get("data", [])
@@ -30,7 +29,7 @@ def sync_customers(base_url, params, state, is_backward_sync):
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
-        more_data = connector.should_continue_pagination(response_page)
+        more_data = mock_api.should_continue_pagination(response_page)
         if more_data:
             params['updated_since'] = last_updated_at
 

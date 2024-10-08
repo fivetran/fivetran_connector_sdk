@@ -158,9 +158,6 @@ def initBidirectionalCursors(state, endpoints):
     if 'isForwardSync' not in state:
         state['isForwardSync'] = True
 
-def should_continue_pagination(response_page):
-    return response_page.get("has_more")
-
 def formatIsoDatetime(date_time):
     return date_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
