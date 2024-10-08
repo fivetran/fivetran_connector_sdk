@@ -47,9 +47,9 @@ def schema(configuration: dict):
     return [
         {
             "table": "user",
-            "primary_key": ["mock_id"],
+            "primary_key": ["id"],
             "columns": {
-                "mock_id": "STRING",
+                "id": "STRING",
                 "name": "STRING",
                 "email": "STRING",
                 "address": "STRING",
@@ -61,9 +61,9 @@ def schema(configuration: dict):
         },
         {
             "table": "customer",
-            "primary_key": ["mock_id"],
+            "primary_key": ["id"],
             "columns": {
-                "mock_id": "STRING",
+                "id": "STRING",
                 "name": "STRING",
                 "email": "STRING",
                 "address": "STRING",

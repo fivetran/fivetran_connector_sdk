@@ -19,7 +19,7 @@ def get_mock_api_response(base_url, params):
     while updated_since <= until:
         response_page['data'].append(
             {
-                "mock_id": str(mock_id),
+                "id": str(mock_id),
                 "name": string_generator(),
                 "email": string_generator(),
                 "address": string_generator(),
