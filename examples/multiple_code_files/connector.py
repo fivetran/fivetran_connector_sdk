@@ -1,10 +1,8 @@
-# This is a simple example for how to work with the fivetran_connector_sdk module.
-# It defines a simple `update` method, which upserts some data to a table named "hello".
-# This example is the simplest possible as it doesn't define a schema() function, however it does not therefore provide a good template for writing a real connector.
+# This example demonstrates how you can write a complex connector comprising multiple .py files.
+# Make sure you place all the .py files in the same directory as connector.py.
+# The timestamp_serializer module shown in this example is used to handle scenarios where the source sends timestamps in two different formats.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
-import csv # Import the csv module to handle CSV data
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -42,15 +40,19 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     timestamp_serializer = TimestampSerializer()
 
-    # Open the CSV file
-    with open('data.csv', mode='r') as file: # Make sure that the file to be read (data.csv in this case) is present in the same directory as the connector.py file
-        # Create a CSV DictReader object
-        csv_reader = csv.DictReader(file)
+    row_1 = {
+        "name": "Event1",
+        "timestamp": "2024/09/24 14:30:45"
+    }
+    row_1['timestamp'] = timestamp_serializer.serialize(row_1['timestamp'])
+    yield op.upsert(table="event", data=row_1)
 
-        # Iterate over each row
-        for row in csv_reader:
-            row['timestamp'] = timestamp_serializer.serialize(row['timestamp'])
-            yield op.upsert(table="event", data=row)
+    row_2 = {
+        "name": "Event2",
+        "timestamp": "2024-09-24 10:30:45"
+    }
+    row_2['timestamp'] = timestamp_serializer.serialize(row_2['timestamp'])
+    yield op.upsert(table="event", data=row_2)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

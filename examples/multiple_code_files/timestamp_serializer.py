@@ -1,7 +1,8 @@
-import json
 from datetime import datetime
 
 
+# This class allows you to parse timestamp strings in two specific formats and then convert them into a standardized ISO 8601 format,
+# which is widely recommended, including by Fivetran.
 class TimestampSerializer:
     # Define the acceptable formats for the timestamp
     TIMESTAMP_FORMATS = [
