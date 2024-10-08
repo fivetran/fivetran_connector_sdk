@@ -21,6 +21,9 @@ def sync_users(base_url, params, state, is_historical_sync):
             yield op.upsert(table="user", data=user)
             last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
 
+        # for historical sync, check if last_updated_at is greater than historical_cursor, if true break
+        # as it means data fetch in the range from params['updated_since'] until historical_cursor is complete.
+        # Next range will be fetched in next sync_users method call.
         if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(
                 connector.get_pfs_historical_cursor_for_endpoint(state, 'user')).astimezone(timezone.utc):
             break
