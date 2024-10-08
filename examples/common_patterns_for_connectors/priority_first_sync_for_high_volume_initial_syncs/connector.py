@@ -14,16 +14,16 @@ from fivetran_connector_sdk import Operations as op
 
 import users_sync
 
-base_url = "http://127.0.0.1:5001/pagination/keyset"
+base_url = "http://example.com/pagination/keyset"
 sync_start = datetime.now().astimezone(timezone.utc)
 
 # Constants
 PFS_CURSORS = 'pfs_cursors'
-INCREMENTAL_CURSOR = 'incremental_cursor'
-HISTORICAL_CURSOR = 'historical_cursor'
-HISTORICAL_LIMIT = 'historical_limit'
+INCREMENTAL_SYNC_CURSOR = 'incremental_cursor'
+HISTORICAL_SYNC_CURSOR = 'historical_cursor'
+HISTORICAL_SYNC_LIMIT = 'historical_limit'
 IS_INCREMENTAL_SYNC = 'is_incremental_sync'
-SYNC_DURATION_THRESHOLD = 6
+SYNC_DURATION_THRESHOLD_IN_HOURS = 6
 HISTORICAL_SYNC_BATCH_DURATION = 1
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -102,7 +102,7 @@ def run_historical_syncs(state, endpoints):
                 return
 
 def is_sync_duration_threshold_breached():
-    if ((datetime.now().astimezone(timezone.utc) - sync_start).total_seconds() / 60 / 60) >= SYNC_DURATION_THRESHOLD:
+    if ((datetime.now().astimezone(timezone.utc) - sync_start).total_seconds() / 60 / 60) >= SYNC_DURATION_THRESHOLD_IN_HOURS:
         return True
     return False
 
@@ -137,9 +137,9 @@ def initialize_pfs_cursors(state, endpoints):
             # historical_cursor is used in historical syncs
             # historical_limit is the earliest timestamp upto which to fetch for historical syncs
             # historical_limit may be EPOCH in actual usage. 5 days is used here.
-            state[PFS_CURSORS][endpoint][INCREMENTAL_CURSOR] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-            state[PFS_CURSORS][endpoint][HISTORICAL_CURSOR] = state[PFS_CURSORS][endpoint][INCREMENTAL_CURSOR]
-            state[PFS_CURSORS][endpoint][HISTORICAL_LIMIT] = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+            state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR] = state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR]
+            state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
     if IS_INCREMENTAL_SYNC not in state[PFS_CURSORS]:
         state[PFS_CURSORS][IS_INCREMENTAL_SYNC] = True
 
@@ -150,22 +150,22 @@ def set_pfs_incremental_sync(state, value):
     state[PFS_CURSORS][IS_INCREMENTAL_SYNC] = value
 
 def set_pfs_incremental_cursor(state, endpoint, value):
-    state[PFS_CURSORS][endpoint][INCREMENTAL_CURSOR] = value
+    state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR] = value
 
 def set_pfs_historical_cursor(state, endpoint, value):
-    state[PFS_CURSORS][endpoint][HISTORICAL_CURSOR] = value
+    state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR] = value
 
 def set_pfs_historical_limit(state, endpoint, value):
-    state[PFS_CURSORS][endpoint][HISTORICAL_LIMIT] = value
+    state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = value
 
 def get_pfs_incremental_cursor(state, endpoint):
-    return state[PFS_CURSORS][endpoint][INCREMENTAL_CURSOR]
+    return state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR]
 
 def get_pfs_historical_cursor(state, endpoint):
-    return state[PFS_CURSORS][endpoint][HISTORICAL_CURSOR]
+    return state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR]
 
 def get_pfs_historical_limit(state, endpoint):
-    return state[PFS_CURSORS][endpoint][HISTORICAL_LIMIT]
+    return state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT]
 
 def format_datetime(date_time):
     return date_time.strftime('%Y-%m-%dT%H:%M:%SZ')
