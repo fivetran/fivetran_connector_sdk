@@ -10,7 +10,7 @@ def sync_users(base_url, params, state, is_historical_sync):
 
     while more_data:
         # Get response page from mock API call.
-        response_page = mock_api.get_mock_api_response(base_url, params)
+        response_page = mock_api.get_api_response(base_url, params)
 
         # Process the items.
         items = response_page.get("data", [])
@@ -21,8 +21,9 @@ def sync_users(base_url, params, state, is_historical_sync):
             yield op.upsert(table="user", data=user)
             last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
 
-        if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(connector.get_pfs_historical_cursor(state, 'user')).astimezone(timezone.utc):
-            connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
+        if is_historical_sync and connector.get_datetime_object(last_updated_at) >= connector.get_datetime_object(
+                connector.get_pfs_historical_cursor_for_endpoint(state, 'user')).astimezone(timezone.utc):
+            connector.set_pfs_historical_cursor_for_endpoint(state, 'user', params['updated_since'])
             break
 
         more_data = mock_api.should_continue_pagination(response_page)
@@ -31,10 +32,10 @@ def sync_users(base_url, params, state, is_historical_sync):
 
     if is_historical_sync:
         # move the historical cursor backwards
-        connector.set_pfs_historical_cursor(state, 'user', params['updated_since'])
+        connector.set_pfs_historical_cursor_for_endpoint(state, 'user', params['updated_since'])
     else:
         # move the incremental cursor forwards
-        connector.set_pfs_incremental_cursor(state, 'user', last_updated_at)
+        connector.set_pfs_incremental_cursor_for_endpoint(state, 'user', last_updated_at)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of interruptions.

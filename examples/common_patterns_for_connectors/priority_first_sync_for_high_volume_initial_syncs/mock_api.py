@@ -6,11 +6,11 @@ from datetime import datetime, timedelta, timezone
 
 import connector
 
-def get_mock_api_response(base_url, params):
+def get_api_response(base_url, params):
     log.info(f"Making API call to url: {base_url} with params: {params}")
     updated_since = connector.get_datetime_object(params['updated_since'])
     until = updated_since + timedelta(days=1)
-    if (until > datetime.now(timezone.utc)):
+    if until > datetime.now(timezone.utc):
         until = datetime.now(timezone.utc)
     response_page = {
         "data": []
