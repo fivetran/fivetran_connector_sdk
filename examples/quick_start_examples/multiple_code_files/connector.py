@@ -1,6 +1,7 @@
 # This example demonstrates how you can write a complex connector comprising multiple .py files.
 # Make sure you place all the .py files in the same directory as connector.py.
 # The timestamp_serializer module shown in this example is used to handle scenarios where the source sends timestamps in two different formats.
+# It assumes that the source will send timestamps in UTC timezone.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
