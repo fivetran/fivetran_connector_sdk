@@ -22,7 +22,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "period",  # Name of the table in the destination.
-            "primary_key": ["startTime"],  # Primary key column(s) for the table.
+            "primary_key": ["name", "startTime"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "name": "STRING",  # String column for the period name.
                 "startTime": "UTC_DATETIME",  # UTC date-time column for the start time.

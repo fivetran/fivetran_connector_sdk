@@ -1,4 +1,3 @@
-
 from fivetran_connector_sdk import Logging as log
 from faker import Faker
 from datetime import datetime, timedelta, timezone
@@ -6,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import connector
 
 fake = Faker()
+
 
 def get_api_response(base_url, from_cursor):
     log.info(f"Making API call to url: {base_url} with from_cursor: {from_cursor}")
@@ -33,6 +33,7 @@ def get_api_response(base_url, from_cursor):
     if updated_since < connector.sync_start:
         response_page['has_more'] = True
     return response_page
+
 
 def should_continue_pagination(response_page):
     return response_page.get("has_more")

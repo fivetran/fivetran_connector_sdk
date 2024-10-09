@@ -4,6 +4,7 @@ from fivetran_connector_sdk import Operations as op
 import mock_api
 import connector
 
+
 def sync_users(base_url, params, state, is_historical_sync):
     more_data = True
     last_updated_at = params['updated_since']
@@ -19,7 +20,7 @@ def sync_users(base_url, params, state, is_historical_sync):
 
         for user in items:
             yield op.upsert(table="user", data=user)
-            last_updated_at = user["updated_at"] # Assuming the API returns the data in ascending order
+            last_updated_at = user["updated_at"]  # Assuming the API returns the data in ascending order
 
         # for historical sync, check if last_updated_at is greater than historical_cursor, if true break
         # as it means data fetch in the range from params['updated_since'] until historical_cursor is complete.

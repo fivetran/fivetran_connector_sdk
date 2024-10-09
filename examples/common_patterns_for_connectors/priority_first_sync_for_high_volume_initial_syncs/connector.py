@@ -27,7 +27,8 @@ HISTORICAL_SYNC_CURSOR = 'historical_cursor'
 HISTORICAL_SYNC_LIMIT = 'historical_limit'
 IS_INCREMENTAL_SYNC = 'is_incremental_sync'
 SYNC_DURATION_THRESHOLD_IN_HOURS = 6
-HISTORICAL_SYNC_BATCH_DURATION = 1
+HISTORICAL_SYNC_BATCH_DURATION_IN_HOURS = 1
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -51,6 +52,7 @@ def schema(configuration: dict):
             },
         }
     ]
+
 
 def update(configuration: dict, state: dict):
     try:
@@ -82,19 +84,23 @@ def update(configuration: dict, state: dict):
         # logs stack trace
         log.severe(traceback.format_exc())
 
+
 def is_historical_data_completely_synced(state, endpoints):
     for endpoint in endpoints:
         # if historical_cursor is after the historical_limit for any endpoint, it means historical sync is not complete
         if get_datetime_object(get_pfs_historical_cursor_for_endpoint(state,
-                                                                      endpoint)) > get_datetime_object(get_pfs_historical_limit_for_endpoint(
-            state, endpoint)):
+                                                                      endpoint)) > get_datetime_object(
+            get_pfs_historical_limit_for_endpoint(
+                state, endpoint)):
             return False
     return True
+
 
 def run_incremental_sync_for_endpoints(state, endpoints):
     for endpoint in endpoints:
         log.info('starting incremental sync for ' + endpoint + ' endpoint')
         yield from incremental_sync_for_endpoint(state, endpoint)
+
 
 def run_historical_syncs_for_endpoints(state, endpoints):
     for endpoint in endpoints:
@@ -103,13 +109,17 @@ def run_historical_syncs_for_endpoints(state, endpoints):
                get_datetime_object(get_pfs_historical_limit_for_endpoint(state, endpoint))):
             yield from historical_sync_for_endpoint(state, endpoint)
             if is_sync_duration_threshold_breached():
-                log.info('Sync duration breached sync_duration_threshold. Stopping sync to flush data to destination...')
+                log.info(
+                    'Sync duration breached sync_duration_threshold. Stopping sync to flush data to destination...')
                 return
 
+
 def is_sync_duration_threshold_breached():
-    if ((datetime.now().astimezone(timezone.utc) - sync_start).total_seconds() / 60 / 60) >= SYNC_DURATION_THRESHOLD_IN_HOURS:
+    if ((datetime.now().astimezone(
+            timezone.utc) - sync_start).total_seconds() / 60 / 60) >= SYNC_DURATION_THRESHOLD_IN_HOURS:
         return True
     return False
+
 
 def incremental_sync_for_endpoint(state, endpoint):
     params = {
@@ -119,11 +129,13 @@ def incremental_sync_for_endpoint(state, endpoint):
     if endpoint == 'user':
         yield from users_sync.sync_users(base_url, params, state, False)
 
+
 def historical_sync_for_endpoint(state, endpoint):
     # set updated_since to historical cursor minus 1 day. If updated_since is before historical_limit, sets it to historical limit
     # data is fetched for time range updated_since until historical cursor
     updated_since = (get_datetime_object(get_pfs_historical_cursor_for_endpoint(state,
-                                                                                endpoint)) - timedelta(days=HISTORICAL_SYNC_BATCH_DURATION))
+                                                                                endpoint)) - timedelta(
+        days=HISTORICAL_SYNC_BATCH_DURATION_IN_HOURS))
     if updated_since < get_datetime_object(get_pfs_historical_limit_for_endpoint(state, endpoint)):
         updated_since = get_datetime_object(get_pfs_historical_limit_for_endpoint(state, endpoint))
     params = {
@@ -132,6 +144,7 @@ def historical_sync_for_endpoint(state, endpoint):
 
     if endpoint == 'user':
         yield from users_sync.sync_users(base_url, params, state, True)
+
 
 def initialize_pfs_cursors_for_each_endpoint(state, endpoints):
     if PFS_CURSORS not in state:
@@ -143,41 +156,54 @@ def initialize_pfs_cursors_for_each_endpoint(state, endpoints):
             # historical_cursor is used in historical syncs
             # historical_limit is the earliest timestamp upto which to fetch for historical syncs
             # historical_limit may be EPOCH in actual usage. 5 days is used here.
-            state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR] = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR] = (
+                        datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
             state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR] = state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR]
-            state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+            state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = (
+                        datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
     if IS_INCREMENTAL_SYNC not in state[PFS_CURSORS]:
         set_pfs_incremental_sync(state, True)
+
 
 def is_pfs_incremental_sync(state):
     return state[PFS_CURSORS][IS_INCREMENTAL_SYNC]
 
+
 def set_pfs_incremental_sync(state, value):
     state[PFS_CURSORS][IS_INCREMENTAL_SYNC] = value
+
 
 def set_pfs_incremental_cursor_for_endpoint(state, endpoint, value):
     state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR] = value
 
+
 def set_pfs_historical_cursor_for_endpoint(state, endpoint, value):
     state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR] = value
+
 
 def set_pfs_historical_limit_for_endpoint(state, endpoint, value):
     state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT] = value
 
+
 def get_pfs_incremental_cursor_for_endpoint(state, endpoint):
     return state[PFS_CURSORS][endpoint][INCREMENTAL_SYNC_CURSOR]
+
 
 def get_pfs_historical_cursor_for_endpoint(state, endpoint):
     return state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_CURSOR]
 
+
 def get_pfs_historical_limit_for_endpoint(state, endpoint):
     return state[PFS_CURSORS][endpoint][HISTORICAL_SYNC_LIMIT]
+
 
 def format_datetime(date_time):
     return date_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
+
 def get_datetime_object(date_time_str):
     return datetime.fromisoformat(date_time_str)
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
