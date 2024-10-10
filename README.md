@@ -78,6 +78,9 @@ Database source examples
 Shows how to work with records where the source does not provide a created_at(or equivalent) field.
 Useful when its desired to keep track of when the record was first observed.
 
+### multiple code files
+Shows how you can write a complex connector comprising multiple .py files.
+
 ### aws dynamo db authentication
 Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
 boto3 package is used to create aws client. Refer its [Docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
