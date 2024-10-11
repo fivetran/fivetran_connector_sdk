@@ -67,6 +67,11 @@ Upserts all data types without specifying a schema
 
 ### three_operations
 Shows how to use upsert, update and delete operations
+
+### priority_first_sync_for_high_volume_initial_syncs
+Priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy
+which prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
+This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
 </details>
 
 <details>
