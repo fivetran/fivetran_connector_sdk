@@ -48,7 +48,7 @@ def update(configuration: dict, state: dict):
 
         # Fetch records using api calls
         (updated_state, insert) = api_response(updated_state, configuration)
-    
+
         for ticker_price in insert["tickers_price"]:
             yield op.upsert("tickers_price", ticker_price)
 
