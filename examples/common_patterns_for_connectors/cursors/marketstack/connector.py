@@ -4,6 +4,7 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Refer to the Marketstack documentation (https://marketstack.com/documentation) for API endpoint details
+# Please get your API key from here: https://marketstack.com/
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -68,7 +69,7 @@ def api_response(state, configuration):
     ticker_end_cursor = state["ticker_end_cursor"]
 
     # Fetch the tickers for which information is needed.
-    insert_tickers = get_tickers(configuration["apiKey"], ticker_offset)
+    insert_tickers = get_tickers()
 
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
@@ -92,7 +93,7 @@ def api_response(state, configuration):
     return state, insert
 
 
-def get_tickers(api_key, ticker_offset):
+def get_tickers():
     """This is a function to list all the tickers for which information is needed
     Returns:
         list: tickers
