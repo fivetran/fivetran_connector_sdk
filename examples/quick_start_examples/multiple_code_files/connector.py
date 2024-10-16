@@ -1,5 +1,6 @@
 # This example demonstrates how you can write a complex connector comprising multiple .py files.
 # Make sure you place all the .py files in the same directory as connector.py.
+# This includes the __init__.py which is needed to ensure the timestamp_serializer module is correctly recognized.
 # The timestamp_serializer module shown in this example is used to handle scenarios where the source sends timestamps in two different formats.
 # It assumes that the source will send timestamps in UTC timezone.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
@@ -57,7 +58,6 @@ def update(configuration: dict, state: dict):
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
-# This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
