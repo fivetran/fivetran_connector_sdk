@@ -57,7 +57,6 @@ def update(configuration: dict, state: dict):
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
-# This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
