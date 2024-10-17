@@ -3,14 +3,16 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
+# Refer to the Marketstack documentation (https://marketstack.com/documentation) for API endpoint details
+# Please get your API key from here: https://marketstack.com/
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import json
-from datetime import date
-import time
+from datetime import date, timedelta
 import traceback
 
 
@@ -26,17 +28,11 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "tickers",
-            "primary_key": ["symbol"],
-            # Columns and data types will be inferred by Fivetran
-        },
-        {
             "table": "tickers_price",
             "primary_key": ['symbol', 'date'],
             # Columns and data types will be inferred by Fivetran
         }
     ]
-
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
@@ -52,8 +48,6 @@ def update(configuration: dict, state: dict):
 
         # Fetch records using api calls
         (updated_state, insert) = api_response(updated_state, configuration)
-        for ticker in insert["tickers"]:
-            yield op.upsert("tickers", ticker)
 
         for ticker_price in insert["tickers_price"]:
             yield op.upsert("tickers_price", ticker_price)
@@ -74,29 +68,21 @@ def api_response(state, configuration):
     ticker_start_cursor = state["ticker_start_cursor"]
     ticker_end_cursor = state["ticker_end_cursor"]
 
-    # Fetch all the tickers
-    insert_tickers = get_tickers(configuration["apiKey"], ticker_offset)
+    # Fetch the tickers for which information is needed.
+    insert_tickers = get_tickers()
 
     # Fetch the records of prices of tickers.
-    # If time exceeds 1s then return intermediate response and fetch other records in subsequent calls
     # After price for a ticker is fetched we increment ticker offset by 1
     insert_ticker_price = []
-    insert_ticker_actual = []
-    start_time = time.time()
     for ticker in insert_tickers:
         temp_list = get_ticker_price(
-            configuration["apiKey"], ticker['symbol'], ticker_start_cursor, ticker_end_cursor)
+            configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor)
         ticker_offset += 1
         if temp_list:
             insert_ticker_price += temp_list
-            insert_ticker_actual.append(ticker)
-        end_time = time.time()
-        if end_time-start_time > 1:
-            break
 
     state, insert = {}, {}
 
-    insert['tickers'] = insert_ticker_actual
     insert['tickers_price'] = insert_ticker_price
 
     # Update the state
@@ -107,39 +93,16 @@ def api_response(state, configuration):
     return state, insert
 
 
-def get_tickers(api_key, ticker_offset):
-    """This is a function to list all the tickers presently available
-    Args:
-        api_key (String): The api token for accessing data
-        ticker_offset (int): Ticker cursor value
-    Raises:
-        Exception: When request fails or tickers cannot be fetched from response
+def get_tickers():
+    """This is a function to list all the tickers for which information is needed
     Returns:
         list: tickers
     """
-    params = {
-        'access_key': api_key,
-        'offset': ticker_offset,
-        'limit': 100
-    }
-
-    insert_ticker_records = []
-
-    try:
-        api_result = rq.get(
-            'http://api.marketstack.com/v1/tickers', params)
-        response = api_result.json()
-        insert_ticker_records = response["data"]
-    except rq.exceptions.RequestException as e:
-        raise RuntimeError(f"Request failed: {str(e)}")
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse JSON response: {str(e)}")
-    except KeyError as e:
-        raise RuntimeError(f"Missing expected key in response: {str(e)}")
-    except Exception as e:
-        raise RuntimeError("Failed Fetching ticker, Error: " + str(e))
-
-    return insert_ticker_records
+    """
+    If you need to fetch the list of tickers from the API, 
+    please refer to the documentation at https://marketstack.com/documentation for more information.
+    """
+    return ["AAPL", "MSFT", "GOOG", "INTC"]
 
 
 def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
@@ -198,7 +161,7 @@ def initialize_state(state: dict):
 
     if not state:
         state["ticker_offset"] = 0
-        state["ticker_start_cursor"] = "2000-01-01"
+        state["ticker_start_cursor"] = date.today - timedelta(days=15)
         state["ticker_end_cursor"] = str(date.today())
 
     # Fetch data till the latest date if ticker_offset is 0
@@ -220,3 +183,38 @@ if __name__ == "__main__":
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
+
+"""
+Resulting table:
+Table tickers_price
+┌─────────┬──────────────────────┬──────────────┬────────────┬──────────┬───┬───────────┬──────────┬────────┬─────────┬─────────┐
+│ symbol  │         date         │ split_factor │   volume   │   high   │ … │ adj_close │ exchange │ close  │  open   │ adj_low │
+│ varchar │       varchar        │    float     │   float    │  float   │   │   float   │ varchar  │ float  │  float  │  float  │
+├─────────┼──────────────────────┼──────────────┼────────────┼──────────┼───┼───────────┼──────────┼────────┼─────────┼─────────┤
+│ AAPL    │ 2024-10-14T00:00:0…  │          1.0 │ 32607920.0 │ 231.7278 │ … │     231.3 │ XNAS     │  231.3 │   228.7 │   228.6 │
+│ AAPL    │ 2024-10-11T00:00:0…  │          1.0 │ 31668000.0 │   229.41 │ … │    227.55 │ XNAS     │ 227.55 │   229.3 │  227.34 │
+│ AAPL    │ 2024-10-10T00:00:0…  │          1.0 │ 27959432.0 │    229.5 │ … │    229.04 │ XNAS     │ 229.04 │  227.78 │  227.17 │
+│ AAPL    │ 2024-10-09T00:00:0…  │          1.0 │ 32108384.0 │   229.75 │ … │    229.54 │ XNAS     │ 229.54 │  225.17 │  224.83 │
+├─────────┴──────────────────────┴──────────────┴────────────┴──────────┴───┴───────────┴──────────┴────────┴─────────┴─────────┤
+
+# List of columns present:
+┌──────────────┐
+│ column_name  │
+├──────────────┤
+│ symbol       │
+│ date         │
+│ split_factor │
+│ volume       │
+│ high         │
+│ adj_open     │
+│ adj_volume   │
+│ adj_high     │
+│ low          │
+│ dividend     │
+│ adj_close    │
+│ exchange     │
+│ close        │
+│ open         │
+│ adj_low      │
+├──────────────┤
+"""
