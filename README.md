@@ -109,3 +109,6 @@ Note that API calls made by your SDK connector may count against your service’
 It's important to choose the right design pattern for your target API. Using an inappropriate pattern may lead to data integrity issues. Review all our examples carefully to select the one that best suits your target API. Keep in mind that some APIs may not support patterns for which we currently have examples.
 
 As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connectors you created to run these examples before the trial ends.
+
+# Maintenance
+This repository is actively maintained by Fivetran Developers. Please reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
