@@ -9,6 +9,7 @@ from fivetran_connector_sdk import Operations as op
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import pandas as pd
+import numpy as np
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -33,6 +34,10 @@ def schema(configuration: dict):
             "table": "login",
             "primary_key": ["profileId"],
             # Columns and data types will be inferred by Fivetran
+        }, 
+        {
+            "table": "table_with_nan",
+            "primary_key": ["id"],
         }
     ]
 
@@ -87,6 +92,43 @@ def update(configuration: dict, state: dict):
     yield op.checkpoint(state)
 
 
+    # Upsert tables with NaN
+    cursor_2 = state["table_with_nan_cursor"] if "table_with_nan_cursor" in state else 0
+    table_df_1 = generate_data_with_NaN()
+    table_df_2 = generate_data_with_NaN()
+    table_df_3 = generate_data_with_NaN()
+
+    # Approaches to replace NaN with None
+
+    # Convert NaN to None using the replace method
+    table_df_1 = table_df_1.replace(np.nan, None)
+
+    for row in table_df_1.to_dict("records"):
+        yield op.upsert("table_with_nan", row)
+        cursor_2 += 1
+    
+    state["table_with_nan_cursor"] = cursor_2
+    yield op.checkpoint(state)
+
+    # Convert NaN to None using the where method
+    table_df_2 = table_df_2.astype(object).where(pd.notnull(table_df_2), None)
+    for row in table_df_2.to_dict("records"):
+        yield op.upsert("table_with_nan", row)
+        cursor_2 += 1
+    
+    state["table_with_nan_cursor"] = cursor_2
+    yield op.checkpoint(state)
+
+    # Fill NaN values with np.nan and then replace any NaN with None.
+    table_df_3 = table_df_3.fillna(np.nan).replace([np.nan], [None])
+    for row in table_df_3.to_dict("records"):
+        yield op.upsert("table_with_nan", row)
+        cursor_2 += 1
+    
+    state["table_with_nan_cursor"] = cursor_2
+    yield op.checkpoint(state)
+
+
 # Function to fetch data from an API and process it into DataFrames
 def get_data(cursor):
     # Initialize empty DataFrames for profile, location, and login tables
@@ -94,7 +136,7 @@ def get_data(cursor):
     location_df = pd.DataFrame([])
     login_df = pd.DataFrame([])
 
-    # Fetch data for 10 iterations, each with a new profile
+    # Fetch data for 3 iterations, each with a new profile
     for i in range(2):
         # Increment primary key
         cursor += 1
@@ -146,6 +188,19 @@ def get_data(cursor):
 
     return profile_df, location_df, login_df, cursor
 
+
+def generate_data_with_NaN():
+    np.random.seed(0)
+
+    # Create a DataFrame with 50 rows and 3 columns of random numbers
+    data = np.random.rand(10, 3)
+
+    # Randomly assign NaN values (e.g., 10% NaN)
+    nan_mask = np.random.choice([True, False], size=data.shape, p=[0.1, 0.9])
+    data[nan_mask] = np.nan
+
+    # Create the DataFrame
+    return pd.DataFrame(data, columns=['id', 'column_1', 'Column_2'])
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
