@@ -34,7 +34,7 @@ def schema(configuration: dict):
             "table": "login",
             "primary_key": ["profileId"],
             # Columns and data types will be inferred by Fivetran
-        }, 
+        },
         {
             "table": "table_with_nan",
             "primary_key": ["id"],
@@ -91,7 +91,6 @@ def update(configuration: dict, state: dict):
     state["login_cursor"] = cursor
     yield op.checkpoint(state)
 
-
     # Upsert tables with NaN
     cursor_2 = state["table_with_nan_cursor"] if "table_with_nan_cursor" in state else 0
     table_df_1 = generate_data_with_NaN()
@@ -106,7 +105,7 @@ def update(configuration: dict, state: dict):
     for row in table_df_1.to_dict("records"):
         yield op.upsert("table_with_nan", row)
         cursor_2 += 1
-    
+
     state["table_with_nan_cursor"] = cursor_2
     yield op.checkpoint(state)
 
@@ -115,7 +114,7 @@ def update(configuration: dict, state: dict):
     for row in table_df_2.to_dict("records"):
         yield op.upsert("table_with_nan", row)
         cursor_2 += 1
-    
+
     state["table_with_nan_cursor"] = cursor_2
     yield op.checkpoint(state)
 
@@ -124,7 +123,7 @@ def update(configuration: dict, state: dict):
     for row in table_df_3.to_dict("records"):
         yield op.upsert("table_with_nan", row)
         cursor_2 += 1
-    
+
     state["table_with_nan_cursor"] = cursor_2
     yield op.checkpoint(state)
 
@@ -201,6 +200,7 @@ def generate_data_with_NaN():
 
     # Create the DataFrame
     return pd.DataFrame(data, columns=['id', 'column_1', 'Column_2'])
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
