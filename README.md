@@ -12,7 +12,7 @@ There are several examples available under `/examples`:
 
 <details>
   <summary>
-    Quick start examples
+    Quickstart examples
   </summary>
 
 ### hello
@@ -102,7 +102,7 @@ When you set a table to use Incremental Replication, you’ll also need to defin
 
 # Additional considerations
 
-We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using SDK connectors developed based on these examples.
+We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
 
 Note that API calls made by your SDK connector may count against your service’s API call allocation. Exceeding this limit could trigger rate limits, potentially affecting other uses of the source API.
 
