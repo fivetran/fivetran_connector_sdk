@@ -1,4 +1,7 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
+# This example demonstrates how to work with data frames in our environment.
+# It also shows how to handle NaN values, as we do not support NaN inputs from customers.
+# Customers should convert NaN values to None before sending data.
 # It shows the use of a requirements.txt file and a connector that calls a publicly available API to get random profile data
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
