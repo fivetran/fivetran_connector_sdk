@@ -1,5 +1,5 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-# It uses a local SOURCE_DATA object created at the start of the script, and demonstrates the Schema() method use.
+# It uses a simple_three_step_cursor SOURCE_DATA object created at the start of the script, and demonstrates the Schema() method use.
 # It also shows a way to manage state.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -42,12 +42,16 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    log.warning("Example: QuickStart Examples - Simple Three Step Cursor")
+
     # Retrieve the cursor from the state object to determine the current position in the SOURCE_DATA.
     # If the cursor is not present in the state, start from the beginning (cursor = 0).
     cursor = state['cursor'] if 'cursor' in state else 0
     log.fine(f"current cursor is {repr(cursor)}")
 
     # Get the row of data from SOURCE_DATA using the cursor position.
+    if cursor >= SOURCE_DATA.__len__():
+        raise Exception("Expected ‘list index out of range’ on 4th sync due to local data being exhausted in Example Connector")
     row = SOURCE_DATA[cursor]
 
     # Yield an upsert operation to insert/update the row in the "hello_world" table.

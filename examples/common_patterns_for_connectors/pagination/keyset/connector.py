@@ -46,6 +46,8 @@ def schema(configuration: dict):
 # - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
 # The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Pagination - Keyset")
+
     print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
           "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
     base_url = "http://127.0.0.1:5001/pagination/keyset"

@@ -11,6 +11,7 @@
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -42,6 +43,8 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Records With No CreatedAt Timestamp")
+
     # Represents a record fetched from source
     row_1 = {
         "id": 123,

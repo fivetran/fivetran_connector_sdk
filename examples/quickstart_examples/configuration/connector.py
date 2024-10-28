@@ -43,6 +43,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: QuickStart Examples - Configuration")
+
     # Retrieve the encryption key from the configuration.
     key = configuration['my_key']
     # Create a Fernet object for encryption and decryption using the provided key.

@@ -18,6 +18,8 @@ from fivetran_connector_sdk import Operations as op
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    log.warning("Example: QuickStart Examples - Hello")
+
     # The yield statement returns a generator object.
     # This generator will yield an upsert operation to the Fivetran connector.
     # The op.upsert method is called with two arguments:

@@ -33,6 +33,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Three Operations")
+
     # Generate three unique identifiers using the uuid4 method.
     ids = [uuid.uuid4(), uuid.uuid4(), uuid.uuid4()]
 

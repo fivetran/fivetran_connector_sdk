@@ -85,6 +85,8 @@ def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    log.warning("Example: Source Examples - Common Patterns - Key Based Replication")
+
     # Connect to your database instance instance.
     conn = duckdb.connect()
     # This is not required. This is just for example illustration purposes.

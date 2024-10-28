@@ -6,6 +6,7 @@
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import pandas as pd
@@ -46,6 +47,8 @@ def schema(configuration: dict):
 
 
 def update(configuration: dict, state: dict):
+    log.warning("Example: QuickStart Examples - User Profiles")
+
     # Retrieve the last processed profile ID from state or set it to 0 if not present
     profile_cursor = state["profile_cursor"] if "profile_cursor" in state else 0
 

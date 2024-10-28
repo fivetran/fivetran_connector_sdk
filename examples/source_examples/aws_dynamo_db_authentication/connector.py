@@ -14,12 +14,13 @@ from fivetran_connector_sdk import Logging as log
 import boto3
 import aws_dynamodb_parallel_scan
 
+
 def getDynamoDbClient(configuration: dict):
     # create security token service client
     sts = boto3.client(
         'sts',
-       aws_access_key_id=configuration['AWS_ACCESS_KEY_ID'],
-       aws_secret_access_key=configuration['AWS_SECRET_ACCESS_KEY']
+        aws_access_key_id=configuration['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=configuration['AWS_SECRET_ACCESS_KEY']
     )
 
     # get role credentials
@@ -39,6 +40,7 @@ def getDynamoDbClient(configuration: dict):
 
     return dynamodbClient
 
+
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
@@ -55,13 +57,15 @@ def schema(configuration: dict):
             tableMetaData = dynamoClient.describe_table(TableName=table)
             tableSchema = {
                 "table": table,
-                "primary_key": list(map(lambda keySchema: keySchema['AttributeName'], tableMetaData['Table']['KeySchema']))
+                "primary_key": list(
+                    map(lambda keySchema: keySchema['AttributeName'], tableMetaData['Table']['KeySchema']))
             }
             schema.append(tableSchema)
     except Exception as e:
         log.severe(str(e))
 
     return schema
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
@@ -71,6 +75,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Source Examples - AWS DynamoDb Authentication")
+
     dynamoClient = getDynamoDbClient(configuration)
 
     try:
@@ -96,13 +102,17 @@ def update(configuration: dict, state: dict):
         log.severe(str(e))
         raise
 
+
 def mapItem(item: dict):
     result = {}
     for key, value in item.items():
         for nested_key, nested_value in value.items():
-            if type(nested_value) is list: result[key] = str(nested_value)
-            else: result[key] = nested_value
+            if type(nested_value) is list:
+                result[key] = str(nested_value)
+            else:
+                result[key] = nested_value
     return result
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)

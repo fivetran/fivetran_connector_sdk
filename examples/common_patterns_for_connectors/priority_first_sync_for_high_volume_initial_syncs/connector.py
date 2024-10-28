@@ -55,6 +55,8 @@ def schema(configuration: dict):
 
 
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Priority First Sync For High Volume Initial Syncs")
+
     try:
         # list of endpoints for pfs flow mapped from table names
         endpoints = []
