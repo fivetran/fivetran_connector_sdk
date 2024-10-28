@@ -33,6 +33,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Unspecified Types")
+
     # Yield an upsert operation to insert/update the row in the "unspecified" table.
     # The data dictionary contains various data types.
     # Since the schema does not specify column types, they will be inferred from the data.

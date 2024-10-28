@@ -47,6 +47,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Specified Types")
+
     # Yield an upsert operation to insert/update the row in the "specified" table.
     log.fine("upserting to table 'specified'")
     yield op.upsert(

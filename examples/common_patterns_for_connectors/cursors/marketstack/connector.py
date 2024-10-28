@@ -9,6 +9,7 @@
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import json
@@ -34,6 +35,7 @@ def schema(configuration: dict):
         }
     ]
 
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -42,6 +44,8 @@ def schema(configuration: dict):
 # - state: a dictionary containing the state checkpointed during the prior sync.
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Cursors - Marketstack")
+
     try:
         # Initialize state
         updated_state = initialize_state(state)
@@ -63,7 +67,6 @@ def update(configuration: dict, state: dict):
 
 
 def api_response(state, configuration):
-
     ticker_offset = state["ticker_offset"]
     ticker_start_cursor = state["ticker_start_cursor"]
     ticker_end_cursor = state["ticker_end_cursor"]

@@ -50,6 +50,8 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Cursors - Multiple Tables With Cursors")
+
     company_cursor = state["company_cursor"] if "company_cursor" in state else '0001-01-01T00:00:00Z'
     department_cursor = state["department_cursor"] if "department_cursor" in state else {}
 
