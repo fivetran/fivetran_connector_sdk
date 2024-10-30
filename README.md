@@ -76,7 +76,7 @@ This is a simple example of how you could implement the Priority-first sync stra
 
 <details>
 <summary>
-Database source examples
+Source examples
 </summary>
 
 ### records with no created_at
