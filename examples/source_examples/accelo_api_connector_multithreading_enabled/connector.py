@@ -9,7 +9,7 @@ Author: Ahmed Zedan
 Date: 2024-09-20
 Version: 1.3
 """
-
+import json
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 import requests
 import time
@@ -753,4 +753,8 @@ def schema(configuration: dict):
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    connector.debug()
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
