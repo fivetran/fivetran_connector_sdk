@@ -101,7 +101,7 @@ When you set a table to use Incremental Replication, you’ll also need to defin
 
 ### accelo api connector multithreading enabled
 This module implements a connector for syncing data from the Accelo API to Fivetran.
-It handles authentication, rate limiting, and data synchronization for companies,
+It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
 invoices, payments, prospects, jobs, and staff.
 Multithreading is used to make api calls in parallel to pull data faster.
 Requires Accelo credentials to be passed in to work.

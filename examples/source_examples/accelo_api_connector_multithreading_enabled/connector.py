@@ -23,9 +23,6 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Set the log level explicitly
-log.LOG_LEVEL = log.Level.INFO
-
 # Constants
 BASE_URL = "https://{deployment}.api.accelo.com/api/v0"
 RATE_LIMIT = 5000  # Requests per hour
@@ -287,23 +284,8 @@ def sync_companies(access_token):
                     log.warning(f"Could not convert field {field} with value '{value}' to int")
                     record[field] = None
 
-        # Convert date fields
         date_fields = ["date_created", "date_modified", "date_last_interacted"]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        # ISO 8601 format
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        # Unix timestamp
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         return record
 
@@ -355,23 +337,8 @@ def sync_invoices(access_token):
                     log.warning(f"Could not convert field {field} with value '{value}' to float")
                     record[field] = None
 
-        # Convert date fields
         date_fields = ["date_raised", "date_due", "date_modified"]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        # ISO 8601 format
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        # Unix timestamp
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         return record
 
@@ -425,23 +392,8 @@ def sync_payments(access_token):
                     log.warning(f"Could not convert field {field} with value '{value}' to float")
                     record[field] = None
 
-        # Convert date fields
         date_fields = ["date_created"]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        # ISO 8601 format
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        # Unix timestamp
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         return record
 
@@ -504,21 +456,7 @@ def sync_prospects(access_token):
             "date_created", "date_actioned", "date_due",
             "date_last_interacted", "date_modified"
         ]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        # ISO 8601 format
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        # Unix timestamp
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         # Convert 'success' field to boolean
         value = record.get('success')
@@ -586,21 +524,8 @@ def sync_jobs(access_token):
                     log.warning(f"Could not convert field {field} with value '{value}' to float")
                     record[field] = None
 
-        # Convert date fields
         date_fields = ["date_created", "date_started", "date_due", "date_completed", "date_modified"]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         return record
 
@@ -639,19 +564,7 @@ def sync_staff(access_token):
 
         # Convert date fields
         date_fields = ["date_created", "date_modified"]
-        for field in date_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    if isinstance(value, str) and 'T' in value:
-                        dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                    else:
-                        timestamp = int(value)
-                        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                    record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                except (ValueError, TypeError) as e:
-                    log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
-                    record[field] = None
+        convertDateFields(date_fields, record)
 
         return record
 
@@ -666,6 +579,22 @@ def sync_staff(access_token):
         batch_size=BATCH_SIZE
     )
 
+def convertDateFields(date_fields, record):
+    for field in date_fields:
+        value = record.get(field)
+        if value is not None:
+            try:
+                if isinstance(value, str) and 'T' in value:
+                    # ISO 8601 format
+                    dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                else:
+                    # Unix timestamp
+                    timestamp = int(value)
+                    dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+            except (ValueError, TypeError) as e:
+                log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
+                record[field] = None
 
 def schema(configuration: dict):
     """
