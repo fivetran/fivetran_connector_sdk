@@ -135,7 +135,6 @@ def update(configuration: dict, state: dict):
         update_start_time = time.time()
 
         for entity_sync in [sync_companies, sync_invoices, sync_payments, sync_prospects, sync_jobs, sync_staff]:
-            entity_name = entity_sync.__name__.replace("sync_", "")
             yield from entity_sync(access_token)
 
         yield op.checkpoint(thread_local_state.state)
