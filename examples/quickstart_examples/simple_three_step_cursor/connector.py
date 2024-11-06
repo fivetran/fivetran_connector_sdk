@@ -83,5 +83,7 @@ if __name__ == "__main__":
 # │  id   │   message   │
 # │ int32 │   varchar   │
 # ├───────┼─────────────┤
-# │    10 │ Hello world │
+# │   10  │ Hello world │
+# │   20  │ Hello again │
+# │   30  │  Good bye   │
 # └───────┴─────────────┘
