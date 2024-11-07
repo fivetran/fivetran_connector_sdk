@@ -100,11 +100,13 @@ Replication keys are columns that are used to identify new and updated data for 
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
 ### accelo api connector multithreading enabled
-This module implements a connector for syncing data from the Accelo API to Fivetran.
+This module implements a connector for syncing data from the Accelo API.
 It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
 invoices, payments, prospects, jobs, and staff.
-Multithreading is used to make api calls in parallel to pull data faster.
-Requires Accelo credentials to be passed in to work.
+It is an example of multithreading the extraction of data from the source to improve connector performance.
+Multithreading helps to make api calls in parallel to pull data faster.
+It is also an example of using OAuth 2.0 client credentials to make api calls.
+Requires Accelo OAuth credentials to be passed in to work.
 </details>
 
 # Additional considerations
