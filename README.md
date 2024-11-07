@@ -105,7 +105,7 @@ It handles OAuth2 authentication, rate limiting, and data synchronization for co
 invoices, payments, prospects, jobs, and staff.
 It is an example of multithreading the extraction of data from the source to improve connector performance.
 Multithreading helps to make api calls in parallel to pull data faster.
-It is also an example of using OAuth 2.0 client credentials to make api calls.
+It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
 </details>
 
