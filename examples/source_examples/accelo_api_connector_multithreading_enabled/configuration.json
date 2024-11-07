@@ -1,5 +1,5 @@
 {
   "deployment": "<DEPLOYMENT>",
-  "client_id": "<CLIENT_ID>>",
-  "client_secret": "<CLIENT_SECRET>"
+  "client_id": "<YOUR_CLIENT_ID>",
+  "client_secret": "<YOUR_CLIENT_SECRET>"
 }

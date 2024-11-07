@@ -275,16 +275,8 @@ def sync_companies(access_token):
     ]
 
     def process_company_record(record):
-        # Convert integer fields
         int_fields = ["id", "status", "postal_address", "default_affiliation"]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         date_fields = ["date_created", "date_modified", "date_last_interacted"]
         convertDateFields(date_fields, record)
@@ -317,16 +309,8 @@ def sync_invoices(access_token):
     ]
 
     def process_invoice_record(record):
-        # Convert integer fields
         int_fields = ["id", "against_id", "invoice_number", "currency_id", "owner_id", "modified_by"]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         # Convert float fields
         float_fields = ["amount", "tax", "outstanding"]
@@ -369,19 +353,11 @@ def sync_payments(access_token):
     ]
 
     def process_payment_record(record):
-        # Convert integer fields
         int_fields = [
             "id", "receipt_id", "currency_id", "method_id", "against_id",
             "created_by_staff_id", "payment_currency", "payment_method", "payment_receipt"
         ]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         # Convert float fields
         float_fields = ["amount"]
@@ -433,14 +409,7 @@ def sync_prospects(access_token):
             "manager", "prospect_type", "status", "prospect_probability",
             "affiliation"
         ]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         # Convert float fields
         float_fields = ["value", "progress"]
@@ -504,16 +473,8 @@ def sync_jobs(access_token):
     ]
 
     def process_job_record(record):
-        # Convert integer fields
         int_fields = ["id", "status", "manager", "company", "contact"]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         # Convert float fields
         float_fields = ["value"]
@@ -553,16 +514,8 @@ def sync_staff(access_token):
     ]
 
     def process_staff_record(record):
-        # Convert integer fields
         int_fields = ["id", "status"]
-        for field in int_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = int(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to int")
-                    record[field] = None
+        convertIntFields(int_fields, record)
 
         # Convert date fields
         date_fields = ["date_created", "date_modified"]
@@ -580,6 +533,16 @@ def sync_staff(access_token):
         timeout=SYNC_TIMEOUT,
         batch_size=BATCH_SIZE
     )
+
+def convertIntFields(int_fields, record):
+    for field in int_fields:
+        value = record.get(field)
+        if value is not None:
+            try:
+                record[field] = int(value)
+            except (ValueError, TypeError):
+                log.warning(f"Could not convert field {field} with value '{value}' to int")
+                record[field] = None
 
 def convertDateFields(date_fields, record):
     for field in date_fields:
