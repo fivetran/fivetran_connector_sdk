@@ -312,16 +312,8 @@ def sync_invoices(access_token):
         int_fields = ["id", "against_id", "invoice_number", "currency_id", "owner_id", "modified_by"]
         convertIntFields(int_fields, record)
 
-        # Convert float fields
         float_fields = ["amount", "tax", "outstanding"]
-        for field in float_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = float(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to float")
-                    record[field] = None
+        convertFloatFields(float_fields, record)
 
         date_fields = ["date_raised", "date_due", "date_modified"]
         convertDateFields(date_fields, record)
@@ -359,16 +351,8 @@ def sync_payments(access_token):
         ]
         convertIntFields(int_fields, record)
 
-        # Convert float fields
         float_fields = ["amount"]
-        for field in float_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = float(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to float")
-                    record[field] = None
+        convertFloatFields(float_fields, record)
 
         date_fields = ["date_created"]
         convertDateFields(date_fields, record)
@@ -402,7 +386,6 @@ def sync_prospects(access_token):
     ]
 
     def process_prospect_record(record):
-        # Convert integer fields
         int_fields = [
             "id", "weighting", "value_weighted", "won_by_id",
             "cancelled_by_id", "abandoned_by_id", "contact",
@@ -411,18 +394,9 @@ def sync_prospects(access_token):
         ]
         convertIntFields(int_fields, record)
 
-        # Convert float fields
         float_fields = ["value", "progress"]
-        for field in float_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = float(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to float")
-                    record[field] = None
+        convertFloatFields(float_fields, record)
 
-        # Convert date fields
         date_fields = [
             "date_created", "date_actioned", "date_due",
             "date_last_interacted", "date_modified"
@@ -476,16 +450,8 @@ def sync_jobs(access_token):
         int_fields = ["id", "status", "manager", "company", "contact"]
         convertIntFields(int_fields, record)
 
-        # Convert float fields
         float_fields = ["value"]
-        for field in float_fields:
-            value = record.get(field)
-            if value is not None:
-                try:
-                    record[field] = float(value)
-                except (ValueError, TypeError):
-                    log.warning(f"Could not convert field {field} with value '{value}' to float")
-                    record[field] = None
+        convertFloatFields(float_fields, record)
 
         date_fields = ["date_created", "date_started", "date_due", "date_completed", "date_modified"]
         convertDateFields(date_fields, record)
@@ -517,7 +483,6 @@ def sync_staff(access_token):
         int_fields = ["id", "status"]
         convertIntFields(int_fields, record)
 
-        # Convert date fields
         date_fields = ["date_created", "date_modified"]
         convertDateFields(date_fields, record)
 
@@ -542,6 +507,16 @@ def convertIntFields(int_fields, record):
                 record[field] = int(value)
             except (ValueError, TypeError):
                 log.warning(f"Could not convert field {field} with value '{value}' to int")
+                record[field] = None
+
+def convertFloatFields(float_fields, record):
+    for field in float_fields:
+        value = record.get(field)
+        if value is not None:
+            try:
+                record[field] = float(value)
+            except (ValueError, TypeError):
+                log.warning(f"Could not convert field {field} with value '{value}' to float")
                 record[field] = None
 
 def convertDateFields(date_fields, record):
