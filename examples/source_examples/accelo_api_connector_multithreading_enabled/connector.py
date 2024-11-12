@@ -9,6 +9,8 @@ Multithreading helps to make api calls in parallel to pull data faster.
 It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
 
+Refer Multithreading Guidelines in api_threading_utils.py
+
 Author: Example submitted by our amazing community member Ahmed Zedan
 Date: 2024-09-20
 """
@@ -17,25 +19,16 @@ from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 import requests
 import time
 from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor
 from threading import local
 from copy import deepcopy
+
+import api_threading_utils
+import constants
 
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
-
-# Constants
-BASE_URL = "https://{deployment}.api.accelo.com/api/v0"
-RATE_LIMIT = 5000  # Requests per hour
-RATE_LIMIT_INTERVAL = 3600  # 1 hour in seconds
-CHECKPOINT_INTERVAL = 1000  # Number of records to process before creating a checkpoint
-MAX_WORKERS = 5  # Number of concurrent API requests
-REQUEST_TIMEOUT = 30  # Default timeout in seconds
-SYNC_TIMEOUT = 3600  # Timeout for the entire sync operation in seconds
-BATCH_SIZE = 100  # Maximum number of records per page in Accelo API (API limit)
-RETRIES = 3
 
 # Create a thread-local state object
 thread_local_state = local()
@@ -72,37 +65,6 @@ def get_access_token(client_id, client_secret, deployment):
         log.severe(f"Failed to obtain access token: {response.text}")
         raise Exception("Failed to obtain access token")
 
-
-def fetch_data(endpoint, access_token, params=None, timeout=REQUEST_TIMEOUT, retries=RETRIES):
-    """
-    Fetch data from the Accelo API with retry logic.
-
-    Args:
-        endpoint (str): The API endpoint to fetch data from.
-        access_token (str): The OAuth 2.0 access token.
-        params (dict, optional): Query parameters for the API request.
-        timeout (int, optional): Request timeout in seconds.
-        retries (int, optional): Number of retry attempts.
-
-    Returns:
-        list: The JSON response data or None if all retries fail.
-    """
-    url = f"{BASE_URL}/{endpoint}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    for attempt in range(retries):
-        try:
-            response = requests.get(url, headers=headers, params=params, timeout=timeout)
-            response.raise_for_status()
-            return response.json().get("response", [])
-        except requests.exceptions.RequestException as e:
-            log.warning(f"Error fetching data from {endpoint} (attempt {attempt + 1}/{retries}): {str(e)}")
-            if attempt == retries - 1:
-                log.severe(f"Failed to fetch data from {endpoint} after {retries} retries")
-                return None
-            time.sleep(2 ** attempt)  # Exponential backoff
-
-
 def update(configuration: dict, state: dict):
     """
     Main update function for the connector.
@@ -132,8 +94,7 @@ def update(configuration: dict, state: dict):
 
     try:
         access_token = get_access_token(client_id, client_secret, deployment)
-        global BASE_URL
-        BASE_URL = f"https://{deployment}.api.accelo.com/api/v0"
+        constants.BASE_URL = f"https://{deployment}.api.accelo.com/api/v0"
 
         update_start_time = time.time()
 
@@ -150,7 +111,7 @@ def update(configuration: dict, state: dict):
 
 
 def sync_entity(entity_name, access_token, fields, last_sync_key, process_record=None, date_field="date_modified",
-                timeout=SYNC_TIMEOUT, batch_size=BATCH_SIZE, fetch_data_func=None):
+                timeout=constants.SYNC_TIMEOUT, batch_size=constants.BATCH_SIZE, fetch_data_func=None):
     """
     Sync data for a specific entity from Accelo API.
 
@@ -198,12 +159,21 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
             current_params = params.copy()
             current_params['_page'] = page
             try:
-                entities = fetch_data_func(current_params) if fetch_data_func else fetch_data(entity_name, access_token,
+                entities = fetch_data_func(current_params) if fetch_data_func else api_threading_utils.fetch_data(entity_name, access_token,
                                                                                               current_params)
+                return entities
+            except Exception as e:
+                log.severe(f"Error fetching {entity_name} data for page {page}: {str(e)}")
+                return []
+
+        page = 0
+        while True:
+            results = api_threading_utils.make_api_calls_in_parallel(page, fetch_page)
+
+            for entities in results:
                 if entities:
                     entities_received += len(entities)
                     for entity in entities:
-                        entity_id = entity.get('id', 'unknown')
                         entity_date = entity.get(date_field, 'unknown')
 
                         if entity_date != 'unknown':
@@ -219,30 +189,20 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
                             except ValueError:
                                 log.warning(f"Could not convert {date_field} '{entity_date}' to int for {entity_name}")
 
-                return entities
-            except Exception as e:
-                log.severe(f"Error fetching {entity_name} data for page {page}: {str(e)}")
-                return []
+            all_entities = [entity for page_entities in results for entity in page_entities if page_entities]
 
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            page = 0
-            while True:
-                futures = [executor.submit(fetch_page, p) for p in range(page, page + MAX_WORKERS)]
-                results = [future.result() for future in futures]
-                all_entities = [entity for page_entities in results for entity in page_entities if page_entities]
+            for entity in all_entities:
+                if process_record:
+                    entity = process_record(entity)
+                if entity:
+                    yield op.upsert(entity_name, {field: entity.get(field) for field in fields})
+                    records_processed += 1
+                    if records_processed % 100 == 0:
+                        log.info(f"Processed {records_processed} records for {entity_name}")
 
-                for entity in all_entities:
-                    if process_record:
-                        entity = process_record(entity)
-                    if entity:
-                        yield op.upsert(entity_name, {field: entity.get(field) for field in fields})
-                        records_processed += 1
-                        if records_processed % 100 == 0:
-                            log.info(f"Processed {records_processed} records for {entity_name}")
-
-                if not any(results) or time.time() - start_time >= timeout:
-                    break
-                page += MAX_WORKERS
+            if not any(results) or time.time() - start_time >= timeout:
+                break
+            page += constants.MAX_WORKERS
 
         new_last_sync = datetime.fromtimestamp(max(max_date_value, int(time.time())), tz=timezone.utc).strftime(
             '%Y-%m-%dT%H:%M:%SZ')
@@ -290,8 +250,8 @@ def sync_companies(access_token):
         last_sync_key="last_company_sync",
         process_record=process_company_record,
         date_field="date_modified",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 
@@ -327,8 +287,8 @@ def sync_invoices(access_token):
         last_sync_key="last_invoice_sync",
         process_record=process_invoice_record,
         date_field="date_modified",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 
@@ -366,8 +326,8 @@ def sync_payments(access_token):
         last_sync_key="last_payment_sync",
         process_record=process_payment_record,
         date_field="date_created",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 
@@ -431,8 +391,8 @@ def sync_prospects(access_token):
         last_sync_key="last_prospect_sync",
         process_record=process_prospect_record,
         date_field="date_modified",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 
@@ -465,8 +425,8 @@ def sync_jobs(access_token):
         last_sync_key="last_job_sync",
         process_record=process_job_record,
         date_field="date_modified",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 
@@ -495,8 +455,8 @@ def sync_staff(access_token):
         last_sync_key="last_staff_sync",
         process_record=process_staff_record,
         date_field="date_modified",
-        timeout=SYNC_TIMEOUT,
-        batch_size=BATCH_SIZE
+        timeout=constants.SYNC_TIMEOUT,
+        batch_size=constants.BATCH_SIZE
     )
 
 def convertIntFields(int_fields, record):
