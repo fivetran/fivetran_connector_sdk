@@ -1,13 +1,13 @@
 # ***Multithreading Guidelines***
 #
-# Follow below points to avoid data integrity issues and race conditions which are hard to debug!!!
-# * Never call fivetran_connector_sdk Operations inside multithreaded function
-#   as this requires synchronising operations like checkpoint.
+# Follow the points below to avoid data integrity issues and race conditions which are hard to debug.
+# * Never call fivetran_connector_sdk Operations inside a multithreaded function
+#   as this requires synchronising operations such as checkpoint.
 #   This is hard to do and debug, so avoid it.
-# * Use multithreading only to make parallel api calls and get the responses,
-#   else multithreading can result in race conditions which are hard to debug and may not throw an error.
+# * Use multithreading only to make parallel API calls and get the responses,
+#   else multithreading can result in race conditions, which are hard to debug and may not throw an error.
 #
-# This is a simple e.g. how to do multithreading to make parallel api calls to improve sync performance.
+# This is a simple example of how to do multithreading to make parallel API calls to improve sync performance.
 from fivetran_connector_sdk import Logging as log
 import constants
 import requests
@@ -16,13 +16,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 executor = ThreadPoolExecutor(max_workers=constants.MAX_WORKERS)
 
-# Util function to make api calls in parallel using threadPoolExecutor
+# Util function to make API calls in parallel using threadPoolExecutor
 def make_api_calls_in_parallel(page, fetch_page):
     futures = [executor.submit(fetch_page, p) for p in range(page, page + constants.MAX_WORKERS)]
     results = [future.result() for future in futures]
     return results
 
-# Util function to make an api call and return response
+# Util function to make an API call and return a response
 def fetch_data(endpoint, access_token, params=None, timeout=constants.REQUEST_TIMEOUT, retries=constants.RETRIES):
     """
     Fetch data from the Accelo API with retry logic.

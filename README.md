@@ -108,7 +108,7 @@ Multithreading helps to make api calls in parallel to pull data faster.
 It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
 
-Refer Multithreading Guidelines in api_threading_utils.py
+Refer to the Multithreading Guidelines in api_threading_utils.py
 </details>
 
 # Additional considerations
