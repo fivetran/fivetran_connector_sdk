@@ -1,5 +1,5 @@
 # Requirements
-- Python ≥3.9 and ≤3.11
+- Python ≥3.9 and ≤3.12
 - Operating System:
   - Windows 10 or later
   - MacOS 13 (Ventura) or later
