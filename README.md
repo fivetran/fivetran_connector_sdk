@@ -1,5 +1,5 @@
 # Requirements
-- Python ≥3.9 and ≤3.11
+- Python ≥3.9 and ≤3.12
 - Operating System:
   - Windows 10 or later
   - MacOS 13 (Ventura) or later
@@ -99,9 +99,21 @@ This shows key based replication from DB sources.
 Replication keys are columns that are used to identify new and updated data for replication.
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
+### accelo api connector multithreading enabled
+This module implements a connector for syncing data from the Accelo API.
+It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
+invoices, payments, prospects, jobs, and staff.
+It is an example of multithreading the extraction of data from the source to improve connector performance.
+Multithreading helps to make api calls in parallel to pull data faster.
+It is also an example of using OAuth 2.0 client credentials flow.
+Requires Accelo OAuth credentials to be passed in to work.
+
+Refer to the Multithreading Guidelines in api_threading_utils.py
+
 ### smartsheets
 This is an example of how we can sync Smartsheets sheets via Connector SDK.
 You would need to provide your Smartsheets api_key for this example to work.
+
 </details>
 
 # Additional considerations
