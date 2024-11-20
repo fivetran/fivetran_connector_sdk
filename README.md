@@ -98,6 +98,10 @@ You would need to provide your redshift credentials for this example to work.
 This shows key based replication from DB sources.
 Replication keys are columns that are used to identify new and updated data for replication.
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
+
+### smartsheets
+This is an example of how we can sync Smartsheets sheets via Connector SDK.
+You would need to provide your Smartsheets api_key for this example to work.
 </details>
 
 # Additional considerations
