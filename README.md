@@ -109,6 +109,11 @@ It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
 
 Refer to the Multithreading Guidelines in api_threading_utils.py
+
+### smartsheets
+This is an example of how we can sync Smartsheets sheets via Connector SDK.
+You would need to provide your Smartsheets api_key for this example to work.
+
 </details>
 
 # Additional considerations
