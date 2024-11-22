@@ -1,6 +1,6 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # Note: This code is currently configured to hit the getSheet endpoint and get data from 1 pre-defined sheet in Smartsheets that does not need pagination
-# You will need to provide your own smartsheet credentials for this to work --> api_key variable in configuration.json
+# You will need to provide your own smartsheet credentials for this to work --> api_key variable in configuration.json together with the smartsheet sheet id
 # getSheet endpoint: https://smartsheet.redoc.ly/tag/sheets#operation/getSheet
 # Add Additional code in the update function to handle multiple sheets and/or pagination through sheets
 # Can also add code to extract from other endpoints as needed
