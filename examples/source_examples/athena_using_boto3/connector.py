@@ -3,14 +3,15 @@
 # You would need to provide your credentials for this example to work.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-from sqlalchemy import create_engine
-from sqlalchemy import text
+import boto3
 import json  # Import the json module to handle JSON data.
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
+import time
 
 TABLE_NAME = "test_rows"
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -31,10 +32,32 @@ def schema(configuration: dict):
         }
     ]
 
-def create_connection_engine(configuration):
-    conn_str = f"awsathena+rest://{configuration['aws_access_key_id']}:{configuration['aws_secret_access_key']}@athena.{configuration['region_name']}.amazonaws.com:443/{configuration['database_name']}?s3_staging_dir={configuration['s3_staging_dir']}"
-    return create_engine(conn_str)
+def create_athena_client(configuration):
+    return boto3.client('athena',
+                        aws_access_key_id=configuration["aws_access_key_id"],
+                        aws_secret_access_key=configuration["aws_secret_access_key"],
+                        region_name=configuration['region_name'])
 
+
+def get_query_results(query_execution_id, region_name):
+    client = boto3.client('athena', region_name=region_name)
+
+    response = client.get_query_results(QueryExecutionId=query_execution_id)
+
+    results = []
+    while True:
+        for row in response['ResultSet']['Rows']:
+            results.append([cell['VarCharValue'] for cell in row['Data']])
+
+        if 'NextToken' in response:
+            response = client.get_query_results(
+                QueryExecutionId=query_execution_id,
+                NextToken=response['NextToken']
+            )
+        else:
+            break
+
+    return results
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -44,23 +67,50 @@ def create_connection_engine(configuration):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    engine = create_connection_engine(configuration)
+    athena_client = create_athena_client(configuration)
 
-    with engine.connect() as conn:
-        result = conn.execute(text(f"SELECT * FROM {TABLE_NAME}"))
-        while True:
-            rows = result.fetchmany(2)
-            if len(rows) == 0:
-                break
+    query = f"SELECT * FROM {TABLE_NAME} LIMIT 10"
+    response = athena_client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={'Database': configuration['database_name']},
+        ResultConfiguration={
+            'OutputLocation': configuration['s3_staging_dir']
+        }
+    )
 
-            for row in rows:
-                yield op.upsert(table="customers",
-                                data={
-                                    "customer_id": row[0],  # Customer id.
-                                    "first_name": row[1],  # First Name.
-                                    "last_name": row[2],  # Last name.
-                                    "email": row[3],  # Email id.
-                                })
+    query_execution_id = response['QueryExecutionId']
+
+    # Wait for query completion (adjust polling interval as needed)
+    while True:
+        response = athena_client.get_query_execution(QueryExecutionId=query_execution_id)
+        status = response['QueryExecution']['Status']['State']
+        if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
+            break
+
+        time.sleep(5)
+
+    if status == 'SUCCEEDED':
+        results = get_query_results(query_execution_id, configuration['region_name'])
+        print(results)
+    else:
+        print(f"Query failed with status: {status}")
+
+    #
+    # with engine.connect() as conn:
+    #     result = conn.execute(text(f"SELECT * FROM {TABLE_NAME}"))
+    #     while True:
+    #         rows = result.fetchmany(2)
+    #         if len(rows) == 0:
+    #             break
+    #
+    #         for row in rows:
+    #             yield op.upsert(table="customers",
+    #                             data={
+    #                                 "customer_id": row[0],  # Customer id.
+    #                                 "first_name": row[1],  # First Name.
+    #                                 "last_name": row[2],  # Last name.
+    #                                 "email": row[3],  # Email id.
+    #                             })
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
