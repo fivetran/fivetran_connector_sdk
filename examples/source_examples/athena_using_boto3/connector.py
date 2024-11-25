@@ -1,5 +1,5 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-# This is an example to show how we can sync records from AWS Athena via Connector SDK using sqlalchemy.
+# This is an example to show how we can sync records from AWS Athena via Connector SDK using boto3.
 # You would need to provide your credentials for this example to work.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
@@ -39,25 +39,39 @@ def create_athena_client(configuration):
                         region_name=configuration['region_name'])
 
 
-def get_query_results(query_execution_id, region_name):
-    client = boto3.client('athena', region_name=region_name)
+def get_query_results(athena_client, query_execution_id):
 
-    response = client.get_query_results(QueryExecutionId=query_execution_id)
+    response = athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
-    results = []
     while True:
-        for row in response['ResultSet']['Rows']:
-            results.append([cell['VarCharValue'] for cell in row['Data']])
+        response = athena_client.get_query_results(QueryExecutionId=query_execution_id,
+                                                   NextToken=response['NextToken']) \
+            if 'NextToken' in response else athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
-        if 'NextToken' in response:
-            response = client.get_query_results(
-                QueryExecutionId=query_execution_id,
-                NextToken=response['NextToken']
-            )
-        else:
+        # Skipping first row as it contains only metadata
+        for row in response['ResultSet']['Rows'][1:]:
+            row_data = []
+            for cell in row['Data']:
+                if 'VarCharValue' in cell:
+                    row_data.append(cell['VarCharValue'])
+                elif 'BigIntValue' in cell:
+                    row_data.append(int(cell['BigIntValue']))
+                elif 'DoubleValue' in cell:
+                    row_data.append(float(cell['DoubleValue']))
+                elif 'BooleanValue' in cell:
+                    row_data.append(bool(cell['BooleanValue']))
+                else:
+                    row_data.append(None)  # Handle unexpected data types
+            yield op.upsert(table="customers",
+                            data={
+                                "customer_id": row_data[0],  # Customer id.
+                                "first_name": row_data[1],  # First Name.
+                                "last_name": row_data[2],  # Last name.
+                                "email": row_data[3],  # Email id.
+                            })
+
+        if 'NextToken' not in response:
             break
-
-    return results
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -69,7 +83,7 @@ def get_query_results(query_execution_id, region_name):
 def update(configuration: dict, state: dict):
     athena_client = create_athena_client(configuration)
 
-    query = f"SELECT * FROM {TABLE_NAME} LIMIT 10"
+    query = f"SELECT * FROM {TABLE_NAME}"
     response = athena_client.start_query_execution(
         QueryString=query,
         QueryExecutionContext={'Database': configuration['database_name']},
@@ -90,27 +104,9 @@ def update(configuration: dict, state: dict):
         time.sleep(5)
 
     if status == 'SUCCEEDED':
-        results = get_query_results(query_execution_id, configuration['region_name'])
-        print(results)
+        yield from get_query_results(athena_client, query_execution_id)
     else:
         print(f"Query failed with status: {status}")
-
-    #
-    # with engine.connect() as conn:
-    #     result = conn.execute(text(f"SELECT * FROM {TABLE_NAME}"))
-    #     while True:
-    #         rows = result.fetchmany(2)
-    #         if len(rows) == 0:
-    #             break
-    #
-    #         for row in rows:
-    #             yield op.upsert(table="customers",
-    #                             data={
-    #                                 "customer_id": row[0],  # Customer id.
-    #                                 "first_name": row[1],  # First Name.
-    #                                 "last_name": row[2],  # Last name.
-    #                                 "email": row[3],  # Email id.
-    #                             })
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
