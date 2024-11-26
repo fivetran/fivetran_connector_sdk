@@ -35,7 +35,7 @@ Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetr
 A realistic example, using a public API, fetching data from NOAA
 
 ### complex_configuration_options
-Shows how to cast configuration field to list, integer and boolean for use in connector code.
+Shows how to cast configuration field to list, integer, boolean and dict for use in connector code.
 </details>
 
 <details>
