@@ -44,6 +44,11 @@ def update(configuration: dict, state: dict):
     # converts config json string to dict
     parsed_json = json.loads(configuration['currencies'])
 
+    assert isinstance(regions, list) and len(regions) == 3
+    assert isinstance(api_quota, int) and api_quota == 12345
+    assert isinstance(use_bulk_api, bool) and use_bulk_api
+    assert isinstance(parsed_json, list) and len(parsed_json) == 2
+
     # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
     yield op.upsert(table="crypto",
                     data={
