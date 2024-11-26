@@ -11,6 +11,7 @@ from fivetran_connector_sdk import Operations as op
 import time
 
 TABLE_NAME = "test_rows"
+NEXT_TOKEN = "NextToken"
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -45,8 +46,8 @@ def get_query_results(athena_client, query_execution_id):
 
     while True:
         response = athena_client.get_query_results(QueryExecutionId=query_execution_id,
-                                                   NextToken=response['NextToken']) \
-            if 'NextToken' in response else athena_client.get_query_results(QueryExecutionId=query_execution_id)
+                                                   NextToken=response[NEXT_TOKEN]) \
+            if NEXT_TOKEN in response else athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
         # Skipping first row as it contains only metadata
         for row in response['ResultSet']['Rows'][1:]:
@@ -61,7 +62,7 @@ def get_query_results(athena_client, query_execution_id):
                 elif 'BooleanValue' in cell:
                     row_data.append(bool(cell['BooleanValue']))
                 else:
-                    row_data.append(None)  # Handle unexpected data types
+                    row_data.append(None)
             yield op.upsert(table="customers",
                             data={
                                 "customer_id": row_data[0],  # Customer id.
