@@ -40,8 +40,31 @@ def create_athena_client(configuration):
                         region_name=configuration['region_name'])
 
 
-def get_query_results(athena_client, query_execution_id):
+def process_and_upsert_response(response):
+    # Skipping first row as it contains only metadata
+    for row in response['ResultSet']['Rows'][1:]:
+        row_data = []
+        for cell in row['Data']:
+            if 'VarCharValue' in cell:
+                row_data.append(cell['VarCharValue'])
+            elif 'BigIntValue' in cell:
+                row_data.append(int(cell['BigIntValue']))
+            elif 'DoubleValue' in cell:
+                row_data.append(float(cell['DoubleValue']))
+            elif 'BooleanValue' in cell:
+                row_data.append(bool(cell['BooleanValue']))
+            else:
+                row_data.append(None)
+        yield op.upsert(table="customers",
+                        data={
+                            "customer_id": row_data[0],  # Customer id.
+                            "first_name": row_data[1],  # First Name.
+                            "last_name": row_data[2],  # Last name.
+                            "email": row_data[3],  # Email id.
+                        })
 
+
+def get_query_results(athena_client, query_execution_id):
     response = athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
     while True:
@@ -49,29 +72,8 @@ def get_query_results(athena_client, query_execution_id):
                                                    NextToken=response[NEXT_TOKEN]) \
             if NEXT_TOKEN in response else athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
-        # Skipping first row as it contains only metadata
-        for row in response['ResultSet']['Rows'][1:]:
-            row_data = []
-            for cell in row['Data']:
-                if 'VarCharValue' in cell:
-                    row_data.append(cell['VarCharValue'])
-                elif 'BigIntValue' in cell:
-                    row_data.append(int(cell['BigIntValue']))
-                elif 'DoubleValue' in cell:
-                    row_data.append(float(cell['DoubleValue']))
-                elif 'BooleanValue' in cell:
-                    row_data.append(bool(cell['BooleanValue']))
-                else:
-                    row_data.append(None)
-            yield op.upsert(table="customers",
-                            data={
-                                "customer_id": row_data[0],  # Customer id.
-                                "first_name": row_data[1],  # First Name.
-                                "last_name": row_data[2],  # Last name.
-                                "email": row_data[3],  # Email id.
-                            })
-
-        if 'NextToken' not in response:
+        yield from process_and_upsert_response(response)
+        if NEXT_TOKEN not in response:
             break
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
