@@ -8,6 +8,7 @@ import json  # Import the json module to handle JSON data.
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Operations as op
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -43,8 +44,11 @@ def update(configuration: dict, state: dict):
     # converts config json string to dict
     parsed_json = json.loads(configuration['currencies'])
 
-    # use above config variables in you're code and finally return
-    return
+    # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
+    yield op.upsert(table="crypto",
+                    data={
+                        'msg': "hello world"
+                    })
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
@@ -66,5 +70,5 @@ if __name__ == "__main__":
 # │                      msg                       │
 # │                    varchar                     │
 # ├────────────────────────────────────────────────┤
-# │ If you can read this, you have the correct key │
+# │                   hello world                  │
 # └────────────────────────────────────────────────┘
