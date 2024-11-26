@@ -39,7 +39,9 @@ def update(configuration: dict, state: dict):
     # converts config string to int
     api_quota = int(configuration['api_quota'])
     # converts config string to boolean
-    use_bulk_api = configuration['use_api_quota'].lower() == 'true'.lower()
+    use_bulk_api = configuration['use_bulk_api'].lower() == 'true'.lower()
+    # converts config json string to dict
+    parsed_json = json.loads(configuration['currencies'])
 
     # use above config variables in you're code and finally return
     return
