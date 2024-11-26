@@ -118,7 +118,7 @@ You would need to provide your Smartsheets api_key for this example to work.
 This is an example of how we can sync data from AWS Athena via Connector SDK.
 We have two examples, one utilises boto3 and another uses SQLAlchemy with PyAthena. 
 You can use either based on your requirements.
-You would need to provide your AWS Athena credentials for this example to work.
+You need to provide your AWS Athena credentials for this example to work.
 
 </details>
 
