@@ -18,20 +18,23 @@ There are several examples available under `/examples`:
 ### hello
 This is the simplest, append-only example.
 
-### local
+### simple_three_step_cursor
 This is an emulated source, without any calls out to the internet.
 
 ### configuration
 This example shows how to use secrets.
 
-### hashes
-This example shows how to calculate a hash of fields and use it as primary key. It is useful in scenarios where the incoming rows do not have any field suitable to be used as a primary key.
+### multiple_code_files
+This example shows how you can write a complex connector comprising multiple `.py` files.
 
 ### user_profiles
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
 ### weather
 This is a realistic example, using a public API, fetching data from NOAA.
+
+### complex_configuration_options
+Shows how to cast configuration field to list, integer, boolean and dict for use in connector code.
 </details>
 
 <details>
@@ -44,16 +47,12 @@ Common patterns for connectors
 Cursors
 </summary>
 
-### records_with_no_created_at
-This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field.
-It is useful when it's desired to keep track of when the record was first observed.
-
-### multiple_tables_with_cursors
-The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
-
 ### marketstack
 This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstsck's [documentation](https://polygon.io/docs/stocks/getting-started)
 </details>
+
+### multiple_tables_with_cursors
+The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
 
 ### pagination
 This is a simple pagination example template set for the following types of paginations:
@@ -71,6 +70,13 @@ This example upserts all data types without specifying a schema.
 ### three_operations
 This example shows how to use upsert, update and delete operations.
 
+### records_with_no_created_at_timestamp
+This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field.
+It is useful when it's desired to keep track of when the record was first observed.
+
+### hashes
+This example shows how to calculate a hash of fields and use it as primary key. It is useful in scenarios where the incoming rows do not have any field suitable to be used as a primary key.
+
 ### priority_first_sync_for_high_volume_initial_syncs
 A priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
 This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
@@ -80,9 +86,6 @@ This is a simple example of how you could implement the Priority-first sync stra
 <summary>
 Source examples
 </summary>
-
-### Multiple code files
-This example shows how you can write a complex connector comprising multiple `.py` files.
 
 ### aws_dynamo_db_authentication
 This example shows how to authenticate to AWS using the IAM role credentials and use them to sync records from DynamoDB. Boto3 package is used to create an AWS client. Refer to the [Boto3 documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
