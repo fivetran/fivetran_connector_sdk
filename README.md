@@ -48,7 +48,7 @@ Cursors
 </summary>
 
 ### marketstack
-This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstsck's [documentation](https://polygon.io/docs/stocks/getting-started)
+This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started)
 </details>
 
 ### multiple_tables_with_cursors
@@ -78,7 +78,7 @@ It is useful when it's desired to keep track of when the record was first observ
 This example shows how to calculate a hash of fields and use it as primary key. It is useful in scenarios where the incoming rows do not have any field suitable to be used as a primary key.
 
 ### priority_first_sync_for_high_volume_initial_syncs
-A priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
+A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
 This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
 </details>
 
@@ -97,8 +97,7 @@ This is an example to show how to sync records from Redshift by using Connector 
 This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
 ### accelo_api_connector_multithreading_enabled
-This module implements a connector for syncing data from the Accelo API. It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
-invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading helps to make API calls in parallel to pull data faster. This is also an example of using OAuth 2.0 client credentials flow. You need to provide your Accelo OAuth credentials for this example to work.
+This module implements a connector for syncing data from the Accelo API. It handles OAuth2 authentication, rate limiting, and data synchronization for companies, invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading allows to make API calls in parallel to pull data faster. This is also an example of using OAuth 2.0 client credentials flow. You need to provide your Accelo OAuth credentials for this example to work.
 
 Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 
