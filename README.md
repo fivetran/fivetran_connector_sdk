@@ -15,22 +15,22 @@ There are several examples available under `/examples`:
     Quickstart examples
   </summary>
 
-### Hello
+### hello
 This is the simplest, append-only example.
 
-### Local
+### local
 This is an emulated source, without any calls out to the internet.
 
-### Configuration
+### configuration
 This example shows how to use secrets.
 
-### Hashes
+### hashes
 This example shows how to calculate a hash of fields and use it as primary key. It is useful in scenarios where the incoming rows do not have any field suitable to be used as a primary key.
 
-### User_profiles
+### user_profiles
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
-### Weather
+### weather
 This is a realistic example, using a public API, fetching data from NOAA.
 </details>
 
@@ -44,30 +44,34 @@ Common patterns for connectors
 Cursors
 </summary>
 
-### Multiple_tables_with_cursors
+### records_with_no_created_at
+This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field.
+It is useful when it's desired to keep track of when the record was first observed.
+
+### multiple_tables_with_cursors
 The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
 
-### Marketstack
+### marketstack
 This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstsck's [documentation](https://polygon.io/docs/stocks/getting-started)
 </details>
 
-### Pagination
+### pagination
 This is a simple pagination example template set for the following types of paginations:
 - keyset
 - next_page_url
 - offset_based
 - page_number
 
-### Specified_types
+### specified_types
 This example declares a schema and upserts all data types.
 
-### Unspecified_types
+### unspecified_types
 This example upserts all data types without specifying a schema.
 
-### Three_operations
+### three_operations
 This example shows how to use upsert, update and delete operations.
 
-### Priority_first_sync_for_high_volume_initial_syncs
+### priority_first_sync_for_high_volume_initial_syncs
 A priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
 This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
 </details>
@@ -77,32 +81,28 @@ This is a simple example of how you could implement the Priority-first sync stra
 Source examples
 </summary>
 
-### Records with no created_at
-This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field.
-It is useful when it's desired to keep track of when the record was first observed.
-
 ### Multiple code files
 This example shows how you can write a complex connector comprising multiple `.py` files.
 
-### Aws dynamo db authentication
+### aws_dynamo_db_authentication
 This example shows how to authenticate to AWS using the IAM role credentials and use them to sync records from DynamoDB. Boto3 package is used to create an AWS client. Refer to the [Boto3 documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
-### Redshift
+### redshift
 This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 
-### Key-based replication
+### key_based_replication
 This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
-### Accelo API connector multithreading enabled
+### accelo_api_connector_multithreading_enabled
 This module implements a connector for syncing data from the Accelo API. It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
 invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading helps to make API calls in parallel to pull data faster. This is also an example of using OAuth 2.0 client credentials flow. You need to provide your Accelo OAuth credentials for this example to work.
 
 Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 
-### Smartsheets
+### smartsheets
 This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 
-### AWS Athena
+### aws_athena
 This is an example of how we can sync data from AWS Athena by using Connector SDK. We have two examples, one utilises Boto3 and another utilizes SQLAlchemy with PyAthena.
 You can use either, based on your requirements. You need to provide your AWS Athena credentials for this example to work.
 
