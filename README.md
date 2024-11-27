@@ -30,8 +30,11 @@ This example shows how to calculate a hash of fields and use it as primary key. 
 ### User_profiles
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
-### Weather
-This is a realistic example, using a public API, fetching data from NOAA.
+### weather
+A realistic example, using a public API, fetching data from NOAA
+
+### complex_configuration_options
+Shows how to cast configuration field to list, integer, boolean and dict for use in connector code.
 </details>
 
 <details>
