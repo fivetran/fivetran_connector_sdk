@@ -82,7 +82,7 @@ def get_query_results(athena_client, query_execution_id):
 # The function takes two parameters:
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync
+# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
     athena_client = create_athena_client(configuration)
 
