@@ -14,7 +14,7 @@ TABLE_NAME = "test_rows"
 NEXT_TOKEN = "NextToken"
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
+# Define the schema function, which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
