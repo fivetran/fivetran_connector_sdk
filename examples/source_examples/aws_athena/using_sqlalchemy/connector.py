@@ -1,5 +1,5 @@
 # This is a simple example illustrating how to work with the fivetran_connector_sdk module.
-# This is an example to show how we can sync records from AWS Athena via Connector SDK using SQLAlchemy and PyAthena.
+# This is an example to show how we can sync records from AWS Athena by using Connector SDK and SQLAlchemy and PyAthena.
 # You need to provide your credentials for this example to work.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
