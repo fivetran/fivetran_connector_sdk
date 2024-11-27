@@ -48,7 +48,7 @@ Cursors
 </summary>
 
 ### marketstack
-This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started)
+This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started).
 </details>
 
 ### multiple_tables_with_cursors
