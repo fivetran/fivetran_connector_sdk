@@ -102,7 +102,7 @@ This shows key based replication from DB sources.
 Replication keys are columns that are used to identify new and updated data for replication.
 When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
-### accelo api connector multithreading enabled
+### oauth2 and accelo api connector multithreading enabled
 This module implements a connector for syncing data from the Accelo API.
 It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
 invoices, payments, prospects, jobs, and staff.
