@@ -104,11 +104,11 @@ When you set a table to use Incremental Replication, you’ll also need to defin
 
 ### oauth2 and accelo api connector multithreading enabled
 This module implements a connector for syncing data from the Accelo API.
-It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
-invoices, payments, prospects, jobs, and staff.
+It involves **OAuth2** authentication, rate limiting, and data synchronization for companies,
+invoices, payments, prospects, jobs, and staff. 
 It is an example of multithreading the extraction of data from the source to improve connector performance.
 Multithreading helps to make api calls in parallel to pull data faster.
-It is also an example of using OAuth 2.0 client credentials flow.
+It is also an example of using **OAuth 2.0 Client Credentials** flow.
 Requires Accelo OAuth credentials to be passed in to work.
 
 Refer to the Multithreading Guidelines in api_threading_utils.py
