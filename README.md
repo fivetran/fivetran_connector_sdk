@@ -96,8 +96,8 @@ This is an example to show how to sync records from Redshift by using Connector 
 ### key_based_replication
 This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
-### accelo_api_connector_multithreading_enabled
-This module implements a connector for syncing data from the Accelo API. It handles OAuth2 authentication, rate limiting, and data synchronization for companies, invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading allows to make API calls in parallel to pull data faster. This is also an example of using OAuth 2.0 client credentials flow. You need to provide your Accelo OAuth credentials for this example to work.
+### oauth2_and_accelo_api_connector_multithreading_enabled
+This module implements a connector for syncing data from the Accelo API. It involves **OAuth2** authentication, rate limiting, and data synchronization for companies, invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading allows to make API calls in parallel to pull data faster. This is also an example of using **OAuth 2.0 Client Credentials** flow. You need to provide your Accelo OAuth credentials for this example to work.
 
 Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 
