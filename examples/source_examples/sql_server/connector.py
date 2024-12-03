@@ -188,3 +188,22 @@ if __name__ == "__main__":
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)
+
+# Resulting table:
+# ┌───────────────┬─────────────┬─────────────┬─────────────┬───────────────┐
+# │ employee_id   │ first_name  │ last_name   │ hire_date   │   salary      │
+# │      int      │   varchar   │   varchar   │    date     │     int       │
+# ├───────────────┼─────────────┼─────────────┼─────────────┼───────────────┤
+# │       1       │    John     │    Doe      │ 2020-05-15  │    55000      │
+# │       2       │    Jane     │   Smith     │ 2018-03-22  │    62000      │
+# │       3       │    Alice    │  Johnson    │ 2019-07-30  │    58000      │
+# │       4       │     Bob     │   Brown     │ 2021-11-01  │    54000      │
+# │       5       │   Charlie   │  Taylor     │ 2017-06-10  │    67000      │
+# │       6       │    Diana    │  Wilson     │ 2022-01-20  │    51000      │
+# │       7       │     Eve     │   Martin    │ 2015-12-15  │    75000      │
+# │       8       │    Frank    │   Moore     │ 2023-04-05  │    52000      │
+# │       9       │    Grace    │    Hall     │ 2020-09-14  │    60000      │
+# │      10       │     Hank    │     Lee     │ 2021-03-18  │    53000      │
+# ├───────────────┴─────────────┴─────────────┴─────────────┴───────────────┤
+# │ 10 rows                                                   5 columns     │
+# └─────────────────────────────────────────────────────────────────────────┘
