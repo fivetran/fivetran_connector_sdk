@@ -108,6 +108,9 @@ Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 ### smartsheets
 This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 
+### sql_server
+This example uses pyodbc to connect to SQL Server Db for querying/syncing data using Connector SDK. You need to provide your SQL Server Db credentials for this example to work.
+
 ### aws_athena
 This is an example of how we can sync data from AWS Athena by using Connector SDK. We have two examples, one utilises Boto3 and another utilizes SQLAlchemy with PyAthena.
 You can use either, based on your requirements. You need to provide your AWS Athena credentials for this example to work.
