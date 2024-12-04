@@ -94,6 +94,10 @@ def setup_db(configuration):
             ('Hank', 'Lee', '2021-03-18', 53000);
         """
 
+    # Initialize variables
+    conn = None
+    cursor = None
+
     try:
         # Establish connection
         conn = connect_to_database(configuration)
@@ -115,8 +119,10 @@ def setup_db(configuration):
 
     finally:
         # Clean up and close the connection
-        cursor.close()
-        conn.close()
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
         print("Connection closed.")
 
 
@@ -137,19 +143,19 @@ def update(configuration: dict, state: dict):
     # - The first argument is the name of the table to upsert the data into, in this case, "employee_details".
     # - The second argument is a dictionary containing the data to be upserted,
 
-    # Connect to your database instance instance.
-    conn = connect_to_database(configuration)
-    cursor = conn.cursor()
-
     # This is not required. This is just for example illustration purposes.
     setup_db(configuration)
 
     # Fetch records from DB
     query = "SELECT * FROM employee_details;"  # Replace with your table name
 
-    cursor.execute(query)
+    # Initialize variables
+    conn = None
+    cursor = None
 
     try:
+        # Connect to your database instance instance.
+        conn = connect_to_database(configuration)
         # Create a cursor from the connection
         cursor = conn.cursor()
         cursor.execute(query)
@@ -178,8 +184,12 @@ def update(configuration: dict, state: dict):
     except pyodbc.Error as e:
         print(f"Error executing query: {e}")
     finally:
-        # Clean up cursor
-        cursor.close()
+        # Clean up and close the connection
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+        print("Connection closed.")
 
     # You need to checkpoint the state, to frequently save the progress, even with empty state checkpoint can be called.
     yield op.checkpoint(state)
