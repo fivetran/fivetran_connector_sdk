@@ -61,6 +61,10 @@ This is a simple pagination example template set for the following types of pagi
 - offset_based
 - page_number
 
+### export
+This example consumes the export data from REST API and syncs it via Connector SDK, for the following response types:
+- csv
+
 ### specified_types
 This example declares a schema and upserts all data types.
 
