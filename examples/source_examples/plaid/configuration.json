@@ -1,0 +1,5 @@
+{
+    "client_id": "YOUR_CLIENT_ID",
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "plaid_access_token": "YOUR_PLAID_ACCESS_TOKEN"
+}
