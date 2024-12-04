@@ -1,6 +1,7 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # This is an example to show how we can sync records from SQL Server Db via Connector SDK.
 # You would need to provide your SQL Server Db credentials for this example to work.
+# Also you need the driver locally installed on your machine to make 'fivetran debug' work.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -155,15 +156,25 @@ def update(configuration: dict, state: dict):
 
         # Fetch and display results
         print("Query executed successfully. Results:")
-        for row in cursor.fetchall():
-            yield op.upsert(table="employee_details",
-                            data={
-                                "employee_id": row[0],  # Employee Id.
-                                "first_name": row[1],  # First Name.
-                                "last_name": row[2],  # Last Name.
-                                "hire_date": dt2str(row[3]),  # Hire Date.
-                                "salary": row[4]  # Salary.
-                            })
+        batch_size = 2 # Fetch only few records, process them and then fetch more, ensuring we don't load all the records in memory
+        while True:
+            # Fetch a batch of records.
+            rows = cursor.fetchmany(batch_size)
+            if not rows:
+                # Exit the loop when there are no more records.
+                break
+
+            for row in rows:
+                yield op.upsert(
+                    table="employee_details",
+                    data={
+                        "employee_id": row[0],  # Employee Id.
+                        "first_name": row[1],  # First Name.
+                        "last_name": row[2],  # Last Name.
+                        "hire_date": dt2str(row[3]),  # Hire Date.
+                        "salary": row[4]  # Salary.
+                    }
+                )
     except pyodbc.Error as e:
         print(f"Error executing query: {e}")
     finally:
