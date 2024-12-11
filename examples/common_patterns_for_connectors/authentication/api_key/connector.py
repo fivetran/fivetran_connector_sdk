@@ -1,4 +1,4 @@
-# This is a simple example of how to work with HTTP BEARER authentication for a REST API.
+# This is a simple example of how to work with API Key authentication for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "user".
 # THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
 # (https://pypi.org/project/fivetran-api-playground/) TO RUN.
@@ -47,11 +47,11 @@ def schema(configuration: dict):
 # - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
 # The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
-    log.warning("Example: Common Patterns For Connectors - Authentication - HTTP BEARER")
+    log.warning("Example: Common Patterns For Connectors - Authentication - API KEY")
 
     print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
           "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
-    base_url = "http://127.0.0.1:5001/auth/http_bearer"
+    base_url = "http://127.0.0.1:5001/auth/api_key"
 
     yield from sync_items(base_url, {}, state, configuration)
 
@@ -60,14 +60,14 @@ def update(configuration: dict, state: dict):
 # The function takes one parameter:
 # - config: dictionary contains any secrets or payloads you configure when deploying the connector.
 def get_auth_headers(config):
-    bearer_token = config.get('bearer_token')
+    api_key = config.get('api_key')
 
-    if bearer_token is None:
-        raise ValueError("Bearer Token is missing in the configuration.")
+    if api_key is None:
+        raise ValueError("API Key is missing in the configuration.")
 
     # Create the auth string
     headers = {
-        "Authorization": f"Bearer {bearer_token}",
+        "Authorization": f"apiKey {api_key}",
         "Content-Type": "application/json",  # Optional: specify content type
     }
     return headers

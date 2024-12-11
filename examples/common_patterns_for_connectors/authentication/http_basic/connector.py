@@ -1,4 +1,4 @@
-# This is a simple example of how to work with http_basic authentication for a REST API.
+# This is a simple example of how to work with HTTP BASIC authentication for a REST API.
 # It defines a simple `update` method, which upserts retrieved data to a table named "user".
 # THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
 # (https://pypi.org/project/fivetran-api-playground/) TO RUN.
@@ -65,7 +65,6 @@ def get_auth_headers(config):
     username = config.get('username')
     password = config.get('password')
 
-    # Check if username or password is None
     if username is None or password is None:
         raise ValueError("Username or password is missing in the configuration.")
 
