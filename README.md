@@ -116,7 +116,7 @@ You would need to provide your Smartsheets api_key for this example to work.
 
 ### veeva vault objects
 This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK.
-You would need to provide your Veeva Vault vaultDNS, username, and password for this example to work.
+You would need to provide your Veeva Vault credentials for this example to work.
 
 </details>
 

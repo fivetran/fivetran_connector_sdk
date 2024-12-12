@@ -1,5 +1,5 @@
 {
-    "vaultDNS": "<YOUR_VEEVA_VAULT_DNS>.veevavault.com",
+    "subdomain": "<YOUR_VEEVA_VAULT_SUB_DOMAIN>.veevavault.com",
     "username": "<YOUR_VEEVA_VAULT_USERNAME>",
     "password": "<YOUR_VEEVA_VAULT_PASSWORD>"
 }
