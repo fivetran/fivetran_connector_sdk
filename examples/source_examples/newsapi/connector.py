@@ -48,7 +48,9 @@ def update(configuration: dict, state: dict):
     try:
         conf = configuration
         base_url = "https://newsapi.org/v2/everything"
-        from_ts = state['to_ts'] if 'to_ts' in state else '2024-11-10T00:00:00'
+        Default value can be set 1 day ago
+
+        from_ts = state['to_ts'] if 'to_ts' in state else datetime.datetime.now() - datetime.timedelta(days=1)
         now = datetime.datetime.now()
         to_ts = now.strftime("%Y-%m-%dT%H:%M:%S")
         headers = {"Authorization": "Bearer "+conf["API_KEY"], "accept": "application/json"}
@@ -110,7 +112,6 @@ def sync_items(base_url, headers, params, state, topic):
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
         summary_first_item = {'title': items[0]['title'], 'source': items[0]['source']}
-        log.info(f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}")
 
         for a in items:
             yield op.upsert(table="article", data={
@@ -190,8 +191,12 @@ connector = Connector(update=update, schema=schema)
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-if __name__ == "__main__":
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
-    connector.debug()
+if __name__ == "main":
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
+
 
 
