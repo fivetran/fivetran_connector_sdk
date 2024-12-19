@@ -8,7 +8,6 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-# Import required classes from fivetran_connector_sdk
 
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
