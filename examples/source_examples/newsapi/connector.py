@@ -48,8 +48,8 @@ def update(configuration: dict, state: dict):
     try:
         conf = configuration
         base_url = "https://newsapi.org/v2/everything"
-        Default value can be set 1 day ago
 
+        # Default value can be set 1 day ago
         from_ts = state['to_ts'] if 'to_ts' in state else datetime.datetime.now() - datetime.timedelta(days=1)
         now = datetime.datetime.now()
         to_ts = now.strftime("%Y-%m-%dT%H:%M:%S")
@@ -77,7 +77,10 @@ def update(configuration: dict, state: dict):
         }
         log.fine(f"state updated, new state: {repr(new_state)}")
 
-        # Yield a checkpoint operation to save the new state.
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state=new_state)
 
     except Exception as e:
@@ -125,7 +128,9 @@ def sync_items(base_url, headers, params, state, topic):
                 "url": a["url"]})
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of interruptions.
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
 
         # Determine if we should continue pagination based on the total items and the current offset.
