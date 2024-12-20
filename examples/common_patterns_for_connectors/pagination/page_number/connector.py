@@ -100,7 +100,9 @@ def sync_items(base_url, params, state):
             state["last_updated_at"] = user["updatedAt"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of interruptions.
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
 
         more_data, params = should_continue_pagination(params, response_page)

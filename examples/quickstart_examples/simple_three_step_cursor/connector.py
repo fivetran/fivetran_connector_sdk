@@ -63,7 +63,10 @@ def update(configuration: dict, state: dict):
     }
     log.fine(f"state updated, new state: {repr(new_state)}")
 
-    # Yield a checkpoint operation to save the new state.
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state=new_state)
 
 
