@@ -64,7 +64,9 @@ def update(configuration: dict, state: dict):
         state["company_cursor"] = company["updated_at"]
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of interruptions.
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
 
         # Fetch departments for a company
@@ -76,8 +78,10 @@ def update(configuration: dict, state: dict):
             department_cursor[company_id] = department["updated_at"]
             state["department_cursor"] = department_cursor
 
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process
-            # can resume from the correct position in case of interruptions.
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             yield op.checkpoint(state)
 
     # State at the end of sync for simulated records

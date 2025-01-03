@@ -101,6 +101,10 @@ def update(configuration: dict, state: dict):
         for entity_sync in [sync_companies, sync_invoices, sync_payments, sync_prospects, sync_jobs, sync_staff]:
             yield from entity_sync(access_token)
 
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(thread_local_state.state)
 
         update_duration = time.time() - update_start_time
