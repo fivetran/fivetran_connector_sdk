@@ -39,5 +39,7 @@ def sync_users(base_url, params, state, is_historical_sync):
         connector.set_pfs_incremental_cursor_for_endpoint(state, 'user', last_updated_at)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of interruptions.
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)

@@ -75,7 +75,10 @@ def sync_csv_data(base_url, state):
     for item in items:
         yield op.upsert(table="user", data=item)
 
-    # Save the state periodically.
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 

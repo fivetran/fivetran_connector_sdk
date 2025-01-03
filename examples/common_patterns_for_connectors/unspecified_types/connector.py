@@ -60,6 +60,12 @@ def update(configuration: dict, state: dict):
         }
     )
 
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
