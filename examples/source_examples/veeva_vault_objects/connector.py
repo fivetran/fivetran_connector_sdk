@@ -24,7 +24,7 @@ import datetime
 def startVeevaSession(configuration: dict):
     username = configuration.get('username')
     password = configuration.get('password')
-    auth_url = f"https://{configuration.get('subdomain')}/api/v24.2/auth"
+    auth_url = f"https://{configuration.get('subdomain')}.veevavault.com/api/v24.2/auth"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json"
@@ -54,7 +54,7 @@ def startVeevaSession(configuration: dict):
 # - session_id: a Veeva Vault session ID generated from the startVeevaSession function
 
 def endVeevaSession(configuration: dict, session_id):
-    deactivate_session_url = f"https://{configuration.get('subdomain')}/api/v24.2/session"
+    deactivate_session_url = f"https://{configuration.get('subdomain')}.veevavault.com/api/v24.2/auth"
     headers = {
     "Authorization": session_id
     }
@@ -68,7 +68,7 @@ def endVeevaSession(configuration: dict, session_id):
 # - session_id: a Veeva Vault session ID generated from the startVeevaSession function
 
 def getVaultObjects(configuration: dict, session_id):
-    base_url = f"https://{configuration.get('subdomain')}/api/v24.2/"
+    base_url = f"https://{configuration.get('subdomain')}.veevavault.com/api/v24.2/auth"
     headers = {'Authorization': session_id,
             'Accept': 'application/json'}
     get_objects_url = base_url + 'configuration/Objecttype'
@@ -133,7 +133,7 @@ def update(configuration: dict, state: dict):
 def initialize_sync(configuration: dict, state: dict):
     
     sub_domain = configuration.get('subdomain')
-    base_url = f"https://{sub_domain}/api/v24.2/"
+    base_url = f"https://{sub_domain}.veevavault.com/api/v24.2/auth"
     
     # Batch size to query, this can be updated and will be placed in every query's PAGESIZE VQL clause
     
