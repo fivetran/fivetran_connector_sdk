@@ -27,8 +27,11 @@ This example shows how to use secrets.
 ### multiple_code_files
 This example shows how you can write a complex connector comprising multiple `.py` files.
 
-### user_profiles
+### using_pd_dataframes
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+
+### large_data_set
+This example shows how to handle the large data from API response with pagination and without pagination. 
 
 ### weather
 This is a realistic example, using a public API, fetching data from NOAA.

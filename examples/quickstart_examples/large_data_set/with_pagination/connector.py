@@ -15,7 +15,6 @@ import requests as rq
 
 # Define the constant values
 PAGE_LIMIT = 100
-BATCH_SIZE = 100
 BASE_URL = "https://pokeapi.co/api/v2/pokemon"
 
 
@@ -29,26 +28,18 @@ BASE_URL = "https://pokeapi.co/api/v2/pokemon"
 def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Large Data Set With Pagination")
 
-    offset = state["offset"] if "offset" in state else 0
+    offset = 0
     api_endpoint = BASE_URL + "?offset=" + str(offset) + "&limit=" + str(PAGE_LIMIT)
     while True:
         next_url, pokemons_df, next_offset = get_data(api_endpoint, offset)
-        pokemon_batches = divide_into_batches(pokemons_df)
-        for batch in pokemon_batches:
-            for index, row in batch.iterrows():
-                yield op.upsert(table="pokemons", data={col: row[col] for col in batch.columns})
-            offset = offset + len(batch)
-            state["offset"] = offset
-            yield op.checkpoint(state)
+        for index, row in pokemons_df.iterrows():
+            yield op.upsert(table="pokemons", data={col: row[col] for col in pokemons_df.columns})
+        offset = next_offset
+        state["offset"] = offset
+        yield op.checkpoint(state)
         api_endpoint = next_url
         if next_url is None:
             break
-
-
-# Function to divide large data frame into small batches
-def divide_into_batches(pokemons):
-    for index in range(0, len(pokemons), BATCH_SIZE):
-        yield pokemons.iloc[index: index + BATCH_SIZE]
 
 
 # Function to fetch data from an API

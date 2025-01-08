@@ -15,7 +15,7 @@ import requests as rq
 
 # Define the constant values
 MAX_PAGE_LIMIT = 100000
-BATCH_SIZE = 200
+BATCH_SIZE = 100
 BASE_URL = "https://pokeapi.co/api/v2/pokemon"
 
 
@@ -29,9 +29,9 @@ BASE_URL = "https://pokeapi.co/api/v2/pokemon"
 def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Large Data Set Without Pagination")
 
-    offset = state["offset"] if "offset" in state else 0
+    offset = 0
     api_endpoint = BASE_URL + "?offset=" + str(offset) + "&limit=" + str(MAX_PAGE_LIMIT)
-    next_url, pokemons_df, next_offset = get_data(api_endpoint, offset)
+    next_url, pokemons_df = get_data(api_endpoint, offset)
     pokemon_batches = divide_into_batches(pokemons_df)
     for batch in pokemon_batches:
         for index, row in batch.iterrows():
@@ -60,7 +60,7 @@ def get_data(url, offset):
             "url": pokemons[i]["url"]
         }
         pokemons_df = pd.concat([pokemons_df, pd.DataFrame([pokemon_data])], ignore_index=True)
-    return next_url, pokemons_df, offset + len(pokemons)
+    return next_url, pokemons_df
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
