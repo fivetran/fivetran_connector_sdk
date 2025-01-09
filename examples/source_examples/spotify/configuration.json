@@ -2,6 +2,4 @@
     "client_secret": "<YOUR_CLIENT_SECRET>",
     "client_id": "<YOUR_CLIENT_ID>",
     "artist_url": "<YOUR_ARTIST_URL>"
-    "client_id": "<client_id>",
-    "artist_url": "<artist_url>"
 }
