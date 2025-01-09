@@ -1,3 +1,6 @@
+# This is a simple example that retrieves a single page of albums from Spotify, 
+# and then a single page of tracks for each album. 
+# The required inputs are Spotify client ID and client secret, and an artist URL.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -43,10 +46,9 @@ def update(configuration: dict, state: dict):
     # department_cursor = state["department_cursor"] if "department_cursor" in state else {}
 
     try:
-        conf = configuration
-        client_id = conf['client_id']
-        client_secret = conf['client_secret']
-        artist_url = conf['artist_url']
+        client_id = configuration['client_id']
+        client_secret = configuration['client_secret']
+        artist_url = configuration['artist_url']
         album_params = {"artist_id": artist_url}
         auth_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
         sp = spotipy.Spotify(auth_manager=auth_manager)
