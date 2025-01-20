@@ -5,7 +5,12 @@
   - MacOS 13 (Ventura) or later
 
 # Getting started
+
 See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+See [Working with Connector SDK](https://fivetran.com/docs/connectors/connector-sdk/working-with-connector-sdk) to explore usage guidelines.
+
+See [Technical Reference](https://fivetran.com/docs/connectors/connector-sdk/technical-reference) for in-depth technical details.
 
 # Examples
 There are several examples available under `/examples`:
