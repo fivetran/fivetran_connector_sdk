@@ -1,6 +1,9 @@
 
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+# This is an example to extract data from Toast, technology platform primarily designed for the restaurant industry. 
+# It provides an all-in-one point-of-sale (POS) and management system tailored to meet the unique needs 
+# of restaurants, cafes, and similar businesses.
 
 # Import requests to make HTTP calls to API
 import requests as rq
@@ -42,19 +45,18 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
 
     try:
-        conf = configuration
-        domain = conf["domain"]
+        domain = configuration["domain"]
         base_url = f"https://{domain}"
-        to_ts = datetime.datetime.now(datetime.timezone.utc).isoformat("T", "milliseconds")
-        if 'to_ts' in state:
-            from_ts = state['to_ts']
+        current_utc_timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat("T", "milliseconds")
+        if 'current_utc_timestamp' in state:
+            start_utc_timestamp = state['current_utc_timestamp']
         else:
-            from_ts = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=10)
-            from_ts = from_ts.isoformat("T", "milliseconds")
+            start_utc_timestamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=10)
+            start_utc_timestamp = start_utc_timestamp.isoformat("T", "milliseconds")
 
-        payload = {"clientId": conf["clientId"],
-            "clientSecret": conf["clientSecret"],
-            "userAccessType": conf["userAccessType"]}
+        payload = {"clientId": configuration["clientId"],
+            "clientSecret": configuration["clientSecret"],
+            "userAccessType": configuration["userAccessType"]}
 
         auth_response = rq.post(base_url + "/authentication/v1/authentication/login", json=payload)
         auth_page = auth_response.json()
@@ -63,12 +65,12 @@ def update(configuration: dict, state: dict):
         headers = {"Authorization": "Bearer " + auth_token, "accept": "application/json"}
 
         # Update the state with the new cursor position, incremented by 1.
-        new_state = {"to_ts": to_ts}
+        new_state = {"current_utc_timestamp": current_utc_timestamp}
         log.fine(f"state updated, new state: {repr(new_state)}")
 
         # Yield a checkpoint operation to save the new state.
         yield op.checkpoint(state=new_state)
-        yield from sync_items(base_url, headers, from_ts, to_ts, state)
+        yield from sync_items(base_url, headers, start_utc_timestamp, current_utc_timestamp, state)
 
     except Exception as e:
         # Return error response

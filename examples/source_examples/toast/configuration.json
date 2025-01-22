@@ -1,6 +1,6 @@
 {
-    "clientId": "<clientID>",
-    "clientSecret": "<clientSecret>",
-    "userAccessType": "TOAST_MACHINE_CLIENT",
-    "domain": "<domain>"
+    "clientId": "",
+    "clientSecret": "",
+    "userAccessType": "",
+    "domain": ""
 }
