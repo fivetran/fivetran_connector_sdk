@@ -115,6 +115,9 @@ This example uses pyodbc to connect to SQL Server Db for querying/syncing data u
 This is an example of how we can sync data from AWS Athena by using Connector SDK. We have two examples, one utilises Boto3 and another utilizes SQLAlchemy with PyAthena.
 You can use either, based on your requirements. You need to provide your AWS Athena credentials for this example to work.
 
+### toast
+This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
+
 </details>
 
 # Additional considerations
