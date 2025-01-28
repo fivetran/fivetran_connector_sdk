@@ -7,9 +7,9 @@
 # Please get your API key from here: https://marketstack.com/
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import json

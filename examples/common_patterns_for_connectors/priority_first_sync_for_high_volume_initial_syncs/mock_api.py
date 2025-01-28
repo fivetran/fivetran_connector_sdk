@@ -1,4 +1,4 @@
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
 from faker import Faker
 from datetime import datetime, timedelta, timezone
 

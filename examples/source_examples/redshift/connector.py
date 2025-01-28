@@ -8,10 +8,10 @@ import json  # Import the json module to handle JSON data.
 # Import datetime for handling date and time conversions.
 from datetime import datetime
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import redshift_connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # This column is the replication key which helps determine which records are updated
