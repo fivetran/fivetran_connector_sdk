@@ -49,6 +49,7 @@ def get_access_token(configuration: dict):
         return
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
+        log.info(uri)
         raise Exception("Failed to obtain access token")
 
 
@@ -59,13 +60,13 @@ def sync_contacts(configuration, cursor, curr_time, state):
         contact = {}
         contact["vid"] = raw_contact["vid"]
         contact["firstname"] = raw_contact["properties"]["firstname"]["value"]
-        contact["company"] = raw_contact["properties"]["company"]["value"]
+        contact["company"] = raw_contact["properties"].get("company", {"value" : ""})["value"]
         contact["lastmodifieddate"] = raw_contact["properties"]["lastmodifieddate"]["value"]
         contact["email"] = raw_contact["identity-profiles"][0]["identities"][0]["value"]
         return contact
 
     has_more = True
-    params = {}
+    params = {"count":100}
     while has_more:
         data = get_data("contacts", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -75,7 +76,8 @@ def sync_contacts(configuration, cursor, curr_time, state):
             has_more = False
         # sending contact details to fivetran connector
         for contact in data["contacts"]:
-            yield op.upsert("contacts", process_record(contact))
+            if contact["properties"].get("firstname") and contact["identity-profiles"][0].get("identities"):
+                yield op.upsert("contacts", process_record(contact))
 
 
 def sync_companies(configuration, cursor, curr_time, state):
@@ -88,7 +90,7 @@ def sync_companies(configuration, cursor, curr_time, state):
         return company
 
     has_more = True
-    params = {"properties":"name"}
+    params = {"properties":"name", "limit":250}
     while has_more:
         data = get_data("companies", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
