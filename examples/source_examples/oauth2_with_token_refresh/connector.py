@@ -43,7 +43,6 @@ def get_access_token(configuration: dict):
     response = requests.request("POST", uri, headers=headers)
 
     if response.ok:
-        log.info(response.status_code)
         log.info("Access token obtained successfully")
         data = response.json()
         # Updating ACCESS TOKEN and REFRESH TIME which is the epoch time in seconds when the ACCESS TOKEN will expire.
@@ -51,7 +50,6 @@ def get_access_token(configuration: dict):
         #     if required, It has to be updated manually on the fivetran dashboard after deployment.
         ACCESS_TOKEN = data["access_token"]
         REFRESH_TIME = int(data["expires_in"]) + time.time()
-        log.info(ACCESS_TOKEN)
         return
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
