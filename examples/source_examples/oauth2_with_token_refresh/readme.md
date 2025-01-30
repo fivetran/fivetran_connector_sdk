@@ -10,20 +10,15 @@
 2. **Developer Account and HubSpot App:**
    - Create a developer account and create a HubSpot app with scopes and redirect URL: [ref](https://developers.hubspot.com/docs/reference/api/app-management/oauth)
 
-3. **Fetch the Code:** 
-   - Use this curl command to get the code appended to your redirect URL:
+3. **Fetch the Refresh Token:** 
+   - Use this above credentials in postman inside Authroization->OAuth2.0 as shown in the below ss:
+   - ![Screenshot1.png](Screenshot1.png)
 
-     ```bash
-     curl --location '[https://app.hubspot.com/oauth/authorize?client_id=xxxxxx&scope=xxx&redirect_uri=xxxx](https://app.hubspot.com/oauth/authorize?client_id=xxxxxx&scope=xxx&redirect_uri=xxxx)'
-     ```
+4. **Fetch the Refresh Token:**
+    - On Clicking on the `Get new access Token` button, you will be redirected on a browser signup popup.
+    - Login with your dev account, and grant access. The popup will close and you should see the following window with tokens.
+    - ![Screenshot2.png](Screenshot2.png)
 
-4. **Fetch the Refresh Token:** 
-   - Use the code obtained in step 3 and the following curl command to fetch the refresh token:
-
-     ```bash
-     curl --location --request POST '[https://api.hubapi.com/oauth/v1/token?grant_type=authorization_code&client_id=xxxxx&client_secret=xxxxxx&redirect_uri=xxxx&code=xxxx](https://api.hubapi.com/oauth/v1/token?grant_type=authorization_code&client_id=xxxxx&client_secret=xxxxxx&redirect_uri=xxxx&code=xxxx)' \
-     --header 'Content-Type: application/x-www-form-urlencoded'
-     ```
 
 5. **HubSpot API Collection:** 
    - Access the HubSpot API collection [here](https://developers.hubspot.com/docs/reference/api/crm/objects).

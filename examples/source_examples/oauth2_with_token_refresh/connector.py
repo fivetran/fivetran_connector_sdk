@@ -1,29 +1,32 @@
-"""
-Hubspot OAuth2.0 Sample API Connector for Fivetran
+# Hubspot OAuth2.0 with refresh token Sample API Connector for Fivetran
 
-This module implements a connector for syncing data from the Hubspot API.
-NOTE: Hubspot connector is already present in Fivetran, and can be directly created
-    from the dashboard. Please do not use this as an alternative
-It is an example of using OAuth 2.0 client credentials flow, and
-the refresh of Access token from the provided refresh token.
+# This module implements a connector for syncing data from the Hubspot API.
+# NOTE: Hubspot connector is already present in Fivetran, and can be directly created
+#     from the dashboard. Please do not use this as an alternative
+# It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
+# NOTE: We do not support programmatically updating refresh token currently.
+#     If the refresh token is updates, it has to be updated manually on the fivetran dashboard after deployment.
+#     Check readme file for more information on generating refresh token.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-Date: 2025-01-29
-"""
-import json
-import requests
+# imported constants from same directory
+from constants import *
+# Import datetime for handling date and time conversions.
 import time
+# import json to infer .
+import json
+# Imported requests for hubspot api requests generation
+import requests
 import urllib
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
-BASE_URL = "https://api.hubapi.com/"
-AUTH_URL = BASE_URL + "oauth/v1/token?"
-CONTACTS_URL = BASE_URL + "contacts/v1/lists/all/contacts/all"
-COMPANY_URL = BASE_URL + "companies/v2/companies/paged"
+# Global variables for
 ACCESS_TOKEN = ""
 REFRESH_TIME = 0
 
 def get_access_token(configuration: dict):
-    global AUTH_URL
     global ACCESS_TOKEN
     global REFRESH_TIME
 
@@ -39,13 +42,16 @@ def get_access_token(configuration: dict):
 
     response = requests.request("POST", uri, headers=headers)
 
-    if response.status_code == 200:
+    if response.ok:
+        log.info(response.status_code)
         log.info("Access token obtained successfully")
         data = response.json()
-        # This sets the ACCESS TOKEN and the updated REFRESH TIME
-        # REFRESH TIME is the epoch time in seconds when the ACCESS TOKEN will expire
+        # Updating ACCESS TOKEN and REFRESH TIME which is the epoch time in seconds when the ACCESS TOKEN will expire.
+        # Note: We currently do not support programmatically updating refresh token.
+        #     if required, It has to be updated manually on the fivetran dashboard after deployment.
         ACCESS_TOKEN = data["access_token"]
         REFRESH_TIME = int(data["expires_in"]) + time.time()
+        log.info(ACCESS_TOKEN)
         return
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
@@ -53,7 +59,7 @@ def get_access_token(configuration: dict):
         raise Exception("Failed to obtain access token")
 
 
-def sync_contacts(configuration, cursor, curr_time, state):
+def sync_contacts(configuration, cursor, state):
     # this is a custom function, meant to process the contacts
     # this processed data is then sent to fivetran
     def process_record(raw_contact):
@@ -66,7 +72,7 @@ def sync_contacts(configuration, cursor, curr_time, state):
         return contact
 
     has_more = True
-    params = {"count":100}
+    params = {"count":CONTACTS_RESPONSE_LIMIT}
     while has_more:
         data = get_data("contacts", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -80,7 +86,7 @@ def sync_contacts(configuration, cursor, curr_time, state):
                 yield op.upsert("contacts", process_record(contact))
 
 
-def sync_companies(configuration, cursor, curr_time, state):
+def sync_companies(configuration, cursor, state):
     # this is a custom function, meant to process the company record
     def process_record(raw_company):
         company = {}
@@ -90,7 +96,7 @@ def sync_companies(configuration, cursor, curr_time, state):
         return company
 
     has_more = True
-    params = {"properties":"name", "limit":250}
+    params = {"properties":"name", "limit":COMPANY_RESPONSE_LIMIT}
     while has_more:
         data = get_data("companies", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -98,10 +104,17 @@ def sync_companies(configuration, cursor, curr_time, state):
             params["offset"] = data["offset"]
         else:
             has_more = False
-        # sending company details to fivetran connector
+        # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
         for company in data["companies"]:
             yield op.upsert("companies", process_record(company))
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
     curr_time = time.time()
 
@@ -111,8 +124,8 @@ def update(configuration: dict, state: dict):
     log.info(f"Starting update process. Initial state: {cursor}")
 
     # Yeilds all the required data from individual methods, and pushes them into the connector upsert function
-    yield from sync_contacts(configuration, cursor, curr_time, state)
-    yield from sync_companies(configuration, cursor, curr_time, state)
+    yield from sync_contacts(configuration, cursor, state)
+    yield from sync_companies(configuration, cursor, state)
 
     # Save the final checkpoint by updating the state with the current time
     state['last_updated_at'] = curr_time
@@ -124,8 +137,6 @@ def update(configuration: dict, state: dict):
 def get_data(method, params, headers, configuration, body=None):
     global ACCESS_TOKEN
     global REFRESH_TIME
-    global CONTACTS_URL
-    global COMPANY_URL
     # This checks the refresh time set while fetching the last access token
     # if REFRESH TIME is less than the current time, it means the ACCESS TOKEN is expired and need a refresh
     if REFRESH_TIME<time.time():
@@ -140,15 +151,19 @@ def get_data(method, params, headers, configuration, body=None):
         log.severe(f"Failed to fetch data. Method: " + method)
         raise Exception("Unknown method")
 
-    if 200 <= response.status_code < 300:
-        log.info("Fetched data for method: " + method)
+    if response.ok:
+        log.fine("Fetched data for method: " + method)
         data = response.json()
         return data
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
         raise Exception("Failed to obtain access token")
 
-
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     return [
         {
@@ -173,11 +188,12 @@ def schema(configuration: dict):
         }
     ]
 
+# required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("conf.json", 'r') as f:
+    with open("configuration.json", 'r') as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
