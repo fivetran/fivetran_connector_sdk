@@ -1,6 +1,6 @@
 from datetime import timezone
 
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import mock_api
 import connector
 
