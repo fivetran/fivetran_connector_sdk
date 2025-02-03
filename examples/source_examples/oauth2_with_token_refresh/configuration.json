@@ -1,0 +1,5 @@
+{
+  "refresh_token": "<YOUR_REFRESH_TOKEN>",
+  "client_secret": "<YOUR_CLIENT_SECRET>",
+  "client_id": "<YOUR_CLIENT_ID>"
+}
