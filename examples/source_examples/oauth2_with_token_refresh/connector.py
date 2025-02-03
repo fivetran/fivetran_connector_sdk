@@ -11,7 +11,7 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # imported constants from same directory
-from constants import *
+from constants import AUTH_URL, CONTACTS_URL, COMPANY_URL, CONTACTS_RESPONSE_LIMIT, COMPANY_RESPONSE_LIMIT
 # Import datetime for handling date and time conversions.
 import time
 # import json to infer .
@@ -40,7 +40,7 @@ def get_access_token(configuration: dict):
     uri = AUTH_URL +  urllib.parse.urlencode(param_dict)
     headers = {'content-type': 'application/x-www-form-urlencoded'}
 
-    response = requests.request("POST", uri, headers=headers)
+    response = requests.post(uri, headers=headers)
 
     if response.ok:
         log.info("Access token obtained successfully")
@@ -63,10 +63,10 @@ def sync_contacts(configuration, cursor, state):
     def process_record(raw_contact):
         contact = {}
         contact["vid"] = raw_contact["vid"]
-        contact["firstname"] = raw_contact["properties"]["firstname"]["value"]
-        contact["company"] = raw_contact["properties"].get("company", {"value" : ""})["value"]
-        contact["lastmodifieddate"] = raw_contact["properties"]["lastmodifieddate"]["value"]
-        contact["email"] = raw_contact["identity-profiles"][0]["identities"][0]["value"]
+        contact["firstname"] = raw_contact["properties"].get("firstname", {}).get("value", "")
+        contact["company"] = raw_contact["properties"].get("company", {}).get("value", "")
+        contact["lastmodifieddate"] = raw_contact["properties"].get("lastmodifieddate", {}).get("value", "")
+        contact["email"] = raw_contact["identity-profiles"][0].get("identities", [{}])[0].get("value", "")
         return contact
 
     has_more = True
@@ -89,8 +89,8 @@ def sync_companies(configuration, cursor, state):
     def process_record(raw_company):
         company = {}
         company["companyId"] = raw_company["companyId"]
-        company["name"] = raw_company["properties"]["name"]["value"]
-        company["timestamp"] = raw_company["properties"]["name"]["timestamp"]
+        company["name"] = raw_company["properties"].get("name", {}).get("value", "")
+        company["timestamp"] = raw_company["properties"].get("name", {}).get("timestamp", "")
         return company
 
     has_more = True
