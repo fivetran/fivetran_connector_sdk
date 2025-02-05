@@ -43,7 +43,8 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-
+    log.warning("Examples: Source Example - Toast")
+    
     try:
         domain = configuration["domain"]
         base_url = f"https://{domain}"
