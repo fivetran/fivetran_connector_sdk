@@ -109,6 +109,11 @@ This module implements a connector for syncing data from the Accelo API. It uses
 
 Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 
+### oauth2_with_token_refresh
+It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
+
+Refer to the OAuth Refresh flow in `readme.md`.
+
 ### smartsheets
 This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 
