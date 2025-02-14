@@ -8,12 +8,12 @@
 
 2. Create a developer account and a HubSpot app with scopes and redirect URL. See HubSpot's [OAuth documentations](https://developers.hubspot.com/docs/reference/api/app-management/oauth) for details.
 
-3. Use this above credentials in Postman inside Authroization->OAuth2.0 as shown in the below ss:
+3. Use the ClientId, ClientSecret and RedirectUrl from the developer account, and paster it in the Postman app inside Authorization->OAuth2.0 as shown in the below SS:
      ![Screenshot1.png](Screenshot1.png)
 
 4. Fetch the Refresh Token:
     1. Clicking on the `Get new access Token` button, you will be redirected on a browser signup popup.
-    1. Log in with your dev account, and grant access. The popup will close and you should see the following window with tokens.
+    1. Log in to your developer account, and approve to grant access to the redirect url. The popup will close and you should see the following window with tokens.
       ![Screenshot2.png](Screenshot2.png)
 
 
@@ -21,7 +21,7 @@
 
 ## Debug
 
-1. Once you have the refresh token, client secret, and ID, replace them in the `configuration.json` file.
+1. Once you have the refresh token, client secret, and ID, replace the existing credentials in the `configuration.json` file.
 2. Run the `main` function to trigger the `debug` command and start syncing your code to your local machine.
 
 ## Deploy the connector
