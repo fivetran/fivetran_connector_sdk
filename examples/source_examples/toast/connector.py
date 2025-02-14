@@ -1,11 +1,11 @@
-
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 # This is an example to extract data from Toast, technology platform primarily designed for the restaurant industry. 
 # It provides an all-in-one point-of-sale (POS) and management system tailored to meet the unique needs 
 # of restaurants, cafes, and similar businesses.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import requests to make HTTP calls to API
+
 import requests as rq
 import traceback
 import datetime
@@ -13,6 +13,7 @@ import json
 import copy
 
 # Import required classes from fivetran_connector_sdk
+
 from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
@@ -42,6 +43,7 @@ def schema(configuration: dict):
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
+
 def update(configuration: dict, state: dict):
     log.warning("Examples: Source Example - Toast")
     
@@ -87,6 +89,7 @@ def update(configuration: dict, state: dict):
 # - ts_from: starting timestamp
 # - ts_to: ending timestamp
 # - state: State dictionary
+
 def sync_items(base_url, headers, ts_from, ts_to, state):
 
     timerange_params = {"startDate": ts_from, "endDate": ts_to}
@@ -118,13 +121,18 @@ def sync_items(base_url, headers, ts_from, ts_to, state):
     # from the correct position in case of interruptions.
     yield op.checkpoint(state)
 
-# The function takes six parameters:
+# This function fetches paginated data from an API endpoint, processes each response by 
+# converting lists to strings, and yields upsert operations into a specified table, using a 
+# restaurant-specific identifier in the headers.
+#
+# The function takes 6 parameters: 
 # - base_url: The URL to the API endpoint.
 # - headers: Authentication headers
 # - params: Dictionary of parameters required for endpoint
 # - endpoint: endpoint to add to base_url for API call
 # - table: table to be written to in destination
 # - rst_guid: guid for restaurant
+
 def process_endpoint(base_url, headers, params, endpoint, tbl, rst_guid):
     # Update headers for current restaurant
     headers["Toast-Restaurant-External-ID"] = rst_guid
@@ -156,6 +164,7 @@ def process_endpoint(base_url, headers, params, endpoint, tbl, rst_guid):
 #
 # Returns:
 # - response_page: A dictionary containing the parsed JSON response from the API.
+
 def get_api_response(endpoint_path, headers, params):
     # copy parameters since they may change
     params_copy = copy.deepcopy(params)
@@ -177,6 +186,7 @@ def get_api_response(endpoint_path, headers, params):
 #
 # Returns:
 # - new_dict: A dictionary without any values that are lists
+
 def stringify_lists(d):
     new_dict = {}
     for key, value in d.items():
@@ -190,12 +200,14 @@ def stringify_lists(d):
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 # This example does not use the schema() function. If it did, it would need to be included in the connector object definition. 
+
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+
 if __name__ == "main":
     # Open the configuration.json file and load its contents into a dictionary.
     with open("configuration.json", 'r') as f:
