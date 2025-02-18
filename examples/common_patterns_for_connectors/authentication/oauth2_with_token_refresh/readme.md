@@ -38,3 +38,27 @@
 4. Once you have deployed the connector, follow the link in the terminal or search in the dashboard with the connection name to view the sync status and logs.
 
 > NOTE: This example only supports cases where the refresh token does not have a TTL, and only the access token is refreshed with the refresh token. If you occasionally need to update the refresh token, you can do it in the dashboard and in the connection setup. We will update this example with a similar approach once we support refreshing passed credentials via the connector code.
+
+## Update the refresh token
+You can update the refresh token using the following two methods
++ **Using fivetran [Update Api](https://fivetran.com/docs/rest-api/api-reference/connectors/modify-connector?service=15five#updateaconnection)**
+
+    ```
+  PATCH /v1/connections/connectionId HTTP/1.1
+    Accept: application/json;version=2
+    Authorization: Basic REPLACE_BASIC_AUTH
+    Content-Type: application/json
+    Host: api.fivetran.com
+    Content-Length: 625
+    
+    {
+      "config": {
+        "refresh_token": "updated_refresh_token",
+        "client_id": "your_client_id",
+        "client_secret": "your_client_secret"
+      }
+    }
+  ```
++ **Updating Manually in [Fivetran Dashboard](https://fivetran.com/dashboard/connectors/connectiion_id/setup)**
+
+    The configuration passed in `coniguration.json` at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.
