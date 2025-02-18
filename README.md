@@ -48,6 +48,17 @@ Common patterns for connectors
 
 <details>
 <summary>
+Authentication
+</summary>
+
+### oauth2_with_token_refresh
+It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
+
+Refer to the OAuth Refresh flow in `readme.md`.
+</details>
+
+<details>
+<summary>
 Cursors
 </summary>
 
@@ -108,11 +119,6 @@ This example shows key-based replication from database sources. Replication keys
 This module implements a connector for syncing data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and data synchronization for companies, invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading allows to make API calls in parallel to pull data faster. This is also an example of using **OAuth 2.0 Client Credentials** flow. You need to provide your Accelo OAuth credentials for this example to work.
 
 Refer to the Multithreading Guidelines in `api_threading_utils.py`.
-
-### oauth2_with_token_refresh
-It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
-
-Refer to the OAuth Refresh flow in `readme.md`.
 
 ### smartsheets
 This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
