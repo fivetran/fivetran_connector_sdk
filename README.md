@@ -133,6 +133,10 @@ You can use either, based on your requirements. You need to provide your AWS Ath
 ### toast
 This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 
+### veeva vault objects
+This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK.
+You would need to provide your Veeva Vault credentials for this example to work.
+
 </details>
 
 # Additional considerations
