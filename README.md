@@ -138,6 +138,17 @@ This is an example of how we can sync Toast data using the Connector SDK. You wo
 
 </details>
 
+<details>
+<summary>
+Beta features
+</summary>
+
+>**NOTE:** The following features are in limited release. Please connect with our professional services to get more information about them and enable it for your connector.
+### Importing External Libraries and Drivers
+This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
+
+</details>
+
 # Additional considerations
 
 We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
