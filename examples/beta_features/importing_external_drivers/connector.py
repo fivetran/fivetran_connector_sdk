@@ -1,12 +1,9 @@
-# Hubspot OAuth2.0 with refresh token Sample API Connector for Fivetran
+# Importing External Drivers using installation.sh script file.
 
-# This module implements a connector for syncing data from the Hubspot API.
-# NOTE: Hubspot connector is already present in Fivetran, and can be directly created
-#     from the dashboard. Please do not use this as an alternative
-# It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
-# NOTE: We do not support programmatically updating refresh token currently.
-#     If the refresh token is updates, it has to be updated manually on the fivetran dashboard after deployment.
-#     Check readme file for more information on generating refresh token.
+# This module implements a connector that requires external driver installation using installation.sh file
+# It is an example of using selenium with chrome driver, to download a csv and iterate over the data to update the connector
+# NOTE: For selenium to use chrome driver, we need chromeDriver installed using the installation.py file. It also
+#     requires chrome to be installed aswell, which is also done in the installation script.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
