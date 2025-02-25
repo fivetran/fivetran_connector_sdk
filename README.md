@@ -140,7 +140,7 @@ This is an example of how we can sync Toast data using the Connector SDK. You wo
 
 <details>
 <summary>
-Beta features
+Private Preview features
 </summary>
 
 >**NOTE:** The following features are in Private Preview. Please connect with our professional services to get more information about them and enable it for your connector.
