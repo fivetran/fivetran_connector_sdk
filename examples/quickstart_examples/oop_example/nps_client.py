@@ -1,6 +1,6 @@
 import requests as rq
 import json
-
+from fivetran_connector_sdk import Logging as log
 
 
 class NPS:

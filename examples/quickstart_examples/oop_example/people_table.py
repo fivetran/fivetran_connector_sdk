@@ -1,6 +1,3 @@
-from typing import List, Optional, Union
-from xml.sax.handler import property_encoding
-
 from nps_client import NPS
 
 

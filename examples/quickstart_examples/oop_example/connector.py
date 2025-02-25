@@ -1,7 +1,19 @@
-import json
+# This example implements a **connector** to fetch, process, and store data from the 
+# National Parks Service API (NPS API)(https://www.nps.gov/subjects/developer/index.htm). 
+# The process is built with an Object-Oriented Programming (OOP) approach, ensuring
+# modular, maintainable, and reusable code.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
+
+# Import required packages
+import json
+
+# Import self written modules
 from alerts_table import ALERTS
 from park_table import PARKS
 from articles_table import ARTICLES
@@ -21,7 +33,6 @@ def schema(configuration: dict):
     for table in selected_table:
         con = table(configuration=configuration)
         schema_dict = con.assign_schema()
-        #print(f"Schema for table {con}: {schema_dict}")
         output.append(schema_dict)
     return output
 
