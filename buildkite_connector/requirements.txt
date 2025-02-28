@@ -1,0 +1,2 @@
+requests>=2.25.1
+fivetran_connector_sdk>=0.1.0
