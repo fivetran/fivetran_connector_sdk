@@ -1,0 +1,5 @@
+{
+  "limit": "100",
+  "request_delay": "1.0",
+  "api_base_url": "https://pokeapi.co/api/v2"
+}
