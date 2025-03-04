@@ -5,7 +5,8 @@
   - MacOS 13 (Ventura) or later
 
 # Getting started
-See [Quickstart guide](https://fivetran.com/docs/connectors/connector-sdk/quickstart-guide) to get started.
+
+See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 # Examples
 There are several examples available under `/examples`:
@@ -27,8 +28,11 @@ This example shows how to use secrets.
 ### multiple_code_files
 This example shows how you can write a complex connector comprising multiple `.py` files.
 
-### user_profiles
+### using_pd_dataframes
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+
+### large_data_set
+This example shows how to handle the large data from API response with pagination and without pagination. 
 
 ### weather
 This is a realistic example, using a public API, fetching data from NOAA.
@@ -41,6 +45,17 @@ Shows how to cast configuration field to list, integer, boolean and dict for use
 <summary>
 Common patterns for connectors
 </summary>
+
+<details>
+<summary>
+Authentication
+</summary>
+
+### oauth2_with_token_refresh
+It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
+
+Refer to the OAuth Refresh flow in `readme.md`.
+</details>
 
 <details>
 <summary>
@@ -114,6 +129,9 @@ This example uses pyodbc to connect to SQL Server Db for querying/syncing data u
 ### aws_athena
 This is an example of how we can sync data from AWS Athena by using Connector SDK. We have two examples, one utilises Boto3 and another utilizes SQLAlchemy with PyAthena.
 You can use either, based on your requirements. You need to provide your AWS Athena credentials for this example to work.
+
+### toast
+This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 
 </details>
 

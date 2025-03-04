@@ -12,9 +12,9 @@ import requests as rq
 # Import CSV for parsing CSV data.
 import csv
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from io import StringIO
 
 
@@ -75,7 +75,10 @@ def sync_csv_data(base_url, state):
     for item in items:
         yield op.upsert(table="user", data=item)
 
-    # Save the state periodically.
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 

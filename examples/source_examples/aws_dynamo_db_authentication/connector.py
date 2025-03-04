@@ -8,14 +8,14 @@
 import json  # Import the json module to handle JSON data.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import boto3
 import aws_dynamodb_parallel_scan
 
 
-def getDynamoDbClient(configuration: dict):
+def get_dynamo_db_client(configuration: dict):
     # create security token service client
     sts = boto3.client(
         'sts',
@@ -29,8 +29,8 @@ def getDynamoDbClient(configuration: dict):
         RoleSessionName="sdkSession"
     )['Credentials']
 
-    # create dynamoDbClient using role credentials
-    dynamodbClient = boto3.client(
+    # create dynamo_db_client using role credentials
+    dynamo_db_client = boto3.client(
         'dynamodb',
         aws_access_key_id=credentials['AccessKeyId'],
         aws_secret_access_key=credentials['SecretAccessKey'],
@@ -38,7 +38,7 @@ def getDynamoDbClient(configuration: dict):
         region_name=configuration['REGION']
     )
 
-    return dynamodbClient
+    return dynamo_db_client
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -47,20 +47,20 @@ def getDynamoDbClient(configuration: dict):
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    dynamoClient = getDynamoDbClient(configuration)
+    dynamo_client = get_dynamo_db_client(configuration)
     schema = []
 
     try:
         # fetch and iterate over table names
-        for table in dynamoClient.list_tables()['TableNames']:
-            # fetch tableMetaData, see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/client/describe_table.html
-            tableMetaData = dynamoClient.describe_table(TableName=table)
-            tableSchema = {
+        for table in dynamo_client.list_tables()['TableNames']:
+            # fetch table_meta_data, see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/client/describe_table.html
+            table_meta_data = dynamo_client.describe_table(TableName=table)
+            table_schema = {
                 "table": table,
                 "primary_key": list(
-                    map(lambda keySchema: keySchema['AttributeName'], tableMetaData['Table']['KeySchema']))
+                    map(lambda keySchema: keySchema['AttributeName'], table_meta_data['Table']['KeySchema']))
             }
-            schema.append(tableSchema)
+            schema.append(table_schema)
     except Exception as e:
         log.severe(str(e))
 
@@ -77,13 +77,13 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Source Examples - AWS DynamoDb Authentication")
 
-    dynamoClient = getDynamoDbClient(configuration)
+    dynamo_client = get_dynamo_db_client(configuration)
 
     try:
         # get paginator for parallel scan
-        paginator = aws_dynamodb_parallel_scan.get_paginator(dynamoClient)
+        paginator = aws_dynamodb_parallel_scan.get_paginator(dynamo_client)
         # fetch and iterate over table names
-        for table in dynamoClient.list_tables()['TableNames']:
+        for table in dynamo_client.list_tables()['TableNames']:
             # get pages of 10 items and 4 parallel threads
             page_iterator = paginator.paginate(
                 TableName=table,
@@ -92,18 +92,23 @@ def update(configuration: dict, state: dict):
                 ConsistentRead=True
             )
             for page in page_iterator:
-                items = list(map(mapItem, page['Items']))
+                items = list(map(map_item, page['Items']))
                 for item in items:
                     yield op.upsert(table, item)
 
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
+
         log.info('Finished syncing...')
     except Exception as e:
         log.severe(str(e))
         raise
 
 
-def mapItem(item: dict):
+def map_item(item: dict):
     result = {}
     for key, value in item.items():
         for nested_key, nested_value in value.items():
