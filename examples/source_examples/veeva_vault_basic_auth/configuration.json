@@ -1,5 +1,5 @@
 {
-    "username": "<veeva_vault_username>",
-    "password": "<veeva_vault_password>",
-    "subdomain": "<veeva_vault_subdomain>"
+    "username": "<YOUR_VEEVA_VAULT_USERNAME>",
+    "password": "<YOUR_VEEVA_VAULT_PASSWORD>",
+    "subdomain": "<YOUR_VEEVA_VAULT_SUBDOMAIN>"
 }
