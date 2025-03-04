@@ -28,6 +28,9 @@ This example shows how to use secrets.
 ### multiple_code_files
 This example shows how you can write a complex connector comprising multiple `.py` files.
 
+### object_oriented_programming_approach
+This example shows an Object Oriented Programming Approach while building the connector for National Parks Service API.
+
 ### using_pd_dataframes
 This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
