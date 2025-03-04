@@ -130,6 +130,9 @@ This example uses pyodbc to connect to SQL Server Db for querying/syncing data u
 This is an example of how we can sync data from AWS Athena by using Connector SDK. We have two examples, one utilises Boto3 and another utilizes SQLAlchemy with PyAthena.
 You can use either, based on your requirements. You need to provide your AWS Athena credentials for this example to work.
 
+## veeva_vault_using_basic_auth
+This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+
 ### toast
 This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 
