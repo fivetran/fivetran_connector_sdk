@@ -136,6 +136,10 @@ This example shows how to authenticate to Veeva Vault using basic authentication
 ### toast
 This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 
+### veeva vault objects
+This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK.
+You would need to provide your Veeva Vault credentials for this example to work.
+
 </details>
 
 # Additional considerations
