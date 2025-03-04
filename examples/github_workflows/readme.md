@@ -73,8 +73,9 @@ Before using this workflow, ensure you have:
 ## How to Use
 
 1. **Set up GitHub Secrets** as described in the prerequisites.
-2. **Push changes to the `hello/` directory on the `master` branch`**.
-3. **Monitor GitHub Actions logs** to track deployment progress.
+2. Save hello.yml to .github/workflows in your repo. Each YAML file inside .github/workflows/ defines a workflow that GitHub Actions will recognize and execute based on the triggers you define in the file.
+3. **Push changes to the `hello/` directory on the `master` branch`**.
+4. **Monitor GitHub Actions logs** to track deployment progress.
 
 ## Debugging
 - Ensure all required secrets and variables are properly set up.
