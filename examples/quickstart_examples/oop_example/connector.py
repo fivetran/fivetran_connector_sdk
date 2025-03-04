@@ -6,9 +6,9 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # Import required packages
 import json
@@ -60,13 +60,12 @@ connector = Connector(update=update, schema=schema)
 #Run the connector in debug mode
 if __name__ == "__main__":
     print("Running the NPS connector (Parks, Articles, People, and Alerts tables)...")
-
-    if __name__ == "__main__":
-        # Open the configuration.json file and load its contents into a dictionary.
-        with open("configuration.json", 'r') as f:
-            configuration = json.load(f)
-        # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-        connector.debug(configuration=configuration)
+    
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
     print("Connector run complete.")
 
 
