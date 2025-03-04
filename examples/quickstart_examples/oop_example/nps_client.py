@@ -100,7 +100,6 @@ class NPS:
         except rq.exceptions.RequestException as e:
             # Handle exceptions and log a warning message
             log.warning(f"API request to {endpoint} failed: {e}")
-            return []
-
+            return {}
         # Return the extracted data
         return data
