@@ -9,9 +9,9 @@
 
 # Import required classes from fivetran_connector_sdk
 
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from collections import defaultdict
 import requests
 import json
@@ -26,7 +26,7 @@ import datetime
 # - configuration: a dictionary that holds the configuration settings for the connector.
 # - credentials: a Veeva Vault base64 encoded username:password
 
-def getVaultObjects(configuration: dict, credentials):
+def get_vault_objects(configuration: dict, credentials):
     base_url = f"https://{configuration.get('subdomain')}/v19.3/"
     
     headers = {'Authorization': f'Basic {credentials}',
@@ -36,7 +36,7 @@ def getVaultObjects(configuration: dict, credentials):
     objects = obj_response.get('data')
 
     # Merge if duplicate object names
-    merged_objects = uniqueObjectsAndFields(objects)
+    merged_objects = unique_objects_and_fields(objects)
     return merged_objects
 
 # Function to merge Veeva Vault objects if an object shows up multiple times in response from: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
@@ -44,7 +44,7 @@ def getVaultObjects(configuration: dict, credentials):
 # - objects_response: the data node of the response from: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
 # And returns one object
 # - merged_objects: a de-duplicated list of object types and field names  
-def uniqueObjectsAndFields(objects_response):
+def unique_objects_and_fields(objects_response):
     # Merge items in API response with same "object" value
     grouped = defaultdict(list)
     merged_objects = []
@@ -90,7 +90,7 @@ def schema(configuration: dict):
     encoded_credentials = encode_credentials(configuration)
     # Dynamically define schema based on getVaultObjects response
     # Note: Defining all tables to have a PK of "id" right now - need to verify that this will hold true for all objects
-    objects = getVaultObjects(configuration, encoded_credentials)
+    objects = get_vault_objects(configuration, encoded_credentials)
     schema_def = []
     seen = set()
     for obj in objects:
@@ -122,7 +122,7 @@ def update(configuration: dict, state: dict):
     # Batch size to query, this can be updated and will be placed in every query's PAGESIZE VQL clause
     page_size = 1000
     
-    objects = getVaultObjects(configuration, encoded_credentials)
+    objects = get_vault_objects(configuration, encoded_credentials)
     
     #Loop through all objects to define fields and compose query
     table_cursor = {}
@@ -159,7 +159,7 @@ def update(configuration: dict, state: dict):
         vql_url = base_url + 'query'
         while more_data:
 
-            response_page = callVQL(vql_url, vql_headers, payload)
+            response_page = call_vql(vql_url, vql_headers, payload)
     
             data = response_page.get("data", [])
 
@@ -182,7 +182,7 @@ def update(configuration: dict, state: dict):
 # - payload: payload to send in the API call
 # And returns one object
 # - response_page: the response page from the API
-def callVQL(url, headers, payload):
+def call_vql(url, headers, payload):
     # Burst Limit threshold and sleep time (5 min)
     burst_limit_threshold = 1000
     burst_limit_sleep_time = 300
