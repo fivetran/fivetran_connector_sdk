@@ -56,7 +56,6 @@ It is an example of using OAuth 2.0 client credentials flow, and the refresh of 
 
 Refer to the OAuth Refresh flow in `readme.md`.
 
-<details>
 <summary>
 Certificates
 </summary>

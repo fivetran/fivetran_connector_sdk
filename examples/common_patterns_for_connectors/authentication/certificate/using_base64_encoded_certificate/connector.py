@@ -39,12 +39,12 @@ def build_temporary_certificates(cert_data: bytes, key_data: bytes):
         cert_data: certificate data
         key_data: key data
     """
-    with open("certificate.pem","w") as temp_cert_file:
-        temp_cert_file.write(cert_data.decode('utf-8'))
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as temp_cert_file:
+        temp_cert_file.write(cert_data)
         cert_path = temp_cert_file.name
 
-    with open("certificate.key","w") as temp_key_file:
-        temp_key_file.write(key_data.decode('utf-8'))
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as temp_key_file:
+        temp_key_file.write(key_data)
         key_path = temp_key_file.name
 
     log.info(f"Temporary certificate file: {cert_path}")

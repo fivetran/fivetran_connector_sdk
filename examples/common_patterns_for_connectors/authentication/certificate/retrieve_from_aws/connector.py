@@ -60,8 +60,8 @@ def get_certificates(configuration: dict):
         log.info("Fetching certificates from cloud")
 
         content = client.get_object(bucket_name, object_key)
-        with open("certificate.pem","w") as temp_cert_file:
-            temp_cert_file.write(content.decode('utf-8'))
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as temp_cert_file:
+            temp_cert_file.write(content)
             cert_path = temp_cert_file.name
         return cert_path
     except Exception as e:
