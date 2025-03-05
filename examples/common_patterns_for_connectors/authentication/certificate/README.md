@@ -16,10 +16,11 @@ openssl base64 -in <CERTIFICATE_FILE>
 ```
 
 The command will output the base64 encoded string, which you can use in your configuration.
+> NOTE: If the certificate and private key are present in same file, pass the same encoded string for both `certificate` and `private_key` fields in the configuration.
 
 
-### Retrieving Certificates from Cloud Storage
+### Retrieving Certificates from AWS Cloud Storage
 
-To retrieve certificates from cloud storage during runtime, you can modify the function to download the certificate and key from your cloud storage provider (e.g., AWS S3, Google Cloud Storage, Azure Blob Storage).
+To retrieve certificates from AWS cloud storage during runtime, you can modify the function to download the certificate and key from your cloud storage provider (e.g., AWS S3, Google Cloud Storage, Azure Blob Storage).
 
-The [`connector.py`](./retrieve_from_cloud/connector.py) script demonstrates how to download certificates from a S3 bucket during runtime and use them to authenticate API requests.
+The [`connector.py`](retrieve_from_aws/connector.py) script demonstrates how to download certificates from a S3 bucket during runtime and use them to authenticate API requests.

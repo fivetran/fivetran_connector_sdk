@@ -9,6 +9,7 @@ import tempfile # Import required for creation of temporary certificate and key 
 import ssl # Import required for SSL context
 import urllib.request # Import required for making HTTP requests
 import json # Import required for JSON operations
+import re
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
@@ -38,12 +39,12 @@ def build_temporary_certificates(cert_data: bytes, key_data: bytes):
         cert_data: certificate data
         key_data: key data
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pem') as temp_cert_file:
-        temp_cert_file.write(cert_data)
+    with open("certificate.pem","w") as temp_cert_file:
+        temp_cert_file.write(cert_data.decode('utf-8'))
         cert_path = temp_cert_file.name
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.key') as temp_key_file:
-        temp_key_file.write(key_data)
+    with open("certificate.key","w") as temp_key_file:
+        temp_key_file.write(key_data.decode('utf-8'))
         key_path = temp_key_file.name
 
     log.info(f"Temporary certificate file: {cert_path}")
@@ -117,6 +118,8 @@ def get_data_with_certificate(configuration: dict):
             content = response.read()
 
         log.info(f"Data received from {BASE_URL}")
+        content = re.sub(r'<[^>]+>', '', content.decode('utf-8'))
+        content = [line.strip() for line in content.splitlines() if line.strip()]
         return content
 
     except Exception as exception:
@@ -137,12 +140,19 @@ def get_data_with_certificate(configuration: dict):
 def update(configuration: dict, state: dict):
     log.info("Example: Using certificates for making API calls")
 
+    last_index = state['last_index'] if 'last_index' in state else -1
+
     data = get_data_with_certificate(configuration)
     if not data:
         raise RuntimeError("No data received")
 
-    yield op.upsert(table="sample_data", data={"id":1,"content": data})
-    yield op.checkpoint(state)
+    for i in data:
+        last_index += 1
+        yield op.upsert(table="sample_data", data={"id": last_index, "content": i})
+        if last_index % 5 == 0:  # checkpoint after every 5 record
+            yield op.checkpoint({"last_index": last_index})
+
+    yield op.checkpoint({"last_index": last_index})  # checkpoint after all records are processed
 
 
 connector = Connector(update=update, schema=schema)

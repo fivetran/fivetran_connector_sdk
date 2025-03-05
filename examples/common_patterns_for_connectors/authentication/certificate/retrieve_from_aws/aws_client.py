@@ -1,7 +1,7 @@
 import boto3 # Import required for AWS S3 operations
 
 
-class S3SoapClient:
+class S3Client:
     def __init__(self, aws_access_key_id, aws_secret_access_key, region):
         """
         Initialize the S3 SOAP client with AWS credentials

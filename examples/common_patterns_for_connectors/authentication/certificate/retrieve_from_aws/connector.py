@@ -3,10 +3,9 @@ import tempfile # Import required for temporary file operations
 import urllib.request # Import required for making HTTP requests
 import json # Import required for JSON operations
 import os
+import re
 
-from importlib_metadata import bucket
-
-from soap_client import S3SoapClient
+from aws_client import S3Client
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
@@ -55,14 +54,14 @@ def get_certificates(configuration: dict):
     object_key = configuration["OBJECT_KEY"]
     region = configuration["REGION"]
 
-    client = S3SoapClient(aws_access_key_id, aws_secret_access_key, region)
+    client = S3Client(aws_access_key_id, aws_secret_access_key, region)
 
     try:
         log.info("Fetching certificates from cloud")
 
         content = client.get_object(bucket_name, object_key)
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pem') as temp_cert_file:
-            temp_cert_file.write(content)
+        with open("certificate.pem","w") as temp_cert_file:
+            temp_cert_file.write(content.decode('utf-8'))
             cert_path = temp_cert_file.name
         return cert_path
     except Exception as e:
@@ -83,6 +82,8 @@ def get_data_with_certificate(base_url: str, cert_path: str, passkey: str):
         with urllib.request.urlopen(base_url, context=context) as response:
             content = response.read()
 
+        content = re.sub(r'<[^>]+>', '', content.decode('utf-8'))
+        content = [line.strip() for line in content.splitlines() if line.strip()]
         return content
 
     except Exception as exception:
@@ -103,6 +104,8 @@ def get_data_with_certificate(base_url: str, cert_path: str, passkey: str):
 def update(configuration: dict, state: dict):
     log.info("Example: Using certificates for API authentication")
 
+    last_index = state['last_index'] if 'last_index' in state else -1
+
     cert_path = get_certificates(configuration)
     passkey = configuration["PASSKEY"]
 
@@ -110,9 +113,13 @@ def update(configuration: dict, state: dict):
     if not data:
         raise RuntimeError("No data received")
 
+    for i in data:
+        last_index += 1
+        yield op.upsert(table="sample_data", data={"id":last_index,"content": i})
+        if last_index%5 == 0: #checkpoint after every 5 record
+            yield op.checkpoint({"last_index": last_index})
 
-    yield op.upsert(table="sample_data", data={"id":1,"content": data})
-    yield op.checkpoint(state)
+    yield op.checkpoint({"last_index": last_index}) #checkpoint after all records are processed
 
 
 connector = Connector(update=update, schema=schema)
