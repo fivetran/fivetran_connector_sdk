@@ -188,7 +188,7 @@ def update(configuration: dict, state: dict):
   
             
 
-# This creates the connector object that will use the update function defined in this connector.py file.
+# This creates the connector object that will use the update function defined in this connector.py file
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
