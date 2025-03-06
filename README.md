@@ -9,14 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers" target="_blank">
-    <img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star">
-  </a>
-  <a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank">
-    <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
-  </a>
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers" target="_blank"><img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star"></a>
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License"></a>
 </p>
-
 
 # Overview
 This repository contains a collection of example custom connectors using Fivetran's [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran.
