@@ -149,6 +149,7 @@ This feature enables you to install drivers in your connector environment by wri
 
 </details>
 
+
 # Additional considerations
 
 We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
