@@ -113,9 +113,9 @@ def update(configuration: dict, state: dict):
     if not data:
         raise RuntimeError("No data received")
 
-    for i in data:
+    for value in data:
         last_index += 1
-        yield op.upsert(table="sample_data", data={"id":last_index,"content": i})
+        yield op.upsert(table="sample_data", data={"id":last_index,"content": value})
         if last_index%5 == 0: #checkpoint after every 5 record
             yield op.checkpoint({"last_index": last_index})
 
