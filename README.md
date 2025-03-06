@@ -1,17 +1,22 @@
 <p align="center">
-  <a href="https://www.fivetran.com/"><img src="https://cdn.prod.website-files.com/6130fa1501794ed4d11867ba/63d9599008ad50523f8ce26a_logo.svg" alt="Fivetran"></a>
+  <a href="https://www.fivetran.com/">
+    <img src="https://cdn.prod.website-files.com/6130fa1501794ed4d11867ba/63d9599008ad50523f8ce26a_logo.svg" alt="Fivetran">
+  </a>
 </p>
+
 <p align="center">
-    Fivetran’s Connector SDK allows Real-time, efficient data replication to your destination of choice.
+  Fivetran’s Connector SDK allows Real-time, efficient data replication to your destination of choice.
 </p>
+
 <p align="center">
-<a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers/" target="_blank">
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers" target="_blank">
     <img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star">
-</a>
-<a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank">
+  </a>
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank">
     <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
-</a>
+  </a>
 </p>
+
 
 # Overview
 This repository contains a collection of example custom connectors using Fivetran's [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran.
@@ -151,12 +156,6 @@ There are several examples available under `/examples`:
   - This example uses pyodbc to connect to SQL Server Db for querying/syncing data using Connector SDK. You need to provide your SQL Server Db credentials for this example to work.
 
 </details>
-
-
-
-# Repository Structure
-...
-
 
 # Support
 For Fivetran Connector SDK support consult the [Fivetran Documentation](https://fivetran.com/docs/connector-sdk#support).
