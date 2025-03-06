@@ -6,9 +6,9 @@
 </p>
 <p align="center">
 <a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers/" target="_blank">
-    <img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star&maxAge=2592000" alt="Stars">
+    <img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star">
 </a>
-<a href="https://github.com/fivetran/fivetran_connector_sdk?tab=MIT-1-ov-file#readme" target="_blank">
+<a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank">
     <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
 </a>
 </p>
@@ -67,34 +67,52 @@ There are several examples available under `/examples`:
 <summary><h2>Common Patterns for Connectors</h2></summary>
 
 - **Authentication**
-  - [api_key](/examples/common_patterns_for_connectors/authentication/api_key)
-  - [http_basic](/examples/common_patterns_for_connectors/authentication/http_basic)
-  - [http_bearer](/examples/common_patterns_for_connectors/authentication/http_bearer)
-  - [oauth2_with_token_refresh](/examples/common_patterns_for_connectors/authentication/oauth2_with_token_refresh)
-  - [session_token](/examples/common_patterns_for_connectors/authentication/session_token)
+  - **[api_key](/examples/common_patterns_for_connectors/authentication/api_key)**
+    - This is a simple example of how to work with API Key authentication for a REST API.
+  - **[http_basic](/examples/common_patterns_for_connectors/authentication/http_basic)**
+    - This is a simple example of how to work with HTTP BASIC authentication for a REST API.
+  - **[http_bearer](/examples/common_patterns_for_connectors/authentication/http_bearer)**
+    - This is a simple example of how to work with HTTP BEARER authentication for a REST API.
+  - **[oauth2_with_token_refresh](/examples/common_patterns_for_connectors/authentication/oauth2_with_token_refresh)**
+    - It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token. Refer to the OAuth Refresh flow in its `readme.md`.
+  - **[session_token](/examples/common_patterns_for_connectors/authentication/session_token)**
+    - This is a simple example of how to work with Session Token authentication for a REST API.
 
 - **Cursors**
-  - [marketstack](/examples/common_patterns_for_connectors/cursors/marketstack)
-  - [multiple_tables_with_cursors](/examples/common_patterns_for_connectors/cursors/multiple_tables_with_cursors)
+  - **[marketstack](/examples/common_patterns_for_connectors/cursors/marketstack)**
+    - This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started).
+  - **[multiple_tables_with_cursors](/examples/common_patterns_for_connectors/cursors/multiple_tables_with_cursors)**
+    - The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
 
 - **Export**
-  - [csv](/examples/common_patterns_for_connectors/export/csv)
+  - **[csv](/examples/common_patterns_for_connectors/export/csv)**
+    - This is a simple example of how to work with CSV file response for a REST API of export type.
 
 - **Hashes**
-  - [hashes](/examples/common_patterns_for_connectors/hashes)
+  - **[hashes](/examples/common_patterns_for_connectors/hashes)**
+    - This example shows how to calculate hash of fields to be used as primary key. This is useful in scenarios where the incoming rows do not have any field suitable to be used as a Primary Key.
 
 - **Pagination**
-  - [keyset](/examples/common_patterns_for_connectors/pagination/keyset)
-  - [next_page_url](/examples/common_patterns_for_connectors/pagination/next_page_url)
-  - [offset_based](/examples/common_patterns_for_connectors/pagination/offset_based)
-  - [page_number](/examples/common_patterns_for_connectors/pagination/page_number)
+  - **[keyset](/examples/common_patterns_for_connectors/pagination/keyset)**
+    - This is a simple example of how to work with key-based pagination for a REST API.
+  - **[next_page_url](/examples/common_patterns_for_connectors/pagination/next_page_url)**
+    - This is a simple example for how to work with next-page-url pagination for a REST API.
+  - **[offset_based](/examples/common_patterns_for_connectors/pagination/offset_based)**
+    - This is a simple example of how to work with offset-based pagination for a REST API.
+  - **[page_number](/examples/common_patterns_for_connectors/pagination/page_number)**
+    - This is a simple example for how to work with page-number-based pagination for a REST API.
 
 - **Other Patterns**
-  - [priority_first_sync_for_high_volume_initial_syncs](/examples/common_patterns_for_connectors/priority_first_sync_for_high_volume_initial_syncs)
-  - [records_with_no_created_at_timestamp](/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp)
-  - [specified_types](/examples/common_patterns_for_connectors/specified_types)
-  - [three_operations](/examples/common_patterns_for_connectors/three_operations)
-  - [unspecified_types](/examples/common_patterns_for_connectors/unspecified_types)
+  - **[priority_first_sync_for_high_volume_initial_syncs](/examples/common_patterns_for_connectors/priority_first_sync_for_high_volume_initial_syncs)**
+    - A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
+  - **[records_with_no_created_at_timestamp](/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp)**
+    - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
+  - **[specified_types](/examples/common_patterns_for_connectors/specified_types)**
+    - This example declares a schema and upserts all data types.
+  - **[three_operations](/examples/common_patterns_for_connectors/three_operations)**
+    - This example shows how to use upsert, update and delete operations.
+  - **[unspecified_types](/examples/common_patterns_for_connectors/unspecified_types)**
+    - This example upserts all data types without specifying a schema.
 
 </details>
 
@@ -102,23 +120,35 @@ There are several examples available under `/examples`:
 <summary><h2>Source Examples</h2></summary>
 
 - **AWS**
-  - [aws_athena/using_boto3](/examples/source_examples/aws_athena/using_boto3)
-  - [aws_athena/using_sqlalchemy](/examples/source_examples/aws_athena/using_sqlalchemy)
-  - [aws_dynamo_db_authentication](/examples/source_examples/aws_dynamo_db_authentication)
+  - **[aws_athena/using_boto3](/examples/source_examples/aws_athena/using_boto3)**
+    - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
+  - **[aws_athena/using_sqlalchemy](/examples/source_examples/aws_athena/using_sqlalchemy)**
+    - This is an example of how we can sync data from AWS Athena by using Connector SDK using SQLAlchemy with PyAthena.
+  - **[aws_dynamo_db_authentication](/examples/source_examples/aws_dynamo_db_authentication)**
+    - This is an example of how we can connect and sync data from AWS DynamoDB by using Connector SDK.
 
 - **Common Patterns**
-  - [key_based_replication](/examples/source_examples/common_patterns/key_based_replication)
+  - **[key_based_replication](/examples/source_examples/common_patterns/key_based_replication)**
+    - This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
 - **API Integrations**
-  - [newsapi](/examples/source_examples/newsapi)
-  - [oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)
-  - [smartsheets](/examples/source_examples/smartsheets)
-  - [toast](/examples/source_examples/toast)
-  - [veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)
+  - **[newsapi](/examples/source_examples/newsapi)**
+    - This is a simple example of how to sync data from NewsAPI using Connector SDK.
+  - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
+    - This module implements a connector for syncing data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and data synchronization for companies, invoices, payments, prospects, jobs, and staff. This is an example of multithreading used in the extraction of data from the source to improve connector performance. Multithreading allows to make API calls in parallel to pull data faster. This is also an example of using **OAuth 2.0 Client Credentials** flow. You need to provide your Accelo OAuth credentials for this example to work. 
+    - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
+  - **[smartsheets](/examples/source_examples/smartsheets)**
+    - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
+  - **[toast](/examples/source_examples/toast)**
+    - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
+  - **[veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)**
+    - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
 
 - **Database Connectors**
-  - [redshift](/examples/source_examples/redshift)
-  - [sql_server](/examples/source_examples/sql_server)
+  - **[redshift](/examples/source_examples/redshift)**
+    - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
+  - **[sql_server](/examples/source_examples/sql_server)**
+  - This example uses pyodbc to connect to SQL Server Db for querying/syncing data using Connector SDK. You need to provide your SQL Server Db credentials for this example to work.
 
 </details>
 
