@@ -1,4 +1,4 @@
 {
-    "download_url": "https://www.sample-videos.com/csv/Sample-Spreadsheet-10-rows.csv",
-    "download_xpath": "https://www.sample-videos.com/csv/Sample-Spreadsheet-10-rows.csv"
+    "download_url": "<YOUR_DOWNLOAD_URL>",
+    "download_xpath": "<YOUR_DOWNLOAD_XPATH>"
 }

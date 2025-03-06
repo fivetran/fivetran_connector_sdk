@@ -3,7 +3,7 @@
 # Install Chrome and ChromeDriver on Linux (Debian/Ubuntu based)
 
 # Update package lists
-sudo apt-get update
+apt-get update
 
 # Install dependencies
 sudo apt-get install -y wget unzip libxss1 libappindicator3-1 libasound2
@@ -32,6 +32,6 @@ sudo chmod +x /usr/local/bin/chromedriver
 # Clean up downloaded files
 rm google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
 
-echo "Google Chrome and ChromeDriver installed successfully."
-echo "ChromeDriver version: $chromedriver_version"
-echo "Chrome version: $chrome_version"
+echo '{"level":"INFO", "message": "Google Chrome and ChromeDriver installed successfully.", "message-origin": "installation_sh"}'
+echo '{"level":"INFO", "message": "ChromeDriver version: '$chromedriver_version'", "message-origin": "installation_sh"}'
+echo '{"level":"INFO", "message": "Chrome version: '$chrome_version'", "message-origin": "installation_sh"}'
