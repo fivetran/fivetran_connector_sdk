@@ -56,6 +56,7 @@ It is an example of using OAuth 2.0 client credentials flow, and the refresh of 
 
 Refer to the OAuth Refresh flow in `readme.md`.
 
+<details>
 <summary>
 Certificates
 </summary>
@@ -68,6 +69,7 @@ It is an example of using base64 encoded strings for certificate-based authentic
 It is an example of how to retrieve the certificate from AWS S3 bucket and use it for certificate-based authentication.
 
 Refer to the authentication flow for both the methods in [`readme.md`](./examples/common_patterns_for_connectors/authentication/certificate/README.md).
+</details>
 </details>
 
 <details>
