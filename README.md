@@ -55,6 +55,21 @@ Authentication
 It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
 
 Refer to the OAuth Refresh flow in `readme.md`.
+
+<details>
+<summary>
+Certificates
+</summary>
+
+### using_base64_encoded_certificate
+It is an example of using base64 encoded strings for certificate-based authentication. The script includes functions to decode the certificate and key and use them to authenticate API requests.
+
+
+### retrieve_from_aws
+It is an example of how to retrieve the certificate from AWS S3 bucket and use it for certificate-based authentication.
+
+Refer to the authentication flow for both the methods in [`readme.md`](./examples/common_patterns_for_connectors/authentication/certificate/README.md).
+</details>
 </details>
 
 <details>
