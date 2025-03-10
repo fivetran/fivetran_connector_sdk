@@ -145,7 +145,7 @@ There are several examples available under `/examples`:
 - **[redshift](/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - **[s3_csv_validation](/examples/source_examples/s3_csv_validation)**
-  - This is an example of how to read csv file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
+  - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
 - **[smartsheets](/examples/source_examples/smartsheets)**
   - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - **[sql_server](/examples/source_examples/sql_server)**
