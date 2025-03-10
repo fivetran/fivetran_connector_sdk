@@ -74,7 +74,7 @@ There are several examples available under `/examples`:
     - This is a simple example of how to work with API Key authentication for a REST API.
   - **[certificate](/examples/common_patterns_for_connectors/authentication/certificate)** 
     - **[using_base64_encoded_certificate](/examples/common_patterns_for_connectors/authentication/certificate/using_base64_encoded_certificate)**
-      - It is an example of using base64 encoded strings for certificate-based authentication. The script includes functions to decode the certificate and key and use them to authenticate API requests.
+      - It is an example of using base64-encoded strings for certificate-based authentication. The script includes functions to decode the certificate and key and use them to authenticate API requests.
     - **[retrieve_from_aws](/examples/common_patterns_for_connectors/authentication/certificate/retrieve_from_aws)**
       - It is an example of how to retrieve the certificate from AWS S3 bucket and use it for certificate-based authentication.
   - **[http_basic](/examples/common_patterns_for_connectors/authentication/http_basic)**
