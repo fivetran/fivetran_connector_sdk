@@ -127,6 +127,9 @@ This example shows how to authenticate to AWS using the IAM role credentials and
 ### redshift
 This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 
+### CSV Validation
+This is an example to show how to fetch csv file from s3 and validate the data before syncing with Fivetran.
+
 ### key_based_replication
 This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
