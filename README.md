@@ -111,7 +111,7 @@ There are several examples available under `/examples`:
     - This is a simple example for how to work with page-number-based pagination for a REST API.
 
 - **[priority_first_sync_for_high_volume_initial_syncs](/examples/common_patterns_for_connectors/priority_first_sync_for_high_volume_initial_syncs)**
-  - A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
+  - A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the priority-first sync strategy in a `connector.py` file for your connection.
 - **[records_with_no_created_at_timestamp](/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp)**
   - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
 - **[specified_types](/examples/common_patterns_for_connectors/specified_types)**
