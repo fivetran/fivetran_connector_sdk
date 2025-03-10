@@ -158,7 +158,7 @@ There are several examples available under `/examples`:
 </details>
 
 # Support
-For Fivetran Connector SDK support consult the [Fivetran Documentation](https://fivetran.com/docs/connector-sdk#support).
+Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
 
 
 # Additional considerations
