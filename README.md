@@ -62,7 +62,7 @@ There are several examples available under `/examples`:
   - This is a realistic example, using a public API, fetching data from NOAA.
 
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
-  - Shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
+  - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
 </details>
 
@@ -140,7 +140,7 @@ There are several examples available under `/examples`:
 - **[newsapi](/examples/source_examples/newsapi)**
   - This is a simple example of how to sync data from NewsAPI using Connector SDK.
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
-  - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
+  - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 - **[redshift](/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
