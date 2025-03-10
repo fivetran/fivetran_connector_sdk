@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Fivetran’s Connector SDK allows Real-time, efficient data replication to your destination of choice.
+  Fivetran Connector SDK allows Real-time, efficient data replication to your destination of choice.
 </p>
 
 <p align="center">
