@@ -95,7 +95,7 @@ There are several examples available under `/examples`:
 
 - **Export**
   - **[csv](/examples/common_patterns_for_connectors/export/csv)**
-    - This is a simple example of how to work with CSV file response for a REST API of export type.
+    - This is a simple example of how to work with .CSV file response for a REST API of export type.
 
 - **[hashes](/examples/common_patterns_for_connectors/hashes)**
   - This example shows how to calculate a hash of fields to be used as primary key. This is useful in scenarios where the incoming rows do not have any field suitable to be used as a Primary Key.
