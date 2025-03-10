@@ -62,7 +62,7 @@ There are several examples available under `/examples`:
   - This is a realistic example, using a public API, fetching data from NOAA.
 
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
-  - Shows how to cast configuration fields to list, integer, boolean, and dict for use in connector code.
+  - Shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
 </details>
 
