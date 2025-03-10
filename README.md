@@ -149,7 +149,7 @@ There are several examples available under `/examples`:
 - **[smartsheets](/examples/source_examples/smartsheets)**
   - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - **[sql_server](/examples/source_examples/sql_server)**
-  - This example uses pyodbc to connect to SQL Server Db for querying/syncing data using Connector SDK. You need to provide your SQL Server Db credentials for this example to work.
+  - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
 - **[toast](/examples/source_examples/toast)**
   - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 - **[veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)**
