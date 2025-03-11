@@ -1,5 +1,4 @@
 # This example demonstrates how you can write a complex connector comprising multiple .py files.
-# Make sure you place all the .py files in the same directory as connector.py.
 # This includes the __init__.py which is needed to ensure the timestamp_serializer module is correctly recognized.
 # The timestamp_serializer module shown in this example is used to handle scenarios where the source sends timestamps in two different formats.
 # It assumes that the source will send timestamps in UTC timezone.
@@ -7,9 +6,9 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # Import self written modules
 from timestamp_serializer import TimestampSerializer
@@ -58,6 +57,12 @@ def update(configuration: dict, state: dict):
     }
     row_2['timestamp'] = timestamp_serializer.serialize(row_2['timestamp'])
     yield op.upsert(table="event", data=row_2)
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

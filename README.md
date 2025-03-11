@@ -1,3 +1,29 @@
+<p align="center">
+  <a href="https://www.fivetran.com/">
+    <img src="https://cdn.prod.website-files.com/6130fa1501794ed4d11867ba/63d9599008ad50523f8ce26a_logo.svg" alt="Fivetran">
+  </a>
+</p>
+
+<p align="center">
+  Fivetran Connector SDK allows Real-time, efficient data replication to your destination of choice.
+</p>
+
+<p align="center">
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/stargazers" target="_blank"><img src="https://img.shields.io/github/stars/fivetran/fivetran_connector_sdk?style=social&label=Star"></a>
+  <a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/LICENSE" target="_blank"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License"></a>
+  <a href="https://pypi.org/project/fivetran-connector-sdk/" target="_blank"><img src="https://img.shields.io/pypi/v/fivetran-connector-sdk" alt="PyPI Release"></a>
+  <a href="https://pepy.tech/project/fivetran-connector-sdk" target="_blank"><img src="https://static.pepy.tech/badge/fivetran-connector-sdk" alt="PyPI Downloads"></a>
+<a href="https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md" target="_blank"><img src="https://img.shields.io/badge/Managed-Yes-green/" alt="Managed"></a>
+</p>
+
+# Overview
+This repository contains a collection of example custom connectors using Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran.
+
+# Why Connector SDK?
+Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
+
+Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
+
 # Requirements
 - Python ≥3.9 and ≤3.12
 - Operating System:
@@ -5,114 +31,38 @@
   - MacOS 13 (Ventura) or later
 
 # Getting started
-See [Quickstart guide](https://fivetran.com/docs/connectors/connector-sdk/quickstart-guide) to get started.
+
+See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 # Examples
 There are several examples available under `/examples`:
 
-<details>
-  <summary>
-    Quickstart examples
-  </summary>
+<details open>
+<summary><h2>Quickstart Examples</h2></summary>
 
-### hello
-Simplest example, append-only
+- **[hello](/examples/quickstart_examples/hello)**  
+  - This is the simplest, append-only example.
 
-### local
-Emulated source, without any calls out to the internet
+- **[simple_three_step_cursor](/examples/quickstart_examples/simple_three_step_cursor)**  
+  - This is an emulated source, without any calls out to the internet.
 
-### configuration
-Shows how to use secrets
+- **[configuration](/examples/quickstart_examples/configuration)**  
+  - This example shows how to use secrets.
 
-### hashes
-Shows how to calculate hash of fields and use it as primary key. Useful in scenarios where the
-incoming rows do not have any field suitable to be used as a Primary Key.
+- **[multiple_code_files](/examples/quickstart_examples/multiple_code_files)**  
+  - This example shows how you can write a complex connector comprising multiple `.py` files.
 
-### user_profiles
-Shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
+- **[using_pd_dataframes](/examples/quickstart_examples/using_pd_dataframes)**  
+  - This example shows the use of Pandas DataFrames to manipulate data prior to sending to Fivetran.
 
-### weather
-A realistic example, using a public API, fetching data from NOAA
-</details>
+- **[large_data_set](/examples/quickstart_examples/large_data_set)**  
+  - This example shows how to handle large data from API responses with pagination and without pagination.
 
-<details>
-<summary>
-Common patterns for connectors
-</summary>
+- **[weather](/examples/quickstart_examples/weather)**  
+  - This is a realistic example, using a public API, fetching data from NOAA.
 
-<details>
-<summary>
-cursors
-</summary>
-
-### multiple_tables_with_cursors
-The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
-
-### marketstack
-This code retrieves different stock tickers and the daily price for those tickers using marketstack API. Refer its [Docs](https://polygon.io/docs/stocks/getting-started)
-</details>
-
-### pagination
-Simple pagination example templates for the following types of paginations:
-- keyset
-- next_page_url
-- offset_based
-- page_number
-
-### specified_types
-Declares a schema and upserts all data types
-
-### unspecified_types
-Upserts all data types without specifying a schema
-
-### three_operations
-Shows how to use upsert, update and delete operations
-
-### priority_first_sync_for_high_volume_initial_syncs
-Priority-first sync, pfs for short, is very helpful for high volume historical syncs. It is a sync strategy
-which prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly.
-This is a simple example of how you could implement the Priority-first sync strategy in a `connector.py` file for your connection.
-</details>
-
-<details>
-<summary>
-Source examples
-</summary>
-
-### records with no created_at
-Shows how to work with records where the source does not provide a created_at(or equivalent) field.
-Useful when its desired to keep track of when the record was first observed.
-
-### multiple code files
-Shows how you can write a complex connector comprising multiple .py files.
-
-### aws dynamo db authentication
-Shows how to authenticate to aws using IAM role credentials and use it to sync records from dynamodb
-boto3 package is used to create aws client. Refer its [Docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
-
-### redshift
-This is an example to show how we can sync records from redshift DB via Connector SDK.
-You would need to provide your redshift credentials for this example to work.
-
-### key based replication
-This shows key based replication from DB sources.
-Replication keys are columns that are used to identify new and updated data for replication.
-When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
-
-### accelo api connector multithreading enabled
-This module implements a connector for syncing data from the Accelo API.
-It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
-invoices, payments, prospects, jobs, and staff.
-It is an example of multithreading the extraction of data from the source to improve connector performance.
-Multithreading helps to make api calls in parallel to pull data faster.
-It is also an example of using OAuth 2.0 client credentials flow.
-Requires Accelo OAuth credentials to be passed in to work.
-
-Refer to the Multithreading Guidelines in api_threading_utils.py
-
-### smartsheets
-This is an example of how we can sync Smartsheets sheets via Connector SDK.
-You would need to provide your Smartsheets api_key for this example to work.
+- **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
+  - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
 ### veeva vault objects
 This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK.
@@ -120,15 +70,110 @@ You would need to provide your Veeva Vault credentials for this example to work.
 
 </details>
 
+<details open>
+<summary><h2>Common Patterns for Connectors</h2></summary>
+
+- **Authentication**
+  - **[api_key](/examples/common_patterns_for_connectors/authentication/api_key)**
+    - This is a simple example of how to work with API Key authentication for a REST API.
+  - **[certificate](/examples/common_patterns_for_connectors/authentication/certificate)** 
+    - **[using_base64_encoded_certificate](/examples/common_patterns_for_connectors/authentication/certificate/using_base64_encoded_certificate)**
+      - It is an example of using base64-encoded strings for certificate-based authentication. The script includes functions to decode the certificate and key and use them to authenticate API requests.
+    - **[retrieve_from_aws](/examples/common_patterns_for_connectors/authentication/certificate/retrieve_from_aws)**
+      - It is an example of how to retrieve the certificate from AWS S3 bucket and use it for certificate-based authentication.
+  - **[http_basic](/examples/common_patterns_for_connectors/authentication/http_basic)**
+    - This is a simple example of how to work with HTTP BASIC authentication for a REST API.
+  - **[http_bearer](/examples/common_patterns_for_connectors/authentication/http_bearer)**
+    - This is a simple example of how to work with HTTP BEARER authentication for a REST API.
+  - **[oauth2_with_token_refresh](/examples/common_patterns_for_connectors/authentication/oauth2_with_token_refresh)**
+    - It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token. 
+    - Refer to the OAuth Refresh flow in its `readme.md`.
+  - **[session_token](/examples/common_patterns_for_connectors/authentication/session_token)**
+    - This is a simple example of how to work with Session Token authentication for a REST API.
+
+- **Cursors**
+  - **[marketstack](/examples/common_patterns_for_connectors/cursors/marketstack)**
+    - This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started).
+  - **[multiple_tables_with_cursors](/examples/common_patterns_for_connectors/cursors/multiple_tables_with_cursors)**
+    - The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
+
+- **Export**
+  - **[csv](/examples/common_patterns_for_connectors/export/csv)**
+    - This is a simple example of how to work with .CSV file response for a REST API of export type.
+
+- **[hashes](/examples/common_patterns_for_connectors/hashes)**
+  - This example shows how to calculate a hash of fields to be used as primary key. This is useful in scenarios where the incoming rows do not have any field suitable to be used as a Primary Key.
+
+- **Pagination**
+  - **[keyset](/examples/common_patterns_for_connectors/pagination/keyset)**
+    - This is a simple example of how to work with key-based pagination for a REST API.
+  - **[next_page_url](/examples/common_patterns_for_connectors/pagination/next_page_url)**
+    - This is a simple example for how to work with next-page-url pagination for a REST API.
+  - **[offset_based](/examples/common_patterns_for_connectors/pagination/offset_based)**
+    - This is a simple example of how to work with offset-based pagination for a REST API.
+  - **[page_number](/examples/common_patterns_for_connectors/pagination/page_number)**
+    - This is a simple example for how to work with page-number-based pagination for a REST API.
+
+- **[priority_first_sync_for_high_volume_initial_syncs](/examples/common_patterns_for_connectors/priority_first_sync_for_high_volume_initial_syncs)**
+  - A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the priority-first sync strategy in a `connector.py` file for your connection.
+- **[records_with_no_created_at_timestamp](/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp)**
+  - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
+- **[specified_types](/examples/common_patterns_for_connectors/specified_types)**
+  - This example declares a schema and upserts all data types.
+- **[three_operations](/examples/common_patterns_for_connectors/three_operations)**
+  - This example shows how to use upsert, update and delete operations.
+- **[unspecified_types](/examples/common_patterns_for_connectors/unspecified_types)**
+  - This example upserts all data types without specifying a schema.
+
+</details>
+
+<details open>
+<summary><h2>Source Examples</h2></summary>
+
+- **[aws_athena/using_boto3](/examples/source_examples/aws_athena/using_boto3)**
+  - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
+- **[aws_athena/using_sqlalchemy](/examples/source_examples/aws_athena/using_sqlalchemy)**
+  - This is an example of how we can sync data from AWS Athena by using Connector SDK using SQLAlchemy with PyAthena.
+- **[aws_dynamo_db_authentication](/examples/source_examples/aws_dynamo_db_authentication)**
+  - This is an example of how we can connect and sync data from AWS DynamoDB by using Connector SDK.
+
+- **Common Patterns**
+  - **[key_based_replication](/examples/source_examples/common_patterns/key_based_replication)**
+    - This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
+
+- **[newsapi](/examples/source_examples/newsapi)**
+  - This is a simple example of how to sync data from NewsAPI using Connector SDK.
+- **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
+  - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
+  - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
+- **[redshift](/examples/source_examples/redshift)**
+  - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
+- **[s3_csv_validation](/examples/source_examples/s3_csv_validation)**
+  - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
+- **[smartsheets](/examples/source_examples/smartsheets)**
+  - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
+- **[sql_server](/examples/source_examples/sql_server)**
+  - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
+- **[toast](/examples/source_examples/toast)**
+  - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
+- **[veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)**
+  - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+
+</details>
+
+# Support
+Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
+
+
 # Additional considerations
 
 We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
 
-Note that API calls made by your SDK connector may count against your service’s API call allocation. Exceeding this limit could trigger rate limits, potentially affecting other uses of the source API.
+Note that API calls made by your Connector SDK connection may count towards your service’s API call allocation. Exceeding this limit could trigger rate limits, potentially impacting other uses of the source API.
 
-It's important to choose the right design pattern for your target API. Using an inappropriate pattern may lead to data integrity issues. Review all our examples carefully to select the one that best suits your target API. Keep in mind that some APIs may not support patterns for which we currently have examples.
+It's important to choose the right design pattern for your target API. Using an inappropriate pattern may lead to data integrity issues. We recommend that you review all our examples carefully to select the one that best suits your target API. Keep in mind that some APIs may not support patterns for which we currently have examples.
 
-As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connectors you created to run these examples before the trial ends.
+As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connections you created to run these examples before the trial ends.
 
 # Maintenance
-This repository is actively maintained by Fivetran Developers. Please reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
+This repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.

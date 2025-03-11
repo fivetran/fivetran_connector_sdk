@@ -8,7 +8,7 @@
 #   else multithreading can result in race conditions, which are hard to debug and may not throw an error.
 #
 # This is a simple example of how to do multithreading to make parallel API calls to improve sync performance.
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
 import constants
 import requests
 import time

@@ -7,9 +7,9 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import pandas as pd
@@ -174,6 +174,11 @@ def upsert_dataframe(table_df, state):
         cursor += 1
 
     state["table_with_nan_cursor"] = cursor
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation)
     yield op.checkpoint(state)
 
 def upsert_dataframe_approach_1(profile_df, state, cursor):
@@ -183,10 +188,20 @@ def upsert_dataframe_approach_1(profile_df, state, cursor):
         yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
         if index % 5 == 0:
             state["profile_cursor"] = row["id"]
+
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             yield op.checkpoint(state)
 
     # Checkpointing at the end of the "profile" table data processing
     state["profile_cursor"] = cursor
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 def upsert_dataframe_approach_2(location_df, state, cursor):
@@ -198,6 +213,11 @@ def upsert_dataframe_approach_2(location_df, state, cursor):
 
     # Checkpointing at the end of the "location" table data processing
     state["location_cursor"] = cursor
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 def upsert_dataframe_approach_3(login_df, state, cursor):
@@ -209,6 +229,11 @@ def upsert_dataframe_approach_3(login_df, state, cursor):
 
     # Checkpointing at the end of the "login" table data processing
     state["login_cursor"] = cursor
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 
