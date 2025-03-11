@@ -64,6 +64,9 @@ There are several examples available under `/examples`:
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
   - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
+- **[oop_example](/examples/quickstart_examples/oop_example)**
+  - This example shows an Object-Oriented Programming Approach while building the connector for National Parks Service API.
+
 </details>
 
 <details open>
