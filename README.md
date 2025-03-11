@@ -86,6 +86,8 @@ There are several examples available under `/examples`:
     - Refer to the OAuth Refresh flow in its `readme.md`.
   - **[session_token](/examples/common_patterns_for_connectors/authentication/session_token)**
     - This is a simple example of how to work with Session Token authentication for a REST API.
+  - **[test](examples/common_patterns_for_connectors/authentication/test)
+    - This is a test example for the authentication pattern.
 
 - **Cursors**
   - **[marketstack](/examples/common_patterns_for_connectors/cursors/marketstack)**
