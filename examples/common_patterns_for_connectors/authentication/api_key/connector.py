@@ -9,9 +9,10 @@
 # Import requests to make HTTP calls to API.
 import requests as rq
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import \
+    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
 
 
@@ -73,7 +74,6 @@ def get_auth_headers(config):
     return headers
 
 
-
 # The sync_items function handles the retrieval of API data.
 # It performs the following tasks:
 # 1. Sends an API request to the specified URL with the provided parameters.
@@ -103,6 +103,7 @@ def sync_items(base_url, params, state, configuration):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
+
 
 # The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
 # It performs the following tasks:
