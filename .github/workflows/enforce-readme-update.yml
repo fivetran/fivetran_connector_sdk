@@ -1,0 +1,140 @@
+name: Enforce README Update for New Examples
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-readme-update:
+    runs-on: ubuntu-latest
+    name: Check README Update for New Examples
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper diff
+
+      - name: Create check script
+        id: create-script
+        run: |
+          cat > check-readme-update.js << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const { execSync } = require('child_process');
+
+          // Get the list of files changed in the PR
+          function getChangedFiles() {
+            try {
+              // Get the base branch (target) of the PR
+              const baseBranch = process.env.GITHUB_BASE_REF;
+              // Get current branch (source) of the PR
+              const headBranch = process.env.GITHUB_HEAD_REF;
+              
+              // Use Git directly to get all changed files between branches
+              const gitDiff = execSync(`git diff --name-status origin/${baseBranch}...origin/${headBranch}`, 
+                                      { encoding: 'utf-8' });
+              
+              // Parse the git diff output
+              return gitDiff.trim().split('\n').filter(line => line).map(line => {
+                const [status, filename] = line.split('\t');
+                return { status, filename };
+              });
+            } catch (error) {
+              console.error('Error getting changed files:', error);
+              process.exit(1);
+            }
+          }
+          
+          // Check if a directory exists before our PR
+          function directoryExistsInBase(dirPath) {
+            try {
+              const baseBranch = process.env.GITHUB_BASE_REF;
+              // Check if this directory exists in the base branch
+              const result = execSync(
+                `git ls-tree -d origin/${baseBranch} ${dirPath}`,
+                { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }
+              );
+              return result.trim() !== '';
+            } catch (error) {
+              // If we get an error, the directory doesn't exist in base
+              return false;
+            }
+          }
+
+          // Main function to check if directories were added without README update
+          function checkReadmeUpdate() {
+            // Define directories to ignore (infrastructure directories)
+            const ignoredDirectories = [
+              '.github',
+              '.github/workflows',
+              '.circleci',
+              '.devops',
+              'ci',
+              '.ci'
+            ];
+            
+            // Get all files changed in this PR
+            const changedFiles = getChangedFiles();
+            
+            // Track added directories
+            const addedDirs = new Set();
+            
+            // Check for README.md update
+            let isReadmeUpdated = false;
+            
+            // Process each changed file
+            changedFiles.forEach(file => {
+              // Skip deleted files
+              if (file.status === 'D') return;
+              
+              // Check if this is the root README.md
+              if (file.filename === 'README.md' && !file.filename.includes('/')) {
+                isReadmeUpdated = true;
+              }
+              
+              // Check if this file adds a new directory
+              const dirPath = path.dirname(file.filename);
+              if (dirPath !== '.') {
+                // Add this directory and all parent directories, but only if they're new
+                let currentPath = dirPath;
+                while (currentPath && currentPath !== '.') {
+                // Only add if this directory doesn't exist in the base branch
+                  // and is not in our ignore list
+                  if (!directoryExistsInBase(currentPath) && !ignoredDirectories.includes(currentPath)) {
+                    addedDirs.add(currentPath);
+                  }
+                  currentPath = path.dirname(currentPath);
+                }
+              }
+            });
+            
+            // Log what we found
+            if (addedDirs.size > 0) {
+              console.log(`New directories added: ${Array.from(addedDirs).join(', ')}`);
+            } else {
+              console.log('No new directories added.');
+            }
+            
+            // If we have new directories but README isn't updated, fail the check
+            if (addedDirs.size > 0 && !isReadmeUpdated) {
+              console.error(`::error::PR adds new directories (${Array.from(addedDirs).join(', ')}) but README.md is not updated. Please update README.md to document these new directories.`);
+              process.exit(1);
+            }
+            
+            console.log('Check passed!');
+          }
+
+          // Run the check
+          checkReadmeUpdate();
+          EOF
+
+      - name: Run directory check script
+        run: node check-readme-update.js
+
+      - name: Debug information
+        if: always()
+        run: |
+          echo "Base Ref: $GITHUB_BASE_REF"
+          echo "Head Ref: $GITHUB_HEAD_REF"
+          echo "Git Branches:"
+          git branch -a
