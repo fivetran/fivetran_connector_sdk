@@ -64,10 +64,6 @@ There are several examples available under `/examples`:
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
   - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
-### veeva vault objects
-This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK.
-You would need to provide your Veeva Vault credentials for this example to work.
-
 </details>
 
 <details open>
@@ -156,6 +152,8 @@ You would need to provide your Veeva Vault credentials for this example to work.
   - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
 - **[toast](/examples/source_examples/toast)**
   - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
+- **[veeva vault objects](/examples/source_examples/veeva_vault_objects)
+  - This is an example of how we can sync Veeva Vault Object data using VQL via Connector SDK. You would need to provide your Veeva Vault credentials for this example to work.
 - **[veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)**
   - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
 
