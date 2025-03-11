@@ -15,7 +15,10 @@ Author: Example submitted by our amazing community member Ahmed Zedan
 Date: 2024-09-20
 """
 import json
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests
 import time
 from datetime import datetime, timezone
@@ -240,10 +243,10 @@ def sync_companies(access_token):
 
     def process_company_record(record):
         int_fields = ["id", "status", "postal_address", "default_affiliation"]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         date_fields = ["date_created", "date_modified", "date_last_interacted"]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         return record
 
@@ -274,13 +277,13 @@ def sync_invoices(access_token):
 
     def process_invoice_record(record):
         int_fields = ["id", "against_id", "invoice_number", "currency_id", "owner_id", "modified_by"]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         float_fields = ["amount", "tax", "outstanding"]
-        convertFloatFields(float_fields, record)
+        convert_float_fields(float_fields, record)
 
         date_fields = ["date_raised", "date_due", "date_modified"]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         return record
 
@@ -313,13 +316,13 @@ def sync_payments(access_token):
             "id", "receipt_id", "currency_id", "method_id", "against_id",
             "created_by_staff_id", "payment_currency", "payment_method", "payment_receipt"
         ]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         float_fields = ["amount"]
-        convertFloatFields(float_fields, record)
+        convert_float_fields(float_fields, record)
 
         date_fields = ["date_created"]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         return record
 
@@ -356,16 +359,16 @@ def sync_prospects(access_token):
             "manager", "prospect_type", "status", "prospect_probability",
             "affiliation"
         ]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         float_fields = ["value", "progress"]
-        convertFloatFields(float_fields, record)
+        convert_float_fields(float_fields, record)
 
         date_fields = [
             "date_created", "date_actioned", "date_due",
             "date_last_interacted", "date_modified"
         ]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         # Convert 'success' field to boolean
         value = record.get('success')
@@ -412,13 +415,13 @@ def sync_jobs(access_token):
 
     def process_job_record(record):
         int_fields = ["id", "status", "manager", "company", "contact"]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         float_fields = ["value"]
-        convertFloatFields(float_fields, record)
+        convert_float_fields(float_fields, record)
 
         date_fields = ["date_created", "date_started", "date_due", "date_completed", "date_modified"]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         return record
 
@@ -445,10 +448,10 @@ def sync_staff(access_token):
 
     def process_staff_record(record):
         int_fields = ["id", "status"]
-        convertIntFields(int_fields, record)
+        convert_int_fields(int_fields, record)
 
         date_fields = ["date_created", "date_modified"]
-        convertDateFields(date_fields, record)
+        convert_date_fields(date_fields, record)
 
         return record
 
@@ -463,7 +466,7 @@ def sync_staff(access_token):
         batch_size=constants.BATCH_SIZE
     )
 
-def convertIntFields(int_fields, record):
+def convert_int_fields(int_fields, record):
     for field in int_fields:
         value = record.get(field)
         if value is not None:
@@ -473,7 +476,7 @@ def convertIntFields(int_fields, record):
                 log.warning(f"Could not convert field {field} with value '{value}' to int")
                 record[field] = None
 
-def convertFloatFields(float_fields, record):
+def convert_float_fields(float_fields, record):
     for field in float_fields:
         value = record.get(field)
         if value is not None:
@@ -483,7 +486,7 @@ def convertFloatFields(float_fields, record):
                 log.warning(f"Could not convert field {field} with value '{value}' to float")
                 record[field] = None
 
-def convertDateFields(date_fields, record):
+def convert_date_fields(date_fields, record):
     for field in date_fields:
         value = record.get(field)
         if value is not None:

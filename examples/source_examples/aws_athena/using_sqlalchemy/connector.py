@@ -7,8 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import text
 import json  # Import the json module to handle JSON data.
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 TABLE_NAME = "test_rows"
 
