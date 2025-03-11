@@ -11,9 +11,9 @@ import json
 from datetime import datetime
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 #Import pyodbc which is used to connect with SQL Server Db
 import pyodbc
@@ -191,7 +191,10 @@ def update(configuration: dict, state: dict):
             conn.close()
         print("Connection closed.")
 
-    # You need to checkpoint the state, to frequently save the progress, even with empty state checkpoint can be called.
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
 

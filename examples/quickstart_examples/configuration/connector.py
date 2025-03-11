@@ -8,9 +8,9 @@ import json  # Import the json module to handle JSON data.
 # Import the Fernet class from the cryptography module for encryption and decryption. The cryptography module is listed as a requirement in requirements.txt
 from cryptography.fernet import Fernet
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # This is an encrypted message that will be decrypted using a key from the configuration.
 encrypted_message = b'gAAAAABl-3QGKUHpdUhBNpnW1_SnSkQGrAwev-uBBJaZo4NmtylIMg8UX6usuG4Z-h80OvfJajW6HU56O5hofapEIh4W33vuMpJgq0q3qMQx6R3Ol4qZ3Wc2DyIIapxbK5BrQHshBF95'
@@ -59,6 +59,12 @@ def update(configuration: dict, state: dict):
                     data={
                         'msg': message.decode()  # Decode the decrypted message to a string.
                     })
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

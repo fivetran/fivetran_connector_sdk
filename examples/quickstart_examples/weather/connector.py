@@ -8,9 +8,9 @@ from datetime import datetime  # Import datetime for handling date and time conv
 
 import requests as rq  # Import the requests module for making HTTP requests, aliased as rq.
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector  # Import the Connector class from the fivetran_connector_sdk module.
-from fivetran_connector_sdk import Logging as log  # Import the Logging class from the fivetran_connector_sdk module, aliased as log.
-from fivetran_connector_sdk import Operations as op  # Import the Operations class from the fivetran_connector_sdk module, aliased as op.
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -82,7 +82,10 @@ def update(configuration: dict, state: dict):
         # Update the cursor to the end time of the current period.
         cursor = period['endTime']
 
-    # Save the cursor for the next sync by yielding a checkpoint operation.
+    # Save the cursor for the next sync by yielding a checkpoint operation. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state={
         "startTime": cursor
     })

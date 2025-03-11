@@ -4,9 +4,9 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -59,6 +59,12 @@ def update(configuration: dict, state: dict):
             "_null": None  # Null value.
         }
     )
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

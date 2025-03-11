@@ -7,8 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import text
 import json  # Import the json module to handle JSON data.
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 TABLE_NAME = "test_rows"
 
@@ -61,6 +61,12 @@ def update(configuration: dict, state: dict):
                                     "last_name": row[2],  # Last name.
                                     "email": row[3],  # Email id.
                                 })
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

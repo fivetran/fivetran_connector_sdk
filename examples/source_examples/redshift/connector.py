@@ -8,10 +8,10 @@ import json  # Import the json module to handle JSON data.
 # Import datetime for handling date and time conversions.
 from datetime import datetime
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import redshift_connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # This column is the replication key which helps determine which records are updated
@@ -132,8 +132,11 @@ def update(configuration: dict, state: dict):
             last_updated_at = dt2str(row[4])
         # Update the state to the updated_at of the last record.
         state["last_updated_at"] = last_updated_at
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process
-        # can resume from the correct position in case of interruptions.
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
 
 
