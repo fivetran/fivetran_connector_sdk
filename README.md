@@ -17,7 +17,7 @@
 </p>
 
 # Overview
-This repository contains a collection of example custom connectors using Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran.
+This repository contains a collection of example custom connectors using Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran. It also contains some guidance for [using AI to help create Connector SDK code](/ai_and_connector_sdk/README.md) quickly.
 
 # Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
@@ -156,6 +156,12 @@ There are several examples available under `/examples`:
   - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
 
 </details>
+
+# AI and Connector SDK
+ - **[Readme](/ai_and_connector_sdk/README.md)**
+  - intro to using AI with Connector SDK
+ - **[claude_20250228](/ai_and_connector_sdk/claude_20250228/)**
+  - code associated with a Feb 2025 blog that used Claude to create a custom connector using Connector SDK.
 
 # Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
