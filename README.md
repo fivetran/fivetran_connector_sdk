@@ -152,8 +152,8 @@ There are several examples available under `/examples`:
   - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
 - **[toast](/examples/source_examples/toast)**
   - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
-- **[veeva_vault_using_basic_auth](/examples/source_examples/veeva_vault_using_basic_auth)**
-  - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+- **[veeva_vault](/examples/source_examples/veeva_vault)**
+  - The two examples show how to authenticate to Veeva Vault using basic authentication and Session ID authentication to sync records from Veeva Vault. You need to provide your Veeva Vault credentials for these examples to work.
 
 </details>
 
