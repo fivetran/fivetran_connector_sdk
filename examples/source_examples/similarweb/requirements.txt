@@ -1,0 +1,4 @@
+fivetran_connector_sdk==1.2.1
+python_dateutil==2.9.0.post0
+pytz==2025.1
+Requests==2.32.3

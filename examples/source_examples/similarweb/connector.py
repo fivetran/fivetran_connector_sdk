@@ -1,9 +1,11 @@
+# This example details how to pull data from Similarweb, which is a digital intelligence platform
+# that provides data,insights and analytics about websites and apps
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
 # Refer to SimilarWeb's API for more information (https://developers.similarweb.com/docs/similarweb-web-traffic-api)
 
 # Import requests to make HTTP calls to API
+
 import requests
 import pytz
 import json  
@@ -12,15 +14,32 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 # Import required classes from fivetran_connector_sdk
+
 from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+
+#Define the domains,countries and metrics you need
+
+domain_list = [ "chat.mistral.ai", 
+               "chat.deepseek.com",
+               "grok.com", "meta.ai",
+               "chatgpt.com",
+               "gemini.google.com",
+               "character.ai",
+               "claude.ai",
+               "copilot.microsoft.com",
+               "perplexity.ai",
+               "poe.com"]
+country_list = ["WW", "US"] # Can specify specific countries of interest. WW is 'Worldwide'
+metric_list = ["all_traffic_visits"], # Necessary metric can be changed per requirements 
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
+
 def schema(configuration: dict):
     return [
         {
@@ -30,10 +49,11 @@ def schema(configuration: dict):
     ]
 
 
-# Define the request_report function, which is a helper function called within the required update function
+# The request_report function is a helper function called within the required update function
 # The functon takes two parameters:
 # - start_date: beginning date for the report
 # - end_date: end date for the report
+
 def request_report(start_date, end_date, api_key):
 
     current_date = datetime.today().strftime("%Y-%m-%d")
@@ -44,7 +64,8 @@ def request_report(start_date, end_date, api_key):
         "Content-Type": "application/json"
     }
 
-    # Payloadcan be altered per the required requests
+    # Payload can be altered per the required requests
+
     payload = {
         "delivery_information": {
             "response_format": "csv",
@@ -58,23 +79,11 @@ def request_report(start_date, end_date, api_key):
                     "vtable": "traffic_and_engagement",
                     "granularity": "daily",
                     "filters": {
-                        "domains": [
-                            "chat.mistral.ai", #CHANGE HERE!
-                            "chat.deepseek.com",
-                            "grok.com",
-                            "meta.ai",
-                            "chatgpt.com",
-                            "gemini.google.com",
-                            "character.ai",
-                            "claude.ai",
-                            "copilot.microsoft.com",
-                            "perplexity.ai",
-                            "poe.com"
-                        ],
-                        "countries": ["WW", "US"], # Can specify specific countries of interest. WW is 'Worldwide'
+                        "domains": domain_list,
+                        "countries": country_list,
                         "include_subdomains": True
                     },
-                    "metrics": ["all_traffic_visits"], # Necessary metric can be changed per requirements 
+                    "metrics": metric_list, # Necessary metric can be changed per requirements 
                     "start_date": start_date,
                     "end_date": end_date
                 }
@@ -96,11 +105,12 @@ def request_report(start_date, end_date, api_key):
     return report_id
 
 
-# Define the check_report_status function, which is a helper function called within the required update function
+# Check_report_status function is a helper function called within the required update function
 # The functon takes two parameters:
 # - report_id: ID for the generated report
 # - api_key: Key for the API calls 
 # This returns the current status -- once the report is ready it will return the report URL
+
 def check_report_status(report_id, api_key):
     status_url = f"https://api.similarweb.com/v3/batch/request-status/{report_id}"
 
@@ -131,14 +141,13 @@ def check_report_status(report_id, api_key):
 
         time.sleep(6)
     # if the report isn't generated in 20 minutes, return an error
-    raise RuntimeError(status_data)
+    raise RuntimeError(status_data)    
 
-    
-
-# Define the download_report function, which is a helper function called within the required update function
+# The download_report is a helper function called within the required update function
 # The functon takes one parameters:
 # - download_url: the url used to download the report -- this is typically passed along from the check_report_status function
 # Returns the report information as a JSON object (list of dictionaries).
+
 def download_report(download_url):
     if not download_url:
         log.info("Invalid download URL. Exiting.")
@@ -167,6 +176,7 @@ def download_report(download_url):
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
+
 def update(configuration: dict, state: dict):
 
     api_key = configuration["api_key"]
