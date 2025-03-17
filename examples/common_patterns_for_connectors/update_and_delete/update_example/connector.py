@@ -125,7 +125,6 @@ def update(configuration: dict, state: dict):
 
     try:
         query = "SELECT * FROM product_inventory"
-        log.info(f"Executing query: {query}")
         records = conn.fetch_data(query)
         log.info(f"Retrieved {len(records)} records from product_inventory")
 
@@ -134,20 +133,28 @@ def update(configuration: dict, state: dict):
             yield op.upsert("product_inventory", record)
         yield op.checkpoint(state)
 
-        # CASE 1: Update using only the primary key 'product_id'
-        log.info("CASE 1: Updating with only primary key 'product_id'")
-        yield op.update("product_inventory", {"product_id": 101, "quantity": 100, "last_updated": "2025-03-14"})
-        # This will update ALL rows with product_id=101, regardless of warehouse_id
+        # CASE 1: Updating single record with product_id=102 and warehouse_id=2
+        log.info("Updating record with product_id=102 and warehouse_id=2")
+        yield op.update(table="product_inventory", modified={"product_id": 102, "warehouse_id": 2, "quantity": 75, "last_updated": "2025-03-16"})
 
-        # CASE 2: Update using only the secondary key 'warehouse_id'
-        log.info("CASE 2: Updating with only secondary key 'warehouse_id'")
-        yield op.update("product_inventory", {"warehouse_id": 1, "last_updated": "2025-03-15"})
-        # This will update ALL rows with warehouse_id=1, regardless of product_id
+        # CASE 2: Updating all records with product_id=101
+        log.info("Updating all records with product_id=101")
+        # Select specific records for updating by their complete primary keys
+        query = "SELECT product_id, warehouse_id FROM product_inventory WHERE product_id=101"
+        records = conn.fetch_data(query)
 
-        # CASE 3: Update using the complete composite primary key
-        log.info("CASE 3: Updating with complete composite primary key")
-        yield op.update("product_inventory", {"product_id": 102, "warehouse_id": 2, "quantity": 75,"last_updated": "2025-03-16"})
-        # This will update ONLY the specific row that matches both conditions
+        # The fetched records contain: {'product_id': 101, 'warehouse_id': 1} and {'product_id': 101, 'warehouse_id': 2}
+        for record in records:
+            updated_values = {"quantity": 100, "last_updated": "2025-03-14"}
+            # join both the dictionary to include primary key-value pairs and updated key-value pairs
+            record.update(updated_values)
+            # It is important to include all the primary key columns defined in scheme to update the desired row values.
+            yield op.update(table="product_inventory", modified=record)
+
+        # Updating the records with incomplete primary keys will raise an error.
+        # Below are the examples of such incorrect cases:
+        # yield op.update(table="product_inventory", modified={"product_id": 101})
+        # yield op.update(table="product_inventory", modified={"warehouse_id": 1})
 
         yield op.checkpoint(state)
 
@@ -176,7 +183,7 @@ if __name__ == "__main__":
 
 
 # Resulting table after each operation:
-# Original table before any deletes:
+# Original table before any updates:
 # ┌──────────────────────────────────────────────────────┐
 # │ product_id │ warehouse_id│ quantity │ last_updated   │
 # ├──────────────────────────────────────────────────────┤
@@ -191,34 +198,24 @@ if __name__ == "__main__":
 # ┌──────────────────────────────────────────────────────┐
 # │ product_id │ warehouse_id│ quantity │ last_updated   │
 # ├──────────────────────────────────────────────────────┤
+# │ 101        │ 1           │ 50       │ 2024-03-01     │
+# │ 101        │ 2           │ 50       │ 2025-03-01     │
+# │ 102        │ 1           │ 20       │ 2024-03-01     │
+# │ 102        │ 2           │ 75       │ 2025-03-16     │ <- Updated quantity and last_updated
+# │ 103        │ 1           │ 10       │ 2024-03-01     │
+# └──────────────────────────────────────────────────────┘
+
+# CASE 2: After updating all rows with product_id=101
+# ┌──────────────────────────────────────────────────────┐
+# │ product_id │ warehouse_id│ quantity │ last_updated   │
+# ├──────────────────────────────────────────────────────┤
 # │ 101        │ 1           │ 100      │ 2025-03-14     │ <- Updated quantity and last_updated
 # │ 101        │ 2           │ 100      │ 2025-03-14     │ <- Updated quantity and last_updated
 # │ 102        │ 1           │ 20       │ 2024-03-01     │
-# │ 102        │ 2           │ 15       │ 2024-03-01     │
+# │ 102        │ 2           │ 75       │ 2024-03-16     │
 # │ 103        │ 1           │ 10       │ 2024-03-01     │
 # └──────────────────────────────────────────────────────┘
-# Using only product_id=101, ALL ROWS with product_id=101 are updated.
 
-# CASE 2: After updating rows with warehouse_id=1
-# ┌──────────────────────────────────────────────────────┐
-# │ product_id │ warehouse_id│ quantity │ last_updated   │
-# ├──────────────────────────────────────────────────────┤
-# │ 101        │ 1           │ 100      │ 2024-03-15     │ <- Updated last_updated
-# │ 101        │ 2           │ 100      │ 2025-03-14     │
-# │ 102        │ 1           │ 20       │ 2024-03-15     │ <- Updated last_updated
-# │ 102        │ 2           │ 15       │ 2024-03-01     │
-# │ 103        │ 1           │ 10       │ 2024-03-15     │ <- Updated last_updated
-# └──────────────────────────────────────────────────────┘
-# Using only warehouse_id=1, ALL ROWS with warehouse_id=1 are updated.
-
-# CASE 3: After updating rows with product_id=102 and warehouse_id=2
-# ┌──────────────────────────────────────────────────────┐
-# │ product_id │ warehouse_id│ quantity │ last_updated   │
-# ├──────────────────────────────────────────────────────┤
-# │ 101        │ 1           │ 100      │ 2024-03-15     │
-# │ 101        │ 2           │ 100      │ 2025-03-14     │
-# │ 102        │ 1           │ 20       │ 2024-03-15     │
-# │ 102        │ 2           │ 75       │ 2025-03-16     │ <- Updated quantity and last_updated
-# │ 103        │ 1           │ 10       │ 2024-03-15     │
-# └──────────────────────────────────────────────────────┘
-# Using product_id=102 and warehouse_id=2, ONLY SPECIFIC ROW with warehouse_id=2 and product_id=102 is updated.
+# IMPORTANT: When updating records, you must provide ALL the primary keys as defined in the schema.
+# Using only a subset of the primary key components (such as only product_id or only warehouse_id from a composite key) will cause the sync to fail with an error.
+# Always ensure that update operations include all primary key fields.

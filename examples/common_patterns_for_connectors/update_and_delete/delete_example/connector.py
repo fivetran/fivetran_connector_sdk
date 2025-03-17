@@ -38,10 +38,12 @@ class PostgresClient:
 
     def disconnect(self) -> None:
         if self.connection:
+            log.info("starting the drop table sequence")
             cursor = self.connection.cursor()
             cursor.execute("DROP TABLE IF EXISTS sample_table")
-            self.connection.commit()
             log.info("Dropped sample table from database.")
+            self.connection.commit()
+            log.info("Committed sample table from database.")
 
             self.connection.close()
             log.info("Database connection closed.")
@@ -52,7 +54,7 @@ class PostgresClient:
                 self.connect()
 
             cursor = self.connection.cursor()
-            cursor.execute("""CREATE TABLE IF NOT EXISTS sample_table (id INT, name VARCHAR(255), department_id INT, address VARCHAR(255), _fivetran_deleted BOOLEAN DEFAULT FALSE)""")
+            cursor.execute("""CREATE TABLE IF NOT EXISTS sample_table (id INT, name VARCHAR(255), department_id INT, address VARCHAR(255), PRIMARY KEY(id, department_id))""")
             log.info("sample_table created in PostgreSQL.")
 
             cursor.execute("INSERT INTO sample_table (id, name, department_id, address) VALUES (1, 'John', 1, '123 Main St')")
@@ -63,7 +65,6 @@ class PostgresClient:
             cursor.execute("INSERT INTO sample_table (id, name, department_id, address) VALUES (4, 'Bob', 3, '1012 Pine St')")
 
             self.connection.commit()
-            cursor.close()
             log.info("Sample data inserted into sample_table.")
         except Exception as e:
             raise ValueError(f"Error pushing sample data to PostgreSQL: {e}")
@@ -120,32 +121,33 @@ def update(configuration: dict, state: dict):
 
     try:
         query = "SELECT * FROM sample_table"
-        log.info(f"Executing query: {query}")
         records = conn.fetch_data(query)
         log.info(f"Retrieved {len(records)} records from sample_table")
 
         # upsert each record into the destination table
         for record in records:
-            yield op.upsert("sample_table", record)
+            yield op.upsert(table="sample_table", data=record)
         yield op.checkpoint(state)
 
-        # CASE 1: Delete using only the primary key 'id'
-        log.info("CASE 1: Deleting with only primary key 'id'")
-        yield op.delete("sample_table", {"id": 1})
-        # This will delete ALL rows with id=1, regardless of department_id
-        # In this case, rows (1,1) and (1,2) will both be deleted where (x, y) is (id, department_id)
+        # CASE 1: Deleting single record with id=3 and department_id=1
+        log.info("Deleting record with id=3 and department_id=1")
+        yield op.delete(table="sample_table", keys={"id": 3, "department_id": 1})
 
-        # CASE 2: Delete using only the secondary key 'department_id'
-        log.info("CASE 2: Deleting with only secondary key 'department_id'")
-        yield op.delete("sample_table", {"department_id": 3})
-        # This will delete ALL rows with department_id=2, regardless of id
-        # In this case, rows (2,3), (3,3), and (4,3) will be deleted where (x, y) is (id, department_id)
+        # CASE 2: Deleting all records with department_id=1
+        log.info("Deleting all records with department_id=1")
+        # Select specific records for deletion by their complete primary keys
+        query = "SELECT id, department_id FROM sample_table WHERE id=1"
+        records = conn.fetch_data(query)
 
-        # CASE 3: Delete using the complete composite primary key
-        log.info("CASE 3: Deleting with complete composite primary key")
-        yield op.delete("sample_table", {"id": 3, "department_id": 1})
-        # This will delete ONLY the specific row that matches both conditions
-        # In this case, only row (3,1) will be deleted, not (3,3) where (x, y) is (id, department_id)
+        # The fetched records contain: {'id': 1, 'department_id': 1} and {'id': 1, 'department_id': 2}
+        for record in records:
+            # It is important to provide all the primary key defined in schema to delete the record.
+            yield op.delete(table="sample_table", keys=record)
+
+        # Deleting the records with incomplete primary keys will raise an error.
+        # Below are the examples of such cases:
+        # yield op.delete(table="sample_table", keys={"id": 1})
+        # yield op.delete(table="sample_table", keys={"department_id": 3})
 
         yield op.checkpoint(state)
 
@@ -184,7 +186,19 @@ if __name__ == "__main__":
 # │ 4  │ Bob   │ 3            │ 1012 Pine St │ false            │
 # └─────────────────────────────────────────────────────────────┘
 
-# CASE 1: After deleting rows with id=1
+# CASE 1: After deleting rows with id=4 and department_id=3
+# ┌─────────────────────────────────────────────────────────────┐
+# │ id │ name  │ department_id│ address      │ _fivetran_deleted│
+# ├─────────────────────────────────────────────────────────────┤
+# │ 1  │ John  │ 1            │ 123 Main St  │ false            │
+# │ 1  │ John  │ 2            │ 123 Main St  │ false            │
+# │ 2  │ Jane  │ 3            │ 456 Elm St   │ false            │
+# │ 3  │ Alice │ 3            │ 789 Oak St   │ false            │
+# │ 3  │ Alice │ 1            │ 789 Oak St   │ true             │ <- Marked as deleted
+# │ 4  │ Bob   │ 3            │ 1012 Pine St │ false            │
+# └─────────────────────────────────────────────────────────────┘
+
+# CASE 2: After deleting all rows with id=1
 # ┌─────────────────────────────────────────────────────────────┐
 # │ id │ name  │ department_id│ address      │ _fivetran_deleted│
 # ├─────────────────────────────────────────────────────────────┤
@@ -192,33 +206,10 @@ if __name__ == "__main__":
 # │ 1  │ John  │ 2            │ 123 Main St  │ true             │ <- Marked as deleted
 # │ 2  │ Jane  │ 3            │ 456 Elm St   │ false            │
 # │ 3  │ Alice │ 3            │ 789 Oak St   │ false            │
-# │ 3  │ Alice │ 1            │ 789 Oak St   │ false            │
+# │ 3  │ Alice │ 1            │ 789 Oak St   │ true             │
 # │ 4  │ Bob   │ 3            │ 1012 Pine St │ false            │
 # └─────────────────────────────────────────────────────────────┘
-# Using only id=1 marks ALL ROWS with id=1 as deleted, regardless of department_id
 
-# CASE 2: After deleting rows with department_id=3
-# ┌─────────────────────────────────────────────────────────────┐
-# │ id │ name  │ department_id│ address      │ _fivetran_deleted│
-# ├─────────────────────────────────────────────────────────────┤
-# │ 1  │ John  │ 1            │ 123 Main St  │ true             │
-# │ 1  │ John  │ 2            │ 123 Main St  │ true             │
-# │ 2  │ Jane  │ 3            │ 456 Elm St   │ true             │ <- Marked as deleted
-# │ 3  │ Alice │ 3            │ 789 Oak St   │ true             │ <- Marked as deleted
-# │ 3  │ Alice │ 1            │ 789 Oak St   │ false            │
-# │ 4  │ Bob   │ 3            │ 1012 Pine St │ true             │ <- Marked as deleted
-# └─────────────────────────────────────────────────────────────┘
-# Using only department_id=3 marks ALL ROWS with department_id=3 as deleted, regardless of id
-
-# CASE 3: After deleting row with composite key (id=3, department_id=1)
-# ┌─────────────────────────────────────────────────────────────┐
-# │ id │ name  │ department_id│ address      │ _fivetran_deleted│
-# ├─────────────────────────────────────────────────────────────┤
-# │ 1  │ John  │ 1            │ 123 Main St  │ true             │
-# │ 1  │ John  │ 2            │ 123 Main St  │ true             │
-# │ 2  │ Jane  │ 3            │ 456 Elm St   │ true             │
-# │ 3  │ Alice │ 3            │ 789 Oak St   │ true             │
-# │ 3  │ Alice │ 1            │ 789 Oak St   │ true             │ <- Marked as deleted
-# │ 4  │ Bob   │ 3            │ 1012 Pine St │ true             │
-# └─────────────────────────────────────────────────────────────┘
-# Using both id=3 and department_id=1 marks ONLY SPECIFIC ROW with id=3 and department_id=1 as deleted
+# IMPORTANT: When deleting records, you must provide ALL the primary keys as defined in the schema.
+# Using only a subset of the primary key components (such as only id or only department_id from a composite key) will cause the sync to fail with an error.
+# Always ensure that delete operations include all primary key fields.
