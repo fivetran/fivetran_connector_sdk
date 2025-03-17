@@ -152,7 +152,7 @@ def update(configuration: dict, state: dict):
         yield op.checkpoint(state)
 
     except Exception as e:
-        raise ValueError(f"Error updating records: {e}")
+        raise ValueError(f"Error deleting records: {e}")
 
     finally:
         conn.disconnect()
