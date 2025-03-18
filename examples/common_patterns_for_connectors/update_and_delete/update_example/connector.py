@@ -164,8 +164,6 @@ def update(configuration: dict, state: dict):
     finally:
         conn.disconnect()
 
-    yield op.checkpoint(state)
-
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
