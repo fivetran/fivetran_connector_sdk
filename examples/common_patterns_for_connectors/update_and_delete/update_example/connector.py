@@ -48,8 +48,7 @@ class PostgresClient:
     def push_sample_data(self) -> None:
         try:
             if not self.connection:
-                self.connect()
-
+                self.connection = self.connect()
             cursor = self.connection.cursor()
 
             # Create product_inventory table with composite primary key
