@@ -159,7 +159,7 @@ There are several examples available under `/examples`:
 
 # AI and Connector SDK
  - **[Readme](/ai_and_connector_sdk/README.md)**
-   - intro to using AI with Connector SDK
+   - Intro to using AI with Connector SDK
  - **[claude_20250228](/ai_and_connector_sdk/claude_20250228/)**
    - code associated with a Feb 2025 blog that used Claude to create a custom connector using Connector SDK.
 
