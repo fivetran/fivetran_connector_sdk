@@ -161,7 +161,7 @@ There are several examples available under `/examples`:
  - **[Readme](/ai_and_connector_sdk/README.md)**
    - Intro to using AI with Connector SDK
  - **[claude_20250228](/ai_and_connector_sdk/claude_20250228/)**
-   - code associated with a Feb 2025 blog that used Claude to create a custom connector using Connector SDK.
+   - Code associated with a Feb 2025 blog that used Claude to create a custom connector using Connector SDK.
 
 # Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
