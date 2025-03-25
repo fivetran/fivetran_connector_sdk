@@ -137,6 +137,8 @@ There are several examples available under `/examples`:
   - **[key_based_replication](/examples/source_examples/common_patterns/key_based_replication)**
     - This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
+- **[hubspot](/examples/source_examples/hubspot)**
+  - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
 - **[newsapi](/examples/source_examples/newsapi)**
   - This is a simple example of how to sync data from NewsAPI using Connector SDK.
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
