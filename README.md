@@ -161,9 +161,9 @@ There are several examples available under `/examples`:
 
 # AI and Connector SDK
  - **[Readme](/ai_and_connector_sdk/README.md)**
-   - Intro to using AI with Connector SDK
+   - This is an introduction to using AI tools to leverage Connector SDK
  - **[claude_20250228](/ai_and_connector_sdk/claude_20250228/)**
-   - Code associated with a Feb 2025 blog that used Claude to create a custom connector using Connector SDK.
+   - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
 # Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
