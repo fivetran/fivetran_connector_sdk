@@ -1,5 +1,5 @@
 # Introduction
-This part of the repo is to help you use emerging AI tools to quickly create connections that work for you using Connector SDK.
+This section of our example repository is designed to help you use emerging AI tools with the Connector SDK to build custom connectors.
 
 
 # ChatGPT
