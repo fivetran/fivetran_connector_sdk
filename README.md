@@ -146,6 +146,8 @@ There are several examples available under `/examples`:
 
 - **[gcp_pub_sub](/examples/source_examples/gcp_pub_sub)**
   - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
+- **[github_traffic](/examples/source_examples/github_traffic)**
+  - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
 - **[hubspot](/examples/source_examples/hubspot)**
   - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
 - **[newsapi](/examples/source_examples/newsapi)**
@@ -153,8 +155,8 @@ There are several examples available under `/examples`:
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
   - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
-- **[github_traffic](/examples/source_examples/github_traffic)**
-  - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
+- **[odata_api](/examples/source_examples/odata_api)**
+  - This is an example of how to sync data from an OData API using Connector SDK. This example covers multiple versions of OData API using different libraries.
 - **[redshift](/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - **[s3_csv_validation](/examples/source_examples/s3_csv_validation)**
