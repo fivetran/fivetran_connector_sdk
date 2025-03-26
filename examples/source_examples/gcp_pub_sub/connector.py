@@ -12,6 +12,7 @@ from fivetran_connector_sdk import Operations as op # For supporting Data operat
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
 import json
+import time
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -186,6 +187,10 @@ def update(configuration: dict, state: dict):
 
     # Publish sample messages to the topic
     publish_messages(publisher=publisher, topic_path=topic_path)
+
+    # Add a small delay to allow messages to be available for pulling
+    # This prevents empty results when pulling messages too quickly after publishing
+    time.sleep(4)
 
     # Process messages in batches until no more messages are available and upsert them to the destination
     # This pagination approach handles large volumes of messages efficiently
