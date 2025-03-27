@@ -1,0 +1,3 @@
+google-cloud-pubsub
+google-auth
+protobuf==6.30.1
