@@ -4,14 +4,14 @@
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-# Import requests to make HTTP calls to API.
-import requests as rq
+
 # Import base64 for API Auth Param Encoding
 import base64
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import \
+    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
