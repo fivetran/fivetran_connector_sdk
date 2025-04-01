@@ -167,6 +167,9 @@ class ODataClient:
             filter_value = query_options['filter']
             if filter_value and isinstance(filter_value, str):
                 query = query.filter(filter_value)
+            elif filter_value and isinstance(filter_value, list):
+                filter_value = ' and '.join(filter_value)
+                query = query.filter(filter_value)
         return query
 
 

@@ -195,12 +195,8 @@ class ODataClient:
             formatted_data = self._standardize_output(response=current_page)
             yield from self._upsert_formatted_data(formatted_data=formatted_data, table=table, update_state=update_state)
             next_link = current_page.get("@odata.nextLink") or current_page.get("odata.nextLink")
-            if next_link:
+            if next_link and "http" not in next_link:
                 next_link = f"{self.base_url}{next_link}"
-
-            #
-            # if is_batch and next_link:
-            #
 
 
     @staticmethod
