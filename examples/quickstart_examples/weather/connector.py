@@ -57,8 +57,6 @@ def update(configuration: dict, state: dict):
     x_coordinate = configuration.get('x_coordinate', 58)
     y_coordinate = configuration.get('y_coordinate', 40)
 
-    # Make the API request using the values
-    log.info(f"Getting forecast for Office Id: {forecast_office_id} with x_coordinate: {x_coordinate} and y_coordinate: {y_coordinate}")
     url = f"https://api.weather.gov/gridpoints/{forecast_office_id}/{x_coordinate},{y_coordinate}/forecast"
     response = rq.get(url)
 
