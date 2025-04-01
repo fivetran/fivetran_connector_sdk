@@ -50,6 +50,10 @@ fivetran --help
 - **Docstrings**: Include detailed docstrings for all functions
 - **Examples**: Many connector implementation examples are available in the examples/ directory
 
+## Debugging Tips
+- Use `fivetran reset` to clear state between debug runs
+- Use logging with explicit error messages
+
 ## Runtime Environment
 - 1 GB RAM, 0.5 vCPUs
 - Python versions 3.9.21 through 3.12.8
