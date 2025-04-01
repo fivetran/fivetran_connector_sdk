@@ -11,6 +11,7 @@ from fivetran_connector_sdk import Operations as op # For supporting Data operat
 # Import required classes from google cloud pubsub
 from google.cloud import pubsub_v1
 from google.oauth2 import service_account
+from google.api_core.exceptions import AlreadyExists, NotFound
 import json
 import time
 
@@ -61,15 +62,18 @@ def create_sample_topic(credentials, project_id: str, topic_name: str):
         publisher.create_topic(request={"name": topic_path})
         log.info(f"Topic created: {topic_path}")
     # If the topic already exists, an AlreadyExists exception is thrown
-    except Exception:
+    except AlreadyExists:
         # If the topic already exists, log a warning but continue execution
-        log.info(f"Topic path already exists : {topic_path}")
+        log.warning(f"Topic path already exists : {topic_path}")
+    except Exception as e:
+        # If any other error occurs, raise a RuntimeError with details
+        raise RuntimeError(f"Error creating topic: {e}")
 
     # Return the publisher client
     return publisher
 
 
-def publish_messages(publisher, topic_path: str) -> None:
+def publish_test_messages(publisher, topic_path: str) -> None:
     """
     Publishes 5 messages to the specified Pub/Sub topic.
     Each message contains sample data and a timestamp, formatted as JSON string.
@@ -77,7 +81,10 @@ def publish_messages(publisher, topic_path: str) -> None:
     :param topic_path: path of the topic
     :raises RuntimeError: If there's an error publishing any message
     """
-    for count in range(5):
+    # Define the maximum number of test messages to publish
+    MAX_TEST_MESSAES = 5
+
+    for count in range(MAX_TEST_MESSAES):
         # Create a message with incremental data and a fixed timestamp
         # Note: In a real connector, you might use dynamic timestamps and actual data
         message = {"data":f"Message {count+1}","timestamp": "2021-09-01T00:00:00Z"}
@@ -108,10 +115,13 @@ def check_subscription(subscriber, subscription_path: str, topic_path: str) -> N
         subscriber.get_subscription(request={"subscription": subscription_path})
         log.info(f"Subscription {subscription_path} already exists.")
         # If we reach here, the subscription exists (no exception was thrown)
-    except Exception:
+    except NotFound:
         # Create subscription if it doesn't exist
         subscriber.create_subscription(request={"name": subscription_path, "topic": topic_path})
         log.info(f"Subscription {subscription_path} created.")
+    except Exception as e:
+        # If any other error occurs, raise a RuntimeError with details
+        raise RuntimeError(f"Error checking subscription: {e}")
 
 
 def clean_up_resources(publisher, subscriber, subscription_path, topic_path) -> None:
@@ -137,35 +147,20 @@ def clean_up_resources(publisher, subscriber, subscription_path, topic_path) -> 
         raise RuntimeError(f"Error deleting resources: {e}")
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
-def update(configuration: dict, state: dict):
-
-    # Retrieve the service account credentials from the configuration dictionary
-    # The service account credentials should be provided as a JSON string in the `service_key` field of `configuration.json`.
-    # Example:
-    # { "service_key": "{ \"type\": \"service_account\", \"project_id\": \"your-project-id\", ... }", ... }
-    # Ensure the JSON string is properly formatted and escaped.
-    service_key = configuration.get("service_key")
-    topic_name = configuration.get("topic_name")
-    subscription_name = configuration.get("subscription_name")
-    # Set a default of 5 messages per batch if not specified in configuration
-    max_messages = int(configuration.get("max_messages", 5))
-
-    # Parse the service account credentials JSON string into a Python dictionary
-    pubsub_creds = json.loads(service_key)
-    # Extract the project ID from the service account credentials
-    project_id = pubsub_creds.get("project_id")
-
-    # Validate the service account credentials contains a project ID
-    if not project_id:
-        raise RuntimeError("Invalid service key : Project ID is missing in the service key")
-
+def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
+    """
+    Set up Google Cloud Pub/Sub resources for the connector
+    Args:
+        pubsub_creds: credentials for the service account
+        project_id: project ID
+        topic_name: name of the topic
+        subscription_name: subscription name
+    Returns:
+        publisher: publisher client instance
+        subscriber: subscriber client instance
+        subscription_path: path of the subscription
+        topic_path: path of the topic
+    """
     # Create Google Cloud authentication credentials from the service account info
     # For more information on authentication with service accounts, refer the google-cloud documentation:
     # https://google-auth.readthedocs.io/en/master/reference/google.oauth2.service_account.html
@@ -186,14 +181,23 @@ def update(configuration: dict, state: dict):
     check_subscription(subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path)
 
     # Publish sample messages to the topic
-    publish_messages(publisher=publisher, topic_path=topic_path)
+    publish_test_messages(publisher=publisher, topic_path=topic_path)
 
-    # Add a small delay to allow messages to be available for pulling
-    # This prevents empty results when pulling messages too quickly after publishing
-    time.sleep(4)
+    return publisher, subscriber, subscription_path, topic_path
 
-    # Process messages in batches until no more messages are available and upsert them to the destination
-    # This pagination approach handles large volumes of messages efficiently
+
+def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state):
+    """
+    Pull messages from the Pub/Sub subscription and upsert them to the destination
+    Args:
+        subscriber: subscriber client instance
+        subscription_path: path of the subscription
+        max_messages: maximum number of messages to pull in each batch
+        state: state dictionary to checkpoint the progress
+    Yields:
+        upsert operations for each message in the batch
+        checkpoint operation to save the state
+    """
     while True:
         # pull messages from the subscription
         response = subscriber.pull(request={"subscription": subscription_path, "max_messages": max_messages})
@@ -229,6 +233,46 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
+
+
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
+def update(configuration: dict, state: dict):
+    # Retrieve the service account credentials from the configuration dictionary
+    # The service account credentials should be provided as a JSON string in the `service_key` field of `configuration.json`.
+    # Example:
+    # { "service_key": "{ \"type\": \"service_account\", \"project_id\": \"your-project-id\", ... }", ... }
+    # Ensure the JSON string is properly formatted and escaped.
+    service_key = configuration.get("service_key")
+    topic_name = configuration.get("topic_name")
+    subscription_name = configuration.get("subscription_name")
+    # Set a default of 5 messages per batch if not specified in configuration
+    max_messages = int(configuration.get("max_messages", 5))
+
+    # Parse the service account credentials JSON string into a Python dictionary
+    pubsub_creds = json.loads(service_key)
+    # Extract the project ID from the service account credentials
+    project_id = pubsub_creds.get("project_id")
+
+    # Validate the service account credentials contains a project ID
+    if not project_id:
+        raise RuntimeError("Invalid service key : Project ID is missing in the service key")
+
+    # Set up Pub/Sub resources for the connector
+    publisher, subscriber, subscription_path, topic_path = set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name)
+
+    # Add a small delay to allow messages to be available for pulling
+    # This prevents empty results when pulling messages too quickly after publishing
+    time.sleep(4)
+
+    # Process messages in batches until no more messages are available and upsert them to the destination
+    # This pagination approach handles large volumes of messages efficiently
+    yield from pull_and_upsert_messages(subscriber=subscriber, subscription_path=subscription_path, max_messages=max_messages, state=state)
 
     # Clean up resources created during this test run
     # In production, you might want to keep resources between runs
