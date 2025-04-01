@@ -60,10 +60,6 @@ def update(configuration : dict, state : dict):
         log.severe(f"An error occurred: {e}")
 
 
-
-
-
-
 def read_postgres_and_upsert(host, database, user, password, port, table_name):
     """
     Connects to a PostgreSQL database, reads all rows from a specified table,
