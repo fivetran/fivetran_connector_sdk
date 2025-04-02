@@ -121,7 +121,7 @@ There are several examples available under `/examples`:
 - **[unspecified_types](/examples/common_patterns_for_connectors/unspecified_types)**
   - This example upserts all data types without specifying a schema.
 - **[update_and_delete](/examples/common_patterns_for_connectors/update_and_delete)**
-  - This example shows how to handle composite primary keys while using update and delete operations.
+  - This example shows how to handle composite primary keys while using update and delete operations with a PostgreSQL database as the data source.
 
 </details>
 
