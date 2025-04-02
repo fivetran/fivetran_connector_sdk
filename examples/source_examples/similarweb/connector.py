@@ -98,8 +98,8 @@ def request_report(start_date, end_date, api_key):
 
 
     if not report_id:
-        log.info("Failed to create report:", report_data)
-        raise RuntimeError(report_id)
+        log.info("Failed to create report:")
+        raise RuntimeError()
 
     log.info(f"Report requested. Report ID: {report_id}")
     return report_id
@@ -166,7 +166,7 @@ def download_report(download_url):
         return data  # Returning as a Python list of dictionaries
 
     except Exception as e:
-        log.info("Failed to process the report:", e)
+        log.info("Failed to process the report")
         raise RuntimeError(e)
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
