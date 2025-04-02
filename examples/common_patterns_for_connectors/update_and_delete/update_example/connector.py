@@ -191,7 +191,7 @@ if __name__ == "__main__":
 # │ 103        │ 1           │ 10       │ 2024-03-01     │
 # └──────────────────────────────────────────────────────┘
 
-# CASE 1: After updating rows with product_id=101
+# CASE 1: After updating rows with product_id=102 and warehouse_id=2
 # ┌──────────────────────────────────────────────────────┐
 # │ product_id │ warehouse_id│ quantity │ last_updated   │
 # ├──────────────────────────────────────────────────────┤

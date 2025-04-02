@@ -186,7 +186,7 @@ if __name__ == "__main__":
 # │ 4  │ Bob   │ 3            │ 1012 Pine St │ false            │
 # └─────────────────────────────────────────────────────────────┘
 
-# CASE 1: After deleting rows with id=4 and department_id=3
+# CASE 1: After deleting rows with id=3 and department_id=1
 # ┌─────────────────────────────────────────────────────────────┐
 # │ id │ name  │ department_id│ address      │ _fivetran_deleted│
 # ├─────────────────────────────────────────────────────────────┤
