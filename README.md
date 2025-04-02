@@ -66,6 +66,9 @@ There are several examples available under `/examples`:
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
   - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
+- **[base_64_encoding_decoding](/examples/quickstart_examples/base_64_encoding_decoding)**  
+  - This example shows how to use base64 encoding and decoding in your connector code.
+
 </details>
 
 <details open>
