@@ -66,6 +66,9 @@ There are several examples available under `/examples`:
 - **[complex_configuration_options](/examples/quickstart_examples/complex_configuration_options)**  
   - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
+- **[base_64_encoding_decoding](/examples/quickstart_examples/base_64_encoding_decoding)**  
+  - This example shows how to use base64 encoding and decoding in your connector code.
+
 </details>
 
 <details open>
@@ -163,7 +166,7 @@ There are several examples available under `/examples`:
  - **[Readme](/ai_and_connector_sdk/README.md)**
    - This is an introduction to using AI tools to leverage Connector SDK
  - **[claude_20250228](/ai_and_connector_sdk/claude_20250228/)**
-   - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
+   - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
 # Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
