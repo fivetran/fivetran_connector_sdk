@@ -49,16 +49,13 @@ def update(configuration: dict, state: dict):
         "name": "John Doe",
         "email": "john.doe@example.com"
     }
-    log.info("Original User Info:")
-    print_items(user_info)
 
     # Encode each value to Base64
     encoded_info = {
         key: base64.b64encode(value.encode('utf-8')).decode('utf-8')
         for key, value in user_info.items()
     }
-    log.info("Encoded Info: ")
-    print_items(encoded_info)
+    # Upsert the encoded data to the "user" table
     yield op.upsert(table="user", data=encoded_info)
 
     # Decode each Base64 value back to original
@@ -66,8 +63,7 @@ def update(configuration: dict, state: dict):
         key: base64.b64decode(value.encode('utf-8')).decode('utf-8')
         for key, value in encoded_info.items()
     }
-    log.info("Decoded Info: ")
-    print_items(decoded_info)
+    # Upsert the decoded data to the "user" table
     yield op.upsert(table="user", data=decoded_info)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -75,12 +71,6 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
-
-
-# Define the print_items method, which will print the items as log
-def print_items(info):
-    for key, value in info.items():
-        log.info(f"  {key}: {value}")
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
