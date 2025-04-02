@@ -18,10 +18,10 @@ update_packages() {
   fi
 }
 
-# Install libpq5
-install_libpq5() {
+# Install libpgtypes
+install_libpgtypes() {
   if [[ "$OS" == "Linux" ]]; then
-    sudo apt-get install -y libpq5 libpq-dev
+    sudo apt-get install -y libpgtypes
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
@@ -30,6 +30,6 @@ install_libpq5() {
 
 # Main execution
 update_packages
-install_libpq5
+install_libpgtypes
 
-echo '{"level":"INFO", "message": "libpq5 installation complete.", "message-origin": "installation_sh"}'
+echo '{"level":"INFO", "message": "libpgtypes installation complete.", "message-origin": "installation_sh"}'

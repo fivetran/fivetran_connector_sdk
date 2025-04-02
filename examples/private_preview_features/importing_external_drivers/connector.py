@@ -1,7 +1,9 @@
 # Importing External Drivers using installation.sh script file.
 
 # This module implements a connector that requires external driver installation using installation.sh file
-# It is an example of using libpq5 to communicate with posgress db and iterate over the data to update the connector
+# It is an example of using libpgtypes to communicate with posgress db and iterate over the data to update the connector
+
+# NOTE: libpq5 and libpq-dev are pre-installed in our connector-sdk base imagee.
 # NOTE: Do check with Customer Support to implement this or similar installation.sh script file.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -9,7 +11,6 @@
 # Import datetime for handling date and time conversions.
 import time
 import json
-import csv
 # Import psycopg2 to communicate with db
 import psycopg2
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
@@ -89,10 +90,6 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
 
         # Fetch all rows from the result set
         rows = cursor.fetchall()
-
-        # Print the rows
-        for row in rows:
-            print(row)
 
         headers = {"id", "title", "name", "city", "mobile"}
         log.info("Iterating over the downloaded data.")
