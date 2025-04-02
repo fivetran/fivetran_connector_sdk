@@ -1,5 +1,6 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 # It defines a simple 'update' method, which upserts some data to a table from gcp PubSub.
+# It creates a test topic, publishes some test messages, creates a test subscription, pulls messages from the subscription, and upserts them to the destination.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -97,7 +98,7 @@ def publish_test_messages(publisher, topic_path: str) -> None:
             # Publish the message to the topic and get a future
             # The future.result() call waits for the publish operation to complete
             future = publisher.publish(topic_path, message_data)
-            log.info(f"Published message ID: {future.result()}")
+            log.fine(f"Published message ID: {future.result()}")
         except Exception as e:
             # If publishing fails, raise a RuntimeError with details
             raise RuntimeError(f"Error publishing message: {e}")
@@ -203,13 +204,12 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
         response = subscriber.pull(request={"subscription": subscription_path, "max_messages": max_messages})
         received_messages = response.received_messages
 
-        # Exit the loop when fewer messages than requested are returned
-        # This indicates we've processed all available messages
-        if len(received_messages) < max_messages :
+        # Exit the loop when no messages are returned
+        if not received_messages:
             break
-        else:
-            ack_ids = []
 
+        try:
+            ack_ids = []
             # Process each message in the batch
             for msg in received_messages:
                 ack_ids.append(msg.ack_id)
@@ -226,8 +226,18 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
 
             # Acknowledge processed messages to remove them from the subscription
             # This prevents redelivery of already processed messages
-            subscriber.acknowledge(request={"subscription": subscription_path, "ack_ids": ack_ids})
-            log.info(f"upserted {len(response.received_messages)} rows.")
+            # Only acknowledge if we have ack_ids to acknowledge
+            if ack_ids:
+                subscriber.acknowledge(request={"subscription": subscription_path, "ack_ids": ack_ids})
+                log.info(f"Upserted {len(ack_ids)} rows.")
+
+        except Exception as e:
+            raise RuntimeError(f"Error processing messages: {e}")
+
+        # Exit the loop when fewer messages than requested are returned
+        # This indicates we've processed all available messages
+        if len(received_messages) < max_messages :
+            break
 
     # checkpoint the state
     # Learn more about how and where to checkpoint by reading our best practices documentation
