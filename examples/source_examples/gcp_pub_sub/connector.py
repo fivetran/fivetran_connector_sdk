@@ -44,7 +44,9 @@ def schema(configuration: dict):
 
 def create_sample_topic(credentials, project_id: str, topic_name: str):
     """
-    Creates a sample topic
+    Creates a sample Pub/Sub topic if it doesn't already exist.
+    This method is used only for TESTING purposes.
+    In actual connectors, topics are already present from which messages are consumed.
     :param credentials: service account credentials
     :param project_id: GCP project ID
     :param topic_name: name of the topic
@@ -78,14 +80,16 @@ def publish_test_messages(publisher, topic_path: str) -> None:
     """
     Publishes 5 messages to the specified Pub/Sub topic.
     Each message contains sample data and a timestamp, formatted as JSON string.
+    This method is used only for TESTING purposes.
+    In actual connectors, messages would already be published by your application.
     :param publisher: publisher client instance
     :param topic_path: path of the topic
     :raises RuntimeError: If there's an error publishing any message
     """
     # Define the maximum number of test messages to publish
-    MAX_TEST_MESSAES = 5
+    MAX_TEST_MESSAGES = 5
 
-    for count in range(MAX_TEST_MESSAES):
+    for count in range(MAX_TEST_MESSAGES):
         # Create a message with incremental data and a fixed timestamp
         # Note: In a real connector, you might use dynamic timestamps and actual data
         message = {"data":f"Message {count+1}","timestamp": "2021-09-01T00:00:00Z"}
@@ -128,7 +132,8 @@ def check_subscription(subscriber, subscription_path: str, topic_path: str) -> N
 def clean_up_resources(publisher, subscriber, subscription_path, topic_path) -> None:
     """
     Cleans up the resources created during the test connector execution
-    This function is called because it is an example connector. In real deployments, topics and subscriptions are meant to persist.
+    This method is used only for TESTING purposes.
+    In real deployments, topics and subscriptions are meant to persist.
     :param publisher: publisher client instance
     :param subscriber: subscriber client instance
     :param subscription_path: path of the subscription
@@ -169,9 +174,12 @@ def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
     log.info("Service Account credentials initialized")
 
     # Initialize publisher client, create topic if needed, and publish sample messages
+    # This is only for testing purposes. In actual scenarios, you will not need a publisher client
+    # This is because messages are published by your application and consumed by the connector
     publisher = create_sample_topic(credentials=credentials, project_id=project_id, topic_name=topic_name)
 
     # Initialize subscriber client to read messages from the topic
+    # subscriber client is used to pull messages from the topic/subscription
     subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
 
     # Construct the fully-qualified paths for topic and subscription
@@ -182,6 +190,7 @@ def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
     check_subscription(subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path)
 
     # Publish sample messages to the topic
+    # This is only for testing purposes to provide sample data for the connector
     publish_test_messages(publisher=publisher, topic_path=topic_path)
 
     return publisher, subscriber, subscription_path, topic_path
@@ -190,6 +199,8 @@ def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
 def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state):
     """
     Pull messages from the Pub/Sub subscription and upsert them to the destination
+    This method processes the messages pulled, upserts them and acknowledges them to remove from the subscription
+    To build a connector for your use case, replace the upsert logic with your own data processing logic
     Args:
         subscriber: subscriber client instance
         subscription_path: path of the subscription
@@ -274,6 +285,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError("Invalid service key : Project ID is missing in the service key")
 
     # Set up Pub/Sub resources for the connector
+    # Publisher client instance is only used for testing purposes to create a sample topic and publish messages
     publisher, subscriber, subscription_path, topic_path = set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name)
 
     # Add a small delay to allow messages to be available for pulling
@@ -282,10 +294,11 @@ def update(configuration: dict, state: dict):
 
     # Process messages in batches until no more messages are available and upsert them to the destination
     # This pagination approach handles large volumes of messages efficiently
+    # To build you own connector, replace the upsert logic in this method with your own data processing logic
     yield from pull_and_upsert_messages(subscriber=subscriber, subscription_path=subscription_path, max_messages=max_messages, state=state)
 
-    # Clean up resources created during this test run
-    # In production, you might want to keep resources between runs
+    # Clean up the topic and subscription created during the test sync
+    # This is only for testing purposes. In actual connectors, topics and subscriptions are meant to persist
     clean_up_resources(publisher=publisher, subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path)
 
 
