@@ -162,6 +162,8 @@ There are several examples available under `/examples`:
 
 - **[workflows](/examples/workflows)**  
   - This is an example of a GitHub workflow to deploy a connector.
+ 
+</details>
 
 # Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
