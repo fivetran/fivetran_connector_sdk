@@ -10,13 +10,13 @@
 pip install fivetran-connector-sdk
 
 # Debug connector locally (creates warehouse.db)
-fivetran debug [--configuration configuration.json]
+fivetran debug --configuration configuration.json
 
 # Reset local state for fresh debug run
 fivetran reset
 
 # Deploy connector to Fivetran
-fivetran deploy --api-key <API-KEY> --destination <DEST> --connection <CONN> [--configuration configuration.json] [--force] [--python-version X.Y]
+fivetran deploy --api-key <API-KEY> --destination <DEST> --connection <CONN> --configuration configuration.json [--force] [--python-version X.Y]
 
 # Check SDK version
 fivetran version
@@ -45,10 +45,13 @@ fivetran --help
 - **Data Types**: Supported types include BOOLEAN, INT, STRING, JSON, DECIMAL, FLOAT, UTC_DATETIME, etc.
 - **Error Handling**: Use specific exceptions with descriptive messages
 - **Configuration**: Store credentials and settings in configuration.json (securely encrypted)
-  - **IMPORTANT**: configuration.json can only contain string values (convert numbers/booleans to strings)
+- **IMPORTANT**: configuration.json can only contain string values (convert numbers/booleans to strings)
 - **Type Hints**: Use Python type hints (Dict, List, Any) for clarity
 - **Docstrings**: Include detailed docstrings for all functions
-- **Examples**: Many connector implementation examples are available in the examples/ directory
+- **Examples**: Many connector implementation examples are available in the ../examples/ directory. Reference them as needed.
+- **Datetime datatypes**: Always use UTC timestamps and format them as strings in this format before sending the data: '%Y-%m-%dT%H:%M:%SZ'
+- **Warehouse.db**: This file is a duckdb database, use appropriate client to read this file
+- **Folder Structure** Create any new connectors requested by the user in its own folder
 
 ## Debugging Tips
 - Use `fivetran reset` to clear state between debug runs
