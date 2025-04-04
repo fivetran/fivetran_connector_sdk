@@ -164,13 +164,9 @@ There are several examples available under `/examples`:
 
 </details>
 
-<details open>
-<summary><h2>Workflows</h2></summary>
-
-- **[workflows](/examples/workflows)**  
-  - This is an example of a GitHub workflow to deploy a connector.
- 
-</details>
+# Example Workflows
+- **[github](/example_workflows/github)**  
+  - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 # AI and Connector SDK
  - **[Readme](/ai_and_connector_sdk/README.md)**
