@@ -31,7 +31,7 @@ def schema(configuration: dict):
             "table": "Orders",
             "primary_key": ["OrderID"],
             "columns": {
-                "Order_Details": "JSON",
+                "Order_Details": "JSON", # For nested entities, use JSON type
             },
         },
         {
