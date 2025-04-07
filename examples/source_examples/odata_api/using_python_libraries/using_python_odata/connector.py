@@ -197,19 +197,19 @@ def upsert_all_orders(service, table, initial_state_value, track_column):
 def update(configuration: dict, state: dict):
     log.warning("Example: OData Data fetching and syncing using python-odata and pyodata library")
 
-    service_v4 = setup_odata_service()
+    odata_service = setup_odata_service()
 
     # Upserting all the customer data to the destination
-    yield from upsert_all_customers(service_v4, table="Customers")
+    yield from upsert_all_customers(odata_service, table="Customers")
     yield op.checkpoint(state)
 
     # Upserting selected data from customer to the destination
-    yield from upsert_customer_name_starting_with_s(service_v4, table="Filtered_Customers")
+    yield from upsert_customer_name_starting_with_s(odata_service, table="Filtered_Customers")
     yield op.checkpoint(state)
 
     # Upserting all the orders data to the destination while maintaining the state
     last_order_date = state.get("latestOrderDate", '1990-01-01T00:00:00')
-    final_state_value = yield from upsert_all_orders(service_v4, table="Orders", initial_state_value=last_order_date, track_column="OrderDate")
+    final_state_value = yield from upsert_all_orders(odata_service, table="Orders", initial_state_value=last_order_date, track_column="OrderDate")
     state["latestOrderDate"] = final_state_value
     yield op.checkpoint(state)
 
