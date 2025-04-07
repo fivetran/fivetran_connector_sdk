@@ -17,10 +17,10 @@ from datetime import datetime, timezone
 
 # Define Event Types to retrieve data for - 
 # The event types in this list should match the "table" values in the schema() method if you want each event type to be in its own table
-event_type_names = ["e_visited_page"]
+EVENT_TYPE_NAMES = ["e_visited_page"]
 
 # Define page_size - number of records to retrieve per API call
-page_size = 1000
+PAGE_SIZE = 1000
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -62,17 +62,21 @@ def update(configuration: dict, state: dict):
     }
 
     # Loop through event type names and query events API for recrods in given time frame
-    for event_type_name in event_type_names:
+    for event_type_name in EVENT_TYPE_NAMES:
         params = {
             "eventType": event_type_name,
             "occurredAfter": start_date,
             "occurredBefore": end_date,
-            "limit": page_size,
+            "limit": PAGE_SIZE,
             "after": None
         }
 
         yield from sync_items(event_type_name, events_url, params, headers)
 
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint({"start_date": end_date})
 
 # The sync_items function handles the retrieval and processing of paginated API data.
