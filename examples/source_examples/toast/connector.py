@@ -167,7 +167,6 @@ def process_config(base_url, headers, endpoint, table_name, rst_id, timerange):
 
     while more_data:
         try:
-            next_token = None
             param_string = "&".join(f"{key}={value}" for key, value in timerange.items())
             response_page, next_token = get_api_response(base_url + endpoint + "?" + param_string, headers, params=pagination)
             log.fine(f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}")
