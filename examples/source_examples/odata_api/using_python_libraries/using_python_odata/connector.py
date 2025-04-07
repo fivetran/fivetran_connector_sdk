@@ -45,6 +45,9 @@ def schema(configuration: dict):
 
 
 # sets up northwind version 4 public odata service
+# This function sets up the python_odata client that will be needed to interact with the OData service.
+# For your own connector, you will need to replace the service_url with the URL of your OData service.
+# You can also add any authentication headers or other configurations needed for your service to the session object
 def setup_odata_service():
     service_url = 'https://services.odata.org/v4/northwind/northwind.svc/'
     # Initialize the session object to be used by the pyOdata
@@ -60,15 +63,17 @@ def setup_odata_service():
 
 # Fetches all the data present in the Customers entity
 # The service parameter is the OData service object and table is the destination table name
+# For your own connector, you will need to modify the service query to match the structure of your OData service.
 def upsert_all_customers(service, table):
     log.info("Fetching all the data from Customers entity")
 
     # Access the entity and fetch all records
+    # Modify the entity name to match the structure of your OData service
     entity = service.entities['Customers']
     query = service.query(entity)
     results = list(query)
 
-    # Obtained result needs to be converted to a format which can be upserted to the destination
+    # Obtained result needs to be converted to dictionary which can be upserted to the destination
     results = [data.__odata__ for data in results]
     for data in results:
         # Upsert the data to the destination
@@ -79,17 +84,22 @@ def upsert_all_customers(service, table):
 
 # uses filter to get the customers whose name starts with 'S'
 # The service parameter is the OData service object and table is the destination table name
+# This method shows the usage of filter and select with the python_odata client.
+# Modify the logic in the function to match your OData service to filter the data.
 def upsert_customer_name_starting_with_s(service, table):
     log.info("Fetching Customer whose name start with S")
 
     # Access the entity
+    # Modify the entity name to match the structure of your OData service
     entity = service.entities['Customers']
     query = service.query(entity)
 
     # Filtering only the data where Name starts with 'S' or
+    # Modify the filter condition to match your requirements
     query = query.filter(entity.ContactName.startswith('S'))
 
     # Selecting only the required columns
+    # Modify this with the columns you want to select
     query = query.select(entity.CustomerID, entity.CompanyName, entity.ContactName, entity.ContactTitle)
     results = list(query)
 
@@ -117,6 +127,8 @@ def parse_iso_date(date_string):
 
 # Fetched the orders after the specified state value
 # The service parameter is the OData service object, table is the destination table name, initial_state_value is the state value to start from
+# This method shows how to use select with the pyodata client to select specific properties from the OData service.
+# This method also shows how to use filter to implement incremental sync.
 def query_orders(service, initial_date):
     # Access the entity
     entity = service.entities['Orders']
@@ -132,6 +144,8 @@ def query_orders(service, initial_date):
 # Processes the order results and yields upserts and tracks the latest date
 # The results parameter is the list of order data, table is the destination table name, track_column is the column to track the latest date
 # initial_max_date is the initial max date to start with
+# This method upserts the data to the destination and gets the last date from the fetched data.
+# This is a helper function to update the state to simulate the incremental sync.
 def process_order_results(results, table, track_column, initial_max_date):
     max_date = initial_max_date
     count = 0
@@ -157,6 +171,8 @@ def process_order_results(results, table, track_column, initial_max_date):
 # Fetches all the orders after the initial state value and upserts them to the destination
 # The service parameter is the OData service object, table is the destination table name, initial_state_value is the state value to start from
 # track_column is the column to track the latest date
+# This method performs an incremental sync by fetching orders after the initial_state_value.
+# For your own connector, you will need to modify the logic to match the structure of your OData service.
 def upsert_all_orders(service, table, initial_state_value, track_column):
     log.info(f"Fetching all the orders after the {initial_state_value}")
 

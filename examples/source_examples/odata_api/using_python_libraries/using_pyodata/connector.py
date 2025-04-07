@@ -59,6 +59,9 @@ def parse_iso_date(date_string):
 
 
 # Initializing the OData service client for Northwind OData v2
+# This function sets up the pyodata client that will be needed to interact with the OData service.
+# For your own connector, you will need to replace the service_url with the URL of your OData service.
+# You can also add any authentication headers or other configurations needed for your service to the session object
 def setup_odata_service():
     service_url = 'https://services.odata.org/V2/Northwind/Northwind.svc/'
     # Initialize the session object to be used by the pyOdata
@@ -77,10 +80,12 @@ def setup_odata_service():
 # Fetch all customers from the service and yield upsert operations.
 # This function fetches all customers from the service and yields upsert operations for each customer.
 # The service parameter is the pyodata client object and the table parameter is the destination table name.
+# For your own connector, you will need to modify the service query to match the structure of your OData service.
 def upsert_all_customers(service, table):
     log.info("Fetching all customers")
 
     # Query all customers using pyodata
+    # Modify this logic to fetch data from your OData service
     customers = service.entity_sets.Customers.get_entities().execute()
 
     # Fetching the next page of results
@@ -96,6 +101,7 @@ def upsert_all_customers(service, table):
             break
 
         # Fetch the next page of results
+        # Modify this logic to match your OData service to fetch the next page
         customers = service.entity_sets.Customers.get_entities().next_url(customers.next_url).execute()
 
         log.info(f"Upserted {len(customers)} customers to the destination")
@@ -103,10 +109,13 @@ def upsert_all_customers(service, table):
 
 # Fetch customers whose CompanyName starts with 'S'
 # The service parameter is the pyodata client object and the table parameter is the destination table name.
+# This method shows the usage of filter with the pyodata client.
+# Modify the logic in the function to match your OData service to filter the data.
 def upsert_customer_name_starting_with_s(service, table):
     log.info("Fetching customers with name starting with 'S'")
 
     # Query filtered customers using pyodata
+    # Modify this query to match your OData service
     filtered_customers = service.entity_sets.Customers.get_entities().filter(
         "startswith(CompanyName, 'S') eq true"
     ).execute()
@@ -121,6 +130,8 @@ def upsert_customer_name_starting_with_s(service, table):
 
 # Query orders after the given date
 # The service parameter is the pyodata client object and the initial_date parameter is the date after which orders are to be fetched.
+# This method shows how to use select with the pyodata client to select specific properties from the OData service.
+# This method also shows how to use filter to implement incremental sync.
 def query_orders(service, initial_date):
     # Format date into iso format for OData v2 filter
     formatted_date = initial_date.strftime('%Y-%m-%dT%H:%M:%S')
@@ -130,7 +141,7 @@ def query_orders(service, initial_date):
             'OrderID,CustomerID,EmployeeID,OrderDate,RequiredDate,ShippedDate'
         ).filter(f"OrderDate gt datetime'{formatted_date}'").execute()
 
-    # Fetching the next page of results adn yielding the fetched data
+    # Fetching the next page of results and yielding the fetched data
     while True:
         yield orders
         if orders.next_url is None:
@@ -142,6 +153,8 @@ def query_orders(service, initial_date):
 # Process order results and track the latest date
 # The results parameter is the fetched order results, the table parameter is the destination table name,
 # the track_column parameter is the column to track the latest date, and the initial_max_date parameter is the initial max date.
+# This method upserts the data to the destination and gets the last date from the fetched data.
+# This is a helper function to update the state to simulate the incremental sync.
 def process_order_results(results, table, track_column, initial_max_date):
     max_date = initial_max_date
     count = 0
@@ -169,16 +182,21 @@ def process_order_results(results, table, track_column, initial_max_date):
 # Fetch orders after the initial state value and upsert them.
 # The service parameter is the pyodata client object, the table parameter is the destination table name,
 # the initial_state_value parameter is the initial state value, and the track_column parameter is the column to track the latest date.
+# This method performs an incremental sync by fetching orders after the initial_state_value.
+# For your own connector, you will need to modify the logic to match the structure of your OData service.
 def upsert_all_orders(service, table, initial_state_value, track_column):
     log.info(f"Fetching all the orders after {initial_state_value}")
 
     # parse the date into iso format
     initial_date = parse_iso_date(initial_state_value)
     max_date = initial_date
+    # Query orders using the query_orders function
     for results in query_orders(service, initial_date):
+        # Process the order results using the process_order_results function
         max_date = yield from process_order_results(results, table, track_column, initial_date)
 
     # Return datetime as string in ISO format for updating the state
+    # This value will be used to update the state for the next sync
     dateformat = '%Y-%m-%dT%H:%M:%S'
     if isinstance(max_date, datetime):
         return max_date.strftime(dateformat)
@@ -207,8 +225,9 @@ def update(configuration: dict, state: dict):
 
     # Upserting all the orders data to the destination while maintaining the state
     last_order_date = state.get("latestOrderDate", '1990-01-01T00:00:00')
+    # This method returns the latest order date after upserting the data
     final_state_value = yield from upsert_all_orders(service_v4, table="Orders", initial_state_value=last_order_date, track_column="OrderDate")
-    # update the state with the latest order date
+    # update the state with the latest order date returned from the upsert_all_orders method
     state["latestOrderDate"] = final_state_value
     yield op.checkpoint(state)
 
