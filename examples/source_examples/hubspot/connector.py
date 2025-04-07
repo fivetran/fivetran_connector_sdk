@@ -61,7 +61,7 @@ def update(configuration: dict, state: dict):
         "Authorization": f"Bearer {api_token}"
     }
 
-    # Loop through event type names and query events API for recrods in given time frame
+    # Loop through event type names and query events API for records in given time frame
     for event_type_name in EVENT_TYPE_NAMES:
         params = {
             "eventType": event_type_name,
