@@ -155,8 +155,16 @@ There are several examples available under `/examples`:
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
   - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
-- **[odata_api](/examples/source_examples/odata_api)**
-  - This is an example of how to sync data from an OData API using Connector SDK. This example covers multiple versions of OData API using different libraries.
+- **Odata API**
+  - **[odata_version_2](/examples/source_examples/odata_api/odata_version_2)**
+    - This is an example of how to sync data from an OData API version 2 using Connector SDK.
+  - **[odata_version_4](/examples/source_examples/odata_api/odata_version_4)**
+    - This is an example of how to sync data from an OData API version 4 using Connector SDK.
+  - **Using Python Libraries**
+    - **[using_pyodata](/examples/source_examples/odata_api/using_python_libraries/using_pyodata)**
+      - This is an example of how to sync data from an OData API version 2 using pyodata python library.
+    - **[using_python_odata](/examples/source_examples/odata_api/using_python_libraries/using_python_odata)**
+      - This is an example of how to sync data from an OData API version 4 using python-odata python library.
 - **[redshift](/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - **[s3_csv_validation](/examples/source_examples/s3_csv_validation)**
