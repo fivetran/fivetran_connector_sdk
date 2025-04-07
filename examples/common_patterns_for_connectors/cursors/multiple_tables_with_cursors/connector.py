@@ -86,7 +86,7 @@ def update(configuration: dict, state: dict):
 
     # State at the end of sync for simulated records
     # {"company_cursor": "2024-08-14T02:01:00Z",
-    # "department_cursor": {"1": "2024-08-14T03:00:00Z", "2": "2024-08-14T03:00:00Z"}}
+    # "department_cursor": {"1": "2024-08-14T03:00:00Z", "2": "2024-08-14T06:00:00Z"}}
 
 
 # The fetch_companies function makes API call to fetch recently updated companies
@@ -158,11 +158,11 @@ def fetch_departments_for_company(department_cursor, company_id):
     elif company_id == "2":
         data = [
             {"department_id": "1", "company_id": "2", "department_name": "Sales",
-             "updated_at": "2024-08-14T01:00:00Z"},
+             "updated_at": "2024-08-14T04:00:00Z"},
             {"department_id": "2", "company_id": "2", "department_name": "Support",
-             "updated_at": "2024-08-14T02:00:00Z"},
+             "updated_at": "2024-08-14T05:00:00Z"},
             {"department_id": "3", "company_id": "2", "department_name": "Design",
-             "updated_at": "2024-08-14T03:00:00Z"},
+             "updated_at": "2024-08-14T06:00:00Z"},
         ]
     else:
         data = []
