@@ -21,7 +21,10 @@ class ODataClient:
 
 
     def _build_query_options(self, options: Dict) -> str:
-        """Build OData query options string from a dictionary."""
+        """
+        Build OData query options string from a dictionary.
+        This method converts a Python dictionary of query options to OData query syntax.
+        """
         if not options:
             return ""
 
@@ -53,7 +56,10 @@ class ODataClient:
 
 
     def _process_expand_option(self, options: Dict, query_parts: List[str]) -> None:
-        """Process expand option and add to query_parts."""
+        """
+        Process expand option and add to query_parts.
+        Handles complex expand scenarios including nested expands and options.
+        """
         if 'expand' not in options:
             return
 
@@ -178,7 +184,10 @@ class ODataClient:
 
 
     def upsert_multiple_entity(self, entity_list: List[Dict], state: Dict = None):
-        """Fetch data from multiple entity sets and yield records."""
+        """
+        Fetch data from multiple entity sets and yield records.
+        Convenient method to process multiple entity sets sequentially.
+        """
         if state:
             self.state = state
         for entity in entity_list:
@@ -187,7 +196,10 @@ class ODataClient:
 
 
     def _handle_pagination(self, initial_url: str, table: str = None, update_state: Dict = None, is_batch: bool = False):
-        """Handles pagination by following @odata.nextLink until all pages are fetched."""
+        """
+        Handles pagination by following @odata.nextLink until all pages are fetched.
+        You can modify this method to handle service-specific pagination formats
+        """
         next_link = initial_url
 
         while next_link:
@@ -201,6 +213,11 @@ class ODataClient:
 
     @staticmethod
     def clean_odata_fields(data):
+        """
+        Recursively clean OData metadata fields (fields starting with '@odata').
+        You can modify this method if your service uses different metadata conventions
+        or if you want to preserve certain metadata fields.
+        """
         if isinstance(data, dict):
             return {k: ODataClient.clean_odata_fields(v) for k, v in data.items()
                     if not (isinstance(k, str) and '@odata' in k)}
@@ -214,7 +231,13 @@ class ODataClient:
 
     @staticmethod
     def _standardize_output(response: Dict) -> Dict:
-        """Standardizes the output format for all OData responses, focusing on business data."""
+        """
+        Standardizes the output format for all OData responses, focusing on business data.
+        Creates a consistent format from potentially varied OData responses.
+        This is a critical method to customize if your OData service
+        has a non-standard response format. You can modify this method to handle service-specific
+        response structures or to transform data before upserting.
+        """
         result = {
             "data": [],
             "count": 0,
@@ -240,7 +263,10 @@ class ODataClient:
 
 
     def _paginate_with_batch(self, table, update_state=None, initial_response=None):
-        """Paginate using $skip and $top parameters."""
+        """
+        Paginate using $skip and $top parameters.
+        Helper method for handling pagination in batch responses.
+        """
 
         if initial_response:
             formatted_data = self._standardize_output(response=initial_response)
@@ -255,7 +281,10 @@ class ODataClient:
 
 
     def _build_batch_request_body(self, batch_requests, batch_boundary):
-        """Build the multipart batch request body."""
+        """
+        Build the multipart batch request body.
+        Creates the MIME multipart request body according to OData batch specification.
+        """
         body = []
 
         for i, request in enumerate(batch_requests):
@@ -279,7 +308,10 @@ class ODataClient:
 
 
     def _process_batch_response(self, response):
-        """Process multipart batch response using requests_toolbelt."""
+        """
+        Process multipart batch response using requests_toolbelt.
+        Decodes the multipart response and processes each part.
+        """
         log.info(f"Processing batch response with {len(self.batch_requests)} requests")
         content_type = response.headers.get('Content-Type', '')
 
@@ -370,7 +402,11 @@ class ODataClient:
 
 
     def add_batch(self, entity: Dict):
-        """Add a batch request to the batch queue."""
+        """
+        Add a batch request to the batch queue.
+        Use this method to queue multiple requests before executing them
+        in a single batch with upsert_batch().
+        """
         entity_set = entity.get("entity_set", None)
 
         if not entity_set:
@@ -388,7 +424,10 @@ class ODataClient:
 
 
     def upsert_batch(self, state:Dict = None):
-        """Execute a batch request with multiple parts."""
+        """
+        Execute a batch request with multiple parts.
+        Sends all queued batch requests in a single HTTP request and processes the responses.
+        """
         if not self.batch_requests:
             log.warning("No batch requests to execute")
             return self.state
