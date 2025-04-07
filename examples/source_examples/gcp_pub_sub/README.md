@@ -53,7 +53,7 @@ Alternatively, you can also create multiple connectors, each syncing from a diff
 
 - In an actual connector, you wouldn't create or delete topics/subscriptions within the connector.
 
-The methods which are used to testing purposes are:
+The methods which are used for testing purposes are:
 
 - `create_sample_topic()` : This method is used to create a sample topic using the publisher instance. In a real-world scenario, you would already have a topic to pull messages from.
 

@@ -87,9 +87,9 @@ def publish_test_messages(publisher, topic_path: str) -> None:
     :raises RuntimeError: If there's an error publishing any message
     """
     # Define the maximum number of test messages to publish
-    MAX_TEST_MESSAGES = 5
+    max_test_messages = 5
 
-    for count in range(MAX_TEST_MESSAGES):
+    for count in range(max_test_messages):
         # Create a message with incremental data and a fixed timestamp
         # Note: In a real connector, you might use dynamic timestamps and actual data
         message = {"data":f"Message {count+1}","timestamp": "2021-09-01T00:00:00Z"}
