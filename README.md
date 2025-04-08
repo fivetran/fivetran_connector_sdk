@@ -39,7 +39,7 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 # Examples
 There are several examples available under `/examples`:
 
-<details class="details-heading" open>
+<details class="details-heading" open="open">
 <summary><h2>Quickstart Examples</h2></summary>
 
 - **[hello](/examples/quickstart_examples/hello)**  
