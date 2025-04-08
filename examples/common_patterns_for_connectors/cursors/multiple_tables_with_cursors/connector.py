@@ -31,7 +31,7 @@ def schema(configuration: dict):
         },
         {
             "table": "department",
-            "primary_key": ["department_id"],
+            "primary_key": ["department_id", "company_id"],
             "columns": {
                 "department_id": "STRING",
                 "company_id": "STRING",
