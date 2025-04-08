@@ -39,7 +39,7 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 # Examples
 There are several examples available under `/examples`:
 
-<details class="details-heading" open>
+<details class="details-heading" open="open">
 <summary><h2>Quickstart Examples</h2></summary>
 
 - **[hello](/examples/quickstart_examples/hello)**  
@@ -71,7 +71,7 @@ There are several examples available under `/examples`:
 
 </details>
 
-<details class="details-heading" open>
+<details class="details-heading" open="open">
 <summary><h2>Common Patterns for Connectors</h2></summary>
 
 - **Authentication**
@@ -130,7 +130,7 @@ There are several examples available under `/examples`:
 
 </details>
 
-<details class="details-heading" open>
+<details class="details-heading" open="open">
 <summary><h2>Source Examples</h2></summary>
 
 - **[aws_athena/using_boto3](/examples/source_examples/aws_athena/using_boto3)**
