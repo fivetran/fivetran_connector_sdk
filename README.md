@@ -119,6 +119,8 @@ There are several examples available under `/examples`:
   - A priority-first sync (pfs), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the priority-first sync strategy in a `connector.py` file for your connection.
 - **[records_with_no_created_at_timestamp](/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp)**
   - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
+- **[schema_from_database](/examples/common_patterns_for_connectors/schema_from_database)**
+  - This example fetches the schema from a snowflake database and uses it to create the schema for the connector. It is useful when you want the schema from the database to be same as the schema of the connector.
 - **[specified_types](/examples/common_patterns_for_connectors/specified_types)**
   - This example declares a schema and upserts all data types.
 - **[three_operations](/examples/common_patterns_for_connectors/three_operations)**
