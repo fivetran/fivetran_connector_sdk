@@ -178,14 +178,14 @@ def update(configuration: dict, state: dict):
     query = "SELECT * FROM products"
     cursor.execute(query)
     # Get the column names from the cursor description
-    colummns = [col[0].lower() for col in cursor.description]
+    columns = [col[0].lower() for col in cursor.description]
 
     # The cursor.fetchall() method returns a list of tuples, where each tuple represents a row in the result set
     for row in cursor.fetchall():
         # This is needed to map the column names to the data returned by the query
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
-        upsert_data = dict(zip(colummns, row))
+        upsert_data = dict(zip(columns, row))
         log.info(f"{upsert_data}")
         yield op.upsert(table="products", data=upsert_data)
 
@@ -201,7 +201,7 @@ def update(configuration: dict, state: dict):
     query = f"SELECT * FROM orders WHERE order_date > '{last_order}'"
     cursor.execute(query)
     # Get the column names from the cursor description
-    colummns = [col[0].lower() for col in cursor.description]
+    columns = [col[0].lower() for col in cursor.description]
 
     for row in cursor.fetchall():
         # The cursor.fetchall() method returns a list of tuples, where each tuple represents a row in the result set
@@ -219,7 +219,7 @@ def update(configuration: dict, state: dict):
         # This is needed to map the column names to the data returned by the query
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
-        upsert_data = dict(zip(colummns, row))
+        upsert_data = dict(zip(columns, row))
         log.info(f"{upsert_data}")
         yield op.upsert(table="orders", data=upsert_data)
 
