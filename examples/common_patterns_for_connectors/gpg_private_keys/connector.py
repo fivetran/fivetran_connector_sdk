@@ -139,11 +139,3 @@ if __name__ == "__main__":
         configuration = {}
     # Allows testing the connector directly
     connector.debug(configuration=configuration)
-
-# Resulting table:
-# ┌───────────────┐─────────────────────────────────────┐
-# │      id       │             message                 │
-# ├───────────────┤─────────────────────────────────────│
-# │       1       │  b'This is a test message.          │
-# │               │  This will be encrypted and signed' │
-# └───────────────┘─────────────────────────────────────┘
