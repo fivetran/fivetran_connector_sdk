@@ -163,7 +163,7 @@ connector = Connector(update=update, schema=schema)
 # Main execution for local debugging
 if __name__ == "__main__":
     try:
-        with open("/Users/elijah.davis/Documents/code/sdk/tests/sdk_v1/config.json", 'r') as f:
+        with open("/config.json", 'r') as f:
             configuration = json.load(f)
         log.info("Starting connector in debug mode")
         connector.debug(configuration=configuration)
