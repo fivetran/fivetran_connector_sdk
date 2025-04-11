@@ -16,12 +16,12 @@ import json
 
 
 # This method is used to set up the GPG home directory.
-# This is required for the gnupg library to work properly.
+# You can change the GPG home directory to a different location if you want.
 # The GPG home directory is where the GPG keys and configuration files are stored.
 # This method returns the path to the GPG home directory.
 def setup_gnupghome():
     # Set up the GPG home directory
-    # You can change this to a different directory if you want
+    # You can change this to a different directory
     gnupghome = './gnupg'
     if not os.path.exists(gnupghome):
         log.info(f"Creating GPG home directory at {gnupghome}")
@@ -69,7 +69,6 @@ def schema(configuration: dict):
             "table": "signed_message", # Name of the table
             "primary_key": ["id"],
             "columns": { # Define the columns and their data types.
-                "id": "INTEGER"
             } # For any columns whose names are not provided here, e.g. message, their data types will be inferred
         }
     ]
@@ -85,10 +84,13 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Pattern for Connectors Examples - GPG Private Keys")
 
-    # get the path to the GPG home directory
-    gnupghome = setup_gnupghome()
-    # Initialize the GPG object with the GPG home directory
-    gpg = gnupg.GPG(gnupghome=gnupghome)
+    # Initialize the GPG object
+    # The default GPG home directory is ~/.gnupg
+    # You can set the GPG home directory to a different location if you want using the gnupghome parameter
+    # For example : gnupg.GPG(gnupghome="/path/to/directory")
+    # You can use the setup_gnupghome function to get the value of gnupghome
+    # For example : gnupg.GPG(gnupghome=setup_gnupghome())
+    gpg = gnupg.GPG()
     # Load the private key from the configuration and import it into the GPG object
     key = get_gpg_key(configuration, gpg)
 
@@ -129,12 +131,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    try:
-        # Try loading the configuration from the file
-        with open("configuration.json", 'r') as f:
-            configuration = json.load(f)
-    except FileNotFoundError:
-        # Fallback to an empty configuration if the file is not found
-        configuration = {}
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
+
     # Allows testing the connector directly
     connector.debug(configuration=configuration)
