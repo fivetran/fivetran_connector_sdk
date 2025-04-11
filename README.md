@@ -153,6 +153,8 @@ There are several examples available under `/examples`:
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
   - This example shows how to sync data from the Accelo API. It uses **OAuth 2.0 Client Credentials flow** authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. 
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
+- **[github_traffic](/examples/source_examples/github_traffic)**
+  - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
 - **[redshift](/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - **[s3_csv_validation](/examples/source_examples/s3_csv_validation)**
