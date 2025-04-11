@@ -102,6 +102,9 @@ There are several examples available under `/examples`:
   - **[csv](/examples/common_patterns_for_connectors/export/csv)**
     - This is a simple example of how to work with .CSV file response for a REST API of export type.
 
+- **[gpg_private_keys](/examples/common_patterns_for_connectors/gpg_private_keys)**
+  - This example shows how to use GPG private keys to sign data.
+
 - **[hashes](/examples/common_patterns_for_connectors/hashes)**
   - This example shows how to calculate a hash of fields to be used as primary key. This is useful in scenarios where the incoming rows do not have any field suitable to be used as a Primary Key.
 

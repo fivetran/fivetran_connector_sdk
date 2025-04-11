@@ -1,0 +1,1 @@
+python_gnupg==0.5.4
