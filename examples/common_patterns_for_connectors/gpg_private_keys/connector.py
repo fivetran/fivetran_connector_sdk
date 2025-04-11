@@ -15,20 +15,6 @@ import os
 import json
 
 
-# This method is used to set up the GPG home directory.
-# You can change the GPG home directory to a different location if you want.
-# The GPG home directory is where the GPG keys and configuration files are stored.
-# This method returns the path to the GPG home directory.
-def setup_gnupghome():
-    # Set up the GPG home directory
-    # You can change this to a different directory
-    gnupghome = './gnupg'
-    if not os.path.exists(gnupghome):
-        log.info(f"Creating GPG home directory at {gnupghome}")
-        os.makedirs(gnupghome)
-    return gnupghome
-
-
 # This method is used to import the private key into the GPG object.
 # The private key is used to sign messages.
 # The method takes the configuration dictionary and the GPG object as parameters.
@@ -85,11 +71,14 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Common Pattern for Connectors Examples - GPG Private Keys")
 
     # Initialize the GPG object
-    # The default GPG home directory is ~/.gnupg
-    # You can set the GPG home directory to a different location if you want using the gnupghome parameter
-    # For example : gnupg.GPG(gnupghome="/path/to/directory")
-    # You can use the setup_gnupghome function to get the value of gnupghome
-    # For example : gnupg.GPG(gnupghome=setup_gnupghome())
+    # You can pass the gnupghome parameter to the GPG object if you want to use a different directory for GPG keys.
+    # for example, gnupg.GPG(gnupghome="/path/to/your/custom/gnupg/home")
+    # When specifying a custom gnupghome parameter:
+    # 1. The directory must exist and have proper permissions (typically 700)
+    # 2. GPG needs specific files and directory structure to function properly
+    # 3. Custom directories must be initialized before use with proper ownership
+    # If the directory is not initialized properly, GPG will throw an error.
+    # When not specifying gnupghome, it defaults to ~/.gnupg which is already properly configured in the production environment.
     gpg = gnupg.GPG()
     # Load the private key from the configuration and import it into the GPG object
     key = get_gpg_key(configuration, gpg)
