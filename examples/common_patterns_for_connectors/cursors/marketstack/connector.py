@@ -81,7 +81,7 @@ def api_response(state, configuration):
     log.info(f"Fetching data for the following tickers: {insert_tickers}")
 
     if not configuration.get("apiKey"):
-      raise ValueError("API key is required to be passed in through configuration but is missing")
+      raise ValueError("ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json ")
 
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
