@@ -178,7 +178,8 @@ class ODataClient:
         return expand_paths, select_paths
 
 
-    def _apply_all_select_path(self, select_paths, query, query_options):
+    @staticmethod
+    def _apply_all_select_path(select_paths, query, query_options):
         """Apply select paths to a query, combining with any existing select options."""
         all_select_paths = []
         if 'select' in query_options:
@@ -192,7 +193,8 @@ class ODataClient:
         return query
 
 
-    def _apply_filter(self, query, query_options):
+    @staticmethod
+    def _apply_filter(query, query_options):
         """
         Apply a filter to a query if specified.
         This method supports both string filters and lists of filter conditions
@@ -225,12 +227,12 @@ class ODataClient:
                     except Exception as e:
                         log.warning(f"Error applying expand paths: {str(e)}")
 
-                query = self._apply_all_select_path(select_paths=select_paths, query=query, query_options=query_options)
+                query = ODataClient._apply_all_select_path(select_paths=select_paths, query=query, query_options=query_options)
 
             elif 'select' in query_options:
                 query = query.select(','.join(query_options['select']))
 
-            query = self._apply_filter(query=query, query_options=query_options)
+            query = ODataClient._apply_filter(query=query, query_options=query_options)
 
             if 'orderby' in query_options and query_options['orderby']:
                 query = query.order_by(query_options['orderby'])

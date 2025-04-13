@@ -195,7 +195,7 @@ class ODataClient:
         return self.state
 
 
-    def _handle_pagination(self, initial_url: str, table: str = None, update_state: Dict = None, is_batch: bool = False):
+    def _handle_pagination(self, initial_url: str, table: str = None, update_state: Dict = None):
         """
         Handles pagination by following @odata.nextLink until all pages are fetched.
         You can modify this method to handle service-specific pagination formats
@@ -275,7 +275,7 @@ class ODataClient:
 
             if next_link:
                 next_url = f"{self.base_url}{next_link}"
-                yield from self._handle_pagination(initial_url=next_url, table=table, update_state=update_state, is_batch=True)
+                yield from self._handle_pagination(initial_url=next_url, table=table, update_state=update_state)
         else:
             raise RuntimeError(f"Error fetching entity set for table {table}")
 
@@ -370,12 +370,12 @@ class ODataClient:
         try:
             content_str = part.content.decode('utf-8')
 
-            body_start = self._find_header_body_separator(content=content_str)
+            body_start = ODataClient._find_header_body_separator(content=content_str)
             if body_start == -1:
                 raise RuntimeError(f"Cannot find HTTP headers/body separator in part {part_index}")
 
             http_body = content_str[body_start:].strip()
-            json_start = self._find_header_body_separator(content=http_body)
+            json_start = ODataClient._find_header_body_separator(content=http_body)
 
             if json_start != -1:
                 return http_body[json_start:].strip()
@@ -387,7 +387,8 @@ class ODataClient:
             raise
 
 
-    def _find_header_body_separator(self, content: str) -> int:
+    @staticmethod
+    def _find_header_body_separator(content: str) -> int:
         """Find the separator between headers and body in HTTP content."""
 
         separator_pos = content.find('\r\n\r\n')
