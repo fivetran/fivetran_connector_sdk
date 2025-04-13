@@ -25,7 +25,6 @@ You can customize the schema to match your OData service and destination tables.
 
 - `setup_odata_service()`: Establishes a connection to the OData service using `requests.Session()` to maintain the connection state, headers, and authentication. Additional headers can be added as needed, and the authentication method can be configured using this method.
 
-
 - `upsert_all_customers()`: Fetches all customers data from the OData service and upserts them into the destination. For your use case, this method can be modified to include additional logic.
 
 Similarly, other methods like `upsert_all_orders` and `upsert_customer_name_starting_with_s` use python_odata library to query the odata api and sync the data to the destination.
@@ -41,16 +40,18 @@ To adapt this connector for your own OData service:
    ```
 
 2. **Add authentication** if required:
+
    ```python
    session = requests.Session()
    session.auth = ('username', 'password')  # Basic auth
    # OR
    session.headers.update({'Authorization': 'Bearer your_token'})  # OAuth
    ```
+   
     For more details on authentication, refer to the [requests library documentation](https://docs.python-requests.org/en/latest/user/advanced/#session-objects).
 
-
 3. **Modify the schema function** to match your data structure:
+
    ```python
    def schema(configuration: dict):
        return [
@@ -65,19 +66,22 @@ To adapt this connector for your own OData service:
    ```
 
 4. **Update entity queries** in the functions:
+
    ```python
    entity = service.entities['YourEntityName']
    query = service.query(entity)
    ```
+   
    Replace `YourEntityName` with the actual entity name you want to query.
 
-
 5. **Adjust filters** for your specific requirements:
+
    ```python
    query = query.filter(entity.YourField > 'YourValue')
    # OR
    query = query.filter(entity.YourField.startswith('Value'))
    ```
+   
    Replace `YourField` and `YourValue` with the actual field names and values you want to filter by.
 
 

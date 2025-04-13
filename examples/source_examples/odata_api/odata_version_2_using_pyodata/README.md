@@ -5,6 +5,7 @@ This connector allows you to sync data from OData version 2 APIs to your chosen 
 ## Basic Usage
 
 ### Initialization
+
 ```python
 from ODataClient import ODataClient
 import requests
@@ -16,6 +17,7 @@ odata_client = ODataClient(
     state=state  # Pass the state from update function parameter
 )
 ```
+
 Parameters:
 - `service_url`: URL endpoint of the OData service
 - `session`: requests.Session object for maintaining connection state
@@ -99,7 +101,9 @@ state = yield from odata_client.upsert_entity(entity=entity)
 ```
 
 ### Multiple Entity Operations
+
 Sync data from multiple entity sets:
+
 ```python
 entity_list = [
     {
@@ -142,6 +146,7 @@ state = yield from odata_client.upsert_batch(state=state)
 ```
 
 ## State Management
+
 State management is essential for efficient incremental syncs:
 
 - Stores the last synced value in state
@@ -149,6 +154,7 @@ State management is essential for efficient incremental syncs:
 - Defines which field to track with `update_state`
 
 The client handles state management automatically when you provide the update_state parameter:
+
 ```python
 update_state = {
     "lastOrderDate": "OrderDate"  # Maps state variable to record field
@@ -177,6 +183,7 @@ entity = {
 # Execute incremental sync
 state = yield from odata_client.upsert_entity(entity=entity)
 ```
+
 If no `update_state` is provided, a full sync will be performed without tracking progress.
 
 > NOTE: The client automatically filters out OData metadata fields (containing `@odata`) from results.
@@ -192,6 +199,7 @@ Follow these steps to adapt this connector for your specific OData V2 service:
 4. Note any special handling requirements for data types or relationships
 
 ### Step 2: Configure Authentication
+
 If your service requires authentication:
 
 ```python
@@ -206,9 +214,11 @@ session.headers.update({'API-Key': 'your-api-key'})
 # OR OAuth token
 session.headers.update({'Authorization': 'Bearer your-oauth-token'})
 ```
+
 For more details on authentication, refer to the [requests library documentation](https://requests.readthedocs.io/en/latest/user/authentication.html).
 
 ### Step 3: Define Your Schema
+
 Update the schema function in connector.py:
 
 ```python
@@ -229,6 +239,7 @@ def schema(configuration: dict):
 ```
 
 ### Step 4: Configure Entity Operations
+
 In the update function, define entities for each table you want to sync:
 
 ```python
@@ -249,12 +260,14 @@ entity = {
     }
 }
 ```
+
 Repeat this for each entity you want to sync. Ensure to adjust the `entity_set` and `table` names to match your service and destination.
 
 ### Step 5: Handling Special Cases
 
 #### Custom Date/Time Formats
-If your service uses non-standard datetime formats, modify the `clean_odata_fields` method in ODataClient.py:
+
+If your service uses non-standard datetime formats, modify the `clean_odata_fields` method in `ODataClient.py`:
 
 ```python
 @staticmethod
@@ -265,18 +278,11 @@ def clean_odata_fields(data):
     # Rest of the method...
 ```
 
-#### Custom Field Transformations
-To transform specific fields during sync, extend the `_extract_entity_data` method:
-
-```python
-def _extract_entity_data(self, value):
-    # Your custom field transformations here
-    if isinstance(value, dict) and 'SpecialField' in value:
-        value['SpecialField'] = self._transform_special_field(value['SpecialField'])
-    # Rest of the method...
-```
+Ensure that you handle the custom format in the state as well if you're using it for incremental sync.
+You can also handle other data as applicable in a similar way.
 
 #### Handling Rate Limits
+
 If your service has rate limits, add retry logic:
 
 ```python
@@ -296,4 +302,4 @@ def upsert_entity(self, entity, state: Dict = None):
                 raise
 ```
 
-You can modify the methods in ODataClient.py to handle specific cases for your service. The above examples provide a starting point for common scenarios. You can refer to the comments in the code for more details.
+You can modify the methods in `ODataClient.py` to handle specific cases for your service. The above examples provide a starting point for common scenarios. You can refer to the comments in the code for more details.

@@ -5,17 +5,19 @@ This connector allows you to sync data from OData version 4 services to your Fiv
 ## Basic Usage
 
 ### Initialization
+
 ```python
 from ODataClient import ODataClient
 import requests
 session = requests.Session()
 
 odata_client = ODataClient(
-    service_url="https://services.odata.org/V2/Northwind/Northwind.svc/", 
+    service_url="https://services.odata.org/V4/Northwind/Northwind.svc/", 
     session=session,
     state=state  # Pass the state from update function parameter
 )
 ```
+
 Parameters:
 - `service_url`: URL endpoint of the OData service
 - `session`: requests.Session object for maintaining connection state
@@ -102,6 +104,7 @@ state = yield from odata_client.upsert_entity(entity=entity)
 ### Multiple Entity Operations
 
 Sync data from multiple entity sets:
+
 ```python
 entity_list = [
     {
@@ -203,6 +206,7 @@ session.headers.update({
     'Custom-Header': 'value'
 })
 ```
+
 For more details on authentication, refer to the [requests library documentation](https://requests.readthedocs.io/en/latest/user/authentication.html).
 
 ### Step 2: Adjust Response Format Handling
@@ -245,6 +249,8 @@ def clean_odata_fields(data):
     # Rest of implementation...
 ```
 
+You can also add custom handling for specific data types or formats in this function. This can include date formats, nested objects, or other transformations.
+
 ### Step 4: Customize Pagination Handling
 
 If your service uses different pagination patterns:
@@ -271,6 +277,7 @@ def _handle_pagination(self, initial_url: str, table: str = None, update_state: 
 ```
 
 ### Step 5: Define Your Schema
+
 Update the schema function in connector.py:
 
 ```python
@@ -291,6 +298,7 @@ def schema(configuration: dict):
 ```
 
 ### Step 6: Configure Entity Operations
+
 In the update function, define entities for each table you want to sync:
 
 ```python
@@ -311,6 +319,7 @@ entity = {
     }
 }
 ```
+
 Repeat this for each entity you want to sync. Ensure to adjust the `entity_set` and `table` names to match your service and destination.
 
-You can modify the methods in ODataClient.py to handle specific cases for your service. The above examples provide a starting point for common scenarios. You can refer to the comments in the code for more details.
+You can modify the methods in `ODataClient.py` to handle specific cases for your service. The above examples provide a starting point for common scenarios. You can refer to the comments in the code for more details.
