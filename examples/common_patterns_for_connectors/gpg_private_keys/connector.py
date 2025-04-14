@@ -19,9 +19,12 @@ import json
 # The private key is used to sign messages.
 # The method takes the configuration dictionary and the GPG object as parameters.
 # The method returns the imported key.
+# You can also have multiple keys in the configuration, and you can import them all using similar logic.
+# This is a simple example that imports only one key.
 def get_gpg_key(configuration: dict, gpg):
     # Get the private key from the configuration
     # Ensure that the private key string in configuration is properly escaped as JSON string.
+    # You can also import multiple keys from the configuration if needed.
     private_key = configuration.get("private_key")
     key = gpg.import_keys(private_key)
     # Check if the key was imported successfully
@@ -35,7 +38,11 @@ def get_gpg_key(configuration: dict, gpg):
 # This method is used to sign a message using the GPG object.
 # The method takes the configuration dictionary, the GPG object, the key, and the message to be signed as parameters.
 # The method returns the signed message.
+# In case of multiple keys, you can specify which key to use for signing.
+# The passphrase should correspond to the private key used for signing.
 def sign_message(configuration, gpg, key, message):
+    # You can also have multiple passphrase in the configuration, depending on the private keys.
+    # The passphrase used for signing should correspond to the private key used for signing.
     passphrase = configuration.get("passphrase")
     # Extract the key ID from the imported key and sign the message using the key ID and passphrase
     key_id = key.fingerprints[0]
