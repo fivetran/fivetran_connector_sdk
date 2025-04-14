@@ -150,7 +150,9 @@ There are several examples available under `/examples`:
 - **[gcp_pub_sub](/examples/source_examples/gcp_pub_sub)**
   - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - **[hubspot](/examples/source_examples/hubspot)**
-  - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
+  - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK.
+- **[mastertax](/examples/source_examples/mastertax)**
+  - This example shows how to sync extract data from MasterTax API using Connector SDK.
 - **[newsapi](/examples/source_examples/newsapi)**
   - This is a simple example of how to sync data from NewsAPI using Connector SDK.
 - **[oauth2_and_accelo_api_connector_multithreading_enabled](/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled)**
