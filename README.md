@@ -17,9 +17,9 @@
 </p>
 
 # Overview
-This repository contains a collection of example custom connectors using Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk), demonstrating how to build [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python and deploy them as an extension of Fivetran.
+Explore practical examples and helpful resources for building custom data connectors with the Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk). Learn how to develop and deploy [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python, and extend Fivetran’s capabilities to fit your data integration needs.
 
-Additionally, this repository provides guidance on [using AI to help you code an SDK connector](/ai_and_connector_sdk/README.md) quickly.
+You’ll also find tips on [using AI to help you code an SDK connector](/ai_and_connector_sdk/README.md) quickly.
 
 # Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
@@ -195,4 +195,4 @@ It's important to choose the right design pattern for your target API. Using an 
 As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connections you created to run these examples before the trial ends.
 
 # Maintenance
-This repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
+The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
