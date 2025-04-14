@@ -32,6 +32,7 @@ def schema(configuration : dict):
                 "name": "STRING",
                 "city": "STRING",
                 "mobile": "STRING",
+                "datetime": "NAIVE_DATETIME"
             }
         }
     ]
@@ -91,7 +92,7 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         # Fetch all rows from the result set
         rows = cursor.fetchall()
 
-        headers = {"id", "title", "name", "city", "mobile"}
+        headers = {"id", "title", "name", "city", "mobile", "datetime"}
         log.info("Iterating over the downloaded data.")
         for row in rows:
             upsert_line = {}

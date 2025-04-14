@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to install libpq5 and libpq-dev on Debian/Ubuntu or CentOS/RHEL/Fedora systems.
+# Script to install python3-dev, default-libmysqlclient-dev, build-essential on Debian/Ubuntu systems.
 
 # Detect OS
 OS=$(uname -s)
@@ -19,9 +19,9 @@ update_packages() {
 }
 
 # Install libpgtypes
-install_libpgtypes() {
+install_libmysqlclients() {
   if [[ "$OS" == "Linux" ]]; then
-    sudo apt-get install -y libpgtypes
+    sudo apt-get install -y python3-dev default-libmysqlclient-dev build-essential
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
@@ -30,6 +30,6 @@ install_libpgtypes() {
 
 # Main execution
 update_packages
-install_libpgtypes
+install_libmysqlclients
 
-echo '{"level":"INFO", "message": "libpgtypes installation complete.", "message-origin": "installation_sh"}'
+echo '{"level":"INFO", "message": "All python3-dev, default-libmysqlclient-dev, build-essential installations complete.", "message-origin": "installation_sh"}'
