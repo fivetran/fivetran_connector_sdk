@@ -4,6 +4,12 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
+# Note on GPG Key Generation:
+# To use this example, you'll need a GPG key pair. To generate your own GPG key pair, you can follow these guides:
+# - GnuPG official documentation: https://www.gnupg.org/gph/en/manual/c14.html
+# https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key
+# https://www.redhat.com/en/blog/creating-gpg-keypairs
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
