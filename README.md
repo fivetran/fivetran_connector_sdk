@@ -158,7 +158,7 @@ There are several examples available under `/examples`:
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 - **[github_traffic](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/github_traffic)**
   - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
-- **Odata APIs**
+- **OData APIs**
   - **[odata_version_2_using_pyodata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_2_using_pyodata)**
     - This is an example of how to sync data from an OData API version 2 using Connector SDK.
   - **[odata_version_4](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4)**
