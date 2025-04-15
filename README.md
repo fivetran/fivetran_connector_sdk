@@ -158,6 +158,13 @@ There are several examples available under `/examples`:
   - Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 - **[github_traffic](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/github_traffic)**
   - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
+- **OData APIs**
+  - **[odata_version_2_using_pyodata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_2_using_pyodata)**
+    - This is an example of how to sync data from an OData API version 2 using Connector SDK.
+  - **[odata_version_4](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4)**
+    - This is an example of how to sync data from an OData API version 4 using Connector SDK.
+  - **[odata_version_4_using_python_odata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4_using_python_odata)**
+    - This is an example of how to sync data from an OData API version 4 using python-odata python library.
 - **[redshift](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/redshift)**
   - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - **[s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/s3_csv_validation)**
