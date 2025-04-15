@@ -1,0 +1,6 @@
+{
+  "private_key": "<YOUR_ESCAPED_GPG_PRIVATE_KEY>",
+  "name": "<YOUR_NAME>",
+  "email": "<YOUR_EMAIL>",
+  "passphrase": "<YOUR_PASSPHRASE>"
+}
