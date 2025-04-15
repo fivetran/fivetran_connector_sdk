@@ -1,5 +1,5 @@
 # Importing External Drivers using installation.sh script file.
-
+import datetime
 # This module implements a connector that requires external driver installation using installation.sh file
 # It is an example of using python3-dev, default-libmysqlclient-dev and build-essential
 # to communicate with MySql db and iterate over the data to update the connector
@@ -33,7 +33,7 @@ def schema(configuration : dict):
                 "name": "STRING",
                 "city": "STRING",
                 "mobile": "STRING",
-                "datetime": "NAIVE_DATETIME"
+                "datetime": "STRING"
             }
         }
     ]
@@ -93,11 +93,13 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         # Fetch all rows from the result set
         rows = cursor.fetchall()
 
-        headers = {"id", "title", "name", "city", "mobile", "datetime"}
+        headers = ["id", "title", "name", "city", "mobile", "datetime"]
         log.info("Iterating over the downloaded data.")
         for row in rows:
             upsert_line = {}
             for col_index, value in enumerate(row):
+                if isinstance(value, datetime.date):
+                    value = str(value)
                 upsert_line[headers[col_index]] = value
             yield op.upsert("orders", upsert_line)
 
