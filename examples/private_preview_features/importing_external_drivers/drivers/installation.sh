@@ -18,10 +18,11 @@ update_packages() {
   fi
 }
 
-# Install MySqldb dependencies for header files -> python3-dev, default-libmysqlclient-dev, build-essential
+# Install MySqldb dependencies for header files -> default-libmysqlclient-dev
+# python3-dev and build-essential are already present in the production base image
 install_libmysqlclients() {
   if [[ "$OS" == "Linux" ]]; then
-    sudo apt-get install -y python3-dev default-libmysqlclient-dev build-essential
+    sudo apt-get install -y default-libmysqlclient-dev
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
