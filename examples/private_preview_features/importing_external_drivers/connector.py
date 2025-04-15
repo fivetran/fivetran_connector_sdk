@@ -1,7 +1,8 @@
 # Importing External Drivers using installation.sh script file.
 
 # This module implements a connector that requires external driver installation using installation.sh file
-# It is an example of using libpgtypes to communicate with posgress db and iterate over the data to update the connector
+# It is an example of using python3-dev, default-libmysqlclient-dev and build-essential
+# to communicate with MySql db and iterate over the data to update the connector
 
 # NOTE: libpq5 and libpq-dev are pre-installed in our connector-sdk base imagee.
 # NOTE: Do check with Customer Support to implement this or similar installation.sh script file.
@@ -11,8 +12,8 @@
 # Import datetime for handling date and time conversions.
 import time
 import json
-# Import psycopg2 to communicate with db
-import psycopg2
+# Import MySQLdb to communicate with db
+import MySQLdb
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 
@@ -64,11 +65,11 @@ def update(configuration : dict, state : dict):
 
 def read_postgres_and_upsert(host, database, user, password, port, table_name):
     """
-    Connects to a PostgreSQL database, reads all rows from a specified table,
+    Connects to a MySql database, reads all rows from a specified table,
     and prints them.
 
     Args:
-        host (str): The PostgreSQL server hostname or IP address.
+        host (str): The MySql server hostname or IP address.
         database (str): The database name.
         user (str): The database username.
         password (str): The database password.
@@ -76,13 +77,13 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         table_name (str): The name of the table to read from.
     """
     try:
-        # Establish a connection to the PostgreSQL database
-        conn = psycopg2.connect(
+        # Establish a connection to the Sql database
+        # Connect to the database
+        conn = MySQLdb.connect(
             host=host,
-            database=database,
             user=user,
-            password=password,
-            port=port
+            passwd=password,
+            db=database
         )
         cursor = conn.cursor()
 
@@ -104,8 +105,9 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         cursor.close()
         conn.close()
 
-    except psycopg2.Error as e:
-        print(f"Error: {e}")
+    except Exception as e:
+        log.severe(f"Error: {e}")
+        raise e
 
 
 connector = Connector(update=update, schema=schema)
