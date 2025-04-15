@@ -156,7 +156,6 @@ def schema(configuration: dict):
     connection.close()
 
     # return the schema list
-    log.info(f"Schema List : {schema_list}")
     return schema_list
 
 
@@ -186,7 +185,6 @@ def update(configuration: dict, state: dict):
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
         upsert_data = dict(zip(columns, row))
-        log.info(f"{upsert_data}")
         yield op.upsert(table="products", data=upsert_data)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -220,7 +218,6 @@ def update(configuration: dict, state: dict):
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
         upsert_data = dict(zip(columns, row))
-        log.info(f"{upsert_data}")
         yield op.upsert(table="orders", data=upsert_data)
 
         # Update the last order date in the state dictionary
