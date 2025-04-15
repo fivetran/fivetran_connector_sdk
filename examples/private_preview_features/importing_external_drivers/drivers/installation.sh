@@ -18,7 +18,7 @@ update_packages() {
   fi
 }
 
-# Install libpgtypes
+# Install MySqldb dependencies for header files -> python3-dev, default-libmysqlclient-dev, build-essential
 install_libmysqlclients() {
   if [[ "$OS" == "Linux" ]]; then
     sudo apt-get install -y python3-dev default-libmysqlclient-dev build-essential
