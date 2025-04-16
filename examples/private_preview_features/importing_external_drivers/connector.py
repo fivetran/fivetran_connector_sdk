@@ -1,7 +1,7 @@
 # Importing External Drivers using installation.sh script file.
 import datetime
 # This module implements a connector that requires external driver installation using installation.sh file
-# It is an example of using default-libmysqlclient-dev and build-essential
+# It is an example of using libmysqlclient-dev and build-essential
 # to communicate with MySql db and iterate over the data to update the connector
 
 # NOTE: libpq5 and libpq-dev are pre-installed in our connector-sdk base imagee.
