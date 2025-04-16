@@ -13,7 +13,6 @@ This connector does not make use of state.
 from time import sleep
 import requests as rq
 import traceback
-import datetime
 import time
 import os
 import json
@@ -30,6 +29,9 @@ from constants import column_names, data_extracts
 
 cert_path = "SSL.crt"
 key_path = "SSL_auth.key"
+
+retry_wait_seconds = 300
+max_retries = 3
 
 def schema(configuration: dict):
     """
@@ -51,11 +53,8 @@ def update(configuration: dict, state: dict):
     try:
         token_header = make_headers(configuration)
 
-        for e in data_extracts:
-            yield from sync_items(configuration, token_header, e)
-
-        # Yield a checkpoint operation to save the new state.
-        yield op.checkpoint({})
+        for extract in data_extracts:
+            yield from sync_items(configuration, token_header, extract)
 
     except Exception as e:
         # Return error response
@@ -107,11 +106,11 @@ def sync_items(configuration: dict, headers: dict, extract: dict):
          if tag.get("tagCode") == "LAYOUT_NAME"),
         None  # Default if not found
     )
-    matching_files = [fn for fn in os.listdir(extract_path) if layout_name in fn]
+    matching_files = [filename for filename in os.listdir(extract_path) if layout_name in filename]
 
-    for m in matching_files:
-        log.fine(f"processing {m}")
-        yield from upsert_rows(f"{extract_path}{m}", layout_name)
+    for file in matching_files:
+        log.fine(f"processing {file}")
+        yield from upsert_rows(f"{extract_path}{file}", layout_name)
 
     yield op.checkpoint({})
 
@@ -123,13 +122,13 @@ def upsert_rows(filename: str, layout_name: str):
     :return:
     """
 
-    colnames = column_names[layout_name]
+    layout_column_names = column_names[layout_name]
     log.fine(f"upserting rows for {filename}")
     with open(filename, "r", newline="", encoding="utf-8") as file:
         reader = csv.reader(file, delimiter="\t")  # Tab-delimited
 
         for row in reader:
-            yield op.upsert(table=layout_name, data=dict(zip(colnames, row)))
+            yield op.upsert(table=layout_name, data=dict(zip(layout_column_names, row)))
 
 def submit_process(url: str, headers: dict, payload: dict):
     """
@@ -139,9 +138,6 @@ def submit_process(url: str, headers: dict, payload: dict):
     :param payload: A dictionary with parameters for the extract to submit
     :return: status and resource_id
     """
-    retry_wait_seconds = 300
-    max_retries = 3
-
     for attempt in range(max_retries + 1):
         response = rq.post(url, headers=headers, data=json.dumps(payload), cert=(cert_path, key_path))
 
