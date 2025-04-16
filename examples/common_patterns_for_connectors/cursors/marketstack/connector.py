@@ -147,7 +147,6 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
             api_result = rq.get(
                 'http://api.marketstack.com/v1/eod', params)
             api_response = api_result.json()
-            # log.info(f"API response: {api_response}")
             insert_ticker_price_records_temp = api_response["data"]
             if insert_ticker_price_records_temp:
                 insert_ticker_price_records += insert_ticker_price_records_temp
