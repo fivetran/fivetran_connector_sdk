@@ -11,18 +11,18 @@ echo '{"level":"INFO", "message": "Detected OS: '$OS'", "message-origin": "insta
 # Update package lists
 update_packages() {
   if [[ "$OS" == "Linux" ]]; then
-      sudo apt-get update
+      apt-get update
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
   fi
 }
 
-# Install MySqldb dependencies for header files -> libmysqlclient-dev
+# Install MySqldb dependencies for header files -> default-libmysqlclient-dev
 # python3-dev and build-essential are already present in the production base image
 install_libmysqlclients() {
   if [[ "$OS" == "Linux" ]]; then
-    apt-get install -y libmysqlclient-dev
+    apt-get install -y default-libmysqlclient-dev
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
@@ -33,4 +33,4 @@ install_libmysqlclients() {
 update_packages
 install_libmysqlclients
 
-echo '{"level":"INFO", "message": "libmysqlclient-dev installations complete.", "message-origin": "installation_sh"}'
+echo '{"level":"INFO", "message": "default-libmysqlclient-dev installations complete.", "message-origin": "installation_sh"}'
