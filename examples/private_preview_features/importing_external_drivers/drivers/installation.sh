@@ -22,7 +22,7 @@ update_packages() {
 # python3-dev and build-essential are already present in the production base image
 install_libmysqlclients() {
   if [[ "$OS" == "Linux" ]]; then
-    sudo apt-get install -y default-libmysqlclient-dev
+    apt-get install -y default-libmysqlclient-dev
   else
     echo '{"level":"INFO", "message": "Unsupported OS.", "message-origin": "installation_sh"}'
     exit 1
