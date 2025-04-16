@@ -1,0 +1,7 @@
+{
+    "hostname" : "<YOUR_DB2_HOSTNAME>",
+    "port" : "<YOUR_DB2_PORT>",
+    "database" : "<YOUR_DB2_DATABASE_NAME>",
+    "user_id" : "<YOUR_DB2_USER_ID>",
+    "password" : "<YOUR_DB2_PASSWORD>"
+}
