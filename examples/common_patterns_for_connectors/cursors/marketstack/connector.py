@@ -87,7 +87,6 @@ def api_response(state, configuration):
     # After price for a ticker is fetched we increment ticker offset by 1
     insert_ticker_price = []
     for ticker in insert_tickers:
-        # log.info(f"--------------------------------")
         log.info(f"Fetching data for: {ticker}")
         temp_list = get_ticker_price(
             configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor)
