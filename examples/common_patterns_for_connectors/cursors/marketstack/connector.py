@@ -194,6 +194,10 @@ def log_data_summary(data):
     tickers = list(set(item['symbol'] for item in data['tickers_price']))
     
     # Get date range
+    if not data['tickers_price']:
+        log.warning("No data available in 'tickers_price'.")
+        return
+
     dates = sorted(item['date'] for item in data['tickers_price'])
     start_date = dates[0]
     end_date = dates[-1]
