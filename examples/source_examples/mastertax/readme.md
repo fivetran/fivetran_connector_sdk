@@ -1,4 +1,4 @@
-# Fivetran MasterTax Connector
+# MasterTax Connector
 
 This connector is designed to interact with the [ADP MasterTax API](https://api.adp.com), enabling automated data extract downloads and upsert operations to Fivetran.
 
