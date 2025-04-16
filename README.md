@@ -132,7 +132,7 @@ There are several examples available under `/examples`:
   - This example upserts all data types without specifying a schema.
 - **[update_and_delete](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/update_and_delete)**
   - This example shows how to handle composite primary keys while using update and delete operations with a PostgreSQL database as the data source.
-- **[error_handling](/examples/common_patterns_for_connectors/errors)**
+- **[error_handling](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/errors)**
   - This example shows how to handle errors throughout the Connector SDK process and is driven by the configuration.json error_simulation_type value.
 
 </details>
