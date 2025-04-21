@@ -1,0 +1,8 @@
+{
+    "database":"<YOUR_DATABASE_NAME>",
+    "hostname":"<YOUR_HOSTNAME_FOR_INFORMIX>" ,
+    "port":"<YOUR_PORT_NUMBER>",
+    "protocol":"<YOUR_PROTOCOL>",
+    "user_id":"<YOUR_USER_ID>",
+    "password":"<YOUR_PASSWORD>",
+}
