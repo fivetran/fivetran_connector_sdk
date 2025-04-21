@@ -8,7 +8,11 @@ from fivetran_connector_sdk import Connector  # For supporting Connector operati
 from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
 from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
-# Import the ibm_db module for connecting to DB2
+# Import the ibm_db module for connecting to IBM DB2
+# The ibm_db contains:
+#   ibm_db driver: Python driver for IBM Db2 for LUW and IBM Db2 for z/OS databases.
+#   Uses the IBM Data Server Driver for ODBC and CLI APIs to connect to IBM Db2 for LUW.
+#   ibm_db_dbi: Python driver for IBM Db2 for LUW that complies to the DB-API 2.0 specification.
 import ibm_db
 import json
 
@@ -27,7 +31,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "sample_table",
+            "table": "products",
             "primary_key": ["product_id"]
         }
     ]
@@ -71,7 +75,7 @@ def connect_to_db(configuration: dict):
         return conn
     except Exception as e:
         log.severe(f"Connection failed: {e}")
-        raise RuntimeError("Connection failed", e)
+        raise RuntimeError("Connection failed") from e
 
 
 # This method is used to create a sample data set to be inserted into the database.
@@ -219,19 +223,16 @@ def update(configuration: dict, state: dict):
     # This method should be removed in production code.
     insert_sample_data_into_table(conn)
 
-    # Fetch data from the products table and upsert
-    count = 0
-
     # Load the state from the state dictionary
-    last_updated = state.get("last_updated", "1990-01-01")
+    last_updated = state.get("last_updated", "1990-01-01T00:00:00")
 
-    # The SQL query to select all records from the products table
-    sql = f"SELECT * FROM products WHERE last_updated > '{last_updated}'"
-    # Execute the SQL query
+    # The SQL query to select all records from the products table after the last updated timestamp
+    sql = f"SELECT * FROM products WHERE LAST_UPDATED > '{last_updated}'"
     stmt = ibm_db.exec_immediate(conn, sql)
     # Fetch the first record from the result set
     # The ibm_db.fetch_assoc method fetches the next row from the result set as a dictionary
     dictionary = ibm_db.fetch_assoc(stmt)
+
     # Iterate over the result set and upsert each record until there are no more records
     while dictionary:
         # The yield statement returns a generator object.
@@ -240,15 +241,20 @@ def update(configuration: dict, state: dict):
         # - The first argument is the name of the table to upsert the data into, in this case, "products".
         # - The second argument is a dictionary containing the data to be upserted,
         yield op.upsert(table="products", data=dictionary)
+
         # Update the state with the last updated timestamp
         # This is important for ensuring that the sync process can resume from the correct position in case of next sync or interruptions
-        last_updated = dictionary.get("last_updated", last_updated)
-        count += 1
+        # The last updated timestamp is fetched from dictionary, converted to ISO string and compared with the current last_updated value
+        last_modified_from_data = dictionary.get("LAST_UPDATED").isoformat()
+        if last_modified_from_data > last_updated:
+            last_updated = last_modified_from_data
+
+        # fetch the next record from the result set
         dictionary = ibm_db.fetch_assoc(stmt)
 
-    # commit the changes to the database, if any
+    # commit the changes to the database
     ibm_db.commit(conn)
-    log.info(f"upserted {count} records from the products table")
+    log.info("Upserted all records from the products table")
 
     # Close the database connection after the operation is complete
     if 'conn' in locals() and conn:
@@ -257,10 +263,8 @@ def update(configuration: dict, state: dict):
 
     # update the state with the last updated timestamp
     # This state is used to keep track of the last updated timestamp for the next sync
-    # This will be checkpointed using op.checkpoint() method
-    state = {
-        "last_updated": last_updated
-    }
+    # This state will be checkpointed using op.checkpoint() method
+    state["last_updated"] = last_updated
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -281,4 +285,4 @@ if __name__ == "__main__":
     with open("configuration.json", 'r') as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
-    connector.debug()
+    connector.debug(configuration=configuration)
