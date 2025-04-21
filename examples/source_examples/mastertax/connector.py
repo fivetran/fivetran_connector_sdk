@@ -27,11 +27,11 @@ from fivetran_connector_sdk import Logging as log  # For enabling Logs in your c
 
 from constants import column_names, data_extracts
 
-cert_path = "SSL.crt"
-key_path = "SSL_auth.key"
+CERT_PATH = "SSL.crt"
+KEY_PATH = "SSL_auth.key"
 
-retry_wait_seconds = 300
-max_retries = 3
+RETRY_WAIT_SECONDS = 300
+MAX_RETRIES = 3
 
 def schema(configuration: dict):
     """
@@ -138,13 +138,13 @@ def submit_process(url: str, headers: dict, payload: dict):
     :param payload: A dictionary with parameters for the extract to submit
     :return: status and resource_id
     """
-    for attempt in range(max_retries + 1):
-        response = rq.post(url, headers=headers, data=json.dumps(payload), cert=(cert_path, key_path))
+    for attempt in range(MAX_RETRIES + 1):
+        response = rq.post(url, headers=headers, data=json.dumps(payload), cert=(CERT_PATH, KEY_PATH))
 
-        if response.status_code == 400 and attempt < max_retries:
-            log.info(f"Received 400 response, waiting {retry_wait_seconds} seconds to retry...")
+        if response.status_code == 400 and attempt < MAX_RETRIES:
+            log.info(f"Received 400 response, waiting {RETRY_WAIT_SECONDS} seconds to retry...")
             log.info(f"response: {response.json()}")
-            time.sleep(retry_wait_seconds)
+            time.sleep(RETRY_WAIT_SECONDS)
             continue  # Retry the request
 
         if response.status_code != 202:
@@ -167,7 +167,7 @@ def get_process_status(url: str, headers: dict):
     :param headers: A dictionary of headers for authorization
     :return: status and output_id
     """
-    response = rq.get(url, headers=headers, cert=(cert_path, key_path))
+    response = rq.get(url, headers=headers, cert=(CERT_PATH, KEY_PATH))
     if response.status_code != 200:
         log.info(str(response))
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
@@ -186,7 +186,7 @@ def download_file(url: str, headers: dict, name: str):
     :return:
     """
     headers["Range"] = "bytes=0-"
-    response = rq.get(url, headers=headers, stream=True, cert=(cert_path, key_path))
+    response = rq.get(url, headers=headers, stream=True, cert=(CERT_PATH, KEY_PATH))
     if response.status_code != 200:
         log.info(str(response))
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
@@ -207,8 +207,8 @@ def make_headers(conf: dict):
     """
 
     url = "https://api.adp.com/auth/oauth/v2/token"
-    write_to_file(conf["crtFile"], cert_path)
-    write_to_file(conf["keyFile"], key_path)
+    write_to_file(conf["crtFile"], CERT_PATH)
+    write_to_file(conf["keyFile"], KEY_PATH)
     payload = f"grant_type=client_credentials&client_id={conf['clientId']}&client_secret={conf['clientSecret']}"
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -231,7 +231,7 @@ def make_headers(conf: dict):
         return {"Authorization": f"Bearer {auth_token}", "Content-Type": "application/json"}
 
     except rq.exceptions.RequestException as e:
-        raise RuntimeError(f"❌ Failed to authenticate: {e}")
+        raise RuntimeError(f"Failed to authenticate: {e}")
 
 def write_to_file(text: str, filename: str):
     """
