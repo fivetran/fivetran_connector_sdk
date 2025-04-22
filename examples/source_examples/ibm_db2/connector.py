@@ -24,10 +24,13 @@ import json
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     # Check if the configuration dictionary has all the required keys
-    required_keys = ["hostname", "port", "database", "user_id", "password"]
+    required_keys = ["hostname", "port", "database", "user_id", "password", "protocol"]
     for key in required_keys:
         if key not in configuration:
-            raise ValueError(f"Missing required configuration key: {key}")
+            if key=="protocol":
+                log.warning("Missing protocol configuration key, defaulting to TCPIP")
+            else:
+                raise ValueError(f"Missing required configuration key: {key}")
 
     return [
         {
@@ -39,7 +42,6 @@ def schema(configuration: dict):
 
 # This method is used to create a connection string for the IBM DB2 database.
 # This takes the configuration dictionary as an argument and extracts the necessary parameters to create the connection string.
-# The connection string is used to establish a connection to the database.
 def get_connection_string(configuration: dict):
     # Extract the necessary parameters from the configuration dictionary
     hostname = configuration.get("hostname")
@@ -47,13 +49,14 @@ def get_connection_string(configuration: dict):
     database = configuration.get("database")
     user_id = configuration.get("user_id")
     password = configuration.get("password")
+    protocol = configuration.get("protocol", "TCPIP")
 
     # return the connection string
     return (
         f"DATABASE={database};"
         f"HOSTNAME={hostname};"
         f"PORT={port};"
-        f"PROTOCOL=TCPIP;"
+        f"PROTOCOL={protocol};"
         f"UID={user_id};"
         f"PWD={password};"
     )
