@@ -19,6 +19,7 @@ import json
 import csv
 import uuid
 import zipfile
+import tempfile
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
@@ -54,7 +55,7 @@ def update(configuration: dict, state: dict):
         token_header = make_headers(configuration)
 
         for extract in data_extracts:
-            yield from sync_items(configuration, token_header, extract)
+            yield from sync_items(token_header, extract)
 
     except Exception as e:
         # Return error response
@@ -63,16 +64,15 @@ def update(configuration: dict, state: dict):
         detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
         raise RuntimeError(detailed_message)
 
-def sync_items(configuration: dict, headers: dict, extract: dict):
+
+def sync_items(headers: dict, extract: dict):
     """
     For the specified extract, submit a request, then download the file once it is ready.
     Once the file is downloaded, call the upsert_rows() function to send the rows to Fivetran.
-    :param configuration: dictionary with secrets and certificate files
     :param headers: authentication headers for API
     :param extract: dictionary defining the extract to pull from MasterTax
     :return:
     """
-    # Get response from API call.
     complete = False
     conversation_id = str(uuid.uuid4())
     headers["ADP-ConversationID"] = conversation_id
@@ -81,36 +81,49 @@ def sync_items(configuration: dict, headers: dict, extract: dict):
     base_url = "https://api.adp.com"
     status, resource_id = submit_process(base_url + submit_endpoint, headers, extract)
     log.info(status)
+
     status_endpoint = f"/tax/v1/organization-tax-data/processing-jobs/{resource_id}/processing-status?processName=DATA_EXTRACT"
 
-    while not complete:
-        sleep(10)
-        log.info(f"checking export status for {conversation_id}")
+    attempts = 0
+    max_attempts = 100
+
+    while not complete and attempts < max_attempts:
+        sleep(30)
+        log.info(f"checking export status for {conversation_id}, attempt {attempts+1}/{max_attempts}")
         status, output_id = get_process_status(base_url + status_endpoint, headers)
         if status == "completed":
             complete = True
             log.info(f"process complete for {extract}")
-            content_endpoint = f"/tax/v1/organization-tax-data/processing-job-outputs/{output_id}/content?processName=DATA_EXTRACT"
-            download_file(base_url + content_endpoint, headers, "test")
+        attempts += 1
 
-    zip_path = "test.zip"
-    extract_path = configuration["unzipDirectory"]
+    if not complete:
+        raise TimeoutError(f"Status not completed after {max_attempts} attempts for {conversation_id}")
 
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(extract_path)
+    content_endpoint = f"/tax/v1/organization-tax-data/processing-job-outputs/{output_id}/content?processName=DATA_EXTRACT"
 
-    print(f"ZIP file extracted to: {extract_path}")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        zip_path = os.path.join(tmp_dir, "download.zip")
+        extract_path = tmp_dir
 
-    layout_name = next(
-        (tag["tagValues"][0] for tag in extract.get("processDefinitionTags", [])
-         if tag.get("tagCode") == "LAYOUT_NAME"),
-        None  # Default if not found
-    )
-    matching_files = [filename for filename in os.listdir(extract_path) if layout_name in filename]
+        download_file(base_url + content_endpoint, headers, zip_path)
 
-    for file in matching_files:
-        log.fine(f"processing {file}")
-        yield from upsert_rows(f"{extract_path}{file}", layout_name)
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_path)
+
+        log.fine(f"ZIP file extracted to: {extract_path}")
+
+        layout_name = next(
+            (tag["tagValues"][0] for tag in extract.get("processDefinitionTags", [])
+             if tag.get("tagCode") == "LAYOUT_NAME"),
+            None
+        )
+
+        matching_files = [filename for filename in os.listdir(extract_path) if layout_name in filename]
+
+        for file in matching_files:
+            full_path = os.path.join(extract_path, file)
+            log.fine(f"processing {full_path}")
+            yield from upsert_rows(full_path, layout_name)
 
     yield op.checkpoint({})
 
@@ -177,25 +190,25 @@ def get_process_status(url: str, headers: dict):
 
     return status, output_id
 
-def download_file(url: str, headers: dict, name: str):
+def download_file(url: str, headers: dict, output_path: str):
     """
     Downloads zip file with specified name
     :param url: The URL to which the API request is made, containing ID of file to download
     :param headers: A dictionary of headers for authorization
-    :param name: name of file to create
+    :param output_path: output_path of file to create
     :return:
     """
     headers["Range"] = "bytes=0-"
     response = rq.get(url, headers=headers, stream=True, cert=(CERT_PATH, KEY_PATH))
     if response.status_code != 200:
         log.info(str(response))
-    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
+    response.raise_for_status()
 
-    with open(f"{name}.zip", "wb") as file:
+    with open(output_path, "wb") as file:
         for chunk in response.iter_content(chunk_size=1024):
             file.write(chunk)
 
-    log.info("ZIP file downloaded successfully!")
+    log.info(f"ZIP file downloaded successfully to {output_path}")
 
 def make_headers(conf: dict):
     """
@@ -260,4 +273,3 @@ if __name__ == "main":
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
-
