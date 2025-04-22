@@ -28,7 +28,6 @@ Update `configuration.json` with your credentials and certificates:
 {
   "clientId": "<YOUR_CLIENT_ID>",
   "clientSecret": "<YOUR_CLIENT_SECRET>",
-  "unzipDirectory": "unzip/",
   "keyFile": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
   "crtFile": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
 }
