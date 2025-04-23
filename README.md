@@ -21,26 +21,26 @@ Explore practical examples and helpful resources for building custom data connec
 
 You’ll also find tips on [using AI to help you code an SDK connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) quickly.
 
-# Why Connector SDK?
+## Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
 
 Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
 
-# Requirements
+## Requirements
 - Python ≥3.9 and ≤3.12
 - Operating System:
   - Windows 10 or later
   - MacOS 13 (Ventura) or later
 
-# Getting started
+## Getting started
 
 See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-# Examples
+## Examples
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
-<summary><h2>Quickstart Examples</h2></summary>
+<summary><h3>Quickstart Examples</h3></summary>
 
 - **[hello](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/hello)**  
   - This is the simplest, append-only example.
@@ -72,7 +72,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h2>Common Patterns for Connectors</h2></summary>
+<summary><h3>Common Patterns for Connectors</h3></summary>
 
 - **Authentication**
   - **[api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key)**
@@ -136,7 +136,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h2>Source Examples</h2></summary>
+<summary><h3>Source Examples</h3></summary>
 
 - **[aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_boto3)**
   - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
@@ -182,21 +182,21 @@ There are several examples available under `/examples`:
 
 </details>
 
-# Example Workflows
+## Example Workflows
 - **[github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/example_workflows/github)**  
   - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
-# AI and Connector SDK
+## AI and Connector SDK
  - **[Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md)**
    - This is an introduction to using AI tools to leverage Connector SDK
  - **[claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/)**
    - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
-# Support
+## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
 
 
-# Additional considerations
+## Additional considerations
 
 We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
 
@@ -206,5 +206,5 @@ It's important to choose the right design pattern for your target API. Using an 
 
 As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connections you created to run these examples before the trial ends.
 
-# Maintenance
+## Maintenance
 The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
