@@ -13,7 +13,7 @@ The connector requires the following configuration parameters in `configuration.
   "region_name": "<YOUR_AWS_REGION_NAME>",
   "bucket_name": "<YOUR_AWS_BUCKET_NAME>",
   "prefix": "<YOUR_AWS_FOLDER_NAME>",
-  "max_workers": "<NUMBER_OF_PARALLEL_WORKERS>"
+  "max_workers": "<NUMBER_OF_THREADS>"
 }
 ```
 
@@ -21,7 +21,7 @@ The connector requires the following configuration parameters in `configuration.
 - `region_name`: AWS region where your bucket is located
 - `bucket_name`: Name of the S3 bucket containing your CSV files
 - `prefix`: Folder path in the bucket where CSV files are stored (optional, defaults to root "/" if not specified)
-- `max_workers`: Number of parallel threads to use (optional, defaults to 4 if not specified)
+- `max_workers`: Number of threads to use (optional, defaults to 4 if not specified)
 
 ### Key Functions
 
