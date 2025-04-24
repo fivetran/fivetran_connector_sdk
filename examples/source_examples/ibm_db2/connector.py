@@ -42,7 +42,7 @@ def schema(configuration: dict):
 
 # This method is used to create a connection string for the IBM DB2 database.
 # This takes the configuration dictionary as an argument and extracts the necessary parameters to create the connection string.
-def get_connection_string(configuration: dict):
+def create_connection_string(configuration: dict):
     # Extract the necessary parameters from the configuration dictionary
     hostname = configuration.get("hostname")
     port = configuration.get("port")
@@ -63,13 +63,13 @@ def get_connection_string(configuration: dict):
 
 
 # This method is used to establish a connection to the IBM DB2 database.
-# It takes the configuration dictionary as an argument and uses the get_connection_string method to create the connection string.
+# It takes the configuration dictionary as an argument and uses the create_connection_string method to create the connection string.
 # It then attempts to connect to the database using the ibm_db module.
 # If the connection is successful, it returns the connection object.
 # If the connection fails, it raises a RuntimeError with the error message.
 def connect_to_db(configuration: dict):
     # Get the connection string
-    conn_str = get_connection_string(configuration)
+    conn_str = create_connection_string(configuration)
 
     # Connect to the database
     try:
@@ -230,8 +230,8 @@ def update(configuration: dict, state: dict):
     last_updated = state.get("last_updated", "1990-01-01T00:00:00")
 
     # The SQL query to select all records from the products table after the last updated timestamp
-    sql = f"SELECT * FROM products WHERE LAST_UPDATED > '{last_updated}'"
-    stmt = ibm_db.exec_immediate(conn, sql)
+    select_records_sql = f"SELECT * FROM products WHERE LAST_UPDATED > '{last_updated}'"
+    stmt = ibm_db.exec_immediate(conn, select_records_sql)
     # Fetch the first record from the result set
     # The ibm_db.fetch_assoc method fetches the next row from the result set as a dictionary
     dictionary = ibm_db.fetch_assoc(stmt)
