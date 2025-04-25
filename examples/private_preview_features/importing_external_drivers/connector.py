@@ -82,8 +82,9 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         conn = MySQLdb.connect(
             host=host,
             user=user,
-            passwd=password,
-            db=database
+            password=password,
+            database=database,
+            port=int(port)
         )
         cursor = conn.cursor()
 
