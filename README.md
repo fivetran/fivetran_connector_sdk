@@ -134,7 +134,7 @@ There are several examples available under `/examples`:
 <summary><h2>Private Preview features</h2></summary>
 
 >**NOTE:** The following features are in Private Preview. Please connect with our professional services to get more information about them and enable it for your connector.
-- **[Importing External Libraries and Drivers](/examples/private_preview_features/importing_external_drivers)**
+- **[Importing External Libraries and Drivers](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/importing_external_drivers)**
   - This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 
 </details>
