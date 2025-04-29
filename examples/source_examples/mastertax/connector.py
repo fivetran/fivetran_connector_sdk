@@ -33,6 +33,7 @@ KEY_PATH = "SSL_auth.key"
 
 RETRY_WAIT_SECONDS = 300
 MAX_RETRIES = 3
+MAX_STATUS_ATTEMPTS = 10
 
 def schema(configuration: dict):
     """
@@ -83,13 +84,11 @@ def sync_items(headers: dict, extract: dict):
     log.info(status)
 
     status_endpoint = f"/tax/v1/organization-tax-data/processing-jobs/{resource_id}/processing-status?processName=DATA_EXTRACT"
-
     attempts = 0
-    max_attempts = 10
 
-    while not complete and attempts < max_attempts:
+    while not complete and attempts < MAX_STATUS_ATTEMPTS:
         sleep(30)
-        log.info(f"checking export status for {conversation_id}, attempt {attempts+1}/{max_attempts}")
+        log.info(f"checking export status for {conversation_id}, attempt {attempts+1}/{MAX_STATUS_ATTEMPTS}")
         status, output_id = get_process_status(base_url + status_endpoint, headers)
         if status == "completed":
             complete = True
@@ -97,7 +96,7 @@ def sync_items(headers: dict, extract: dict):
         attempts += 1
 
     if not complete:
-        raise TimeoutError(f"Status not completed after {max_attempts} attempts for {conversation_id}")
+        raise TimeoutError(f"Status not completed after {MAX_STATUS_ATTEMPTS} attempts for {conversation_id}")
 
     content_endpoint = f"/tax/v1/organization-tax-data/processing-job-outputs/{output_id}/content?processName=DATA_EXTRACT"
 
