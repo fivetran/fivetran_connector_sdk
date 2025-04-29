@@ -37,6 +37,7 @@ Processes a single file using streaming (not loading the entire file into memory
 ### Important Performance Considerations
 
 - Avoid loading entire files into memory before processing, as this can cause Out of Memory errors with large files.
-- You can start with the default of 4 workers and test with your specific workload. Only increase if you see clear performance benefits after testing.
+- A maximum of 4-8 worker threads is recommended for production environments. The connector defaults to 4 threads, which is suitable for most workloads.
+- While increasing threads might show performance improvements during local testing, this doesn't translate to production environments where other constraints apply.
 
 > IMPORTANT : Do not set `max_workers` too high. More workers is not always better and can actually degrade performance.
