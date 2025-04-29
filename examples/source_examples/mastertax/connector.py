@@ -85,7 +85,7 @@ def sync_items(headers: dict, extract: dict):
     status_endpoint = f"/tax/v1/organization-tax-data/processing-jobs/{resource_id}/processing-status?processName=DATA_EXTRACT"
 
     attempts = 0
-    max_attempts = 100
+    max_attempts = 10
 
     while not complete and attempts < max_attempts:
         sleep(30)
