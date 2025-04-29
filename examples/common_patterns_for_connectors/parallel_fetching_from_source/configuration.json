@@ -4,5 +4,5 @@
   "region_name": "<YOUR_AWS_REGION_NAME>",
   "bucket_name": "<YOUR_AWS_BUCKET_NAME>",
   "prefix": "<YOUR_AWS_FOLDER_NAME>",
-  "max_workers": "<NUMBER_OF_THREADS>"
+  "parallelism": "<NUMBER_OF_THREADS>"
 }

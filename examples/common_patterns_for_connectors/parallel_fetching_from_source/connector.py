@@ -21,17 +21,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed # For parallel p
 # The method takes the configuration dictionary as a parameter and returns the S3 client.
 # The S3 client is used to interact with the AWS S3 service.
 def create_s3_client(configuration: dict):
+    # Set default values for parallelism and prefix if not provided
+    if "parallelism" not in configuration:
+        log.warning("parallelism is not set in the configuration, defaulting to 4 workers.")
+        configuration["parallelism"] = 4
+    if "prefix" not in configuration:
+        log.warning("prefix is not set in the configuration, defaulting to '/' prefix.")
+        configuration["prefix"] = "/"
+
     # Check if the required keys are present in the configuration
-    required_keys = ["aws_access_key_id", "aws_secret_access_key", "region_name", "bucket_name", "prefix", "max_workers"]
+    required_keys = ["aws_access_key_id", "aws_secret_access_key", "region_name", "bucket_name"]
     for key in required_keys:
         if key not in configuration:
-            if key == "max_workers":
-                log.warning("max_workers is not set in the configuration, defaulting to 4 workers.")
-            elif key == "prefix":
-                log.warning("prefix is not set in the configuration, defaulting to '/' prefix.")
-            else:
-                # Raise an error if any required key is missing
-                raise ValueError(f"Missing required configuration key: {key}")
+            # Raise an error if any required key is missing
+            raise ValueError(f"Missing required configuration key: {key}")
 
     return boto3.client('s3',
                         aws_access_key_id=configuration["aws_access_key_id"],
@@ -158,7 +161,7 @@ def update(configuration: dict, state: dict):
     # create S3 client using the configuration
     s3_client = create_s3_client(configuration)
     bucket_name = configuration["bucket_name"]
-    max_workers = int(configuration.get("max_workers", 4)) # default to 4 workers
+    parallelism = int(configuration.get("parallelism", 4)) # default to 4 threads
     prefix = configuration.get("prefix", "/") # default to root prefix
 
     # get the list of CSV files and their corresponding table names
@@ -168,7 +171,7 @@ def update(configuration: dict, state: dict):
     log.info(f"Found {len(file_table_pairs)} CSV files in {prefix} folder")
 
     # Process files in parallel using ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=parallelism) as executor:
         # Submit all tasks to the executor
         futures_dict = {
             executor.submit(process_file_get_stream, s3_client, bucket_name, file_key, table_name): table_name
