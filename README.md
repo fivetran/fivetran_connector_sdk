@@ -78,6 +78,7 @@ There are several examples available under `/examples`:
 - Cursors
   - [marketstack](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/marketstack) - This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started).
   - [multiple_tables_with_cursors](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/multiple_tables_with_cursors) - The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
+  - [time_window](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/time_window) - This is an example of how to move the state forward in time by a set number of days until current time is reached.
 
 - Export
   - [csv](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/export/csv) - This is a simple example of how to work with .CSV file response for a REST API of export type.
