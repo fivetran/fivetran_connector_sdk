@@ -1,6 +1,133 @@
-# Toast Fivetran Connector
+# Toast Connector Example
 
-This is a custom [Fivetran Connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
+This example demonstrates how to use the Fivetran Connector SDK to integrate with the Toast platform API, enabling synchronization of restaurant data including orders, labor, configuration, and cash management information.
+
+## Requirements
+
+- Python 3.7 or later
+- Operating System:
+  - Windows 10 or later
+  - macOS 13 or later
+- Toast Developer Account
+- Valid Toast API credentials:
+  - Client ID
+  - Client Secret
+  - User Access Type
+  - Domain
+
+## Getting Started
+
+Follow the [Fivetran Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## Features
+
+- Comprehensive Toast API integration
+- Multi-endpoint data synchronization:
+  - Configuration data
+  - Labor information
+  - Cash management
+  - Order details
+- Automatic schema discovery
+- Efficient batch processing
+- State checkpointing for reliable resumption
+- Robust error handling and logging
+
+## Configuration File
+
+The connector requires the following parameters in the configuration file (`configuration.json`):
+
+```json
+{
+    "clientId": "<YOUR_CLIENT_ID>",
+    "clientSecret": "<YOUR_CLIENT_SECRET>",
+    "userAccessType": "<YOUR_ACCESS_TYPE>",
+    "domain": "<YOUR_DOMAIN>"
+}
+```
+
+## Authentication
+
+The connector uses OAuth2 client credentials flow:
+1. Obtain client credentials from Toast Developer Portal
+2. Configure the credentials in your configuration file
+3. The connector automatically handles token management and renewal
+4. Keep credentials secure and never commit them to version control
+
+## Data Handling
+
+### Endpoints and Data Types
+The connector syncs data from multiple Toast API endpoints:
+
+1. **Configuration Data**
+   - Restaurant settings
+   - Menu items
+   - Pricing information
+
+2. **Labor Data**
+   - Employee information
+   - Shift details
+   - Time entries
+
+3. **Cash Management**
+   - Cash drawer activities
+   - Payments
+   - Reconciliation data
+
+4. **Orders**
+   - Order details
+   - Item modifications
+   - Payment information
+
+### Processing Features
+- Incremental updates based on timestamps
+- Batch processing for efficient data transfer
+- Automatic schema mapping
+- Data type conversion and validation
+
+### Error Handling
+- API credential validation
+- Connection error management
+- Rate limit compliance
+- Comprehensive error logging
+- Automatic retries with backoff
+
+## Additional Considerations for Production Use
+
+1. **API Rate Limits**
+   - Monitor API usage
+   - Implement appropriate request delays
+   - Handle rate limit errors gracefully
+
+2. **Data Volume**
+   - Optimize batch sizes
+   - Configure appropriate sync intervals
+   - Monitor memory usage
+
+3. **Error Handling**
+   - Implement comprehensive error reporting
+   - Set up alerts for critical failures
+   - Maintain detailed logs
+
+4. **Monitoring**
+   - Track sync statistics
+   - Monitor API response times
+   - Set up performance metrics
+
+5. **Security**
+   - Rotate credentials regularly
+   - Use environment variables
+   - Implement audit logging
+   - Follow security best practices
+
+6. **Restaurant-Specific Considerations**
+   - Handle timezone differences
+   - Account for business hours
+   - Consider peak operation times
+   - Plan for menu updates
+
+## Disclaimer
+
+This example is provided for learning purposes and should be thoroughly tested and modified before use in a production environment. Fivetran is not responsible for any consequences resulting from the use of this example.
 
 ---
 

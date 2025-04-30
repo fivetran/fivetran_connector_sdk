@@ -1,62 +1,119 @@
-# Google Cloud Pub/Sub
+# Google Cloud Pub/Sub Connector Example
 
-This connector allows you to sync data from Google Cloud Pub/Sub to a destination using the Fivetran Connector SDK.
+This connector demonstrates how to integrate Google Cloud Pub/Sub with Fivetran using the Connector SDK. It provides an example of creating topics, publishing messages, managing subscriptions, and consuming messages from a Pub/Sub topic.
 
-The connector subscribes to a Pub/Sub subscription and delivers messages to your destination as they arrive. Each message is stored in a table with the message content, ID, and timestamp.
+## Requirements
 
-### Configuration
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating System:  
+  * Windows 10 or later  
+  * macOS 13 (Ventura) or later
+* Google Cloud Platform account
+* GCP Service Account with Pub/Sub permissions
+* GCP Project with Pub/Sub API enabled
 
-Update `configuration.json` with your GCP details:
+## Getting Started
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## Features
+
+* Demonstrates GCP Pub/Sub integration
+* Creates and manages Pub/Sub topics
+* Handles subscription creation and management
+* Publishes sample messages (for testing)
+* Implements message consumption and processing
+* Includes state checkpointing for resumable syncs
+* Provides comprehensive error handling
+* Implements proper resource cleanup
+
+## Configuration File
+
+The connector requires the following configuration parameters:
 
 ```json
 {
-    "service_key": "<GOOGLE_SERVICE_KEY_JSON_STRING>",
-    "max_messages": "<MAX_MESSAGE_COUNT>",
-    "subscription_name": "<SUBSCRIPTION_NAME>",
-    "topic_name": "<TOPIC_NAME>"
+  "service_key": {
+    "type": "service_account",
+    "project_id": "YOUR_PROJECT_ID",
+    "private_key_id": "YOUR_PRIVATE_KEY_ID",
+    "private_key": "YOUR_PRIVATE_KEY",
+    "client_email": "YOUR_CLIENT_EMAIL",
+    "client_id": "YOUR_CLIENT_ID",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "YOUR_CERT_URL"
+  },
+  "topic_name": "YOUR_TOPIC_NAME",
+  "subscription_name": "YOUR_SUBSCRIPTION_NAME"
 }
 ```
-The configuration parameters are:
-- `service_key`: Your GCP service account key JSON string. Ensure that the string is correctly escaped.
-- `max_messages`: The maximum number of messages to pull from Pub/Sub in each request.
-- `subscription_name`: The name of the Pub/Sub subscription to pull messages from.
-- `topic_name`: The name of the Pub/Sub topic to pull messages from.
 
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### Customizing for Your Use Case
+## Requirements File
 
-To adapt this connector for your needs:
+The connector requires the following Python packages:
 
-1. **Service Account Credentials**: Replace the placeholders in `configuration.json` with your actual credentials.
+```
+google-cloud-pubsub
+google-auth
+google-api-core
+protobuf==6.30.1
+```
 
-2. **Topic and Subscription**: Update `topic_name` and `subscription_name` to match your GCP Pub/Sub resources.
+Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment.
 
-3. **Message Processing**: Modify the message parsing logic in `pull_and_upsert_messages()` method if your message format differs.
+## Authentication
 
-4. **Remove Testing Code**: For production, you should remove the `create_sample_topic()`, `publish_test_messages()`, and `clean_up_resources()` functions.
+The connector uses GCP Service Account authentication:
+1. Service account credentials provided in configuration
+2. Credentials used to initialize Pub/Sub clients
+3. Automatic token management and renewal
 
-### Syncing Multiple Topics
+## Data Handling
 
-This example only syncs from one topic. To sync multiple topics:
+The connector syncs the following table:
 
-1. Update the `schema()` method to define multiple tables (one per topic)
-2. Modify the `pull_and_upsert_messages()` method to iterate through topic/subscription pairs
-3. Process each topic's messages into its respective destination table
+### Sample Table
+| Column    | Type           | Description                    |
+|-----------|----------------|--------------------------------|
+| key       | STRING         | Primary key                    |
+| data      | STRING         | Message content                |
+| timestamp | UTC_DATETIME   | Message timestamp              |
 
-Alternatively, you can also create multiple connectors, each syncing from a different topic.
+The connector implements the following data handling features:
+* Message batching for efficient processing
+* JSON message parsing
+* Timestamp handling
+* Automatic schema inference for additional fields
 
-### Important Notes
-  
-- The connector automatically acknowledges messages after processing, removing them from the subscription queue.
+## Error Handling
 
-- This connector includes message publishing functionality, but this is **only for testing**. In a real-world scenario, this connector would only need to pull and sync the messages that are already published to the topic/ subscription.
+The connector implements the following error handling:
+* Validates GCP credentials and configuration
+* Handles topic creation failures
+* Manages subscription errors
+* Implements proper message acknowledgment
+* Includes comprehensive logging
+* Provides proper resource cleanup
 
-- In an actual connector, you wouldn't create or delete topics/subscriptions within the connector.
+## Additional Considerations
 
-The methods which are used for testing purposes are:
+This example is intended for learning purposes and demonstrates GCP Pub/Sub integration. For production use, you should:
 
-- `create_sample_topic()` : This method is used to create a sample topic using the publisher instance. In a real-world scenario, you would already have a topic to pull messages from.
+1. Implement appropriate IAM roles and permissions
+2. Adjust message batch sizes based on your needs
+3. Add proper error retry mechanisms
+4. Consider implementing dead-letter queues
+5. Add monitoring for message processing
+6. Implement proper message ordering if required
+7. Consider implementing message filtering
+8. Add proper handling for backlog messages
+9. Implement proper error handling for GCP service outages
+10. Consider implementing message deduplication
+11. Add proper cleanup procedures
+12. Consider implementing custom message processing logic
 
-- `publish_test_messages()` : This method is used to publish test messages to the topic. In a real-world scenario, messages would already be published by your application. The connector would only need to pull and sync these messages.
-
-- `clean_up_resources()` : This method is used to delete the topic and subscription created by the connector. In a real-world scenario, you would not delete these resources.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
