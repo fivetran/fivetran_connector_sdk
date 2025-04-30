@@ -98,7 +98,7 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
             # Yield the record for upsert
             yield record
         except Exception as e:
-            log.severe(f"Error processing record from {file_key}: {str(e)}")
+            log.severe(f"Error processing record from {file_key}", e)
             # Continue processing other records even if one fails
             continue
 
@@ -114,36 +114,58 @@ def schema(configuration: dict):
             "table": "campaigns", # Name of the table
             "primary_key": ["campaign_id"], # Primary key(s) for the table
             "columns": {
+                "campaign_id": "STRING",
                 "target_demographics":"JSON"
             }
         },
         {
             "table": "customers",
             "primary_key": ["customer_id"],
+            "columns": {
+                "customer_id": "STRING",
+            }
         },
         {
             "table": "employees",
             "primary_key": ["employee_id"],
+            "columns": {
+                "employee_id": "STRING",
+            }
         },
         {
             "table": "inventory",
             "primary_key": ["inventory_id"],
+            "columns": {
+                "inventory_id": "STRING",
+            }
         },
         {
             "table": "orders",
             "primary_key": ["order_id"],
+            "columns": {
+                "order_id": "STRING",
+            }
         },
         {
             "table": "products",
             "primary_key": ["product_id"],
+            "columns": {
+                "product_id": "STRING",
+            }
         },
         {
             "table": "tickets",
             "primary_key": ["ticket_id"],
+            "columns": {
+                "ticket_id": "STRING",
+            }
         },
         {
             "table": "transactions",
             "primary_key": ["transaction_id"],
+            "columns": {
+                "transaction_id": "STRING",
+            }
         }
     ]
 
@@ -194,7 +216,7 @@ def update(configuration: dict, state: dict):
                     # - The second argument is a dictionary containing the data to be upserted,
                     yield op.upsert(table=table_name, data=record)
             except Exception as e:
-                log.severe(f"Error processing file for table {table_name}: {str(e)}")
+                log.severe(f"Error processing file for table {table_name}", e)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
