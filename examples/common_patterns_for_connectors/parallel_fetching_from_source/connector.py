@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed # For parallel p
 def create_s3_client(configuration: dict):
     # Set default values for parallelism and prefix if not provided
     if "parallelism" not in configuration:
-        log.warning("parallelism is not set in the configuration, defaulting to 4 workers.")
+        log.warning("parallelism is not set in the configuration, defaulting to 4 threads.")
         configuration["parallelism"] = 4
     if "prefix" not in configuration:
         log.warning("prefix is not set in the configuration, defaulting to '/' prefix.")
@@ -183,7 +183,7 @@ def update(configuration: dict, state: dict):
     # create S3 client using the configuration
     s3_client = create_s3_client(configuration)
     bucket_name = configuration["bucket_name"]
-    parallelism = int(configuration.get("parallelism", 4)) # default to 4 threads
+    parallelism = int(configuration.get("parallelism"))
     prefix = configuration.get("prefix", "/") # default to root prefix
 
     # get the list of CSV files and their corresponding table names
