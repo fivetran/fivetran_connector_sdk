@@ -11,6 +11,7 @@ from fivetran_connector_sdk import Operations as op  # For supporting Data opera
 # Import the ibm_db module for connecting to IBM Informix
 import ibm_db
 import json
+from datetime import datetime
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -20,13 +21,10 @@ import json
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     # Check if the configuration dictionary has all the required keys
-    required_keys = ["hostname", "port", "database", "user_id", "password", "protocol"]
+    required_keys = ["hostname", "port", "database", "username", "password", "table_name"]
     for key in required_keys:
         if key not in configuration:
-            if key == "protocol":
-                log.warning("Protocol is not set in configuration, defaulting to TCPIP")
-            else:
-                raise ValueError(f"Missing required configuration key: {key}")
+            raise ValueError(f"Missing required configuration key: {key}")
 
     return [
         {
@@ -45,10 +43,10 @@ def get_connection_string(configuration: dict):
     hostname = configuration.get("hostname")
     port = configuration.get("port")
     database = configuration.get("database")
-    user_id = configuration.get("user_id")
+    user_id = configuration.get("username")
     password = configuration.get("password")
-    # The protocol is set to "TCPIP" by default, but can be changed in the configuration.
-    protocol = configuration.get("protocol", "TCPIP")
+    # The protocol is set to "TCPIP" by default, but can be changed according to the database configuration.
+    protocol = "TCPIP"
 
     # return the connection string
     return (
@@ -80,6 +78,31 @@ def connect_to_db(configuration: dict):
         raise RuntimeError("Connection failed") from e
 
 
+# This method is used to safely convert a date value to a string representation.
+# It takes a date value as an argument and attempts to convert it to a string in the format "YYYY-MM-DD HH:MM:SS".
+# If the conversion fails, it logs a warning and returns the string representation of the date value.
+# This is useful for ensuring that the date value is in a consistent format before it is used in the SQL query.
+def get_datetime_str(date_value):
+    try:
+        # If it's already a datetime object
+        if hasattr(date_value, 'strftime'):
+            return date_value.strftime("%Y-%m-%d %H:%M:%S")
+        # If it's a string, try to parse it
+        elif isinstance(date_value, str):
+            # Try to parse with different formats if needed
+            return date_value
+        # If it's a timestamp or other numeric type
+        elif isinstance(date_value, (int, float)):
+            dt_obj = datetime.fromtimestamp(date_value)
+            return dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            # Default conversion as string
+            return str(date_value)
+    except Exception as e:
+        log.warning(f"Error converting datetime: {e}, using string representation")
+        return str(date_value)
+
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -92,13 +115,15 @@ def update(configuration: dict, state: dict):
 
     # Connect to the IBM Informix database
     conn = connect_to_db(configuration)
+    table_name = configuration.get("table_name")
 
     # The date format of the created_at column in the database is "YYYY-MM-DD HH:MM:SS"
     # Please ensure that while handling the datetime, you are using the correct format for the columns.
     last_created = state.get("last_created","1990-01-01 00:00:00")
 
-    # The SQL query to select all records from the sample person table
-    sql = f"SELECT * FROM person WHERE created_at > '{last_created}'"
+    # The SQL query to select all records from the table specified in configuration
+    # You can modify this query to suit your needs.
+    sql = f"SELECT * FROM {table_name} WHERE created_at > '{last_created}'"
     # Execute the SQL query
     stmt = ibm_db.exec_immediate(conn, sql)
     # Fetch the first record from the result set
@@ -109,12 +134,12 @@ def update(configuration: dict, state: dict):
         # The yield statement returns a generator object.
         # This generator will yield an upsert operation to the Fivetran connector.
         # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+        # - The first argument is the name of the table to upsert the data into, in this case, "sample_table".
         # - The second argument is a dictionary containing the data to be upserted,
-        yield op.upsert(table="products", data=data)
+        yield op.upsert(table="sample_table", data=data)
 
         # Update the last_created variable with the created_at value of the current record
-        last_created_from_data = data["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+        last_created_from_data = get_datetime_str(data["created_at"])
         if last_created_from_data > last_created:
             last_created = last_created_from_data
         data = ibm_db.fetch_assoc(stmt)
