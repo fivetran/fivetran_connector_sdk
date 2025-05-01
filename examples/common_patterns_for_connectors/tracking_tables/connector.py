@@ -66,6 +66,7 @@ def update(configuration: dict, state: dict):
     """
     tables_synced_this_sync.sort()
     new_state["synced_tables"] = tables_synced_this_sync
+    log.fine(new_state)
     yield op.checkpoint(new_state)
 
 def sync_tables(tables_previously_synced: list, from_timestamp, initial_timestamp):
