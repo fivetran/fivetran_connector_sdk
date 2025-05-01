@@ -58,7 +58,7 @@ The external driver connector requires the following configuration in your `conf
 ```
 
 ### Setting Up the Driver
-The connector requires the Informix JDBC driver. An installation script ([`installation.sh`](/drivers/installation.sh)) is provided that:
+The connector requires the Informix JDBC driver. An installation script ([`installation.sh`](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix/using_jaydebeapi/drivers/installation.sh)) is provided that:
 - Installs required dependencies
 - Downloads and sets up the Informix JDBC driver
 - Installs the necessary Python packages (JayDeBeApi and JPype)
