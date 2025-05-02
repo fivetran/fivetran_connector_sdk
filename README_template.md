@@ -30,6 +30,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 *Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the configuration.json file.* 
 
 ```
+{
   "api_key": "YOUR_API_KEY",
   "base_url": "https://api.example.com",
   "start_date": "2023-01-01"
