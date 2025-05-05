@@ -1,0 +1,168 @@
+# This is an example for how to work with the fivetran_connector_sdk module.
+# It defines a method, which fetches the Postgres secrets from Azure Key vault and uses it to authenticate with Postgres.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Operations as op
+
+# Import Azure libraries
+from azure.identity import ClientSecretCredential
+from azure.keyvault.secrets import SecretClient
+
+# Import other required libraries
+import json
+import psycopg2
+from datetime import datetime
+
+
+# This function fetches secrets from Azure Key Vault using the Azure SDK
+# It uses the ClientSecretCredential to authenticate and SecretClient to retrieve secrets
+# The function takes a configuration dictionary as input, which contains the necessary credentials and vault URL
+# It returns a dictionary with the secrets needed to connect to the database
+def fetch_secrets_from_vault(configuration: dict):
+    tenant_id = configuration["tenant_id"]
+    client_id = configuration["client_id"]
+    client_secret = configuration["client_secret"]
+    vault_url = configuration["vault_url"]
+
+    # Set up the client credentials
+    credential = ClientSecretCredential(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+
+    # Create a SecretClient
+    secret_client = SecretClient(vault_url=vault_url, credential=credential)
+
+    # Define secret names to fetch
+    secret_names = ["postgresDatabase", "postgresHost", "postgresPassword",
+                    "postgresPort", "postgresUser"]
+
+    # Fetch the secrets
+    ready_configuration = {}
+    for secret_name in secret_names:
+        try:
+            secret = secret_client.get_secret(secret_name)
+            # Map secret names to configuration keys
+            key = secret_name.replace('postgres', '').lower()
+            ready_configuration[key] = secret.value
+        except Exception as e:
+            raise RuntimeError(f"Failed to retrieve secret {secret_name}: {str(e)}")
+
+    log.info("Successfully retrieved all secrets from Azure Key Vault")
+    return ready_configuration
+
+
+# This function connects to the PostgreSQL database using the credentials fetched from Azure Key Vault
+# It takes a dictionary with the database configuration as input
+# It returns a connection object to interact with the database
+def connect_to_database(db_config: dict):
+    try:
+        conn = psycopg2.connect(
+            host=db_config['host'],
+            port=db_config.get('port', 5439),
+            dbname=db_config['database'],
+            user=db_config['user'],
+            password=db_config['password']
+        )
+        log.info("Successfully connected to database")
+        return conn
+    except Exception as e:
+        raise RuntimeError(f"Failed to connect to database: {str(e)}")
+
+
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
+def schema(configuration: dict):
+    # Check if the required fields are present in the configuration
+    # These fields are necessary for connecting to the Azure Key Vault
+    required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
+    for field in required_fields:
+        if field not in configuration:
+            raise ValueError(f"Missing required configuration: {field}")
+
+    return [
+        {
+            "table": "database_info",
+            "primary_key": ["id"],
+            "columns": {
+                "id": "INT",
+                "host": "STRING",
+                "database": "STRING",
+                "connected_at": "STRING"
+            }
+        }
+    ]
+
+
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
+# - state: a dictionary containing the state checkpointed during the prior sync.
+#   The state dictionary is empty for the first sync or for any full re-sync.
+def update(configuration: dict, state: dict):
+    log.warning("Example: Common Patterns For Connectors - Azure Key Vault For Secret Management")
+
+    # Fetch database credentials from vault
+    db_config = fetch_secrets_from_vault(configuration)
+
+    # Connect to database
+    conn = connect_to_database(db_config)
+
+    # Get database version info
+    # This is a simple query to ensure that the connection is working properly
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT version()")
+        version = cursor.fetchone()[0]
+
+    # Close the connection to database
+    conn.close()
+
+    # Create data to upsert
+    # This data includes the database host, database name, connection time, and version
+    # This is a sample data structure, and you can modify it as per your requirements
+    data = {
+        "id": 1,
+        "host": db_config['host'],
+        "database": db_config['database'],
+        "connected_at": datetime.now().isoformat(),
+        "db_version": version
+    }
+
+    log.fine("Upserting to table 'database_info'")
+    # The yield statement returns a generator object.
+    # This generator will yield an upsert operation to the Fivetran connector.
+    # The op.upsert method is called with two arguments:
+    # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+    # - The second argument is a dictionary containing the data to be upserted.
+    yield op.upsert(table="database_info", data=data)
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
+
+
+# This creates the connector object that will use the update function defined in this connector.py file.
+connector = Connector(update=update, schema=schema)
+
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+if __name__ == "__main__":
+    with open("configuration.json", 'r') as f:
+        configuration = json.load(f)
+
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
+    connector.debug(configuration=configuration)
