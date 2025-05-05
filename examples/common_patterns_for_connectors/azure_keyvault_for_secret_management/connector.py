@@ -142,7 +142,7 @@ def update(configuration: dict, state: dict):
     # The yield statement returns a generator object.
     # This generator will yield an upsert operation to the Fivetran connector.
     # The op.upsert method is called with two arguments:
-    # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+    # - The first argument is the name of the table to upsert the data into, in this case, "database_info".
     # - The second argument is a dictionary containing the data to be upserted.
     yield op.upsert(table="database_info", data=data)
 

@@ -1,4 +1,4 @@
-# **Azure Key Vault for Secret Managemen**
+# **Azure Key Vault for Secret Management**
 
 **Connector Overview**
 
