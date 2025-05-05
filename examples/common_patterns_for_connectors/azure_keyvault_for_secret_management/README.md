@@ -2,7 +2,7 @@
 
 **Connector Overview**
 
-This connector demonstrates how to use Azure Key Vault to securely manage database credentials. It retrieves credentials from Azure Key Vault, connects to a database, and stores information about the connection in a table. 
+This connector demonstrates how to use Azure Key Vault to securely manage database credentials. It retrieves credentials from Azure Key Vault, connects to a database, fetches data from database and upserts the data. 
 
 ## **Requirements**
 
@@ -71,13 +71,13 @@ This connector uses service principal authentication to access Azure Key Vault. 
 
 The connector retrieves credentials from Azure Key Vault and uses them to establish a database connection. It then:  
 
-1. Executes a simple query to verify connectivity and retrieve database version.
-   2. Stores connection information in the "database_info" table with the following schema:
+1. Executes a simple query to verify connectivity and retrieve data from a table in the database.
+
+2. Upserts the data in the `employees` table with the following schema:
    - id (INT)
-   - host (STRING)
-   - database (STRING)
-   - connected_at (STRING)
-   - db_version (STRING)
+   - name (STRING)
+   - department_id (INT)
+   - employee_metadata (JSON)
    
 The connector expects the following secrets to be stored in the Key Vault:  
    - postgresHost

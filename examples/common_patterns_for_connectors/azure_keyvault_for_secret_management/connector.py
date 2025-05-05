@@ -15,14 +15,17 @@ from azure.keyvault.secrets import SecretClient
 # Import other required libraries
 import json
 import psycopg2
-from datetime import datetime
 
 
-# This function fetches secrets from Azure Key Vault using the Azure SDK
-# It uses the ClientSecretCredential to authenticate and SecretClient to retrieve secrets
-# The function takes a configuration dictionary as input, which contains the necessary credentials and vault URL
-# It returns a dictionary with the secrets needed to connect to the database
 def fetch_secrets_from_vault(configuration: dict):
+    """
+    # This function fetches secrets from Azure Key Vault using the Azure SDK
+    # It uses the ClientSecretCredential to authenticate and SecretClient to retrieve secrets
+    Args:
+        configuration: A dictionary containing the Azure Key Vault credentials and URL.
+    Returns:
+        A dictionary containing the database connection details.
+    """
     tenant_id = configuration["tenant_id"]
     client_id = configuration["client_id"]
     client_secret = configuration["client_secret"]
@@ -43,24 +46,28 @@ def fetch_secrets_from_vault(configuration: dict):
                     "postgresPort", "postgresUser"]
 
     # Fetch the secrets
-    ready_configuration = {}
+    db_config = {}
     for secret_name in secret_names:
         try:
             secret = secret_client.get_secret(secret_name)
             # Map secret names to configuration keys
             key = secret_name.replace('postgres', '').lower()
-            ready_configuration[key] = secret.value
+            db_config[key] = secret.value
         except Exception as e:
             raise RuntimeError(f"Failed to retrieve secret {secret_name}: {str(e)}")
 
     log.info("Successfully retrieved all secrets from Azure Key Vault")
-    return ready_configuration
+    return db_config
 
 
-# This function connects to the PostgreSQL database using the credentials fetched from Azure Key Vault
-# It takes a dictionary with the database configuration as input
-# It returns a connection object to interact with the database
 def connect_to_database(db_config: dict):
+    """
+    # This function connects to the PostgreSQL database using the credentials fetched from Azure Key Vault
+    Args:
+        db_config: A dictionary containing the database connection details.
+    Returns:
+        connection object: A connection object to the PostgreSQL database.
+    """
     try:
         conn = psycopg2.connect(
             host=db_config['host'],
@@ -90,14 +97,15 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "database_info",
-            "primary_key": ["id"],
-            "columns": {
-                "id": "INT",
-                "host": "STRING",
-                "database": "STRING",
-                "connected_at": "STRING"
+            "table": "employees", # Name of the table
+            "primary_key": ["id"], # Primary key(s) of the table
+            "columns":{
+                "id" : "INT",
+                "name" : "STRING",
+                "department_id" : "INT",
+                "employee_metadata": "JSON"
             }
+            # Columns not defined in schema will be inferred
         }
     ]
 
@@ -118,34 +126,31 @@ def update(configuration: dict, state: dict):
     # Connect to database
     conn = connect_to_database(db_config)
 
-    # Get database version info
+    # Get data from the database
     # This is a simple query to ensure that the connection is working properly
+    sql_query = "SELECT * from sample_table"
     with conn.cursor() as cursor:
-        cursor.execute("SELECT version()")
-        version = cursor.fetchone()[0]
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        log.info(f"Fetched {len(records)} records from the database")
 
     # Close the connection to database
     conn.close()
 
-    # Create data to upsert
-    # This data includes the database host, database name, connection time, and version
-    # This is a sample data structure, and you can modify it as per your requirements
-    data = {
-        "id": 1,
-        "host": db_config['host'],
-        "database": db_config['database'],
-        "connected_at": datetime.now().isoformat(),
-        "db_version": version
-    }
+    for record in records:
+        # The cursor.description attribute contains metadata about the columns in the result set.
+        # This is required to create a dictionary with the column names as keys and the record values as values.
+        columns = [col[0].lower() for col in cursor.description]
+        upsert_data = dict(zip(columns, record))
 
-    log.fine("Upserting to table 'database_info'")
-    # The yield statement returns a generator object.
-    # This generator will yield an upsert operation to the Fivetran connector.
-    # The op.upsert method is called with two arguments:
-    # - The first argument is the name of the table to upsert the data into, in this case, "database_info".
-    # - The second argument is a dictionary containing the data to be upserted.
-    yield op.upsert(table="database_info", data=data)
+        # The yield statement returns a generator object.
+        # This generator will yield an upsert operation to the Fivetran connector.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into, in this case, "employees".
+        # - The second argument is a dictionary containing the data to be upserted.
+        yield op.upsert("employees", upsert_data)
 
+    log.fine(f"Upserted {len(records)} records to table 'employees'")
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
