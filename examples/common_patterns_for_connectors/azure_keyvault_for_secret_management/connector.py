@@ -19,8 +19,8 @@ import psycopg2
 
 def fetch_secrets_from_vault(configuration: dict):
     """
-    # This function fetches secrets from Azure Key Vault using the Azure SDK
-    # It uses the ClientSecretCredential to authenticate and SecretClient to retrieve secrets
+    This function fetches secrets from Azure Key Vault using the Azure SDK
+    It uses the ClientSecretCredential to authenticate and SecretClient to retrieve secrets
     Args:
         configuration: A dictionary containing the Azure Key Vault credentials and URL.
     Returns:
@@ -62,7 +62,7 @@ def fetch_secrets_from_vault(configuration: dict):
 
 def connect_to_database(db_config: dict):
     """
-    # This function connects to the PostgreSQL database using the credentials fetched from Azure Key Vault
+    This function connects to the PostgreSQL database using the credentials fetched from Azure Key Vault
     Args:
         db_config: A dictionary containing the database connection details.
     Returns:
@@ -82,12 +82,42 @@ def connect_to_database(db_config: dict):
         raise RuntimeError(f"Failed to connect to database: {str(e)}")
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
+def insert_dummy_data_to_database(conn):
+    """
+    This function inserts dummy data into the PostgreSQL database to test the connector
+    This method is used only for testing purposes.
+    In a production connector, you would typically not insert dummy data into the database.
+    Args:
+        conn: A connection object to the PostgreSQL database.
+    """
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS employee_table (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100),
+                    department_id INT,
+                    employee_metadata JSON
+                )
+            """)
+            cursor.execute("""
+                INSERT INTO employee_table (name, department_id, employee_metadata)
+                VALUES (%s, %s, %s)
+            """, ("John Doe", 1, '{"role": "Engineer"}'))
+            conn.commit()
+            log.info("Inserted dummy data into database")
+    except Exception as e:
+        raise RuntimeError(f"Failed to insert dummy data: {str(e)}")
+
+
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     # Check if the required fields are present in the configuration
     # These fields are necessary for connecting to the Azure Key Vault
     required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
@@ -110,14 +140,16 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary containing the state checkpointed during the prior sync.
-#   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
+        state:  a dictionary containing the state checkpointed during the prior sync.
+        The state dictionary is empty for the first sync or for any full re-sync.
+    """
     log.warning("Example: Common Patterns For Connectors - Azure Key Vault For Secret Management")
 
     # Fetch database credentials from vault
@@ -126,21 +158,25 @@ def update(configuration: dict, state: dict):
     # Connect to database
     conn = connect_to_database(db_config)
 
-    # Get data from the database
+    # Create dummy table and insert dummy data
+    # This method is used only for testing purposes.
+    insert_dummy_data_to_database(conn)
+
+    # Get data from the dummy table created above
     # This is a simple query to ensure that the connection is working properly
-    sql_query = "SELECT * from sample_table"
+    sql_query = "SELECT * from employee_table"
     with conn.cursor() as cursor:
         cursor.execute(sql_query)
         records = cursor.fetchall()
+        # The cursor.description attribute contains metadata about the columns in the result set.
+        columns = [col[0].lower() for col in cursor.description]
         log.info(f"Fetched {len(records)} records from the database")
 
     # Close the connection to database
     conn.close()
 
     for record in records:
-        # The cursor.description attribute contains metadata about the columns in the result set.
         # This is required to create a dictionary with the column names as keys and the record values as values.
-        columns = [col[0].lower() for col in cursor.description]
         upsert_data = dict(zip(columns, record))
 
         # The yield statement returns a generator object.
@@ -161,11 +197,12 @@ def update(configuration: dict, state: dict):
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+
 if __name__ == "__main__":
+    # Check if the script is being run as the main module.
+    # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+    # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+    # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
     with open("configuration.json", 'r') as f:
         configuration = json.load(f)
 
