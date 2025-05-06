@@ -1,0 +1,53 @@
+name: Request
+description: Suggest an idea for a Connector SDK project.
+title: "[Request]: "
+labels: ["Project", "New Feature"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this Connector SDK request!
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Connector SDK version
+      description: What version of Connector SDK are you using? You can check the version with 'pip show fivetran-connector-sdk' or install the latest version with 'pip install --upgrade fivetran-connector-sdk.'
+      placeholder: ex. 1.4.0
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Is your request related to a problem? Please describe...
+      description: A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+      placeholder: Tell us what you need!
+      value: "Feature x would be great to help with y."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen.
+  - type: textarea
+    id: info
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the request here.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com). 
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
