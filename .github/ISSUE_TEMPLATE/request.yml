@@ -9,14 +9,6 @@ body:
       value: |
         Thanks for taking the time to fill out this Connector SDK request!
   - type: input
-    id: contact
-    attributes:
-      label: Contact Details
-      description: How can we get in touch with you if we need more info?
-      placeholder: ex. email@example.com
-    validations:
-      required: false
-  - type: input
     id: version
     attributes:
       label: Connector SDK version
@@ -43,11 +35,3 @@ body:
     attributes:
       label: Additional context
       description: Add any other context or screenshots about the request here.
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com). 
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
