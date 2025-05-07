@@ -1,84 +1,73 @@
-# MasterTax Connector
+# **Connector Overview**
 
-This connector is designed to interact with the [ADP MasterTax API](https://api.adp.com), enabling automated data extract downloads and upsert operations to Fivetran.
+This connector fetches data extracts from the MasterTax API provided by ADP ([https://api.adp.com](https://api.adp.com)). It supports downloading ZIP files containing tab-delimited data extracts, which are parsed and streamed to Fivetran. The connector operates statelessly and dynamically handles certificate-based authentication for secure API access. It is designed for compatibility with Fivetran's Connector SDK and adheres to the standard schema-update model.
 
-## Overview
-This connector:
-- Submits data extract jobs to the MasterTax API.
-- Monitors job status until completion.
-- Downloads and unzips the extract files.
-- Parses the tab-delimited data.
-- Upserts the data into Fivetran using schema definitions.
+## **Requirements**
 
-## File Structure
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+* Operating System:
+
+  * Windows 10 or later
+  * macOS 13 (Ventura) or later
+
+## **Getting Started**
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## **Features**
+
+* Retrieves MasterTax data extracts defined in the `constants.py` file
+* Handles certificate creation dynamically from config for each run
+* Parses tab-delimited text files from downloaded ZIP archives
+* Supports streaming upsert operations for Fivetran ingestion
+* Configurable schema with primary key definition
+
+## **Configuration File**
+
+The connector reads configuration details from a `configuration.json` file. Required keys include:
 
 ```
-.
-├── connector.py            # Core connector logic for extract/transform/load
-├── constants.py            # Layout definitions and column names
-├── configuration.json      # Sample configuration (credentials and certs)
-```
-
-## Setup Instructions
-
-### 1. Configuration
-Update `configuration.json` with your credentials and certificates:
-
-```json
 {
-  "clientId": "<YOUR_CLIENT_ID>",
-  "clientSecret": "<YOUR_CLIENT_SECRET>",
-  "keyFile": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-  "crtFile": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+  "clientId": "YOUR_CLIENT_ID",
+  "clientSecret": "YOUR_CLIENT_SECRET",
+  "crtFile": "<certificate string>",
+  "keyFile": "<key string>"
 }
 ```
 
-### 2. Local Testing
-Ensure you have the `fivetran_connector_sdk` Python package installed.
-Run the connector locally using:
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-```bash
-fivetran debug --configuration configuration.json
-```
+## **Requirements File**
 
-File cleanup is not part of the script since no files are retained between connector syncs. 
+Specify additional libraries needed by your connector in `requirements.txt` (if any). Do **not** include the following which are already pre-installed in the Fivetran environment:
 
-### 3. Deployment
-Deploy the connector following Fivetran’s Connector SDK documentation: https://fivetran.com/docs/connectors/connector-sdk
+* `fivetran_connector_sdk:latest`
+* `requests:latest`
 
-## Core Functions
+## **Authentication**
 
-### `update(configuration, state)`
-Main function invoked by Fivetran to fetch and sync data.
+Authentication is handled via OAuth2 client credentials. Certificates are generated dynamically at runtime from the config and used for mutual TLS (mTLS) authentication with ADP's API. An access token is requested and added to request headers for each session.
 
-### `schema(configuration)`
-Returns schema definition to Fivetran, including primary keys.
+## **Pagination**
 
-### `sync_items(...)`
-Handles the request-submission-download cycle per data extract.
+Pagination is not required. The connector fetches full data extracts and waits for the process to complete before downloading results.
 
-### `upsert_rows(...)`
-Parses extracted files and sends rows to Fivetran.
+## **Data Handling**
 
-## Notes
-- Certificates are created on-the-fly during each run.
-- Assumes tab-delimited files without headers.
-- No connector-level state is stored.
+* Each extract maps to a layout defined in the `data_extracts` dictionary from `constants.py`
+* The connector reads tab-delimited files and uses column mappings defined in `column_names`
+* Upserts are performed row-by-row into tables based on the layout name
 
-## Example Extract
-Defined in `constants.py` as:
+## **Error Handling**
 
-```python
-{
-  "processNameCode": {"code": "DATA_EXTRACT"},
-  "processDefinitionTags": [
-    {"tagCode": "LAYOUT_NAME", "tagValues": ["EXTRACT_01"]},
-    {"tagCode": "FILTER_NAME", "tagValues": ["EXTRACT_01_FILTER"]}
-  ],
-  "filterConditions": [
-    {"joinType": "oneOf", "attributes": [
-      {"attributeID": "COLUMN_03", "operator": "gt", "attributeValue": ["0"]}
-    ]}
-  ]
-}
-```
+* Retries on HTTP 400 errors with a wait time of 5 minutes (configurable via `RETRY_WAIT_SECONDS` and `MAX_RETRIES`)
+* Exceptions are caught and logged with full stack trace to aid debugging
+* Timeouts are raised if a process does not complete within 100 polling attempts
+
+## **Additional Files**
+
+* **constants.py** – Holds layout-to-column mappings (`column_names`) and extract configurations (`data_extracts`). Required for extract validation and data mapping.
+
+## **Additional Considerations**
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
