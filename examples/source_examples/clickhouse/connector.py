@@ -83,7 +83,7 @@ def insert_dummy_data(client, database_name, table_name):
     create_dummy_table(client, database_name, table_name)
 
     data = []
-    # Inserting 10000 rows of data in dummy table
+    # Inserting 1000 rows of data in dummy table
     for index in range(1000):
         data.append([
             index,
