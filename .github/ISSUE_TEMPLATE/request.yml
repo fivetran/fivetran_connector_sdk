@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: Connector SDK version
-      description: What version of Connector SDK are you using? You can check the version with 'pip show fivetran-connector-sdk' or install the latest version with 'pip install --upgrade fivetran-connector-sdk.'
+      description: What version of Connector SDK are you using? You can check the version with 'pip show fivetran-connector-sdk'
       placeholder: ex. 1.4.0
     validations:
       required: false
