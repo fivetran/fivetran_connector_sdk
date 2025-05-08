@@ -72,6 +72,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## **Tables Created**
 
 *Summary of Tables replicated.*
+*Screenshot of table showing sample data. (Where applicable...no PII.)*
 
 ## **Additional files**
 
