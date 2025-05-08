@@ -11,14 +11,17 @@
 
 import requests
 import pytz
-import json  # Import the json module to handle JSON data.
+
+# Import the json module to handle JSON data.
+
+import json 
 
 # Import required classes from fivetran_connector_sdk
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from fivetran_connector_sdk import Connector  # Import the Connector class from the fivetran_connector_sdk module.
-from fivetran_connector_sdk import Operations as op  # Import the Operations class from the fivetran_connector_sdk module, aliased as op.
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 
 # Mapping used later for the sales_report_estimates table to provide more helpful column names
@@ -46,15 +49,17 @@ key_mapping = {
 
 # App IDs that have unique values in Sensor Tower application - can be changed for specific applications of interest
 
-ios_app_ids = "6448311069, 6737597349"
-android_app_ids = "com.openai.chatgpt, com.deepseek.chat"
+IOS_APP_IDS = [] #Add the iOS app IDs you want to track here
+ANDROID_APP_IDS = [] #Add the Android app IDs you want to track here
+
+BASE_URL = "https://api.sensortower.com/v1/"
 
 # Additional parameters for endpoint filters 
 
-os = ["ios", "android"]
-endpoints = ["active_users", "sales_report_estimates", "retention"]
-time_period = ["day", "week", "month"]
-country_codes = ["US", "AU", "FR", "DE", "GB", "IT", "CA", "KR", "JP", "BR", "IN", "ES"]
+OS = ["ios", "android"]
+ENDPOINTS = ["active_users", "sales_report_estimates", "retention"]
+TIME_PERIOD = ["day", "week", "month"]
+COUNTRY_CODES = ["US", "AU", "FR", "DE", "GB", "IT", "CA", "KR", "JP", "BR", "IN", "ES"]
 
 # The schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -97,23 +102,23 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
     f_params = params.copy()
 
     if os == "ios":
-        f_params["app_ids"] = ios_app_ids
+        f_params["app_ids"] = IOS_APP_IDS
     else:
-        f_params["app_ids"] = android_app_ids
+        f_params["app_ids"] = ANDROID_APP_IDS
 
     # Each endpoint has their own specific URL and parameters
 
     if endpoint == "sales_report_estimates": 
-        url = "https://api.sensortower.com/v1/" + os + "/" + endpoint
+        url = BASE_URL + os + "/" + endpoint
         f_params["date_granularity"] = "daily"
 
        
     elif endpoint == "active_users":
-        url = "https://api.sensortower.com/v1/" + os + "/usage/" + endpoint
+        url = BASE_URL+ os + "/usage/" + endpoint
         f_params["time_period"] = time_period
 
     else: 
-        url = "https://api.sensortower.com/v1/" + os + "/usage/" + endpoint
+        url = BASE_URL + os + "/usage/" + endpoint
         f_params["date_granularity"] = "all_time"
         f_params["country"] = country_code
 
@@ -122,6 +127,31 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
     records = response.json()
 
     return records
+
+def process_endpoints(endpoints, params):
+    for endpoint in endpoints:
+        for system in OS:
+            if endpoint == "active_users":
+                for period in TIME_PERIOD:
+                    records = get_data(params, system, endpoint, period, None)
+                    for record in records:
+                        record["time_period"] = period
+                        yield op.upsert(table=endpoint, data=record)
+
+            elif endpoint == "sales_report_estimates":
+                records = get_data(params, system, endpoint, None, None)
+                for record in records:
+                    mapping = key_mapping["sales_report_estimates_key"]["android" if system == "android" else "ios"]
+                    record = {mapping.get(k, k): v for k, v in record.items()}
+                    yield op.upsert(table=endpoint, data=record)
+
+            else:
+                for country in COUNTRY_CODES:
+                    raw_data = get_data(params, system, endpoint, None, country)
+                    records = raw_data["app_data"]
+                    for record in records:
+                        record["corrected_retention"] = json.dumps(record["corrected_retention"])
+                        yield op.upsert(table=endpoint, data=record)
     
 
 # The update function, which is a required function, and is called by Fivetran during each sync.
@@ -159,48 +189,8 @@ def update(configuration: dict, state: dict):
 
 
 
-    # Nested api calls going through the various parameters and using the get_data helper function with each configuration
-
-    for endpoint in endpoints: 
-        for system in os:
-            if endpoint == "active_users":
-                for period in time_period:
-                    records = get_data(params, system, endpoint, period, None)
-
-                    # Write to table
-
-                    for record in records:
-                        record["time_period"] = period
-                        yield op.upsert(table=endpoint,
-                                        data=record)
-
-            elif endpoint == "sales_report_estimates":
-                records = get_data(params, system, endpoint, None, None)
-                for record in records:
-
-                    if system == "android":
-                        mapping = key_mapping["sales_report_estimates_key"]["android"]
-                    else:
-                        mapping = key_mapping["sales_report_estimates_key"]["ios"]     
-
-                    # Mapping listed in key_mapping, used to get more useful column names
-
-                    record = {mapping.get(k, k): v for k, v in record.items()}
-                    yield op.upsert(table=endpoint,
-                                            data=record)
-            else:
-
-                for country in country_codes:
-                    raw_data = get_data(params, system, endpoint, None, country)
-                    records = raw_data["app_data"]
-                
-
-                    for record in records:
-                        # Need to convert from JSON
-
-                        record["corrected_retention"] = json.dumps(record["corrected_retention"])
-                        yield op.upsert(table=endpoint,
-                                            data=record)
+    # Call the process_endpoints function to get the data from each endpoint
+    yield from process_endpoints(ENDPOINTS, params)
 
 
     # Set new cursor
@@ -232,14 +222,3 @@ if __name__ == "__main__":
     connector.debug(configuration=configuration)
 
 
-# Running Fivetran debug on this --
-# Mar 25, 2025 05:08:03 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
-
-# Operation       | Calls     
-# ----------------+------------
-# Upserts         | 5786      
-# Updates         | 0         
-# Deletes         | 0         
-# Truncates       | 0         
-# SchemaChanges   | 3         
-# Checkpoints     | 1      
