@@ -1,6 +1,6 @@
 # **Connector Overview**
 
-This connector fetches data extracts from the MasterTax API provided by ADP ([https://api.adp.com](https://api.adp.com)). It supports downloading ZIP files containing tab-delimited data extracts, which are parsed and streamed to Fivetran. The connector operates statelessly and dynamically handles certificate-based authentication for secure API access. It is designed for compatibility with Fivetran's Connector SDK and adheres to the standard schema-update model.
+This connector fetches data extracts from the MasterTax API provided by [ADP](https://api.adp.com). It supports downloading ZIP files containing tab-delimited data extracts, which are parsed and streamed to Fivetran. The connector operates statelessly and dynamically handles certificate-based authentication for secure API access. It is designed for compatibility with Fivetran's Connector SDK and adheres to the standard schema-update model.
 
 ## **Requirements**
 
