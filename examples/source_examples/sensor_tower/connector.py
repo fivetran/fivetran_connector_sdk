@@ -6,7 +6,6 @@
 # This SDK is pulling from the Sensor Tower Connector API for three specific tables sales_report_estimates, active_users and retention
 # You can change the app IDs to those of your choosing to gather the necessary information
 
-
 # Import requests to make HTTP calls to API
 
 import requests
@@ -22,7 +21,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-
 
 # Mapping used later for the sales_report_estimates table to provide more helpful column names
 
@@ -88,7 +86,6 @@ def schema(configuration: dict):
         }
     ]
 
-
 # The get_data function, which is a helper function that run API calls to get the records from each endpoint
 # The function takes 5 parameters
 # - params: dictionary defining the standard params that will be used in all API call
@@ -128,31 +125,63 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
 
     return records
 
+# The process_active_users function handles data processing for the active_users endpoint
+# The function takes 2 parameters:
+# - params: dictionary containing API parameters
+# - system: the operating system to fetch data for (ios/android)
+# Yields upsert operations for each processed record with time period information
+
+def process_active_users(params, system):
+    for period in TIME_PERIOD:
+        records = get_data(params, system, "active_users", period, None)
+        for record in records:
+            record["time_period"] = period
+            yield op.upsert(table="active_users", data=record)
+
+# The process_sales_report function handles data processing for sales report estimates
+# The function takes 2 parameters:
+# - params: dictionary containing API parameters
+# - system: the operating system to fetch data for (ios/android)
+# Yields upsert operations for each processed record with mapped column names
+
+def process_sales_report(params, system):
+    """Process sales report estimates endpoint data."""
+    records = get_data(params, system, "sales_report_estimates", None, None)
+    for record in records:
+        mapping = key_mapping["sales_report_estimates_key"]["android" if system == "android" else "ios"]
+        record = {mapping.get(k, k): v for k, v in record.items()}
+        yield op.upsert(table="sales_report_estimates", data=record)
+
+# The process_retention function handles data processing for retention data
+# The function takes 2 parameters:
+# - params: dictionary containing API parameters
+# - system: the operating system to fetch data for (ios/android)
+# Yields upsert operations for each processed record with JSON-encoded retention data
+
+def process_retention(params, system):
+    """Process retention endpoint data."""
+    for country in COUNTRY_CODES:
+        raw_data = get_data(params, system, "retention", None, country)
+        records = raw_data["app_data"]
+        for record in records:
+            record["corrected_retention"] = json.dumps(record["corrected_retention"])
+            yield op.upsert(table="retention", data=record)
+
+# The process_endpoints function orchestrates data processing across all endpoints
+# The function takes 2 parameters:
+# - endpoints: list of endpoints to process
+# - params: dictionary containing API parameters
+# Yields upsert operations from the appropriate endpoint processor for each endpoint/system combination
+
 def process_endpoints(endpoints, params):
     for endpoint in endpoints:
         for system in OS:
             if endpoint == "active_users":
-                for period in TIME_PERIOD:
-                    records = get_data(params, system, endpoint, period, None)
-                    for record in records:
-                        record["time_period"] = period
-                        yield op.upsert(table=endpoint, data=record)
-
+                yield from process_active_users(params, system)
             elif endpoint == "sales_report_estimates":
-                records = get_data(params, system, endpoint, None, None)
-                for record in records:
-                    mapping = key_mapping["sales_report_estimates_key"]["android" if system == "android" else "ios"]
-                    record = {mapping.get(k, k): v for k, v in record.items()}
-                    yield op.upsert(table=endpoint, data=record)
-
-            else:
-                for country in COUNTRY_CODES:
-                    raw_data = get_data(params, system, endpoint, None, country)
-                    records = raw_data["app_data"]
-                    for record in records:
-                        record["corrected_retention"] = json.dumps(record["corrected_retention"])
-                        yield op.upsert(table=endpoint, data=record)
-    
+                yield from process_sales_report(params, system)
+            else:  # retention endpoint
+                yield from process_retention(params, system)
 
 # The update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -186,12 +215,10 @@ def update(configuration: dict, state: dict):
         "end_date": current_date,
         "auth_token": auth_token,
     }
-
-
-
+    
     # Call the process_endpoints function to get the data from each endpoint
+    
     yield from process_endpoints(ENDPOINTS, params)
-
 
     # Set new cursor
     # Since we are doing the incremental pulls based on the current date, this is mostly used as a boolean here to see if a cursor exists or not
@@ -199,9 +226,6 @@ def update(configuration: dict, state: dict):
     yield op.checkpoint(state={
         "look_back": look_back
     })
-
-  
-            
 
 # This creates the connector object that will use the update function defined in this connector.py file
 
