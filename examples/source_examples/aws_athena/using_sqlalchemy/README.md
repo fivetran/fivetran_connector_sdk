@@ -91,15 +91,15 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates AWS Athena integration using SQLAlchemy. For production use, you should:
 
-1. Adjust batch size based on your data volume
-2. Implement appropriate connection pooling
-3. Add proper error retry mechanisms
-4. Consider implementing query optimization
-5. Add monitoring for query performance
-6. Implement cost control measures
-7. Add proper IAM role-based authentication
-8. Consider implementing query result caching
-9. Add proper cleanup of query results in S3
-10. Implement proper error handling for AWS service outages
+- Adjust batch size based on your data volume
+- Implement appropriate connection pooling
+- Add proper error retry mechanisms
+- Consider implementing query optimization
+- Add monitoring for query performance
+- Implement cost control measures
+- Add proper IAM role-based authentication
+- Consider implementing query result caching
+- Add proper cleanup of query results in S3
+- Implement proper error handling for AWS service outages
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
