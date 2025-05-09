@@ -93,17 +93,17 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates HubSpot Events API integration. For production use, you should:
 
-1. Implement appropriate error retry mechanisms
-2. Add rate limiting controls
-3. Consider implementing multiple event type handling
-4. Add monitoring for sync performance
-5. Implement proper logging strategy
-6. Consider implementing custom event filtering
-7. Add proper handling for API outages
-8. Consider implementing data validation
-9. Add proper cleanup procedures
-10. Consider implementing custom data transformations
-11. Implement proper error notification system
-12. Consider implementing parallel processing for large datasets
+- Implement appropriate error retry mechanisms
+- Add rate limiting controls
+- Consider implementing multiple event type handling
+- Add monitoring for sync performance
+- Implement proper logging strategy
+- Consider implementing custom event filtering
+- Add proper handling for API outages
+- Consider implementing data validation
+- Add proper cleanup procedures
+- Consider implementing custom data transformations
+- Implement proper error notification system
+- Consider implementing parallel processing for large datasets
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
