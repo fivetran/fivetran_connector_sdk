@@ -1,0 +1,8 @@
+{
+  "aws_access_key_id": "<YOUR_AWS_ACCESS_KEY_ID>",
+  "aws_secret_access_key": "<YOUR_AWS_SECRET_ACCESS_KEY>",
+  "region_name": "<YOUR_AWS_REGION_NAME>",
+  "bucket_name": "<YOUR_AWS_BUCKET_NAME>",
+  "prefix": "<YOUR_AWS_FOLDER_NAME>",
+  "parallelism": "<NUMBER_OF_THREADS>"
+}

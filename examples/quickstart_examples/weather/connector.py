@@ -1,9 +1,9 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-# It shows the use of a requirements.txt file and a connector that calls a publicly available API to get the weather forecast data for Myrtle Beach in South Carolina, USA.
+# It shows a simple connector that calls a publicly available API to get the weather forecast data for the defined location.
 # It also shows how to use the logging functionality provided by fivetran_connector_sdk, by logging important steps using log.info() and log.fine()
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
-
+import json  # Import the json module to handle JSON data.
 from datetime import datetime  # Import datetime for handling date and time conversions.
 
 import requests as rq  # Import the requests module for making HTTP requests, aliased as rq.
@@ -52,8 +52,13 @@ def update(configuration: dict, state: dict):
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
     cursor = state['startTime'] if 'startTime' in state else '0001-01-01T00:00:00Z'
 
-    # Get weather forecast for Myrtle Beach, SC from National Weather Service API.
-    response = rq.get("https://api.weather.gov/gridpoints/ILM/58,40/forecast")
+    # Read values from configuration with defaults weather forecast for Myrtle Beach, SC from National Weather Service API.
+    forecast_office_id = configuration.get('forecast_office_id', 'ILM')
+    x_coordinate = configuration.get('x_coordinate', 58)
+    y_coordinate = configuration.get('y_coordinate', 40)
+
+    url = f"https://api.weather.gov/gridpoints/{forecast_office_id}/{x_coordinate},{y_coordinate}/forecast"
+    response = rq.get(url)
 
     # Parse the JSON response to get the periods of the weather forecast.
     data = response.json()
@@ -99,8 +104,15 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug()
+    try:
+        # Try loading the configuration from the file
+        with open("configuration.json", 'r') as f:
+            configuration = json.load(f)
+    except FileNotFoundError:
+        # Fallback to an empty configuration if the file is not found
+        configuration = {}
+    # Allows testing the connector directly
+    connector.debug(configuration=configuration)
 
 # Resulting table:
 # ┌───────────────────────────┬─────────────────┬───────────────────────────┬─────────────┐
