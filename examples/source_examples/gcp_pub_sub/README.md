@@ -103,17 +103,17 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates GCP Pub/Sub integration. For production use, you should:
 
-1. Implement appropriate IAM roles and permissions
-2. Adjust message batch sizes based on your needs
-3. Add proper error retry mechanisms
-4. Consider implementing dead-letter queues
-5. Add monitoring for message processing
-6. Implement proper message ordering if required
-7. Consider implementing message filtering
-8. Add proper handling for backlog messages
-9. Implement proper error handling for GCP service outages
-10. Consider implementing message deduplication
-11. Add proper cleanup procedures
-12. Consider implementing custom message processing logic
+- Implement appropriate IAM roles and permissions
+- Adjust message batch sizes based on your needs
+- Add proper error retry mechanisms
+- Consider implementing dead-letter queues
+- Add monitoring for message processing
+- Implement proper message ordering if required
+- Consider implementing message filtering
+- Add proper handling for backlog messages
+- Implement proper error handling for GCP service outages
+- Consider implementing message deduplication
+- Add proper cleanup procedures
+- Consider implementing custom message processing logic
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
