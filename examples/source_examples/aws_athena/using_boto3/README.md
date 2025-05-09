@@ -92,15 +92,15 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates AWS Athena integration. For production use, you should:
 
-1. Implement appropriate query optimization
-2. Add proper error retry mechanisms
-3. Consider implementing query result caching
-4. Add monitoring for query performance
-5. Implement cost control measures
-6. Consider implementing query concurrency limits
-7. Add proper IAM role-based authentication
-8. Implement proper error handling for AWS service outages
-9. Consider implementing query result partitioning
-10. Add proper cleanup of query results in S3
+- Implement appropriate query optimization
+- Add proper error retry mechanisms
+- Consider implementing query result caching
+- Add monitoring for query performance
+- Implement cost control measures
+- Consider implementing query concurrency limits
+- Add proper IAM role-based authentication
+- Implement proper error handling for AWS service outages
+- Consider implementing query result partitioning
+- Add proper cleanup of query results in S3
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
