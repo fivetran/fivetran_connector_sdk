@@ -110,17 +110,17 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates S3 CSV validation. For production use, you should:
 
-1. Implement appropriate error retry mechanisms
-2. Add S3 connection pooling
-3. Optimize CSV reading for large files
-4. Add monitoring for sync performance
-5. Implement proper logging strategy
-6. Consider implementing custom validation rules
-7. Add proper handling for S3 timeouts
-8. Consider implementing data transformation
-9. Add proper cleanup procedures
-10. Consider implementing batch processing
-11. Implement proper error notification system
-12. Consider implementing file pattern matching
+- Implement appropriate error retry mechanisms
+- Add S3 connection pooling
+- Optimize CSV reading for large files
+- Add monitoring for sync performance
+- Implement proper logging strategy
+- Consider implementing custom validation rules
+- Add proper handling for S3 timeouts
+- Consider implementing data transformation
+- Add proper cleanup procedures
+- Consider implementing batch processing
+- Implement proper error notification system
+- Consider implementing file pattern matching
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
