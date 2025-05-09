@@ -99,17 +99,17 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates AWS DynamoDB integration. For production use, you should:
 
-1. Implement appropriate IAM policies and roles
-2. Adjust parallel scan parameters based on your data volume
-3. Add proper error retry mechanisms
-4. Consider implementing incremental syncs
-5. Add monitoring for scan performance
-6. Implement cost control measures
-7. Consider implementing backup procedures
-8. Add proper handling for rate limiting
-9. Implement proper error handling for AWS service outages
-10. Consider implementing data type validation
-11. Add proper cleanup procedures
-12. Consider implementing custom scan strategies
+- Implement appropriate IAM policies and roles
+- Adjust parallel scan parameters based on your data volume
+- Add proper error retry mechanisms
+- Consider implementing incremental syncs
+- Add monitoring for scan performance
+- Implement cost control measures
+- Consider implementing backup procedures
+- Add proper handling for rate limiting
+- Implement proper error handling for AWS service outages
+- Consider implementing data type validation
+- Add proper cleanup procedures
+- Consider implementing custom scan strategies
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
