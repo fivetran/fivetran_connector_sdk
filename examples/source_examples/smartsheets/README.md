@@ -59,25 +59,25 @@ The connector uses API token authentication. You'll need to:
 
 ## Additional Considerations for Production Use
 
-1. **API Rate Limits**
+- **API Rate Limits**
    - Implement appropriate delays between requests
    - Monitor API usage
    - Handle rate limit errors gracefully
 
-2. **Data Volume**
+- **Data Volume**
    - Consider implementing batch processing for large sheets
    - Optimize sync frequency based on update patterns
 
-3. **Error Retry Mechanism**
+- **Error Retry Mechanism**
    - Implement exponential backoff for failed requests
    - Set appropriate timeout values
 
-4. **Monitoring**
+- **Monitoring**
    - Add detailed logging
    - Track sync statistics
    - Monitor API response times
 
-5. **Security**
+- **Security**
    - Rotate API tokens regularly
    - Use environment variables for sensitive data
    - Implement audit logging
