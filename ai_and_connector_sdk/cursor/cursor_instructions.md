@@ -2,17 +2,13 @@
 
 ## Introduction
 
-This is a developer chat thread that was converted into a README using Cursor AI and the gpt-4o model. It produced a working Connector SDK in a few minutes.
+This is a developer chat thread that was converted into a README using Cursor AI and the gpt-4o model. Ultimately, the model produced a working Connector SDK with a single prompt.
 
 ## Understanding Cursor AI's core capabilities
 
 **Developer**: I need to build a Connector SDK for a new datasource in Fivetran. I've heard Cursor AI can help with this process. Where should I start?
 
-**Cursor**: Great question! Connector SDK development works best when you understand both the capabilities of AI models and structured development practices. Let's walk through the entire process together, from planning to implementation to testing.
-
-**Developer**: What exactly can Cursor AI help me with during connector development?
-
-**Cursor**: I can assist with several aspects of connector development:
+**Cursor**: Great question! Connector SDK development works best when you understand both the capabilities of AI models and structured development practices. Let's walk through the entire process together, from planning to implementation to testing. I can assist with several aspects of connector development:
 
 1. **Code generation & modification**
    - Creating new Connector SDK code from scratch
@@ -80,7 +76,7 @@ The more comprehensive your planning, the more effective your prompts will be.
 
 **Developer**: Once I've done the planning, how do I write effective prompts for Cursor AI?
 
-**Cursor**: Structured prompts are crucial for quality code generation. With cursor AI you can provide additional context by adding @file_name to the prompt. Here's a template specifically designed for connector development:
+**Cursor**: Structured prompts are crucial for quality code generation. With cursor AI you can provide additional context by adding @file_name or @project_folder to the prompt. Here's a template specifically designed for connector development:
 
 ```markdown
 Task: [Specific connector task description]
@@ -133,7 +129,7 @@ Dependencies:
 **Cursor**: Here's an example for a Pokemon API connector using the Fivetran Connector SDK:
 
 ```markdown
-Task: Create a Fivetran connector for the Pokemon API that fetches and stores Pokemon data. Sample response data is in @data.csv, and the documentation is in @api_docs.pdf.
+Task: Create a Fivetran connector for the Pokemon API that fetches and stores Pokemon data. Sample response data is in @data.csv, and the documentation is in @api_docs.pdf. Build the solution in @project_folder.
 
 Technical details:
 - Language: Python 3.12.8
@@ -210,7 +206,7 @@ Dependencies:
 
 **Developer**: What does the code output typically look like?
 
-**Cursor**: Here's the Python code for that Pokemon API connector example:
+**Cursor**: Here's the Python code for the Pokemon API connector example we discussed:
 
 ```python
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
@@ -249,7 +245,7 @@ if __name__ == "__main__":
     connector.debug()
 ```
 
-**Developer**: This is a good start, but it only fetches one Pokemon. How would I prompt Cursor AI to enhance this implementation?
+**Developer**: This is a good start, but it only fetches one Pokemon. How would I prompt Cursor to enhance this implementation?
 
 **Cursor**: Great observation! Here's how you could prompt for an enhancement:
 
