@@ -99,17 +99,17 @@ The connector implements the following error handling:
 
 This example is intended for learning purposes and demonstrates SQL Server integration. For production use, you should:
 
-1. Implement appropriate error retry mechanisms
-2. Add connection pooling
-3. Optimize batch sizes for your data volume
-4. Add monitoring for sync performance
-5. Implement proper logging strategy
-6. Consider implementing custom data filtering
-7. Add proper handling for network issues
-8. Consider implementing data validation
-9. Add proper cleanup procedures
-10. Consider implementing custom data transformations
-11. Implement proper error notification system
-12. Consider implementing connection timeouts
+- Implement appropriate error retry mechanisms
+- Add connection pooling
+- Optimize batch sizes for your data volume
+- Add monitoring for sync performance
+- Implement proper logging strategy
+- Consider implementing custom data filtering
+- Add proper handling for network issues
+- Consider implementing data validation
+- Add proper cleanup procedures
+- Consider implementing custom data transformations
+- Implement proper error notification system
+- Consider implementing connection timeouts
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
