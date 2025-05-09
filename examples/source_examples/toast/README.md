@@ -58,22 +58,22 @@ The connector uses OAuth2 client credentials flow:
 ### Endpoints and Data Types
 The connector syncs data from multiple Toast API endpoints:
 
-1. **Configuration Data**
+- **Configuration Data**
    - Restaurant settings
    - Menu items
    - Pricing information
 
-2. **Labor Data**
+- **Labor Data**
    - Employee information
    - Shift details
    - Time entries
 
-3. **Cash Management**
+- **Cash Management**
    - Cash drawer activities
    - Payments
    - Reconciliation data
 
-4. **Orders**
+- **Orders**
    - Order details
    - Item modifications
    - Payment information
@@ -93,33 +93,33 @@ The connector syncs data from multiple Toast API endpoints:
 
 ## Additional Considerations for Production Use
 
-1. **API Rate Limits**
+- **API Rate Limits**
    - Monitor API usage
    - Implement appropriate request delays
    - Handle rate limit errors gracefully
 
-2. **Data Volume**
+- **Data Volume**
    - Optimize batch sizes
    - Configure appropriate sync intervals
    - Monitor memory usage
 
-3. **Error Handling**
+- **Error Handling**
    - Implement comprehensive error reporting
    - Set up alerts for critical failures
    - Maintain detailed logs
 
-4. **Monitoring**
+- **Monitoring**
    - Track sync statistics
    - Monitor API response times
    - Set up performance metrics
 
-5. **Security**
+- **Security**
    - Rotate credentials regularly
    - Use environment variables
    - Implement audit logging
    - Follow security best practices
 
-6. **Restaurant-Specific Considerations**
+- **Restaurant-Specific Considerations**
    - Handle timezone differences
    - Account for business hours
    - Consider peak operation times
