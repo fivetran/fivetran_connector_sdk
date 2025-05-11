@@ -73,11 +73,7 @@ The connector retrieves credentials from Azure Key Vault and uses them to establ
 
 1. Executes a simple query to verify connectivity and retrieve data from a table in the database.
 
-2. Upserts the data in the `employees` table with the following schema:
-   - id (INT)
-   - name (STRING)
-   - department_id (INT)
-   - employee_metadata (JSON)
+2. Upserts the data in the `employees` table.
    
 The connector expects the following secrets to be stored in the Key Vault:  
    - postgresHost
@@ -86,6 +82,20 @@ The connector expects the following secrets to be stored in the Key Vault:
    - postgresUser
    - postgresPassword
 
+## **Tables Created**
+The connector creates the following table in the database:
+- `employees` - This table is used to store employee data. The schema includes:
+  - id (INT)
+  - name (STRING)
+  - department_id (INT)
+  - employee_metadata (JSON)
+
+The table in the destination looks like this:
+
+| id | name      | department_id | employee_metadata    | _fivetran_deleted | _fivetran_synced              |
+|----|-----------|---------------|----------------------|-------------------|-------------------------------|
+| 1  | John Doe  | 1             | {"role": "Engineer"} | false             | 2025-05-11 19:53:33.959 +0000 |
+| 2  | Berry Doe | 1             | {"role": "Engineer"} | false             | 2025-05-11 19:53:33.984 +0000 |
 
 ## **Additional Considerations**
 

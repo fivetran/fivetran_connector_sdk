@@ -41,20 +41,16 @@ def fetch_secrets_from_vault(configuration: dict):
     # Create a SecretClient
     secret_client = SecretClient(vault_url=vault_url, credential=credential)
 
-    # Define secret names to fetch
-    secret_names = ["postgresDatabase", "postgresHost", "postgresPassword",
-                    "postgresPort", "postgresUser"]
-
     # Fetch the secrets
     db_config = {}
-    for secret_name in secret_names:
-        try:
-            secret = secret_client.get_secret(secret_name)
-            # Map secret names to configuration keys
-            key = secret_name.replace('postgres', '').lower()
-            db_config[key] = secret.value
-        except Exception as e:
-            raise RuntimeError(f"Failed to retrieve secret {secret_name}: {str(e)}")
+    try:
+        db_config['database'] = secret_client.get_secret("postgresDatabase").value
+        db_config['host'] = secret_client.get_secret("postgresHost").value
+        db_config['user'] = secret_client.get_secret("postgresUser").value
+        db_config['password'] = secret_client.get_secret("postgresPassword").value
+        db_config['port'] = secret_client.get_secret("postgresPort").value
+    except Exception as e:
+        raise RuntimeError(f"Failed to retrieve secrets from Azure Key Vault: {str(e)}")
 
     log.info("Successfully retrieved all secrets from Azure Key Vault")
     return db_config
@@ -84,9 +80,9 @@ def connect_to_database(db_config: dict):
 
 def insert_dummy_data_to_database(conn):
     """
-    This function inserts dummy data into the PostgreSQL database to test the connector
+    This function inserts dummy data into the PostgreSQL database to provide data to pull later
     This method is used only for testing purposes.
-    In a production connector, you would typically not insert dummy data into the database.
+    In a production connector, you would typically not need to insert data into your source. The connector will just read it from the source.
     Args:
         conn: A connection object to the PostgreSQL database.
     """
@@ -108,6 +104,32 @@ def insert_dummy_data_to_database(conn):
             log.info("Inserted dummy data into database")
     except Exception as e:
         raise RuntimeError(f"Failed to insert dummy data: {str(e)}")
+
+
+def get_data_from_database(conn):
+    """
+    This function retrieves data from the PostgreSQL database
+    Args:
+        conn: A connection object to the PostgreSQL database.
+    Returns:
+        records: A list of records retrieved from the database.
+        columns: A list of column names in the result set.
+    """
+    try:
+        # This simple query demonstrates the purpose; in a production connector, you would query all data that you want to sync.
+        sql_query = "SELECT * from employee_table"
+        with conn.cursor() as cursor:
+            cursor.execute(sql_query)
+            records = cursor.fetchall()
+            # The cursor.description attribute contains metadata about the columns in the result set.
+            columns = [col[0].lower() for col in cursor.description]
+            log.info(f"Fetched {len(records)} records from the database")
+
+        # Close the connection to database
+        conn.close()
+        return columns, records
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch data from database: {str(e)}")
 
 
 def schema(configuration: dict):
@@ -162,18 +184,8 @@ def update(configuration: dict, state: dict):
     # This method is used only for testing purposes.
     insert_dummy_data_to_database(conn)
 
-    # Get data from the dummy table created above
-    # This is a simple query to ensure that the connection is working properly
-    sql_query = "SELECT * from employee_table"
-    with conn.cursor() as cursor:
-        cursor.execute(sql_query)
-        records = cursor.fetchall()
-        # The cursor.description attribute contains metadata about the columns in the result set.
-        columns = [col[0].lower() for col in cursor.description]
-        log.info(f"Fetched {len(records)} records from the database")
-
-    # Close the connection to database
-    conn.close()
+    # Get data from the database
+    columns, records = get_data_from_database(conn)
 
     for record in records:
         # This is required to create a dictionary with the column names as keys and the record values as values.
