@@ -49,6 +49,7 @@ def update(configuration: dict, state: dict):
     try:
         # Initialize state
         updated_state = initialize_state(state)
+        log.info(f"Updated state: {updated_state}")
 
         # Fetch records using api calls
         (updated_state, insert) = api_response(updated_state, configuration)
@@ -77,11 +78,16 @@ def api_response(state, configuration):
 
     # Fetch the tickers for which information is needed.
     insert_tickers = get_tickers()
+    log.info(f"Fetching data for the following tickers: {insert_tickers}")
+
+    if not configuration.get("apiKey"):
+      raise ValueError("ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json ")
 
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
     insert_ticker_price = []
     for ticker in insert_tickers:
+        log.info(f"Fetching data for: {ticker}")
         temp_list = get_ticker_price(
             configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor)
         ticker_offset += 1
@@ -91,11 +97,13 @@ def api_response(state, configuration):
     state, insert = {}, {}
 
     insert['tickers_price'] = insert_ticker_price
+    log_data_summary(insert)
 
     # Update the state
     state['ticker_offset'] = ticker_offset
     state['ticker_start_cursor'] = ticker_start_cursor
     state['ticker_end_cursor'] = ticker_end_cursor
+    log.info(f"State: {state}")
 
     return state, insert
 
@@ -168,7 +176,7 @@ def initialize_state(state: dict):
 
     if not state:
         state["ticker_offset"] = 0
-        state["ticker_start_cursor"] = date.today - timedelta(days=15)
+        state["ticker_start_cursor"] = str(date.today() - timedelta(days=15))
         state["ticker_end_cursor"] = str(date.today())
 
     # Fetch data till the latest date if ticker_offset is 0
@@ -176,6 +184,39 @@ def initialize_state(state: dict):
         state["ticker_end_cursor"] = str(date.today())
     return state
 
+def log_data_summary(data):
+    """
+    This function logs the summary of the insert data object
+    """
+    # Get the list of tickers
+    tickers = list(set(item['symbol'] for item in data['tickers_price']))
+    
+    # Get date range
+    if not data['tickers_price']:
+        log.warning("No data available in 'tickers_price'.")
+        return
+
+    dates = sorted(item['date'] for item in data['tickers_price'])
+    start_date = dates[0]
+    end_date = dates[-1]
+    
+    # Count records per ticker
+    records_per_ticker = {ticker: len([item for item in data['tickers_price'] if item['symbol'] == ticker]) 
+                         for ticker in tickers}
+    
+    # Log the summary
+    log.info("Data Summary:")
+    log.info(f"Total records: {len(data['tickers_price'])}")
+    log.info(f"Date range: {start_date} to {end_date}")
+    log.info(f"Tickers: {', '.join(tickers)}")
+    log.info("Records per ticker:")
+    for ticker, count in records_per_ticker.items():
+        log.info(f"  {ticker}: {count} records")
+    
+    # Show a complete sample record
+    log.info("Sample record (complete):")
+    sample = data['tickers_price'][0]
+    log.info(f"  {sample}")
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
