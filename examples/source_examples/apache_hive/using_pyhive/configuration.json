@@ -1,0 +1,7 @@
+{
+  "hostname": "localhost",
+  "port": 10000,
+  "username": "hive",
+  "password": "hive",
+  "database": "default"
+}
