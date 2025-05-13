@@ -80,6 +80,10 @@ The connector implements error handling for:
 - Connection failures: Raises informative exceptions if the connector fails to connect to ClickHouse
 - Configuration validation: Checks for required configuration parameters before attempting to connect
 
+## **Additional Files**
+
+`adding_dummy_data_to_clickhouse.py`: This python file contains functions to add dummy data to the Clickhouse database. It creates dummy database and table and generates random records with unique IDs and timestamps. This dummy data is inserted into the Clickhouse table for testing purposes. In production, you will not need to insert dummy data, as the connector will work with your existing Clickhouse database.
+
 ## **Additional Considerations**
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
