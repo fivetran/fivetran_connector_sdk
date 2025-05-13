@@ -99,6 +99,9 @@ The connector implements the following error handling strategies:
 - Gracefully handles pagination issues that may occur with large datasets
 - Implements regular checkpointing to minimize data loss in case of failures
 
+## **Additional Files**
+
+- `adding_dummy_data_to_cassandra.py`: This python file contains functions to add dummy data to the Cassandra database. It creates dummy database and table and generates random records with unique IDs and timestamps. This dummy data is inserted into the Cassandra table for testing purposes. In production, you will not need to insert dummy data, as the connector will work with your existing Cassandra database.
 
 ## **Additional Considerations**
 
