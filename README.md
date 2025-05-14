@@ -115,6 +115,7 @@ There are several examples available under `/examples`:
 - Common Patterns
   - [key_based_replication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/common_patterns/key_based_replication) - This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 
+- [clickhouse](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/clickhouse) - This example shows how to sync data from ClickHouse database using Connector SDK. You need to provide your ClickHouse credentials for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
 - IBM Informix
