@@ -148,7 +148,7 @@ def process_sales_report(params, system):
     """Process sales report estimates endpoint data."""
     records = get_data(params, system, "sales_report_estimates", None, None)
     for record in records:
-        mapping = key_mapping["sales_report_estimates_key"]["android" if system == "android" else "ios"]
+        mapping = KEY_MAPPING["sales_report_estimates_key"]["android" if system == "android" else "ios"]
         record = {mapping.get(k, k): v for k, v in record.items()}
         yield op.upsert(table="sales_report_estimates", data=record)
 
