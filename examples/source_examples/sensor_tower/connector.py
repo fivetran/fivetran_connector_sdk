@@ -22,6 +22,9 @@ from dateutil.relativedelta import relativedelta
 from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
+COUNTRY_CODE = "Country Code"
+APP_ID = "App ID"
+
 # Mapping used later for the sales_report_estimates table to provide more helpful column names
 
 KEY_MAPPING = {
