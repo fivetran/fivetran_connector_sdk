@@ -32,15 +32,19 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "users",
-            "primary_key": ["username"],
+            "table": "users", # Name of the table
+            "primary_key": ["username"], # Primary key(s) of the table
             "columns": {
                 "username": "STRING",
                 "followers_count": "INT",
                 "following_count": "INT",
                 "location": "STRING",
+                "name": "STRING",
+                "profile_image_url": "STRING",
+                "url": "STRING",
+                "betweenness": "FLOAT",
             },
-        },
+        }, # Columns not defined in schema will be inferred
         {
             "table": "tweet_hashtags",
             "primary_key": ["tweet_id"],
@@ -132,11 +136,7 @@ def process_users(session, state):
 
     # Process each user record
     for record in results:
-        # Convert any datetime objects to ISO format strings
-        for key, value in record.items():
-            if isinstance(value, (datetime.datetime, datetime.date)):
-                record[key] = value.isoformat()
-
+        # You can preprocess and modify the record to suit your needs.
         # Yield an upsert operation to insert/update the record in the "users" table.
         yield op.upsert(table="users", data=record)
 
