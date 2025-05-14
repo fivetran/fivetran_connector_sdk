@@ -15,7 +15,7 @@ import json
 import clickhouse_connect # This is used to connect to ClickHouse
 
 # Import custom function to create dummy data
-from add_dummy_data_to_clickhouse import insert_dummy_data
+from clickhouse_dummy_data_generator import insert_dummy_data
 
 
 def create_clickhouse_client(configuration: dict):

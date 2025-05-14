@@ -82,7 +82,7 @@ The connector implements error handling for:
 
 ## **Additional Files**
 
-`adding_dummy_data_to_clickhouse.py`: This python file contains functions to add dummy data to the Clickhouse database. It creates dummy database and table and generates random records with unique IDs and timestamps. This dummy data is inserted into the Clickhouse table for testing purposes. In production, you will not need to insert dummy data, as the connector will work with your existing Clickhouse database.
+`clickhouse_dummy_data_generator.py`: This python file contains functions to add dummy data to the Clickhouse database. It creates dummy database and table and generates random records with unique IDs and timestamps. This dummy data is inserted into the Clickhouse table for testing purposes. In production, you will not need to insert dummy data, as the connector will work with your existing Clickhouse database.
 
 ## **Additional Considerations**
 
