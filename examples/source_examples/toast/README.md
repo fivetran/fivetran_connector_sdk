@@ -49,6 +49,9 @@ Example `configuration.json`:
 
 ## Data Coverage
 
+The entity-relationship diagram (ERD) below shows how tables are linked in the Toast schema.
+![Toast ERD](Toast_ERD.png)
+
 ### Core Tables
 - `restaurant`
 - `job`, `employee`, `shift`, `break`, `time_entry`
