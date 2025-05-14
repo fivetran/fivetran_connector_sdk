@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# It defines a simple 'update' method, which upserts data from neo4j database.
+# This example demonstrates how to create a connector that connects to a Neo4j database and syncs data from it.
 # It uses the public twitter database available at neo4j+s://demo.neo4jlabs.com:7687.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
