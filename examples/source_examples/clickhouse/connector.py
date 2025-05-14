@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# It defines a simple 'update' method, which upserts data from Clickhouse database.
+# This example demonstrates how to work with a Clickhouse database containing a large dataset and using clickhouse_connect.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
