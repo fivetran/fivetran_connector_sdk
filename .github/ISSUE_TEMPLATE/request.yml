@@ -1,7 +1,7 @@
 name: Request
 description: Suggest an idea for a Connector SDK project.
 title: "[Request]: "
-labels: ["Project", "New Feature"]
+labels: ["bug", "enhancement", "documentation", "question", "duplicate", "invalid", "wontfix"]
 
 body:
   - type: markdown
@@ -35,3 +35,11 @@ body:
     attributes:
       label: Additional context
       description: Add any other context or screenshots about the request here.
+   - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/fivetran/fivetran_connector_sdk/tree/main/CODE_OF_CONDUCT.md) 
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
