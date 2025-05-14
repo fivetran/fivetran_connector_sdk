@@ -39,7 +39,7 @@ KEY_MAPPING = {
       "ar": "iPad Revenue"
     },
     "android": {
-      "aid": "App ID",
+      "aid": APP_ID,
       "c": "Country Code",
       "d": "Date",
       "u": "Android Downloads",
