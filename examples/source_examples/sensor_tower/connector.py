@@ -72,7 +72,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "sales_report_estimates",  # Name of the table in the destination.
-            "primary_key": ["App ID", "Date", "Country Code"],  # Primary key columns for the table.
+            "primary_key": [APP_ID, "Date", COUNTRY_CODE],  # Primary key columns for the table.
             "columns": {"App ID": "STRING"} # Specify as a string due to data type mismatch issues
         },
         {
