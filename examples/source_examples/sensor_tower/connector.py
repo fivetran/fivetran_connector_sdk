@@ -24,7 +24,7 @@ from fivetran_connector_sdk import Operations as op  # For supporting Data opera
 
 # Mapping used later for the sales_report_estimates table to provide more helpful column names
 
-key_mapping = {
+KEY_MAPPING = {
   "sales_report_estimates_key": {
     "ios": {
       "aid": "App ID",
