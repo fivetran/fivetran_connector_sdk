@@ -30,7 +30,7 @@ APP_ID = "App ID"
 KEY_MAPPING = {
   "sales_report_estimates_key": {
     "ios": {
-      "aid": "App ID",
+      "aid": APP_ID,
       "cc": "Country Code",
       "d": "Date",
       "iu": "iPhone Downloads",
