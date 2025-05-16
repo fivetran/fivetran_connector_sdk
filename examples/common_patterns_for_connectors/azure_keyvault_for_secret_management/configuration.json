@@ -1,0 +1,6 @@
+{
+  "tenant_id": "<YOUR_AZURE_TENANT_ID>",
+  "client_id": "<YOUR_APP_CLIENT_ID>",
+  "client_secret": "<YOUR_APP_CLIENT_SECRET>",
+  "vault_url": "<https://YOUR-VAULT-NAME.vault.azure.net/>"
+}
