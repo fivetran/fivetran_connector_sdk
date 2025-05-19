@@ -75,7 +75,7 @@ The connector processes Excel files using three different methods:
 2. Python-calamine (Refer to `upsert_using_calamine` function): Uses the calamine engine which is more memory-efficient and recommended for large files.  
 3. Openpyxl (Refer to `upsert_using_openpyxl` function): Uses read-only mode for better memory efficiency when processing large files.  
 
-Data from each method is upserted into separate tables with identical schemas.
+Data from each method is identical, but upserted into separate tables with identical schemas.
 
 ## Error handling
 

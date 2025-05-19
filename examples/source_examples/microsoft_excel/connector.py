@@ -253,6 +253,11 @@ def update(configuration: dict, state: dict):
     temp_filename = download_excel_file(s3_client, bucket_name, file_key)
 
     try:
+        # There are three different ways to sync data from Excel file
+        # Any of the three methods can be used to sync data from the Excel file
+        # It is recommended to use the python-calamine engine or openpyxl for large files
+        # pandas is not recommended for large files, because it loads the entire file into memory and can cause Out of Memory errors
+
         # Process the Excel file using pandas and upsert the data
         yield from upsert_using_pandas(temp_filename, state)
 
