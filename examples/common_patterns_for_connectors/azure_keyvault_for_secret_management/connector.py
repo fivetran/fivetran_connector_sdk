@@ -78,34 +78,6 @@ def connect_to_database(db_config: dict):
         raise RuntimeError(f"Failed to connect to database: {str(e)}")
 
 
-def insert_dummy_data_to_database(conn):
-    """
-    This function inserts dummy data into the PostgreSQL database to provide data to pull later
-    This method is used only for testing purposes.
-    In a production connector, you would typically not need to insert data into your source. The connector will just read it from the source.
-    Args:
-        conn: A connection object to the PostgreSQL database.
-    """
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS employee_table (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(100),
-                    department_id INT,
-                    employee_metadata JSON
-                )
-            """)
-            cursor.execute("""
-                INSERT INTO employee_table (name, department_id, employee_metadata)
-                VALUES (%s, %s, %s)
-            """, ("John Doe", 1, '{"role": "Engineer"}'))
-            conn.commit()
-            log.info("Inserted dummy data into database")
-    except Exception as e:
-        raise RuntimeError(f"Failed to insert dummy data: {str(e)}")
-
-
 def get_data_from_database(conn):
     """
     This function retrieves data from the PostgreSQL database
@@ -180,11 +152,10 @@ def update(configuration: dict, state: dict):
     # Connect to database
     conn = connect_to_database(db_config)
 
-    # Create dummy table and insert dummy data
-    # This method is used only for testing purposes.
-    insert_dummy_data_to_database(conn)
-
     # Get data from the database
+    # It is assumed that the table name is "employee_table".
+    # The table has the columns "id", "name", "department_id", and "employee_metadata".
+    # This table should be present in the database for successfully running this example.
     columns, records = get_data_from_database(conn)
 
     for record in records:
