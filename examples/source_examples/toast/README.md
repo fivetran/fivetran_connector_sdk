@@ -1,5 +1,8 @@
 # Toast Fivetran Connector
 
+[Example code here](https://github.com/fivetran/fivetran_connector_sdk/edit/main/examples/source_examples/toast/)
+
+
 This is a custom [Fivetran Connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
 
 ---
