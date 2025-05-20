@@ -116,9 +116,11 @@ def upsert_using_calamine(temp_filename, state):
     """
     Process the Excel file using python-calamine and upsert the data into the destination table.
     You can modify the upsert logic and data manipulation here to suit your needs.
-    python-calamine is a library that allows you to read Excel files in a more memory-efficient way.
+    python-calamine is a Rust-backed library that loads the sheet into memory using efficient data structures.
     The pandas version 2.2 and above natively supports the calamine engine.
-    This is recommended for large files, because it handles the data efficiently and does not require loading the entire file into memory.
+    This is recommended for large files because it has significantly lower memory overhead (7-9× faster than openpyxl)
+    and better performance on low-resource systems.
+    But, python-calamine also loads the entire file into the memory before iterating over the rows.
     Args:
         temp_filename: The path to the temporary file containing the Excel data.
         state:  a dictionary containing the state checkpointed during the prior sync.
@@ -145,7 +147,10 @@ def upsert_using_openpyxl(temp_filename, state):
     """
     Process the Excel file using Openpyxl and upsert the data into the destination table.
     You can modify the upsert logic and data manipulation here to suit your needs.
-    This is also recommended for large files, because it does not require loading the entire file into memory.
+    While openpyxl's default mode is memory-intensive (consuming up to 50× the file size in RAM),
+    the read-only mode used here reduces memory by streaming rows, though at the cost of slower performance
+    and limited features compared to python-calamine.
+    openpyxl read-only mode does not load entire dataset into the memory but performs slower than python-calamine
     Args:
         temp_filename: The path to the temporary file containing the Excel data.
         state:  a dictionary containing the state checkpointed during the prior sync.
@@ -255,8 +260,9 @@ def update(configuration: dict, state: dict):
     try:
         # There are three different ways to sync data from Excel file
         # Any of the three methods can be used to sync data from the Excel file
-        # It is recommended to use the python-calamine engine or openpyxl for large files
-        # pandas is not recommended for large files, because it loads the entire file into memory and can cause Out of Memory errors
+        # - python-calamine is recommended for the best balance of speed and memory efficiency
+        # - openpyxl in read-only mode uses less memory but is significantly slower
+        # - pandas with default engine is not recommended for large files as it loads everything into memory and can cause memory overflow errors
 
         # Process the Excel file using pandas and upsert the data
         yield from upsert_using_pandas(temp_filename, state)

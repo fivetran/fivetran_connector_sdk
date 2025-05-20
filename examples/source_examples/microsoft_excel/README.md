@@ -24,9 +24,9 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 - Retrieves Excel file from AWS S3 buckets
 - Processes Excel data using three different methods:
-  - Pandas - suitable for small to medium-sized files
-  - Python-calamine - memory-efficient for larger files
-  - Openpyxl - read-only mode for memory efficiency
+  - Pandas - This method loads the entire Excel file into memory, which is suitable for small to medium-sized files. Using this for large files is not recommended as it can lead to memory overflow errors.
+  - Python-calamine - This method also loads the entire Excel file into memory, but it uses less memory compared to the `pandas` method with a significant improvement in processing speed. It uses the `calamine` engine and provides a balance between memory usage and performance. It is recommended for large files.
+  - Openpyxl - This method uses the `openpyxl` library in read-only mode, which is more memory-efficient when processing large files but is significantly slower than `python-calamine`. It is suitable for very large files where memory usage is a concern as this method does not load the entire file into memory. It streams the data one row at a time to avoid memory overflow errors at the cost of processing speed.
 - Creates three destination tables with identical schemas
 - Handles proper cleanup of temporary files
 
@@ -72,8 +72,8 @@ This connector authenticates with AWS using an access key ID and secret access k
 
 The connector processes Excel files using three different methods:  
 1. Pandas (Refer to `upsert_using_pandas` function): Loads the entire Excel file into memory, which is suitable for small to medium-sized files.  
-2. Python-calamine (Refer to `upsert_using_calamine` function): Uses the calamine engine which is more memory-efficient and recommended for large files.  
-3. Openpyxl (Refer to `upsert_using_openpyxl` function): Uses read-only mode for better memory efficiency when processing large files.  
+2. Python-calamine (Refer to `upsert_using_calamine` function): Uses the calamine engine with pandas for faster processing. It loads the entire Excel file into memory but is more memory-efficient due to its optimized data structures. It provides a balance between memory usage and performance, making it suitable for large files.
+3. Openpyxl (Refer to `upsert_using_openpyxl` function): Uses read-only mode for better memory efficiency when processing large files. It streams the data one row at a time, which avoids memory overflow errors but is significantly slower than the `python-calamine` method. It is suitable for very large files where memory usage is a concern.
 
 Data from each method is identical, but upserted into separate tables with identical schemas.
 
