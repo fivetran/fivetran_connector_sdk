@@ -27,11 +27,11 @@ Fivetran Connector SDK allows you to code a custom data connector using Python a
 Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
 
 ## Requirements
-- Python ≥3.9 and ≤3.12
-- Operating System:
+- Python version ≥3.9 and ≤3.12
+- Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
