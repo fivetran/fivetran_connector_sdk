@@ -56,7 +56,9 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
     This function executes a query and upserts the results into destination.
     The data is fetched in a streaming manner to handle large datasets efficiently.
     Args:
-        client_scope: a couchbase client object with scope
+        client: a couchbase client object
+        scope: the scope of the collection
+        collection: the name of the collection to query
         query: the SQL query to execute
         table_name: the name of the table to upsert data into
         state: a dictionary that holds the state of the connector
@@ -64,6 +66,7 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
     # set the scope in the couchbase client
     client_scope = client.scope(scope)
     count = 0
+    CHECKPOINT_INTERVAL = 1000
     try:
         # Execute the query and fetch the results
         # By default, couchbase does not load the entire data in the memory.
@@ -79,8 +82,8 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
             yield op.upsert(table=table_name, data=row_data)
             count += 1
 
-            if count % 1000 == 0:
-                # Checkpoint the state every 1000 records to avoid losing progress
+            if count % CHECKPOINT_INTERVAL == 0:
+                # Checkpoint the state every CHECKPOINT_INTERVAL records to avoid losing progress
                 # With regular checkpointing, the next sync will start from the last checkpoint of the previous failed sync, thus saving time.
                 yield op.checkpoint(state)
 
@@ -142,7 +145,7 @@ def update(configuration, state):
 
     # SQL query to fetch data from the collection
     # You can modify this query to fetch data as per your requirements.
-    sql_query = f"SELECT * FROM {collection}"
+    sql_query = f"SELECT * FROM `{collection}`"
 
     # execute the query and upsert the data into destination
     yield from execute_query_and_upsert(client=client, scope=scope, collection=collection, query=sql_query, table_name=table_name, state=state)
