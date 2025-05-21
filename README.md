@@ -29,8 +29,9 @@ Connector SDK provides native support for many Fivetran features and relies on e
 ## Requirements
 - Python ≥3.9 and ≤3.12
 - Operating System:
-  - Windows 10 or later
-  - MacOS 13 (Ventura) or later
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
 
 ## Getting started
 
