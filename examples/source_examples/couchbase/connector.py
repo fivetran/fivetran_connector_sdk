@@ -10,7 +10,6 @@ from fivetran_connector_sdk import Logging as log
 
 # Import the required libraries
 from datetime import timedelta
-import random
 import json
 from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
@@ -19,7 +18,6 @@ from couchbase.options import (ClusterOptions, ClusterTimeoutOptions,QueryOption
 
 def create_couchbase_client(configuration: dict):
     """
-    Create a connection to Couchbase
     This function creates a couchbase client using the couchbase library.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
@@ -42,52 +40,55 @@ def create_couchbase_client(configuration: dict):
         cluster = Cluster('couchbases://{}'.format(endpoint), options)
 
         # Wait until the cluster is ready for use.
-        cluster.wait_until_ready(timedelta(seconds=10))
-        # get a reference to our bucket
+        cluster.wait_until_ready(timedelta(seconds=5))
+
+        # get a reference to couchbase bucket
         cluster_bucket = cluster.bucket(bucket_name)
         log.info(f"Connected to bucket {bucket_name} successfully.")
-        # client = cb.scope(scope).collection(collection)
         return cluster_bucket
 
     except Exception as e:
         raise RuntimeError(f"Failed to connect to couchbase: {e}")
 
 
-def execute_query_and_upsert(client, query, table_name, state):
+def execute_query_and_upsert(client, scope, collection, query, table_name, state):
     """
-    This function executes a query and upserts the results into the couchbase database.
+    This function executes a query and upserts the results into destination.
     The data is fetched in a streaming manner to handle large datasets efficiently.
     Args:
-        client: a couchbase client object
+        client_scope: a couchbase client object with scope
         query: the SQL query to execute
         table_name: the name of the table to upsert data into
-        state: a dictionary containing state information from previous runs
+        state: a dictionary that holds the state of the connector
     """
-    # This query fetches the column names from the couchbase table
-    # The column_names is not supported in couchbase streaming queries
-    # So we need to run a separate query to get the column names
-    # This is needed to map the data to the correct columns in the upsert operation
-    column_names = client.query(query + " LIMIT 0").column_names
+    # set the scope in the couchbase client
+    client_scope = client.scope(scope)
+    count = 0
+    try:
+        # Execute the query and fetch the results
+        # By default, couchbase does not load the entire data in the memory.
+        # Instead, it streams the data when iterated over. This helps to avoid memory overflow issues.
+        row_iter = client_scope.query(query, QueryOptions(metrics=False))
+        for row in row_iter:
+            row_data = row.get(collection)
+            # The yield statement returns a generator object.
+            # This generator will yield an upsert operation to the Fivetran connector.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
+            yield op.upsert(table=table_name, data=row_data)
+            count += 1
 
-    with client.query_rows_stream(query) as stream:
-        for row in stream:
-            # Convert the row tuple to a dictionary using the column names
-            row = dict(zip(column_names, row))
-            # Upsert the data into the destination table
-            yield op.upsert(table=table_name, data=row)
+            if count % 1000 == 0:
+                # Checkpoint the state every 1000 records to avoid losing progress
+                # With regular checkpointing, the next sync will start from the last checkpoint of the previous failed sync, thus saving time.
+                yield op.checkpoint(state)
 
-            # Update the state with the last created_at timestamp
-            if row['created_at']:
-                last_created = row.get("created_at").isoformat()
-                if last_created > state.get("last_created", "01-01-1800T00:00:00"):
-                    state["last_created"] = last_created
+    except Exception as e:
+        # In case of exception, raise a RuntimeError
+        raise RuntimeError(f"Failed to fetch and upsert data : {e}")
 
-    log.info(f"Upserted data into {table_name} successfully.")
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    log.info(f"Upserted {count} records into {table_name} successfully.")
 
 
 def schema(configuration: dict):
@@ -106,29 +107,19 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "test_table",
+            "table": "airline_table",
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
                 "name": "STRING",
-                "value": "FLOAT",
-                "created_at": "UTC_DATETIME",
+                "country": "STRING",
+                "type": "STRING",
+                "callsign": "STRING",
+                "iata": "STRING",
+                "icao": "STRING",
             },
         }
     ]
-
-def lookup_by_callsign(cs, client):
-    print("\nLookup Result: ")
-    try:
-        inventory_scope = client.scope('tenant_agent_00')
-        sql_query = 'SELECT VALUE name FROM airline WHERE callsign = $1'
-        row_iter = inventory_scope.query(
-            sql_query,
-            QueryOptions(positional_parameters=[cs]))
-        for row in row_iter:
-            print(row)
-    except Exception as e:
-        print(e)
 
 
 def update(configuration, state):
@@ -145,12 +136,22 @@ def update(configuration, state):
     client = create_couchbase_client(configuration)
     scope = configuration.get("scope")
     collection = configuration.get("collection")
-    table_name = "sample_table"
 
-    # client = cluster_bucket.scope(scope).collection(collection)
+    # name of the table to upsert data into
+    table_name = "airline_table"
 
-    last_created = state.get("last_created", "1990-01-01T00:00:00")
-    lookup_by_callsign("CBS", client)
+    # SQL query to fetch data from the collection
+    # You can modify this query to fetch data as per your requirements.
+    sql_query = f"SELECT * FROM {collection}"
+
+    # execute the query and upsert the data into destination
+    yield from execute_query_and_upsert(client=client, scope=scope, collection=collection, query=sql_query, table_name=table_name, state=state)
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint(state)
 
 
 # Create the connector object using the schema and update functions
