@@ -112,6 +112,7 @@ There are several examples available under `/examples`:
 - [aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_boto3) - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
 - [aws_athena/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_sqlalchemy) - This is an example of how we can sync data from AWS Athena by using Connector SDK using SQLAlchemy with PyAthena.
 - [aws_dynamo_db_authentication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_dynamo_db_authentication) - This is an example of how we can connect and sync data from AWS DynamoDB by using Connector SDK.
+- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [cassandra](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/cassandra) - This is an example of how we can connect and sync data from Cassandra database by using Connector SDK. You need to provide your Cassandra credentials for this example to work.
 
 - Common Patterns
