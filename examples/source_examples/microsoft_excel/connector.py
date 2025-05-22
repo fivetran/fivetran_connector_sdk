@@ -121,6 +121,7 @@ def upsert_using_calamine(temp_filename, state):
     This is recommended for large files because it has significantly lower memory overhead (7-9× faster than openpyxl)
     and better performance on low-resource systems.
     But, python-calamine also loads the entire file into the memory before iterating over the rows.
+    This is why, python-calamine is not recommended for files above 1GB in size as it can cause memory overflow errors.
     Args:
         temp_filename: The path to the temporary file containing the Excel data.
         state:  a dictionary containing the state checkpointed during the prior sync.
@@ -129,6 +130,7 @@ def upsert_using_calamine(temp_filename, state):
     # Read Excel file using pandas from the temporary file
     # This does not load the entire Excel file into the memory
     # This is highly recommended for large files, because it handles the data efficiently.
+    # However, python-calamine is not recommended for files above 1GB in size as it loads entire file into the memory.
     df = pd.read_excel(temp_filename, engine="calamine")
 
     # Iterate over the DataFrame rows and upsert each record
@@ -261,6 +263,7 @@ def update(configuration: dict, state: dict):
         # There are three different ways to sync data from Excel file
         # Any of the three methods can be used to sync data from the Excel file
         # - python-calamine is recommended for the best balance of speed and memory efficiency
+        #   However, python-calamine is not recommended for files above 1GB in size as it can cause memory overflow errors.
         # - openpyxl in read-only mode uses less memory but is significantly slower
         # - pandas with default engine is not recommended for large files as it loads everything into memory and can cause memory overflow errors
 
