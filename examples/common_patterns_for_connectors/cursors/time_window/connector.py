@@ -2,10 +2,19 @@
 """
 This is a simple example for how to work with the fivetran_connector_sdk module.
 It defines a "from" and "to" timestamp that can be sent to an API, and limits the time range to DAYS_PER_SYNC days at a time for an initial sync.
+It does not sync any data from a source.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+import datetime
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Logging as log
+from fivetran_connector_sdk import Operations as op
+
+INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
+DAYS_PER_SYNC = 30
 import datetime
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -27,7 +36,7 @@ def update(configuration: dict, state: dict):
     """
     
     # save the current time for starting the sync
-    start_timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat("T", "milliseconds").replace("+00:00", "Z")
+    start_timestamp = format_iso_timestamp(datetime.datetime.now(datetime.timezone.utc))
     # get a start and end timestamp that could be used with an API
     from_timestamp, to_timestamp = set_timeranges(state, start_timestamp)
     # this "fine" log will only appear during debugging
@@ -77,9 +86,8 @@ def set_timeranges(state, start_timestamp):
         if the timerange from the last sync ended more than DAYS_PER_SYNC days ago,
         get an ending timestamp for the new range that is DAYS_PER_SYNC days later than that. 
         """
-        from_timestamp_dt = datetime.datetime.fromisoformat(from_timestamp.replace("Z", "+00:00"))
-        to_timestamp = from_timestamp_dt + datetime.timedelta(days=DAYS_PER_SYNC)
-        to_timestamp = to_timestamp.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        from_timestamp_dt = parse_iso_timestamp(from_timestamp)
+        to_timestamp = format_iso_timestamp(from_timestamp_dt + datetime.timedelta(days=DAYS_PER_SYNC))
     else:
         """otherwise the timerange for the next range can end when the sync started"""
         to_timestamp = start_timestamp
@@ -97,9 +105,26 @@ def is_older_than_n_days(date_to_check):
 
     # Convert to datetime if input is a string
     if isinstance(date_to_check, str):
-        date_to_check = datetime.datetime.fromisoformat(date_to_check.replace("Z", "+00:00"))
+        date_to_check = parse_iso_timestamp(date_to_check)
 
     return date_to_check < now - datetime.timedelta(days=DAYS_PER_SYNC)
+
+def format_iso_timestamp(dt: datetime.datetime) -> str:
+    """
+    Formats a datetime object to ISO format with 'Z' timezone indicator.
+    :param dt: datetime object to format
+    :return: ISO formatted string with 'Z' timezone
+    """
+    return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+def parse_iso_timestamp(timestamp: str) -> datetime.datetime:
+    """
+    Parses an ISO format timestamp string with 'Z' timezone to a datetime object.
+    :param timestamp: ISO formatted string with 'Z' timezone
+    :return: datetime object
+    """
+    return datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
 
 """
 This creates the connector object that will use the update function defined in this connector.py file.
