@@ -6,7 +6,7 @@ This example implements a connector to fetch, process, and store data from the [
 
 ## Overview
 
-This example retrieves data from the **NPS API**, processes it, and stores it in a structured format across four tables:  
+This example retrieves data from the NPS API, processes it, and stores it in a structured format across the following tables:  
 - Parks
 - Alerts
 - Articles
@@ -46,7 +46,9 @@ The project follows a modular architecture:
 ## Run the Connector
 
 ```bash
-Run fivetran debug 
+Run the following command:
+```bash
+fivetran debug 
 ```
 
 ## Output
@@ -73,7 +75,7 @@ This tables stores educational and informational articles about national parks.
 
 ![Articles](images/Articles.png "Articles Table in DB")
 
-#### Interact with Articles table
+#### Query the Articles table
 
 Run the following query:
 
@@ -91,7 +93,7 @@ This table captures active alerts for parks.
 
 
 
-#### Interact with Alerts table
+#### Query the Alerts table
 
 Run the following query:
 
@@ -106,7 +108,7 @@ This table lists key figures associated with the parks or their history.
 
 ![PEOPLE](images/People.png "People Table in DB")
 
-#### Interact with People table
+#### Query the People table
 
 Run the following query:
 
