@@ -11,16 +11,16 @@ This example retrieves data from the **NPS API**, processes it, and stores it in
 
 The project follows a modular architecture:
 - Each table has its own dedicated class for handling schema definitions and data transformations.
-- A centralized **NPS Client** handles API interactions, abstracting away the complexities of HTTP requests.
+- A centralized NPS Client handles API interactions, abstracting away the complexities of HTTP requests.
 
 ---
 
 ## Features
 
-- **Modular Design:** Each table and the API client are encapsulated in separate files for clarity and reusability.
+- Modular Design - each table and the API client are encapsulated in separate files for clarity and reusability
 - **Scalable:** Easily extend it to accommodate additional tables or API endpoints.
-- **Customizable:** Modify transformations or table structures without affecting unrelated components.
-- **Reliable:** Includes error handling for API interactions and data processing.
+- Customizability - you can modify transformations or table structures without affecting unrelated components
+- Reliability - includes error handling for API interactions and data processing
 
 ---
 
@@ -48,11 +48,13 @@ Run fivetran debug
 
 ### Parks
 
-Contains detailed information about national parks
+This table contains detailed information about national parks
 
 ![PARKS](images/Parks.png "Parks Table in DB")
 
 #### Interact with Parks table
+
+Run the following query:
 
 ```sql
 
@@ -62,11 +64,13 @@ select * from parks
 
 ### Articles
 
-Stores educational and informational articles about national parks
+This tables stores educational and informational articles about national parks.
 
 ![Articles](images/Articles.png "Articles Table in DB")
 
 #### Interact with Articles table
+
+Run the following query:
 
 ```sql
 
@@ -76,13 +80,15 @@ select * from articles
 
 ### Alerts
 
-Captures active alerts for parks
+This table captures active alerts for parks.
 
 ![Alerts](images/Alerts.png "Alerts Table in DB")
 
 
 
 #### Interact with Alerts table
+
+Run the following query:
 
 ```sql
 
@@ -91,11 +97,13 @@ select * from alerts
 ```
 ### People
 
-Lists key figures associated with the parks or their history
+This table lists key figures associated with the parks or their history.
 
 ![PEOPLE](images/People.png "People Table in DB")
 
 #### Interact with People table
+
+Run the following query:
 
 ```sql
 
