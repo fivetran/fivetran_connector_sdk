@@ -1,9 +1,8 @@
 # Toast Fivetran Connector
 
-[Example code here](https://github.com/fivetran/fivetran_connector_sdk/edit/main/examples/source_examples/toast/)
+This is a custom [Fivetran connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
 
-
-This is a custom [Fivetran Connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
+For full implementation details, see the [Toast connector example code](https://github.com/fivetran/fivetran_connector_sdk/edit/main/examples/source_examples/toast/).
 
 ---
 
@@ -42,11 +41,13 @@ Example `configuration.json`:
 
 ## How It Works
 
-1. **Authentication**: Generates and caches a Toast token using the provided credentials.
-2. **Sync Loop**: Runs in 30-day time chunks, paginating through endpoints.
-3. **Data Normalization**: Flattens nested objects and lists using `flatten_dict`, `extract_fields`, and `stringify_lists`.
-4. **Upserts and Deletes**: Emits operations using `op.upsert()` and `op.delete()`.
-5. **Checkpointing**: Updates state after each window to resume seamlessly.
+
+The connector performs the following actions for each key aspect:
+- Authentication: Generates and caches a Toast token using the provided credentials
+- Sync Loop: Runs in 30-day time chunks, paginating through endpoints
+- Data Normalization: Flattens nested objects and lists using `flatten_dict`, `extract_fields`, and `stringify_lists`
+- Upserts and Deletes: Emits operations using `op.upsert()` and `op.delete()`
+- Checkpointing: Updates state after each window to resume seamlessly
 
 ---
 
