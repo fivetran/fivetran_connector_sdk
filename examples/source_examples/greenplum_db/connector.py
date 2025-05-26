@@ -11,6 +11,8 @@ from greenplumclient import GreenplumClient
 from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
 
+# Name of the destination table to upsert data into.
+DESTINATION_TABLE = "sample_table"
 
 def schema(configuration: dict):
     """
@@ -20,15 +22,10 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Check if the credentials for connecting to database is present in the configuration.
-    cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD","PORT"]
-    for key in cred:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration: {key}")
 
     return [
         {
-            "table": "sample_table",  # Name of the table in the destination.
+            "table": DESTINATION_TABLE,  # Name of the table in the destination.
             "primary_key": ["datid"],  # Primary key column(s) for the table.
             "columns":{
                 "datid": "INT",
@@ -61,8 +58,6 @@ def update(configuration: dict, state: dict):
     greenplum_client = GreenplumClient(configuration)
     log.info("Connected to Greenplum database.")
 
-    # Name of the destination table to upsert data into.
-    destination_table = "sample_table"
     # SQL query to fetch data from the Greenplum database.
     # you can modify this query to fetch data from any table in your Greenplum database as per your need.
     # The query used here is for demonstration purposes.
@@ -70,7 +65,7 @@ def update(configuration: dict, state: dict):
     query = f"SELECT * FROM pg_stat_activity WHERE query_start > '{last_query}'"
 
     # Call the upsert_data method to fetch data from the Greenplum database and upsert it into the destination table.
-    yield from greenplum_client.upsert_data(query, destination_table, state)
+    yield from greenplum_client.upsert_data(query, DESTINATION_TABLE, state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

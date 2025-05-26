@@ -9,6 +9,12 @@ from fivetran_connector_sdk import Logging as log # For enabling Logs in your co
 # Define the Greenplum client class to handle database operations.
 class GreenplumClient:
     def __init__(self, configuration):
+        # Check if the credentials for connecting to database is present in the configuration.
+        cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
+        for key in cred:
+            if key not in configuration:
+                raise ValueError(f"Missing required configuration: {key}")
+
         self.connection = GreenplumClient.connect(configuration)
         # Create a cursor object to execute SQL queries.
         # The cursor is created with RealDictCursor factory to return results as dictionaries.
