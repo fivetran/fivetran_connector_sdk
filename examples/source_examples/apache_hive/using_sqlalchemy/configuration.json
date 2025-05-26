@@ -1,7 +1,6 @@
 {
-  "hostname": "localhost",
-  "port": 10000,
-  "username": "hive",
-  "password": "hive",
-  "database": "default"
+  "hostname": "YOUR_HIVE_HOSTNAME",
+  "port": "<YOUR_HIVE_PORT>",
+  "username": "<YOUR_HIVE_USERNAME>",
+  "database": "<YOUR_HIVE_DATABASE>"
 }

@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# It defines a simple 'update' method, which upserts data from Apache Hive.
+# It demonstrates how to fetch data from Apache Hive using the PyHive library and upsert it into destination table in batches.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -10,11 +10,12 @@ from fivetran_connector_sdk import Logging as log
 
 # Import the required libraries
 import json
-from datetime import datetime
-import random
+from datetime import datetime, timezone
 # Import the Apache hive modules
 from pyhive import hive
 
+# Define the table name
+TABLE_NAME = "people"
 
 def create_hive_connection(configuration: dict):
     """
@@ -31,42 +32,34 @@ def create_hive_connection(configuration: dict):
     password=configuration.get("password")
 
     try:
-        connection = hive.Connection(host=host, port=port, username=username, password=password)
+        # You can modify the connection parameters based on your Apache Hive setup here.
+        connection = hive.Connection(host=host, port=port, username=username, password=password, auth='CUSTOM')
+        log.info(f"Connected to Apache Hive at {host}:{port} as user {username}")
         return connection
     except Exception:
         raise RuntimeError("Failed to connect to Apache Hive")
 
 
-def insert_dummy_data(cursor, table_name, record_count=10):
+def process_row(columns, row):
     """
-    Inserts dummy data into the specified table in Apache Hive.
-    This is a test function and should not be used in production.
+    Process a single row of data.
+    This function processes a single row and converts it into a dictionary format which is suitable for upserting into the destination table.
+    You can modify this function to suit your needs, such as converting data types or formatting row data.
     Args:
-        cursor: an Apache Hive cursor object
-        table_name: name of the table to insert data into
-        record_count: number of records to insert
+        columns: a list of column names corresponding to the row data
+        row: a tuple representing a single row of data fetched from Apache Hive
+    Returns:
+        row_data: a dictionary representing the processed row data
     """
-    cursor.execute(f"""
-        CREATE TABLE {table_name} (
-            id INT,
-            name STRING,
-            age INT,
-            created_at TIMESTAMP CURRENT_TIMESTAMP
-        )
-        ROW FORMAT DELIMITED
-        FIELDS TERMINATED BY ','
-        STORED AS TEXTFILE
-    """)
-
-    for count in range(record_count):
-        # Generate random data and insert
-        index = count
-        name = f"Name_{count}"
-        age = random.randint(18, 70)
-        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute(f"INSERT INTO TABLE people VALUES ({index}, '{name}', {age}, '{created_at}')")
-
-    log.info(f"Inserted {record_count} dummy records into {table_name}")
+    row_data = {}
+    for col_name, value in zip(columns, row):
+        # Convert the datetime objects to ISO format strings
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            value = value.isoformat()
+        row_data[col_name] = value
+    return row_data
 
 
 def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int = 1000):
@@ -78,13 +71,20 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
         state: a dictionary that holds the state of the connector
         batch_size: number of records to fetch in each batch
     """
+    # Get the last created timestamp from the state for incremental sync.
+    last_created = state.get('last_created', '1990-01-01T00:00:00Z')
+
+    # Convert ISO format to Hive-compatible timestamp format
+    # Remove 'Z' and 'T' to make it compatible with Hive timestamp format
+    hive_timestamp = last_created.replace('T', ' ').replace('Z', '')
+
     # Execute the query to fetch data.
     # You can modify the query to suit your needs.
-    hive_query = "SELECT * FROM people"
-    cursor.execute(hive_query)
+    hive_query = "SELECT * FROM people WHERE created_at > %s"
+    cursor.execute(hive_query, (hive_timestamp,))
 
     # Get column names from the cursor description
-    columns = [desc[0] for desc in cursor.description]
+    columns = [desc[0].split('.')[-1] for desc in cursor.description]
 
     # upsert the data into the destination table in batches
     # The batch size can be adjusted based on your requirements
@@ -97,17 +97,26 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
             # No more rows to fetch, exit the loop
             break
         for row in rows:
-            # Process each row and upsert it into the destination table
-            # Each record should be in the form of a dictionary where the keys are the column names
-            row_data = dict(zip(columns, row))
+            # Process each row and convert it into a dictionary format
+            row_data = process_row(columns=columns, row=row)
             # Upsert the row data into the destination table
             yield op.upsert(table=table_name, data=row_data)
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+            # Update the last_created state with the maximum created_at value.
+            # This is used to track the last created record for incremental sync.
+            if row_data.get('created_at') and row_data['created_at'] > last_created:
+                last_created = row_data['created_at']
+
+        # Update the state with the last created timestamp
+        # The checkpoint method will be called after processing each batch of rows.
+        new_state = {
+            'last_created': last_created
+        }
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        yield op.checkpoint(new_state)
 
 
 def schema(configuration: dict):
@@ -126,7 +135,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "people",
+            "table": TABLE_NAME,
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
@@ -148,22 +157,40 @@ def update(configuration, state):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    # Create a Apache Hive session
+    log.warning("Example: Source Examples: Apache Hive using PyHive")
+
+    # Create an Apache Hive session
     connection = create_hive_connection(configuration)
     cursor = connection.cursor()
-    table_name = "people"
 
-    # Insert dummy data for testing purposes
-    # This method is used only for testing purposes and will not be used in production.
-    insert_dummy_data(cursor=cursor, table_name=table_name, record_count=10)
+    # Get the batch size from the configuration, defaulting to 1000 if not specified
+    batch_size = int(configuration.get("batch_size", 1000))
+
+    # The example assumes that the table 'people' already exists in Apache Hive.
+    # The table should have the following schema:
+    # TABLE people (
+    #     id INT,
+    #     name STRING,
+    #     age INT,
+    #     created_at TIMESTAMP
+    # )
+    # The table should be created before running the example connector.
 
     # Fetch new rows from Apache Hive and upsert them
-    yield from fetch_and_upsert_data(cursor=cursor, table_name=table_name, state=state, batch_size=1000)
+    yield from fetch_and_upsert_data(cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size)
+
+    # Close the cursor and connection
+    cursor.close()
+    connection.close()
 
 
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", 'r') as f:
