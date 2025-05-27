@@ -52,7 +52,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Source Examples: Greenplum Database")
 
     # Get the last query from the state dictionary.
-    last_query = state.get("last_query", "1990-01-01T00:00:00Z")
+    last_query_timestamp = state.get("last_query_timestamp", "1990-01-01T00:00:00Z")
 
     # create a GreenplumClient object to handle database operations.
     greenplum_client = GreenplumClient(configuration)
@@ -62,7 +62,7 @@ def update(configuration: dict, state: dict):
     # you can modify this query to fetch data from any table in your Greenplum database as per your need.
     # The query used here is for demonstration purposes.
     # This query fetches all rows from the pg_stat_activity system view.
-    query = f"SELECT * FROM pg_stat_activity WHERE query_start > '{last_query}'"
+    query = f"SELECT * FROM pg_stat_activity WHERE query_start > '{last_query_timestamp}'"
 
     # Call the upsert_data method to fetch data from the Greenplum database and upsert it into the destination table.
     yield from greenplum_client.upsert_data(query, DESTINATION_TABLE, state)

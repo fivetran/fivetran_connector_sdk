@@ -66,7 +66,7 @@ class GreenplumClient:
         """
 
         # Get the last query from the state dictionary.
-        last_query = state.get("last_query", "1990-01-01T00:00:00Z")
+        last_query_timestamp = state.get("last_query_timestamp", "1990-01-01T00:00:00Z")
 
         # Execute the SQL query using the cursor.
         self.cursor.execute(query)
@@ -86,12 +86,12 @@ class GreenplumClient:
             # - The second argument is a dictionary containing the data to be upserted.
             yield op.upsert(table=table_name, data=upsert_row)
 
-            # update the last_query variable if the current row's query_start is greater than the last_query
-            if upsert_row["query_start"] > last_query:
-                last_query = upsert_row["query_start"]
+            # update the last_query_timestamp variable if the current row's query_start is greater than the last_query_timestamp
+            if upsert_row["query_start"] > last_query_timestamp:
+                last_query_timestamp = upsert_row["query_start"]
 
         state = {
-            "last_query": last_query
+            "last_query": last_query_timestamp
         }
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
