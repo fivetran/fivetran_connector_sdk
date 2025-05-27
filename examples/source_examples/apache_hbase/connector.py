@@ -28,7 +28,7 @@ def create_hbase_connection(configuration: dict):
     # Create a connection to apache hbase and return the connection object
     # In case of failure, raise a RuntimeError with the error message
     try:
-        connection = happybase.Connection(host, port=port)
+        connection = happybase.Connection(host=host, port=port)
         connection.open()
         log.info(f"Connected to Hbase at {host}:{port}")
         return connection
@@ -62,11 +62,11 @@ def execute_query_and_upsert(table_connection, column_family, table_name, state,
             # Decode the key and data to get the row data
             # You can add data preprocessing here if needed
             row_data = {
-                "id": key.decode(),
-                "name": data[f"{column_family}:name".encode()].decode(),
-                "age": int(data[f"{column_family}:age".encode()].decode()),
-                "city": data[f"{column_family}:city".encode()].decode(),
-                "created_at": data[f"{column_family}:created_at".encode()].decode(),
+                "id": key.decode('utf-8'),
+                "name": data[f"{column_family}:name".encode()].decode('utf-8'),
+                "age": int(data[f"{column_family}:age".encode()].decode('utf-8')),
+                "city": data[f"{column_family}:city".encode()].decode('utf-8'),
+                "created_at": data[f"{column_family}:created_at".encode()].decode('utf-8'),
             }
             # The yield statement returns a generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
@@ -109,7 +109,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "sample_table",
+            "table": "profile_table",
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
@@ -138,7 +138,7 @@ def update(configuration: dict, state: dict):
     hbase_table = configuration.get("table_name")
     column_family = configuration.get("column_family")
     # name of the table to upsert data into
-    table_name = "sample_table"
+    table_name = "profile_table"
 
     # Get the connection object to interact with the table
     table_connection = connection.table(hbase_table)

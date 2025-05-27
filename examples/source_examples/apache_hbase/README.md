@@ -79,13 +79,13 @@ The connector implements error handling at multiple levels:
 
 
 The connector creates one table:  
-- sample_table
+- profile_table
 
 The schema of the created table is as follows:
 
 ```
 {
-    "table": "sample_table",
+    "table": "profile_table",
     "primary_key": ["id"],
     "columns": {
         "id": "STRING",
