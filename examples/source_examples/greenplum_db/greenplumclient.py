@@ -91,7 +91,7 @@ class GreenplumClient:
                 last_query_timestamp = upsert_row["query_start"]
 
         state = {
-            "last_query": last_query_timestamp
+            "last_query_timestamp": last_query_timestamp
         }
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
