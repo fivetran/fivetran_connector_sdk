@@ -8,9 +8,10 @@ This connector example demonstrates how to sync data from Couchbase Capella usin
 ## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating System:  
-  * Windows 10 or later  
-  * macOS 13 (Ventura) or later
+* Operating system:
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 

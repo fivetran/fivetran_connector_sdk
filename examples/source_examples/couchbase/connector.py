@@ -66,7 +66,7 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
     # set the scope in the couchbase client
     client_scope = client.scope(scope)
     count = 0
-    CHECKPOINT_INTERVAL = 1000
+    checkpoint_interval = 1000
     try:
         # Execute the query and fetch the results
         # By default, couchbase does not load the entire data in the memory.
@@ -82,7 +82,7 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
             yield op.upsert(table=table_name, data=row_data)
             count += 1
 
-            if count % CHECKPOINT_INTERVAL == 0:
+            if count % checkpoint_interval == 0:
                 # Checkpoint the state every CHECKPOINT_INTERVAL records to avoid losing progress
                 # With regular checkpointing, the next sync will start from the last checkpoint of the previous failed sync, thus saving time.
                 yield op.checkpoint(state)
