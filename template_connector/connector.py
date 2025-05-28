@@ -1,28 +1,58 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
+""" Add one line description of your connector here.
+For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library."""
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import the required classes from the connector SDK
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
 
-# Add your source-specific imports here
-# Example: import pandas, boto3, etc.
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+
+""" Add your source-specific imports here
+Example: import pandas, boto3, etc.
+Add comment for each import to explain its purpose for users to follow."""
 import json
 
 
 """
-Guidelines to follow while writing an example connector:
+GUIDELINES TO FOLLOW WHILE WRITING AN EXAMPLE CONNECTOR:
+- Import only the necessary modules and libraries to keep the code clean and efficient.
 - Use clear, consistent and descriptive names for your functions and variables.
+- For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
 - Add comments to explain the purpose of each function in the docstring.
+- Add comments to explain the purpose of complex logic within functions, where necessary.
+- Add comments to highlight where users can make changes to the code to suit their specific use case.
 - Split your code into smaller functions to improve readability and maintainability where required.
 - Use logging to provide useful information about the connector's execution. Do not log excessively.
+- Implement error handling to catch exceptions and log them appropriately. Catch specific exceptions where possible.
 - Define the complete data model with primary key and data types in the schema function.
 - Ensure that the connector does not load all data into memory at once. This can cause memory overflow errors. Use pagination or streaming where possible.
+- Add comments to explain pagination or streaming logic to help users understand how to handle large datasets.
+- Add comments for upsert, update and delete to explain the purpose of upsert, update and delete. This will help users understand the upsert, update and delete processes.
 - Checkpoint your state at regular intervals to ensure that the connector can resume from the last successful sync in case of interruptions.
+- Add comments for checkpointing to explain the purpose of checkpoint. This will help users understand the checkpointing process.
 - Refer to the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
 """
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["param1", "param2", "param3"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def schema(configuration: dict):
@@ -34,19 +64,13 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
 
-    # Validate required configuration parameters
-    required_configs = ["param1", "param2", "param3"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-
     return [
         {
-            "table": "table_name",  # Name of the table
-            "primary_key": ["id"],  # Primary key(s) of the table
-            "columns": {
-                "id": "STRING",
-            }
+            "table": "table_name", # Name of the table in the destination, required.
+            "primary_key": ["id"], # Primary key column(s) for the table, optional.
+            "columns": { # Definition of columns and their types, optional.
+                "id": "STRING", # Contains a dictionary of column names and data types
+            }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
     ]
 
@@ -64,6 +88,9 @@ def update(configuration: dict, state: dict):
 
     log.warning("Example: <type_of_example> : <name_of_the_example>")
 
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
+
     # Extract configuration parameters as required
     param1 = configuration.get("param1")
 
@@ -73,6 +100,7 @@ def update(configuration: dict, state: dict):
     try:
         data = get_data()
         for record in data:
+
             # The yield statement returns a generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
