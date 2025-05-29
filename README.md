@@ -57,6 +57,8 @@ There are several examples available under `/examples`:
 
 - [weather](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather) - This is a realistic example, using a public API, fetching data from NOAA.
 
+- [weather_by_zip_code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_by_zip_code) - This is an expanded example, using two different public APIs, fetching data from NOAA for multiple ZIP codes.
+
 - [complex_configuration_options](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/complex_configuration_options) - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
 - [base_64_encoding_decoding](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/base_64_encoding_decoding) - This example shows how to use base64 encoding and decoding in your connector code.
