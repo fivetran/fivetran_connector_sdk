@@ -111,7 +111,7 @@ def update(configuration: dict, state: dict):
     Yields:
         Operation: Fivetran operations (upsert, checkpoint) for data synchronization
     """
-    log.warning("Example: api.weather.gov")
+    log.warning("Example: QuickStart Examples - WeatherByZipCode")
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
