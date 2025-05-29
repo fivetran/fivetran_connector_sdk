@@ -16,6 +16,7 @@ The connector maintains two tables:
 * Operating System:  
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
