@@ -119,6 +119,20 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
     yield op.checkpoint(new_state)
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration to ensure all required fields are present.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration value is missing
+    """
+    required_keys = ['hostname', 'username', 'database', 'port']
+    for key in required_keys:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -127,11 +141,6 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-
-    # check if required configuration values are present in configuration
-    for key in ['hostname', 'username','port', 'database']:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value : {key}")
 
     return [
         {
@@ -158,6 +167,9 @@ def update(configuration, state):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Source Examples: Apache Hive using SQLAlchemy and PyHive dialect")
+
+    # Validate the configuration to ensure all required fields are present
+    validate_configuration(configuration)
 
     # Create an Apache Hive session
     session = create_hive_connection(configuration)
