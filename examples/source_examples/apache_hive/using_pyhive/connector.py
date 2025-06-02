@@ -110,6 +110,7 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
 
         # Update the state with the last created timestamp
         # The checkpoint method will be called after processing each batch of rows.
+        # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
         new_state = {
             'last_created': last_created
         }

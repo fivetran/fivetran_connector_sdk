@@ -106,6 +106,7 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
             last_created = row_data['created_at']
 
         # Checkpointing the state every CHECKPOINT_INTERVAL rows
+        # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
         if count % CHECKPOINT_INTERVAL == 0:
             new_state = {'last_created': last_created}
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
