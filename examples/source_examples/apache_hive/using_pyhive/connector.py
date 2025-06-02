@@ -80,7 +80,8 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
 
     # Execute the query to fetch data.
     # You can modify the query to suit your needs.
-    hive_query = f"SELECT * FROM {table_name} WHERE created_at > %s"
+    hive_query = f"SELECT * FROM {table_name} WHERE created_at > %s ORDER BY created_at"
+    # You can also modify the query to use DISTRIBUTE BY with SORT BY to use Hive's distributed processing capabilities.
     cursor.execute(hive_query, (hive_timestamp,))
 
     # Get column names from the cursor description

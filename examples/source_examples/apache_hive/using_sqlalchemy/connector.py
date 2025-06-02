@@ -80,7 +80,7 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
     hive_timestamp = last_created.replace('T', ' ').replace('Z', '')
 
     # Use a parameterized query to avoid SQL injection and formatting issues
-    query = text(f"SELECT * FROM {table_name} WHERE created_at > :created_at")
+    query = text(f"SELECT * FROM {table_name} WHERE created_at > :created_at ORDER BY created_at")
 
     # Execute with parameter binding
     result = session.execute(
