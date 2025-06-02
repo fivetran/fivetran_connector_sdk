@@ -14,9 +14,6 @@ import random
 import json
 import clickhouse_connect # This is used to connect to ClickHouse
 
-# Import custom function to create dummy data
-from clickhouse_dummy_data_generator import insert_dummy_data
-
 
 def create_clickhouse_client(configuration: dict):
     """
@@ -122,9 +119,24 @@ def update(configuration, state):
     database_name = configuration.get("database")
     table_name = "sample_table"
 
-    # Insert dummy data for testing purposes
-    # This method is used only for testing purposes and will not be used in production.
-    insert_dummy_data(client=client, database_name=database_name, table_name=table_name)
+    # IMPORTANT: This connector requires the following prerequisites in your ClickHouse instance:
+    # 1. A database named as specified in your configuration
+    # 2. A table named 'sample_table' with the following schema:
+    #    - id (UInt32): Primary key
+    #    - name (String): Item name
+    #    - value (Float64): Numeric value
+    #    - created_at (DateTime): Record creation timestamp
+    #
+    # The table should be created with a statement similar to:
+    # CREATE TABLE IF NOT EXISTS database_name.sample_table (
+    #     id UInt32,
+    #     name String,
+    #     value Float64,
+    #     created_at DateTime
+    # ) ENGINE = MergeTree() ORDER BY id
+    #
+    # Make sure you have proper permissions to access this table and the created_at
+    # If these prerequisites are not met, the connector will not function correctly.
 
     last_created = state.get("last_created", "1990-01-01T00:00:00")
 
