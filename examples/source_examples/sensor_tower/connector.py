@@ -9,7 +9,6 @@
 # Import requests to make HTTP calls to API
 
 import requests
-import pytz
 
 # Import the json module to handle JSON data.
 

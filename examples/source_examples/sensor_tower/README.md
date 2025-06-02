@@ -40,7 +40,7 @@ The `requirements.txt` file specifies any additional Python libraries required b
 *Example content of `requirements.txt`:*
 
 ```
-pytz
+requests
 dateutil
 ```
 
