@@ -8,6 +8,8 @@
 
 *Notate what section relates to what function in the connector.py using the function name or specific line block. (e.g. Error Handling \- Refer to def handle_critical_error(error_message, error_details=None),  Pagination \- Refer to lines 150-175)*
 
+*Do not use Title Case for any heading level other than H1 (a single top-level heading with a single `#`).*
+
 ## Connector overview
 
 *Provide a detailed overview of the connector, including its functionality, the data source it connects to, and the use cases it addresses.*
