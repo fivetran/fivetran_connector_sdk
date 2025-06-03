@@ -18,7 +18,10 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-* *List key features of the connector, such as supported endpoints, data replication methods, and any special capabilities.*
+- Connects to IBM DB2 databases with secure authentication
+- Supports incremental data sync using timestamp-based tracking
+- Efficient row-level extraction with state management for resumable syncs
+- Handles various DB2 data types
 
 ## Configuration file
 
