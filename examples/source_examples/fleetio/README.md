@@ -1,6 +1,7 @@
 # Fleetio Connector Example
 
 The Fleetio Connector allows Fleetio customers to easily pull their data into their destination databases with Fivetran.
+This example was built by the Fleetio team, who approved adding it to this repository.
 For more information about Fleetio, check out [our site](https://www.fleetio.com) or [contact us](https://www.fleetio.com/contact)!
 If you need more details about the endpoints pulled by the connector, visit our [API docs](https://developer.fleetio.com/docs/category/api).
 
@@ -85,7 +86,7 @@ The tables that customers can load are:
 * `submitted_inspection_forms`
     * Submitted Inspection Forms are Inspection Forms that have been completed and submitted. 
 * `vehicles`
-    * A "vehicle" represents any asset or unit of equipmentâ€”moving or otherwiseâ€”managed in Fleetio.
+    * A "vehicle" represents any asset or unit of equipment-moving or otherwise-managed in Fleetio.
 
 ## Additional considerations
 

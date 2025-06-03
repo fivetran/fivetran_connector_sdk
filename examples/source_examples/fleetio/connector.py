@@ -1,5 +1,6 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 # This example shows how to sync data from the Fleetio API using the Fivetran Connector SDK.
+# This example was built by the Fleetio team, who approved adding it to this repository.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -9,10 +10,10 @@ from fivetran_connector_sdk import Logging as log # For enabling Logs in your co
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # Import required libraries
-import json
-from typing import List, Dict
-from flatten_json import flatten
-import requests
+import json # For working with JSON data
+from typing import List, Dict # For type hinting and annotations
+from flatten_json import flatten # This is needed to transform a nested JSON data structure into a flat, one-level structure
+import requests # This is needed to make HTTP requests to the Fleetio API
 
 
 def update_list_of_dicts(list_of_dicts: List[Dict], keys: List, remove: bool = False):
@@ -253,8 +254,6 @@ def validate_configuration(configuration: dict):
     Validate the configuration for the connector.
     Args:
         configuration: A dictionary containing connection details.
-    Returns:
-        True if the configuration is valid, False otherwise.
     """
     required_keys = ["Account-Token", "Authorization"]
     for key in required_keys:
@@ -328,7 +327,7 @@ def sync_table(base_url, path, headers, params, table):
         log.info(f"Processing data for {path}")
         for item in data:
             flat_item = flatten(item)
-            # The yield statement returns a generator object.
+            # The yield statement yields a value from generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
