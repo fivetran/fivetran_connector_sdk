@@ -135,7 +135,7 @@ def update(configuration, state):
     #     created_at DateTime
     # ) ENGINE = MergeTree() ORDER BY id
     #
-    # Make sure you have proper permissions to access this table and the created_at
+    # Make sure you have proper permissions to access this table
     # If these prerequisites are not met, the connector will not function correctly.
 
     last_created = state.get("last_created", "1990-01-01T00:00:00")
