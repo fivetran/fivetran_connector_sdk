@@ -129,7 +129,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration value is missing
     """
-    required_keys = ['hostname', 'username', 'password', 'port']
+    required_keys = ['hostname', 'username', 'password', 'port', 'database']
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -177,10 +177,16 @@ def update(configuration, state):
     connection = create_hive_connection(configuration)
     cursor = connection.cursor()
 
+    database = configuration.get("database")
+    select_database = f"USE {database}"
+    cursor.execute(select_database)
+    log.info(f"Using database: {database}")
+
     # Get the batch size from the configuration, defaulting to 1000 if not specified
     batch_size = int(configuration.get("batch_size", 1000))
 
-    # The example assumes that the table 'people' already exists in Apache Hive.
+    # The example assumes that the database as mentioned in the configuration file already exists in Apache Hive.
+    # The example also assumes that the table 'people' already exists in Apache Hive.
     # The table should have the following schema:
     # TABLE people (
     #     id INT,
