@@ -1,5 +1,5 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
-# It defines an `update` method, which upserts data from an IBM DB2 database.
+# It defines an `update` method, which upserts data from an IBM DB2 database hosted on IBM Cloud.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -15,59 +15,90 @@ from fivetran_connector_sdk import Operations as op  # For supporting Data opera
 #   ibm_db_dbi: Python driver for IBM Db2 for LUW that complies to the DB-API 2.0 specification.
 import ibm_db
 import json
+import datetime
+
+# Set the checkpoint interval to 1000 rows
+CHECKPOINT_INTERVAL = 1000
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    # Check if the configuration dictionary has all the required keys
-    required_keys = ["hostname", "port", "database", "user_id", "password", "protocol"]
-    for key in required_keys:
-        if key not in configuration:
-            if key=="protocol":
-                log.warning("Missing protocol configuration key, defaulting to TCPIP")
-            else:
-                raise ValueError(f"Missing required configuration key: {key}")
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
 
     return [
         {
-            "table": "products",
-            "primary_key": ["product_id"]
+            "table": "employee", # Name of the table in the destination, required.
+            "primary_key": ["id"], # Primary key column(s) for the table, optional.
+            "columns":{ # Definition of columns and their types, optional.
+                "id": "INT", # Contains a dictionary of column names and data types
+                "first_name": "STRING",
+                "last_name": "STRING",
+                "email": "STRING",
+                "department": "STRING",
+                "hire_date": "NAIVE_DATE"
+            }
+            # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
 
-# This method is used to create a connection string for the IBM DB2 database.
-# This takes the configuration dictionary as an argument and extracts the necessary parameters to create the connection string.
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required fields.
+    This function checks if the necessary parameters for connecting to the IBM DB2 database are present.
+    If any required parameter is missing, it raises a ValueError with an appropriate message.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+    # Check if the configuration dictionary has all the required keys
+    required_keys = ["hostname", "port", "database", "user_id", "password", "schema_name","table_name"]
+    for key in required_keys:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration key: {key}")
+
+
 def create_connection_string(configuration: dict):
+    """
+    Create a connection string for the IBM DB2 database using the provided configuration dictionary.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Returns:
+        str: A formatted connection string for the IBM DB2 database.
+    """
     # Extract the necessary parameters from the configuration dictionary
     hostname = configuration.get("hostname")
     port = configuration.get("port")
     database = configuration.get("database")
     user_id = configuration.get("user_id")
     password = configuration.get("password")
-    protocol = configuration.get("protocol", "TCPIP")
 
     # return the connection string
     return (
         f"DATABASE={database};"
         f"HOSTNAME={hostname};"
         f"PORT={port};"
-        f"PROTOCOL={protocol};"
+        f"PROTOCOL=TCPIP;"
         f"UID={user_id};"
         f"PWD={password};"
+        "SECURITY=SSL"  # This is required for secure connections to cloud IBM DB2 databases
     )
 
 
-# This method is used to establish a connection to the IBM DB2 database.
-# It takes the configuration dictionary as an argument and uses the create_connection_string method to create the connection string.
-# It then attempts to connect to the database using the ibm_db module.
-# If the connection is successful, it returns the connection object.
-# If the connection fails, it raises a RuntimeError with the error message.
 def connect_to_db(configuration: dict):
+    """
+    Connect to the IBM DB2 database using the provided configuration dictionary.
+    This function uses the ibm_db module to establish a connection to the database.
+    It creates a connection string using the create_connection_string function and attempts to connect.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Returns:
+        conn: A connection object if the connection is successful.
+    """
     # Get the connection string
     conn_str = create_connection_string(configuration)
 
@@ -81,199 +112,124 @@ def connect_to_db(configuration: dict):
         raise RuntimeError("Connection failed") from e
 
 
-# This method is used to create a sample data set to be inserted into the database.
-# It returns a list of dictionaries, where each dictionary represents a product
-# This is a test data to successfully run the connector.
-# This method should be removed in production code.
-def sample_data_to_insert():
-    products = [
-        {
-            "id": 1,
-            "name": "Smartphone XS",
-            "desc": "Latest smartphone with advanced camera and long battery life. Features include 5G connectivity, water resistance, and a powerful processor.",
-            "price": 799.99,
-            "stock": 120,
-            "release": '2024-09-15',
-            "updated": '2025-04-01 10:30:00',
-            "featured": True
-        },
-        {
-            "id": 2,
-            "name": "Laptop Pro",
-            "desc": "High-performance laptop for professionals and gamers.",
-            "price": 1299.99,
-            "stock": 45,
-            "release": '2024-07-22',
-            "updated": '2025-03-15 14:45:22',
-            "featured": True
-        },
-        {
-            "id": 3,
-            "name": "Wireless Earbuds",
-            "desc": "Noise-cancelling earbuds with crystal clear sound quality.",
-            "price": 149.50,
-            "stock": 200,
-            "release": '2024-12-01',
-            "updated": '2025-04-10 09:15:30',
-            "featured": False
-        },
-        {
-            "id": 4,
-            "name": "Smart Watch",
-            "desc": "Health monitoring smartwatch with GPS and fitness tracking capabilities.",
-            "price": 249.99,
-            "stock": 75,
-            "release": '2025-01-10',
-            "updated": '2025-04-05 16:20:15',
-            "featured": True
-        }
-    ]
+def standardize_row_data(row):
+    """
+    Standardize the row data by converting all values to strings.
+    This is useful for ensuring consistent data types when processing rows.
+    Args:
+        row: A dictionary representing a row of data fetched from the database.
+    Returns:
+        A new dictionary with all values converted to strings.
+    """
+    row_data = {}
+    for key, value in row.items():
+        key = key.lower()  # Convert key to lowercase for consistency
+        if isinstance(value, int):
+            row_data[key] = int(value)
+        elif isinstance(value, float):
+            row_data[key] = float(value)
+        elif isinstance(value, str):
+            row_data[key] = value
+        elif isinstance(value, (datetime.date, datetime.datetime)):
+            # Convert datetime to ISO format string
+            row_data[key] = value.isoformat()
+        elif value is None:
+            row_data[key] = None
+        else:
+            row_data[key] = str(value)  # Convert other types to string
 
-    return products
+    return row_data
 
 
-# This method is used to create a sample table in the database.
-# It checks if the table already exists in the database.
-# If it does, it skips the creation process.
-# If it doesn't, it creates a new table named "products" with various data types.
-# This is a test method to successfully run the connector.
-# This method should be removed in production code.
-# This is because, in production code, the connector should be able to work with any existing table in the database.
-def create_sample_table_into_db(conn):
-    # Check if the table already exists
-    check_table_sql = """
-        SELECT 1 FROM SYSCAT.TABLES 
-        WHERE TABSCHEMA = CURRENT_SCHEMA 
-        AND TABNAME = 'PRODUCTS'
-        """
+def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
+    """
+    Fetch data from the IBM DB2 database table and upsert the row to destination.
+    This function executes a SQL query to retrieve rows from the specified table where the hire date is greater than the last hired date.
+    It processes each row, standardizes the data, and yields an upsert operation for each row.
+    Args:
+        conn: A connection object to the IBM DB2 database.
+        schema_name: The name of the schema in which the table resides.
+        table_name: The name of the table from which to fetch data.
+        last_hired: The date of the last hire, used to filter rows.
+    """
+    latest_hire = last_hired
 
-    stmt = ibm_db.exec_immediate(conn, check_table_sql)
-    result = ibm_db.fetch_tuple(stmt)
+    # Query to select rows with hire_date greater than the last hired date
+    select_sql = f"SELECT ID, FIRST_NAME, LAST_NAME, EMAIL, DEPARTMENT, SALARY, HIRE_DATE FROM {schema_name}.{table_name} WHERE HIRE_DATE > '{latest_hire}' ORDER BY HIRE_DATE"
+    statement = ibm_db.exec_immediate(conn, select_sql)
 
-    if result:
-        log.info("Table 'products' already exists, skipping creation")
-    else:
-        # Create a table with multiple data types if it doesn't exist
-        create_table_sql = """
-            CREATE TABLE products (
-                product_id INTEGER NOT NULL PRIMARY KEY,
-                product_name VARCHAR(100) NOT NULL,
-                description CLOB,
-                price DECIMAL(10,2) NOT NULL,
-                in_stock SMALLINT NOT NULL,
-                release_date DATE,
-                last_updated TIMESTAMP,
-                is_featured BOOLEAN
-            )
-            """
+    if not statement:
+        # If the statement execution fails, raise an exception
+        raise RuntimeError(f"Failed to execute query: {select_sql}")
 
-        # Create the table and commit the changes
-        ibm_db.exec_immediate(conn, create_table_sql)
-        ibm_db.commit(conn)
-        log.info("Table 'products' created successfully")
+    row_count = 0
+    while True:
+        # Fetch the record from the result set
+        # The ibm_db.fetch_assoc method fetches the next row from the result set as a dictionary
+        row = ibm_db.fetch_assoc(statement)
+        # If no more rows are available, break the loop
+        if not row:
+            break
 
+        # Standardize the row data and yield an upsert operation
+        row_data = standardize_row_data(row)
 
-# This method is used to insert sample data into the "products" table in the database.
-# It first creates the sample table using the create_sample_table_into_db method.
-# Then it prepares an SQL statement to insert data into the table.
-# It iterates over the sample data and binds the parameters to the SQL statement.
-# Finally, it executes the statement for each product and commits the changes to the database.
-# This is a test method to successfully run the connector.
-# This method should be removed in production code.
-# This is because, in production code, the connector should be able to work with any existing table in the database.
-def insert_sample_data_into_table(conn):
-    create_sample_table_into_db(conn)
-    insert_sql = """
-            INSERT INTO products (product_id, product_name, description, price, in_stock, 
-                                release_date, last_updated, is_featured)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """
+        # The yield statement returns a generator object.
+        # This generator will yield an upsert operation to the Fivetran connector.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into, in this case, "employee".
+        # - The second argument is a dictionary containing the data to be upserted,
+        yield op.upsert(table="employee", data=row_data)
+        row_count += 1
 
-    stmt = ibm_db.prepare(conn, insert_sql)
-    products = sample_data_to_insert()
-    for product in products:
-        ibm_db.bind_param(stmt, 1, product["id"])
-        ibm_db.bind_param(stmt, 2, product["name"])
-        ibm_db.bind_param(stmt, 3, product["desc"])
-        ibm_db.bind_param(stmt, 4, product["price"])
-        ibm_db.bind_param(stmt, 5, product["stock"])
-        ibm_db.bind_param(stmt, 6, product["release"])
-        ibm_db.bind_param(stmt, 7, product["updated"])
-        ibm_db.bind_param(stmt, 8, product["featured"])
-        ibm_db.execute(stmt)
+        # Update the latest hire date if the current row's hire date is more recent
+        if "hire_date" in row_data and row_data["hire_date"] > latest_hire:
+            latest_hire = row_data["hire_date"]
 
-    ibm_db.commit(conn)
-    log.info(f"Inserted {len(products)} rows into 'products' table successfully")
+        if row_count % CHECKPOINT_INTERVAL == 0:
+            # Yield a checkpoint operation every CHECKPOINT_INTERVAL rows
+            new_state = {"last_hire_date": latest_hire}
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            yield op.checkpoint(new_state)
+
+    log.info(f"Upserted {row_count} rows from {schema_name}.{table_name}.")
+
+    # After processing all rows, yield a final checkpoint with the latest hire date
+    new_state = {"last_hire_date": latest_hire}
+    yield op.checkpoint(new_state)
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    log.warning("Example: Source Examples - IBM DB2")
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+    log.warning("Example: Source Examples: IBM DB2")
+
+    # Validate the configuration dictionary to ensure it contains all required fields
+    validate_configuration(configuration)
 
     # Connect to the IBM DB2 database
     conn = connect_to_db(configuration)
 
-    # Insert sample data into the products table
-    # This is a test method to successfully run the connector.
-    # This method creates a sample table and inserts sample data into it.
-    # This data will be fetched from the table and upserted using the fivetran_connector_sdk module.
-    # This method should be removed in production code.
-    insert_sample_data_into_table(conn)
-
     # Load the state from the state dictionary
-    last_updated = state.get("last_updated", "1990-01-01T00:00:00")
+    last_hired = state.get("last_hire_date", "1990-01-01T00:00:00")
 
-    # The SQL query to select all records from the products table after the last updated timestamp
-    select_records_sql = f"SELECT * FROM products WHERE LAST_UPDATED > '{last_updated}'"
-    stmt = ibm_db.exec_immediate(conn, select_records_sql)
-    # Fetch the first record from the result set
-    # The ibm_db.fetch_assoc method fetches the next row from the result set as a dictionary
-    dictionary = ibm_db.fetch_assoc(stmt)
-
-    # Iterate over the result set and upsert each record until there are no more records
-    while dictionary:
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into, in this case, "products".
-        # - The second argument is a dictionary containing the data to be upserted,
-        yield op.upsert(table="products", data=dictionary)
-
-        # Update the state with the last updated timestamp
-        # This is important for ensuring that the sync process can resume from the correct position in case of next sync or interruptions
-        # The last updated timestamp is fetched from dictionary, converted to ISO string and compared with the current last_updated value
-        last_modified_from_data = dictionary.get("LAST_UPDATED").isoformat()
-        if last_modified_from_data > last_updated:
-            last_updated = last_modified_from_data
-
-        # fetch the next record from the result set
-        dictionary = ibm_db.fetch_assoc(stmt)
-
-    # commit the changes to the database
-    ibm_db.commit(conn)
-    log.info("Upserted all records from the products table")
+    # fetch data from the IBM DB2 database table and upsert the data to destination
+    yield from fetch_and_upsert_data(conn, configuration["schema_name"], configuration["table_name"], last_hired)
 
     # Close the database connection after the operation is complete
     if 'conn' in locals() and conn:
         ibm_db.close(conn)
-        log.info("Connection closed")
-
-    # update the state with the last updated timestamp
-    # This state is used to keep track of the last updated timestamp for the next sync
-    # This state will be checkpointed using op.checkpoint() method
-    state["last_updated"] = last_updated
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+        log.info("Connection to IBM DB2 closed")
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
