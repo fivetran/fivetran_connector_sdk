@@ -228,7 +228,7 @@ def make_api_request(url, headers):
                 log.info(f"Retrying in {delay_seconds} seconds...")
                 time.sleep(delay_seconds)
             else:
-                log.severe("Maximum retry attempts reached. Giving up.")
+                log.severe("Maximum retry attempts reached. Request aborted.")
     return None
 
 # Create connector instance
