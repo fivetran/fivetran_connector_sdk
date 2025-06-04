@@ -27,13 +27,13 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 The connector requires the following configuration parameters:
 
-```
+```json
 {
-  "token": "YOUR_INFLUXDB_TOKEN",
-  "org": "YOUR_INFLUXDB_ORGANIZATION_NAME",
-  "hostname": "YOUR_INFLUXDB_HOST_URL",
-  "database": "YOUR_INFLUXDB_DATABASE_NAME",
-  "measurement": "YOUR_INFLUXDB_MEASUREMENT_NAME"
+  "token": "<YOUR_INFLUXDB_TOKEN>",
+  "org": "<YOUR_INFLUXDB_ORGANIZATION_NAME>",
+  "hostname": "<YOUR_INFLUXDB_HOST_URL>",
+  "database": "<YOUR_INFLUXDB_DATABASE_NAME>",
+  "measurement": "<YOUR_INFLUXDB_MEASUREMENT_NAME>"
 }
 ```
 
@@ -87,9 +87,10 @@ The connector implements error handling in several ways:
 ## Tables Created
 
 The connector creates a single table named `census_table` with the following schema:  
-```
+
+```json
 {
-    "table": census_table,
+    "table": "census_table",
     "primary_key": [],
     "columns": {
         "ants": "INT",
