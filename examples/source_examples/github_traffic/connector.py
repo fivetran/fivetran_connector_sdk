@@ -1,10 +1,30 @@
+# This is an example for how to work with the fivetran_connector_sdk module.
+# It defines a simple 'update' method, which upserts GitHub repo traffic data from GitHub's API into a Fivetran connector.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+# Import required libraries
+import time
+from datetime import datetime, timezone
 import requests
 import json
-from datetime import datetime
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
+
+
+# Constants
+__MAX_RETRIES = 3
+__TIMESTAMP_POSTFIX = "+00:00"
+
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     return [
         {
@@ -29,31 +49,38 @@ def schema(configuration: dict):
         },
         {
             "table": "repository_referrers",
-            "primary_key": ["repository", "referrer"],
+            "primary_key": ["repository", "referrer", "fetch_date"],
             "columns": {
                 "repository": "STRING",
                 "referrer": "STRING",
                 "count": "INT",
                 "uniques": "INT",
-                "synced_at": "UTC_DATETIME",
+                "fetch_date": "NAIVE_DATE",
             },
         },
         {
             "table": "repository_paths",
-            "primary_key": ["repository", "path"],
+            "primary_key": ["repository", "path", "fetch_date"],
             "columns": {
                 "repository": "STRING",
                 "path": "STRING",
                 "title": "STRING",
                 "count": "INT",
                 "uniques": "INT",
-                "synced_at": "UTC_DATETIME",
+                "fetch_date": "NAIVE_DATE",
             },
         }
     ]
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    log.info("Starting GitHub repository traffic sync")
+    log.warning("Example: Source Examples - GitHub Traffic")
     
     # Get configuration values
     token = configuration.get('personal_access_token')
@@ -71,8 +98,8 @@ def update(configuration: dict, state: dict):
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-    
-    now = datetime.utcnow().isoformat() + "Z"
+
+    now = datetime.now(timezone.utc).isoformat().replace(__TIMESTAMP_POSTFIX, "Z")
 
     repo_list = [repo.strip() for repo in repositories.split(',')]
     print(repo_list)
@@ -115,7 +142,7 @@ def sync_views(base_url, headers, repository, state):
     
     # Update state with last sync time
     state_key = f"{repository}_views_last_sync"
-    state[state_key] = datetime.utcnow().isoformat() + "Z"
+    state[state_key] = datetime.now(timezone.utc).isoformat().replace(__TIMESTAMP_POSTFIX, "Z")
 
 def sync_clones(base_url, headers, repository, state):
     """Sync the repository clones data"""
@@ -136,7 +163,7 @@ def sync_clones(base_url, headers, repository, state):
     
     # Update state with last sync time
     state_key = f"{repository}_clones_last_sync"
-    state[state_key] = datetime.utcnow().isoformat() + "Z"
+    state[state_key] = datetime.now(timezone.utc).isoformat().replace(__TIMESTAMP_POSTFIX, "Z")
 
 def sync_referrers(base_url, headers, repository, sync_time, state):
     """Sync the repository referrers data"""
@@ -152,7 +179,7 @@ def sync_referrers(base_url, headers, repository, sync_time, state):
             "referrer": referrer.get("referrer"),
             "count": referrer.get("count"),
             "uniques": referrer.get("uniques"),
-            "synced_at": sync_time
+            "fetch_date": datetime.now(timezone.utc).date().isoformat(),
         }
         yield op.upsert("repository_referrers", data)
     
@@ -175,7 +202,7 @@ def sync_paths(base_url, headers, repository, sync_time, state):
             "title": path_data.get("title"),
             "count": path_data.get("count"),
             "uniques": path_data.get("uniques"),
-            "synced_at": sync_time
+            "fetch_date": datetime.now(timezone.utc).date().isoformat(),
         }
         yield op.upsert("repository_paths", data)
     
@@ -184,17 +211,25 @@ def sync_paths(base_url, headers, repository, sync_time, state):
     state[state_key] = sync_time
 
 def make_api_request(url, headers):
-    """Make an API request and handle errors"""
-    try:
-        log.info(f"Making API request to: {url}")
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        log.severe(f"API request failed: {str(e)}")
-        if hasattr(e.response, 'status_code') and e.response.status_code == 403:
-            log.severe("Access forbidden. Ensure your token has the 'repo' scope.")
-        return None
+    """Make an API request with retries and handle errors"""
+    for attempt in range(1, __MAX_RETRIES + 1):
+        try:
+            log.info(f"Making API request to: {url} (Attempt {attempt})")
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            log.severe(f"API request failed on attempt {attempt}: {str(e)}")
+            if hasattr(e.response, 'status_code') and e.response.status_code == 403:
+                log.severe("Access forbidden. Ensure your token has the proper access.")
+                return None
+            if attempt < __MAX_RETRIES:
+                delay_seconds = 2 ** attempt
+                log.info(f"Retrying in {delay_seconds} seconds...")
+                time.sleep(delay_seconds)
+            else:
+                log.severe("Maximum retry attempts reached. Giving up.")
+    return None
 
 # Create connector instance
 connector = Connector(update=update, schema=schema)
