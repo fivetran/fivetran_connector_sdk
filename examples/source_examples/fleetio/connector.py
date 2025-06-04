@@ -40,7 +40,6 @@ def base_schema():
         A list of dictionaries representing the base schema for Fleetio API data.
         Each dictionary contains the table name, primary key, columns, and request information.
     """
-    # fivetran doesn't seem to allow separate files, so we'll do this for now
     base_schema = [
         {
             "table": "submitted_inspection_forms",
