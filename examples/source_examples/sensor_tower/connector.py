@@ -18,8 +18,9 @@ import json
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 COUNTRY_CODE = "Country Code"
 APP_ID = "App ID"
