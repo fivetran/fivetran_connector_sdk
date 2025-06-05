@@ -21,7 +21,7 @@ from fivetran_connector_sdk import Logging as log # For enabling Logs in your co
 
 #Define the domains,countries and metrics you need
 
-domain_list = [ "chat.mistral.ai", 
+DOMAIN_LIST = [ "chat.mistral.ai", 
                "chat.deepseek.com",
                "grok.com", "meta.ai",
                "chatgpt.com",
@@ -31,8 +31,8 @@ domain_list = [ "chat.mistral.ai",
                "copilot.microsoft.com",
                "perplexity.ai",
                "poe.com"]
-country_list = ["WW", "US"] # Can specify specific countries of interest. WW is 'Worldwide'
-metric_list = ["all_traffic_visits"], # Necessary metric can be changed per requirements 
+COUNTRY_LIST = ["WW", "US"] # Can specify specific countries of interest. WW is 'Worldwide'
+METRIC_LIST = ["all_traffic_visits"], # Necessary metric can be changed per requirements
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -50,7 +50,7 @@ def schema(configuration: dict):
 
 
 # The request_report function is a helper function called within the required update function
-# The functon takes two parameters:
+# The function takes two parameters:
 # - start_date: beginning date for the report
 # - end_date: end date for the report
 
@@ -79,11 +79,11 @@ def request_report(start_date, end_date, api_key):
                     "vtable": "traffic_and_engagement",
                     "granularity": "daily",
                     "filters": {
-                        "domains": domain_list,
-                        "countries": country_list,
+                        "domains": DOMAIN_LIST,
+                        "countries": COUNTRY_LIST,
                         "include_subdomains": True
                     },
-                    "metrics": metric_list, # Necessary metric can be changed per requirements 
+                    "metrics": METRIC_LIST, # Necessary metric can be changed per requirements
                     "start_date": start_date,
                     "end_date": end_date
                 }
@@ -106,45 +106,45 @@ def request_report(start_date, end_date, api_key):
 
 
 # Check_report_status function is a helper function called within the required update function
-# The functon takes two parameters:
+# The function takes two parameters:
 # - report_id: ID for the generated report
 # - api_key: Key for the API calls 
 # This returns the current status -- once the report is ready it will return the report URL
-
-def check_report_status(report_id, api_key):
+ 
+def check_report_status(report_id, api_key, max_retries=5, base_delay=2):
     status_url = f"https://api.similarweb.com/v3/batch/request-status/{report_id}"
 
-    count_status_checks = 0
-    maximum_status_checks = 200
+    for attempt in range(1, max_retries + 1):
+        try:
+            status_response = requests.get(status_url, headers={"api-key": api_key})
+            status_response.raise_for_status()
+            status_data = status_response.json()
+            log.info(status_data)
 
-    # check the status 200 times, or for 20 minutes
-    while count_status_checks < maximum_status_checks:
+            status = status_data.get("status")
+            if status == "completed":
+                download_url = status_data.get("download_url")
+                log.info(f"Report is ready! Download it here: {download_url}")
+                return download_url
+            elif status == "bad_request":
+                log.error(f"Bad request: {status_data}")
+                raise RuntimeError(status_data)
+            elif status == "failed":
+                log.error("Report generation failed.")
+                raise RuntimeError(status_data)
 
-        count_status_checks += 1 
-        status_response = requests.get(status_url, headers={"api-key": api_key})
-        status_data = status_response.json()
-        log.info(status_data)
+            log.info(f"[Attempt {attempt}] Report is still processing. Retrying with backoff...")
+        
+        except requests.RequestException as e:
+            log.warning(f"[Attempt {attempt}] Request failed: {e}")
 
-        status = status_data.get("status")
-        if status == "completed":
-            download_url = status_data.get("download_url")
-            log.info(f"Report is ready! Download it here: {download_url}")
-            return download_url
-        elif status == "bad_request":
-            log.severe(f"Error -- {status_data}")
-            raise RuntimeError(status_data)
-        elif status == "failed":
-            log.severe("Report generation failed.")
-            raise RuntimeError(status_data)
+        # Wait with exponential backoff
+        time.sleep(base_delay * (2 ** (attempt - 1)))
 
-        log.info("Report is still processing... Waiting 6 seconds.")
-
-        time.sleep(6)
-    # if the report isn't generated in 20 minutes, return an error
-    raise RuntimeError(status_data)    
+    raise RuntimeError(f"Report not ready after {max_retries} attempts.")
 
 # The download_report is a helper function called within the required update function
-# The functon takes one parameters:
+# The function takes one parameters:
 # - download_url: the url used to download the report -- this is typically passed along from the check_report_status function
 # Returns the report information as a JSON object (list of dictionaries).
 
@@ -187,8 +187,8 @@ def update(configuration: dict, state: dict):
     else:  
         look_back = (datetime.now() - relativedelta(days=5)).strftime("%Y-%m-%d")   # for incremental syncs, one week lookback from 11 days ago to 4 days ago
 
-    n = 4 # Set variable for end date on report data range
-    n_days_ago = (datetime.now() - relativedelta(days=n)).strftime("%Y-%m-%d") # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
+    delay_days = 4 # Set variable for end date on report data range
+    n_days_ago = (datetime.now() - relativedelta(days=delay_days)).strftime("%Y-%m-%d") # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
     report_id = request_report(look_back, n_days_ago, api_key) # will create a report and return the ID associated with it
 
     if report_id:
