@@ -1,21 +1,21 @@
 # Sensor Tower Connector SDK Example
 
-This example demonstrates how to build a Fivetran Connector SDK integration for [Sensor Tower](https://sensortower.com), a market intelligence and analytics platform that provides insights into mobile apps, app store trends, and digital advertising. The connector pulls data from Sensor Tower's API for three tables: `sales_report_estimates`, `active_users`, and `retention`. You can configure the connector to track specific iOS and Android app IDs to gather the necessary information for your use case.
+This example demonstrates how to build a Fivetran Connector SDK integration for [Sensor Tower](https://sensortower.com), a market intelligence and analytics platform that provides insights into mobile apps, app store trends, and digital advertising. The connector pulls data from the Sensor Tower API for three tables: `SALES_REPORT_ESTIMATES`, `ACTIVE_USERS`, and `RETENTION`. You can configure the connector to track specific iOS and Android app IDs to gather the necessary information for your use case.
 
 ## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating System:  
+* Operating system:  
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-* Supports three Sensor Tower endpoints: `sales_report_estimates`, `active_users`, and `retention` (see `ENDPOINTS` in `connector.py`)
+* Supports three Sensor Tower endpoints: `SALES_REPORT_ESTIMATES`, `ACTIVE_USERS`, and `RETENTION` (see `ENDPOINTS` in `connector.py`)
 * Handles both iOS and Android app IDs (see `IOS_APP_IDS` and `ANDROID_APP_IDS`)
 * Incremental syncs with configurable lookback window (see `update` function)
 * Schema mapping and column renaming for clarity (see `key_mapping` and `process_sales_report`)
@@ -48,7 +48,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector uses a Sensor Tower API token for authentication. You can obtain your API token from your Sensor Tower account dashboard. The token should be provided in the `configuration.json` file as the value for the `auth_token` key. (See `update` function in `connector.py`)
+The connector requires a Sensor Tower API token for authentication. Obtain an API token from your Sensor Tower account dashboard. The token should be provided in the `configuration.json` file as the value for the `auth_token` key. (See `update` function in `connector.py`)
 
 ## Pagination
 
