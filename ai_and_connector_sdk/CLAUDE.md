@@ -67,12 +67,16 @@ fivetran --help
 ```python
 def schema(configuration):
     return [
-            "table": "my_table",
-            "primary_key": ["id"],
-                "columns": {
-                    "id": "STRING",
-                    "name": "STRING",
-                    "created_at": "UTC_DATETIME"
-                }
-    ]
+    {
+        "table": "my_table",
+        "primary_key": [
+            "id"
+        ],
+        "columns": {
+            "id": "STRING",
+            "name": "STRING",
+            "created_at": "UTC_DATETIME"
+        }
+    }
+]
 ```
