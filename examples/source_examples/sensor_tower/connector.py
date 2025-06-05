@@ -7,60 +7,59 @@
 # You can change the app IDs to those of your choosing to gather the necessary information
 
 # Import requests to make HTTP calls to API
-
 import requests
 
 # Import the json module to handle JSON data.
+import json
 
-import json 
-
-# Import required classes from fivetran_connector_sdk
-
+# Import datetime and relativedelta to handle date calculations.
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import \
+    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+# Constants
 COUNTRY_CODE = "Country Code"
 APP_ID = "App ID"
 
 # Mapping used later for the sales_report_estimates table to provide more helpful column names
-
 KEY_MAPPING = {
-  "sales_report_estimates_key": {
-    "ios": {
-      "aid": APP_ID,
-      "cc": COUNTRY_CODE,
-      "d": "Date",
-      "iu": "iPhone Downloads",
-      "ir": "iPhone Revenue",
-      "au": "iPad Downloads",
-      "ar": "iPad Revenue"
-    },
-    "android": {
-      "aid": APP_ID,
-      "c": COUNTRY_CODE,
-      "d": "Date",
-      "u": "Android Downloads",
-      "r": "Android Revenue"
+    "sales_report_estimates_key": {
+        "ios": {
+            "aid": APP_ID,
+            "cc": COUNTRY_CODE,
+            "d": "Date",
+            "iu": "iPhone Downloads",
+            "ir": "iPhone Revenue",
+            "au": "iPad Downloads",
+            "ar": "iPad Revenue"
+        },
+        "android": {
+            "aid": APP_ID,
+            "c": COUNTRY_CODE,
+            "d": "Date",
+            "u": "Android Downloads",
+            "r": "Android Revenue"
         }
     }
 }
 
 # App IDs that have unique values in Sensor Tower application - can be changed for specific applications of interest
-
-IOS_APP_IDS = [] #Add the iOS app IDs you want to track here
-ANDROID_APP_IDS = [] #Add the Android app IDs you want to track here
+IOS_APP_IDS = []  # Add the iOS app IDs you want to track here
+ANDROID_APP_IDS = []  # Add the Android app IDs you want to track here
 
 BASE_URL = "https://api.sensortower.com/v1/"
 
-# Additional parameters for endpoint filters 
-
+# Additional parameters for endpoint filters
 OS = ["ios", "android"]
 ENDPOINTS = ["active_users", "sales_report_estimates", "retention"]
 TIME_PERIOD = ["day", "week", "month"]
 COUNTRY_CODES = ["US", "AU", "FR", "DE", "GB", "IT", "CA", "KR", "JP", "BR", "IN", "ES"]
+
 
 # The schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -73,21 +72,22 @@ def schema(configuration: dict):
         {
             "table": "sales_report_estimates",  # Name of the table in the destination.
             "primary_key": [APP_ID, "Date", COUNTRY_CODE],  # Primary key columns for the table.
-            "columns": {APP_ID: "STRING"} # Specify as a string due to data type mismatch issues
+            "columns": {APP_ID: "STRING"}  # Specify as a string due to data type mismatch issues
         },
         {
-            "table": "active_users",  
-            "primary_key": ["app_id", "date", "time_period", "country"],  
+            "table": "active_users",
+            "primary_key": ["app_id", "date", "time_period", "country"],
             "columns": {"app_id": "STRING"}
 
         },
         {
-            "table": "retention",  
-            "primary_key": ["app_id", "date", "country"],  
+            "table": "retention",
+            "primary_key": ["app_id", "date", "country"],
             "columns": {"app_id": "STRING"}
 
         }
     ]
+
 
 # The get_data function, which is a helper function that run API calls to get the records from each endpoint
 # The function takes 5 parameters
@@ -98,7 +98,6 @@ def schema(configuration: dict):
 # - country_code: a required parameter of the API calls is country_code, which you need to change to gather data for different locations
 
 def get_data(params: dict, os, endpoint, time_period, country_code):
-    
     f_params = params.copy()
 
     if os == "ios":
@@ -108,25 +107,25 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
 
     # Each endpoint has their own specific URL and parameters
 
-    if endpoint == "sales_report_estimates": 
+    if endpoint == "sales_report_estimates":
         url = BASE_URL + os + "/" + endpoint
         f_params["date_granularity"] = "daily"
 
-       
+
     elif endpoint == "active_users":
-        url = BASE_URL+ os + "/usage/" + endpoint
+        url = BASE_URL + os + "/usage/" + endpoint
         f_params["time_period"] = time_period
 
-    else: 
+    else:
         url = BASE_URL + os + "/usage/" + endpoint
         f_params["date_granularity"] = "all_time"
         f_params["country"] = country_code
 
-
-    response = requests.get(url, params=f_params) 
+    response = requests.get(url, params=f_params)
     records = response.json()
 
     return records
+
 
 # The process_active_users function handles data processing for the active_users endpoint
 # The function takes 2 parameters:
@@ -141,6 +140,7 @@ def process_active_users(params, system):
             record["time_period"] = period
             yield op.upsert(table="active_users", data=record)
 
+
 # The process_sales_report function handles data processing for sales report estimates
 # The function takes 2 parameters:
 # - params: dictionary containing API parameters
@@ -154,6 +154,7 @@ def process_sales_report(params, system):
         mapping = KEY_MAPPING["sales_report_estimates_key"]["android" if system == "android" else "ios"]
         record = {mapping.get(k, k): v for k, v in record.items()}
         yield op.upsert(table="sales_report_estimates", data=record)
+
 
 # The process_retention function handles data processing for retention data
 # The function takes 2 parameters:
@@ -170,6 +171,7 @@ def process_retention(params, system):
             record["corrected_retention"] = json.dumps(record["corrected_retention"])
             yield op.upsert(table="retention", data=record)
 
+
 # The process_endpoints function orchestrates data processing across all endpoints
 # The function takes 2 parameters:
 # - endpoints: list of endpoints to process
@@ -185,6 +187,7 @@ def process_endpoints(endpoints, params):
                 yield from process_sales_report(params, system)
             else:  # retention endpoint
                 yield from process_retention(params, system)
+
 
 # The update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -203,14 +206,16 @@ def update(configuration: dict, state: dict):
     # If no cursor exists, go through a historical sync
 
     if 'look_back' not in state:
-        look_back = (datetime.now() - relativedelta(months=3)).strftime('%Y-%m-%d') # Change timeframe to suit requirements
-    else:  
+        look_back = (datetime.now() - relativedelta(months=3)).strftime(
+            '%Y-%m-%d')  # Change timeframe to suit requirements
+    else:
         # For incremental syncs, do a one week lookback
 
-        look_back = (datetime.now() - relativedelta(weeks=1)).strftime('%Y-%m-%d') # Change timeframe to suit requirements
+        look_back = (datetime.now() - relativedelta(weeks=1)).strftime(
+            '%Y-%m-%d')  # Change timeframe to suit requirements
 
     current_date = (datetime.now()).strftime('%Y-%m-%d')
-    
+
     # Set params that will be stable for all API calls
 
     params = {
@@ -218,9 +223,9 @@ def update(configuration: dict, state: dict):
         "end_date": current_date,
         "auth_token": auth_token,
     }
-    
+
     # Call the process_endpoints function to get the data from each endpoint
-    
+
     yield from process_endpoints(ENDPOINTS, params)
 
     # Set new cursor
@@ -229,6 +234,7 @@ def update(configuration: dict, state: dict):
     yield op.checkpoint(state={
         "look_back": look_back
     })
+
 
 # This creates the connector object that will use the update function defined in this connector.py file
 
@@ -247,5 +253,3 @@ if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
 
     connector.debug(configuration=configuration)
-
-
