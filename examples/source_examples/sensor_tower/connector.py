@@ -194,7 +194,7 @@ def process_endpoints(endpoints, params):
 # The state dictionary is empty for the first sync or for any full re-sync
 
 def update(configuration: dict, state: dict):
-
+    log.warning("Example: Source Examples - Sensor Tower")
     # Pull in the auth token from the configuration file in the project
 
     auth_token = configuration["auth_token"]
