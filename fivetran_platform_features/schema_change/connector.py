@@ -20,7 +20,7 @@ def update(configuration: dict, state: dict):
         "Fourth sync with float again"
     ]
     
-    yield op.upsert(table="int_to_string", data={
+    yield op.upsert(table="change_int_to_string", data={
         "id": 1,
         "int_to_string": values[min(sync_count, 3)],
         "description": descriptions[min(sync_count, 3)]
