@@ -89,8 +89,15 @@ def schema(configuration: dict):
 # Upsert with yield
 yield op.upsert("table_name", processed_data)
 
-# Checkpoint with state
+# Checkpoint with state for incremental syncs
 yield op.checkpoint(state=new_state)
+
+# Update existing records
+yield op.update(table, modified)
+
+# Marking records as deleted
+yield op.delete(table, keys)
+
 ```
 
 3. CONFIGURATION MANAGEMENT
