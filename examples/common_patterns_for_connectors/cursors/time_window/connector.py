@@ -15,14 +15,6 @@ from fivetran_connector_sdk import Operations as op
 
 INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
 DAYS_PER_SYNC = 30
-import datetime
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
-
-INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
-DAYS_PER_SYNC = 30
 
 def update(configuration: dict, state: dict):
     """
