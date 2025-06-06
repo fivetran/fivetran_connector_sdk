@@ -80,8 +80,8 @@ def schema(configuration: dict):
 ```
 
 2. DATA OPERATIONS
-- Use yield for upserts
-- Implement proper checkpointing
+- Use yield for upserts, updates, deletes, and checkpoints 
+- Implement proper state management using checkpoints
 - Handle pagination correctly
 - Support incremental syncs
 - Example:
