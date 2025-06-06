@@ -183,22 +183,44 @@ For each request, provide:
 ## File Generation Rules
 
 1. CONNECTOR.PY
-- Complete implementation
-- Proper imports
-- Error handling
-- Logging
-- Documentation
+- Complete implementation following [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples) patterns
+- Proper imports as defined in [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+- Error handling and logging following [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+- Documentation with clear docstrings and comments
+- Code structure aligned with [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+- Implementation of required methods (schema, update) as specified in SDK docs
+- Proper state management and checkpointing
+- Efficient data processing and pagination handling
 
 2. REQUIREMENTS.TXT
-- Explicit versions
-- No SDK or requests (included)
-- All dependencies listed
+- Explicit versions for all dependencies
+- No SDK or requests (included in base environment)
+- All dependencies listed with specific versions
+- Compatibility with Python 3.9-3.12
+- Only include necessary packages for the connector's functionality
+- Document any version constraints or compatibility requirements
 
 3. CONFIGURATION.JSON
-- String values only
-- Required fields
-- Example values
-- Validation rules
+- String values only as per [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+- Required fields based on [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+- Example values following [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+- Validation rules documented in comments
+- Authentication fields properly structured
+- Clear descriptions for each configuration parameter
+- Default values where appropriate
+- Environment variable support if needed
+
+4. DOCUMENTATION REQUIREMENTS
+- README.md with:
+  * Connector purpose and functionality
+  * Setup instructions
+  * Configuration guide
+  * Testing procedures
+  * Troubleshooting steps
+  * Links to relevant [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  * References to example patterns from [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  * Best practices implementation notes
+  * Known limitations and constraints
 
 ## Quality Assurance
 
