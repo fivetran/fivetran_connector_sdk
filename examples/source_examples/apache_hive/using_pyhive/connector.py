@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# It demonstrates how to fetch data from Apache Hive using the PyHive library and upsert it into destination table in batches.
+# It demonstrates how to fetch data from Apache Hive using the PyHive library and upsert it into a destination table in batches.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 

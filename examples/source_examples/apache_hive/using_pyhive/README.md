@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector shows how to fetch data from Apache Hive using the `PyHive` and `fivetran-connector-sdk` library. The connector is designed to handle large datasets by processing data in manageable batches and maintaining sync state to resume from the last successful position.
+This connector shows how to fetch data from Apache Hive using the `PyHive` and `fivetran-connector-sdk` library. The connector is designed to handle large datasets by processing data in manageable batches and maintaining the sync state to resume from the last successful position.
 
 ## Requirements
 
@@ -14,12 +14,12 @@ This connector shows how to fetch data from Apache Hive using the `PyHive` and `
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
 - Direct connection to Apache Hive data source.
-- Incremental sync based on `created_at` timestamp
+- Incremental sync based on the `created_at` timestamp.
 - Batch processing to handle large datasets efficiently. This prevents memory overflow and allows for processing of large tables.
 
 ## Configuration file
@@ -40,7 +40,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-Include the following dependencies in your requirements.txt file:
+Include the following dependencies in your `requirements.txt` file:
 
 ```
 pyhive
@@ -64,15 +64,15 @@ Authentication is handled in the `create_hive_connection` function.
 
 The connector performs the following data handling operations:  
 - Fetching: Data is retrieved from Apache Hive using SQL queries with timestamp-based filtering.
-- Processing: The `process_row` function converts raw Hive data into dictionary format suitable for Fivetran 
+- Processing: The `process_row` function converts raw Hive data into dictionary format suitable for Fivetran.
   - Datetime objects are converted to ISO format with UTC timezone.
   - Column names are extracted and mapped to their values.
-- Batching: Data is processed in configurable batches (default: 1000 rows) to prevent memory overflow. 
-- State Management: The connector tracks the latest created timestamp to enable incremental syncs.
+- Batching: Data is processed in configurable batches (1000 rows by default) to prevent memory overflow. 
+- State management: The connector tracks the latest created timestamp to enable incremental syncs.
 
-## Tables Created
+## Tables created
 
-The connector creates a table named `people` with the following schema:
+The connector creates a table named `PEOPLE` with the following schema:
 
 ```
 {
@@ -89,4 +89,4 @@ The connector creates a table named `people` with the following schema:
 
 ## Additional considerations
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our [Support team](https://support.fivetran.com/).
