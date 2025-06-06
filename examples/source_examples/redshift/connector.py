@@ -18,12 +18,14 @@ TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 REPLICATION_KEY = "updated_at"
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "customers",  # Name of the table in the destination.
@@ -54,52 +56,49 @@ def connect_to_redshift(configuration):
     )
 
 
-def setup_db(cursor):
-    cursor.execute("CREATE SCHEMA IF NOT EXISTS testers;")
-    cursor.execute("DROP TABLE IF EXISTS testers.customers;")
-
-    cursor.execute("CREATE TABLE IF NOT EXISTS testers.customers "
-                   "(customer_id INTEGER PRIMARY KEY, "
-                   "first_name VARCHAR, "
-                   "last_name VARCHAR, "
-                   "email VARCHAR, "
-                   "city VARCHAR, "
-                   "state VARCHAR, "
-                   "country VARCHAR, "
-                   "updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP) "
-                   "SORTKEY (updated_at)")
-
-    cursor.execute("INSERT INTO testers.customers "
-                   "(customer_id, first_name, last_name, email, city, state, country, updated_at) "
-                   "VALUES "
-                   "(1, 'Mathew', 'Perry', 'mathew@fivetran.com', 'New York City', 'New York', 'United States', '2023-12-31T23:59:59Z'), "
-                   "(2, 'Joe', 'Doe', 'joe@fivetran.com', 'Paris', 'Île-de-France', 'France', '2024-01-31T23:04:39Z'), "
-                   "(3, 'Jake', 'Anderson', 'jake@fivetran.com', 'Tokyo', 'Tokyo Prefecture', 'Japan', '2023-11-01T23:59:59Z'), "
-                   "(4, 'John', 'William', 'john@fivetran.com', 'Sydney', 'New South Wales', 'Australia', '2024-02-14T22:59:59Z'), "
-                   "(5, 'Ricky', 'Roma', 'ricky@fivetran.com', 'Rio de Janeiro', 'Rio de Janeiro', 'Brazil', '2024-03-16T16:40:29Z')")
-
-
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+         configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Source Examples - Redshift")
-
-    # The yield statement returns a generator object.
-    # This generator will yield an upsert operation to the Fivetran connector.
-    # The op.upsert method is called with two arguments:
-    # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-    # - The second argument is a dictionary containing the data to be upserted,
 
     # Connect to your database instance instance.
     conn = connect_to_redshift(configuration)
     cursor = conn.cursor()
-    # This is not required. This is just for example illustration purposes.
-    setup_db(cursor)
+
+    # IMPORTANT: This connector requires the following prerequisites in your Redshift database:
+    # 1. A schema named 'testers' (or as configured in your connection settings)
+    # 2. A table named 'customers' with the following schema:
+    #    - customer_id (INTEGER): Primary key
+    #    - first_name (VARCHAR): Customer's first name
+    #    - last_name (VARCHAR): Customer's last name
+    #    - email (VARCHAR): Customer's email address
+    #    - city (VARCHAR): Customer's city
+    #    - state (VARCHAR): Customer's state/region
+    #    - country (VARCHAR): Customer's country
+    #    - updated_at (TIMESTAMP WITH TIME ZONE): Record's last update timestamp
+    #
+    # The table should be created with a statement similar to:
+    # CREATE TABLE IF NOT EXISTS testers.customers (
+    #    customer_id INTEGER PRIMARY KEY,
+    #    first_name VARCHAR,
+    #    last_name VARCHAR,
+    #    email VARCHAR,
+    #    city VARCHAR,
+    #    state VARCHAR,
+    #    country VARCHAR,
+    #    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    # ) SORTKEY (updated_at);
+    #
+    # Sample data must be present in your source Redshift instance before running this connector.
+    # The connector expects to find records with customer information and timestamps.
+    # If these prerequisites are not met, the connector will not function correctly.
 
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
     last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
@@ -120,6 +119,11 @@ def update(configuration: dict, state: dict):
             break
         # Yield an upsert operation to insert/update the row in the "customers" table.
         for row in result:
+            # The yield statement returns a generator object.
+            # This generator will yield an upsert operation to the Fivetran connector.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into, in this case, "customers".
+            # - The second argument is a dictionary containing the data to be upserted,
             yield op.upsert(table="customers",
                             data={
                                 "customer_id": row[0],  # Customer id.
@@ -141,7 +145,6 @@ def update(configuration: dict, state: dict):
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
-# This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.

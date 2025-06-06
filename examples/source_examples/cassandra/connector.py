@@ -16,9 +16,6 @@ from dateutil import parser
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 
-# Import the custom function to create dummy data
-from adding_dummy_data_to_cassandra import insert_dummy_data
-
 
 def create_cassandra_session(configuration: dict):
     """
@@ -187,9 +184,23 @@ def update(configuration, state):
     keyspace = configuration.get("keyspace")
     table_name = "sample_table"
 
-    # Insert dummy data for testing purposes
-    # This method is used only for testing purposes and will not be used in production.
-    insert_dummy_data(session=session, keyspace=keyspace, table_name=table_name, record_count=10000)
+    # IMPORTANT: This connector requires that the following prerequisites exist in your Cassandra instance:
+    # 1. A keyspace named as specified in your configuration
+    # 2. A table named 'sample_table' with the following schema:
+    #    - id (UUID): Primary key
+    #    - name (text): User name
+    #    - created_at (timestamp): Record creation timestamp
+    #
+    # The table should be created with a statement similar to:
+    # CREATE TABLE IF NOT EXISTS sample_table (
+    #   id UUID PRIMARY KEY,
+    #   name text,
+    #   created_at timestamp
+    # );
+    #
+    # Additionally, for efficient querying, an index on created_at is recommended:
+    # CREATE INDEX IF NOT EXISTS idx_created_at ON sample_table(created_at);
+    # If these prerequisites are not met, the connector will not function correctly.
 
     # Fetch new rows from Cassandra and upsert them
     yield from upsert_fetched_rows(session=session, keyspace=keyspace, table_name=table_name, state=state)
