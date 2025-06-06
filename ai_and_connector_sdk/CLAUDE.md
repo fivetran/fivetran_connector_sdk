@@ -66,16 +66,17 @@ fivetran --help
 ## Schema Definition Example
 ```python
 def schema(configuration):
-    return {
-        "tables": {
-            "my_table": {
-                "primary_key": ["id"],
-                "columns": {
-                    "id": "STRING",
-                    "name": "STRING",
-                    "created_at": "UTC_DATETIME"
-                }
-            }
+    return [
+    {
+        "table": "my_table",
+        "primary_key": [
+            "id"
+        ],
+        "columns": {
+            "id": "STRING",
+            "name": "STRING",
+            "created_at": "UTC_DATETIME"
         }
     }
+]
 ```
