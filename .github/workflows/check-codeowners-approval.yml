@@ -41,7 +41,7 @@ jobs:
               }
             }
 
-            const codeownersPath = '.github/CODEOWNERS';
+            const codeownersPath = 'CODEOWNERS';
             const codeownersFile = require('fs').readFileSync(codeownersPath, 'utf8');
             const codeowners = new Set(
               codeownersFile
