@@ -9,43 +9,84 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Require code owner review
+      - name: Require CODEOWNER approval if applicable
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Get PR info
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
             });
 
-            const reviews = await github.rest.pulls.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
+            // Get list of changed files
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.data.number,
+              }
+            );
+            const changedFiles = files.map(f => f.filename);
 
-            const approvedBy = new Set();
-            for (const review of reviews.data) {
-              if (review.state === 'APPROVED') {
-                approvedBy.add(review.user.login);
+            // Parse CODEOWNERS
+            const codeownersPath = 'CODEOWNERS';
+            if (!fs.existsSync(codeownersPath)) {
+              console.log('No CODEOWNERS file found. Skipping check.');
+              return;
+            }
+
+            const codeownersText = fs.readFileSync(codeownersPath, 'utf8');
+            const codeownersRules = codeownersText
+              .split('\n')
+              .filter(line => line.trim() && !line.trim().startsWith('#'))
+              .map(line => {
+                const [pattern, ...owners] = line.trim().split(/\s+/);
+                return { pattern, owners: owners.map(o => o.replace(/^@/, '')) };
+              });
+
+            // Simple wildcard matcher (basic support for '*', '**/', etc.)
+            const minimatch = require('minimatch');
+
+            const requiredOwners = new Set();
+            for (const file of changedFiles) {
+              for (const rule of codeownersRules) {
+                if (minimatch(file, rule.pattern)) {
+                  rule.owners.forEach(owner => requiredOwners.add(owner));
+                }
               }
             }
 
-            const codeownersPath = 'CODEOWNERS';
-            const codeownersFile = require('fs').readFileSync(codeownersPath, 'utf8');
-            const codeowners = new Set(
-              codeownersFile
-                .split('\n')
-                .filter(line => !line.startsWith('#') && line.trim() !== '')
-                .flatMap(line => line.split(' ').slice(1))
-                .map(user => user.replace('@', '').trim())
+            if (requiredOwners.size === 0) {
+              console.log('No CODEOWNERS matched the changed files. Skipping approval check.');
+              return;
+            }
+
+            // Get PR reviews
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.data.number,
+            });
+
+            const approvedBy = new Set(
+              reviews.data
+                .filter(r => r.state === 'APPROVED')
+                .map(r => r.user.login)
             );
 
-            const intersect = [...codeowners].some(user => approvedBy.has(user));
-            if (!intersect) {
-              core.setFailed('PR must be approved by at least one CODEOWNER.');
+            const isApproved = [...requiredOwners].some(owner => approvedBy.has(owner));
+
+            if (!isApproved) {
+              core.setFailed(`PR must be approved by at least one matching CODEOWNER: ${[...requiredOwners].join(', ')}`);
+            } else {
+              console.log('PR approved by a required CODEOWNER. ✅');
             }
