@@ -1,0 +1,57 @@
+name: Require CODEOWNERS Approval
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  check-codeowners-approval:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Ensure pull request has code owner approval
+        uses: hmarr/auto-approve-action@v3
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Require code owner review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            const approvedBy = new Set();
+            for (const review of reviews.data) {
+              if (review.state === 'APPROVED') {
+                approvedBy.add(review.user.login);
+              }
+            }
+
+            const codeownersPath = '.github/CODEOWNERS';
+            const codeownersFile = require('fs').readFileSync(codeownersPath, 'utf8');
+            const codeowners = new Set(
+              codeownersFile
+                .split('\n')
+                .filter(line => !line.startsWith('#') && line.trim() !== '')
+                .flatMap(line => line.split(' ').slice(1))
+                .map(user => user.replace('@', '').trim())
+            );
+
+            const intersect = [...codeowners].some(user => approvedBy.has(user));
+            if (!intersect) {
+              core.setFailed('PR must be approved by at least one CODEOWNER.');
+            }
