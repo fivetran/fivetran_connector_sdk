@@ -41,7 +41,7 @@ def create_clickhouse_client(configuration: dict):
 
 def execute_query_and_upsert(client, query, table_name, state):
     """
-    This function executes a query and upserts the results into the ClickHouse database.
+    This function executes a query and upserts the results into the destination.
     The data is fetched in a streaming manner to handle large datasets efficiently.
     Args:
         client: a ClickHouse client object
