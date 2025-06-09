@@ -12,14 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install minimatch
-
       - name: Require CODEOWNER approval if applicable
         uses: actions/github-script@v7
         with:
@@ -59,10 +51,38 @@ jobs:
                 return { pattern, owners: owners.map(o => o.replace(/^@/, '')) };
               });
 
+            function matches(pattern, filename) {
+              let regexStr = '^';
+              let i = 0;
+              while (i < pattern.length) {
+                if (pattern[i] === '*') {
+                  // Check if next char is also '*'
+                  if (pattern[i + 1] === '*') {
+                    // Handle '**' => match any char including '/'
+                    regexStr += '.*';
+                    i += 2;
+                  } else {
+                    // Handle '*' => match any char except '/'
+                    regexStr += '[^/]*';
+                    i += 1;
+                  }
+                } else {
+                  // Escape special regex chars
+                  const c = pattern[i];
+                  if ('\\.[]{}()+^$|'.includes(c)) {
+                    regexStr += '\\' + c;
+                  } else {
+                    regexStr += c;
+                  }
+                  i += 1;
+                }
+              }
+            }
+
             const requiredOwners = new Set();
             for (const file of changedFiles) {
               for (const rule of codeownersRules) {
-                if (minimatch(file, rule.pattern, { dot: true })) {
+                if (matches(rule.pattern,file)) {
                   rule.owners.forEach(owner => requiredOwners.add(owner));
                 }
               }
