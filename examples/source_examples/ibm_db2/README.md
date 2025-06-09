@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector allows you to sync data from IBM DB2 to a destination using the Fivetran Connector SDK. The IBM DB2 connector establishes a connection to your DB2 database, reads data from tables, and incrementally syncs changes using timestamp-based tracking. This example connector demonstrates extracting employee data but can be modified to work with any DB2 tables.
+This connector allows you to sync data from IBM Db2 to a destination using the Fivetran Connector SDK. The IBM Db2 connector establishes a connection to your Db2 database, reads data from tables, and incrementally syncs changes using timestamp-based tracking. This example connector demonstrates extracting employee data but can be modified to work with any Db2 table.
 
 ## Requirements
 
@@ -14,18 +14,18 @@ This connector allows you to sync data from IBM DB2 to a destination using the F
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-- Connects to IBM DB2 databases with secure authentication
+- Connects to IBM Db2 databases with secure authentication
 - Supports incremental data sync using timestamp-based tracking
 - Efficient row-level extraction with state management for resumable syncs
-- Handles various DB2 data types
+- Handles various Db2 data types
 
 ## Configuration file
 
-The example connector uses a `configuration.json` file to define the connection parameters for the IBM DB2 database. The connection parameters required for the example to work are:
+The example connector uses a `configuration.json` file to define the connection parameters for the IBM Db2 database. The connection parameters required for the example to work are:
 
 ```json
 {
@@ -40,12 +40,12 @@ The example connector uses a `configuration.json` file to define the connection 
 ```
 
 The configuration parameters are:
-- `hostname`: The hostname of your IBM DB2 server 
-- `port`: The port number for the DB2 connection
-- `database`: The name of the DB2 database
-- `user_id`: The username to authenticate with DB2
-- `password`: The password to authenticate with DB2
-- `schema_name`: The schema name in the DB2 database where the table resides
+- `hostname`: The hostname of your IBM Db2 server 
+- `port`: The port number for the Db2 connection
+- `database`: The name of your Db2 database
+- `user_id`: The username to authenticate with Db2
+- `password`: The password to authenticate with Db2
+- `schema_name`: The schema name in the Db2 database where the table resides
 - `table_name`: The name of the table to sync data from
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -62,28 +62,27 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector uses direct database authentication with a `username` and `password`. These credentials are specified in the configuration file and used to establish a secure connection to the IBM DB2 database. The connection is created using the IBM DB Python driver, which handles the authentication process.
+The connector uses direct database authentication with a `username` and `password`. These credentials are specified in the configuration file and used to establish a secure connection to the IBM Db2 database. The connection is created using the IBM_DB Python driver, which handles the authentication process.
 
 ## Data handling
 
 The connector performs the following data handling operations:  
-- Establishes a connection to the IBM DB2 database using the provided credentials
+- Establishes a connection to the IBM Db2 database using the provided credentials
 - Tracks the last synced timestamp to enable incremental updates
 - Queries tables with a timestamp filter to retrieve only changed records
-- Handles various DB2 data types and converts them to appropriate formats
+- Handles various Db2 data types and converts them to appropriate formats
 
 ## Error handling
 
 The connector implements the following error handling strategies:  
-- Connection failures: Catches database connection errors and raises informative messages
+- Connection failures: Catches database connection errors and provides informative messages
 - Configuration validation: Checks for required configuration parameters before attempting connections
 - State management: Checkpoints sync progress to enable resumable operations
 - Logging: Uses the SDK logging framework to provide detailed information about operations and errors
 
-## Tables Created
+## Tables created
 
-The example connector creates and syncs the following table:  
-- employee: A sample employee table containing data about employees with various fields demonstrating different data types
+The example connector creates and syncs the `EMPLOYEE` table, a sample  table containing data about employees with various fields demonstrating different data types.
 
 Schema definition from connector:
 
