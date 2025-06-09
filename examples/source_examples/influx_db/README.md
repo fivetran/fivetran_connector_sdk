@@ -60,9 +60,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses token-based authentication with InfluxDB. You'll need to:  
 1. Log into your InfluxDB dashboard.
-1. Navigate to `Data` > `API Tokens`.
-1. Create a new token with appropriate read permissions.
-1. Copy the token to the token field in your `configuration.json` file.
+2. Navigate to `Data` > `API Tokens`.
+3. Create a new token with appropriate read permissions.
+4. Copy the token to the token field in your `configuration.json` file.
 
 Refer to the `create_influx_client` function in the `connector.py` file for implementation details.
 
@@ -97,7 +97,7 @@ The connector creates a single table named `census_table` with the following sch
         "bees": "INT",
         "location": "STRING",
         "time": "STRING"
-    },
+    }
 }
 ```
 
