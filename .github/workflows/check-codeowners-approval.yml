@@ -5,24 +5,111 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  codeowner-approval:
+  check-codeowners-approval:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install minimatch @octokit/core @octokit/plugin-paginate-rest
+        uses: actions/checkout@v3
 
       - name: Require CODEOWNER approval if applicable
-        run: node .github/scripts/check-codeowner-approval.js
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.data.number,
+              }
+            );
+            const changedFiles = files.map(f => f.filename);
+
+            const codeownersPath = 'CODEOWNERS';
+            if (!fs.existsSync(codeownersPath)) {
+              console.log('No CODEOWNERS file found. Skipping check.');
+              return;
+            }
+
+            const codeownersText = fs.readFileSync(codeownersPath, 'utf8');
+            const codeownersRules = codeownersText
+              .split('\n')
+              .filter(line => line.trim() && !line.trim().startsWith('#'))
+              .map(line => {
+                const [pattern, ...owners] = line.trim().split(/\s+/);
+                return { pattern, owners: owners.map(o => o.replace(/^@/, '')) };
+              });
+
+            function matches(pattern, filename) {
+              let regexStr = '^';
+              let i = 0;
+              while (i < pattern.length) {
+                if (pattern[i] === '*') {
+                  // Check if next char is also '*'
+                  if (pattern[i + 1] === '*') {
+                    // Handle '**' => match any char including '/'
+                    regexStr += '.*';
+                    i += 2;
+                  } else {
+                    // Handle '*' => match any char except '/'
+                    regexStr += '[^/]*';
+                    i += 1;
+                  }
+                } else {
+                  // Escape special regex chars
+                  const c = pattern[i];
+                  if ('\\.[]{}()+^$|'.includes(c)) {
+                    regexStr += '\\' + c;
+                  } else {
+                    regexStr += c;
+                  }
+                  i += 1;
+                }
+              }
+            }
+
+            const requiredOwners = new Set();
+            for (const file of changedFiles) {
+              for (const rule of codeownersRules) {
+                console.log(file);
+                console.log(rule.pattern);
+                if (matches(rule.pattern,file)) {
+                  rule.owners.forEach(owner => requiredOwners.add(owner));
+                }
+              }
+            }
+
+            if (requiredOwners.size === 0) {
+              console.log('No CODEOWNERS matched the changed files. Skipping approval check.');
+              return;
+            }
+
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.data.number,
+            });
+
+            const approvedBy = new Set(
+              reviews.data
+                .filter(r => r.state === 'APPROVED')
+                .map(r => r.user.login)
+            );
+
+            const isApproved = [...requiredOwners].some(owner => approvedBy.has(owner));
+
+            if (!isApproved) {
+              core.setFailed(`PR must be approved by at least one matching CODEOWNER: ${[...requiredOwners].join(', ')}`);
+            } else {
+              console.log('PR approved by a required CODEOWNER. ✅');
+            }
