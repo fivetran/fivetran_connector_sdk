@@ -41,9 +41,9 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-The connector requires the influxdb3_python package to connect to InfluxDB.
+The connector requires the `influxdb3_python` package to connect to InfluxDB.
 
-Content of requirements.txt:
+The connector uses the following packages, which are specified in the `requirements.txt` file:
 
 ```
 influxdb3_python
@@ -59,12 +59,12 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 
 This connector uses token-based authentication with InfluxDB. You'll need to:  
-- Log into your InfluxDB dashboard
-- Navigate to `Data` > `API Tokens`
-- Create a new token with appropriate read permissions
-- Copy the token to the token field in your configuration.json file
+1. Log into your InfluxDB dashboard.
+1. Navigate to `Data` > `API Tokens`.
+1. Create a new token with appropriate read permissions.
+1. Copy the token to the token field in your `configuration.json` file.
 
-Refer to `create_influx_client` function in the `connector.py` for implementation details.
+Refer to the `create_influx_client` function in the `connector.py` file for implementation details.
 
 ## Data handling
 
@@ -74,7 +74,7 @@ The connector processes data as follows:
 - Converts timestamps to UTC ISO format for standardization
 - Maintains state to track progress and support incremental syncs
 
-Refer to `execute_query_and_upsert` and `upsert_record_batch` functions for implementation details.
+Refer to the `execute_query_and_upsert` and `upsert_record_batch` functions in the `connector.py` file for implementation details.
 
 ## Error handling
 
@@ -101,7 +101,7 @@ The connector creates a single table named `census_table` with the following sch
 }
 ```
 
-Refer to the `schema` function for implementation details.
+Refer to the `schema` function in the `connector.py` file for implementation details.
 
 The data in `census_table` looks like this:
 
