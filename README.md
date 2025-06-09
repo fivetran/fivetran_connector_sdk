@@ -125,6 +125,7 @@ There are several examples available under `/examples`:
 
 - [clickhouse](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/clickhouse) - This example shows how to sync data from ClickHouse database using Connector SDK. You need to provide your ClickHouse credentials for this example to work.
 - [couchbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/couchbase) - This example shows how to sync data from Couchbase database using Connector SDK. You need to provide your Couchbase credentials for this example to work.
+- [fleetio](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/fleetio) - This example shows how to sync data from Fleetio using Connector SDK. You need to provide your Fleetio API Token for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
