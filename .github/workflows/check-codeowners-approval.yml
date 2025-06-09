@@ -19,14 +19,12 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            // Get PR info
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
             });
 
-            // Get list of changed files
             const files = await github.paginate(
               github.rest.pulls.listFiles,
               {
@@ -37,7 +35,6 @@ jobs:
             );
             const changedFiles = files.map(f => f.filename);
 
-            // Parse CODEOWNERS
             const codeownersPath = 'CODEOWNERS';
             if (!fs.existsSync(codeownersPath)) {
               console.log('No CODEOWNERS file found. Skipping check.');
@@ -53,13 +50,18 @@ jobs:
                 return { pattern, owners: owners.map(o => o.replace(/^@/, '')) };
               });
 
-            // Simple wildcard matcher (basic support for '*', '**/', etc.)
-            const minimatch = require('minimatch');
+            // Very basic wildcard matcher: only supports '*' (not '**')
+            function matches(pattern, filename) {
+              const regex = new RegExp('^' + pattern
+                .replace(/\./g, '\\.')        // escape dots
+                .replace(/\*/g, '.*') + '$'); // convert * to .*
+              return regex.test(filename);
+            }
 
             const requiredOwners = new Set();
             for (const file of changedFiles) {
               for (const rule of codeownersRules) {
-                if (minimatch(file, rule.pattern)) {
+                if (matches(rule.pattern, file)) {
                   rule.owners.forEach(owner => requiredOwners.add(owner));
                 }
               }
@@ -70,7 +72,6 @@ jobs:
               return;
             }
 
-            // Get PR reviews
             const reviews = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
               repo: context.repo.repo,
