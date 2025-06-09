@@ -55,18 +55,14 @@ jobs:
               let i = 0;
               while (i < pattern.length) {
                 if (pattern[i] === '*') {
-                  // Check if next char is also '*'
                   if (pattern[i + 1] === '*') {
-                    // Handle '**' => match any char including '/'
                     regexStr += '.*';
                     i += 2;
                   } else {
-                    // Handle '*' => match any char except '/'
                     regexStr += '[^/]*';
                     i += 1;
                   }
                 } else {
-                  // Escape special regex chars
                   const c = pattern[i];
                   if ('\\.[]{}()+^$|'.includes(c)) {
                     regexStr += '\\' + c;
@@ -76,7 +72,11 @@ jobs:
                   i += 1;
                 }
               }
+              regexStr += '$';
+              const regex = new RegExp(regexStr);
+              return regex.test(filename);
             }
+
 
             const requiredOwners = new Set();
             for (const file of changedFiles) {
