@@ -63,10 +63,10 @@ There are certain columns that are kept as JSON or lists that mainly hold custom
 ## Error handling
 
 From lines 189-197 in `connector.py`, there's a try block when making the call to the Fleetio API. 
-If the API returns any errors, they're recording in the Fivetran log and displayed in the UI.
+If the API returns any errors, they are recorded in the Fivetran log and displayed in the Fivetran dashboard.
 
 ## Tables Created
-The tables that customers can load are:
+The following tables are synced to the destination:
 * `contacts`
     * A Contact is a person employed by your organization or a person with whom your organization does business.
 * `expense_entries`
