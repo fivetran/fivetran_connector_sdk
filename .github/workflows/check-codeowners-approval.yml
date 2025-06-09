@@ -88,8 +88,6 @@ jobs:
             const requiredOwners = new Set();
             for (const file of changedFiles) {
               for (const rule of codeownersRules) {
-                console.log(file);
-                console.log(rule.pattern);
                 if (matches(rule.pattern,file)) {
                   rule.owners.forEach(owner => requiredOwners.add(owner));
                 }
