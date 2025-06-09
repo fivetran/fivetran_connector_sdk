@@ -54,9 +54,9 @@ This connector uses username and password authentication to connect to Redshift.
 
 To set up authentication:
 
-- Create a Redshift user with appropriate permissions to access the required tables
-- Provide the username and password in the configuration file
-- Ensure the user has `SELECT` permissions on the tables that need to be synced
+1. Create a Redshift user with appropriate permissions to access the required tables.
+2. Provide the username and password in the `configuration.json` file.
+3. Ensure the user has `SELECT` permissions on the tables that need to be synced.
 
 ## Pagination
 

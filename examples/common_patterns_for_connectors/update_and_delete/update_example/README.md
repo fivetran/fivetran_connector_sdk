@@ -25,7 +25,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 - Demonstrates proper handling of update operations with composite primary keys
 - Shows how to connect to and query a PostgreSQL database
-- Illustrates common errors when handling composite primary keys incorrectly
+- Flags common errors when handling composite primary keys incorrectly
 
 ## Configuration file
 
@@ -77,7 +77,7 @@ The connector implements error handling in several areas:
 - Configuration validation
 - General error handling during the update process
 
-The connector also includes warnings about improper update operations that would fail, such as attempting to update with incomplete primary keys.
+The connector also includes warnings about improper update operations that would fail, such as attempts to update records with incomplete primary keys.
 
 ## Tables Created
 
