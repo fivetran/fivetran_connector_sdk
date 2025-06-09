@@ -53,26 +53,33 @@ jobs:
             function matches(pattern, filename) {
               let regexStr = '^';
               let i = 0;
+            
               while (i < pattern.length) {
                 if (pattern[i] === '*') {
                   if (pattern[i + 1] === '*') {
-                    regexStr += '.*';
-                    i += 2;
+                    if (pattern[i + 2] === '/') {
+                        regexStr += '(?:.*/)?';
+                        i += 3;
+                    } else {
+                        regexStr += '.*';
+                        i += 2;
+                    }
                   } else {
-                    regexStr += '[^/]*';
-                    i += 1;
+                      regexStr += '[^/]*';     
+                      i += 1;
                   }
                 } else {
-                  const c = pattern[i];
-                  if ('\\.[]{}()+^$|'.includes(c)) {
-                    regexStr += '\\' + c;
-                  } else {
-                    regexStr += c;
-                  }
-                  i += 1;
+                    const c = pattern[i];
+                    if ('\\.[]{}()+^$|'.includes(c)) {
+                      regexStr += '\\' + c;
+                    } else {
+                      regexStr += c;
+                    }
+                    i += 1;
                 }
               }
               regexStr += '$';
+            
               const regex = new RegExp(regexStr);
               return regex.test(filename);
             }
