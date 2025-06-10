@@ -10,7 +10,9 @@
 # Fourth+ syncs: int_to_string field is a float again (42.43)
 
 # Import required modules from the Fivetran Connector SDK
-from fivetran_connector_sdk import Connector, Operations as op, Logging as log
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
 
 def update(configuration: dict, state: dict):
