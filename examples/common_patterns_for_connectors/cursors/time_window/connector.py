@@ -9,9 +9,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 import datetime
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
 DAYS_PER_SYNC = 30
