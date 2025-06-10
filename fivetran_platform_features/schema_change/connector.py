@@ -15,6 +15,13 @@ from fivetran_connector_sdk import Logging as log # For enabling Logs in your co
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
     """
     Main update function that demonstrates schema evolution across syncs.
