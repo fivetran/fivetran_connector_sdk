@@ -1,4 +1,3 @@
-
 """
 This is a simple example for how to work with the fivetran_connector_sdk module.
 It defines a "from" and "to" timestamp that can be sent to an API, and limits the time range to DAYS_PER_SYNC days at a time for an initial sync.
@@ -9,24 +8,28 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 import datetime
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import \
+    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
-INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
-DAYS_PER_SYNC = 30
+__INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
+__DAYS_PER_SYNC = 30
+
 
 def update(configuration: dict, state: dict):
     """
      Define the update function, which is a required function, and is called by Fivetran during each sync.
-    # See the technical reference documentation for more details on the update function
-    # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-    # The function takes two parameters:
-    # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-    # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-    # The state dictionary is empty for the first sync or for any full re-sync
+     See the technical reference documentation for more details on the update function
+     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+     The function takes two parameters:
+      - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+      - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+     The state dictionary is empty for the first sync or for any full re-sync
     """
-    
+
+    log.warning("Example: Common Patterns For Connectors - Cursor - Time Window")
+
     # save the current time for starting the sync
     start_timestamp = format_iso_timestamp(datetime.datetime.now(datetime.timezone.utc))
     # get a start and end timestamp that could be used with an API
@@ -58,6 +61,7 @@ def update(configuration: dict, state: dict):
         else:
             more_data = False
 
+
 def set_timeranges(state, start_timestamp):
     """
     Takes in current state and start timestamp of current sync.
@@ -71,27 +75,28 @@ def set_timeranges(state, start_timestamp):
     if 'to_timestamp' in state:
         from_timestamp = state['to_timestamp']
     else:
-        from_timestamp = INITIAL_SYNC_START
+        from_timestamp = __INITIAL_SYNC_START
 
     if is_older_than_n_days(from_timestamp):
         """
-        if the timerange from the last sync ended more than DAYS_PER_SYNC days ago,
-        get an ending timestamp for the new range that is DAYS_PER_SYNC days later than that. 
+        if the timerange from the last sync ended more than __DAYS_PER_SYNC days ago,
+        get an ending timestamp for the new range that is __DAYS_PER_SYNC days later than that. 
         """
         from_timestamp_dt = parse_iso_timestamp(from_timestamp)
-        to_timestamp = format_iso_timestamp(from_timestamp_dt + datetime.timedelta(days=DAYS_PER_SYNC))
+        to_timestamp = format_iso_timestamp(from_timestamp_dt + datetime.timedelta(days=__DAYS_PER_SYNC))
     else:
         """otherwise the timerange for the next range can end when the sync started"""
         to_timestamp = start_timestamp
 
     return from_timestamp, to_timestamp
 
+
 def is_older_than_n_days(date_to_check):
     """
-    Checks whether date_to_check is older than DAYS_PER_SYNC days.
+    Checks whether date_to_check is older than __DAYS_PER_SYNC days.
     Is time-zone aware and handles date_to_check being a string and not a datetime
     :param date_to_check:
-    :return: boolean based on whether date is older than DAYS_PER_SYNC days
+    :return: boolean based on whether date is older than __DAYS_PER_SYNC days
     """
     now = datetime.datetime.now(datetime.UTC)  # Timezone-aware UTC datetime
 
@@ -99,7 +104,8 @@ def is_older_than_n_days(date_to_check):
     if isinstance(date_to_check, str):
         date_to_check = parse_iso_timestamp(date_to_check)
 
-    return date_to_check < now - datetime.timedelta(days=DAYS_PER_SYNC)
+    return date_to_check < now - datetime.timedelta(days=__DAYS_PER_SYNC)
+
 
 def format_iso_timestamp(dt: datetime.datetime) -> str:
     """
@@ -108,6 +114,7 @@ def format_iso_timestamp(dt: datetime.datetime) -> str:
     :return: ISO formatted string with 'Z' timezone
     """
     return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
 
 def parse_iso_timestamp(timestamp: str) -> datetime.datetime:
     """
@@ -133,4 +140,3 @@ Please test using the Fivetran debug command prior to finalizing and deploying y
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
-
