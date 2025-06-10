@@ -44,26 +44,26 @@ Contains daily clone counts for each repository.
 ### repository_referrers
 Contains top referral sources for each repository.
 
-| Column      | Type         | Description                           |
-|-------------|--------------|---------------------------------------|
-| repository  | STRING       | Repository name in owner/repo format  |
-| referrer    | STRING       | Referral source (e.g., "google.com")  |
-| count       | INT          | Total views from this referrer        |
-| uniques     | INT          | Unique visitors from this referrer    |
-| synced_at   | UTC_DATETIME | Timestamp when data was collected     |
+| Column     | Type         | Description                               |
+|------------|--------------|-------------------------------------------|
+| repository | STRING       | Repository name in owner/repo format      |
+| referrer   | STRING       | Referral source (e.g., "google.com")      |
+| count      | INT          | Total views from this referrer            |
+| uniques    | INT          | Unique visitors from this referrer        |
+| fetch_date | NAIVE_DATE   | Date when data was collected from the API |
 
 ### repository_paths
 
 Contains top content paths for each repository.
 
-| Column      | Type         | Description                           |
-|-------------|--------------|---------------------------------------|
-| repository  | STRING       | Repository name in owner/repo format  |
-| path        | STRING       | Path to the content (e.g., "/README.md") |
-| title       | STRING       | Title of the content                  |
-| count       | INT          | Total views for this path             |
-| uniques     | INT          | Unique visitors for this path         |
-| synced_at   | UTC_DATETIME | Timestamp when data was collected     |
+| Column       | Type         | Description                                |
+|--------------|--------------|--------------------------------------------|
+| repository   | STRING       | Repository name in owner/repo format       |
+| path         | STRING       | Path to the content (e.g., "/README.md")   |
+| title        | STRING       | Title of the content                       |
+| count        | INT          | Total views for this path                  |
+| uniques      | INT          | Unique visitors for this path              |
+| fetch_date   | NAIVE_DATE   | Date when data was collected from the API  |
 
 ## GitHub API Rate Limits
 
