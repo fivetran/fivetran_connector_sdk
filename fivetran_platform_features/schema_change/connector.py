@@ -17,16 +17,13 @@ from fivetran_connector_sdk import \
 import json
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
     """
-    Main update function that demonstrates schema evolution across syncs.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+    In this example the update function demonstrates schema evolution across syncs.
     
     Args:
         configuration (dict): Configuration parameters (unused in this example)
@@ -35,6 +32,9 @@ def update(configuration: dict, state: dict):
     Yields:
         Operations: Upsert operations with evolving data types and checkpoint operations
     """
+
+    log.warning("Example: Fivetran Platform Features - Schema Change")
+
     # Get the current sync count from state, defaulting to 0 if not present
     sync_count = state.get('sync_count', 0)
 
