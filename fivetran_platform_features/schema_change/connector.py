@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
     # Yield a checkpoint operation to save the updated sync count
     yield op.checkpoint({"sync_count": sync_count + 1})
 
-# Create the connector object using the schema and update functions
+# Create the connector object using the update function
 connector = Connector(update=update)
 
 # Check if the script is being run as the main module.
