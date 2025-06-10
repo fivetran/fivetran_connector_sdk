@@ -10,10 +10,12 @@
 # Fourth+ syncs: int_to_string field is a float again (42.43)
 
 # Import required modules from the Fivetran Connector SDK
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import \
+    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -35,23 +37,24 @@ def update(configuration: dict, state: dict):
     """
     # Get the current sync count from state, defaulting to 0 if not present
     sync_count = state.get('sync_count', 0)
-    
+
     # Define the sequence of values that will demonstrate type evolution
     # Each value represents a different data type that will be used in subsequent syncs
     values = [42, 42.42, "forty-two point forty-two", 42.43]
-    
+
     # Log information about the schema change demonstration
     log.warning("Schema change demo: field type evolves across syncs")
-    log.info(f"Sync #{sync_count + 1}: inserting value '{values[min(sync_count, 3)]}' ({type(values[min(sync_count, 3)]).__name__})")
-    
+    log.info(
+        f"Sync #{sync_count + 1}: inserting value '{values[min(sync_count, 3)]}' ({type(values[min(sync_count, 3)]).__name__})")
+
     # Define descriptive text for each sync to explain the type change
     descriptions = [
         "First sync with integer",
-        "Second sync with float", 
+        "Second sync with float",
         "Third sync with non-numeric string",
         "Fourth sync with float again"
     ]
-    
+
     # Yield an upsert operation with the current value and its description
     # The min(sync_count, 3) ensures we don't go beyond our defined values
     yield op.upsert(table="change_int_to_string", data={
@@ -59,9 +62,10 @@ def update(configuration: dict, state: dict):
         "int_to_string": values[min(sync_count, 3)],
         "description": descriptions[min(sync_count, 3)]
     })
-    
+
     # Yield a checkpoint operation to save the updated sync count
     yield op.checkpoint({"sync_count": sync_count + 1})
+
 
 # Create the connector object using the update function
 connector = Connector(update=update)
