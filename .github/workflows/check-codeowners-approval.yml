@@ -156,13 +156,6 @@ jobs:
               }),
             ]);
             
-            // Get all reviews
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            
             // Deduplicate by most recent review per user
             const latestReviewByUser = new Map();
             for (const review of reviews.data) {
