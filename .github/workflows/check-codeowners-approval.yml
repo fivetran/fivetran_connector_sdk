@@ -125,12 +125,6 @@ jobs:
                 effectiveApprovers.add(owner);
               }
             }
-
-            const reviews = await github.rest.pulls.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.data.number,
-            });
             
             // Fetch the full PR including requested reviewers
             const fullPR = await github.rest.pulls.get({
