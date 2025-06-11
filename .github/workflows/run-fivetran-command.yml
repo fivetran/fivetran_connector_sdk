@@ -32,20 +32,20 @@ jobs:
           # echo "-----------"
           # fivetran debug --acadf
           # run: |
-          set -o pipefail
+          # set -o pipefail
           echo "Running Fivetran Deploy..."
-          output=$(fivetran deploy \
+          fivetran deploy \
             --api-key "adfadfasdf" \
             --destination "Sample1" \
             --connection "check_this" \
             --configuration configuration.json \
             --python-version "3.15" \
-            --force 2>&1)
-          exit_code=$?
+            --force 2>&1
+          # exit_code=$?
           
-          echo "$output"
+          # echo "$output"
       
-          if [ $exit_code -ne 0 ]; then
-            echo "Fivetran deploy failed with exit code $exit_code"
-            exit $exit_code
-          fi
+          # if [ $exit_code -ne 0 ]; then
+          #   echo "Fivetran deploy failed with exit code $exit_code"
+          #   exit $exit_code
+          # fi
