@@ -32,7 +32,7 @@ jobs:
           echo "Approach 1: Starting Fivetran deploy..."
       
           script -q -e -c "fivetran deploy \
-            --api-key '${{ secrets.TEST_KEY }}' \
+            --api-key $TEST_KEY \
             --destination 'Testing' \
             --connection 'satvik_csdk_test_github_action' \
             --python-version '3.11.11' \
@@ -51,7 +51,7 @@ jobs:
           echo "Approach 2: Starting Fivetran deploy..."
           
           unbuffer fivetran deploy \
-          --api-key '${{ secrets.TEST_KEY }}' \
+          --api-key $TEST_KEY \
           --destination 'Testing' \
           --connection 'satvik_csdk_test_github_action' \
           --python-version '3.11.11' \
