@@ -23,24 +23,17 @@ jobs:
           pip install fivetran_connector_sdk
 
       - name: Run Fivetran Debug
+        env:
+          TEST_KEY: ${{ secrets.SATVIK_API_TEST }}
         working-directory: examples/quickstart_examples/hello  
         run: |
-          # echo "Running in directory: $(pwd)"
-          # ls
-          # echo "-----------"
-          # cat connector.py
-          # echo "-----------"
-          # fivetran debug --acadf
-          # run: |
-          # set -o pipefail
           echo "Running Fivetran Deploy..."
           fivetran deploy \
-            --api-key "adfadfasdf" \
-            --destination "Sample1" \
-            --connection "check_this" \
-            --configuration configuration.json \
-            --python-version "3.15" \
-            --force 2>&1
+            --api-key $API_TEST \
+            --destination "Testing" \
+            --connection "satvik_csdk_testing_github_action" \
+            --python-version "3.11" \
+            --force 
           # exit_code=$?
           
           # echo "$output"
