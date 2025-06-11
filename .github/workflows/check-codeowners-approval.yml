@@ -118,6 +118,7 @@ jobs:
               if (owner.includes('/')) {
                 const [, teamSlug] = owner.split('/');
                 try {
+                  console.log("Team : ", teamSlug);
                   const members = await github.paginate(
                     github.rest.teams.listMembersInOrg,
                     {
