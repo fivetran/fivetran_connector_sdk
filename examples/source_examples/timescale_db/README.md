@@ -18,11 +18,11 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-1. Connects to TimescaleDb database using `psycopg2`
-2. Supports incremental data extraction using timestamps with checkpointing
-3. Handles both standard time-series data and vector data
-4. Uses server-side cursors for memory-efficient data streaming
-5. Serialization of datetime objects and vector data
+- Connects to TimescaleDb database using `psycopg2`
+- Supports incremental data extraction using timestamps with checkpointing
+- Handles both standard time-series data and vector data
+- Uses server-side cursors for memory-efficient data streaming
+- Serialization of datetime objects and vector data
 
 ## Configuration file
 
@@ -60,11 +60,10 @@ Pagination is handled through server-side cursors in the TimescaleDB client (ref
 
 The connector:
 
-1. Creates a named cursor during connection initialization
-2. Executes a time-bounded query to fetch only new data
-3. Uses `fetchmany()` with a `batch_size` parameter (default: 1000) to retrieve rows incrementally
-4. Processes each batch and yields records before fetching the next batch
-5. This approach prevents loading the entire result set into memory at once, making the connector suitable for large datasets.
+1. Creates a named cursor during connection initialization.
+2. Executes a time-bounded query to fetch only new data.
+3. Uses `fetchmany()` with a `batch_size` parameter (default: 1000) to retrieve rows incrementally.
+4. Processes each batch and yields records before fetching the next batch. This approach prevents loading the entire result set into memory at once, making the connector suitable for large datasets.
 
 ## Data handling
 
@@ -80,16 +79,16 @@ The connector processes and transforms data as follows (refer to `timescaleclien
 
 Error handling is implemented at several levels:
 
-1. Connection errors: Wrapped in a `ConnectionError` with a descriptive message (line 44 in `timescaleclient.py`)
-2. Configuration validation: Checks for required parameters before attempting connection (lines 24-32 in `connector.py`)
-3. Graceful disconnect: Ensures all database resources are properly closed (lines 48-56 in `timescaleclient.py`)
-4. Logging: Uses SDK logging facilities to record important operations and potential issues
+1. Connection errors: Wrapped in a `ConnectionError` with a descriptive message (line 44 in `timescaleclient.py`).
+2. Configuration validation: Checks for required parameters before attempting connection (lines 24-32 in `connector.py`).
+3. Graceful disconnect: Ensures all database resources are properly closed (lines 48-56 in `timescaleclient.py`).
+4. Logging: Uses SDK logging facilities to record important operations and potential issues.
 
 ## Tables Created
 
 The connector creates two tables in the destination. `sensor_data`contains time-series sensor data and `sensor_embeddings` contains vector embeddings related to sensors.
 
-The schema for these tables are as follows:
+The schemas for these tables are as follows:
 
 ```json
 {
@@ -120,7 +119,7 @@ The schema for these tables are as follows:
 
 ## Additional files
 
-- `timescaleclient.py` – It Handles the connection and data extraction from `TimescaleDb`, implementing server-side cursors, batch processing, and data serialization.
+- `timescaleclient.py` – This file handles the connection and data extraction from `TimescaleDb`, implementing server-side cursors, batch processing, and data serialization.
 
 
 ## Additional considerations
