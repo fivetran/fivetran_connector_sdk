@@ -164,6 +164,6 @@ class TimescaleClient:
             if isinstance(value, datetime):
                 data[key] = value.isoformat()
             # The vector_data field is a string representation of a list, so we need to convert it to a list for JSON serialization .
-            elif key=="vector_data" and hasattr(value, '__iter__'):
+            elif key == "vector_data" and isinstance(value, str):
                 data[key] = ast.literal_eval(value)
         return data

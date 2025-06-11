@@ -106,7 +106,7 @@ The schema for these tables are as follows:
 
 ```json
 {
-  "table": "sesnor_embeddings",
+  "table": "sensor_embeddings",
   "primary_key": ["id"],
   "columns": {
     "id": "INT",

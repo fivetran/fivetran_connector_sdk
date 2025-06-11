@@ -109,16 +109,24 @@ def update(configuration: dict, state: dict):
     # The query used here is for demonstration purposes.
     query = f"SELECT * FROM {SENSOR_TABLE} WHERE time > '{last_timestamp}' ORDER BY time"
 
-    # Call the upsert_data method to fetch data from the TimescaleDb database and upsert it into the destination table.
-    yield from timescaledb_client.upsert_data(query, SENSOR_TABLE, state)
-
     # This query fetches vector data from the TimescaleDb database.
     # You can modify this query to fetch vector data as per your need.
     # The query used here is for demonstration purposes.
     vector_query = f"SELECT * FROM {VECTOR_TABLE} WHERE created_at > '{last_vector_timestamp}' ORDER BY created_at"
 
-    # Call the upsert_vector_data method to fetch vector data from the TimescaleDb database and upsert it into the destination table.
-    yield from timescaledb_client.upsert_vector_data(vector_query, VECTOR_TABLE, state)
+    try:
+        # Call the upsert_data method to fetch data from the TimescaleDb database and upsert it into the destination table.
+        yield from timescaledb_client.upsert_data(query, SENSOR_TABLE, state)
+
+        # Call the upsert_vector_data method to fetch vector data from the TimescaleDb database and upsert it into the destination table.
+        yield from timescaledb_client.upsert_vector_data(vector_query, VECTOR_TABLE, state)
+
+    except Exception as e:
+        raise RuntimeError(f"Error during update: {e}")
+
+    finally:
+        # Close the connection to the TimescaleDb database.
+        timescaledb_client.disconnect()
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
