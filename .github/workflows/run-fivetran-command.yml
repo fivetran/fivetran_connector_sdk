@@ -30,4 +30,4 @@ jobs:
           echo "----------"
           cat connector.py
           echo "----------"
-          fivetran deploy --api-key 1348qfwdfjasdfkjasdf == --destination "Testing" --connection satvik_csdk_action_test
+          fivetran debug --acadf
