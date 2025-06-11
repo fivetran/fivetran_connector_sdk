@@ -111,10 +111,35 @@ jobs:
                 .map(r => r.user.login)
             );
 
-            const isApproved = [...requiredOwners].some(owner => approvedBy.has(owner));
+            const org = context.repo.owner;
+            const effectiveApprovers = new Set();
+
+            for (const owner of requiredOwners) {
+              if (owner.includes('/')) {
+                const [, teamSlug] = owner.split('/');
+                try {
+                  const members = await github.paginate(
+                    github.rest.teams.listMembersInOrg,
+                    {
+                      org: org,
+                      team_slug: teamSlug,
+                    }
+                  );
+                  for (const member of members) {
+                    effectiveApprovers.add(member.login);
+                  }
+                } catch (e) {
+                  core.warning(`Failed to fetch members of team ${owner}: ${e.message}`);
+                }
+              } else {
+                effectiveApprovers.add(owner);
+              }
+            }
+
+            const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
 
             if (!isApproved) {
-              core.setFailed(`PR must be approved by at least one matching CODEOWNER: ${[...requiredOwners].join(', ')}`);
+              core.setFailed(`PR must be approved by at least one matching CODEOWNER (individual or team member).);
             } else {
               console.log('PR approved by a required CODEOWNER.');
             }
