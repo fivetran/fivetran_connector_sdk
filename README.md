@@ -151,6 +151,9 @@ There are several examples available under `/examples`:
 - [toast](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/toast) - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 - [veeva_vault_using_basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault_using_basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
 
+- **[oop_example](/examples/quickstart_examples/oop_example)**
+  - This example shows the object-oriented programming approach while building the connector for National Parks Service API.
+
 </details>
 
 <details open>
