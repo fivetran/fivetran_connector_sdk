@@ -1,0 +1,28 @@
+name: Run Fivetran Debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fivetran-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Upgrade pip and install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fivetran_connector_sdk
+
+      - name: Run Fivetran Debug
+        working-directory: examples/fivetran_connector_sdk/examples/quickstart_examples/hello  # <--- this assumes `example/` is inside the repo
+        run: |
+          echo "Running in directory: $(pwd)"
+          fivetran debug
