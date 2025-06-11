@@ -100,18 +100,6 @@ jobs:
               return;
             }
 
-            const reviews = await github.rest.pulls.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.data.number,
-            });
-
-            const approvedBy = new Set(
-              reviews.data
-                .filter(r => r.state === 'APPROVED')
-                .map(r => r.user.login)
-            );
-
             const org = context.repo.owner;
             const effectiveApprovers = new Set();
 
@@ -137,6 +125,24 @@ jobs:
                 effectiveApprovers.add(owner);
               }
             }
+
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.data.number,
+            });
+
+            const latestReviewByUser = new Map();
+            for (const review of reviews.data) {
+              latestReviewByUser.set(review.user.login, review);
+            }
+
+            const approvedBy = new Set(
+              [...latestReviewByUser.values()]
+                .filter(r => r.state === 'APPROVED')
+                .map(r => r.user.login)
+            );
+
 
             const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
 
