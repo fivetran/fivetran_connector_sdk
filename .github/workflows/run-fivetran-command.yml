@@ -48,19 +48,19 @@ jobs:
             echo "✅ Fivetran deploy succeeded"
           fi
 
-          echo "Approach 2: Starting Fivetran deploy..."
+          # echo "Approach 2: Starting Fivetran deploy..."
           
-          unbuffer fivetran deploy \
-          --api-key $TEST_KEY \
-          --destination 'Testing' \
-          --connection 'satvik_csdk_test_github_action' \
-          --python-version '3.11.11' \
-          --force 2>&1 | tee fivetran_deploy.log
+          # unbuffer fivetran deploy \
+          # --api-key $TEST_KEY \
+          # --destination 'Testing' \
+          # --connection 'satvik_csdk_test_github_action' \
+          # --python-version '3.11.11' \
+          # --force 2>&1 | tee fivetran_deploy.log
     
-          status=${PIPESTATUS[0]}
-          cat fivetran_deploy.log
+          # status=${PIPESTATUS[0]}
+          # cat fivetran_deploy.log
       
-          if [ "$status" -ne 0 ]; then
-            echo "❌ Fivetran deploy failed with status $status"
-            exit $status
-          fi
+          # if [ "$status" -ne 0 ]; then
+          #   echo "❌ Fivetran deploy failed with status $status"
+          #   exit $status
+          # fi
