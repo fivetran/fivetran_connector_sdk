@@ -133,10 +133,8 @@ jobs:
             });
 
             const latestReviewByUser = new Map();
-            console.log("Reviews:");
             for (const review of reviews.data) {
               latestReviewByUser.set(review.user.login, review);
-              console.log(review.user.login,review);
             }
 
             const approvedBy = new Set(
