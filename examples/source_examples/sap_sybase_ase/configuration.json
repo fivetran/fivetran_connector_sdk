@@ -1,0 +1,8 @@
+{
+  "server": "<YOUR_SERVER_NAME>",
+  "port": "<YOUR_PORT_NUMBER>",
+  "user": "<YOUR_USERNAME>",
+  "password": "<YOUR_PASSWORD>",
+  "database": "<YOUR_DATABASE_NAME>",
+  "table_name": "<YOUR_TABLE_NAME>",
+}
