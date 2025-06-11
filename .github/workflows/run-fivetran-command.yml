@@ -26,4 +26,8 @@ jobs:
         working-directory: examples/quickstart_examples/hello  
         run: |
           echo "Running in directory: $(pwd)"
+          ls
+          echo "----------"
+          cat connector.py
+          echo "----------"
           fivetran deploy --api-key 1348qfwdfjasdfkjasdf == --destination "Testing" --connection satvik_csdk_action_test
