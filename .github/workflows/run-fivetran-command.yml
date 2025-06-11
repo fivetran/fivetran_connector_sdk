@@ -26,4 +26,4 @@ jobs:
         working-directory: examples/quickstart_examples/hello  
         run: |
           echo "Running in directory: $(pwd)"
-          fivetran debug --configuration configuration.json
+          fivetran deploy --api-key random-key == --destination "Testing" --connection satvik_csdk_action_test
