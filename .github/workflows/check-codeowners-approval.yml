@@ -2,7 +2,21 @@ name: Require CODEOWNERS Approval
 
 on:
   pull_request:
-  pull_request_review:
+    types:
+      - assigned
+      - unassigned
+      - labeled
+      - unlabeled
+      - opened
+      - edited
+      - closed
+      - reopened
+      - synchronize
+      - ready_for_review
+      - locked
+      - unlocked
+      - review_requested
+      - review_request_removed
 
 jobs:
   check-codeowners-approval:
