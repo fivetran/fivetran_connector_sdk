@@ -19,7 +19,7 @@ Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/co
 * Handles both iOS and Android app IDs (see `IOS_APP_IDS` and `ANDROID_APP_IDS`)
 * Incremental syncs with configurable lookback window (see `update` function)
 * Schema mapping and column renaming for clarity (see `key_mapping` and `process_sales_report`)
-* Modular data processing for each endpoint (see `process_active_users`, `process_sales_report`, `process_retention`)
+* Modular data processing for each endpoint (see `process_active_users`, `process_sales_report`, and `process_retention`)
 
 ## Configuration file
 
@@ -48,11 +48,11 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector requires a Sensor Tower API token for authentication. Obtain an API token from your Sensor Tower account dashboard. The token should be provided in the `configuration.json` file as the value for the `auth_token` key. (See `update` function in `connector.py`)
+The connector requires a Sensor Tower API token for authentication. Obtain an API token from your Sensor Tower account dashboard. You should provide the token in the `configuration.json` file as the value for the `auth_token` key. (See `update` function in `connector.py`)
 
 ## Pagination
 
-This example does not implement explicit pagination, as the Sensor Tower API endpoints used either return all requested data in a single response or are filtered by date range and country. (See `get_data` function)
+This example does not implement explicit pagination because the Sensor Tower API endpoints the example connector communicates with either return all requested data in a single response or are filtered by date range and country. (See `get_data` function)
 
 ## Data handling
 
@@ -69,7 +69,7 @@ This example does not implement explicit pagination, as the Sensor Tower API end
 
 This example does not implement custom error handling. Any HTTP or API errors will raise exceptions via the `requests` library. (See `get_data` function)
 
-## Tables Created
+## Tables created
 
 * `sales_report_estimates` – Contains app sales and revenue estimates by date and country.
 * `active_users` – Tracks active user counts by app, date, time period, and country.
@@ -87,4 +87,4 @@ This example does not include additional files beyond the main connector script 
 
 ## Additional considerations
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our [Support team](https://support.fivetran.com/).
