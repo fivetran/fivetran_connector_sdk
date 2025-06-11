@@ -143,6 +143,7 @@ jobs:
                 .map(r => r.user.login)
             );
 
+            console.log('Approved by:', [...approvedBy]);
 
             const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
 
