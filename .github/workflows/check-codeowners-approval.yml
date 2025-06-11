@@ -140,17 +140,11 @@ jobs:
               }
             }
             
-            // Fetch the full PR including requested reviewers
-            const fullPR = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
             
             // Get usernames of currently requested reviewers
             const requestedReviewers = new Set([
-              ...fullPR.data.requested_reviewers.map(r => r.login),
-              ...(fullPR.data.requested_teams || []).flatMap(team => {
+              ...pr.data.requested_reviewers.map(r => r.login),
+              ...(pr.data.requested_teams || []).flatMap(team => {
                 // You might want to expand this via GitHub API if you're using team-based CODEOWNERS
                 return [];
               }),
