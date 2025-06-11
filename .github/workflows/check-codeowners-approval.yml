@@ -132,18 +132,44 @@ jobs:
               pull_number: pr.data.number,
             });
             
-            const latestReviewByUser = new Map();
+            // Fetch the full PR including requested reviewers
+            const fullPR = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
             
+            // Get usernames of currently requested reviewers
+            const requestedReviewers = new Set([
+              ...fullPR.data.requested_reviewers.map(r => r.login),
+              ...(fullPR.data.requested_teams || []).flatMap(team => {
+                // You might want to expand this via GitHub API if you're using team-based CODEOWNERS
+                return [];
+              }),
+            ]);
+            
+            // Get all reviews
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            
+            // Deduplicate by most recent review per user
+            const latestReviewByUser = new Map();
             for (const review of reviews.data) {
-              const prev = latestReviewByUser.get(review.user.login);
+              const user = review.user.login;
+              const prev = latestReviewByUser.get(user);
               if (!prev || new Date(review.submitted_at) > new Date(prev.submitted_at)) {
-                latestReviewByUser.set(review.user.login, review);
+                latestReviewByUser.set(user, review);
               }
             }
             
+            // Final approvedBy set (excluding users who were re-requested for review)
             const approvedBy = new Set(
               [...latestReviewByUser.values()]
                 .filter(r => r.state === 'APPROVED')
+                .filter(r => !requestedReviewers.has(r.user.login))
                 .map(r => r.user.login)
             );
 
