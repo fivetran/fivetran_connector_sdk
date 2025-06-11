@@ -52,30 +52,30 @@ jobs:
 
             function matches(pattern, filename) {
               let regexStr = '^';
-              let i = 0;
+              let index = 0;
             
-              while (i < pattern.length) {
-                if (pattern[i] === '*') {
-                  if (pattern[i + 1] === '*') {
-                    if (pattern[i + 2] === '/') {
+              while (index < pattern.length) {
+                if (pattern[index] === '*') {
+                  if (pattern[index + 1] === '*') {
+                    if (pattern[index + 2] === '/') {
                         regexStr += '(?:.*/)?';
-                        i += 3;
+                        index += 3;
                     } else {
                         regexStr += '.*';
-                        i += 2;
+                        index += 2;
                     }
                   } else {
                       regexStr += '[^/]*';     
-                      i += 1;
+                      index += 1;
                   }
                 } else {
-                    const c = pattern[i];
+                    const c = pattern[index];
                     if ('\\.[]{}()+^$|'.includes(c)) {
                       regexStr += '\\' + c;
                     } else {
                       regexStr += c;
                     }
-                    i += 1;
+                    index += 1;
                 }
               }
               regexStr += '$';
@@ -116,5 +116,5 @@ jobs:
             if (!isApproved) {
               core.setFailed(`PR must be approved by at least one matching CODEOWNER: ${[...requiredOwners].join(', ')}`);
             } else {
-              console.log('PR approved by a required CODEOWNER. ✅');
+              console.log('PR approved by a required CODEOWNER.');
             }
