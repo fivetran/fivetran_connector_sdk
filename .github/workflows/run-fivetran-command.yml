@@ -28,17 +28,22 @@ jobs:
         working-directory: examples/quickstart_examples/hello  
         run: |
           echo "Running Fivetran Deploy..."
+          set +e
           fivetran deploy \
             --api-key $TEST_KEY \
             --destination "Testing" \
             --connection "satvik_csdk_testing_github_action" \
             --python-version "3.11.10" \
-            --force 
-          # exit_code=$?
-          
-          # echo "$output"
+            --force \
+            2>&1 | tee fivetran_deploy_output.log
+    
+          exit_code=${PIPESTATUS[0]}  # captures exit code of fivetran command, not tee
       
-          # if [ $exit_code -ne 0 ]; then
-          #   echo "Fivetran deploy failed with exit code $exit_code"
-          #   exit $exit_code
-          # fi
+          echo "Exit code: $exit_code"
+      
+          if [ "$exit_code" -ne 0 ]; then
+            echo "❌ Deployment failed. See output above."
+            exit $exit_code
+          fi
+      
+          echo "✅ Deployment succeeded."
