@@ -1,11 +1,22 @@
 name: Require CODEOWNERS Approval
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types:
+      - assigned
+      - unassigned
+      - labeled
+      - unlabeled
+      - opened
+      - edited
+      - closed
+      - reopened
+      - synchronize
+      - ready_for_review
+      - locked
+      - unlocked
+      - review_requested
+      - review_request_removed
 
 jobs:
   check-codeowners-approval:
