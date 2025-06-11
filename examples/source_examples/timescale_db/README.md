@@ -84,7 +84,7 @@ Error handling is implemented at several levels:
 3. Graceful disconnect: Ensures all database resources are properly closed (lines 48-56 in `timescaleclient.py`).
 4. Logging: Uses SDK logging facilities to record important operations and potential issues.
 
-## Tables Created
+## Tables created
 
 The connector creates two tables in the destination. `sensor_data`contains time-series sensor data and `sensor_embeddings` contains vector embeddings related to sensors.
 
