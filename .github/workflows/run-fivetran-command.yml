@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "Running Fivetran Deploy..."
           fivetran deploy \
-            --api-key $API_TEST \
+            --api-key $TEST_KEY \
             --destination "Testing" \
             --connection "satvik_csdk_testing_github_action" \
             --python-version "3.11" \
