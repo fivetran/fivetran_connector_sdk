@@ -27,33 +27,12 @@ jobs:
           TEST_KEY: ${{ secrets.SATVIK_API_TEST }}
         working-directory: examples/quickstart_examples/hello  
         run: |
-          set -e
           echo "Starting Fivetran deployment"
-          python3 -u -c "
-          import subprocess
-          import sys
-          
-          print('Running fivetran deploy...', flush=True)
-          
-          proc = subprocess.Popen([
-              'fivetran', 'deploy',
-              '--api-key', '${TEST_KEY}',
-              '--destination', 'Testing',
-              '--connection', 'satvik_csdk_test_github_action',
-              '--python-version', '3.11.11',
-              '--force'
-          ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-          
-          # Print output line by line in real-time
-          for line in proc.stdout:
-              print(line, end='', flush=True)
-          
-          proc.stdout.close()
-          return_code = proc.wait()
-          
-          if return_code != 0:
-              print(f'Deploy failed with exit code {return_code}', file=sys.stderr)
-              sys.exit(return_code)
-          else:
-              print('Deploy succeeded.', flush=True)
-          "
+          set -o pipefail
+          fivetran deploy \
+            --api-key "${TEST_KEY}" \
+            --destination "Testing" \
+            --connection "satvik_csdk_test_github_action" \
+            --python-version "3.11.11" \
+            --force 2>&1 | tee fivetran_deploy.log
+          echo "New approach"
