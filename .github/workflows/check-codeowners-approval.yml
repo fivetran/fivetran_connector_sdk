@@ -157,10 +157,10 @@ jobs:
             ]);
             
             // Get all reviews
-            const reviews = await github.rest.pulls.listReviews({
+            const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: pr.number,
+              pull_number: context.payload.pull_request.number,
             });
             
             // Deduplicate by most recent review per user
