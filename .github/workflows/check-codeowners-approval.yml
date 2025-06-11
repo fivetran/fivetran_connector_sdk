@@ -126,6 +126,12 @@ jobs:
               }
             }
 
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.data.number,
+            });
+            
             const latestReviewByUser = new Map();
             
             for (const review of reviews.data) {
