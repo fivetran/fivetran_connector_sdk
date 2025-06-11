@@ -32,7 +32,7 @@ jobs:
             --api-key $TEST_KEY \
             --destination "Testing" \
             --connection "satvik_csdk_testing_github_action" \
-            --python-version "3.11" \
+            --python-version "3.11.10" \
             --force 
           # exit_code=$?
           
