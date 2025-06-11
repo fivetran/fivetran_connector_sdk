@@ -27,23 +27,27 @@ jobs:
           TEST_KEY: ${{ secrets.SATVIK_API_TEST }}
         working-directory: examples/quickstart_examples/hello  
         run: |
-          echo "Running Fivetran Deploy..."
-          set +e
-          fivetran deploy \
-            --api-key $TEST_KEY \
-            --destination "Testing" \
-            --connection "satvik_csdk_testing_github_action" \
-            --python-version "3.11.10" \
-            --force \
-            2>&1 | tee fivetran_deploy_output.log
-    
-          exit_code=${PIPESTATUS[0]}  # captures exit code of fivetran command, not tee
-      
-          echo "Exit code: $exit_code"
-      
-          if [ "$exit_code" -ne 0 ]; then
-            echo "❌ Deployment failed. See output above."
-            exit $exit_code
-          fi
-      
-          echo "✅ Deployment succeeded."
+          set -e
+          echo "Starting Fivetran deployment"
+
+          python3 -u -c "
+          import subprocess, sys
+          try:
+              print('Running fivetran deploy...', flush=True)
+              result = subprocess.run([
+                  'fivetran', 'deploy',
+                  '--api-key', '${TEST_KEY}',
+                  '--destination', 'Testing',
+                  '--connection', 'satvik_csdk_test_github_action',
+                  '--python-version', '3.12',
+                  '--force'
+              ], capture_output=True, text=True)
+              print(result.stdout)
+              print(result.stderr, file=sys.stderr)
+              if result.returncode != 0:
+                  print('Deploy failed with exit code', result.returncode, file=sys.stderr)
+                  sys.exit(result.returncode)
+          except Exception as e:
+              print(f'Error occurred: {e}', file=sys.stderr)
+              sys.exit(1)
+          "
