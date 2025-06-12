@@ -73,8 +73,7 @@ def update(configuration: dict, state: dict):
     cursor = conn.cursor()
 
     # IMPORTANT: This connector requires the following prerequisites in your Redshift database:
-    # 1. A schema named 'testers' (or as configured in your connection settings)
-    # 2. A table named 'customers' with the following schema:
+    # 1. A table named 'customers' with the following schema:
     #    - customer_id (INTEGER): Primary key
     #    - first_name (VARCHAR): Customer's first name
     #    - last_name (VARCHAR): Customer's last name
@@ -84,7 +83,7 @@ def update(configuration: dict, state: dict):
     #    - country (VARCHAR): Customer's country
     #    - updated_at (TIMESTAMP WITH TIME ZONE): Record's last update timestamp
     #
-    # The table should be created with a statement similar to:
+    # 2. The table should be created with a statement similar to:
     # CREATE TABLE IF NOT EXISTS testers.customers (
     #    customer_id INTEGER PRIMARY KEY,
     #    first_name VARCHAR,
