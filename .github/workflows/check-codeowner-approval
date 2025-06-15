@@ -95,9 +95,7 @@ jobs:
                 }
               }
               regexStr += '$';
-
-              const regex = new RegExp(regexStr);
-              return regex.test(filename);
+              return new RegExp(regexStr).test(filename);
             }
 
             const requiredOwners = new Set();
@@ -121,13 +119,9 @@ jobs:
               if (owner.includes('/')) {
                 const [, teamSlug] = owner.split('/');
                 try {
-                  console.log("Team : ", teamSlug);
                   const members = await github.paginate(
                     github.rest.teams.listMembersInOrg,
-                    {
-                      org,
-                      team_slug: teamSlug,
-                    }
+                    { org, team_slug: teamSlug }
                   );
                   for (const member of members) {
                     effectiveApprovers.add(member.login);
@@ -139,41 +133,33 @@ jobs:
                 effectiveApprovers.add(owner);
               }
             }
-            
-            // Fetch the full PR including requested reviewers
+
             const fullPR = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number,
             });
-            
-            // Get usernames of currently requested reviewers
+
             const requestedReviewers = new Set([
               ...fullPR.data.requested_reviewers.map(r => r.login),
-              ...(fullPR.data.requested_teams || []).flatMap(team => {
-                // You might want to expand this via GitHub API if you're using team-based CODEOWNERS
-                return [];
-              }),
             ]);
-            
-            // Get all reviews
+
             const reviews = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number,
             });
-            
-            // Deduplicate by most recent review per user
+
             const latestReviewByUser = new Map();
             for (const review of reviews.data) {
-              const user = review.user.login;
+              const user = review.user?.login;
+              if (!user) continue;
               const prev = latestReviewByUser.get(user);
               if (!prev || new Date(review.submitted_at) > new Date(prev.submitted_at)) {
                 latestReviewByUser.set(user, review);
               }
             }
-            
-            // Final approvedBy set (excluding users who were re-requested for review)
+
             const approvedBy = new Set(
               [...latestReviewByUser.values()]
                 .filter(r => r.state === 'APPROVED')
@@ -183,6 +169,7 @@ jobs:
 
             console.log('Approved by:', [...approvedBy]);
 
+            // Final approvedBy set (excluding users who were re-requested for review)
             const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
 
             if (!isApproved) {
