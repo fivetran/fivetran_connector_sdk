@@ -213,7 +213,6 @@ pip check
 
 - **FDA API Documentation**: https://open.fda.gov/apis/
 - **Fivetran Connector SDK**: https://fivetran.com/docs/connector-sdk
-- **API Status**: https://open.fda.gov/apis/status/
 
 ## License
 
