@@ -90,11 +90,13 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 * To inspect the table, run `duckdb files/warehouse.db` or use the Fivetran dashboard
 
 ## Prompt used
+```
 "I need a Fivetran Connector SDK solution for @https://api.fda.gov/food/enforcement.json?. I have some notes and example queries in @notes.txt  and the fields documented in @fields.yaml . 
 
 Have it dynamically create tables based on the endpoints available. Flatten the dictionaries and upsert the key:value pairs as the columns for the tables. Only define the PK for the schema objects, let Fivetran infer the rest.
 
 Create a Fivetran Connector SDK solution follows Fivetran best practice outlined in @connector_sdk_agent  & @template_connector. I have the files prepared in @/FDA_food"
+```
 
 ## Additional files
 
