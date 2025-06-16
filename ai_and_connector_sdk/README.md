@@ -6,7 +6,7 @@ This section of our example repository is designed to help you use emerging AI t
 ChatGPT can be effectively used to help you leverage our Connector SDK to build custom connectors. This was achieved by passing examples from this repository along with the full [technical reference](https://fivetran.com/docs/connector-sdk/technical-reference) documentation to ChatGPT. When tested, it does require some manual adjustments of the created code.
 
 
-# IDE & AI Assistant Support
+## IDE & AI Assistant Support
 
 Learn about using various IDEs and AI assistants with the Fivetran Connector SDK. Each section includes a summary and links to relevant sub-guides, sample content, and a short video.
 
