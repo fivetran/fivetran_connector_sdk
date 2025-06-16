@@ -35,11 +35,13 @@ This connector ingests tobacco problem reports from the openFDA API (https://api
 - Logging and error handling follow Fivetran standards.
 
 ## Prompt used
+```
 "I need a Fivetran Connector SDK solution for https://api.fda.gov/tobacco/problem.json?. I have some notes and example queries in #file:notes.txt and the fields documented in #file:fields.yaml
 
 Have it dynamically create tables based on the endpoints available. Flatten the dictionaries and upsert the key:value pairs as the columns for the tables. Only define the Primary Key for the schema objects, let Fivetran infer the rest. Process the first 10 responses from each endpoint and then exit gracefully, we do not have an API key and do not want to exceed the limits.
 
 Create a Fivetran Connector SDK solution follows Fivetran best practice outlined in #file:fivetran_connector_sdk.instructions.md. I have the files prepared in #file:FDA_tobacco"
+```
 
 ## Limitations
 - Only the first 10 records are processed per run.
