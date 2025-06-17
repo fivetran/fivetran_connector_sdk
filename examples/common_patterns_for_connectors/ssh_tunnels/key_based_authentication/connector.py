@@ -80,13 +80,14 @@ def sync_items(params, state, configuration):
 def get_api_response(params, headers, configuration):
     ssh_host = configuration.get("ssh_host")
     ssh_user = configuration.get("ssh_user")
-    private_key_string = configuration.get("private_key")
+    private_key_string = configuration.get("ssh_private_key")
     key_stream = io.StringIO(private_key_string)
-    private_key = paramiko.RSAKey.from_private_key(key_stream)
+    private_key = paramiko.RSAKey.from_private_key(key_stream, password=configuration.get("password"))
 
     with SSHTunnelForwarder(
             (ssh_host, 22),
             ssh_username=ssh_user,
+            # ssh_password=configuration.get("password"),
             ssh_pkey=private_key,
             remote_bind_address=('127.0.0.1', REMOTE_PORT),
             local_bind_address=('127.0.0.1', LOCAL_PORT)
@@ -119,7 +120,7 @@ connector = Connector(update=update)
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     try:
-        with open("configuration.json", 'r') as f:
+        with open("../certificate_based_authentication/configuration_certificate.json", 'r') as f:
             configuration = json.load(f)
     except FileNotFoundError:
         # Fallback to an empty configuration if the file is not found

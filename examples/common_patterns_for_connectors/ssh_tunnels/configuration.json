@@ -1,6 +1,0 @@
-{
-  "ssh_host": "<YOUR_SSH_HOST>",
-  "ssh_user": "<YOUR_SSH_USER>",
-  "api_key": "<YOUR_API_KEY>",
-  "private_key": "<YOUR_PRIVATE_KEY>"
-}
