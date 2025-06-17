@@ -97,7 +97,8 @@ def get_api_response(params, headers, configuration):
         with SSHTunnelForwarder(
                 (ssh_host, 22),
                 ssh_username=ssh_user,
-                # ssh_password=configuration.get("password"),    # Uncomment if you want also to use password authentication
+                # Uncomment below param, if your ssh server is configured for both key and password-based authentication
+                # ssh_password=configuration.get("ssh_password"),
                 ssh_pkey=private_key,
                 remote_bind_address=('127.0.0.1', REMOTE_PORT),
                 local_bind_address=('127.0.0.1', LOCAL_PORT)

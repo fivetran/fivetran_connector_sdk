@@ -1,5 +1,5 @@
 # This example demonstrates how to connect to an API over SSH tunnels using `sshtunnel` and `paramiko`.
-# This example uses password-based authentication for the SSH tunnel.
+# This example uses certificate-based authentication for the SSH tunnel.
 # It establishes a secure SSH tunnel from a local port to a remote API server port, allowing secure API access as if it were local.
 # The connector uses an API key to authenticate and retrieve data from the API endpoint over the SSH tunnel.
 # THIS EXAMPLE USES DUMMY DATA AND REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE (https://pypi.org/project/fivetran-api-playground/).
@@ -68,7 +68,7 @@ def sync_items(params, state, configuration):
 
 # The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
-# 1. Reads SSH connection details and password from the configuration. This uses password-based authentication.
+# 1. Reads SSH connection details and private key from the configuration. This uses certificate-based authentication.
 # 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
 # 3. Logs the tunnel status for diagnostics.
 # 4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
@@ -85,13 +85,20 @@ def sync_items(params, state, configuration):
 def get_api_response(params, headers, configuration):
     ssh_host = configuration.get("ssh_host")
     ssh_user = configuration.get("ssh_user")
-    ssh_password = configuration.get("password")
+    private_key_string = configuration.get("ssh_private_key")
+    key_stream = io.StringIO(private_key_string)
+    key_passphrase = configuration.get("ssh_key_passphrase", None) # Optional: passphrase for the private key if it is encrypted
+    try:
+        private_key = paramiko.RSAKey.from_private_key(key_stream, password=key_passphrase)
+    except Exception as e:
+        log.severe(f"Failed to load SSH private key: {e}")
+        raise
 
     try:
         with SSHTunnelForwarder(
                 (ssh_host, 22),
                 ssh_username=ssh_user,
-                ssh_password=ssh_password,
+                ssh_pkey=private_key,
                 remote_bind_address=('127.0.0.1', REMOTE_PORT),
                 local_bind_address=('127.0.0.1', LOCAL_PORT)
         ) as tunnel:
