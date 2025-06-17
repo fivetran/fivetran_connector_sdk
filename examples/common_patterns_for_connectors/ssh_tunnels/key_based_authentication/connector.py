@@ -87,8 +87,9 @@ def get_api_response(params, headers, configuration):
     ssh_user = configuration.get("ssh_user")
     private_key_string = configuration.get("ssh_private_key")
     key_stream = io.StringIO(private_key_string)
+    key_passphrase = configuration.get("ssh_key_passphrase",None)  # Optional: passphrase for the private key if it is encrypted
     try:
-        private_key = paramiko.RSAKey.from_private_key(key_stream)
+        private_key = paramiko.RSAKey.from_private_key(key_stream, password=key_passphrase)
     except Exception as e:
         log.severe(f"Failed to load SSH private key: {e}")
         raise
