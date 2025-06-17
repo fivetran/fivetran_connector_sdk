@@ -20,7 +20,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 - Connects to a remote server over SSH using Python's paramiko library.
 - Uses public/private key authentication for secure, passwordless access.
-- Executes commands or interacts with services (e.g., fivetran-api-playground) over SSH.
+- Interact with service (e.g., fivetran-api-playground) over SSH.
 - Handles connection errors and logs detailed diagnostics for troubleshooting.
 
 ## **Configuration File**
@@ -29,25 +29,26 @@ The connector requires the following configuration parameters:
 
 ```
 {
-  "hostname": "<YOUR_CLICKHOUSE_HOSTNAME>",
-  "username": "<YOUR_CLICKHOUSE_USERNAME>",
-  "password": "<YOUR_CLICKHOUSE_PASSWORD>",
-  "database": "<YOUR_CLICKHOUSE_DATABASE>"
+  "ssh_host": "YOUR_SSH_HOST_IP_OR_HOSTNAME",
+  "ssh_user": "YOUR_SSH_USERNAME",
+  "api_key": "YOUR_PLAYGROUND_API_KEY",
+  "ssh_private_key": "YOUR_SSH_PRIVATE_KEY_PEM_CONTENT"
 }
 ```
 
-- hostname: Your ClickHouse server hostname
-- username: Username for authentication
-- password: Password for authentication
-- database: The ClickHouse database to connect to
+- ssh_host: Hostname or IP address of the SSH server.
+- ssh_user: Username for SSH authentication.
+- api_key: API key for authenticating API requests for fivetran-api-playground.
+- ssh_private_key: PEM-formatted private key content for SSH authentication.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## **Requirements File**
 
-This connector uses the paramiko library to establish SSH connections:
+This connector uses the paramiko and sshtunnel libraries to establish SSH connections:
 ```
-paramiko==3.4.0
+paramiko==3.5.1
+sshtunnel==0.4.0
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -56,32 +57,30 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses SSH key-based authentication:
 
-1. The connector loads a private key (e.g., .pem file) specified in the config.
-2. It connects to the EC2 instance using paramiko.SSHClient and verifies the host using either strict or relaxed host key policies.
+1. The connector loads a private key (PEM content) from the configuration.
+2. It connects to the EC2 instance using `sshtunnel.SSHTunnelForwarder` and `paramiko.RSAKey` for authentication.
 3. Make sure the EC2 instance's security group allows inbound traffic on port 22 from the connector's environment.
 
 ## **Data Handling**
 
 The connector processes data from the SSH session as follows:
-- Establishes an SSH connection to the EC2 instance
-- Executes a configured command (e.g., an API call or script)
-- Captures and decodes the standard output
-- Parses the response and forwards it to the destination system using the Connector SDK’s upsert method
+1. Establishes an SSH tunnel to the EC2 instance using sshtunnel and paramiko
+2. Sends an HTTP GET request to the remote API server over the tunnel
+3. Parses the JSON response from the API
+4. Forwards each item in the response to the destination system using the Connector SDK’s upsert method
 
 ## **Error Handling**
 
-The connector includes error handling for:
+The connector includes error handling for:  
+- SSH authentication and connectivity issues (e.g., loading the private key, establishing the SSH tunnel)
+- HTTP request failures when calling the remote API over the tunnel
+- Parsing errors when handling JSON responses from the API
 
-- SSH authentication and connectivity issues
-- Command execution failures (non-zero exit codes or stderr output)
-- Parsing errors when handling remote responses
-
-All exceptions are logged with detailed stack traces for easier debugging and monitoring.
+All exceptions are logged with detailed error messages for easier debugging and monitoring.
 
 ## **Additional Considerations**
 
 - Ensure that your EC2 instance has the appropriate IAM role or permissions to access the services it needs.
-- Use short-lived or rotated SSH keys where possible to reduce risk.
 - If your server uses a jump host or bastion, additional SSH tunneling logic may be needed.
 - For production environments, avoid hardcoding sensitive paths or credentials.
 
