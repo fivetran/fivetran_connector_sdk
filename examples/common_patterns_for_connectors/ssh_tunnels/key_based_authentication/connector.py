@@ -16,8 +16,8 @@ from fivetran_connector_sdk import Logging as log, Connector  # For enabling Log
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests as rq
 
-REMOTE_PORT = 5005
-LOCAL_PORT = 8000
+REMOTE_PORT = 5005 # The port on the remote server where the API is running.
+LOCAL_PORT = 8000 # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
 
 # Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
 # The function takes one parameter:
@@ -35,14 +35,14 @@ def get_auth_headers(config):
     }
     return headers
 
-# The sync_items function handles the retrieval of data.
-# It performs the following tasks:
-# 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by yielding upsert operations to Fivetran.
-# 3. Saves the state periodically to ensure the sync can resume from the correct point.
+# The sync_items function retrieves data from the remote API over an SSH tunnel.
+# Steps:
+# 1. Calls get_api_response to fetch data from the API using the provided parameters and authentication headers.
+# 2. Extracts the list of items from the API response.
+# 3. Yields an upsert operation for each item to insert/update it in the destination.
+# 4. Yields a checkpoint operation to save the current sync state for resuming future syncs.
 #
 # The function takes three parameters:
-# - base_url: The URL to the API endpoint.
 # - params: A dictionary of query parameters to be sent with the API request.
 # - state: A dictionary representing the current state of the sync, including the last retrieved key.
 # - configuration: A dictionary contains any secrets or payloads you configure when deploying the connector.
@@ -65,15 +65,19 @@ def sync_items(params, state, configuration):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
-# The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
+# The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
-# 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
-# 2. Makes the API request using the 'requests' library, passing the URL and parameters.
-# 3. Parses the JSON response from the API and returns it as a dictionary.
+# 1. Reads SSH connection details and private key from the configuration.
+# 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
+# 3. Logs the tunnel status for diagnostics.
+# 4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
+# 5. Raises an exception for any HTTP errors.
+# 6. Parses and returns the JSON response from the API as a dictionary.
 #
-# The function takes two parameters:
-# - base_url: The URL to which the API request is made.
-# - params: A dictionary of query parameters to be included in the API request.
+# Parameters:
+# - params: A dictionary of query parameters to include in the API request.
+# - headers: A dictionary of HTTP headers for authentication and content type.
+# - configuration: A dictionary containing SSH and API connection details.
 #
 # Returns:
 # - response_page: A dictionary containing the parsed JSON response from the API.
@@ -82,12 +86,12 @@ def get_api_response(params, headers, configuration):
     ssh_user = configuration.get("ssh_user")
     private_key_string = configuration.get("ssh_private_key")
     key_stream = io.StringIO(private_key_string)
-    private_key = paramiko.RSAKey.from_private_key(key_stream, password=configuration.get("password"))
+    private_key = paramiko.RSAKey.from_private_key(key_stream)
 
     with SSHTunnelForwarder(
             (ssh_host, 22),
             ssh_username=ssh_user,
-            # ssh_password=configuration.get("password"),
+            # ssh_password=configuration.get("password"),    # Uncomment if you want also to use password authentication
             ssh_pkey=private_key,
             remote_bind_address=('127.0.0.1', REMOTE_PORT),
             local_bind_address=('127.0.0.1', LOCAL_PORT)
@@ -120,7 +124,7 @@ connector = Connector(update=update)
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     try:
-        with open("../certificate_based_authentication/configuration_certificate.json", 'r') as f:
+        with open("configuration.json", 'r') as f:
             configuration = json.load(f)
     except FileNotFoundError:
         # Fallback to an empty configuration if the file is not found
