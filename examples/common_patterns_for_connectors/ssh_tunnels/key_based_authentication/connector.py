@@ -86,24 +86,38 @@ def get_api_response(params, headers, configuration):
     ssh_user = configuration.get("ssh_user")
     private_key_string = configuration.get("ssh_private_key")
     key_stream = io.StringIO(private_key_string)
-    private_key = paramiko.RSAKey.from_private_key(key_stream)
+    try:
+        private_key = paramiko.RSAKey.from_private_key(key_stream)
+    except Exception as e:
+        log.severe(f"Failed to load SSH private key: {e}")
+        raise
 
-    with SSHTunnelForwarder(
-            (ssh_host, 22),
-            ssh_username=ssh_user,
-            # ssh_password=configuration.get("password"),    # Uncomment if you want also to use password authentication
-            ssh_pkey=private_key,
-            remote_bind_address=('127.0.0.1', REMOTE_PORT),
-            local_bind_address=('127.0.0.1', LOCAL_PORT)
-    ) as tunnel:
-        log.severe(f"Tunnel open at http://127.0.0.1:{LOCAL_PORT}")
+    try:
+        with SSHTunnelForwarder(
+                (ssh_host, 22),
+                ssh_username=ssh_user,
+                # ssh_password=configuration.get("password"),    # Uncomment if you want also to use password authentication
+                ssh_pkey=private_key,
+                remote_bind_address=('127.0.0.1', REMOTE_PORT),
+                local_bind_address=('127.0.0.1', LOCAL_PORT)
+        ) as tunnel:
+            log.severe(f"Tunnel open at http://127.0.0.1:{LOCAL_PORT}")
 
-        # Insert data
-        base_url = f"http://127.0.0.1:{LOCAL_PORT}/auth/api_key"
-        response = rq.get(base_url, params=params, headers=headers)
-        response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
-        response_page = response.json()
-        return response_page
+            base_url = f"http://127.0.0.1:{LOCAL_PORT}/auth/api_key"
+            try:
+                response = rq.get(base_url, params=params, headers=headers, timeout=10)
+                response.raise_for_status()
+                response_page = response.json()
+            except rq.exceptions.RequestException as e:
+                log.severe(f"HTTP request failed: {e}")
+                raise
+            except ValueError as e:
+                log.severe(f"Failed to parse JSON response: {e}")
+                raise
+            return response_page
+    except Exception as e:
+        log.severe(f"SSH tunnel or API call failed: {e}")
+        raise
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
