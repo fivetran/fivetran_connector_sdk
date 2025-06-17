@@ -1,5 +1,5 @@
 # This example demonstrates how to connect to an API over SSH tunnels using `sshtunnel` and `paramiko`.
-# This example uses key-based authentication for the SSH tunnel.
+# This example uses password-based authentication for the SSH tunnel.
 # It establishes a secure SSH tunnel from a local port to a remote API server port, allowing secure API access as if it were local.
 # The connector uses an API key to authenticate and retrieve data from the API endpoint over the SSH tunnel.
 # THIS EXAMPLE USES DUMMY DATA AND REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE (https://pypi.org/project/fivetran-api-playground/).
@@ -68,7 +68,7 @@ def sync_items(params, state, configuration):
 
 # The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
-# 1. Reads SSH connection details and private key from the configuration.
+# 1. Reads SSH connection details and password from the configuration. This uses password-based authentication.
 # 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
 # 3. Logs the tunnel status for diagnostics.
 # 4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
@@ -97,8 +97,7 @@ def get_api_response(params, headers, configuration):
         with SSHTunnelForwarder(
                 (ssh_host, 22),
                 ssh_username=ssh_user,
-                # ssh_password=configuration.get("password"),    # Uncomment if you want also to use password authentication
-                ssh_pkey=private_key,
+                ssh_password=configuration.get("password"),
                 remote_bind_address=('127.0.0.1', REMOTE_PORT),
                 local_bind_address=('127.0.0.1', LOCAL_PORT)
         ) as tunnel:
