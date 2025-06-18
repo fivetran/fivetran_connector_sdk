@@ -12,7 +12,6 @@
 import io
 import json
 from sshtunnel import SSHTunnelForwarder
-import paramiko # For handling SSH keys and connections
 from fivetran_connector_sdk import Logging as log, Connector  # For enabling Logs in your connector code
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests as rq
@@ -85,7 +84,7 @@ def sync_items(params, state, configuration):
 def get_api_response(params, headers, configuration):
     ssh_host = configuration.get("ssh_host")
     ssh_user = configuration.get("ssh_user")
-    ssh_password = configuration.get("password")
+    ssh_password = configuration.get("ssh_password")
 
     try:
         with SSHTunnelForwarder(
