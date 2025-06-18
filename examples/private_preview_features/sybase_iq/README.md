@@ -56,8 +56,8 @@ The connector uses basic database authentication with a `username` and `password
 
 To obtain credentials for your Sybase IQ database:
 
-1. Contact your database administrator for proper access credentials
-2. Ensure the user has appropriate read permissions to the required tables
+1. Contact your database administrator for the relevant access credentials.
+2. Ensure your database user has appropriate read permissions to the required tables.
 
 Refer to `create_sybase_connection()` function for implementation details.
 
