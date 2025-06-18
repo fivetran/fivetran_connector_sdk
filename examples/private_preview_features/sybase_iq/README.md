@@ -54,7 +54,24 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 The connector uses basic database authentication with a `username` and `password`. These credentials are specified in the configuration file and used to establish a connection to the Sybase IQ database.
 
+To obtain credentials for your Sybase IQ database:
+
+1. Contact your database administrator for proper access credentials
+2. Ensure the user has appropriate read permissions to the required tables
+
 Refer to `create_sybase_connection()` function for implementation details.
+
+## Pagination
+
+The connector uses a batch-based approach for data retrieval rather than traditional API pagination. Data is fetched in configurable batches (default: 1000 rows) using the `cursor.fetchmany()` method.
+
+This approach accomplishes the following:
+
+1. Prevents memory overflow when handling large datasets.
+2. Enables incremental processing of data without loading the entire result set
+3. Allows for checkpointing progress after each batch
+
+Refer to the `fetch_and_upsert()` function, specifically the `cursor.fetchmany(batch_size)` implementation.
 
 ## Data handling
 
