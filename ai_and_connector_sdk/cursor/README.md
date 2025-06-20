@@ -54,7 +54,7 @@ pip install fivetran_connector_sdk
 Task: [Specific connector development task]
 
 Technical Details:
-- Language: Python 3.9+
+- Language: Python 3.9-3.12
 - Framework: Fivetran Connector SDK v1.0+
 - API Integration: [API details and documentation URL]
 - Data Requirements: [Data structure and types]
@@ -108,7 +108,7 @@ Dependencies:
 Task: Create a Fivetran connector for the Pokemon API that fetches and stores Pokemon data
 
 Technical Details:
-- Language: Python 3.9+
+- Language: Python 3.9-3.12
 - Framework: Fivetran Connector SDK v1.0+
 - API: PokeAPI (https://pokeapi.co/api/v2)
 - Data Target: Pokemon information table
