@@ -1,0 +1,203 @@
+Authentication
+An API key is required to make calls to the openFDA API. The key is free of charge. Your use of the API may be subject to certain limitations on access, calls, or use. These limitations are designed to manage load on the system, promote equitable access, and prevent abuse. Here are openFDA's standard limits:
+
+With no API key: 240 requests per minute, per IP address. 1,000 requests per day, per IP address.
+
+With an API key: 240 requests per minute, per key. 120,000 requests per day, per key.
+
+If you anticipate usage above the limits provided by an API key, please contact us. We’ll work with you to figure out a good solution to your requirements. Signing up for an API key means you agree to our terms of service.
+
+ Get your API key
+Using your API key
+Your API key should be passed to the API as the value of the api_key parameter. Include it before other parameters, such as the search parameter. For example:
+
+https://api.fda.gov/drug/event.json?api_key=yourAPIKeyHere&search=...
+
+HTTPS requests only
+Alternatively your API key may be provided as a basic auth username. For example:
+
+Authorization: Basic eW91ckFQSUtleUhlcmU6
+
+openFDA requires you to use https://api.fda.gov for all queries to ensure secure communication.
+
+How to use the API
+Getting started with and learning how to use the API is relatively straightforward. Here are some recommended steps:
+
+1
+If you haven't already, read the API Basics documentation.
+2
+Review the list of searchable fields available in the Animal & Veterinary Adverse Events dataset.
+3
+Try out the Animal & Veterinary Adverse Events endpoint using the interactive examples and tools below.
+Then, when you are ready, obtain an API Key. While you don’t need an API Key to try or use the API, we recommend you get one if you are planning to use the API on a regular basis. For more information on API Keys, see the Authentication documentation.
+
+Making a simple API Call
+You can call the API from a web browser. Simply type a valid API query in your browser’s address bar and press the Enter key.
+
+In the example below, we are searching the records in the animal & veterinary labeling endpoint for matches with Veterinarian in the primary_reporter field. We are requesting to see the first 5 records that match."
+
+https://api.fda.gov/animalandveterinary/event.json
+base endpoint
+?
+?
+search=
+search=
+primary_reporter:Veterinarian
+field:term
+&
+&
+limit=5
+limit
+Some key pointers
+An openFDA API query always begins with the base endpoint, which in this case is: https://api.fda.gov/animalandveterinary/event.json
+Searches have a special syntax: search=field:term
+Unless otherwise specified, the API will return only one matching record for a search. You can specify the number of records to be returned by using the limit parameter. The maximum limit allowed is 1000 for any single API call. If no limit is set, the API will return one matching record.
+It is possible to construct very complex queries using the openFDA API. Review the Construct the query documentation to learn more about all the available query parameters, how to handle quotations, spaces, phrase matches, and groupings, how to search on dates and ranges, and more.
+
+Example animal & veterinary adverse events API queries
+To help get you started, we have provided some API query examples below. Use the Run query button to call the API and get back results. You can experiment by editing the example queries in the black text box.
+
+Example query
+
+One adverse event report
+This query searches for all records in a certain date range, and asks for a single one.
+
+See the header fields reference for more about original_receive_date. Brackets [ ] are used to specify a range for date, number, or string fields.
+
+search for all records with original_receive_date between Jan 01, 2004 and Nov 07, 2016. limit to 1 record.
+
+https://api.fda.gov/animalandveterinary/event.json?search=original_receive_date:[20040101+TO+20161107]&limit=1
+Run queryClose
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2025-04-10",
+    "results": {
+      "skip": 0,
+      "limit": 1,
+      "total": 597756
+    }
+  },
+  "results": [
+    {
+      "treated_for_ae": "true",
+      "reaction": [
+        {
+          "veddra_version": "11",
+          "veddra_term_code": "960",
+          "veddra_term_name": "Pruritus",
+          "number_of_animals_affected": "1",
+          "accuracy": "Actual"
+        },
+        {
+          "veddra_version": "",
+          "veddra_term_code": "2649",
+          "veddra_term_name": "Lack of efficacy (ectoparasite) - flea"
+        }
+      ],
+      "receiver": {
+        "organization": "Food and Drug Administration Center for Veterinary Medicine",
+        "street_address": "7500 Standish Place (HFV-210) Room N403",
+        "city": "Rockville",
+        "state": "MD",
+        "postal_code": "20855",
+        "country": "USA"
+      },
+      "unique_aer_id_number": "USA-USFDACVM-2012-US-002804",
+      "original_receive_date": "20111128",
+      "number_of_animals_affected": "1",
+      "primary_reporter": "Animal Owner",
+      "number_of_animals_treated": "1",
+      "drug": [
+        {
+          "first_exposure_date": "20091101",
+          "last_exposure_date": "20111101",
+          "administered_by": "Animal Owner",
+          "route": "Oral",
+          "dose": {
+            "numerator": "1",
+            "numerator_unit": "tablet",
+            "denominator": "1",
+            "denominator_unit": "Unknown"
+          },
+          "used_according_to_label": "true",
+          "previous_exposure_to_drug": "false",
+          "brand_name": "MSK",
+          "dosage_form": "Tablet, chewable",
+          "manufacturer": {
+            "name": "MSK",
+            "registration_number": "USA-USFDACVM-N141277"
+          },
+          "atc_vet_code": "QP53BX03",
+          "active_ingredients": [
+            {
+              "name": "Spinosad",
+              "dose": {
+                "numerator": "810",
+                "numerator_unit": "Milligram",
+                "denominator": "1",
+                "denominator_unit": "dose"
+              }
+            }
+          ]
+        },
+        {
+          "first_exposure_date": "20110701",
+          "administered_by": "Other",
+          "route": "Oral",
+          "brand_name": "MSK",
+          "manufacturer": {
+            "name": "MSK"
+          },
+          "active_ingredients": [
+            {
+              "name": "Ivermectin",
+              "dose": {
+                "numerator": "1",
+                "numerator_unit": "Unknown",
+                "denominator": "1",
+                "denominator_unit": "Unknown"
+              }
+            }
+          ]
+        }
+      ],
+      "health_assessment_prior_to_exposure": {
+        "condition": "Good",
+        "assessed_by": "Veterinarian"
+      },
+      "onset_date": "20111123",
+      "report_id": "N141277",
+      "animal": {
+        "species": "Dog",
+        "gender": "Male",
+        "reproductive_status": "Neutered",
+        "female_animal_physiological_status": "NOT APPLICABLE",
+        "age": {
+          "min": "6.00",
+          "unit": "Year",
+          "qualifier": "Measured"
+        },
+        "weight": {
+          "min": "22.680",
+          "unit": "Kilogram",
+          "qualifier": "Estimated"
+        },
+        "breed": {
+          "is_crossbred": "false",
+          "breed_component": "Crossbred Canine/dog"
+        }
+      },
+      "type_of_information": "Both Safety And Lack Of Expected Effectiveness",
+      "serious_ae": "false",
+      "outcome": [
+        {
+          "medical_status": "Recovered with Sequela",
+          "number_of_animals_affected": "1"
+        }
+      ]
+    }
+  ]
+}

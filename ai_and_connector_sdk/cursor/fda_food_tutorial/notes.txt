@@ -1,0 +1,138 @@
+Authentication
+An API key is required to make calls to the openFDA API. The key is free of charge. Your use of the API may be subject to certain limitations on access, calls, or use. These limitations are designed to manage load on the system, promote equitable access, and prevent abuse. Here are openFDA's standard limits:
+
+With no API key: 240 requests per minute, per IP address. 1,000 requests per day, per IP address.
+
+With an API key: 240 requests per minute, per key. 120,000 requests per day, per key.
+
+If you anticipate usage above the limits provided by an API key, please contact us. We’ll work with you to figure out a good solution to your requirements. Signing up for an API key means you agree to our terms of service.
+
+ Get your API key
+Using your API key
+Your API key should be passed to the API as the value of the api_key parameter. Include it before other parameters, such as the search parameter. For example:
+
+https://api.fda.gov/drug/event.json?api_key=yourAPIKeyHere&search=...
+
+HTTPS requests only
+Alternatively your API key may be provided as a basic auth username. For example:
+
+Authorization: Basic eW91ckFQSUtleUhlcmU6
+
+openFDA requires you to use https://api.fda.gov for all queries to ensure secure communication.
+
+How to use the API
+Getting started with and learning how to use the API is relatively straightforward. Here are some recommended steps:
+
+1
+If you haven't already, read the API Basics documentation.
+2
+Review the list of searchable fields available in the Food Enforcement dataset.
+3
+Try out the Food Enforcement endpoint using the interactive examples and tools below.
+Then, when you are ready, obtain an API Key. While you don’t need an API Key to try or use the API, we recommend you get one if you are planning to use the API on a regular basis. For more information on API Keys, see the Authentication documentation.
+
+Making a simple API Call
+You can call the API from a web browser. Simply type a valid API query in your browser’s address bar and press the Enter key.
+
+In the example below, we are searching the records in the food enforcement report endpoint for matches with nationwide in the distribution_pattern field. We are requesting to see the first 5 records that match.
+
+https://api.fda.gov/food/enforcement.json
+base endpoint
+?
+?
+search=
+search=
+distribution_pattern:"nationwide"
+field:term
+&
+&
+limit=5
+limit
+Some key pointers
+An openFDA API query always begins with the base endpoint, which in this case is: https://api.fda.gov/food/enforcement.json
+Searches have a special syntax: search=field:term
+Unless otherwise specified, the API will return only one matching record for a search. You can specify the number of records to be returned by using the limit parameter. The maximum limit allowed is 1000 for any single API call. If no limit is set, the API will return one matching record.
+It is possible to construct very complex queries using the openFDA API. Review the Construct the query documentation to learn more about all the available query parameters, how to handle quotations, spaces, phrase matches, and groupings, how to search on dates and ranges, and more.
+
+Example food enforcement API queries
+To help get you started, we have provided some API query examples below. Use the Run query button to call the API and get back results. You can experiment by editing the example queries in the black text box.
+
+Example query
+
+One enforcement report
+This query searches for all records in a certain date range, and asks for a single one.
+
+See searchable fields for more about report_date. Brackets [ ] are used to specify a range for date, number, or string fields.
+
+Search for all records with report_date between Jan 01, 2004 and Dec 31, 2013.
+
+Limit to 1 record.
+
+https://api.fda.gov/food/enforcement.json?search=report_date:[20040101+TO+20131231]&limit=1
+Run queryClose
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2025-06-04",
+    "results": {
+      "skip": 0,
+      "limit": 1,
+      "total": 4028
+    }
+  },
+  "results": [
+    {
+      "country": "United States",
+      "city": "Pompano Beach",
+      "address_1": "2300 NW 19th St",
+      "reason_for_recall": "FreshPoint South Florida is recalling sliced fresh yellow onions and salsa products processed using yellow onions sourced from Gills Onions, LLC which were recalled for Listeria monocytogenes.",
+      "address_2": "",
+      "product_quantity": "7 cases",
+      "code_info": "Item #   302940.",
+      "center_classification_date": "20120808",
+      "distribution_pattern": "Products were distributed in South Florida.",
+      "state": "FL",
+      "product_description": "Yellow Onion.  Product is labeled in part:  \"***FC Salsa Mango\"***Refrigerate at 34 F***\"      Item #   302940 FC SALSA MANGO 2/5#.        Product is fresh made - Ready To Eat.",
+      "report_date": "20120815",
+      "classification": "Class I",
+      "openfda": {},
+      "recalling_firm": "FreshPoint South Florida",
+      "recall_number": "F-1922-2012",
+      "initial_firm_notification": "Two or more of the following: Email, Fax, Letter, Press Release, Telephone, Visit",
+      "product_type": "Food",
+      "event_id": "62750",
+      "termination_date": "20141008",
+      "more_code_info": "",
+      "recall_initiation_date": "20120727",
+      "postal_code": "33069-5227",
+      "voluntary_mandated": "Voluntary: Firm initiated",
+      "status": "Terminated"
+    }
+  ]
+}
+Example query
+
+One enforcement report of a certain health hazard class
+This query searches records of a certain health hazard, and returns a single record.
+
+Double quotation marks " " surround phrases that must match exactly. The plus sign + is used in place of a space character  .
+
+Search for all records where classification (health hazard level) was Class III.
+
+Limit to 1 record.
+
+https://api.fda.gov/food/enforcement.json?search=classification:"Class+III"&limit=1
+Run query
+Example query
+
+Count of voluntary vs. mandated enforcement reports
+The vast majority of recalls are firm-initiated. This query searches the endpoint for all records, and tells the API to count how many enforcement reports were for voluntary vs. FDA-mandated recalls.
+
+The suffix .exact is required by openFDA to count the unique full phrases in the field voluntary_mandated. Without it, the API will count each word in that field individually—Firm Initiated would be counted as separate values, Firm and Initiated.
+
+Count the field voluntary_mandated (type of recall).
+
+https://api.fda.gov/food/enforcement.json?count=voluntary_mandated.exact
+Run query
