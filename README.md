@@ -41,7 +41,7 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
-<summary><h3>Quickstart Examples</h3></summary>
+<summary><h3>Quickstart examples</h3></summary>
 
 - [hello](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/hello) - This is the simplest, append-only example.
 
@@ -66,7 +66,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h3>Common Patterns for Connectors</h3></summary>
+<summary><h3>Common patterns for connectors</h3></summary>
 
 - Authentication
   - [api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key) - This is a simple example of how to work with API Key authentication for a REST API.
@@ -110,7 +110,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h3>Source Examples</h3></summary>
+<summary><h3>Source examples</h3></summary>
 
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_boto3) - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
@@ -157,15 +157,15 @@ There are several examples available under `/examples`:
 
 </details>
 
-## Example Workflows
+## Example workflows
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/example_workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 ## AI and Connector SDK
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
  - [claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/) - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
-## Fivetran Platform Features
-- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed connection built using Connector SDK uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
+## Fivetran platform features
+- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
 
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
