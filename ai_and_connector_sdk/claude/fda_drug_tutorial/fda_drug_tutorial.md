@@ -86,19 +86,22 @@ Here's the original prompt that created this connector:
    cd fda-drug-connector
    ```
 
-2. **Copy the three files** above into your folder
+2. **Copy the prompt** above into the chat
 
-3. **Install dependencies**:
+3. **Copy the output** configuration.json, requirements.txt, and connector.py into the project folder fda-drug-connector
+
+4. **Install dependencies**:
    ```bash
+   pip install fivetran-connector-sdk
    pip install -r requirements.txt
    ```
 
-4. **Test the connector**:
+5. **Test the connector**:
    ```bash
    fivetran debug --configuration configuration.json
    ```
 
-5. **Check your data**:
+6. **Check your data**:
    ```bash
    duckdb warehouse.db ".tables"
    duckdb warehouse.db "SELECT COUNT(*) FROM fda_drug_ndc;"
