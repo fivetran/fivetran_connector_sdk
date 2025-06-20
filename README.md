@@ -55,9 +55,7 @@ There are several examples available under `/examples`:
 
 - [large_data_set](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/large_data_set) - This example shows how to handle large data from API responses with pagination and without pagination.
 
-- [weather](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather) - This is a realistic example, using a public API, fetching data from NOAA.
-
-- [weather_by_zip_code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_by_zip_code) - This is an expanded example, using two different public APIs, fetching data from NOAA for multiple ZIP codes.
+- [weather_with_configuration](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_with_configuration) - This is a real-life example which uses two different public APIs to fetch data from the National Oceanic and Atmospheric Administration (NOAA) for multiple ZIP codes.
 
 - [complex_configuration_options](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/complex_configuration_options) - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
@@ -156,6 +154,13 @@ There are several examples available under `/examples`:
 
 </details>
 
+<details class="details-heading" open="open">
+<summary><h3>Workflows</h3></summary>
+
+- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
+
+</details>
+
 <details open>
 <summary><h2>Private Preview features</h2></summary>
 
@@ -166,9 +171,6 @@ There are several examples available under `/examples`:
   - This feature enables you to connect to Sybase IQ database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 
 </details>
-
-## Example Workflows
-- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/example_workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 ## AI and Connector SDK
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
