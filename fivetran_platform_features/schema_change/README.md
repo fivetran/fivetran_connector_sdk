@@ -21,22 +21,22 @@ This connector will not run more than once with ```fivetran_debug```, since the 
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
 
-## Getting Started
+## Getting started
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-* **Schema Evolution**: Demonstrates how field types can evolve across syncs
-* **Type Changes**: Shows handling of integer → float → string → float transitions
-* **State Management**: Uses checkpointing to track sync count
-* **Logging**: Includes informative logging of schema changes
+- **Schema evolution**: Demonstrates how field types can evolve across syncs
+- **Type changes**: Shows handling of integer → float → string → float transitions
+- **State management**: Uses checkpointing to track sync count
+- **Logging**: Includes informative logging of schema changes
 
-## Configuration File
+## Configuration file
 
 This connector does not require any configuration as it demonstrates schema changes using local data. The `configuration.json` file is not needed.
 
-## Requirements File
+## Requirements file
 
 The connector uses minimal external dependencies. The `requirements.txt` file should be empty as all required packages are pre-installed in the Fivetran environment.
 
@@ -48,9 +48,9 @@ This connector does not require authentication as it demonstrates schema changes
 
 ## Pagination
 
-This connector does not implement pagination as it works with a single record that changes type across syncs.
+This connector does not implement pagination as it works with a single record that changes data type across syncs.
 
-## Data Handling
+## Data handling
 
 The connector processes data in the following way:
 1. Tracks sync count in state
@@ -61,15 +61,15 @@ The connector processes data in the following way:
    - Fourth+ syncs: float (42.43)
 3. Includes descriptive text for each sync's data type
 
-## Error Handling
+## Error handling
 
 This connector does not implement error handling as there are minimal opportunities for errors.
 
-## Additional Files
+## Additional files
 
 This connector consists of a single file:
-* **connector.py** – Contains the main connector logic and schema change demonstration
+- `connector.py `– Contains the main connector logic and schema change demonstration
 
-## Additional Considerations
+## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
