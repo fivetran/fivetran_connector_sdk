@@ -12,7 +12,7 @@ import requests
 from datetime import datetime, timezone
 import time
 
-application_id = 5
+application_id = <your_application_id>
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 ## Add dictionaries to this list to sync new endpoints
