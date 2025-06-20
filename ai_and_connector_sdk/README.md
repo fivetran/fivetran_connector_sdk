@@ -25,10 +25,9 @@ Learn about using various IDEs and AI assistants with the Fivetran Connector SDK
 Cursor is an AI-powered code editor designed for productivity, smart completion, and real-time collaboration, with robust Python support.
 
 **Contents:**
-- [Fivetran Connector SDK System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
+- [Fivetran Connector SDK System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Installation Guide](https://www.cursor.com/)
-- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/cursor_instructions.md)
-- [Video Demo](Insert Link)
+- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/README.md)
 
 ---
 
@@ -40,8 +39,7 @@ Windsurf is a lightweight, cloud-based IDE for rapid prototyping and collaborati
 **Contents:**
 - [Getting Started](https://docs.windsurf.com/windsurf/getting-started)
 - [Context Awareness](https://docs.windsurf.com/context-awareness/windsurf-overview)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
-- [Video Demo](Insert Link)
+- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 
 ---
 
@@ -53,8 +51,7 @@ Visual Studio Code (VS Code) is a widely-used, open-source code editor with Pyth
 **Contents:**
 - [Getting Started](https://code.visualstudio.com/docs/getstarted/getting-started)
 - [Copilot in VS Code](https://code.visualstudio.com/docs/copilot/getting-started)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
-- [Video Demo](Insert Link)
+- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 
 ---
 
