@@ -1,6 +1,8 @@
 # Introduction
 This section of our example repository is designed to help you use emerging AI tools with the Connector SDK to build custom connectors. The [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/agents.md) file can be used in any IDE or AI assistant process. Simply add it as context to the prompt and let the model or agents do the rest! We have sample outputs and video demonstrations using common IDEs linked below. Follow along or enhance an existing example with AI today!
 
+## Disclaimer
+The content and sample code in ai_and_connector_sdk—including README.md, connector.py, and requirements.txt—were generated as batched outputs from a single AI conversation. While a Fivetran employee has tested the functionality for demonstration purposes, the code has not been polished or reviewed for production use. It remains unedited AI output and should be treated as illustrative only.
 
 ## ChatGPT
 ChatGPT can be effectively used to help you leverage our Connector SDK to build custom connectors. This was achieved by passing examples from this repository along with the full [technical reference](https://fivetran.com/docs/connector-sdk/technical-reference) documentation to ChatGPT. When tested, it does require some manual adjustments of the created code.
@@ -10,10 +12,10 @@ ChatGPT can be effectively used to help you leverage our Connector SDK to build 
 
 Learn about using various IDEs and AI assistants with the Fivetran Connector SDK. Each section includes a summary and links to relevant sub-guides, sample content, and a short video.
 
-- [Cursor](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/cursor)
-- [Windsurf](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/windsurf)
-- [Visual Studio Code](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/vscode)
-- [Claude](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/claude)
+- [Cursor](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor)
+- [Windsurf](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/windsurf)
+- [Visual Studio Code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/vscode)
+- [Claude](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude)
 
 ---
 
@@ -23,9 +25,9 @@ Learn about using various IDEs and AI assistants with the Fivetran Connector SDK
 Cursor is an AI-powered code editor designed for productivity, smart completion, and real-time collaboration, with robust Python support.
 
 **Contents:**
-- [Fivetran Connector SDK System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
+- [Fivetran Connector SDK System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
 - [Installation Guide](https://www.cursor.com/)
-- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/cursor/cursor_instructions.md)
+- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/cursor_instructions.md)
 - [Video Demo](Insert Link)
 
 ---
@@ -38,7 +40,7 @@ Windsurf is a lightweight, cloud-based IDE for rapid prototyping and collaborati
 **Contents:**
 - [Getting Started](https://docs.windsurf.com/windsurf/getting-started)
 - [Context Awareness](https://docs.windsurf.com/context-awareness/windsurf-overview)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
+- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
 - [Video Demo](Insert Link)
 
 ---
@@ -51,7 +53,7 @@ Visual Studio Code (VS Code) is a widely-used, open-source code editor with Pyth
 **Contents:**
 - [Getting Started](https://code.visualstudio.com/docs/getstarted/getting-started)
 - [Copilot in VS Code](https://code.visualstudio.com/docs/copilot/getting-started)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
+- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
 - [Video Demo](Insert Link)
 
 ---
@@ -69,8 +71,8 @@ We also have [published a blog post](https://www.fivetran.com/blog/building-a-fi
 **Contents:**
 - [Getting Started with Claude](https://docs.anthropic.com/en/docs/get-started)
 - [Blog Post: Building a Fivetran Connector in 1 Hour with Claude AI](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/Fivetran_Connector_SDK.md)
-- [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/ai_and_connector_sdk/claude/CLAUDE.md)
+- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
+- [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md)
 - [Video Demo](Insert Link)
   
 ---
