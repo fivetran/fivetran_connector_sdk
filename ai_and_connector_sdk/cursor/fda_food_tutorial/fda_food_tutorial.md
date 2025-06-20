@@ -76,6 +76,9 @@ Here's the original prompt that created this connector:
 > - State management for reliable incremental syncs
 > - Support for both authenticated and unauthenticated API access
 > - Configurable batch limits for testing and production use
+> - Logical processing of data from @notes.txt, which contains pertinent information about this API
+> - Proper upserts based off of @fields.yaml, which contains response data structure
+> - Follow the best practices outlined in @agents.md
 
 > The connector should work with the FDA Food Enforcement API endpoint to fetch food recall and enforcement data."
 
@@ -87,21 +90,23 @@ Here's the original prompt that created this connector:
    cd fda-food-connector
    ```
 
-2. **Copy the prompt** above into the chat
+2. **Copy the agents.md** into a new cursor [notepad](https://docs.cursor.com/context/@-symbols/@-notepads) file 
 
-3. **Copy the output** configuration.json, requirements.txt, and connector.py into the project folder fda-drug-connector
+3. **Copy the prompt** above into the chat
 
-4. **Install dependencies**:
+4. **Copy the output** configuration.json, requirements.txt, and connector.py into the project folder fda-drug-connector
+
+5. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-5. **Test the connector**:
+6. **Test the connector**:
    ```bash
    fivetran debug --configuration config.json
    ```
 
-6. **Check your data**:
+7. **Check your data**:
    ```bash
    duckdb warehouse.db ".tables"
    duckdb warehouse.db "SELECT COUNT(*) FROM fda_food_enforcement;"
