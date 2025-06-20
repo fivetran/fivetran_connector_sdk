@@ -7,7 +7,6 @@
 # Import requests to make HTTP calls to API
 
 import requests
-import pytz
 import json  
 import time
 from datetime import datetime
@@ -33,6 +32,7 @@ DOMAIN_LIST = [ "chat.mistral.ai",
                "poe.com"]
 COUNTRY_LIST = ["WW", "US"] # Can specify specific countries of interest. WW is 'Worldwide'
 METRIC_LIST = ["all_traffic_visits"], # Necessary metric can be changed per requirements
+DELAY_DAYS = 4 # Set variable for end date on report data range
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -187,8 +187,7 @@ def update(configuration: dict, state: dict):
     else:  
         look_back = (datetime.now() - relativedelta(days=5)).strftime("%Y-%m-%d")   # for incremental syncs, one week lookback from 11 days ago to 4 days ago
 
-    delay_days = 4 # Set variable for end date on report data range
-    n_days_ago = (datetime.now() - relativedelta(days=delay_days)).strftime("%Y-%m-%d") # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
+    n_days_ago = (datetime.now() - relativedelta(days=DELAY_DAYS)).strftime("%Y-%m-%d") # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
     report_id = request_report(look_back, n_days_ago, api_key) # will create a report and return the ID associated with it
 
     if report_id:
