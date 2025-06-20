@@ -70,6 +70,5 @@ We also have [published a blog post](https://www.fivetran.com/blog/building-a-fi
 - [Blog Post: Building a Fivetran Connector in 1 Hour with Claude AI](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai)
 - [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md)
-- [Video Demo](Insert Link)
   
 ---
