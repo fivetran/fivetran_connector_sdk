@@ -68,8 +68,6 @@ jobs:
                 return { pattern, owners: owners.map(o => o.replace(/^@/, '')) };
               });
 
-            console.log(`Codeowner Rules: ${codeownersRules}`);
-
             function matches(pattern, filename) {
               if (pattern === "*") {
                 return true;
@@ -121,26 +119,6 @@ jobs:
               }
             };
 
-            const fileToOwnersMap = {};
-            for (const file of changedFiles) {
-              for (const rule of codeownersRules) {
-                if (matches(rule.pattern, file)) {
-                  if (!fileToOwnersMap[file]) fileToOwnersMap[file] = new Set();
-                  for (const owner of rule.owners) {
-                    console.log(`Owner ${owner} for file ${file}`);
-                    if (owner.includes('/')) {
-                      const [, slug] = owner.split('/');
-                      const teamMembers = await getTeamMembers(slug);
-                      teamMembers.forEach(m => fileToOwnersMap[file].add(m));
-                    } else {
-                      fileToOwnersMap[file].add(owner);
-                    }
-                  }
-                  break;
-                }
-              }
-            }
-
             const reviews = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -164,10 +142,26 @@ jobs:
             }
 
             const filesMissingApproval = [];
-            for (const [file, owners] of Object.entries(fileToOwnersMap)) {
-              const approved = [...owners].some(o => approvedUsers.has(o));
-              if (!approved) {
-                filesMissingApproval.push({ file, owners: [...owners] });
+
+            for (const file of changedFiles) {
+              for (const rule of codeownersRules) {
+                if (matches(rule.pattern, file)) {
+                  for (const owner of rule.owners) {
+                    console.log(`Owner ${owner} for file ${file}`);
+                    if (owner.includes('/')) {
+                      const [, slug] = owner.split('/');
+                      const teamMembers = await getTeamMembers(slug);
+                      const approved = [...teamMembers].some(o => approvedUsers.has(o));
+                      if (!approved) {
+                        filesMissingApproval.push({ file, owners: [...teamMembers] });
+                      }
+                    } else {
+                      if (!approvedUsers.has(owner)) {
+                        filesMissingApproval.push({ file, owners: [owner] });
+                      }
+                    }
+                  }
+                }
               }
             }
 
