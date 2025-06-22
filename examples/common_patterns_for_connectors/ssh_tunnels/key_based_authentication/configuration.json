@@ -3,5 +3,7 @@
   "ssh_user": "YOUR_SSH_USERNAME",
   "api_key": "YOUR_PLAYGROUND_API_KEY",
   "ssh_key_passphrase": "YOUR_SSH_KEY_PASSPHRASE",
+  "local_port": "LOCAL_PORT_TO_FORWARD",
+  "remote_port": "REMOTE_PORT_OF_THE_SERVER",
   "ssh_private_key": "YOUR_SSH_PRIVATE_KEY_PEM_CONTENT"
 }
