@@ -153,11 +153,11 @@ jobs:
                       const teamMembers = await getTeamMembers(slug);
                       const approved = [...teamMembers].some(o => approvedUsers.has(o));
                       if (!approved) {
-                        filesMissingApproval.push({ file, Team: [owner] });
+                        filesMissingApproval.push({ file, owners: [owner] });
                       }
                     } else {
                       if (!approvedUsers.has(owner)) {
-                        filesMissingApproval.push({ file, Member: [owner] });
+                        filesMissingApproval.push({ file, owners: [owner] });
                       }
                     }
                   }
