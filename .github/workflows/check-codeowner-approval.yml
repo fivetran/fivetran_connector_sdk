@@ -168,7 +168,7 @@ jobs:
             }
 
             if (filesMissingApproval.size > 0) {
-              console.log(`Below files are missing approvals: \n [...filesMissingApproval].join(', ') from [...missingApprovalsFromTeam].join(', ')`)
+              console.log(`Below files are missing approvals: \n ${[...filesMissingApproval].join(', ')} from ${[...missingApprovalsFromTeam].join(', ')}`)
               core.setFailed('Missing required CODEOWNER approvals.');
             }
 
