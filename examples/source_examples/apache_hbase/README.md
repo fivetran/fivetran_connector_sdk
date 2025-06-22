@@ -1,4 +1,4 @@
-# Apache HBase Connector Example (TEMP CHANGES)
+# Apache HBase Connector Example
 
 ## Connector overview
 
