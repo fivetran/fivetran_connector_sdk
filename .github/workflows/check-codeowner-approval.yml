@@ -40,6 +40,9 @@ jobs:
               pull_number: context.payload.pull_request.number,
             });
 
+            const author = pr.data.user.login;
+            const assignees = pr.data.assignees.map(a => a.login);
+
             const files = await github.paginate(
               github.rest.pulls.listFiles,
               {
@@ -102,19 +105,37 @@ jobs:
               return regex.test(filename);
             }
 
+            const org = context.repo.owner;
+            const getTeamMembers = async (slug) => {
+              try {
+                const members = await github.paginate(
+                  github.rest.teams.listMembersInOrg,
+                  { org, team_slug: slug }
+                );
+                return members.map(m => m.login);
+              } catch (e) {
+                console.log(`Failed to get team ${slug}: ${e.message}`);
+                return [];
+              }
+            };
 
-            const requiredOwners = new Set();
+            const fileToOwnersMap = {};
             for (const file of changedFiles) {
               for (const rule of codeownersRules) {
-                if (matches(rule.pattern,file)) {
-                  rule.owners.forEach(owner => requiredOwners.add(owner));
+                if (matches(rule.pattern, file)) {
+                  if (!fileToOwnersMap[file]) fileToOwnersMap[file] = new Set();
+                  for (const owner of rule.owners) {
+                    if (owner.includes('/')) {
+                      const [, slug] = owner.split('/');
+                      const teamMembers = await getTeamMembers(slug);
+                      teamMembers.forEach(m => fileToOwnersMap[file].add(m));
+                    } else {
+                      fileToOwnersMap[file].add(owner);
+                    }
+                  }
+                  break;
                 }
               }
-            }
-
-            if (requiredOwners.size === 0) {
-              console.log('No CODEOWNERS matched the changed files. Skipping approval check.');
-              return;
             }
 
             const reviews = await github.rest.pulls.listReviews({
@@ -123,41 +144,47 @@ jobs:
               pull_number: pr.data.number,
             });
 
-            const approvedBy = new Set(
-              reviews.data
-                .filter(r => r.state === 'APPROVED')
-                .map(r => r.user.login)
-            );
+            const approvedUsers = new Set();
+            const latestReview = {};
 
-            const org = context.repo.owner;
-            const effectiveApprovers = new Set();
-
-            for (const owner of requiredOwners) {
-              if (owner.includes('/')) {
-                const [, teamSlug] = owner.split('/');
-                try {
-                  const members = await github.paginate(
-                    github.rest.teams.listMembersInOrg,
-                    {
-                      org: org,
-                      team_slug: teamSlug,
-                    }
-                  );
-                  for (const member of members) {
-                    effectiveApprovers.add(member.login);
-                  }
-                } catch (e) {
-                  core.warning(`Failed to fetch members of team ${owner}: ${e.message}`);
-                }
-              } else {
-                effectiveApprovers.add(owner);
+            for (const review of reviews.data.reverse()) {
+              const user = review.user.login;
+              if (!latestReview[user]) {
+                latestReview[user] = review;
               }
             }
 
-            const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
+            for (const [user, review] of Object.entries(latestReview)) {
+              if (review.state === 'APPROVED') {
+                approvedUsers.add(user);
+              }
+            }
 
-            if (!isApproved) {
-              core.setFailed(`PR must be approved by at least one matching CODEOWNER (individual or team member).`);
+            const filesMissingApproval = [];
+            for (const [file, owners] of Object.entries(fileToOwnersMap)) {
+              const approved = [...owners].some(o => approvedUsers.has(o));
+              if (!approved) {
+                filesMissingApproval.push({ file, owners: [...owners] });
+              }
+            }
+
+            if (filesMissingApproval.length > 0) {
+              filesMissingApproval.forEach(f =>
+                console.log(`${f.file} needs approval from one of: ${f.owners.join(', ')}`)
+              );
+              core.setFailed('Missing required CODEOWNER approvals.');
+            }
+
+            if (assignees.length === 0) {
+              core.setFailed('No assignees set on the PR.');
+            }
+
+            const assigneeApproved = assignees.some(
+              a => a !== author && approvedUsers.has(a)
+            );
+
+            if (!assigneeApproved) {
+              core.setFailed('At least one assignee (other than author) must approve the PR.');
             } else {
-              console.log('PR approved by a required CODEOWNER.');
+              console.log('All required CODEOWNER and assignee approvals are present.');
             }
