@@ -141,23 +141,25 @@ jobs:
               }
             }
 
-            const filesMissingApproval = [];
+            const filesMissingApproval = new Set();
+            const missingApprovalsFromTeam = new Set();
 
             for (const file of changedFiles) {
               for (const rule of codeownersRules) {
                 if (matches(rule.pattern, file)) {
                   for (const owner of rule.owners) {
-                    console.log(`Owner ${owner} for file ${file}`);
                     if (owner.includes('/')) {
                       const [, slug] = owner.split('/');
                       const teamMembers = await getTeamMembers(slug);
                       const approved = [...teamMembers].some(o => approvedUsers.has(o));
                       if (!approved) {
-                        filesMissingApproval.push({ file, owners: [owner] });
+                        filesMissingApproval.add(file);
+                        missingApprovalsFromTeam.add(owner);
                       }
                     } else {
                       if (!approvedUsers.has(owner)) {
-                        filesMissingApproval.push({ file, owners: [owner] });
+                        filesMissingApproval.add(file);
+                        missingApprovalsFromTeam.add(owner);
                       }
                     }
                   }
@@ -165,10 +167,8 @@ jobs:
               }
             }
 
-            if (filesMissingApproval.length > 0) {
-              filesMissingApproval.forEach(f =>
-                console.log(`${f.file} needs approval from one of: ${f.owners}`)
-              );
+            if (filesMissingApproval.size > 0) {
+              console.log(`Below files are missing approvals: \n [...filesMissingApproval].join(', ') from [...missingApprovalsFromTeam].join(', ')`)
               core.setFailed('Missing required CODEOWNER approvals.');
             }
 
