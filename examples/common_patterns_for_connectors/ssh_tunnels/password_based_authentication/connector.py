@@ -1,4 +1,4 @@
-# This example demonstrates how to connect to an API over SSH tunnels using `sshtunnel` and `paramiko`.
+# This example demonstrates how to connect to an API over SSH tunnels using `sshtunnel`.
 # This example uses password-based authentication for the SSH tunnel.
 # It establishes a secure SSH tunnel from a local port to a remote API server port, allowing secure API access as if it were local.
 # The connector uses an API key to authenticate and retrieve data from the API endpoint over the SSH tunnel.
@@ -68,7 +68,7 @@ def sync_items(params, state, configuration):
 # The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
 # 1. Reads SSH connection details and password from the configuration. This uses password-based authentication.
-# 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
+# 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel.
 # 3. Logs the tunnel status for diagnostics.
 # 4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
 # 5. Raises an exception for any HTTP errors.
