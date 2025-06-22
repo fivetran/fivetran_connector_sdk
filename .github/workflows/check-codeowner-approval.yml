@@ -66,6 +66,9 @@ jobs:
               });
 
             function matches(pattern, filename) {
+              if (pattern === "*") {
+                return true;
+              }
               let regexStr = '^';
               let index = 0;
             
