@@ -16,8 +16,8 @@ from fivetran_connector_sdk import Logging as log, Connector  # For enabling Log
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests as rq
 
-REMOTE_PORT = 5005 # The port on the remote server where the API is running.
-LOCAL_PORT = 8000 # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
+DEFAULT_REMOTE_PORT = 5005 # The port on the remote server where the API is running.
+DEFAULT_LOCAL_PORT = 8000 # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
 
 # Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
 # The function takes one parameter:
@@ -86,17 +86,20 @@ def get_api_response(params, headers, configuration):
     ssh_user = configuration.get("ssh_user")
     ssh_password = configuration.get("ssh_password")
 
+    local_port = int(configuration.get("local_port", DEFAULT_LOCAL_PORT))  # Local port for the SSH tunnel
+    remote_port = int(configuration.get("remote_port", DEFAULT_REMOTE_PORT))  # Remote port where the API is running
+
     try:
         with SSHTunnelForwarder(
                 (ssh_host, 22),
                 ssh_username=ssh_user,
                 ssh_password=ssh_password,
-                remote_bind_address=('127.0.0.1', REMOTE_PORT),
-                local_bind_address=('127.0.0.1', LOCAL_PORT)
+                remote_bind_address=('127.0.0.1', remote_port),
+                local_bind_address=('127.0.0.1', local_port)
         ) as tunnel:
-            log.severe(f"Tunnel open at http://127.0.0.1:{LOCAL_PORT}")
+            log.severe(f"Tunnel open at http://127.0.0.1:{local_port}")
 
-            base_url = f"http://127.0.0.1:{LOCAL_PORT}/auth/api_key"
+            base_url = f"http://127.0.0.1:{local_port}/auth/api_key"
             try:
                 response = rq.get(base_url, params=params, headers=headers, timeout=10)
                 response.raise_for_status()
