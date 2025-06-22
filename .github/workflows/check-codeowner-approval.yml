@@ -154,7 +154,7 @@ jobs:
             const isApproved = [...approvedBy].some(user => effectiveApprovers.has(user));
 
             if (!isApproved) {
-              core.setFailed(`PR must be approved by at least one matching CODEOWNER (individual or team member).);
+              core.setFailed(`PR must be approved by at least one matching CODEOWNER (individual or team member).`);
             } else {
               console.log('PR approved by a required CODEOWNER.');
             }
