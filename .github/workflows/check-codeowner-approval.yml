@@ -167,7 +167,7 @@ jobs:
 
             if (filesMissingApproval.length > 0) {
               filesMissingApproval.forEach(f =>
-                console.log(`${f.file} needs approval from one of: ${f.owners.join(', ')}`)
+                console.log(`${f.file} needs approval from one of: ${f.owners}`)
               );
               core.setFailed('Missing required CODEOWNER approvals.');
             }
