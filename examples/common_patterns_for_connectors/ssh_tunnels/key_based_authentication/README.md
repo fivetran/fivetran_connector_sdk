@@ -32,14 +32,22 @@ The connector requires the following configuration parameters:
   "ssh_host": "YOUR_SSH_HOST_IP_OR_HOSTNAME",
   "ssh_user": "YOUR_SSH_USERNAME",
   "api_key": "YOUR_PLAYGROUND_API_KEY",
-  "ssh_private_key": "YOUR_SSH_PRIVATE_KEY_PEM_CONTENT"
+  "local_port": "LOCAL_PORT_TO_FORWARD",
+  "remote_port": "REMOTE_PORT_OF_THE_SERVER",
+  "ssh_private_key": "YOUR_SSH_PRIVATE_KEY_PEM_CONTENT",
+  "ssh_key_passphrase": "YOUR_SSH_KEY_PASSPHRASE"
 }
 ```
 
 - ssh_host: Hostname or IP address of the SSH server.
 - ssh_user: Username for SSH authentication.
 - api_key: API key for authenticating API requests for fivetran-api-playground.
+- local_port: Local port to forward for the SSH tunnel.
+- remote_port: Remote port of the server to which the tunnel connects.
 - ssh_private_key: PEM-formatted private key content for SSH authentication.
+- ssh_key_passphrase: Passphrase for the SSH private key, if applicable.
+
+
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
