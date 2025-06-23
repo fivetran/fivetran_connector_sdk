@@ -55,9 +55,7 @@ There are several examples available under `/examples`:
 
 - [large_data_set](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/large_data_set) - This example shows how to handle large data from API responses with pagination and without pagination.
 
-- [weather](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather) - This is a realistic example, using a public API, fetching data from NOAA.
-
-- [weather_by_zip_code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_by_zip_code) - This is an expanded example, using two different public APIs, fetching data from NOAA for multiple ZIP codes.
+- [weather_with_configuration](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_with_configuration) - This is a real-life example which uses two different public APIs to fetch data from the National Oceanic and Atmospheric Administration (NOAA) for multiple ZIP codes.
 
 - [complex_configuration_options](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/complex_configuration_options) - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
@@ -113,6 +111,8 @@ There are several examples available under `/examples`:
 <summary><h3>Source examples</h3></summary>
 
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
+- [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
+- [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
 - [aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_boto3) - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
 - [aws_athena/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_athena/using_sqlalchemy) - This is an example of how we can sync data from AWS Athena by using Connector SDK using SQLAlchemy with PyAthena.
 - [aws_dynamo_db_authentication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/aws_dynamo_db_authentication) - This is an example of how we can connect and sync data from AWS DynamoDB by using Connector SDK.
@@ -123,12 +123,16 @@ There are several examples available under `/examples`:
 
 - [clickhouse](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/clickhouse) - This example shows how to sync data from ClickHouse database using Connector SDK. You need to provide your ClickHouse credentials for this example to work.
 - [couchbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/couchbase) - This example shows how to sync data from Couchbase database using Connector SDK. You need to provide your Couchbase credentials for this example to work.
+- [dolphin_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/dolphin_db) - This example shows how to sync data from DolphinDB database using Connector SDK. You need to provide your DolphinDB credentials for this example to work.
+- [fleetio](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/fleetio) - This example shows how to sync data from Fleetio using Connector SDK. You need to provide your Fleetio API Token for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
+- [ibm_db2](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_db2) - This example shows how to connect and sync data from IBM Db2 using Connector SDK. It uses the `ibm_db` library to connect to the database and fetch data.
 - IBM Informix
   - [using_ibm_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix/using_ibm_db) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `ibm_db` library to connect to the Informix database and fetch data.
   - [using_jaydebeapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix/using_jaydebeapi) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `jaydebeapi` library with external JDBC Informix driver to connect to the Informix database and fetch data.
+- [influx_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/influx_db) - This example shows how to sync data from InfluxDB using Connector SDK. It uses the `influxdb3_python` library to connect to InfluxDB and fetch time-series data from a specified measurement.
 - [microsoft_excel](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/microsoft_excel) - This example shows how to sync data from Microsoft Excel using Connector SDK. It shows three different ways to sync data from Excel files using `pandas`, `python-calamine` and `openpyxl`.
 - [newsapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/newsapi) - This is a simple example of how to sync data from NewsAPI using Connector SDK.
 - [neo4j](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/neo4j) - This example shows how to extract data from Neo4j graph databases and upsert it using Fivetran Connector SDK.
@@ -141,10 +145,19 @@ There are several examples available under `/examples`:
   - [odata_version_4_using_python_odata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4_using_python_odata) - This is an example of how to sync data from an OData API version 4 using python-odata python library.
 - [redshift](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/redshift) - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - [s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/s3_csv_validation) - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
+- [sensor_tower](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
 - [smartsheets](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/smartsheets) - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - [sql_server](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sql_server) - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
+- [timescale_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/timescale_db) - This example shows how to sync data from TimescaleDb using Connector SDK. It uses the `psycopg2` library to connect to TimescaleDb and fetch time-series and vector data from specified tables. You need to provide your TimescaleDb credentials for this example to work.
 - [toast](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/toast) - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 - [veeva_vault_using_basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault_using_basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+
+</details>
+
+<details class="details-heading" open="open">
+<summary><h3>Workflows</h3></summary>
+
+- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 </details>
 
@@ -154,11 +167,10 @@ There are several examples available under `/examples`:
 >**NOTE:** The following features are in Private Preview. Please connect with our professional services to get more information about them and enable it for your connector.
 - **[Importing External Libraries and Drivers](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/importing_external_drivers)**
   - This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
+- **[Sybase IQ](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_iq)**
+  - This feature enables you to connect to Sybase IQ database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 
 </details>
-
-## Example workflows
-- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/example_workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 ## AI and Connector SDK
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
