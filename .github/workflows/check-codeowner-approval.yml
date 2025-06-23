@@ -129,6 +129,7 @@ jobs:
             const latestReview = {};
 
             for (const review of reviews.data.reverse()) {
+              console.log(`${review.user.login}: ${review.state}`);
               const user = review.user.login;
               if (!latestReview[user]) {
                 latestReview[user] = review;
