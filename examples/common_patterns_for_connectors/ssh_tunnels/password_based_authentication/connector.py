@@ -59,9 +59,9 @@ def sync_items(params, state, configuration):
     for user in items:
         yield op.upsert(table="user", data=user)
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # Save the progress by checkpointing the state. This ensures that the sync process can resume
     # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # Learn more about how and where to checkpoint by reading our Best Practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
@@ -115,7 +115,7 @@ def get_api_response(params, headers, configuration):
         log.severe(f"SSH tunnel or API call failed: {e}")
         raise
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# Define the update function, which is a required function and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:

@@ -124,7 +124,7 @@ def get_api_response(params, headers, configuration):
         log.severe(f"SSH tunnel or API call failed: {e}")
         raise
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# Define the update function, which is a required function and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
