@@ -29,38 +29,38 @@ jobs:
         run: |
           set -o pipefail
 
-          echo "Approach 1: Starting Fivetran deploy..."
+          # echo "Approach 1: Starting Fivetran deploy..."
       
-          script -q -e -c "fivetran deploy \
-            --api-key $TEST_KEY \
-            --destination 'Testing' \
-            --connection 'satvik_csdk_test_github_action' \
-            --python-version '3.11.11' \
-            --force" fivetran_deploy.log
+          # script -q -e -c "fivetran deploy \
+          #   --api-key $TEST_KEY \
+          #   --destination 'Testing' \
+          #   --connection 'satvik_csdk_test_github_action' \
+          #   --python-version '3.11.11' \
+          #   --force" fivetran_deploy.log
       
-          status=$?
-          cat fivetran_deploy.log
-      
-          if [ "$status" -ne 0 ]; then
-            echo "❌ Fivetran deploy failed with status $status"
-            exit $status
-          else
-            echo "✅ Fivetran deploy succeeded"
-          fi
-
-          # echo "Approach 2: Starting Fivetran deploy..."
-          
-          # unbuffer fivetran deploy \
-          # --api-key $TEST_KEY \
-          # --destination 'Testing' \
-          # --connection 'satvik_csdk_test_github_action' \
-          # --python-version '3.11.11' \
-          # --force 2>&1 | tee fivetran_deploy.log
-    
-          # status=${PIPESTATUS[0]}
+          # status=$?
           # cat fivetran_deploy.log
       
           # if [ "$status" -ne 0 ]; then
           #   echo "❌ Fivetran deploy failed with status $status"
           #   exit $status
+          # else
+          #   echo "✅ Fivetran deploy succeeded"
           # fi
+
+          echo "Approach 2: Starting Fivetran deploy..."
+          
+          fivetran deploy \
+          --api-key $TEST_KEY \
+          --destination 'Testing' \
+          --connection 'satvik_csdk_test_github_action' \
+          --python-version '3.11.11' \
+          --force 2>&1 | tee fivetran_deploy.log
+    
+          status=${PIPESTATUS[0]}
+          cat fivetran_deploy.log
+      
+          if [ "$status" -ne 0 ]; then
+            echo "❌ Fivetran deploy failed with status $status"
+            exit $status
+          fi
