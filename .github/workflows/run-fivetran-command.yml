@@ -48,7 +48,7 @@ jobs:
           #   echo "✅ Fivetran deploy succeeded"
           # fi
 
-          echo "Approach 2: Starting Fivetran deploy..."
+          echo "Using Approach 2: Starting Fivetran deploy..."
           
           fivetran deploy \
           --api-key $TEST_KEY \
