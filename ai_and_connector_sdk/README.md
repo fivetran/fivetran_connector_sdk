@@ -25,7 +25,7 @@ Learn about using various IDEs and AI assistants with the Fivetran Connector SDK
 Cursor is an AI-powered code editor designed for productivity, smart completion, and real-time collaboration, with robust Python support.
 
 **Contents:**
-- [Fivetran Connector SDK System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
+- [Fivetran Connector SDK AI System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Installation Guide](https://www.cursor.com/)
 - [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/README.md)
 
@@ -37,9 +37,9 @@ Cursor is an AI-powered code editor designed for productivity, smart completion,
 Windsurf is a lightweight, cloud-based IDE for rapid prototyping and collaboration, supporting live sharing and direct browser development.
 
 **Contents:**
+- [Fivetran Connector SDK AI System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Getting Started](https://docs.windsurf.com/windsurf/getting-started)
 - [Context Awareness](https://docs.windsurf.com/context-awareness/windsurf-overview)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 
 ---
 
@@ -49,9 +49,9 @@ Windsurf is a lightweight, cloud-based IDE for rapid prototyping and collaborati
 Visual Studio Code (VS Code) is a widely-used, open-source code editor with Python support, advanced debugging, and a rich extension library.
 
 **Contents:**
+- [Fivetran Connector SDK AI System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Getting Started](https://code.visualstudio.com/docs/getstarted/getting-started)
 - [Copilot in VS Code](https://code.visualstudio.com/docs/copilot/getting-started)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 
 ---
 
@@ -61,14 +61,14 @@ Visual Studio Code (VS Code) is a widely-used, open-source code editor with Pyth
 Claude is an AI assistant by Anthropic, capable of generating and editing Python code for Fivetran connectors. Claude can automate and accelerate connector development and has been used to generate connectors with multi-table schemas.
 
 ## Claude Code
-Claude Code has proved to be capable of successfully generating a connector capable of populating a multi-table schema during its initial run. The CLAUDE.md file in this folder contains instructions for Claude to be able to successfully build and debug connectors using Fivetran's Connector SDK. Start Claude Code in this folder so that it can pick up the CLAUDE.md content when generating responses. 
+Claude Code has proved to be capable of successfully generating a connector capable of populating a multi-table schema during its initial run. The CLAUDE.md file in this folder contains instructions for Claude to be able to successfully build and debug connectors using Fivetran's Connector SDK. Start Claude Code in this folder so that it can pick up the CLAUDE.md content when generating responses. You can swap in the contents from agents.md into CLAUDE.md to see how the model behaves with different contexts, iterate and improve as you develop solutions!
 
 We also have [published a blog post](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) about our experiences and included the code as Claude generated it in the folder claude_pokeapi_example with the output of our exploration with Claude. The warehouse.db and state.json files are included here so you can easily review the output of the first sync even though these files are only temporary files created during testing and are not required for Connector SDK.
 
 **Contents:**
+- [Fivetran Connector SDK AI System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
+- [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md)
 - [Getting Started with Claude](https://docs.anthropic.com/en/docs/get-started)
 - [Blog Post: Building a Fivetran Connector in 1 Hour with Claude AI](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai)
-- [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
-- [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md)
   
 ---
