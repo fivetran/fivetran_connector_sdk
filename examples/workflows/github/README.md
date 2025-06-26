@@ -27,8 +27,8 @@ Before using this workflow, ensure you have:
    - These are referenced in the workflow by prefixing the variable name with `secrets.`
    - Examples:
      - `FIVETRAN_API_KEY`: API key for Fivetran authentication.
-     - `HELLO_CLIENTID`: Client ID for authentication.
-     - `HELLO_CLIENTSECRET`: Client Secret for authentication.
+     - `HELLO_CLIENT_ID`: Client ID for authentication.
+     - `HELLO_CLIENT_SECRET`: Client Secret for authentication.
 
 ## Workflow Steps
 
@@ -60,8 +60,8 @@ Before using this workflow, ensure you have:
 - Contains:
   ```json
   {
-    "clientId": "<HELLO_CLIENTID>",
-    "clientSecret": "<HELLO_CLIENTSECRET>",
+    "clientId": "<HELLO_CLIENT_ID>",
+    "clientSecret": "<HELLO_CLIENT_SECRET>",
     "initialSyncStart": "2024-01-01T00:00:00.000Z"
   }
   ```
@@ -73,7 +73,7 @@ Before using this workflow, ensure you have:
 ## How to Use
 
 1. **Set up GitHub Secrets** as described in the prerequisites.
-2. Save hello.yml to .github/workflows in your repo. Each YAML file inside .github/workflows/ defines a workflow that GitHub Actions will recognize and execute based on the triggers you define in the file.
+2. Save hello.yml to `.github/workflows` in your repo. Each YAML file inside `.github/workflows/` defines a workflow that GitHub Actions will recognize and execute based on the triggers you define in the file.
 3. **Push changes to the `hello/` directory on the `master` branch`**.
 4. **Monitor GitHub Actions logs** to track deployment progress.
 

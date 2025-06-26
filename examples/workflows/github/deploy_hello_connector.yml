@@ -49,8 +49,8 @@ jobs:
       - name: Create Configuration File # uses secrets because they need to be stored encrypted
         working-directory: hello
         run: |
-          echo "{\"clientId\": \"${{ secrets.HELLO_CLIENTID }}\", 
-            \"clientSecret\": \"${{ secrets.HELLO_CLIENTSECRET }}\",
+          echo "{\"clientId\": \"${{ secrets.HELLO_CLIENT_ID }}\", 
+            \"clientSecret\": \"${{ secrets.HELLO_CLIENT_SECRET }}\",
             \"initialSyncStart\": \"2024-01-01T00:00:00.000Z\"}" > configuration.json 
 
       - name: Deploy Fivetran Connector # uses environment variables because they can be plain text

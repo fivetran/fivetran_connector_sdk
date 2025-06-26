@@ -41,7 +41,7 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
-<summary><h3>Quickstart Examples</h3></summary>
+<summary><h3>Quickstart examples</h3></summary>
 
 - [hello](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/hello) - This is the simplest, append-only example.
 
@@ -55,9 +55,7 @@ There are several examples available under `/examples`:
 
 - [large_data_set](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/large_data_set) - This example shows how to handle large data from API responses with pagination and without pagination.
 
-- [weather](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather) - This is a realistic example, using a public API, fetching data from NOAA.
-
-- [weather_by_zip_code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_by_zip_code) - This is an expanded example, using two different public APIs, fetching data from NOAA for multiple ZIP codes.
+- [weather_with_configuration](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/weather_with_configuration) - This is a real-life example which uses two different public APIs to fetch data from the National Oceanic and Atmospheric Administration (NOAA) for multiple ZIP codes.
 
 - [complex_configuration_options](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/complex_configuration_options) - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
@@ -66,7 +64,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h3>Common Patterns for Connectors</h3></summary>
+<summary><h3>Common patterns for connectors</h3></summary>
 
 - Authentication
   - [api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key) - This is a simple example of how to work with API Key authentication for a REST API.
@@ -102,6 +100,11 @@ There are several examples available under `/examples`:
 - [records_with_no_created_at_timestamp](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp) - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
 - [schema_from_database](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/schema_from_database) - This example shows how to extract tables (columns, data types, etc.) from a schema present in Snowflake database and use this to generate the connector schema. This approach ensures that the tables in your connector match those in your source database without having to manually define each field.
 - [specified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/specified_types) - This example declares a schema and upserts all data types.
+
+- SSH Tunnels 
+  - [Key-based Authentication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/ssh_tunnels/key_based_authentication) - This example demonstrates how to connect to an SSH server using key-based authentication with the Fivetran Connector SDK. The connector securely establishes an SSH session to a remote EC2 instance running the fivetran-api-playground server and facilitates data interaction over the SSH tunnel.
+  - [Password-based Authentication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/ssh_tunnels/password_based_authentication) - This example demonstrates how to connect to an SSH server using password-based authentication with the Fivetran Connector SDK. The connector securely establishes an SSH session to a remote EC2 instance running the fivetran-api-playground server and facilitates data interaction over the SSH Tunnel. This setup uses passwords for authentication.
+
 - [three_operations](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/three_operations) - This example shows how to use upsert, update and delete operations.
 - [tracking_tables](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/tracking_tables) - This example shows how to track tables that have already been synced in order to be able add new tables and have them automatically sync back to an initial timestamp.
 - [unspecified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/unspecified_types) - This example upserts all data types without specifying a schema.
@@ -110,7 +113,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
-<summary><h3>Source Examples</h3></summary>
+<summary><h3>Source examples</h3></summary>
 
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
@@ -125,6 +128,7 @@ There are several examples available under `/examples`:
 
 - [clickhouse](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/clickhouse) - This example shows how to sync data from ClickHouse database using Connector SDK. You need to provide your ClickHouse credentials for this example to work.
 - [couchbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/couchbase) - This example shows how to sync data from Couchbase database using Connector SDK. You need to provide your Couchbase credentials for this example to work.
+- [dolphin_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/dolphin_db) - This example shows how to sync data from DolphinDB database using Connector SDK. You need to provide your DolphinDB credentials for this example to work.
 - [fleetio](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/fleetio) - This example shows how to sync data from Fleetio using Connector SDK. You need to provide your Fleetio API Token for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
@@ -146,11 +150,19 @@ There are several examples available under `/examples`:
   - [odata_version_4_using_python_odata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4_using_python_odata) - This is an example of how to sync data from an OData API version 4 using python-odata python library.
 - [redshift](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/redshift) - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - [s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/s3_csv_validation) - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
-- [sensor_tower](/examples/source_examples/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
+- [sensor_tower](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
 - [smartsheets](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/smartsheets) - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - [sql_server](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sql_server) - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
+- [timescale_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/timescale_db) - This example shows how to sync data from TimescaleDb using Connector SDK. It uses the `psycopg2` library to connect to TimescaleDb and fetch time-series and vector data from specified tables. You need to provide your TimescaleDb credentials for this example to work.
 - [toast](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/toast) - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 - [veeva_vault_using_basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault_using_basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+
+</details>
+
+<details class="details-heading" open="open">
+<summary><h3>Workflows</h3></summary>
+
+- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 </details>
 
@@ -160,18 +172,22 @@ There are several examples available under `/examples`:
 >**NOTE:** The following features are in Private Preview. Please connect with our professional services to get more information about them and enable it for your connector.
 - **[Importing External Libraries and Drivers](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/importing_external_drivers)**
   - This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
+- **[Sybase IQ](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_iq)**
+  - This feature enables you to connect to Sybase IQ database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 
 </details>
-
-## Example Workflows
-- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/example_workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
 ## AI and Connector SDK
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
  - [claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/) - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
+
 ## Issue
 Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connector_sdk/issues) and get connected to a Fivetran developer.
+
+## Fivetran platform features
+- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
+
 
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
