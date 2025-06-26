@@ -1,17 +1,23 @@
 # This connector demonstrates how to fetch and sync data from the Common Paper API.
-""" This connector fetches agreement data from the Common Paper API and syncs it to the destination.
-It handles nested data structures, pagination, and maintains sync state using checkpoints."""
+# This connector fetches agreement data from the Common Paper API and syncs it to the destination.
+# It handles pagination and maintains sync state using checkpoints."""
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+from fivetran_connector_sdk import Connector
+from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log
+
+# Import required libraries
 import requests  # For making HTTP requests to the Common Paper API
 import json      # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
+import time      # For implementing exponential backoff delays
+
 
 # Base URL for the Common Paper API
-API_URL = "https://api.commonpaper.com/v1/agreements"
+__API_URL = "https://api.commonpaper.com/v1/agreements"
 
 def get_headers(api_key):
     """
@@ -31,6 +37,7 @@ def get_headers(api_key):
 def fetch_agreements(api_key, updated_at):
     """
     Fetch agreements from the Common Paper API with updated_at filter.
+    Implements retry logic with exponential backoff for up to 3 attempts.
     
     Args:
         api_key (str): The API key for authentication
@@ -40,17 +47,44 @@ def fetch_agreements(api_key, updated_at):
         dict: JSON response containing agreement data
         
     Raises:
-        Exception: If the API request fails with non-200 status code
+        Exception: If the API request fails after 3 retry attempts
     """
     # Format the URL with the filter parameter
-    url = f"{API_URL}?filter[updated_at_gt]={updated_at}"
+    url = f"{__API_URL}?filter[updated_at_gt]={updated_at}"
     log.fine(f"Fetching agreements from URL: {url}")
 
-    response = requests.get(url, headers=get_headers(api_key))
-    if response.status_code != 200:
-        log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
-        raise Exception(f"API returned {response.status_code}: {response.text}")
-    return response.json()
+    max_retries = 3
+    base_delay = 1  # Base delay in seconds
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=get_headers(api_key))
+            
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code in [429, 500, 502, 503, 504]:  # Retryable status codes
+                if attempt < max_retries - 1:  # Don't sleep on the last attempt
+                    delay = base_delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                    log.warning(f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(delay)
+                    continue
+                else:
+                    log.severe(f"Failed to fetch agreements after {max_retries} attempts. Last status: {response.status_code} - {response.text}")
+                    raise Exception(f"API returned {response.status_code} after {max_retries} attempts: {response.text}")
+            else:
+                # Non-retryable status codes (4xx errors except 429)
+                log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
+                raise Exception(f"API returned {response.status_code}: {response.text}")
+                
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:  # Don't sleep on the last attempt
+                delay = base_delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                log.warning(f"Network error occurred, retrying in {delay} seconds (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                time.sleep(delay)
+                continue
+            else:
+                log.severe(f"Failed to fetch agreements after {max_retries} attempts due to network error: {str(e)}")
+                raise Exception(f"Network error after {max_retries} attempts: {str(e)}")
 
 def update(configuration, state):
     """
@@ -76,11 +110,10 @@ def update(configuration, state):
     
     for record in agreements:
         attributes = record.get("attributes", {})
-        record_id = record.get("id")  # Get the record's ID
         
         # Convert lists to strings for storage
         for field_name, field_value in attributes.items():
-            if isinstance(field_value, (list)):
+            if isinstance(field_value, list):
                 attributes[field_name] = json.dumps(field_value)
             
         yield op.upsert("agreements", attributes)
