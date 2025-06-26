@@ -82,7 +82,7 @@ def update(configuration, state):
         
         # Convert lists to strings for storage
         for field_name, field_value in attributes.items():
-            if isinstance(field_value, (list)):
+            if isinstance(field_value, list):
                 attributes[field_name] = json.dumps(field_value)
             
         yield op.upsert("agreements", attributes)
