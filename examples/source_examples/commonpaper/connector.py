@@ -5,11 +5,9 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
-from fivetran_connector_sdk import Logging as log
-
-# Import required libraries
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests  # For making HTTP requests to the Common Paper API
 import json      # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
@@ -53,38 +51,11 @@ def fetch_agreements(api_key, updated_at):
     url = f"{__API_URL}?filter[updated_at_gt]={updated_at}"
     log.fine(f"Fetching agreements from URL: {url}")
 
-    max_retries = 3
-    base_delay = 1  # Base delay in seconds
-    
-    for attempt in range(max_retries):
-        try:
-            response = requests.get(url, headers=get_headers(api_key))
-            
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:  # Retryable status codes
-                if attempt < max_retries - 1:  # Don't sleep on the last attempt
-                    delay = base_delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
-                    log.warning(f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{max_retries})")
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(f"Failed to fetch agreements after {max_retries} attempts. Last status: {response.status_code} - {response.text}")
-                    raise Exception(f"API returned {response.status_code} after {max_retries} attempts: {response.text}")
-            else:
-                # Non-retryable status codes (4xx errors except 429)
-                log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
-                raise Exception(f"API returned {response.status_code}: {response.text}")
-                
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries - 1:  # Don't sleep on the last attempt
-                delay = base_delay * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
-                log.warning(f"Network error occurred, retrying in {delay} seconds (attempt {attempt + 1}/{max_retries}): {str(e)}")
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Failed to fetch agreements after {max_retries} attempts due to network error: {str(e)}")
-                raise Exception(f"Network error after {max_retries} attempts: {str(e)}")
+    response = requests.get(url, headers=get_headers(api_key))
+    if response.status_code != 200:
+        log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
+        raise Exception(f"API returned {response.status_code}: {response.text}")
+    return response.json()
 
 def update(configuration, state):
     """
