@@ -51,7 +51,7 @@ def fetch_agreements(api_key, updated_at):
     response = requests.get(url, headers=get_headers(api_key))
     if response.status_code != 200:
         log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
-        raise Exception(f"API returned {response.status_code}: {response.text}")
+        raise RuntimeError(f"API returned {response.status_code}: {response.text}")
     return response.json()
 
 def update(configuration, state):
