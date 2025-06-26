@@ -13,7 +13,7 @@ import json      # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
 
 # Base URL for the Common Paper API
-API_URL = "https://api.commonpaper.com/v1/agreements"
+__API_URL = "https://api.commonpaper.com/v1/agreements"
 
 def get_headers(api_key):
     """
