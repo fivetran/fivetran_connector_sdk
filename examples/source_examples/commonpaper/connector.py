@@ -70,11 +70,11 @@ def fetch_agreements(api_key, updated_at):
                     continue
                 else:
                     log.severe(f"Failed to fetch agreements after {max_retries} attempts. Last status: {response.status_code} - {response.text}")
-                    raise Exception(f"API returned {response.status_code} after {max_retries} attempts: {response.text}")
+                    raise RuntimeError(f"API returned {response.status_code} after {max_retries} attempts: {response.text}")
             else:
                 # Non-retryable status codes (4xx errors except 429)
                 log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
-                raise Exception(f"API returned {response.status_code}: {response.text}")
+                raise RuntimeError(f"API returned {response.status_code}: {response.text}")
                 
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:  # Don't sleep on the last attempt
@@ -84,7 +84,7 @@ def fetch_agreements(api_key, updated_at):
                 continue
             else:
                 log.severe(f"Failed to fetch agreements after {max_retries} attempts due to network error: {str(e)}")
-                raise Exception(f"Network error after {max_retries} attempts: {str(e)}")
+                raise RuntimeError(f"Network error after {max_retries} attempts: {str(e)}")
 
 def update(configuration, state):
     """
