@@ -5,7 +5,9 @@ It handles nested data structures, pagination, and maintains sync state using ch
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import requests  # For making HTTP requests to the Common Paper API
 import json      # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
