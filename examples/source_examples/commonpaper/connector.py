@@ -45,7 +45,7 @@ def fetch_agreements(api_key, updated_at):
         Exception: If the API request fails with non-200 status code
     """
     # Format the URL with the filter parameter
-    url = f"{API_URL}?filter[updated_at_gt]={updated_at}"
+    url = f"{__API_URL}?filter[updated_at_gt]={updated_at}"
     log.fine(f"Fetching agreements from URL: {url}")
 
     response = requests.get(url, headers=get_headers(api_key))
