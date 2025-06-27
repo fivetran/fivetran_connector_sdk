@@ -1,0 +1,8 @@
+{
+  "client_id": "c4392a35-2bce-4383-b76d-8a419804c8cf",
+  "client_secret": "2a87c806-272d-4a7c-b3a1-a9aeabb54bde",
+  "traffic_metrics": "ins,outs",
+  "occupancy_metrics": "occupancy(max),occupancy(min),occupancy(avg)",
+  "static_endpoints": "location,site,zone,space,sensor",
+  "start_year": "2022"
+}
