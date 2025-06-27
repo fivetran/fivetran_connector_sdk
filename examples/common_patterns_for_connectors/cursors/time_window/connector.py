@@ -6,12 +6,11 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
-import datetime
+from datetime import datetime, timezone, timedelta
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import \
-    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 __INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
 __DAYS_PER_SYNC = 30
@@ -31,7 +30,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Cursor - Time Window")
 
     # save the current time for starting the sync
-    start_timestamp = format_iso_timestamp(datetime.datetime.now(datetime.timezone.utc))
+    start_timestamp = format_iso_timestamp(datetime.now(timezone.utc))
     # get a start and end timestamp that could be used with an API
     from_timestamp, to_timestamp = set_timeranges(state, start_timestamp)
     # this "fine" log will only appear during debugging
@@ -45,7 +44,7 @@ def update(configuration: dict, state: dict):
         # The yield statement returns a generator object.
         # This generator will yield an upsert operation to the Fivetran connector.
         # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+        # - The first argument is the name of the table to upsert the data into, in this case, "timestamps".
         # - The second argument is a dictionary containing the data to be upserted.
         yield op.upsert(table="timestamps", data={"message": f"from {from_timestamp} to {to_timestamp}"})
 
@@ -83,7 +82,7 @@ def set_timeranges(state, start_timestamp):
         get an ending timestamp for the new range that is __DAYS_PER_SYNC days later than that. 
         """
         from_timestamp_dt = parse_iso_timestamp(from_timestamp)
-        to_timestamp = format_iso_timestamp(from_timestamp_dt + datetime.timedelta(days=__DAYS_PER_SYNC))
+        to_timestamp = format_iso_timestamp(from_timestamp_dt + timedelta(days=__DAYS_PER_SYNC))
     else:
         """otherwise the timerange for the next range can end when the sync started"""
         to_timestamp = start_timestamp
@@ -98,16 +97,16 @@ def is_older_than_n_days(date_to_check):
     :param date_to_check:
     :return: boolean based on whether date is older than __DAYS_PER_SYNC days
     """
-    now = datetime.datetime.now(datetime.UTC)  # Timezone-aware UTC datetime
+    now = datetime.now(timezone.utc)  # Timezone-aware UTC datetime
 
     # Convert to datetime if input is a string
     if isinstance(date_to_check, str):
         date_to_check = parse_iso_timestamp(date_to_check)
 
-    return date_to_check < now - datetime.timedelta(days=__DAYS_PER_SYNC)
+    return date_to_check < now - timedelta(days=__DAYS_PER_SYNC)
 
 
-def format_iso_timestamp(dt: datetime.datetime) -> str:
+def format_iso_timestamp(dt: datetime) -> str:
     """
     Formats a datetime object to ISO format with 'Z' timezone indicator.
     :param dt: datetime object to format
@@ -116,13 +115,13 @@ def format_iso_timestamp(dt: datetime.datetime) -> str:
     return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-def parse_iso_timestamp(timestamp: str) -> datetime.datetime:
+def parse_iso_timestamp(timestamp: str) -> datetime:
     """
     Parses an ISO format timestamp string with 'Z' timezone to a datetime object.
     :param timestamp: ISO formatted string with 'Z' timezone
     :return: datetime object
     """
-    return datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
 
 """
