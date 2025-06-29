@@ -113,7 +113,7 @@ jobs:
         if: env.SKIP != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: pylint-full-report
+          name: python-code-quality-report
           path: python_code_quality_check_report.txt
 
       - name: Find existing comment
