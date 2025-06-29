@@ -56,7 +56,6 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - User Profiles")
-    check = afdasf
 
     # Retrieve the last processed profile ID from state or set it to 0 if not present
     profile_cursor = state["profile_cursor"] if "profile_cursor" in state else 0
