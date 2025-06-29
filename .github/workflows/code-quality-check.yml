@@ -18,7 +18,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install base dependencies
-        run: pip install pylint requests
+        run: pip install pylint requests fivetran-connector-sdk
 
       - name: Get changed Python files and install local requirements
         id: get_changed
