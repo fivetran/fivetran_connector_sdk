@@ -76,7 +76,6 @@ jobs:
           EOF
 
       - name: Format pylint results as Markdown (max 15 lines)
-        if: env.SKIP != 'true'
         run: |
           python3 <<EOF > pylint_summary.md
           import json
