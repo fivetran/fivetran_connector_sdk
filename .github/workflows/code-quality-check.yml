@@ -84,9 +84,10 @@ jobs:
 
           with open("pylint_output.json") as f:
               messages = json.load(f)
-              
+
           count = len(messages)
-          echo "PYLINT_ISSUE_COUNT=$count" >> $GITHUB_ENV
+          with open(os.environ['GITHUB_ENV'], 'a') as env_file:
+            env_file.write(f"PYLINT_ISSUE_COUNT={count}\n")
 
           print("### 🧹 Python Code Quality Check\n")
 
