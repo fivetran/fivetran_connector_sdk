@@ -17,26 +17,51 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install base dependencies
         run: pip install pylint requests
 
-      - name: Get changed Python files from PR
+      - name: Get changed Python files and install local requirements
         id: get_changed
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
-
-          echo "Fetching changed files for PR #$PR_NUMBER in $REPO"
+          
+          # Get changed .py files
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
-            | jq -r '.[] | select(.filename | endswith(".py")) | .filename' > changed_files.txt
+            | jq -r '.[] | .filename' > all_files.txt
+
+          grep '\.py$' all_files.txt > changed_files.txt || true
 
           if [[ ! -s changed_files.txt ]]; then
             echo "No Python files changed."
             echo "SKIP=true" >> $GITHUB_ENV
+            exit 0
           else
-            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
             echo "SKIP=false" >> $GITHUB_ENV
+            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+  
+            # Find unique requirements.txt in parent folders
+            touch requirements_paths.txt
+            while read -r file; do
+              dir=$(dirname "$file")
+              while [[ "$dir" != "." && "$dir" != "/" ]]; do
+                req_path="$dir/requirements.txt"
+                if [[ -f "$req_path" ]]; then
+                  echo "$req_path" >> requirements_paths.txt
+                  break
+                fi
+                dir=$(dirname "$dir")
+              done
+            done < changed_files.txt
+  
+            sort -u requirements_paths.txt > unique_reqs.txt
+  
+            # Install dependencies
+            while read -r req; do
+              echo "Installing dependencies from $req..."
+              pip install -r "$req" || echo "Failed to install from $req"
+            done < unique_reqs.txt
           fi
 
       - name: Run pylint on changed files
@@ -45,29 +70,22 @@ jobs:
           pylint --output-format=json $CHANGED > pylint_output.json || true
 
       - name: Format pylint results as Markdown
-        id: format
         run: |
-          if [[ "$SKIP" == "true" ]]; then
-            {
-              echo 'BODY<<EOF'
-              echo '### 🧹 Python Code Quality Check'
-              echo ''
+          {
+            echo 'BODY<<EOF'
+            echo '### 🧹 Python Code Quality Check'
+            echo ''
+            if [[ "$SKIP" == "true" ]]; then
               echo '✅ No Python files were changed in this PR.'
-              echo 'EOF'
-            } >> $GITHUB_ENV
-          else
-            {
-              echo 'BODY<<EOF'
-              echo '### 🧹 Python Code Quality Check'
-              echo ''
+            else
               echo '| File | Line | Type | Message |'
               echo '|------|------|------|---------|'
               jq -r '.[] | "| \(.path) | \(.line) | \(.type) | \(.message | gsub("[\n\r]"; " ")) |"' pylint_output.json
               echo ''
               echo '_This comment is auto-updated with every commit._'
-              echo 'EOF'
-            } >> $GITHUB_ENV
-          fi
+            fi
+            echo 'EOF'
+          } >> $GITHUB_ENV
 
       - name: Find existing comment
         uses: peter-evans/find-comment@v3
