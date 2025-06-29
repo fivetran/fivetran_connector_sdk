@@ -72,6 +72,7 @@ jobs:
         run: |
           python3 <<EOF > pylint_summary.md
           import json
+          import os
           
           with open("pylint_output.json") as f:
               messages = json.load(f)
