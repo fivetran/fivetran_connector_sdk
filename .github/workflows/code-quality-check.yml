@@ -82,10 +82,10 @@ jobs:
           import os
 
           try:
-          with open("pylint_output.json") as f:
-              messages = json.load(f)
+            with open("pylint_output.json") as f:
+                messages = json.load(f)
           except (FileNotFoundError, json.JSONDecodeError):
-              messages = []
+            messages = []
 
           count = len(messages)
           with open(os.environ['GITHUB_ENV'], 'a') as env_file:
