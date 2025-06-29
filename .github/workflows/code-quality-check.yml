@@ -25,6 +25,7 @@ jobs:
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
+
           echo "Fetching changed files for PR #$PR_NUMBER in $REPO"
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
@@ -44,17 +45,28 @@ jobs:
           pylint --output-format=json $CHANGED > pylint_output.json || true
 
       - name: Format pylint results as Markdown
+        id: format
         run: |
           if [[ "$SKIP" == "true" ]]; then
-            echo 'BODY=### 🧹 Python Code Quality Check\n\n✅ No Python files were changed in this PR.' >> $GITHUB_ENV
+            {
+              echo 'BODY<<EOF'
+              echo '### 🧹 Python Code Quality Check'
+              echo ''
+              echo '✅ No Python files were changed in this PR.'
+              echo 'EOF'
+            } >> $GITHUB_ENV
           else
-            echo "BODY=### 🧹 Python Code Quality Check" >> $GITHUB_ENV
-            echo >> $GITHUB_ENV
-            echo '| File | Line | Type | Message |' >> $GITHUB_ENV
-            echo '|------|------|------|---------|' >> $GITHUB_ENV
-            jq -r '.[] | "| \(.path) | \(.line) | \(.type) | \(.message | gsub("[\n\r]"; " ")) |"' pylint_output.json >> $GITHUB_ENV
-            echo >> $GITHUB_ENV
-            echo '>> _This comment is auto-updated with every commit._' >> $GITHUB_ENV
+            {
+              echo 'BODY<<EOF'
+              echo '### 🧹 Python Code Quality Check'
+              echo ''
+              echo '| File | Line | Type | Message |'
+              echo '|------|------|------|---------|'
+              jq -r '.[] | "| \(.path) | \(.line) | \(.type) | \(.message | gsub("[\n\r]"; " ")) |"' pylint_output.json
+              echo ''
+              echo '_This comment is auto-updated with every commit._'
+              echo 'EOF'
+            } >> $GITHUB_ENV
           fi
 
       - name: Find existing comment
