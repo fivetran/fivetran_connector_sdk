@@ -1,0 +1,67 @@
+name: Python code quality check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install pylint
+
+      - name: Get changed Python files
+        id: changed
+        run: |
+          git fetch origin main
+          git diff --name-only origin/main...HEAD -- '*.py' > changed_files.txt
+          echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+
+      - name: Run pylint in JSON format
+        id: pylint
+        run: |
+          pylint --output-format=json $CHANGED > pylint_output.json || true
+
+      - name: Format pylint output as Markdown table
+        id: format
+        run: |
+          echo "body=### 🔍 Pylint Report (Changed Files)" > body.env
+          echo >> body.env
+          echo '| File | Line | Type | Message |' >> body.env
+          echo '|------|------|------|---------|' >> body.env
+          jq -r '.[] | "| \(.path) | \(.line) | \(.type) | \(.message | gsub("[\n\r]"; " ")) |"' pylint_output.json >> body.env
+          echo >> body.env
+          echo '> _This comment is auto-updated with every commit._' >> body.env
+
+      - name: Load body content
+        run: |
+          echo "BODY<<EOF" >> $GITHUB_ENV
+          cat body.env >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: "### 🔍 Pylint Report"
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ env.BODY }}
+          edit-mode: replace
