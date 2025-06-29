@@ -75,7 +75,7 @@ jobs:
           print(f"Pylint issues found: {count}")
           EOF
 
-      - name: Format pylint results as Markdown (max 30 lines)
+      - name: Format pylint results as Markdown (max 15 lines)
         if: env.SKIP != 'true'
         run: |
           python3 <<EOF > pylint_summary.md
@@ -96,13 +96,13 @@ jobs:
           else:
               print("| File | Line | Type | Message |")
               print("|------|------|------|---------|")
-              for msg in messages[:30]:
+              for msg in messages[:15]:
                   line = f"| {msg['path']} | {msg['line']} | {msg['type']} | {msg['message'].replace('|', ' ')} |"
                   print(line)
 
-              if len(messages) > 30:
+              if len(messages) > 15:
                   run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-                  print(f"\nOnly first 30 messages shown. Download full report from 📎 [artifacts]({run_url}).")                  
+                  print(f"\nOnly first 15 code issues shown. Download full report from 📎 [artifacts]({run_url}).")                  
                   print("\n_This comment is auto-updated with every commit._")
 
               with open("python_code_quality_check_report.txt", "w") as txt:
