@@ -25,7 +25,6 @@ jobs:
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
-
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
             | jq -r '.[] | .filename' > all_files.txt
@@ -40,7 +39,6 @@ jobs:
             echo "SKIP=false" >> $GITHUB_ENV
             echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
 
-            # Find and install unique requirements.txt files
             touch requirements_paths.txt
             while read -r file; do
               dir=$(dirname "$file")
@@ -55,7 +53,6 @@ jobs:
             done < changed_files.txt
 
             sort -u requirements_paths.txt > unique_reqs.txt
-
             while read -r req; do
               echo "Installing dependencies from $req..."
               pip install -r "$req" || echo "Failed to install from $req"
@@ -67,18 +64,32 @@ jobs:
         run: |
           pylint --output-format=json $CHANGED > pylint_output.json || true
 
+      - name: Fail if too many issues
+        if: env.SKIP != 'true'
+        run: |
+          python3 <<EOF
+          import json
+          with open("pylint_output.json") as f:
+              messages = json.load(f)
+          count = len(messages)
+          print(f"Pylint issues found: {count}")
+          if count > 10:
+              print("❌ Too many code issues. Please fix them before merging.")
+              exit(1)
+          EOF
+
       - name: Format pylint results as Markdown (max 30 lines)
         if: env.SKIP != 'true'
         run: |
           python3 <<EOF > pylint_summary.md
           import json
           import os
-          
+
           with open("pylint_output.json") as f:
               messages = json.load(f)
-          
+
           print("### 🧹 Python Code Quality Check\n")
-          
+
           if not messages:
               print("✅ No issues detected by pylint.")
           else:
@@ -87,7 +98,7 @@ jobs:
               for msg in messages[:30]:
                   line = f"| {msg['path']} | {msg['line']} | {msg['type']} | {msg['message'].replace('|', ' ')} |"
                   print(line)
-          
+
               if len(messages) > 30:
                   run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
                   print(f"\nOnly first 30 messages shown. Download full report from 📎 [artifacts]({run_url}).")                  
