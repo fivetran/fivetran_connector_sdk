@@ -73,9 +73,6 @@ jobs:
               messages = json.load(f)
           count = len(messages)
           print(f"Pylint issues found: {count}")
-          if count > 10:
-              print("❌ Too many code issues. Please fix them before merging.")
-              exit(1)
           EOF
 
       - name: Format pylint results as Markdown (max 30 lines)
@@ -87,6 +84,9 @@ jobs:
 
           with open("pylint_output.json") as f:
               messages = json.load(f)
+              
+          count = len(messages)
+          echo "PYLINT_ISSUE_COUNT=$count" >> $GITHUB_ENV
 
           print("### 🧹 Python Code Quality Check\n")
 
@@ -131,3 +131,12 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body-path: pylint_summary.md
           edit-mode: replace
+          
+      - name: Fail job if too many pylint issues
+        if: env.SKIP != 'true'
+        run: |
+          echo "PYLINT_ISSUE_COUNT = $PYLINT_ISSUE_COUNT"
+          if [ "$PYLINT_ISSUE_COUNT" -gt 10 ]; then
+            echo "❌ Too many code issues ($PYLINT_ISSUE_COUNT). Please fix them before merging."
+            exit 1
+          fi
