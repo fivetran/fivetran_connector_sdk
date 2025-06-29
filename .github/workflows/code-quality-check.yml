@@ -18,13 +18,18 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pylint
+        run: pip install pylint requests
 
-      - name: Get changed Python files
+      - name: Get changed Python files from PR
         id: get_changed
         run: |
-          git fetch origin main
-          git diff --name-only origin/main...HEAD -- '*.py' > changed_files.txt
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+          echo "Fetching changed files for PR #$PR_NUMBER in $REPO"
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            | jq -r '.[] | select(.filename | endswith(".py")) | .filename' > changed_files.txt
+
           if [[ ! -s changed_files.txt ]]; then
             echo "No Python files changed."
             echo "SKIP=true" >> $GITHUB_ENV
@@ -39,7 +44,6 @@ jobs:
           pylint --output-format=json $CHANGED > pylint_output.json || true
 
       - name: Format pylint results as Markdown
-        id: format
         run: |
           if [[ "$SKIP" == "true" ]]; then
             echo 'BODY=### 🧹 Python Code Quality Check\n\n✅ No Python files were changed in this PR.' >> $GITHUB_ENV
