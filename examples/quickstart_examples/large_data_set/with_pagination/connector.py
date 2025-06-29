@@ -49,6 +49,7 @@ def get_data(url, offset):
     next_url = data["next"]
     pokemons = data["results"]
     pokemons_df = pd.DataFrame([])
+    random_variable_for_testing = "asdf"
     for i in range(len(pokemons)):
         pokemon_data = {
             "name": pokemons[i]["name"],
