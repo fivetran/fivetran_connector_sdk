@@ -90,7 +90,7 @@ jobs:
           
               if len(messages) > 30:
                   run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-                  print("\nOnly first 30 messages shown. Download full report from 📎 [artifacts]({run_url}).")                  
+                  print(f"\nOnly first 30 messages shown. Download full report from 📎 [artifacts]({run_url}).")                  
                   print("\n_This comment is auto-updated with every commit._")
           EOF
 
