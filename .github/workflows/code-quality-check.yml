@@ -67,15 +67,7 @@ jobs:
       - name: Run pylint on changed files
         if: env.SKIP != 'true'
         run: |
-          # Run once with JSON for table
           pylint --output-format=json $CHANGED > pylint_output.json || true
-          
-          # Run again with text format for the score
-          pylint --output-format=text $CHANGED > pylint_output.txt || true
-
-          # Extract rating line (e.g. "Your code has been rated at 8.45/10")
-          score_line=$(grep "Your code has been rated at" pylint_output.txt || echo "")
-          echo "PYLINT_SCORE=${score_line}" >> $GITHUB_ENV
 
       - name: Format pylint results as Markdown
         run: |
@@ -90,7 +82,6 @@ jobs:
               echo '|------|------|------|---------|'
               jq -r '.[] | "| \(.path) | \(.line) | \(.type) | \(.message | gsub("[\n\r]"; " ")) |"' pylint_output.json
               echo ''
-              echo "**Code rating:** $PYLINT_SCORE"
               echo '_This comment is auto-updated with every commit._'
             fi
             echo 'EOF'
