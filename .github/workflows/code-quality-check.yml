@@ -103,6 +103,10 @@ jobs:
                   run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
                   print(f"\nOnly first 30 messages shown. Download full report from 📎 [artifacts]({run_url}).")                  
                   print("\n_This comment is auto-updated with every commit._")
+
+              with open("python_code_quality_check_report.txt", "w") as txt:
+                for msg in messages:
+                    txt.write(f"{msg['path']}:{msg['line']} [{msg['type']}] {msg['message']}\n")
           EOF
 
       - name: Upload full pylint report
@@ -110,7 +114,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pylint-full-report
-          path: pylint_output.json
+          path: python_code_quality_check_report.txt
 
       - name: Find existing comment
         uses: peter-evans/find-comment@v3
