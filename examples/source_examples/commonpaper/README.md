@@ -34,7 +34,7 @@ The connector requires the following configuration parameters in `configuration.
 
 ```json
 {
-    "api_key": "YOUR_API_KEY",
+    "api_key": "<YOUR_COMMONPAPER_API_KEY>",
     "initial_sync_timestamp": "2023-01-01T00:00:00Z"
 }
 ```
@@ -47,10 +47,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-The connector uses the following Python packages:
-```
-# No additional packages required
-```
+The connector does not use any additional Python packages.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
