@@ -12,7 +12,7 @@ import requests
 from datetime import datetime, timezone
 import time
 
-application_id = <your_application_id>
+application_id = <YOUR_APPLICATION_ID>
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 DEFAULT_PAGE_SIZE = "100"
 INITIAL_SYNC_START_TIME = "2020-01-01T00:00:00.00Z"
