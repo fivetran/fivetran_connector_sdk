@@ -71,7 +71,7 @@ def get_query(table_name, incremental_column, table_cursor_value, batch_size):
 def dt2str(incoming: datetime) -> str:
     if isinstance(incoming, (datetime, date)):
         return incoming.strftime(TIMESTAMP_FORMAT)
-    else:  # Convert datetime to ISO 8601 string
+    else:
         return incoming
 
 state_lock = threading.Lock()          # guards the shared checkpoint dict
