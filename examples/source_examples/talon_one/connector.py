@@ -1,6 +1,6 @@
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # The code will retrieve data for specific endpoints from Talon.one and create one table per endpoint
-# Tables and endpoints defined at the top of the script in table_endpoint_list (can)
+# Tables and endpoints defined at the top of the script in table_endpoint_list
 # You will need to provide your own Talon.one credentials for this to work --> "base_url" and "api_key" in configuration.json
 # You can also define how far back in history to go on initial sync using the "initial_sync_start_date" in configuration.json
 # Relevant Talon.one API documentation: https://docs.talon.one/management-api#tag/Customer-data/operation/getApplicationEventsWithoutTotalCount
@@ -68,7 +68,7 @@ def get_api_response(url, params, headers):
 # - has_more: Boolean to indicate whether there are more pages or not
 # - params: new params for next API call if needed
 def should_continue_pagination(response_page, params):
-    has_more = response_page.get("hasMore")  
+    has_more = response_page.get("hasMore", False)  
     if has_more:
         params['skip'] += params.get("pageSize")
     return has_more, params
