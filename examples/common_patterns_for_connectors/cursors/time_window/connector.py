@@ -65,7 +65,7 @@ def set_timeranges(state, start_timestamp):
     """
     Takes in current state and start timestamp of current sync.
     from_timestamp is always either the end of the last sync or the initialSyncStart found in the config file.
-    If from_timestamp is more than 30 days ago, then set a to_timestamp that is 30 days later than from_timestamp.
+    If from_timestamp is more than __DAYS_PER_SYNC days ago, then set a to_timestamp that is __DAYS_PER_SYNC days later than from_timestamp.
     Otherwise, to_timestamp is the time that this sync was triggered.
     :param state:
     :param start_timestamp:
