@@ -14,6 +14,8 @@ import time
 
 application_id = <your_application_id>
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+DEFAULT_PAGE_SIZE = "100"
+INITIAL_SYNC_START_TIME = "2020-01-01T00:00:00.00Z"
 
 ## Add dictionaries to this list to sync new endpoints
 # table: The name of the table that will be created downstream in warehouse/lake
@@ -85,8 +87,8 @@ def update(configuration: dict, state: dict):
     # Extract constants from configuration.json and compose headers
     base_url = configuration.get("base_url")
     api_key = configuration.get("api_key")
-    page_size = int(configuration.get("page_size", "100"))
-    initial_start_time = configuration.get("initial_sync_start_time", "2020-01-01T00:00:00.00Z")
+    page_size = int(configuration.get("page_size", DEFAULT_PAGE_SIZE))
+    initial_start_time = configuration.get("initial_sync_start_time", INITIAL_SYNC_START_TIME)
 
     headers = {
         "Authorization": f"ManagementKey-v1 {api_key}",
@@ -167,7 +169,7 @@ connector = Connector(update=update, schema=schema)
 
 # Entry point for running the script
 if __name__ == "__main__":
-    with open("/configuration.json", 'r') as f:
+    with open("configuration.json", 'r') as f:
         configuration = json.load(f)
     connector.debug(configuration=configuration)
 
