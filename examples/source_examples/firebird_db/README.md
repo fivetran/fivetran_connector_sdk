@@ -74,7 +74,7 @@ table_list = [
 The connector requires the `firebirdsql` package for database connectivity:
 
 ```
-firebirdsql
+firebirdsql==1.3.4
 ```
 
 Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
