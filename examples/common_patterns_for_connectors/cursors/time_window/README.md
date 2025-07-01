@@ -37,38 +37,19 @@ This example does not require additional dependencies beyond the Fivetran Connec
 
 ## Authentication
 
-This example does not implement authentication as it's a demonstration of time window cursor logic. In a real implementation, you would add authentication mechanisms appropriate for your data source.
+This example does not implement authentication as it uses hard-coded values only.
 
 ## Pagination
 
-The connector implements time-based cursor pagination using the following approach:
-
-**Refer to lines 25-60 in the `update()` function:**
-
-1. **Time range calculation**: Determines the from/to timestamps for each sync chunk
-2. **Chunk processing**: Processes data within the calculated time window
-3. **State checkpointing**: Saves progress after each chunk to enable resumption
-4. **Forward progression**: Continues until reaching the current time
-
-**Refer to lines 62-85 in the `set_timeranges()` function:**
-
-- For initial syncs: Starts from `__INITIAL_SYNC_START` (2024-06-01)
-- For subsequent syncs: Resumes from the last checkpointed timestamp
-- Chunk size: Limited to `__DAYS_PER_SYNC` (30 days) for large historical datasets
-- Current time handling: Uses current sync time for recent data
+This connector does not implement traditional pagination (such as page-based or offset-based pagination). Instead, it uses time-based chunking to process data in configurable time windows, as described in the Connector overview section.
 
 ## Data handling
 
-**Refer to lines 45-50 in the `update()` function:**
+**Refer to the `update()` function:**
 
-The connector yields timestamp data to demonstrate the time window concept. In a real implementation, you would:
+The connector yields timestamp data to demonstrate the time window concept. 
 
-1. **API calls**: Make requests to your data source using the calculated time range
-2. **Data transformation**: Process and format the retrieved data
-3. **Schema mapping**: Map source data to your target table schema
-4. **Data delivery**: Yield upsert operations with the processed data
-
-**Refer to lines 87-100 in the `is_older_than_n_days()` function:**
+**Refer to the `is_older_than_n_days()` function:**
 
 The connector includes utility functions for timestamp handling:
 - Timezone-aware date comparisons
@@ -99,8 +80,6 @@ message: "from 2024-06-01T00:00:00.000Z to 2024-07-01T00:00:00.000Z"
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
 ### Key constants
-
-**Refer to lines 15-16:**
 
 - `__INITIAL_SYNC_START`: Starting timestamp for initial syncs (2024-06-01T00:00:00.000Z)
 - `__DAYS_PER_SYNC`: Maximum days per sync chunk (30)
