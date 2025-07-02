@@ -18,7 +18,7 @@ echo "Registering FreeTDS ODBC driver in /etc/odbcinst.ini..."
 cat <<EOF >> /etc/odbcinst.ini
 
 [FreeTDS]
-Description=FreeTDS ODBC Driver for Sybase IQ
+Description=FreeTDS ODBC Driver for Sybase ASE
 Driver=/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
 EOF
 

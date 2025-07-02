@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# This shows how to fetch data from Sybase IQ and upsert it to destination using FreeTDS driver and pyodbc.
+# This shows how to fetch data from Sybase ASE and upsert it to destination using FreeTDS driver and pyodbc.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -51,12 +51,12 @@ def schema(configuration: dict):
 
 def create_sybase_connection(configuration: dict):
     """
-    Create a connection to the Sybase IQ database using FreeTDS.
+    Create a connection to the Sybase ASE database using FreeTDS.
     This function reads the connection parameters from the provided configuration dictionary.
     Args:
         configuration (dict): A dictionary containing the connection parameters.
     Returns:
-        connection: A connection object to the Sybase IQ database.
+        connection: A connection object to the Sybase ASE database.
     """
     server = configuration.get("server")
     port = int(configuration.get("port"))
@@ -75,33 +75,33 @@ def create_sybase_connection(configuration: dict):
             "TDS_Version=5.0"
         )
         connection = pyodbc.connect(connection_str)
-        log.info("Connection to Sybase IQ established successfully.")
+        log.info("Connection to Sybase ASE established successfully.")
         return connection
     except Exception as e:
-        raise RuntimeError("Connection to Sybase IQ failed") from e
+        raise RuntimeError("Connection to Sybase ASE failed") from e
 
 
 def close_sybase_connection(connection, cursor):
     """
-    Close the connection to the Sybase IQ database.
+    Close the connection to the Sybase ASE database.
     Args:
-        connection: A connection object to the Sybase IQ database.
+        connection: A connection object to the Sybase ASE database.
     """
     if cursor:
         cursor.close()
         log.info("Cursor closed successfully.")
     if connection:
         connection.close()
-        log.info("Connection to Sybase IQ closed successfully.")
+        log.info("Connection to Sybase ASE closed successfully.")
 
 
 def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: int = 1000):
     """
-    Fetch data from the Sybase IQ database and upsert it into the destination table.
+    Fetch data from the Sybase ASE database and upsert it into the destination table.
     This function executes the provided SQL query, fetches data in batches, and performs upsert operations.
     It also updates the state with the last processed row based on the `created_date` timestamp.
     Args:
-        cursor: A cursor object to the Sybase IQ database.
+        cursor: A cursor object to the Sybase ASE database.
         query (str): The SQL query to execute for fetching data.
         table_name (str): The name of the destination table for upserting data.
         state (dict): A dictionary containing state information from previous runs.
@@ -110,7 +110,7 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
     # last_created is used to track the last processed row based on the created_date
     last_created = state.get("last_created", "1990-01-01T00:00:00")
 
-    # Execute the SQL query to fetch data from the Sybase IQ database
+    # Execute the SQL query to fetch data from the Sybase ASE database
     cursor.execute(query)
     # Fetch the column names from the cursor description
     # This is necessary to map the data to the correct columns in the upsert operation
@@ -166,7 +166,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Examples: Source Example: Sybase IQ")
+    log.warning("Examples: Source Example: Sybase ASE")
 
     # Validate the configuration
     validate_configuration(configuration=configuration)
@@ -176,17 +176,17 @@ def update(configuration: dict, state: dict):
 
     # Define the table name to fetch data from
     table_name = "customers"
-    # SQL query to fetch data from the Sybase IQ database
+    # SQL query to fetch data from the Sybase ASE database
     # Adjust the query to match your table structure and requirements
     # The order by clause ensures that the data is processed in the order of creation. This is important for incremental updates.
     query = f"SELECT * FROM {table_name} WHERE created_date > '{last_created}' ORDER BY created_date"
 
-    # Create a connection to the Sybase IQ database using the provided configuration
+    # Create a connection to the Sybase ASE database using the provided configuration
     connection = create_sybase_connection(configuration=configuration)
     # Create a cursor object to execute SQL queries
     cursor = connection.cursor()
 
-    # Fetch data from the Sybase IQ database and upsert it into the destination table
+    # Fetch data from the Sybase ASE database and upsert it into the destination table
     yield from fetch_and_upsert(
         cursor=cursor,
         query=query,
@@ -195,7 +195,7 @@ def update(configuration: dict, state: dict):
         batch_size=1000
     )
 
-    # Close the cursor and connection to the Sybase IQ database
+    # Close the cursor and connection to the Sybase ASE database
     close_sybase_connection(connection=connection, cursor=cursor)
 
 

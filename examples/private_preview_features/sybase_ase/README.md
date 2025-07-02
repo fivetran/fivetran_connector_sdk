@@ -1,8 +1,8 @@
-# Sybase IQ Connector Example
+# Sybase ASE Connector Example
 
 ## Connector overview
 
-This connector extracts data from a Sybase IQ database using the `FreeTDS` driver and `PyODBC`. The connector demonstrates how to establish a connection to a Sybase IQ database, execute SQL queries to fetch data in batches, and efficiently upsert this data into Fivetran's destination. This example also shows how to sync the data incrementally by tracking the last synced timestamp and using it to filter new or updated records.
+This connector extracts data from a Sybase ASE database using the `FreeTDS` driver and `PyODBC`. The connector demonstrates how to establish a connection to a Sybase ASE database, execute SQL queries to fetch data in batches, and efficiently upsert this data into Fivetran's destination. This example also shows how to sync the data incrementally by tracking the last synced timestamp and using it to filter new or updated records.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-- Connects to Sybase IQ database using `FreeTDS` and `PyODBC`
+- Connects to Sybase ASE database using `FreeTDS` and `PyODBC`
 - Implements incremental updates based on record creation date
 - Processes data in batches to optimize memory usage
 - Validates configuration parameters before attempting connections
@@ -30,11 +30,11 @@ The connector requires the following configuration parameters:
 
 ```json
 {
-  "server": "<YOUR_SYBASE_IQ_SERVER>",
-  "port": "<YOUR_SYBASE_IQ_PORT>",
-  "database": "<YOUR_SYBASE_IQ_DATABASE>",
-  "user_id": "<YOUR_SYBASE_IQ_USER_ID>",
-  "password": "<YOUR_SYBASE_IQ_PASSWORD>"
+  "server": "<YOUR_SYBASE_ASE_SERVER>",
+  "port": "<YOUR_SYBASE_ASE_PORT>",
+  "database": "<YOUR_SYBASE_ASE_DATABASE>",
+  "user_id": "<YOUR_SYBASE_ASE_USER_ID>",
+  "password": "<YOUR_SYBASE_ASE_PASSWORD>"
 }
 ```
 
@@ -42,7 +42,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-This connector requires the `PyODBC` library to connect to Sybase IQ databases.
+This connector requires the `PyODBC` library to connect to Sybase ASE databases.
 
 ```
 pyodbc==5.2.0
@@ -52,9 +52,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector uses basic database authentication with a `username` and `password`. These credentials are specified in the configuration file and used to establish a connection to the Sybase IQ database.
+The connector uses basic database authentication with a `username` and `password`. These credentials are specified in the configuration file and used to establish a connection to the Sybase ASE database.
 
-To obtain credentials for your Sybase IQ database:
+To obtain credentials for your Sybase ASE database:
 
 1. Contact your database administrator for the relevant access credentials.
 2. Ensure your database user has appropriate read permissions to the required tables.
@@ -107,7 +107,7 @@ This connector replicates the `customer` table which contains customer informati
 
 This connector includes the following additional files:
 
-- `drivers/installation.sh` : This script installs the `FreeTDS` driver required for connecting to Sybase IQ database.
+- `drivers/installation.sh` : This script installs the `FreeTDS` driver required for connecting to Sybase ASE database.
 
 ## Additional considerations
 
