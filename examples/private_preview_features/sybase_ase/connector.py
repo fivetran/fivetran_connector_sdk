@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Logging as log # For enabling Logs in your co
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # Import required libraries
-import pyodbc # For connecting to Sybase IQ using FreeTDS
+import pyodbc # For connecting to Sybase ASE using FreeTDS
 import json
 import datetime
 
@@ -39,11 +39,12 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "customers", # Name of the table in the destination, required.
-            "primary_key": ["customer_id"], # Primary key column(s) for the table, optional.
+            "table": "sales", # Name of the table in the destination, required.
+            "primary_key": ["stor_id"], # Primary key column(s) for the table, optional.
             "columns":{ # Definition of columns and their types, optional.
-                "customer_id": "INT",# Contains a dictionary of column names and data types
-                "created_date": "NAIVE_DATE"
+                "stor_id": "STRING",# Contains a dictionary of column names and data types
+                "ord_num": "STRING",
+                "created_date": "NAIVE_DATETIME"
             }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
@@ -108,7 +109,7 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         batch_size (int): The number of rows to fetch in each batch.
     """
     # last_created is used to track the last processed row based on the created_date
-    last_created = state.get("last_created", "1990-01-01T00:00:00")
+    last_created = state.get("last_created", "1970-01-01T00:00:00")
 
     # Execute the SQL query to fetch data from the Sybase ASE database
     cursor.execute(query)
@@ -128,8 +129,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
             # Ensure created_date is in ISO format if it exists
-            if row_data['created_date'] and isinstance(row_data['created_date'], datetime.date):
-                row_data['created_date'] = row_data['created_date'].isoformat()
+            if row_data['date'] and isinstance(row_data['date'], datetime.date):
+                row_data['date'] = row_data['date'].isoformat()
 
             # The yield statement yields a value from generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
@@ -139,8 +140,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             yield op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
-            if row_data['created_date'] and row_data['created_date'] > last_created:
-                last_created = row_data['created_date']
+            if row_data['date'] and row_data['date'] > last_created:
+                last_created = row_data['date']
 
         # Update the state with the last_created timestamp after processing each batch
         state["last_created"] = last_created
@@ -172,14 +173,14 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration=configuration)
 
     # last_created is used to track the last processed row based on the created_date
-    last_created = state.get("last_created", "1990-01-01T00:00:00")
+    last_created = state.get("last_created", "1970-01-01T00:00:00")
 
     # Define the table name to fetch data from
-    table_name = "customers"
+    table_name = "sales"
     # SQL query to fetch data from the Sybase ASE database
     # Adjust the query to match your table structure and requirements
     # The order by clause ensures that the data is processed in the order of creation. This is important for incremental updates.
-    query = f"SELECT * FROM {table_name} WHERE created_date > '{last_created}' ORDER BY created_date"
+    query = f"SELECT * FROM  {table_name} where date > '{last_created}' ORDER BY date"
 
     # Create a connection to the Sybase ASE database using the provided configuration
     connection = create_sybase_connection(configuration=configuration)

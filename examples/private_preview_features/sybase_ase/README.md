@@ -77,8 +77,8 @@ Refer to the `fetch_and_upsert()` function, specifically the `cursor.fetchmany(b
 
 The connector processes data as follows:
 
-1. Defines a schema for the `customers` table with specific data types.
-2. Fetches data incrementally based on the `created_date` field.
+1. Defines a schema for the `sales` table with specific data types.
+2. Fetches data incrementally based on the `date` field.
 3. Processes data in configurable batch sizes (default: 1000 rows). This prevents memory overflow errors when syncing large datasets.
 4. Uses checkpoints to save progress during synchronization. This allows the connector to resume from the last synced record in case of interruptions.
 
