@@ -94,18 +94,16 @@ The connector implements error handling in several key areas:
 
 ## Tables created
 
-This connector replicates the `customer` table which contains customer information with the following schema:
+This connector replicates the `sales` table which contains sales information with the following schema:
 
 - `customer_id` (INT) - Primary key
-- `created_date` (NAIVE_DATE) - Date when the customer was created
-- `first_name` (STRING) - Customer's first name
-- `last_name` (STRING) - Customer's last name
-- `email` (STRING) - Customer's email address
-- `status` (STRING) - Customer's status (e.g., active, inactive)
+- `date` (NAIVE_DATE) - Date when the customer was created
+- `stor_id` (STRING) - Customer's first name
+- `ord_num` (STRING) - Customer's last name
 
 ## Additional files
 
-This connector includes the following additional files:
+This connector includes the following additional files (Do check with Support team to enable access to Custom Drivers):
 
 - `drivers/installation.sh` : This script installs the `FreeTDS` driver required for connecting to Sybase ASE database.
 

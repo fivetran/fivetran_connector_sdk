@@ -44,7 +44,7 @@ def schema(configuration: dict):
             "columns":{ # Definition of columns and their types, optional.
                 "stor_id": "STRING",# Contains a dictionary of column names and data types
                 "ord_num": "STRING",
-                "created_date": "NAIVE_DATETIME"
+                "date": "NAIVE_DATETIME"
             }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
@@ -210,7 +210,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     try:
         # Open the configuration.json file and load its contents
-        with open("configuration.json", 'r') as f:
+        with open("conf.json", 'r') as f:
             configuration = json.load(f)
     except FileNotFoundError:
         log.info("Using empty configuration!")
