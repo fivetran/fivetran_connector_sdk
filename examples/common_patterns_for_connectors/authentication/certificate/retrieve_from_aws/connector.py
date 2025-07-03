@@ -93,6 +93,22 @@ def get_data_with_certificate(base_url: str, cert_path: str, passkey: str):
         if cert_path:
             os.unlink(cert_path)
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["AWS_ACCESS_KEY_ID", "AWS_ACCESS_SECRET_KEY", "PASSKEY", "BUCKET_NAME", "OBJECT_KEY", "REGION"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -105,6 +121,8 @@ def update(configuration: dict, state: dict):
     log.info("Example: Using certificates for API authentication")
 
     last_index = state['last_index'] if 'last_index' in state else -1
+
+    validate_configuration(configuration)
 
     cert_path = get_certificates(configuration)
     passkey = configuration["PASSKEY"]

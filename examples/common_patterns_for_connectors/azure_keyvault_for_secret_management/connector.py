@@ -146,6 +146,13 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Azure Key Vault For Secret Management")
 
+    # Check if the required fields are present in the configuration
+    # These fields are necessary for connecting to the Azure Key Vault
+    required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
+    for field in required_fields:
+        if field not in configuration:
+            raise ValueError(f"Missing required configuration: {field}")
+
     # Fetch database credentials from vault
     db_config = fetch_secrets_from_vault(configuration)
 

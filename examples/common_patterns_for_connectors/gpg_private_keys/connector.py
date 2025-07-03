@@ -56,6 +56,21 @@ def sign_message(configuration, gpg, key, message):
     # return the signed message
     return signed_message.data
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["private_key", "passphrase"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -83,6 +98,7 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Pattern for Connectors Examples - GPG Private Keys")
 
+    validate_configuration(configuration)
     # Initialize the GPG object
     # You can pass the gnupghome parameter to the GPG object if you want to use a different directory for GPG keys.
     # for example, gnupg.GPG(gnupghome="/path/to/your/custom/gnupg/home")

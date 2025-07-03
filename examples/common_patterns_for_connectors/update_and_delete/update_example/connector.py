@@ -12,7 +12,7 @@ from fivetran_connector_sdk import Connector # For supporting Connector operatio
 from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
 from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
-
+cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
 # Define the PostgresClient class to handle database operations.
 class PostgresClient:
     def __init__(self, config):
@@ -69,7 +69,6 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     # Check if the credentials for connecting to database are present in the configuration.
-    cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
     for key in cred:
         if key not in configuration:
              raise ValueError(f"Missing required configuration: {key}")
@@ -94,6 +93,9 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Update Example with composite primary key")
+    for key in cred:
+        if key not in configuration:
+             raise ValueError(f"Missing required configuration: {key}")
     conn = PostgresClient(configuration)
 
     # IMPORTANT: This connector requires the following prerequisites in your PostgreSQL database:
