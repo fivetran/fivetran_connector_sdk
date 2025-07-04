@@ -52,6 +52,7 @@ def update(configuration: dict, state: dict):
     print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
           "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
     base_url = "http://127.0.0.1:5001/auth/api_key"
+    random = "random_testing"
 
     yield from sync_items(base_url, {}, state, configuration)
 
