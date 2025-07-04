@@ -183,7 +183,7 @@ def update(configuration: dict, state: dict):
                         "last_name": row[2],  # Last Name.
                         "hire_date": dt2str(row[3]),  # Hire Date.
                         "salary": row[4],  # Salary.
-                        "updated_time": row[5]  # Salary.
+                        "updated_time": row[5].isoformat()  # Salary.
                     }
                 )
                 if row[5]>last_query_dt:
