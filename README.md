@@ -166,6 +166,9 @@ There are several examples available under `/examples`:
 
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 
+- **[oop_example](/examples/quickstart_examples/oop_example)**
+  - This example shows the object-oriented programming approach while building the connector for National Parks Service API.
+
 </details>
 
 <details open>
