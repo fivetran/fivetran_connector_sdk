@@ -66,11 +66,23 @@ jobs:
               issue_present = False
           else:
               issue_present = True
+              print("⚠️ **Flake8 has detected the following issues:**")
+              print()
+              count = 0
               print("```")
               for line in lines:
                   print(line)
+                  count+=1
+                  
+                  if count % 3 == 0:
+                    print()
+                    
               print("```")
-              print("\n_This comment is auto-updated with every commit._")
+              print()
+              print("📌 _Only Python files changed in this PR were checked._")
+              print("Please fix the issues above before merging.")
+              print()
+              print("_This comment is auto-updated with every commit._")
 
           # Write to report artifact
           with open("python_code_quality_check_report.txt", "w") as report:
