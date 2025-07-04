@@ -17,14 +17,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install base dependencies
-        run: pip install pylint requests fivetran-connector-sdk
+      - name: Install dependencies
+        run: |
+          pip install flake8 requests fivetran-connector-sdk
 
-      - name: Get changed Python files and install local requirements
-        id: get_changed
+      - name: Detect changed Python files
+        id: detect_changes
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
+
           curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
             | jq -r '.[] | .filename' > all_files.txt
@@ -34,85 +36,74 @@ jobs:
           if [[ ! -s changed_files.txt ]]; then
             echo "No Python files changed."
             echo "SKIP=true" >> $GITHUB_ENV
-            exit 0
           else
             echo "SKIP=false" >> $GITHUB_ENV
             echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
-
-            touch requirements_paths.txt
-            while read -r file; do
-              dir=$(dirname "$file")
-              while [[ "$dir" != "." && "$dir" != "/" ]]; do
-                req_path="$dir/requirements.txt"
-                if [[ -f "$req_path" ]]; then
-                  echo "$req_path" >> requirements_paths.txt
-                  break
-                fi
-                dir=$(dirname "$dir")
-              done
-            done < changed_files.txt
-
-            sort -u requirements_paths.txt > unique_reqs.txt
-            while read -r req; do
-              echo "Installing dependencies from $req..."
-              pip install -r "$req" || echo "Failed to install from $req"
-            done < unique_reqs.txt
           fi
 
-      - name: Run pylint on changed files
+      - name: Run Flake8 on changed files
         if: env.SKIP != 'true'
         run: |
-          pylint --output-format=json $CHANGED > pylint_output.json || true
+          echo "Running flake8 on: $CHANGED"
+          flake8 --format=json $CHANGED > flake8_output.json || true
 
-      - name: Fail if too many issues
+      - name: Count issues
         if: env.SKIP != 'true'
         run: |
           python3 <<EOF
           import json
-          with open("pylint_output.json") as f:
-              messages = json.load(f)
-          count = len(messages)
-          print(f"Pylint issues found: {count}")
+          with open("flake8_output.json") as f:
+              data = json.load(f)
+          count = sum(len(issues) for issues in data.values())
+          print(f"Flake8 issues found: {count}")
+          with open(os.environ['GITHUB_ENV'], 'a') as envf:
+              envf.write(f"FLAKE8_ISSUE_COUNT={count}\n")
           EOF
 
-      - name: Format pylint results as Markdown (max 15 lines)
+      - name: Format summary (top 15 issues)
+        if: env.SKIP != 'true'
         run: |
-          python3 <<EOF > pylint_summary.md
-          import json
-          import os
+          python3 <<'EOF' > flake8_summary.md
+          import json, os, itertools
 
           try:
-            with open("pylint_output.json") as f:
-                messages = json.load(f)
+              with open("flake8_output.json") as f:
+                  data = json.load(f)
           except (FileNotFoundError, json.JSONDecodeError):
-            messages = []
+              data = {}
 
-          count = len(messages)
-          with open(os.environ['GITHUB_ENV'], 'a') as env_file:
-            env_file.write(f"PYLINT_ISSUE_COUNT={count}\n")
+          messages = [
+              {
+                  "file": path,
+                  "line": issue["line_number"],
+                  "code": issue["code"],
+                  "text": issue["text"]
+              }
+              for path, issues in data.items()
+              for issue in issues
+          ]
 
           print("### 🧹 Python Code Quality Check\n")
 
           if not messages:
-              print("✅ No issues detected by pylint.")
+              print("✅ No Flake8 issues found.")
           else:
-              print("| File | Line | Type | Message |")
+              print("| File | Line | Code | Message |")
               print("|------|------|------|---------|")
-              for msg in messages[:15]:
-                  line = f"| {msg['path']} | {msg['line']} | {msg['type']} | {msg['message'].replace('|', ' ')} |"
-                  print(line)
+              for msg in itertools.islice(messages, 15):
+                  print(f"| {msg['file']} | {msg['line']} | {msg['code']} | {msg['text'].replace('|', ' ')} |")
 
               if len(messages) > 15:
                   run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-                  print(f"\nOnly first 15 code issues shown. Download full report from 📎 [artifacts]({run_url}).")                  
-                  print("\n_This comment is auto-updated with every commit._")
+                  print(f"\nOnly first 15 issues shown. Download full report from 📎 [artifacts]({run_url}).")
+              print("\n_This comment is auto-updated with every commit._")
 
-              with open("python_code_quality_check_report.txt", "w") as txt:
-                for msg in messages:
-                    txt.write(f"{msg['path']}:{msg['line']} [{msg['type']}] {msg['message']}\n")
+          with open("python_code_quality_check_report.txt", "w") as txt:
+              for msg in messages:
+                  txt.write(f"{msg['file']}:{msg['line']} [{msg['code']}] {msg['text']}\n")
           EOF
 
-      - name: Upload full pylint report
+      - name: Upload full report
         if: env.SKIP != 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -132,14 +123,14 @@ jobs:
         with:
           comment-id: ${{ steps.find.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body-path: pylint_summary.md
+          body-path: flake8_summary.md
           edit-mode: replace
-          
-      - name: Fail job if too many pylint issues
+
+      - name: Fail if too many Flake8 issues
         if: env.SKIP != 'true'
         run: |
-          echo "PYLINT_ISSUE_COUNT = $PYLINT_ISSUE_COUNT"
-          if [ "$PYLINT_ISSUE_COUNT" -gt 10 ]; then
-            echo "❌ Too many code issues ($PYLINT_ISSUE_COUNT). Please fix them before merging."
+          echo "Total flake8 issues: $FLAKE8_ISSUE_COUNT"
+          if [ "$FLAKE8_ISSUE_COUNT" -gt 10 ]; then
+            echo "❌ Too many issues ($FLAKE8_ISSUE_COUNT). Please fix them before merging."
             exit 1
           fi
