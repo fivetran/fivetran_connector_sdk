@@ -35,18 +35,6 @@ The connector expects a `configuration.json` file with the following structure:
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Requirements file
-
-The `requirements.txt` file specifies any additional Python libraries required by the connector. For this example, the following libraries are required:
-
-*Example content of `requirements.txt`:*
-
-```
-requests
-```
-
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
 ## Authentication
 
 The connector uses OAuth2 client credentials flow to authenticate with Microsoft Graph API. You will need to provide your Azure tenant ID, client ID, and client secret in the `configuration.json` file. The connector retrieves an access token using these credentials (see `get_access_token` function in `test.py`).

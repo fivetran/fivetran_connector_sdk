@@ -10,10 +10,13 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 import requests
+import time
 import json
 
 # Define base URL for Microsoft graph API
-base_url = "https://graph.microsoft.com/v1.0/"
+BASE_URL = "https://graph.microsoft.com/v1.0/"
+#Max Retries to call on the API
+MAX_RETRIES = 3
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -43,10 +46,10 @@ def get_access_token(tenant_id, client_id, client_secret):
     # Check the response
     if response.status_code == 200:
         access_token = response.json().get("access_token")
+        return access_token
     else:
         log.severe(f"Error: {response.status_code} - {response.text}")
-
-    return access_token
+        raise RuntimeError("Unable to fetch access_token")
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -58,7 +61,7 @@ def get_access_token(tenant_id, client_id, client_secret):
 def update(configuration: dict, state: dict):
 
     # Retrieve secrets from configuration.json and call Auth endpoint to get access token
-    tenant_id = configuration.get('tenant_id')
+    tenant_id = configuration.get('tenant_id') 
     client_id = configuration.get('client_id')
     client_secret = configuration.get('client_secret')
 
@@ -71,16 +74,32 @@ def update(configuration: dict, state: dict):
     }
 
     # Define Managed Devices endpoint
-    devices_url = f"{base_url}deviceManagement/managedDevices"
+    devices_url = f"{BASE_URL}deviceManagement/managedDevices"
     
-    # Set Boolean to handle pagination and loop through pages
+     # Set Boolean to handle pagination and loop through pages
     more_devices = True
     while more_devices:
 
-        # Call API and retrieve JSON response
-        print(f"Calling API: {devices_url}")
-        response = requests.get(devices_url, headers=headers)
-        response.raise_for_status()
+        # Initialize retry counter
+        retry_count = 0
+        while retry_count <= MAX_RETRIES:
+            try:
+                # Call API and retrieve JSON response
+                log.info(f"Calling API: {devices_url} (Attempt {retry_count + 1})")
+                response = requests.get(devices_url, headers=headers)
+                response.raise_for_status()
+                break  # successful call, exit retry loop
+            except requests.RequestException as e:
+                log.warning(f"Request failed: {e}")
+                retry_count += 1
+                if retry_count > MAX_RETRIES:
+                    log.error("Max retries reached. Exiting.")
+                    raise
+                sleep_time = MAX_RETRIES ** retry_count
+                log.info(f"Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+
+        # Parse API response
         response_page = response.json()
 
         # Define Next Page Link and Count of records from API response
@@ -98,7 +117,6 @@ def update(configuration: dict, state: dict):
             devices_url = next_page
         else:
             more_devices = False
-
 
 # Converts any list values in the input dictionary to JSON strings.
 # The function takes one parameter

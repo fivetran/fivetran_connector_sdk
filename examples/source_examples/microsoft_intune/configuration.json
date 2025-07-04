@@ -1,5 +1,5 @@
 {
-    "tenant_id": "<your_tenant_id>",
-    "client_id": "<your_client_id>",
-    "client_secret": "<your_client_secret>"
+    "tenant_id": "<YOUR_TENANT_ID>",
+    "client_id": "<YOUR_CLIENT_ID>",
+    "client_secret": "<YOUR_CLIENT_SECRET>"
 }
