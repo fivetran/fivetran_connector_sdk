@@ -73,7 +73,7 @@ jobs:
 
           with open("python_code_quality_check_report.txt", "w") as txt:
               for line in data:
-                  txt.write(data)
+                  txt.write(line)
           EOF
 
       - name: Upload full report
