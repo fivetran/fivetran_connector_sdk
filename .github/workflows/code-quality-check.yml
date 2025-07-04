@@ -47,33 +47,38 @@ jobs:
           echo "Running flake8 on: $CHANGED"
           flake8 $CHANGED > flake8_output.txt || true
 
-      - name: Format summary (top 15 issues)
+      - name: Format Flake8 results as PR comment
         if: env.SKIP != 'true'
         run: |
           python3 <<'EOF' > flake8_summary.md
-          import json, os, itertools
+          import os
 
           try:
               with open("flake8_output.txt") as f:
-                  data = f.read().splitlines()
-          except (FileNotFoundError, json.JSONDecodeError):
-              data = {}
+                  lines = f.read().splitlines()
+          except FileNotFoundError:
+              lines = []
 
           print("### 🧹 Python Code Quality Check\n")
 
-          if not data:
+          if not lines:
               print("✅ No Flake8 issues found.")
+              issue_present = False
           else:
-              with open(os.environ['GITHUB_ENV'], 'a') as envf:
-                  envf.write(f"FLAKE8_ISSUE_PRESENT=True\n")
-              for line in data:
+              issue_present = True
+              print("```")
+              for line in lines:
                   print(line)
-          
+              print("```")
               print("\n_This comment is auto-updated with every commit._")
 
-          with open("python_code_quality_check_report.txt", "w") as txt:
-              for line in data:
-                  txt.write(line)
+          # Write to report artifact
+          with open("python_code_quality_check_report.txt", "w") as report:
+              report.writelines(line + "\n" for line in lines)
+
+          # Export environment variable
+          with open(os.environ["GITHUB_ENV"], "a") as envf:
+              envf.write(f"FLAKE8_ISSUE_PRESENT={'true' if issue_present else 'false'}\n")
           EOF
 
       - name: Upload full report
@@ -99,11 +104,10 @@ jobs:
           body-path: flake8_summary.md
           edit-mode: replace
 
-      - name: Fail if too many Flake8 issues
+      - name: Fail if Flake8 issues found
         if: env.SKIP != 'true'
         run: |
-          echo "Total flake8 issues: $FLAKE8_ISSUE_COUNT"
-          if [ "$FLAKE8_ISSUE_COUNT" == 'True' ]; then
-            echo "❌ Issues found in the code. Please fix them before merging."
+          if [ "$FLAKE8_ISSUE_PRESENT" == "true" ]; then
+            echo "❌ Flake8 issues detected. Please fix them before merging."
             exit 1
           fi
