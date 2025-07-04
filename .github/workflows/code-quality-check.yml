@@ -1,0 +1,125 @@
+name: Python Code Quality Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install flake8 requests fivetran-connector-sdk
+
+      - name: Detect changed Python files
+        id: detect_changes
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            | jq -r '.[] | .filename' > all_files.txt
+
+          grep '\.py$' all_files.txt > changed_files.txt || true
+
+          if [[ ! -s changed_files.txt ]]; then
+            echo "No Python files changed."
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "SKIP=false" >> $GITHUB_ENV
+            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+          fi
+
+      - name: Run Flake8 on changed files
+        if: env.SKIP != 'true'
+        run: |
+          echo "Running flake8 on: $CHANGED"
+          flake8 $CHANGED > flake8_output.txt || true
+
+      - name: Format Flake8 results as PR comment
+        if: env.SKIP != 'true'
+        run: |
+          python3 <<'EOF' > flake8_summary.md
+          import os
+
+          try:
+              with open("flake8_output.txt") as f:
+                  lines = f.read().splitlines()
+          except FileNotFoundError:
+              lines = []
+
+          print("### 🧹 Python Code Quality Check\n")
+
+          if not lines:
+              print("✅ No Flake8 issues found.")
+              issue_present = False
+          else:
+              issue_present = True
+              print("⚠️ **Flake8 has detected the following issues:**")
+              print()
+              count = 0
+              print("```")
+              for line in lines:
+                  print(line)
+                  count+=1
+                  
+                  if count % 3 == 0:
+                    print()
+                    
+              print("```")
+              print()
+              print("📌 _Only Python files changed in this PR were checked._")
+              print("Please fix the issues above before merging.")
+              print()
+              print("_This comment is auto-updated with every commit._")
+
+          # Write to report artifact
+          with open("python_code_quality_check_report.txt", "w") as report:
+              report.writelines(line + "\n" for line in lines)
+
+          # Export environment variable
+          with open(os.environ["GITHUB_ENV"], "a") as envf:
+              envf.write(f"FLAKE8_ISSUE_PRESENT={'true' if issue_present else 'false'}\n")
+          EOF
+
+      - name: Upload full report
+        if: env.SKIP != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-code-quality-report
+          path: python_code_quality_check_report.txt
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: "### 🧹 Python Code Quality Check"
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: flake8_summary.md
+          edit-mode: replace
+
+      - name: Fail if Flake8 issues found
+        if: env.SKIP != 'true'
+        run: |
+          if [ "$FLAKE8_ISSUE_PRESENT" == "true" ]; then
+            echo "❌ Flake8 issues detected. Please fix them before merging."
+            exit 1
+          fi
