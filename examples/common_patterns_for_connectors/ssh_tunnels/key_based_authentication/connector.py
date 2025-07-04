@@ -66,6 +66,24 @@ def sync_items(params, state, configuration):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["ssh_host", "ssh_user", "api_key", "ssh_private_key", "ssh_key_passphrase"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 # The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
 # 1. Reads SSH connection details and private key from the configuration.
@@ -132,6 +150,7 @@ def get_api_response(params, headers, configuration):
 # - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
 # The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    validate_configuration(configuration)
     yield from sync_items({}, state, configuration)
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

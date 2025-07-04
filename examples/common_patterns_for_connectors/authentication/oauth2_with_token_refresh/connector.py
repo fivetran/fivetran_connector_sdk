@@ -106,6 +106,22 @@ def sync_companies(configuration, cursor, state):
         for company in data["companies"]:
             yield op.upsert("companies", process_record(company))
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["refresh_token", "client_secret", "client_id"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -114,6 +130,7 @@ def sync_companies(configuration, cursor, state):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    validate_configuration(configuration)
     curr_time = time.time()
 
     # Retrieve the cursor from the state to determine the current position in the data sync.

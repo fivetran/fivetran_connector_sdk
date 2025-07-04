@@ -47,6 +47,7 @@ def schema(configuration : dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration : dict, state : dict):
+    validate_configuration(configuration)
     try:
         host = configuration.get("host")
         database = configuration.get("database")
@@ -61,6 +62,23 @@ def update(configuration : dict, state : dict):
         yield op.checkpoint(state)
     except Exception as e:
         log.severe(f"An error occurred: {e}")
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["host", "database", "user", "password", "port", "table_name"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def read_postgres_and_upsert(host, database, user, password, port, table_name):
