@@ -11,4 +11,4 @@ Closes `<ADD TICKET LINK HERE, EACH PR MUST BE LINKED TO A HEIGHT TICKET>`
 Some tips and links to help validate your PR:
 
 - [ ] Tested the connector with `fivetran debug` command.
-- [ ] Added/Updated example specific README.md file, [refer here](https://github.com/fivetran/fivetran_connector_sdk/tree/main/README_template.md) for template.
+- [ ] Added/Updated example specific README.md file, [refer here](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector/README_template.md) for template.
