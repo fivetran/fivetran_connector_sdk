@@ -75,7 +75,8 @@ jobs:
               print(f"\n📎 [Download full report from workflow artifacts]({run_url}).")  
               print()
               print("📌 _Only Python files changed in this PR were checked._")
-              print("\n_This comment is auto-updated with every commit._")
+          
+          print("\n_This comment is auto-updated with every commit._")
 
           # Export environment variable
           with open(os.environ["GITHUB_ENV"], "a") as envf:
