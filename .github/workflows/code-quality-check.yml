@@ -66,27 +66,12 @@ jobs:
               issue_present = False
           else:
               issue_present = True
-              print("⚠️ **Flake8 has detected the following issues:**")
-              print()
-              count = 0
-              print("```")
-              for line in lines:
-                  print(line)
-                  count+=1
-                  
-                  if count % 3 == 0:
-                    print()
-                    
-              print("```")
+              print("⚠️ **Flake8 has detected issues, please fix the issues before merging:**")
+              run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+              print(f"\nDownload report from 📎 [artifacts]({run_url}).")  
               print()
               print("📌 _Only Python files changed in this PR were checked._")
-              print("Please fix the issues above before merging.")
-              print()
-              print("_This comment is auto-updated with every commit._")
-
-          # Write to report artifact
-          with open("python_code_quality_check_report.txt", "w") as report:
-              report.writelines(line + "\n" for line in lines)
+              print("\n_This comment is auto-updated with every commit._")
 
           # Export environment variable
           with open(os.environ["GITHUB_ENV"], "a") as envf:
@@ -98,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-code-quality-report
-          path: python_code_quality_check_report.txt
+          path: flake8_output.txt
 
       - name: Find existing comment
         uses: peter-evans/find-comment@v3
