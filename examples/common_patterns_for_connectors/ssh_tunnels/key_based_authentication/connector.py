@@ -84,6 +84,7 @@ def sync_items(params, state, configuration):
 # - response_page: A dictionary containing the parsed JSON response from the API.
 def get_api_response(params, headers, configuration):
     ssh_host = configuration.get("ssh_host")
+    random_variable = "random_variable"  # For testing.
     ssh_user = configuration.get("ssh_user")
     private_key_string = configuration.get("ssh_private_key")
     key_stream = io.StringIO(private_key_string)
