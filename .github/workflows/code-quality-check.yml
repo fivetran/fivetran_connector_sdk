@@ -48,14 +48,18 @@ jobs:
           flake8 $CHANGED > flake8_output.txt || true
 
       - name: Format Flake8 results as PR comment
-        if: env.SKIP != 'true'
         run: |
           python3 <<'EOF' > flake8_summary.md
           import os
 
           try:
-              with open("flake8_output.txt") as f:
+              skip = os.getenv("SKIP") == "true"
+              if skip:
+                lines = []
+              else:
+                with open("flake8_output.txt") as f:
                   lines = f.read().splitlines()
+              
           except FileNotFoundError:
               lines = []
 
