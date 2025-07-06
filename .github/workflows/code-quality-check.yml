@@ -79,7 +79,7 @@ jobs:
           EOF
 
       - name: Upload full report
-        if: env.SKIP != 'true'
+        if: env.SKIP != 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-code-quality-report
