@@ -68,7 +68,7 @@ jobs:
               issue_present = True
               print("⚠️ **Flake8 has detected issues, please fix the issues before merging:**")
               run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-              print(f"\nDownload report from 📎 [artifacts]({run_url}).")  
+              print(f"\n📎 [Download full report from workflow artifacts]({run_url}).")  
               print()
               print("📌 _Only Python files changed in this PR were checked._")
               print("\n_This comment is auto-updated with every commit._")
