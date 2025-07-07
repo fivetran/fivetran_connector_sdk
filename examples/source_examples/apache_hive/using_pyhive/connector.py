@@ -11,11 +11,13 @@ from fivetran_connector_sdk import Logging as log
 # Import the required libraries
 import json
 from datetime import datetime, timezone
+
 # Import the Apache hive modules
 from pyhive import hive
 
 # Define the table name
 TABLE_NAME = "people"
+
 
 def create_hive_connection(configuration: dict):
     """
@@ -26,14 +28,16 @@ def create_hive_connection(configuration: dict):
     Returns:
         connection: an Apache Hive connection object
     """
-    host= configuration.get("hostname")
-    port= int(configuration.get("port"))
-    username=configuration.get("username")
-    password=configuration.get("password")
+    host = configuration.get("hostname")
+    port = int(configuration.get("port"))
+    username = configuration.get("username")
+    password = configuration.get("password")
 
     try:
         # You can modify the connection parameters based on your Apache Hive setup here.
-        connection = hive.Connection(host=host, port=port, username=username, password=password, auth='CUSTOM')
+        connection = hive.Connection(
+            host=host, port=port, username=username, password=password, auth="CUSTOM"
+        )
         log.info(f"Connected to Apache Hive at {host}:{port} as user {username}")
         return connection
     except Exception:
@@ -72,11 +76,11 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
         batch_size: number of records to fetch in each batch
     """
     # Get the last created timestamp from the state for incremental sync.
-    last_created = state.get('last_created', '1990-01-01T00:00:00Z')
+    last_created = state.get("last_created", "1990-01-01T00:00:00Z")
 
     # Convert ISO format to Hive-compatible timestamp format
     # Remove 'Z' and 'T' to make it compatible with Hive timestamp format
-    hive_timestamp = last_created.replace('T', ' ').replace('Z', '')
+    hive_timestamp = last_created.replace("T", " ").replace("Z", "")
 
     # Execute the query to fetch data.
     # You can modify the query to suit your needs.
@@ -85,7 +89,7 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
     cursor.execute(hive_query, (hive_timestamp,))
 
     # Get column names from the cursor description
-    columns = [desc[0].split('.')[-1] for desc in cursor.description]
+    columns = [desc[0].split(".")[-1] for desc in cursor.description]
 
     # upsert the data into the destination table in batches
     # The batch size can be adjusted based on your requirements
@@ -105,15 +109,13 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
 
             # Update the last_created state with the maximum created_at value.
             # This is used to track the last created record for incremental sync.
-            if row_data.get('created_at') and row_data['created_at'] > last_created:
-                last_created = row_data['created_at']
+            if row_data.get("created_at") and row_data["created_at"] > last_created:
+                last_created = row_data["created_at"]
 
         # Update the state with the last created timestamp
         # The checkpoint method will be called after processing each batch of rows.
         # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
-        new_state = {
-            'last_created': last_created
-        }
+        new_state = {"last_created": last_created}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -129,7 +131,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration value is missing
     """
-    required_keys = ['hostname', 'username', 'password', 'port', 'database']
+    required_keys = ["hostname", "username", "password", "port", "database"]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -148,12 +150,7 @@ def schema(configuration: dict):
         {
             "table": TABLE_NAME,
             "primary_key": ["id"],
-            "columns": {
-                "id": "INT",
-                "name": "STRING",
-                "age": "INT",
-                "created_at": "UTC_DATETIME"
-            },
+            "columns": {"id": "INT", "name": "STRING", "age": "INT", "created_at": "UTC_DATETIME"},
         }
     ]
 
@@ -197,7 +194,9 @@ def update(configuration, state):
     # The table should be created before running the example connector.
 
     # Fetch new rows from Apache Hive and upsert them
-    yield from fetch_and_upsert_data(cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size)
+    yield from fetch_and_upsert_data(
+        cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size
+    )
 
     # Close the cursor and connection
     cursor.close()
@@ -213,7 +212,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

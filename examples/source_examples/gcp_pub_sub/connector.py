@@ -5,9 +5,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required classes from google cloud pubsub
 from google.cloud import pubsub_v1
@@ -25,19 +30,19 @@ import time
 def schema(configuration: dict):
 
     # check if required configuration values are present in configuration
-    for key in ['service_key', 'topic_name', 'subscription_name']:
+    for key in ["service_key", "topic_name", "subscription_name"]:
         if key not in configuration:
             raise RuntimeError(f"Missing required configuration value : {key}")
-    
+
     return [
         {
             "table": "sample_table",  # Name of the table in the destination.
-            "primary_key": ["key"], # Primary key column(s) for the table.
+            "primary_key": ["key"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "key": "STRING",
                 "data": "STRING",
-                "timestamp": "UTC_DATETIME"
-            } # For any columns whose names are not provided here, their data types will be inferred
+                "timestamp": "UTC_DATETIME",
+            },  # For any columns whose names are not provided here, their data types will be inferred
         }
     ]
 
@@ -92,11 +97,11 @@ def publish_test_messages(publisher, topic_path: str) -> None:
     for count in range(max_test_messages):
         # Create a message with incremental data and a fixed timestamp
         # Note: In a real connector, you might use dynamic timestamps and actual data
-        message = {"data":f"Message {count+1}","timestamp": "2021-09-01T00:00:00Z"}
+        message = {"data": f"Message {count+1}", "timestamp": "2021-09-01T00:00:00Z"}
 
         # Convert the message dictionary to JSON and encode as UTF-8 bytes
         # Pub/Sub requires message data to be in bytes format
-        message_data = json.dumps(message).encode('utf-8')
+        message_data = json.dumps(message).encode("utf-8")
 
         try:
             # Publish the message to the topic and get a future
@@ -176,7 +181,9 @@ def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
     # Initialize publisher client, create topic if needed, and publish sample messages
     # This is only for testing purposes. In actual scenarios, you will not need a publisher client
     # This is because messages are published by your application and consumed by the connector
-    publisher = create_sample_topic(credentials=credentials, project_id=project_id, topic_name=topic_name)
+    publisher = create_sample_topic(
+        credentials=credentials, project_id=project_id, topic_name=topic_name
+    )
 
     # Initialize subscriber client to read messages from the topic
     # subscriber client is used to pull messages from the topic/subscription
@@ -187,7 +194,9 @@ def set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name):
     subscription_path = subscriber.subscription_path(project_id, subscription_name)
 
     # Ensure the subscription exists or create it if missing
-    check_subscription(subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path)
+    check_subscription(
+        subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path
+    )
 
     # Publish sample messages to the topic
     # This is only for testing purposes to provide sample data for the connector
@@ -212,7 +221,9 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
     """
     while True:
         # pull messages from the subscription
-        response = subscriber.pull(request={"subscription": subscription_path, "max_messages": max_messages})
+        response = subscriber.pull(
+            request={"subscription": subscription_path, "max_messages": max_messages}
+        )
         received_messages = response.received_messages
 
         # Exit the loop when no messages are returned
@@ -226,11 +237,11 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
                 ack_ids.append(msg.ack_id)
 
                 # Parse the message payload from JSON and decode from bytes to string
-                data = json.loads(msg.message.data.decode('utf-8'))
+                data = json.loads(msg.message.data.decode("utf-8"))
 
                 # Use the message ID as a unique key for the record
                 # This ensures each message can be uniquely identified in the destination
-                data['key'] = msg.message.message_id
+                data["key"] = msg.message.message_id
 
                 # upsert the data to the destination
                 yield op.upsert(table="sample_table", data=data)
@@ -239,7 +250,9 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
             # This prevents redelivery of already processed messages
             # Only acknowledge if we have ack_ids to acknowledge
             if ack_ids:
-                subscriber.acknowledge(request={"subscription": subscription_path, "ack_ids": ack_ids})
+                subscriber.acknowledge(
+                    request={"subscription": subscription_path, "ack_ids": ack_ids}
+                )
                 log.info(f"Upserted {len(ack_ids)} rows.")
 
         except Exception as e:
@@ -247,7 +260,7 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
 
         # Exit the loop when fewer messages than requested are returned
         # This indicates we've processed all available messages
-        if len(received_messages) < max_messages :
+        if len(received_messages) < max_messages:
             break
 
     # checkpoint the state
@@ -286,7 +299,9 @@ def update(configuration: dict, state: dict):
 
     # Set up Pub/Sub resources for the connector
     # Publisher client instance is only used for testing purposes to create a sample topic and publish messages
-    publisher, subscriber, subscription_path, topic_path = set_up_pub_sub(pubsub_creds, project_id, topic_name, subscription_name)
+    publisher, subscriber, subscription_path, topic_path = set_up_pub_sub(
+        pubsub_creds, project_id, topic_name, subscription_name
+    )
 
     # Add a small delay to allow messages to be available for pulling
     # This prevents empty results when pulling messages too quickly after publishing
@@ -295,11 +310,21 @@ def update(configuration: dict, state: dict):
     # Process messages in batches until no more messages are available and upsert them to the destination
     # This pagination approach handles large volumes of messages efficiently
     # To build you own connector, replace the upsert logic in this method with your own data processing logic
-    yield from pull_and_upsert_messages(subscriber=subscriber, subscription_path=subscription_path, max_messages=max_messages, state=state)
+    yield from pull_and_upsert_messages(
+        subscriber=subscriber,
+        subscription_path=subscription_path,
+        max_messages=max_messages,
+        state=state,
+    )
 
     # Clean up the topic and subscription created during the test sync
     # This is only for testing purposes. In actual connectors, topics and subscriptions are meant to persist
-    clean_up_resources(publisher=publisher, subscriber=subscriber, subscription_path=subscription_path, topic_path=topic_path)
+    clean_up_resources(
+        publisher=publisher,
+        subscriber=subscriber,
+        subscription_path=subscription_path,
+        topic_path=topic_path,
+    )
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
@@ -312,13 +337,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)
-
-
-
-
-
-

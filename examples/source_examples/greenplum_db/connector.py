@@ -7,12 +7,16 @@
 import json
 from greenplumclient import GreenplumClient
 
-# Import the Fivetran Connector SDK.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
 
 # Name of the destination table to upsert data into.
 DESTINATION_TABLE = "sample_table"
+
 
 def schema(configuration: dict):
     """
@@ -27,13 +31,13 @@ def schema(configuration: dict):
         {
             "table": DESTINATION_TABLE,  # Name of the table in the destination.
             "primary_key": ["datid"],  # Primary key column(s) for the table.
-            "columns":{
+            "columns": {
                 "datid": "INT",
                 "datname": "STRING",
                 "sess_id": "INT",
                 "usename": "STRING",
                 "query_start": "UTC_DATETIME",
-            }
+            },
             # columns not defined will be inferred.
         }
     ]
@@ -77,7 +81,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

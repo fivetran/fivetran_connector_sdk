@@ -26,14 +26,14 @@ def schema(configuration: dict):
     """
 
     # check if required configuration values are present in configuration
-    for key in ['neo4j_uri', 'username', 'password', 'database']:
+    for key in ["neo4j_uri", "username", "password", "database"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
     return [
         {
-            "table": "users", # Name of the table
-            "primary_key": ["username"], # Primary key(s) of the table
+            "table": "users",  # Name of the table
+            "primary_key": ["username"],  # Primary key(s) of the table
             "columns": {
                 "username": "STRING",
                 "followers_count": "INT",
@@ -44,14 +44,11 @@ def schema(configuration: dict):
                 "url": "STRING",
                 "betweenness": "FLOAT",
             },
-        }, # Columns not defined in schema will be inferred
+        },  # Columns not defined in schema will be inferred
         {
             "table": "tweet_hashtags",
             "primary_key": ["tweet_id"],
-            "columns": {
-                "tweet_id": "STRING",
-                "hashtag_name": "STRING"
-            },
+            "columns": {"tweet_id": "STRING", "hashtag_name": "STRING"},
         },
     ]
 
@@ -130,9 +127,7 @@ def process_users(session, state):
     LIMIT 100
     """
 
-    results = session.execute_read(
-        lambda tx: tx.run(cypher_query).data()
-    )
+    results = session.execute_read(lambda tx: tx.run(cypher_query).data())
 
     # Process each user record
     for record in results:
@@ -175,10 +170,7 @@ def process_tweet_hashtags(session, state, batch_size=100):
         SKIP $skip LIMIT $limit
         """
         # Parameters for pagination
-        params = {
-            "skip": skip,
-            "limit": batch_size
-        }
+        params = {"skip": skip, "limit": batch_size}
 
         # Execute the query and fetch results
         results = session.execute_read(
@@ -213,7 +205,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

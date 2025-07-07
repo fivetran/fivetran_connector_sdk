@@ -7,9 +7,15 @@
 # Please get your API key from here: https://marketstack.com/
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import json
@@ -30,7 +36,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "tickers_price",
-            "primary_key": ['symbol', 'date'],
+            "primary_key": ["symbol", "date"],
             # Columns and data types will be inferred by Fivetran
         }
     ]
@@ -81,7 +87,9 @@ def api_response(state, configuration):
     log.info(f"Fetching data for the following tickers: {insert_tickers}")
 
     if not configuration.get("apiKey"):
-      raise ValueError("ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json ")
+        raise ValueError(
+            "ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json "
+        )
 
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
@@ -89,20 +97,21 @@ def api_response(state, configuration):
     for ticker in insert_tickers:
         log.info(f"Fetching data for: {ticker}")
         temp_list = get_ticker_price(
-            configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor)
+            configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor
+        )
         ticker_offset += 1
         if temp_list:
             insert_ticker_price += temp_list
 
     state, insert = {}, {}
 
-    insert['tickers_price'] = insert_ticker_price
+    insert["tickers_price"] = insert_ticker_price
     log_data_summary(insert)
 
     # Update the state
-    state['ticker_offset'] = ticker_offset
-    state['ticker_start_cursor'] = ticker_start_cursor
-    state['ticker_end_cursor'] = ticker_end_cursor
+    state["ticker_offset"] = ticker_offset
+    state["ticker_start_cursor"] = ticker_start_cursor
+    state["ticker_end_cursor"] = ticker_end_cursor
     log.info(f"State: {state}")
 
     return state, insert
@@ -136,16 +145,15 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
     insert_ticker_price_records = []
     while True:
         params = {
-            'access_key': api_key,
-            'symbols': symbols,
-            'limit': 1000,
-            'offset': ticker_price_offset,
-            'date_from': ticker_start_cursor,
-            'date_to': ticker_end_cursor
+            "access_key": api_key,
+            "symbols": symbols,
+            "limit": 1000,
+            "offset": ticker_price_offset,
+            "date_from": ticker_start_cursor,
+            "date_to": ticker_end_cursor,
         }
         try:
-            api_result = rq.get(
-                'http://api.marketstack.com/v1/eod', params)
+            api_result = rq.get("http://api.marketstack.com/v1/eod", params)
             api_response = api_result.json()
             insert_ticker_price_records_temp = api_response["data"]
             if insert_ticker_price_records_temp:
@@ -160,8 +168,7 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
         except KeyError as e:
             raise RuntimeError(f"Missing expected key in response: {str(e)}")
         except Exception as e:
-            raise RuntimeError(
-                "Failed Fetching ticker prices, Error: " + str(e))
+            raise RuntimeError("Failed Fetching ticker prices, Error: " + str(e))
 
     return insert_ticker_price_records
 
@@ -184,26 +191,29 @@ def initialize_state(state: dict):
         state["ticker_end_cursor"] = str(date.today())
     return state
 
+
 def log_data_summary(data):
     """
     This function logs the summary of the insert data object
     """
     # Get the list of tickers
-    tickers = list(set(item['symbol'] for item in data['tickers_price']))
-    
+    tickers = list(set(item["symbol"] for item in data["tickers_price"]))
+
     # Get date range
-    if not data['tickers_price']:
+    if not data["tickers_price"]:
         log.warning("No data available in 'tickers_price'.")
         return
 
-    dates = sorted(item['date'] for item in data['tickers_price'])
+    dates = sorted(item["date"] for item in data["tickers_price"])
     start_date = dates[0]
     end_date = dates[-1]
-    
+
     # Count records per ticker
-    records_per_ticker = {ticker: len([item for item in data['tickers_price'] if item['symbol'] == ticker]) 
-                         for ticker in tickers}
-    
+    records_per_ticker = {
+        ticker: len([item for item in data["tickers_price"] if item["symbol"] == ticker])
+        for ticker in tickers
+    }
+
     # Log the summary
     log.info("Data Summary:")
     log.info(f"Total records: {len(data['tickers_price'])}")
@@ -212,11 +222,12 @@ def log_data_summary(data):
     log.info("Records per ticker:")
     for ticker, count in records_per_ticker.items():
         log.info(f"  {ticker}: {count} records")
-    
+
     # Show a complete sample record
     log.info("Sample record (complete):")
-    sample = data['tickers_price'][0]
+    sample = data["tickers_price"][0]
     log.info(f"  {sample}")
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -227,7 +238,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

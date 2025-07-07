@@ -3,13 +3,13 @@ import json
 import requests
 from typing import Dict, Any
 
+
 def schema(configuration: dict):
     # Only define the table name and primary key, let Fivetran infer the rest
-    return [
-        {"table": "tobacco_problem_reports", "primary_key": ["report_id"]}
-    ]
+    return [{"table": "tobacco_problem_reports", "primary_key": ["report_id"]}]
 
-def flatten_record(record: Dict[str, Any], parent_key: str = '', sep: str = '_') -> Dict[str, Any]:
+
+def flatten_record(record: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
     # Flattens nested dicts and arrays for upsert
     items = {}
     for k, v in record.items():
@@ -25,6 +25,7 @@ def flatten_record(record: Dict[str, Any], parent_key: str = '', sep: str = '_')
         else:
             items[new_key] = v
     return items
+
 
 def update(configuration: dict, state: dict = None):
     # Fetch first 10 records from the endpoint
@@ -49,10 +50,11 @@ def update(configuration: dict, state: dict = None):
         log.severe(f"Error fetching or processing data: {e}")
         raise
 
+
 # Initialize the connector with the defined update and schema functions
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    with open("/configuration.json", 'r') as f:
+    with open("/configuration.json", "r") as f:
         configuration = json.load(f)
     connector.debug(configuration=configuration)

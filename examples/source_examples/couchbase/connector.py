@@ -13,7 +13,7 @@ from datetime import timedelta
 import json
 from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
-from couchbase.options import (ClusterOptions, ClusterTimeoutOptions,QueryOptions)
+from couchbase.options import ClusterOptions, ClusterTimeoutOptions, QueryOptions
 
 
 def create_couchbase_client(configuration: dict):
@@ -36,8 +36,8 @@ def create_couchbase_client(configuration: dict):
 
         # Sets a pre-configured profile called "wan_development" to help avoid latency issues
         # when accessing Capella from a different Wide Area Network or Availability Zone(e.g. your laptop).
-        options.apply_profile('wan_development')
-        cluster = Cluster('couchbases://{}'.format(endpoint), options)
+        options.apply_profile("wan_development")
+        cluster = Cluster("couchbases://{}".format(endpoint), options)
 
         # Wait until the cluster is ready for use.
         cluster.wait_until_ready(timedelta(seconds=5))
@@ -104,7 +104,7 @@ def schema(configuration: dict):
     """
 
     # check if required configuration values are present in configuration
-    for key in ['endpoint', 'username', 'password', 'bucket_name', "scope", "collection"]:
+    for key in ["endpoint", "username", "password", "bucket_name", "scope", "collection"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
@@ -148,7 +148,14 @@ def update(configuration, state):
     sql_query = f"SELECT * FROM `{collection}`"
 
     # execute the query and upsert the data into destination
-    yield from execute_query_and_upsert(client=client, scope=scope, collection=collection, query=sql_query, table_name=table_name, state=state)
+    yield from execute_query_and_upsert(
+        client=client,
+        scope=scope,
+        collection=collection,
+        query=sql_query,
+        table_name=table_name,
+        state=state,
+    )
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -162,7 +169,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

@@ -1,12 +1,18 @@
 from typing import Dict, List, Any
 import pyodata
 import datetime
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting operations like checkpoint and upsert
+
+# Import required classes from fivetran_connector_sdk.
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 class ODataClient:
     """Client for interacting with OData services using pyodata library."""
+
     def __init__(self, service_url: str, session, state: Dict = None):
         self.service_url = service_url
         self.state = state or {}
@@ -18,7 +24,6 @@ class ODataClient:
             raise ConnectionError(f"OData client initialization failed: {str(e)}")
         self.batch_requests = []
 
-
     def _extract_special_attributes(self, value):
         """
         Extract special attributes from an entity-like object.
@@ -27,13 +32,12 @@ class ODataClient:
         """
         extracted = {}
         for attr in dir(value):
-            if not attr.startswith('_') and not callable(getattr(value, attr)):
+            if not attr.startswith("_") and not callable(getattr(value, attr)):
                 try:
                     extracted[attr] = self._extract_entity_data(value=getattr(value, attr))
                 except Exception:
                     raise RuntimeError(f"Error extracting attribute {attr} from entity")
         return extracted
-
 
     def _exec_query(self, entity_set_obj, query_options: Dict = None) -> Any:
         """
@@ -46,7 +50,6 @@ class ODataClient:
         entities = query.execute()
         return entities
 
-
     def _extract_entity_data(self, value):
         """
         Recursively convert EntityProxy objects and nested structures to dictionaries.
@@ -54,7 +57,7 @@ class ODataClient:
         the OData service, converting them to Python native types for easier processing.
         """
         # Handle EntityProxy objects
-        if hasattr(value, '_cache') and value._cache:
+        if hasattr(value, "_cache") and value._cache:
             return self._extract_entity_data(value=value._cache)
 
         # Handle lists
@@ -66,15 +69,18 @@ class ODataClient:
             return {k: self._extract_entity_data(value=v) for k, v in value.items()}
 
         # Check for other entity-like objects with special attributes
-        elif hasattr(value, '__dict__') and not isinstance(value, (str, int, float, bool)) and value is not None:
+        elif (
+            hasattr(value, "__dict__")
+            and not isinstance(value, (str, int, float, bool))
+            and value is not None
+        ):
             extracted = self._extract_special_attributes(value=value)
             if extracted:
                 return extracted
 
         return value
 
-
-    def _upsert_formatted_data(self, entities, entity_set_obj, query_options,table, update_state):
+    def _upsert_formatted_data(self, entities, entity_set_obj, query_options, table, update_state):
         """
         Upsert formatted data from an entity set.
         This method handles pagination and processes all results from a query,
@@ -84,8 +90,10 @@ class ODataClient:
             for entity in entities:
                 record = self._extract_entity_data(value=entity)
 
-                if 'expand' in query_options:
-                    self._process_expanded_entities(entity=entity, record=record, expand_options=query_options['expand'])
+                if "expand" in query_options:
+                    self._process_expanded_entities(
+                        entity=entity, record=record, expand_options=query_options["expand"]
+                    )
 
                 record = self.clean_odata_fields(data=record)
                 yield op.upsert(table=table, data=record)
@@ -100,7 +108,6 @@ class ODataClient:
 
             entities = entity_set_obj.get_entities().next_url(entities.next_url).execute()
 
-
     def upsert_entity(self, entity, state: Dict = None):
         """
         Fetch data from an entity set and yield records.
@@ -108,10 +115,10 @@ class ODataClient:
         the results to a destination table.
         Modify this method to add custom pre-processing or validation for your specific entity types
         """
-        entity_set = entity.get('entity_set', None)
-        query_options = entity.get('query_options', {})
-        table = entity.get('table', entity_set)
-        update_state = entity.get('update_state', None)
+        entity_set = entity.get("entity_set", None)
+        query_options = entity.get("query_options", {})
+        table = entity.get("table", entity_set)
+        update_state = entity.get("update_state", None)
 
         if not entity_set:
             raise ValueError("entity_set must be specified")
@@ -124,13 +131,18 @@ class ODataClient:
             entities = self._exec_query(entity_set_obj=entity_set_obj, query_options=query_options)
             log.info(f"Fetched data from entity set: {entity_set}")
 
-            yield from self._upsert_formatted_data(entities=entities, entity_set_obj=entity_set_obj, query_options=query_options, table=table, update_state=update_state)
+            yield from self._upsert_formatted_data(
+                entities=entities,
+                entity_set_obj=entity_set_obj,
+                query_options=query_options,
+                table=table,
+                update_state=update_state,
+            )
             return self.state
 
         except Exception as e:
             log.severe(f"Error fetching entity set {entity_set}: {str(e)}")
             raise ConnectionError(f"Error fetching entity set: {str(e)}")
-
 
     def upsert_multiple_entity(self, entity_list: List[Dict], state: Dict = None):
         """
@@ -145,8 +157,9 @@ class ODataClient:
             yield from self.upsert_entity(entity=entity)
         return self.state
 
-
-    def process_expand_options(self, expand_dict, current_path='', expand_paths=None, select_paths=None):
+    def process_expand_options(
+        self, expand_dict, current_path="", expand_paths=None, select_paths=None
+    ):
         """
         Process expand options recursively, building proper paths for OData V2.
         This method handles nested expand options and builds the correct path format
@@ -162,36 +175,34 @@ class ODataClient:
             expand_paths.append(path)
 
             # Add select fields for this expanded entity if specified
-            if isinstance(options, dict) and 'select' in options:
-                for field in options['select']:
+            if isinstance(options, dict) and "select" in options:
+                for field in options["select"]:
                     select_paths.append(f"{path}/{field}")
 
             # Process nested expansions recursively
-            if isinstance(options, dict) and 'expand' in options:
+            if isinstance(options, dict) and "expand" in options:
                 expand_paths, select_paths = self.process_expand_options(
-                    expand_dict=options['expand'],
+                    expand_dict=options["expand"],
                     current_path=f"{path}/",
                     expand_paths=expand_paths,
-                    select_paths=select_paths
+                    select_paths=select_paths,
                 )
 
         return expand_paths, select_paths
-
 
     @staticmethod
     def _apply_all_select_path(select_paths, query, query_options):
         """Apply select paths to a query, combining with any existing select options."""
         all_select_paths = []
-        if 'select' in query_options:
-            all_select_paths.extend(query_options['select'])
+        if "select" in query_options:
+            all_select_paths.extend(query_options["select"])
         if select_paths:
             all_select_paths.extend(select_paths)
 
         # Apply select if we have paths
         if all_select_paths:
-            query = query.select(','.join(all_select_paths))
+            query = query.select(",".join(all_select_paths))
         return query
-
 
     @staticmethod
     def _apply_filter(query, query_options):
@@ -201,15 +212,14 @@ class ODataClient:
         that are combined with 'and' operators.
         You can modify this method if you need custom filter logic or different combination operators (e.g., 'or' instead of 'and')
         """
-        if 'filter' in query_options:
-            filter_value = query_options['filter']
+        if "filter" in query_options:
+            filter_value = query_options["filter"]
             if filter_value and isinstance(filter_value, str):
                 query = query.filter(filter_value)
             elif filter_value and isinstance(filter_value, list):
-                filter_value = ' and '.join(filter_value)
+                filter_value = " and ".join(filter_value)
                 query = query.filter(filter_value)
         return query
-
 
     def _apply_query_options(self, query, query_options: Dict):
         """
@@ -219,34 +229,37 @@ class ODataClient:
         You can add support for additional query options specific to your OData service
         """
         try:
-            if 'expand' in query_options:
-                expand_paths, select_paths = self.process_expand_options(expand_dict=query_options['expand'])
+            if "expand" in query_options:
+                expand_paths, select_paths = self.process_expand_options(
+                    expand_dict=query_options["expand"]
+                )
                 if expand_paths:
                     try:
-                        query = query.expand(','.join(expand_paths))
+                        query = query.expand(",".join(expand_paths))
                     except Exception as e:
                         log.warning(f"Error applying expand paths: {str(e)}")
 
-                query = ODataClient._apply_all_select_path(select_paths=select_paths, query=query, query_options=query_options)
+                query = ODataClient._apply_all_select_path(
+                    select_paths=select_paths, query=query, query_options=query_options
+                )
 
-            elif 'select' in query_options:
-                query = query.select(','.join(query_options['select']))
+            elif "select" in query_options:
+                query = query.select(",".join(query_options["select"]))
 
             query = ODataClient._apply_filter(query=query, query_options=query_options)
 
-            if 'orderby' in query_options and query_options['orderby']:
-                query = query.order_by(query_options['orderby'])
+            if "orderby" in query_options and query_options["orderby"]:
+                query = query.order_by(query_options["orderby"])
 
-            if 'top' in query_options and query_options['top']:
-                query = query.top(int(query_options['top']))
+            if "top" in query_options and query_options["top"]:
+                query = query.top(int(query_options["top"]))
 
-            if query_options.get('count', False):
+            if query_options.get("count", False):
                 query = query.count(inline=True)
 
             return query
         except Exception as e:
             raise RuntimeError(f"Error applying query options: {str(e)}")
-
 
     def _update_state_tracker(self, item: Dict, update_state: Dict) -> Any:
         """
@@ -268,7 +281,6 @@ class ODataClient:
             except KeyError:
                 log.severe(f"{column} not found in the fetched data while updating state")
 
-
     def _process_expanded_entities(self, entity, record: Dict, expand_options: Dict):
         """
         Process expanded entities in a record.
@@ -280,8 +292,9 @@ class ODataClient:
             return
 
         for nav_prop, options in expand_options.items():
-            self._process_navigation_property(entity=entity, record=record, nav_prop=nav_prop, options=options)
-
+            self._process_navigation_property(
+                entity=entity, record=record, nav_prop=nav_prop, options=options
+            )
 
     def _process_navigation_property(self, entity, record: Dict, nav_prop: str, options: Dict):
         """
@@ -302,17 +315,22 @@ class ODataClient:
                 return
 
             # Determine if it's a collection or single entity
-            is_collection = hasattr(expanded_data, '__iter__') and not isinstance(expanded_data, dict)
+            is_collection = hasattr(expanded_data, "__iter__") and not isinstance(
+                expanded_data, dict
+            )
 
             if is_collection:
-                record[nav_prop] = self._process_expanded_collection(collection=expanded_data, options=options)
+                record[nav_prop] = self._process_expanded_collection(
+                    collection=expanded_data, options=options
+                )
             else:
-                record[nav_prop] = self._process_expanded_entity(entity=expanded_data, options=options)
+                record[nav_prop] = self._process_expanded_entity(
+                    entity=expanded_data, options=options
+                )
 
         except Exception as e:
             log.severe(f"Error processing expanded entity {nav_prop}: {str(e)}")
             record[nav_prop] = None
-
 
     def _process_expanded_collection(self, collection, options: Dict) -> List:
         """
@@ -328,12 +346,14 @@ class ODataClient:
                 item_dict = self._extract_entity_data(value=item)
 
                 # Process nested expansions if defined
-                if isinstance(options, dict) and 'expand' in options:
-                    self._process_expanded_entities(entity=item, record=item_dict, expand_options=options['expand'])
+                if isinstance(options, dict) and "expand" in options:
+                    self._process_expanded_entities(
+                        entity=item, record=item_dict, expand_options=options["expand"]
+                    )
 
                 # Filter by select if specified
-                if isinstance(options, dict) and 'select' in options:
-                    item_dict = {k: v for k, v in item_dict.items() if k in options['select']}
+                if isinstance(options, dict) and "select" in options:
+                    item_dict = {k: v for k, v in item_dict.items() if k in options["select"]}
 
                 result.append(item_dict)
 
@@ -341,7 +361,6 @@ class ODataClient:
                 log.warning(f"Error processing collection item: {str(e)}")
 
         return result
-
 
     def _process_expanded_entity(self, entity, options: Dict) -> Dict:
         """
@@ -353,15 +372,16 @@ class ODataClient:
         entity_dict = self._extract_entity_data(value=entity)
 
         # Process nested expansions if defined
-        if isinstance(options, dict) and 'expand' in options:
-            self._process_expanded_entities(entity=entity, record=entity_dict, expand_options=options['expand'])
+        if isinstance(options, dict) and "expand" in options:
+            self._process_expanded_entities(
+                entity=entity, record=entity_dict, expand_options=options["expand"]
+            )
 
         # Filter by select if specified
-        if isinstance(options, dict) and 'select' in options and entity_dict:
-            entity_dict = {k: v for k, v in entity_dict.items() if k in options['select']}
+        if isinstance(options, dict) and "select" in options and entity_dict:
+            entity_dict = {k: v for k, v in entity_dict.items() if k in options["select"]}
 
         return entity_dict
-
 
     @staticmethod
     def clean_odata_fields(data):
@@ -372,8 +392,11 @@ class ODataClient:
         You can add special handling for specific field types in your OData service
         """
         if isinstance(data, dict):
-            return {k: ODataClient.clean_odata_fields(data=v) for k, v in data.items()
-                    if not (isinstance(k, str) and '@odata' in k)}
+            return {
+                k: ODataClient.clean_odata_fields(data=v)
+                for k, v in data.items()
+                if not (isinstance(k, str) and "@odata" in k)
+            }
         elif isinstance(data, list):
             return [ODataClient.clean_odata_fields(data=item) for item in data]
         elif isinstance(data, datetime.datetime):
@@ -381,28 +404,26 @@ class ODataClient:
         else:
             return data
 
-
     def add_batch(self, entity: Dict):
         """
         Add a batch request to the batch queue.
         This method is used to prepare batch requests for later execution,
         which can improve performance by reducing HTTP requests.
         """
-        entity_set = entity.get('entity_set', None)
+        entity_set = entity.get("entity_set", None)
 
         if not entity_set:
             raise ValueError("entity_set must be specified")
 
         batch_request = {
-            'entity_set': entity_set,
-            'query_options': entity.get('query_options', {}),
-            'table':  entity.get('table', entity_set),
-            'update_state': entity.get('update_state', None)
+            "entity_set": entity_set,
+            "query_options": entity.get("query_options", {}),
+            "table": entity.get("table", entity_set),
+            "update_state": entity.get("update_state", None),
         }
 
         self.batch_requests.append(batch_request)
         return self  # Enable method chaining
-
 
     def _build_batch(self, batch):
         """
@@ -410,8 +431,8 @@ class ODataClient:
         This internal method prepares all queued batch requests for execution.
         """
         for batch_request in self.batch_requests:
-            entity_set = batch_request['entity_set']
-            query_options = batch_request['query_options']
+            entity_set = batch_request["entity_set"]
+            query_options = batch_request["query_options"]
             entity_set_obj = getattr(self.client.entity_sets, entity_set)
             query = entity_set_obj.get_entities()
             query = self._apply_query_options(query=query, query_options=query_options)
@@ -419,7 +440,6 @@ class ODataClient:
             log.info("Added request to batch ")
 
         return batch
-
 
     def upsert_batch(self, state: Dict = None):
         """
@@ -439,12 +459,20 @@ class ODataClient:
         response = batch.execute()
 
         for index, entities in enumerate(response):
-            entity_set_obj = getattr(self.client.entity_sets, self.batch_requests[index]['entity_set'])
-            query_options = self.batch_requests[index]['query_options']
-            table = self.batch_requests[index]['table']
-            update_state = self.batch_requests[index]['update_state']
+            entity_set_obj = getattr(
+                self.client.entity_sets, self.batch_requests[index]["entity_set"]
+            )
+            query_options = self.batch_requests[index]["query_options"]
+            table = self.batch_requests[index]["table"]
+            update_state = self.batch_requests[index]["update_state"]
 
-            yield from self._upsert_formatted_data(entities=entities, entity_set_obj=entity_set_obj, query_options=query_options, table=table, update_state=update_state)
+            yield from self._upsert_formatted_data(
+                entities=entities,
+                entity_set_obj=entity_set_obj,
+                query_options=query_options,
+                table=table,
+                update_state=update_state,
+            )
 
         self.batch_requests = []
         return self.state

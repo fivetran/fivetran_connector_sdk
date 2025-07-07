@@ -5,15 +5,22 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
-import json # For working with JSON data
-from typing import List, Dict # For type hinting and annotations
-from flatten_json import flatten # This is needed to transform a nested JSON data structure into a flat, one-level structure
-import requests # This is needed to make HTTP requests to the Fleetio API
+import json  # For working with JSON data
+from typing import List, Dict  # For type hinting and annotations
+from flatten_json import (
+    flatten,
+)  # This is needed to transform a nested JSON data structure into a flat, one-level structure
+import requests  # This is needed to make HTTP requests to the Fleetio API
 
 
 def update_list_of_dicts(list_of_dicts: List[Dict], keys: List, remove: bool = False):
@@ -43,143 +50,67 @@ def base_schema():
     base_schema = [
         {
             "table": "submitted_inspection_forms",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/submitted_inspection_forms",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "request_info": {"path": "/submitted_inspection_forms", "params": {"per_page": 100}},
         },
         {
             "table": "issues",
-            "primary_key": [
-                "id"
-            ],
+            "primary_key": ["id"],
             "columns": {
                 "custom_fields": "JSON",
                 "attachment_permissions": "JSON",
                 "assigned_contacts": "JSON",
-                "labels": "JSON"
+                "labels": "JSON",
             },
-            "request_info": {
-                "path": "/issues",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "request_info": {"path": "/issues", "params": {"per_page": 100}},
         },
         {
             "table": "service_entries",
-            "primary_key": [
-                "id"
-            ],
+            "primary_key": ["id"],
             "columns": {
                 "custom_fields": "JSON",
                 "attachment_permissions": "JSON",
-                "labels": "JSON"
+                "labels": "JSON",
             },
-            "request_info": {
-                "path": "/service_entries",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "request_info": {"path": "/service_entries", "params": {"per_page": 100}},
         },
         {
             "table": "vehicles",
-            "primary_key": [
-                "id"
-            ],
-            "columns": {
-                "custom_fields": "JSON",
-                "labels": "JSON"
-            },
-            "request_info": {
-                "path": "/vehicles",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "columns": {"custom_fields": "JSON", "labels": "JSON"},
+            "request_info": {"path": "/vehicles", "params": {"per_page": 100}},
         },
         {
             "table": "expense_entries",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/expense_entries",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "request_info": {"path": "/expense_entries", "params": {"per_page": 100}},
         },
         {
             "table": "contacts",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/contacts",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "request_info": {"path": "/contacts", "params": {"per_page": 100}},
         },
         {
             "table": "fuel_entries",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/fuel_entries",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "request_info": {"path": "/fuel_entries", "params": {"per_page": 100}},
         },
         {
             "table": "parts",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/parts",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "request_info": {"path": "/parts", "params": {"per_page": 100}},
         },
         {
             "table": "purchase_orders",
-            "primary_key": [
-                "id"
-            ],
-            "columns": {
-                "custom_fields": "JSON",
-                "labels": "JSON"
-            },
-            "request_info": {
-                "path": "/purchase_orders",
-                "params": {
-                    "per_page": 100
-                }
-            }
+            "primary_key": ["id"],
+            "columns": {"custom_fields": "JSON", "labels": "JSON"},
+            "request_info": {"path": "/purchase_orders", "params": {"per_page": 100}},
         },
         {
             "table": "vehicle_assignments",
-            "primary_key": [
-                "id"
-            ],
-            "request_info": {
-                "path": "/vehicle_assignments",
-                "params": {
-                    "per_page": 100
-                }
-            }
-        }
+            "primary_key": ["id"],
+            "request_info": {"path": "/vehicle_assignments", "params": {"per_page": 100}},
+        },
     ]
     return base_schema
 
@@ -277,11 +208,12 @@ def update(configuration: dict, state: dict):
 
     base_url = "https://secure.fleetio.com/api"
     base = base_schema()
-    additional_configuration = {"Accept": "application/json",
-                                "X-Api-Version": "2025-05-05",
-                                "X-Client-Name": "data_connector",
-                                "X-Client-Platform": "fleetio_fivetran"
-                                }
+    additional_configuration = {
+        "Accept": "application/json",
+        "X-Api-Version": "2025-05-05",
+        "X-Client-Name": "data_connector",
+        "X-Client-Platform": "fleetio_fivetran",
+    }
     headers = {**configuration, **additional_configuration}
 
     for schema in base:
@@ -346,7 +278,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     try:
         # Open the configuration.json file and load its contents
-        with open("configuration.json", 'r') as f:
+        with open("configuration.json", "r") as f:
             configuration = json.load(f)
     except FileNotFoundError:
         log.info("Using empty configuration!")

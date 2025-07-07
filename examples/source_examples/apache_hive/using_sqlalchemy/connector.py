@@ -11,6 +11,7 @@ from fivetran_connector_sdk import Logging as log
 # Import the required libraries
 import json
 from datetime import datetime, timezone
+
 # Import the Apache hive modules
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -18,6 +19,7 @@ from sqlalchemy.orm import sessionmaker
 # Define table name and checkpoint interval
 CHECKPOINT_INTERVAL = 1000
 TABLE_NAME = "people"
+
 
 def create_hive_connection(configuration: dict):
     """
@@ -28,16 +30,18 @@ def create_hive_connection(configuration: dict):
     Returns:
         session: an Apache Hive session object
     """
-    host= configuration.get("hostname")
-    port= int(configuration.get("port"))
-    username=configuration.get("username")
-    database=configuration.get("database")
+    host = configuration.get("hostname")
+    port = int(configuration.get("port"))
+    username = configuration.get("username")
+    database = configuration.get("database")
 
     try:
-        engine = create_engine(f'hive://{username}@{host}:{port}/{database}')
+        engine = create_engine(f"hive://{username}@{host}:{port}/{database}")
         session_maker = sessionmaker(bind=engine)
         session = session_maker()
-        log.info(f"Connected to Apache Hive at {host}:{port} as user {username} and database {database}")
+        log.info(
+            f"Connected to Apache Hive at {host}:{port} as user {username} and database {database}"
+        )
         return session
     except Exception:
         raise RuntimeError("Failed to connect to Apache Hive")
@@ -73,20 +77,18 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
         state: a dictionary that holds the state of the connector
     """
     # Get the last created timestamp from the state for incremental sync.
-    last_created = state.get('last_created', '1990-01-01T00:00:00Z')
+    last_created = state.get("last_created", "1990-01-01T00:00:00Z")
 
     # Convert ISO format to Hive-compatible timestamp format
     # Remove 'Z' and 'T' to make it compatible with Hive timestamp format
-    hive_timestamp = last_created.replace('T', ' ').replace('Z', '')
+    hive_timestamp = last_created.replace("T", " ").replace("Z", "")
 
     # Use a parameterized query to avoid SQL injection and formatting issues
     query = text(f"SELECT * FROM {table_name} WHERE created_at > :created_at ORDER BY created_at")
 
     # Execute with parameter binding
     result = session.execute(
-        query,
-        {"created_at": hive_timestamp},
-        execution_options={"stream_results": True}
+        query, {"created_at": hive_timestamp}, execution_options={"stream_results": True}
     )
     # Get column names
     columns = result.keys()
@@ -102,13 +104,13 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
 
         # Update the last_created state with the maximum created_at value.
         # This is used to track the last created record for incremental sync.
-        if row_data.get('created_at') and row_data['created_at'] > last_created:
-            last_created = row_data['created_at']
+        if row_data.get("created_at") and row_data["created_at"] > last_created:
+            last_created = row_data["created_at"]
 
         # Checkpointing the state every CHECKPOINT_INTERVAL rows
         # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
         if count % CHECKPOINT_INTERVAL == 0:
-            new_state = {'last_created': last_created}
+            new_state = {"last_created": last_created}
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -116,7 +118,7 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
             yield op.checkpoint(new_state)
 
     # Checkpoint the final state after processing all rows
-    new_state = {'last_created': last_created}
+    new_state = {"last_created": last_created}
     yield op.checkpoint(new_state)
 
 
@@ -128,7 +130,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration value is missing
     """
-    required_keys = ['hostname', 'username', 'database', 'port']
+    required_keys = ["hostname", "username", "database", "port"]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -147,12 +149,7 @@ def schema(configuration: dict):
         {
             "table": TABLE_NAME,
             "primary_key": ["id"],
-            "columns": {
-                "id": "INT",
-                "name": "STRING",
-                "age": "INT",
-                "created_at": "UTC_DATETIME"
-            },
+            "columns": {"id": "INT", "name": "STRING", "age": "INT", "created_at": "UTC_DATETIME"},
         }
     ]
 
@@ -197,7 +194,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

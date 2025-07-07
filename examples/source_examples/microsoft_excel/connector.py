@@ -9,12 +9,12 @@ from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
 # Import required libraries
-import boto3 # This is used to connect to S3
-import pandas as pd # This is used to process the Excel file using pandas
-from openpyxl import load_workbook # This is used to process the Excel file using openpyxl
+import boto3  # This is used to connect to S3
+import pandas as pd  # This is used to process the Excel file using pandas
+from openpyxl import load_workbook  # This is used to process the Excel file using openpyxl
 import json
 import os
-import tempfile # This is used to create a temporary file
+import tempfile  # This is used to create a temporary file
 
 
 def create_s3_client(configuration: dict):
@@ -32,10 +32,12 @@ def create_s3_client(configuration: dict):
     region_name = configuration.get("region_name")
 
     # Return the S3 client using the credentials and region name from the configuration
-    return boto3.client('s3',
-                        aws_access_key_id=access_key,
-                        aws_secret_access_key=secret_key,
-                        region_name=region_name)
+    return boto3.client(
+        "s3",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region_name,
+    )
 
 
 def download_excel_file(s3_client, bucket_name, file_key):
@@ -51,7 +53,7 @@ def download_excel_file(s3_client, bucket_name, file_key):
 
     try:
         # Create a temporary file to store the downloaded Excel file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_file:
             temp_filename = temp_file.name
 
         # Download file from S3 to the temporary file
@@ -189,15 +191,21 @@ def schema(configuration: dict):
     """
 
     # Check if the required keys are present in the configuration
-    required_keys = ["aws_access_key_id", "aws_secret_access_key", "region_name", "bucket_name", "file_name"]
+    required_keys = [
+        "aws_access_key_id",
+        "aws_secret_access_key",
+        "region_name",
+        "bucket_name",
+        "file_name",
+    ]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
 
     return [
         {
-            "table": "excel_data_pandas", # Name of the table
-            "primary_key": ["id"], # Primary key(s) of the table
+            "table": "excel_data_pandas",  # Name of the table
+            "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
                 "id": "INT",
                 "name": "STRING",
@@ -205,7 +213,7 @@ def schema(configuration: dict):
                 "age": "INT",
                 "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            }
+            },
             # Columns not defined in schema will be inferred
         },
         {
@@ -218,7 +226,7 @@ def schema(configuration: dict):
                 "age": "INT",
                 "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            }
+            },
             # Columns not defined in schema will be inferred
         },
         {
@@ -231,7 +239,7 @@ def schema(configuration: dict):
                 "age": "INT",
                 "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            }
+            },
             # Columns not defined in schema will be inferred
         },
     ]
@@ -291,7 +299,7 @@ if __name__ == "__main__":
     # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
     # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
     # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:

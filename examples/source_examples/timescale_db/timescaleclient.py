@@ -3,11 +3,14 @@
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
-import ast # For converting string representation of lists to actual lists
+import ast  # For converting string representation of lists to actual lists
 
-# Import the Fivetran Connector SDK.
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # Define the TimescaleDb client class to handle database operations.
@@ -18,8 +21,12 @@ class TimescaleClient:
         # The cursor is created with RealDictCursor factory to return results as dictionaries.
         # The cursor is named to allow server-side cursors. This enables streaming of results.
         # This is useful for large result sets as it does not load entire data in memory and prevents memory overflow errors.
-        self.cursor = self.connection.cursor(name="my_cursor", cursor_factory=psycopg2.extras.RealDictCursor)
-        self.vector_cursor = self.connection.cursor(name="vector_cursor", cursor_factory=psycopg2.extras.RealDictCursor)
+        self.cursor = self.connection.cursor(
+            name="my_cursor", cursor_factory=psycopg2.extras.RealDictCursor
+        )
+        self.vector_cursor = self.connection.cursor(
+            name="vector_cursor", cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
     @staticmethod
     def connect(configuration):
@@ -36,11 +43,11 @@ class TimescaleClient:
 
         try:
             return psycopg2.connect(
-                host = host,
-                port = port,
-                database = database,
-                user = user,
-                password = password,
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
             )
         except Exception as e:
             raise ConnectionError(f"Error connecting to TimescaleDb database: {e}")

@@ -6,9 +6,15 @@
 import json  # Import the json module to handle JSON data.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -23,6 +29,7 @@ def schema(configuration: dict):
             # No columns are defined, meaning the types will be inferred.
         }
     ]
+
 
 def validate_configuration(configuration: dict):
     """
@@ -40,6 +47,7 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -51,13 +59,13 @@ def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Complex Configuration Options")
     validate_configuration(configuration)
     # converts config string to list of regions
-    regions = configuration['regions'].split(',')
+    regions = configuration["regions"].split(",")
     # converts config string to int
-    api_quota = int(configuration['api_quota'])
+    api_quota = int(configuration["api_quota"])
     # converts config string to boolean
-    use_bulk_api = configuration['use_bulk_api'].lower() == 'true'.lower()
+    use_bulk_api = configuration["use_bulk_api"].lower() == "true".lower()
     # converts config json string to dict
-    parsed_json = json.loads(configuration['currencies'])
+    parsed_json = json.loads(configuration["currencies"])
 
     assert isinstance(regions, list) and len(regions) == 3
     assert isinstance(api_quota, int) and api_quota == 12345
@@ -65,10 +73,7 @@ def update(configuration: dict, state: dict):
     assert isinstance(parsed_json, list) and len(parsed_json) == 2
 
     # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
-    yield op.upsert(table="crypto",
-                    data={
-                        'msg': "hello world"
-                    })
+    yield op.upsert(table="crypto", data={"msg": "hello world"})
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -86,7 +91,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

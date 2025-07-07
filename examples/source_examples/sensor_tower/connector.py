@@ -1,4 +1,4 @@
-# This example details how to pull data from SensorTower, which is a market intelligence and analytics platform 
+# This example details how to pull data from SensorTower, which is a market intelligence and analytics platform
 # that provides insights into mobile apps, app store trends, and digital advertising
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
@@ -16,11 +16,15 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import \
-    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Constants
 COUNTRY_CODE = "Country Code"
@@ -36,15 +40,15 @@ KEY_MAPPING = {
             "iu": "iPhone Downloads",
             "ir": "iPhone Revenue",
             "au": "iPad Downloads",
-            "ar": "iPad Revenue"
+            "ar": "iPad Revenue",
         },
         "android": {
             "aid": APP_ID,
             "c": COUNTRY_CODE,
             "d": "Date",
             "u": "Android Downloads",
-            "r": "Android Revenue"
-        }
+            "r": "Android Revenue",
+        },
     }
 }
 
@@ -67,25 +71,24 @@ COUNTRY_CODES = ["US", "AU", "FR", "DE", "GB", "IT", "CA", "KR", "JP", "BR", "IN
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 
+
 def schema(configuration: dict):
     return [
         {
             "table": "sales_report_estimates",  # Name of the table in the destination.
             "primary_key": [APP_ID, "Date", COUNTRY_CODE],  # Primary key columns for the table.
-            "columns": {APP_ID: "STRING"}  # Specify as a string due to data type mismatch issues
+            "columns": {APP_ID: "STRING"},  # Specify as a string due to data type mismatch issues
         },
         {
             "table": "active_users",
             "primary_key": ["app_id", "date", "time_period", "country"],
-            "columns": {"app_id": "STRING"}
-
+            "columns": {"app_id": "STRING"},
         },
         {
             "table": "retention",
             "primary_key": ["app_id", "date", "country"],
-            "columns": {"app_id": "STRING"}
-
-        }
+            "columns": {"app_id": "STRING"},
+        },
     ]
 
 
@@ -96,6 +99,7 @@ def schema(configuration: dict):
 # - endpoint: each table has their own API endpoint we need to call to populate
 # - time_period: aggregation period for the data (examples: "day", "week", "month")
 # - country_code: a required parameter of the API calls is country_code, which you need to change to gather data for different locations
+
 
 def get_data(params: dict, os, endpoint, time_period, country_code):
     f_params = params.copy()
@@ -110,7 +114,6 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
     if endpoint == "sales_report_estimates":
         url = BASE_URL + os + "/" + endpoint
         f_params["date_granularity"] = "daily"
-
 
     elif endpoint == "active_users":
         url = BASE_URL + os + "/usage/" + endpoint
@@ -133,6 +136,7 @@ def get_data(params: dict, os, endpoint, time_period, country_code):
 # - system: the operating system to fetch data for (ios/android)
 # Yields upsert operations for each processed record with time period information
 
+
 def process_active_users(params, system):
     for period in TIME_PERIOD:
         records = get_data(params, system, "active_users", period, None)
@@ -147,11 +151,14 @@ def process_active_users(params, system):
 # - system: the operating system to fetch data for (ios/android)
 # Yields upsert operations for each processed record with mapped column names
 
+
 def process_sales_report(params, system):
     """Process sales report estimates endpoint data."""
     records = get_data(params, system, "sales_report_estimates", None, None)
     for record in records:
-        mapping = KEY_MAPPING["sales_report_estimates_key"]["android" if system == "android" else "ios"]
+        mapping = KEY_MAPPING["sales_report_estimates_key"][
+            "android" if system == "android" else "ios"
+        ]
         record = {mapping.get(k, k): v for k, v in record.items()}
         yield op.upsert(table="sales_report_estimates", data=record)
 
@@ -161,6 +168,7 @@ def process_sales_report(params, system):
 # - params: dictionary containing API parameters
 # - system: the operating system to fetch data for (ios/android)
 # Yields upsert operations for each processed record with JSON-encoded retention data
+
 
 def process_retention(params, system):
     """Process retention endpoint data."""
@@ -177,6 +185,7 @@ def process_retention(params, system):
 # - endpoints: list of endpoints to process
 # - params: dictionary containing API parameters
 # Yields upsert operations from the appropriate endpoint processor for each endpoint/system combination
+
 
 def process_endpoints(endpoints, params):
     for endpoint in endpoints:
@@ -197,6 +206,7 @@ def process_endpoints(endpoints, params):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 
+
 def update(configuration: dict, state: dict):
     log.warning("Example: Source Examples - Sensor Tower")
     # Pull in the auth token from the configuration file in the project
@@ -205,16 +215,18 @@ def update(configuration: dict, state: dict):
 
     # If no cursor exists, go through a historical sync
 
-    if 'look_back' not in state:
+    if "look_back" not in state:
         look_back = (datetime.now() - relativedelta(months=3)).strftime(
-            '%Y-%m-%d')  # Change timeframe to suit requirements
+            "%Y-%m-%d"
+        )  # Change timeframe to suit requirements
     else:
         # For incremental syncs, do a one week lookback
 
         look_back = (datetime.now() - relativedelta(weeks=1)).strftime(
-            '%Y-%m-%d')  # Change timeframe to suit requirements
+            "%Y-%m-%d"
+        )  # Change timeframe to suit requirements
 
-    current_date = (datetime.now()).strftime('%Y-%m-%d')
+    current_date = (datetime.now()).strftime("%Y-%m-%d")
 
     # Set params that will be stable for all API calls
 
@@ -231,9 +243,7 @@ def update(configuration: dict, state: dict):
     # Set new cursor
     # Since we are doing the incremental pulls based on the current date, this is mostly used as a boolean here to see if a cursor exists or not
 
-    yield op.checkpoint(state={
-        "look_back": look_back
-    })
+    yield op.checkpoint(state={"look_back": look_back})
 
 
 # This creates the connector object that will use the update function defined in this connector.py file
@@ -248,7 +258,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
 
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
 

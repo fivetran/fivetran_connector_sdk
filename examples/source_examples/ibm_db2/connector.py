@@ -3,10 +3,15 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import the ibm_db module for connecting to IBM DB2
 # The ibm_db contains:
@@ -32,16 +37,16 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "employee", # Name of the table in the destination, required.
-            "primary_key": ["id"], # Primary key column(s) for the table, optional.
-            "columns":{ # Definition of columns and their types, optional.
-                "id": "INT", # Contains a dictionary of column names and data types
+            "table": "employee",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "id": "INT",  # Contains a dictionary of column names and data types
                 "first_name": "STRING",
                 "last_name": "STRING",
                 "email": "STRING",
                 "department": "STRING",
-                "hire_date": "NAIVE_DATE"
-            }
+                "hire_date": "NAIVE_DATE",
+            },
             # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
@@ -56,7 +61,15 @@ def validate_configuration(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     # Check if the configuration dictionary has all the required keys
-    required_keys = ["hostname", "port", "database", "user_id", "password", "schema_name","table_name"]
+    required_keys = [
+        "hostname",
+        "port",
+        "database",
+        "user_id",
+        "password",
+        "schema_name",
+        "table_name",
+    ]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
@@ -224,10 +237,12 @@ def update(configuration: dict, state: dict):
     last_hired = state.get("last_hire_date", "1990-01-01T00:00:00")
 
     # fetch data from the IBM DB2 database table and upsert the data to destination
-    yield from fetch_and_upsert_data(conn, configuration["schema_name"], configuration["table_name"], last_hired)
+    yield from fetch_and_upsert_data(
+        conn, configuration["schema_name"], configuration["table_name"], last_hired
+    )
 
     # Close the database connection after the operation is complete
-    if 'conn' in locals() and conn:
+    if "conn" in locals() and conn:
         ibm_db.close(conn)
         log.info("Connection to IBM DB2 closed")
 
@@ -241,7 +256,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

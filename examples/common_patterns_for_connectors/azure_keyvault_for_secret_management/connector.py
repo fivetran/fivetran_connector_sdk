@@ -33,9 +33,7 @@ def fetch_secrets_from_vault(configuration: dict):
 
     # Set up the client credentials
     credential = ClientSecretCredential(
-        tenant_id=tenant_id,
-        client_id=client_id,
-        client_secret=client_secret
+        tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
     )
 
     # Create a SecretClient
@@ -44,11 +42,11 @@ def fetch_secrets_from_vault(configuration: dict):
     # Fetch the secrets
     db_config = {}
     try:
-        db_config['database'] = secret_client.get_secret("postgresDatabase").value
-        db_config['host'] = secret_client.get_secret("postgresHost").value
-        db_config['user'] = secret_client.get_secret("postgresUser").value
-        db_config['password'] = secret_client.get_secret("postgresPassword").value
-        db_config['port'] = secret_client.get_secret("postgresPort").value
+        db_config["database"] = secret_client.get_secret("postgresDatabase").value
+        db_config["host"] = secret_client.get_secret("postgresHost").value
+        db_config["user"] = secret_client.get_secret("postgresUser").value
+        db_config["password"] = secret_client.get_secret("postgresPassword").value
+        db_config["port"] = secret_client.get_secret("postgresPort").value
     except Exception as e:
         raise RuntimeError(f"Failed to retrieve secrets from Azure Key Vault: {str(e)}")
 
@@ -66,11 +64,11 @@ def connect_to_database(db_config: dict):
     """
     try:
         conn = psycopg2.connect(
-            host=db_config['host'],
-            port=db_config.get('port', 5439),
-            dbname=db_config['database'],
-            user=db_config['user'],
-            password=db_config['password']
+            host=db_config["host"],
+            port=db_config.get("port", 5439),
+            dbname=db_config["database"],
+            user=db_config["user"],
+            password=db_config["password"],
         )
         log.info("Successfully connected to database")
         return conn
@@ -121,14 +119,14 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "employees", # Name of the table
-            "primary_key": ["id"], # Primary key(s) of the table
-            "columns":{
-                "id" : "INT",
-                "name" : "STRING",
-                "department_id" : "INT",
-                "employee_metadata": "JSON"
-            }
+            "table": "employees",  # Name of the table
+            "primary_key": ["id"],  # Primary key(s) of the table
+            "columns": {
+                "id": "INT",
+                "name": "STRING",
+                "department_id": "INT",
+                "employee_metadata": "JSON",
+            },
             # Columns not defined in schema will be inferred
         }
     ]
@@ -193,7 +191,7 @@ if __name__ == "__main__":
     # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
     # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
     # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:

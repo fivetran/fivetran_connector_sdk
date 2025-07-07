@@ -9,11 +9,15 @@
 # Third sync: int_to_string field is a non-numeric string ("forty-two point forty-two")
 # Fourth+ syncs: int_to_string field is a float again (42.43)
 
-# Import required modules from the Fivetran Connector SDK
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import \
-    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 import json
 
 
@@ -24,11 +28,11 @@ def update(configuration: dict, state: dict):
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     In this example the update function demonstrates schema evolution across syncs.
-    
+
     Args:
         configuration (dict): Configuration parameters (unused in this example)
         state (dict): State dictionary to track sync count and maintain sync history
-    
+
     Yields:
         Operations: Upsert operations with evolving data types and checkpoint operations
     """
@@ -36,7 +40,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Fivetran Platform Features - Schema Change")
 
     # Get the current sync count from state, defaulting to 0 if not present
-    sync_count = state.get('sync_count', 0)
+    sync_count = state.get("sync_count", 0)
 
     # Define the sequence of values that will demonstrate type evolution
     # Each value represents a different data type that will be used in subsequent syncs
@@ -45,23 +49,27 @@ def update(configuration: dict, state: dict):
     # Log information about the schema change demonstration
     log.warning("Schema change demo: field type evolves across syncs")
     log.info(
-        f"Sync #{sync_count + 1}: inserting value '{values[min(sync_count, 3)]}' ({type(values[min(sync_count, 3)]).__name__})")
+        f"Sync #{sync_count + 1}: inserting value '{values[min(sync_count, 3)]}' ({type(values[min(sync_count, 3)]).__name__})"
+    )
 
     # Define descriptive text for each sync to explain the type change
     descriptions = [
         "First sync with integer",
         "Second sync with float",
         "Third sync with non-numeric string",
-        "Fourth sync with float again"
+        "Fourth sync with float again",
     ]
 
     # Yield an upsert operation with the current value and its description
     # The min(sync_count, 3) ensures we don't go beyond our defined values
-    yield op.upsert(table="change_int_to_string", data={
-        "id": 1,
-        "int_to_string": values[min(sync_count, 3)],
-        "description": descriptions[min(sync_count, 3)]
-    })
+    yield op.upsert(
+        table="change_int_to_string",
+        data={
+            "id": 1,
+            "int_to_string": values[min(sync_count, 3)],
+            "description": descriptions[min(sync_count, 3)],
+        },
+    )
 
     # Yield a checkpoint operation to save the updated sync count
     yield op.checkpoint({"sync_count": sync_count + 1})
@@ -76,7 +84,7 @@ connector = Connector(update=update)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

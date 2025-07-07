@@ -1,14 +1,20 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-""" Add one line description of your connector here.
-For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library."""
+"""Add one line description of your connector here.
+For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library.
+"""
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 """ Add your source-specific imports here
@@ -66,11 +72,11 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "table_name", # Name of the table in the destination, required.
-            "primary_key": ["id"], # Primary key column(s) for the table, optional.
-            "columns": { # Definition of columns and their types, optional.
-                "id": "STRING", # Contains a dictionary of column names and data types
-            }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+            "table": "table_name",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "id": "STRING",  # Contains a dictionary of column names and data types
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
     ]
 
@@ -131,7 +137,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

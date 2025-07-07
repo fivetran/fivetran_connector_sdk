@@ -4,12 +4,17 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
-import pyodbc # For connecting to Sybase ASE using FreeTDS
+import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
 import datetime
 
@@ -39,13 +44,13 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "sales", # Name of the table in the destination, required.
-            "primary_key": ["stor_id"], # Primary key column(s) for the table, optional.
-            "columns":{ # Definition of columns and their types, optional.
-                "stor_id": "STRING",# Contains a dictionary of column names and data types
+            "table": "sales",  # Name of the table in the destination, required.
+            "primary_key": ["stor_id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "stor_id": "STRING",  # Contains a dictionary of column names and data types
                 "ord_num": "STRING",
-                "date": "NAIVE_DATETIME"
-            }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+                "date": "NAIVE_DATETIME",
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
@@ -129,8 +134,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
             # Ensure created_date is in ISO format if it exists
-            if row_data['date'] and isinstance(row_data['date'], datetime.date):
-                row_data['date'] = row_data['date'].isoformat()
+            if row_data["date"] and isinstance(row_data["date"], datetime.date):
+                row_data["date"] = row_data["date"].isoformat()
 
             # The yield statement yields a value from generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
@@ -140,8 +145,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             yield op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
-            if row_data['date'] and row_data['date'] > last_created:
-                last_created = row_data['date']
+            if row_data["date"] and row_data["date"] > last_created:
+                last_created = row_data["date"]
 
         # Update the state with the last_created timestamp after processing each batch
         state["last_created"] = last_created
@@ -189,11 +194,7 @@ def update(configuration: dict, state: dict):
 
     # Fetch data from the Sybase ASE database and upsert it into the destination table
     yield from fetch_and_upsert(
-        cursor=cursor,
-        query=query,
-        table_name=table_name,
-        state=state,
-        batch_size=1000
+        cursor=cursor, query=query, table_name=table_name, state=state, batch_size=1000
     )
 
     # Close the cursor and connection to the Sybase ASE database
@@ -210,7 +211,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     try:
         # Open the configuration.json file and load its contents
-        with open("conf.json", 'r') as f:
+        with open("conf.json", "r") as f:
             configuration = json.load(f)
     except FileNotFoundError:
         log.info("Using empty configuration!")

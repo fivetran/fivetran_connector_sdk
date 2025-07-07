@@ -7,18 +7,25 @@
 
 # Import the json module to handle JSON data.
 import json
+
 # Import datetime for handling date and time conversions.
 from datetime import datetime
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
 
-#Import pyodbc which is used to connect with SQL Server Db
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+# Import pyodbc which is used to connect with SQL Server Db
 import pyodbc
 
 TIMESTAMP_FORMAT = "%Y-%m-%d"
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -36,22 +43,21 @@ def schema(configuration: dict):
                 "last_name": "STRING",  # String column for the last name.
                 "hire_date": "NAIVE_DATE",  # NAIVE_DATE column for the hire_date.
                 "salary": "LONG",  # Integer column for the salary.
-                "updated_time": "NAIVE_DATETIME" # Datetime of row update
+                "updated_time": "NAIVE_DATETIME",  # Datetime of row update
             },
         }
     ]
-
 
 
 # Establishes a connection to a database using pyodbc.
 def connect_to_database(configuration):
     # Define connection parameters
     connection_string = (
-        "DRIVER=" + configuration.get('driver') + ";"
-        "SERVER=" + configuration.get('server') + ";"
-        "DATABASE=" + configuration.get('database') + ";"
-        "UID=" + configuration.get('user') + ";"
-        "PWD=" + configuration.get('password') + ";"
+        "DRIVER=" + configuration.get("driver") + ";"
+        "SERVER=" + configuration.get("server") + ";"
+        "DATABASE=" + configuration.get("database") + ";"
+        "UID=" + configuration.get("user") + ";"
+        "PWD=" + configuration.get("password") + ";"
     )
 
     try:
@@ -67,6 +73,7 @@ def connect_to_database(configuration):
 # Converting Date to String
 def dt2str(incoming: datetime) -> str:
     return incoming.strftime(TIMESTAMP_FORMAT)
+
 
 # Add mock data to your database, for illustration purposes
 def setup_db(configuration):
@@ -128,7 +135,6 @@ def setup_db(configuration):
         print("Connection closed.")
 
 
-
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -166,7 +172,7 @@ def update(configuration: dict, state: dict):
 
         # Fetch and display results
         print("Query executed successfully. Results:")
-        batch_size = 2 # Fetch only few records, process them and then fetch more, ensuring we don't load all the records in memory
+        batch_size = 2  # Fetch only few records, process them and then fetch more, ensuring we don't load all the records in memory
         while True:
             # Fetch a batch of records.
             rows = cursor.fetchmany(batch_size)
@@ -183,10 +189,10 @@ def update(configuration: dict, state: dict):
                         "last_name": row[2],  # Last Name.
                         "hire_date": dt2str(row[3]),  # Hire Date.
                         "salary": row[4],  # Salary.
-                        "updated_time": row[5].isoformat()  # Salary.
-                    }
+                        "updated_time": row[5].isoformat(),  # Salary.
+                    },
                 )
-                if row[5]>last_query_dt:
+                if row[5] > last_query_dt:
                     last_query_dt = row[5]
     except pyodbc.Error as e:
         print(f"Error executing query: {e}")
@@ -215,7 +221,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

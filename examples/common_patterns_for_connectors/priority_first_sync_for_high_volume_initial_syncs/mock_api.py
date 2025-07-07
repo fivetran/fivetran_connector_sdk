@@ -13,11 +13,9 @@ def get_api_response(base_url, from_cursor):
     until = updated_since + timedelta(days=1)
     if until > datetime.now(timezone.utc):
         until = datetime.now(timezone.utc)
-    response_page = {
-        "data": []
-    }
+    response_page = {"data": []}
     while updated_since <= until:
-        response_page['data'].append(
+        response_page["data"].append(
             {
                 "id": fake.uuid4(),
                 "name": fake.name(),
@@ -31,7 +29,7 @@ def get_api_response(base_url, from_cursor):
         )
         updated_since = updated_since + timedelta(hours=1)
     if updated_since < connector.sync_start:
-        response_page['has_more'] = True
+        response_page["has_more"] = True
     return response_page
 
 

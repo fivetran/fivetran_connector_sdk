@@ -12,6 +12,7 @@ from fivetran_connector_sdk import Logging as log
 import json
 from datetime import timezone
 from dateutil import parser
+
 # Import the Cassandra drivers
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
@@ -26,10 +27,10 @@ def create_cassandra_session(configuration: dict):
     Returns:
         session: a Cassandra session object
     """
-    host= configuration.get("hostname")
-    port= int(configuration.get("port"))
-    username=configuration.get("username")
-    password=configuration.get("password")
+    host = configuration.get("hostname")
+    port = int(configuration.get("port"))
+    username = configuration.get("username")
+    password = configuration.get("password")
     auth_provider = PlainTextAuthProvider(username=username, password=password)
 
     try:
@@ -42,7 +43,9 @@ def create_cassandra_session(configuration: dict):
         raise RuntimeError("Failed to connect to Cassandra")
 
 
-def fetch_new_rows(session, keyspace: str, table_name: str, last_created_at: str, fetch_size: int = 100):
+def fetch_new_rows(
+    session, keyspace: str, table_name: str, last_created_at: str, fetch_size: int = 100
+):
     """
     Fetches new rows from Cassandra using a paginated query.
     Args:
@@ -112,7 +115,7 @@ def upsert_fetched_rows(session, keyspace: str, table_name: str, state: dict):
         record = {
             "id": str(row.id),
             "name": row.name,
-            "created_at": row_created_at.isoformat() if row.created_at else None
+            "created_at": row_created_at.isoformat() if row.created_at else None,
         }
 
         # Upsert the record into destination and increment the record count
@@ -126,7 +129,7 @@ def upsert_fetched_rows(session, keyspace: str, table_name: str, state: dict):
         # Checkpoint every 1000 records
         # This is useful for large datasets to avoid losing progress in case of failure
         # You can modify this number based on your requirements
-        if record_count%1000 == 0:
+        if record_count % 1000 == 0:
             state["last_created_at"] = max_created_at.isoformat()
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
@@ -152,7 +155,7 @@ def schema(configuration: dict):
     """
 
     # check if required configuration values are present in configuration
-    for key in ['hostname', 'username', 'password', 'keyspace','port']:
+    for key in ["hostname", "username", "password", "keyspace", "port"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
@@ -203,7 +206,9 @@ def update(configuration, state):
     # If these prerequisites are not met, the connector will not function correctly.
 
     # Fetch new rows from Cassandra and upsert them
-    yield from upsert_fetched_rows(session=session, keyspace=keyspace, table_name=table_name, state=state)
+    yield from upsert_fetched_rows(
+        session=session, keyspace=keyspace, table_name=table_name, state=state
+    )
 
 
 # Create the connector object using the schema and update functions
@@ -211,7 +216,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

@@ -7,7 +7,7 @@ class TimestampSerializer:
     # Define the acceptable formats for the timestamp
     TIMESTAMP_FORMATS = [
         "%Y/%m/%d %H:%M:%S",  # yyyy/MM/dd HH:mm:ss
-        "%Y-%m-%d %H:%M:%S"  # yyyy-MM-dd HH:mm:ss
+        "%Y-%m-%d %H:%M:%S",  # yyyy-MM-dd HH:mm:ss
     ]
 
     @classmethod

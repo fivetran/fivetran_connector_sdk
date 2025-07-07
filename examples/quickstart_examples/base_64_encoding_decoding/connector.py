@@ -7,11 +7,15 @@
 
 # Import base64 for API Auth Param Encoding
 import base64
+
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import (
+    Connector,
+)  # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import \
-    Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -24,11 +28,7 @@ def schema(configuration: dict):
         {
             "table": "user",
             "primary_key": ["id"],
-            "columns": {
-                "id": "STRING",
-                "name": "STRING",
-                "email": "STRING"
-            },
+            "columns": {"id": "STRING", "name": "STRING", "email": "STRING"},
         }
     ]
 
@@ -44,15 +44,11 @@ def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Using Base64 Encoding and Decoding")
 
     # Original values
-    user_info = {
-        "id": "12345",
-        "name": "John Doe",
-        "email": "john.doe@example.com"
-    }
+    user_info = {"id": "12345", "name": "John Doe", "email": "john.doe@example.com"}
 
     # Encode each value to Base64
     encoded_info = {
-        key: base64.b64encode(value.encode('utf-8')).decode('utf-8')
+        key: base64.b64encode(value.encode("utf-8")).decode("utf-8")
         for key, value in user_info.items()
     }
     # Upsert the encoded data to the "user" table
@@ -60,7 +56,7 @@ def update(configuration: dict, state: dict):
 
     # Decode each Base64 value back to original
     decoded_info = {
-        key: base64.b64decode(value.encode('utf-8')).decode('utf-8')
+        key: base64.b64decode(value.encode("utf-8")).decode("utf-8")
         for key, value in encoded_info.items()
     }
     # Upsert the decoded data to the "user" table

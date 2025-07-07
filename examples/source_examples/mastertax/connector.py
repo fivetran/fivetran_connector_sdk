@@ -21,10 +21,15 @@ import uuid
 import zipfile
 import tempfile
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 from constants import column_names, data_extracts
 
@@ -35,6 +40,7 @@ RETRY_WAIT_SECONDS = 300
 MAX_RETRIES = 3
 MAX_STATUS_ATTEMPTS = 10
 
+
 def schema(configuration: dict):
     """
     # Define the schema function which lets you configure the schema your connector delivers.
@@ -44,6 +50,7 @@ def schema(configuration: dict):
     :return: a list of tables with primary keys and any datatypes that we want to specify
     """
     return [{"table": "extract_01", "primary_key": ["id"]}]
+
 
 def update(configuration: dict, state: dict):
     """
@@ -88,7 +95,9 @@ def sync_items(headers: dict, extract: dict):
 
     while not complete and attempts < MAX_STATUS_ATTEMPTS:
         sleep(30)
-        log.info(f"checking export status for {conversation_id}, attempt {attempts+1}/{MAX_STATUS_ATTEMPTS}")
+        log.info(
+            f"checking export status for {conversation_id}, attempt {attempts+1}/{MAX_STATUS_ATTEMPTS}"
+        )
         status, output_id = get_process_status(base_url + status_endpoint, headers)
         if status == "completed":
             complete = True
@@ -96,7 +105,9 @@ def sync_items(headers: dict, extract: dict):
         attempts += 1
 
     if not complete:
-        raise TimeoutError(f"Status not completed after {MAX_STATUS_ATTEMPTS} attempts for {conversation_id}")
+        raise TimeoutError(
+            f"Status not completed after {MAX_STATUS_ATTEMPTS} attempts for {conversation_id}"
+        )
 
     content_endpoint = f"/tax/v1/organization-tax-data/processing-job-outputs/{output_id}/content?processName=DATA_EXTRACT"
 
@@ -112,12 +123,17 @@ def sync_items(headers: dict, extract: dict):
         log.fine(f"ZIP file extracted to: {extract_path}")
 
         layout_name = next(
-            (tag["tagValues"][0] for tag in extract.get("processDefinitionTags", [])
-             if tag.get("tagCode") == "LAYOUT_NAME"),
-            None
+            (
+                tag["tagValues"][0]
+                for tag in extract.get("processDefinitionTags", [])
+                if tag.get("tagCode") == "LAYOUT_NAME"
+            ),
+            None,
         )
 
-        matching_files = [filename for filename in os.listdir(extract_path) if layout_name in filename]
+        matching_files = [
+            filename for filename in os.listdir(extract_path) if layout_name in filename
+        ]
 
         for file in matching_files:
             full_path = os.path.join(extract_path, file)
@@ -125,6 +141,7 @@ def sync_items(headers: dict, extract: dict):
             yield from upsert_rows(full_path, layout_name)
 
     yield op.checkpoint({})
+
 
 def upsert_rows(filename: str, layout_name: str):
     """
@@ -142,6 +159,7 @@ def upsert_rows(filename: str, layout_name: str):
         for row in reader:
             yield op.upsert(table=layout_name, data=dict(zip(layout_column_names, row)))
 
+
 def submit_process(url: str, headers: dict, payload: dict):
     """
     Submits a data extract request and gets a resource_id to be used to check the status in subsequent calls
@@ -151,7 +169,9 @@ def submit_process(url: str, headers: dict, payload: dict):
     :return: status and resource_id
     """
     for attempt in range(MAX_RETRIES + 1):
-        response = rq.post(url, headers=headers, data=json.dumps(payload), cert=(CERT_PATH, KEY_PATH))
+        response = rq.post(
+            url, headers=headers, data=json.dumps(payload), cert=(CERT_PATH, KEY_PATH)
+        )
 
         if response.status_code == 400 and attempt < MAX_RETRIES:
             log.info(f"Received 400 response, waiting {RETRY_WAIT_SECONDS} seconds to retry...")
@@ -166,9 +186,12 @@ def submit_process(url: str, headers: dict, payload: dict):
         response_page = response.json()
         log.fine(response_page)
         status = response_page.get("_confirmMessage", {}).get("requestStatus")
-        resource_id = response_page.get("_confirmMessage", {}).get("messages", [{}])[0].get("resourceID")
+        resource_id = (
+            response_page.get("_confirmMessage", {}).get("messages", [{}])[0].get("resourceID")
+        )
 
         return status, resource_id
+
 
 def get_process_status(url: str, headers: dict):
     """
@@ -188,6 +211,7 @@ def get_process_status(url: str, headers: dict):
     output_id = response_page.get("processingJob").get("processOutputID")
 
     return status, output_id
+
 
 def download_file(url: str, headers: dict, output_path: str):
     """
@@ -209,6 +233,7 @@ def download_file(url: str, headers: dict, output_path: str):
 
     log.info(f"ZIP file downloaded successfully to {output_path}")
 
+
 def make_headers(conf: dict):
     """
     Create authentication headers.
@@ -222,15 +247,13 @@ def make_headers(conf: dict):
     write_to_file(conf["crtFile"], CERT_PATH)
     write_to_file(conf["keyFile"], KEY_PATH)
     payload = f"grant_type=client_credentials&client_id={conf['clientId']}&client_secret={conf['clientSecret']}"
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
-    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
 
     # Request a new token
     try:
-        auth_response = rq.request("POST", url, headers=headers, data=payload,
-                                   cert=("SSL.crt", "SSL_auth.key"))
+        auth_response = rq.request(
+            "POST", url, headers=headers, data=payload, cert=("SSL.crt", "SSL_auth.key")
+        )
         auth_response.raise_for_status()
         auth_page = auth_response.json()
 
@@ -244,6 +267,7 @@ def make_headers(conf: dict):
 
     except rq.exceptions.RequestException as e:
         raise RuntimeError(f"Failed to authenticate: {e}")
+
 
 def write_to_file(text: str, filename: str):
     """
@@ -259,6 +283,7 @@ def write_to_file(text: str, filename: str):
     except Exception as e:
         log.info(f"Error writing to file: {e}")
 
+
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
@@ -268,7 +293,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

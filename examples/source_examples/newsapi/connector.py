@@ -1,4 +1,3 @@
-
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -9,9 +8,15 @@ import datetime
 import json
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -20,9 +25,9 @@ from fivetran_connector_sdk import Operations as op # For supporting Data operat
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
 
-    if not ('topic' in configuration):
+    if not ("topic" in configuration):
         raise ValueError("Could not find 'topic' in configuration.json")
-    
+
     return [
         {
             "table": "article",
@@ -31,10 +36,11 @@ def schema(configuration: dict):
                 "source": "STRING",
                 "published_at": "UTC_DATETIME",
                 "author": "STRING",
-                "title": "STRING"
-            }
+                "title": "STRING",
+            },
         }
     ]
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -50,18 +56,23 @@ def update(configuration: dict, state: dict):
         base_url = "https://newsapi.org/v2/everything"
 
         # Default value can be set 1 day ago
-        from_ts = state['to_ts'] if 'to_ts' in state else datetime.datetime.now() - datetime.timedelta(days=1)
+        from_ts = (
+            state["to_ts"]
+            if "to_ts" in state
+            else datetime.datetime.now() - datetime.timedelta(days=1)
+        )
         now = datetime.datetime.now()
         to_ts = now.strftime("%Y-%m-%dT%H:%M:%S")
-        headers = {"Authorization": "Bearer "+conf["API_KEY"], "accept": "application/json"}
+        headers = {"Authorization": "Bearer " + conf["API_KEY"], "accept": "application/json"}
 
-        params = \
-            {"from": from_ts,
+        params = {
+            "from": from_ts,
             "to": to_ts,
             "page": "1",
             "language": "en",
-             "sortBy": "publishedAt",
-             "pageSize": conf["pageSize"]}
+            "sortBy": "publishedAt",
+            "pageSize": conf["pageSize"],
+        }
 
         topics = json.loads(conf["topic"])
 
@@ -70,11 +81,8 @@ def update(configuration: dict, state: dict):
             params["page"] = "1"
             yield from sync_items(base_url, headers, params, state, t)
 
-
         # Update the state with the new cursor position, incremented by 1.
-        new_state = {
-            "to_ts": to_ts
-        }
+        new_state = {"to_ts": to_ts}
         log.fine(f"state updated, new state: {repr(new_state)}")
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -114,18 +122,22 @@ def sync_items(base_url, headers, params, state, topic):
         # Iterate over each user in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        summary_first_item = {'title': items[0]['title'], 'source': items[0]['source']}
+        summary_first_item = {"title": items[0]["title"], "source": items[0]["source"]}
 
         for a in items:
-            yield op.upsert(table="article", data={
-                "topic": topic,
-                "source": a["source"]["name"],
-                "published_at": a["publishedAt"],
-                "author": a["author"],
-                "title": a["title"],
-                "description": a["description"],
-                "content": a["content"],
-                "url": a["url"]})
+            yield op.upsert(
+                table="article",
+                data={
+                    "topic": topic,
+                    "source": a["source"]["name"],
+                    "published_at": a["publishedAt"],
+                    "author": a["author"],
+                    "title": a["title"],
+                    "description": a["description"],
+                    "content": a["content"],
+                    "url": a["url"],
+                },
+            )
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
@@ -135,6 +147,7 @@ def sync_items(base_url, headers, params, state, topic):
 
         # Determine if we should continue pagination based on the total items and the current offset.
         more_data, params = should_continue_pagination(params, response_page)
+
 
 # The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
 # It performs the following tasks:
@@ -153,6 +166,7 @@ def get_api_response(endpoint_path, headers, params):
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     response_page = response.json()
     return response_page
+
 
 # The should_continue_pagination function determines whether pagination should continue based on the
 # current page number and the total number of results in the API response.
@@ -180,7 +194,12 @@ def should_continue_pagination(params, response_page):
     total_pages = divmod(int(response_page["totalResults"]), int(params["pageSize"]))[0] + 1
 
     # 100 results is a temporary limit for dev API -- this limit can be removed if you have a paid API key
-    if current_page and total_pages and current_page < total_pages and current_page * int(params["pageSize"]) < 100:
+    if (
+        current_page
+        and total_pages
+        and current_page < total_pages
+        and current_page * int(params["pageSize"]) < 100
+    ):
         # Increment the page number for the next request in params
         params["page"] = current_page + 1
     else:
@@ -188,8 +207,9 @@ def should_continue_pagination(params, response_page):
 
     return has_more_pages, params
 
+
 # This creates the connector object that will use the update function defined in this connector.py file.
-# This example does not use the schema() function. If it did, it would need to be included in the connector object definition. 
+# This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
@@ -198,10 +218,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "main":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
-
-
-

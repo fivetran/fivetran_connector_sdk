@@ -2,8 +2,12 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime
 
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # Define the Greenplum client class to handle database operations.
@@ -20,7 +24,9 @@ class GreenplumClient:
         # The cursor is created with RealDictCursor factory to return results as dictionaries.
         # The cursor is name "my_cursor" to allow server-side cursors. This enables streaming of results.
         # This is useful for large result sets as it does not load entire data in memory and prevents memory overflow errors.
-        self.cursor = self.connection.cursor(name="my_cursor", cursor_factory=psycopg2.extras.RealDictCursor)
+        self.cursor = self.connection.cursor(
+            name="my_cursor", cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
     @staticmethod
     def connect(configuration):
@@ -37,11 +43,11 @@ class GreenplumClient:
 
         try:
             return psycopg2.connect(
-                host = host,
-                port = port,
-                database = database,
-                user = user,
-                password = password,
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
             )
         except Exception as e:
             raise ConnectionError(f"Error connecting to Greenplum database: {e}")
@@ -54,7 +60,6 @@ class GreenplumClient:
         if self.connection:
             self.connection.close()
         log.info("Database connection closed.")
-
 
     def upsert_data(self, query, table_name, state):
         """
@@ -90,15 +95,12 @@ class GreenplumClient:
             if upsert_row["query_start"] > last_query_timestamp:
                 last_query_timestamp = upsert_row["query_start"]
 
-        state = {
-            "last_query_timestamp": last_query_timestamp
-        }
+        state = {"last_query_timestamp": last_query_timestamp}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
-
 
     @staticmethod
     def convert_datetime_to_iso(data):

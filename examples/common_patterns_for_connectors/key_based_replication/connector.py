@@ -7,13 +7,19 @@
 
 # Import datetime for handling date and time conversions.
 from datetime import datetime
+
 # import duckdb to interact with DuckDB databases from within your Python code.
 import duckdb
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 # This column is the replication key which helps determine which records are updated
@@ -48,30 +54,34 @@ def dt2str(incoming: datetime) -> str:
 
 def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
     # Creating a table.
-    create_query = ("CREATE TABLE IF NOT EXISTS customers "
-                    "(customer_id INTEGER PRIMARY KEY, "
-                    "first_name VARCHAR, "
-                    "last_name VARCHAR, "
-                    "email VARCHAR, "
-                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    create_query = (
+        "CREATE TABLE IF NOT EXISTS customers "
+        "(customer_id INTEGER PRIMARY KEY, "
+        "first_name VARCHAR, "
+        "last_name VARCHAR, "
+        "email VARCHAR, "
+        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+    )
 
     # Executing create query.
     conn.execute(create_query)
 
     # Inserting records to the table.
-    insert_query = ("INSERT INTO customers (customer_id, first_name, last_name, email, updated_at) "
-                    "VALUES "
-                    "('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'), "
-                    "('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'), "
-                    "('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'), "
-                    "('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'), "
-                    "('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')  "
-                    "ON CONFLICT (customer_id) "
-                    "DO UPDATE SET "
-                    "first_name = EXCLUDED.first_name, "
-                    "last_name = EXCLUDED.last_name, "
-                    "email = EXCLUDED.email, "
-                    "updated_at = EXCLUDED.updated_at")
+    insert_query = (
+        "INSERT INTO customers (customer_id, first_name, last_name, email, updated_at) "
+        "VALUES "
+        "('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'), "
+        "('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'), "
+        "('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'), "
+        "('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'), "
+        "('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')  "
+        "ON CONFLICT (customer_id) "
+        "DO UPDATE SET "
+        "first_name = EXCLUDED.first_name, "
+        "last_name = EXCLUDED.last_name, "
+        "email = EXCLUDED.email, "
+        "updated_at = EXCLUDED.updated_at"
+    )
 
     # Executing insert query.
     conn.execute(insert_query)
@@ -92,25 +102,31 @@ def update(configuration: dict, state: dict):
     # This is not required. This is just for example illustration purposes.
     setup_source_warehouse(conn)
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
-    last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
+    last_updated_at = (
+        state["last_updated_at"] if "last_updated_at" in state else "2024-01-01T00:00:00Z"
+    )
 
     # Fetch records from DB sorted in ascending order.
-    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {REPLICATION_KEY} > "
-             f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}")
+    query = (
+        f"SELECT customer_id, first_name, last_name, email, updated_at FROM customers WHERE {REPLICATION_KEY} > "
+        f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}"
+    )
     # This log message will only show while debugging.
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     result = conn.execute(query).fetchall()
 
     # Yield an upsert operation to insert/update the row in the "customers" table.
     for row in result:
-        yield op.upsert(table="customers",
-                        data={
-                            "customer_id": row[0],  # Customer id.
-                            "first_name": row[1],  # First Name.
-                            "last_name": row[2],  # Last name.
-                            "email": row[3],  # Email id.
-                            "updated_at": dt2str(row[4])  # record updated at.
-                        })
+        yield op.upsert(
+            table="customers",
+            data={
+                "customer_id": row[0],  # Customer id.
+                "first_name": row[1],  # First Name.
+                "last_name": row[2],  # Last name.
+                "email": row[3],  # Email id.
+                "updated_at": dt2str(row[4]),  # record updated at.
+            },
+        )
         # Storing `updated_at` of last fetched record
         last_updated_at = dt2str(row[4])
 
