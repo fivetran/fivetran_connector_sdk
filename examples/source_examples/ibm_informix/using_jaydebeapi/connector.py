@@ -12,6 +12,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 import json
+
 # Import the JayDeBeApi library for connecting to the Informix database.
 import jaydebeapi
 
@@ -21,17 +22,12 @@ import jaydebeapi
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
-def schema(configuration : dict):
+def schema(configuration: dict):
     return [
         {
             "table": "sample_table",
             "primary_key": ["id"],
-            "columns": {
-                "id": "STRING",
-                "title": "STRING",
-                "name": "STRING",
-                "city": "STRING"
-            }
+            "columns": {"id": "STRING", "title": "STRING", "name": "STRING", "city": "STRING"},
         }
     ]
 
@@ -40,9 +36,17 @@ def schema(configuration : dict):
 # It takes a configuration dictionary as an argument, which contains the necessary connection parameters.
 # The function checks if the required keys are present in the configuration dictionary and raises a ValueError if any are missing.
 # It then extracts the connection parameters from the configuration dictionary and attempts to establish a connection to the database.
-def set_up_connection(configuration : dict):
+def set_up_connection(configuration: dict):
     # Check if the configuration dictionary has all the required keys
-    required_keys = ["hostname", "port", "database", "username", "password", "informix_server", "table_name"]
+    required_keys = [
+        "hostname",
+        "port",
+        "database",
+        "username",
+        "password",
+        "informix_server",
+        "table_name",
+    ]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
@@ -63,7 +67,8 @@ def set_up_connection(configuration : dict):
             "com.informix.jdbc.IfxDriver",
             f"jdbc:informix-sqli://{host}:{port}/{database}:INFORMIXSERVER={informix_server}",
             [user, password],
-            "/opt/informix/jdbc-15.0.0.1.1.jar:/opt/informix/bson-3.8.0.jar")
+            "/opt/informix/jdbc-15.0.0.1.1.jar:/opt/informix/bson-3.8.0.jar",
+        )
 
         # return the connection object
         return connection
@@ -101,8 +106,10 @@ def close_connection(cursor, connection):
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
-def update(configuration : dict, state : dict):
-    log.info("Example: Source Examples - Fetching data from IBM Informix database using JayDeBeApi")
+def update(configuration: dict, state: dict):
+    log.info(
+        "Example: Source Examples - Fetching data from IBM Informix database using JayDeBeApi"
+    )
 
     # Initialize the connection and cursor variables to None
     connection = None
@@ -161,7 +168,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

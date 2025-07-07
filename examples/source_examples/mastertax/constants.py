@@ -8,11 +8,21 @@ column_names: A dictionary of key-value pairs.
 """
 
 data_extracts = [
-                {"processNameCode": {"code": "DATA_EXTRACT"},
-                  "processDefinitionTags": [{"tagCode": "LAYOUT_NAME", "tagValues": ["EXTRACT_01"]},
-                                            {"tagCode": "FILTER_NAME", "tagValues": ["EXTRACT_01_FILTER"]}],
-                  "filterConditions": [{"joinType": "oneOf", "attributes": [
-                      {"attributeID": "COLUMN_03", "operator": "gt", "attributeValue": ["0"]}]}]}]
+    {
+        "processNameCode": {"code": "DATA_EXTRACT"},
+        "processDefinitionTags": [
+            {"tagCode": "LAYOUT_NAME", "tagValues": ["EXTRACT_01"]},
+            {"tagCode": "FILTER_NAME", "tagValues": ["EXTRACT_01_FILTER"]},
+        ],
+        "filterConditions": [
+            {
+                "joinType": "oneOf",
+                "attributes": [
+                    {"attributeID": "COLUMN_03", "operator": "gt", "attributeValue": ["0"]}
+                ],
+            }
+        ],
+    }
+]
 
-column_names = {
-      "EXTRACT_01": ["ID", "COLUMN_01", "COLUMN_02", "COLUMN_03"]}
+column_names = {"EXTRACT_01": ["ID", "COLUMN_01", "COLUMN_02", "COLUMN_03"]}

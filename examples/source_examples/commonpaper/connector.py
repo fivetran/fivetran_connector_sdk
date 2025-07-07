@@ -4,16 +4,21 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
 import requests  # For making HTTP requests to the Common Paper API
-import json      # For JSON data handling and serialization
+import json  # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
-import time      # For implementing exponential backoff delays
+import time  # For implementing exponential backoff delays
 
 
 # Base URL for the Common Paper API
@@ -26,14 +31,11 @@ def get_headers(api_key):
     """
     Generate the headers required for Common Paper API authentication.
     Args:
-        api_key (str): The API key for authentication 
+        api_key (str): The API key for authentication
     Returns:
         dict: Headers dictionary containing Authorization and Accept headers
     """
-    return {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json"
-    }
+    return {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
 
 
 def fetch_agreements(api_key, updated_at):
@@ -42,7 +44,7 @@ def fetch_agreements(api_key, updated_at):
     Implements retry logic with exponential backoff for up to 3 attempts.
     Args:
         api_key (str): The API key for authentication
-        updated_at (str): ISO format timestamp to filter agreements updated after this time  
+        updated_at (str): ISO format timestamp to filter agreements updated after this time
     Returns:
         dict: JSON response containing agreement data
     Raises:
@@ -51,35 +53,45 @@ def fetch_agreements(api_key, updated_at):
     # Format the URL with the filter parameter
     url = f"{__API_URL}?filter[updated_at_gt]={updated_at}"
     log.fine(f"Fetching agreements from URL: {url}")
-    
+
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=get_headers(api_key))
-            
+
             if response.status_code == 200:
                 return response.json()
             elif response.status_code in [429, 500, 502, 503, 504]:  # Retryable status codes
                 if attempt < __MAX_RETRIES - 1:  # Don't sleep on the last attempt
-                    delay = __BASE_DELAY * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
-                    log.warning(f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})")
+                    delay = __BASE_DELAY * (2**attempt)  # Exponential backoff: 1s, 2s, 4s
+                    log.warning(
+                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+                    )
                     time.sleep(delay)
                     continue
                 else:
-                    log.severe(f"Failed to fetch agreements after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}")
-                    raise RuntimeError(f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}")
+                    log.severe(
+                        f"Failed to fetch agreements after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
+                    )
+                    raise RuntimeError(
+                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
+                    )
             else:
                 # Non-retryable status codes (4xx errors except 429)
                 log.severe(f"Failed to fetch agreements: {response.status_code} - {response.text}")
                 raise RuntimeError(f"API returned {response.status_code}: {response.text}")
-                
+
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRIES - 1:  # Don't sleep on the last attempt
-                delay = __BASE_DELAY * (2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
-                log.warning(f"Network error occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}")
+                delay = __BASE_DELAY * (2**attempt)  # Exponential backoff: 1s, 2s, 4s
+                log.warning(
+                    f"Network error occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
+                )
                 time.sleep(delay)
                 continue
             else:
-                log.severe(f"Failed to fetch agreements after {__MAX_RETRIES} attempts due to network error: {str(e)}")
+                log.severe(
+                    f"Failed to fetch agreements after {__MAX_RETRIES} attempts due to network error: {str(e)}"
+                )
                 raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
     return None
 
@@ -110,8 +122,8 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "agreements", # Name of the table in the destination, required.
-            "primary_key": ["id"] # Primary key column(s) for the table, optional.
+            "table": "agreements",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
         }
     ]
 
@@ -140,10 +152,10 @@ def update(configuration, state):
 
     data = fetch_agreements(api_key, cursor)
     agreements = data.get("data", [])
-    
+
     for record in agreements:
         attributes = record.get("attributes", {})
-        
+
         # Convert lists to strings for storage
         for field_name, field_value in attributes.items():
             if isinstance(field_value, list):
@@ -172,9 +184,8 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
-
 
     # Test the connector locally
     connector.debug(configuration=configuration)

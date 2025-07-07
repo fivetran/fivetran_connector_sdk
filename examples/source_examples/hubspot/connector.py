@@ -7,20 +7,24 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
 import requests
 import json
 from datetime import datetime, timezone
 
-# Define Event Types to retrieve data for - 
+# Define Event Types to retrieve data for -
 # The event types in this list should match the "table" values in the schema() method if you want each event type to be in its own table
 EVENT_TYPE_NAMES = ["e_visited_page"]
 
 # Define page_size - number of records to retrieve per API call
 PAGE_SIZE = 1000
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -28,12 +32,8 @@ PAGE_SIZE = 1000
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    return [
-        {
-            "table": "e_visited_page",
-            "primary_key": ["id"]
-        }
-    ]
+    return [{"table": "e_visited_page", "primary_key": ["id"]}]
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -43,7 +43,7 @@ def schema(configuration: dict):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    
+
     # Define base URL for events endpoint, api_token
     events_url = "https://api.hubapi.com/events/v3/events/"
     api_token = configuration.get("api_token")
@@ -53,13 +53,15 @@ def update(configuration: dict, state: dict):
 
     # If there is a start_date in state, retrieve it to use as occurredAfter query parameter
     # If no start_date in state, full sync, utilizing initial_sync_start_date in configuration as occurredAfter query parameter
-    start_date = state.get("start_date") if "start_date" in state else configuration.get("initial_sync_start_date")
+    start_date = (
+        state.get("start_date")
+        if "start_date" in state
+        else configuration.get("initial_sync_start_date")
+    )
     end_date = current_date
 
     # Define API headers
-    headers = {
-        "Authorization": f"Bearer {api_token}"
-    }
+    headers = {"Authorization": f"Bearer {api_token}"}
 
     # Loop through event type names and query events API for records in given time frame
     for event_type_name in EVENT_TYPE_NAMES:
@@ -68,7 +70,7 @@ def update(configuration: dict, state: dict):
             "occurredAfter": start_date,
             "occurredBefore": end_date,
             "limit": PAGE_SIZE,
-            "after": None
+            "after": None,
         }
 
         yield from sync_items(event_type_name, events_url, params, headers)
@@ -78,6 +80,7 @@ def update(configuration: dict, state: dict):
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint({"start_date": end_date})
+
 
 # The sync_items function handles the retrieval and processing of paginated API data.
 # It performs the following tasks:
@@ -112,6 +115,7 @@ def sync_items(endpoint, api_url, params, headers):
         # Determine if we should continue pagination based on the total items and the current offset.
         more_data, params = should_continue_pagination(response_page, params)
 
+
 # The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
 # It performs the following tasks:
 # 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
@@ -132,6 +136,7 @@ def get_api_response(url, params, headers):
     response_page = response.json()
     return response_page
 
+
 # Function to check if there are more pages of data
 # Takes in two parameters
 # - response_page: most recent response page from the API
@@ -140,13 +145,14 @@ def get_api_response(url, params, headers):
 # - has_more: Boolean to indicate whether there are more pages or not
 # - params: new params for next API call if needed
 def should_continue_pagination(response_page, params):
-    next_page_after = response_page.get('paging', {}).get('next', {}).get('after')    
+    next_page_after = response_page.get("paging", {}).get("next", {}).get("after")
     if next_page_after:
         has_more = True
     else:
         has_more = False
-    params['after'] = next_page_after
+    params["after"] = next_page_after
     return has_more, params
+
 
 # Converts any list values in the input dictionary to JSON strings.
 # The function takes one parameter
@@ -155,18 +161,22 @@ def should_continue_pagination(response_page, params):
 # Returns
 # - New dictionary with lists converted to JSON strings
 def list_to_json(data: dict):
-    return {key: json.dumps(value) if isinstance(value, list) else value for key, value in data.items()}
+    return {
+        key: json.dumps(value) if isinstance(value, list) else value for key, value in data.items()
+    }
+
 
 # Function that takes in a dictionary and flattens it if it has nested json
 def flatten_json(data):
-    new_items = {}  
+    new_items = {}
     for key, value in data.items():
         if isinstance(value, dict):
-            new_items.update(value) 
+            new_items.update(value)
 
     # Add new flattened items
     data.update(new_items)
     return data
+
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -178,7 +188,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
 
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
@@ -186,15 +196,15 @@ if __name__ == "__main__":
 
 # Fivetran debug results:
 #
-# Mar 25, 2025 03:06:55 PM: INFO Fivetran-Tester-Process: Checkpoint: {"start_date": "2025-03-25T21:52:14Z"} 
+# Mar 25, 2025 03:06:55 PM: INFO Fivetran-Tester-Process: Checkpoint: {"start_date": "2025-03-25T21:52:14Z"}
 # Mar 25, 2025 03:06:55 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
-# Operation       | Calls     
+# Operation       | Calls
 # ----------------+------------
-# Upserts         | 6335      
-# Updates         | 0         
-# Deletes         | 0         
-# Truncates       | 0         
-# SchemaChanges   | 1         
-# Checkpoints     | 1         
- 
-# Mar 25, 2025 03:06:55 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED 
+# Upserts         | 6335
+# Updates         | 0
+# Deletes         | 0
+# Truncates       | 0
+# SchemaChanges   | 1
+# Checkpoints     | 1
+
+# Mar 25, 2025 03:06:55 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED

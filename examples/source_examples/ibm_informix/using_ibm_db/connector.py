@@ -3,10 +3,15 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import the ibm_db module for connecting to IBM Informix
 import ibm_db
@@ -28,8 +33,8 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "sample_table", # Name of the table in the destination.
-            "primary_key": ["id"], # Primary key column(s) for the table.
+            "table": "sample_table",  # Name of the table in the destination.
+            "primary_key": ["id"],  # Primary key column(s) for the table.
             # No columns are defined, meaning the types will be inferred.
         }
     ]
@@ -85,7 +90,7 @@ def connect_to_db(configuration: dict):
 def get_datetime_str(date_value):
     try:
         # If it's already a datetime object
-        if hasattr(date_value, 'strftime'):
+        if hasattr(date_value, "strftime"):
             return date_value.strftime("%Y-%m-%d %H:%M:%S")
         # If it's a string, try to parse it
         elif isinstance(date_value, str):
@@ -119,7 +124,7 @@ def update(configuration: dict, state: dict):
 
     # The date format of the created_at column in the database is "YYYY-MM-DD HH:MM:SS"
     # Please ensure that while handling the datetime, you are using the correct format for the columns.
-    last_created = state.get("last_created","1990-01-01 00:00:00")
+    last_created = state.get("last_created", "1990-01-01 00:00:00")
 
     # The SQL query to select all records from the table specified in configuration
     # You can modify this query to suit your needs.
@@ -147,7 +152,7 @@ def update(configuration: dict, state: dict):
     log.info("upserted all records from the products table")
 
     # Close the database connection after the operation is complete
-    if 'conn' in locals() and conn:
+    if "conn" in locals() and conn:
         ibm_db.close(conn)
         log.info("Connection closed")
 
@@ -168,7 +173,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

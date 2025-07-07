@@ -12,7 +12,7 @@ from fivetran_connector_sdk import Logging as log
 import datetime
 import random
 import json
-import clickhouse_connect # This is used to connect to ClickHouse
+import clickhouse_connect  # This is used to connect to ClickHouse
 
 
 def create_clickhouse_client(configuration: dict):
@@ -25,10 +25,10 @@ def create_clickhouse_client(configuration: dict):
         client: a ClickHouse client object
     """
     client = clickhouse_connect.get_client(
-        host= configuration.get("hostname"),
+        host=configuration.get("hostname"),
         username=configuration.get("username"),
         password=configuration.get("password"),
-        secure=True
+        secure=True,
     )
 
     try:
@@ -63,7 +63,7 @@ def execute_query_and_upsert(client, query, table_name, state):
             yield op.upsert(table=table_name, data=row)
 
             # Update the state with the last created_at timestamp
-            if row['created_at']:
+            if row["created_at"]:
                 last_created = row.get("created_at").isoformat()
                 if last_created > state.get("last_created", "01-01-1800T00:00:00"):
                     state["last_created"] = last_created
@@ -86,7 +86,7 @@ def schema(configuration: dict):
     """
 
     # check if required configuration values are present in configuration
-    for key in ['hostname', 'username', 'password', 'database']:
+    for key in ["hostname", "username", "password", "database"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
@@ -141,10 +141,14 @@ def update(configuration, state):
     last_created = state.get("last_created", "1990-01-01T00:00:00")
 
     # Execute the query to fetch data from the ClickHouse table and upsert it
-    clickhouse_query = f"SELECT * FROM {database_name}.{table_name} WHERE created_at > '{last_created}'"
+    clickhouse_query = (
+        f"SELECT * FROM {database_name}.{table_name} WHERE created_at > '{last_created}'"
+    )
     # The name of the table to upsert data into
     destination_table = "destination_table"
-    yield from execute_query_and_upsert(client=client, query=clickhouse_query, table_name=destination_table, state=state)
+    yield from execute_query_and_upsert(
+        client=client, query=clickhouse_query, table_name=destination_table, state=state
+    )
 
 
 # Create the connector object using the schema and update functions
@@ -152,7 +156,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

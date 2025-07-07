@@ -3,15 +3,20 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import the required classes from the connector SDK
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import the required libraries
 import datetime
 import json
-import pydolphindb # This is used to connect to DolphinDB
+import pydolphindb  # This is used to connect to DolphinDB
 import pandas as pd
 
 # Define the batch size for fetching data from DolphinDB in batches
@@ -24,7 +29,7 @@ def validate_configuration(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    required_keys = ['HOST', 'PORT', 'DATABASE', 'TABLE_NAME', 'USERNAME', 'PASSWORD']
+    required_keys = ["HOST", "PORT", "DATABASE", "TABLE_NAME", "USERNAME", "PASSWORD"]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -44,7 +49,9 @@ def serialize_row_data(row: dict):
         if isinstance(value, datetime.datetime):
             row[key] = value.isoformat()  # Convert datetime to ISO format string
         elif isinstance(value, pd.Timestamp):
-            row[key] = value.to_pydatetime().isoformat()  # Convert pandas Timestamp to ISO format string
+            row[key] = (
+                value.to_pydatetime().isoformat()
+            )  # Convert pandas Timestamp to ISO format string
     return row
 
 
@@ -61,9 +68,11 @@ def create_dolphin_client(configuration: dict):
     port = int(configuration.get("PORT"))
     username = configuration.get("USERNAME")
     password = configuration.get("PASSWORD")
-    
+
     try:
-        connection = pydolphindb.connect(host=host, port=port, username=username, password=password)
+        connection = pydolphindb.connect(
+            host=host, port=port, username=username, password=password
+        )
         log.info(f"Successfully connected to DolphinDB at {host}:{port}")
         return connection
     except Exception as e:
@@ -82,7 +91,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         batch_size: the number of rows to fetch in each batch
     """
     # Initialize the last_timestamp from the state or set a default value
-    last_timestamp = state.get('last_timestamp', '1990-01-01T00:00:00')
+    last_timestamp = state.get("last_timestamp", "1990-01-01T00:00:00")
 
     # Execute the query to fetch data from the DolphinDB table
     cursor.execute(query)
@@ -114,11 +123,11 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
             # - The second argument is a dictionary containing the data to be upserted.
             yield op.upsert(table=table_name, data=upsert_row)
 
-            if upsert_row['timestamp'] > last_timestamp:
+            if upsert_row["timestamp"] > last_timestamp:
                 # Update the last_timestamp if the current row's timestamp is greater
-                last_timestamp = upsert_row['timestamp']
+                last_timestamp = upsert_row["timestamp"]
 
-        state['last_timestamp'] = last_timestamp
+        state["last_timestamp"] = last_timestamp
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -126,7 +135,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         yield op.checkpoint(state)
 
     # After processing all rows, update the state with the last processed timestamp and checkpoint it
-    state['last_timestamp'] = last_timestamp
+    state["last_timestamp"] = last_timestamp
     yield op.checkpoint(state)
 
 
@@ -140,14 +149,14 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "trade", # Name of the table in the destination, required.
-            "primary_key": [], # Primary key column(s) for the table, optional.
-            "columns": { # Definition of columns and their types, optional.
-                "symbol": "STRING", # Contains a dictionary of column names and data types
+            "table": "trade",  # Name of the table in the destination, required.
+            "primary_key": [],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "symbol": "STRING",  # Contains a dictionary of column names and data types
                 "timestamp": "UTC_DATETIME",
                 "price": "FLOAT",
                 "volume": "INT",
-            }, # For any columns whose names are not provided here, their data types will be inferred
+            },  # For any columns whose names are not provided here, their data types will be inferred
         }
     ]
 
@@ -167,8 +176,8 @@ def update(configuration, state):
 
     # Initialize the last_timestamp from the state or set a default value
     # This is used to track the last processed timestamp for incremental updates
-    last_timestamp = state.get('last_timestamp', '1990-01-01T00:00:00')
-    
+    last_timestamp = state.get("last_timestamp", "1990-01-01T00:00:00")
+
     # Create a DolphinDB connection and cursor
     connection = create_dolphin_client(configuration)
     cursor = connection.cursor()
@@ -199,7 +208,9 @@ def update(configuration, state):
 
     try:
         # Execute the query and upsert the results into the destination table
-        yield from execute_query_and_upsert(cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE)
+        yield from execute_query_and_upsert(
+            cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE
+        )
         log.info(f"Successfully upserted data into {table_name} table.")
 
     except Exception as e:
@@ -222,7 +233,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

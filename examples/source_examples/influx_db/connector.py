@@ -11,7 +11,7 @@ from fivetran_connector_sdk import Logging as log
 # Import the required libraries
 from datetime import datetime, timezone
 import json
-from influxdb_client_3 import InfluxDBClient3 # InfluxDB client library for Python
+from influxdb_client_3 import InfluxDBClient3  # InfluxDB client library for Python
 
 # Define the table name where the data will be upserted
 TABLE_NAME = "census_table"
@@ -19,7 +19,7 @@ TABLE_NAME = "census_table"
 
 def validate_configuration(configuration: dict):
     # check if required configuration values are present in configuration
-    for key in ['hostname', 'token', 'org', "database", "measurement"]:
+    for key in ["hostname", "token", "org", "database", "measurement"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
@@ -92,8 +92,8 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
             row_dict[col] = value
 
         # Update the latest upserted timestamp if the current row's timestamp is greater.
-        if 'time' in row_dict and row_dict['time'] > latest_upserted_timestamp:
-            latest_upserted_timestamp = row_dict['time']
+        if "time" in row_dict and row_dict["time"] > latest_upserted_timestamp:
+            latest_upserted_timestamp = row_dict["time"]
 
         # The yield statement returns a generator object.
         # This generator will yield an upsert operation to the Fivetran connector.
@@ -103,9 +103,7 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
         yield op.upsert(table=table_name, data=row_dict)
 
     # Update the latest upserted timestamp in the state.
-    new_state = {
-        "last_upserted_timestamp": latest_upserted_timestamp
-    }
+    new_state = {"last_upserted_timestamp": latest_upserted_timestamp}
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -129,7 +127,9 @@ def execute_query_and_upsert(client, database, query, table_name, last_upserted_
     try:
         # Execute the query in chunk mode to handle large datasets efficiently.
         # This prevents memory overflow issues.
-        record_iterator = client.query(query=query, database=database, language='sql', mode="chunk")
+        record_iterator = client.query(
+            query=query, database=database, language="sql", mode="chunk"
+        )
         log.info(f"Executed query on database: {database}")
 
         # Process each chunk to upsert data into the destination
@@ -143,7 +143,9 @@ def execute_query_and_upsert(client, database, query, table_name, last_upserted_
             log.info(f"Fetched record batch with {num_rows} rows")
 
             # Upsert the record batch into the destination.
-            yield from upsert_record_batch(num_rows, record_batch, column_names, table_name, last_upserted_timestamp)
+            yield from upsert_record_batch(
+                num_rows, record_batch, column_names, table_name, last_upserted_timestamp
+            )
 
     except Exception as e:
         # In case of exception, raise a RuntimeError
@@ -161,14 +163,14 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": TABLE_NAME, # Name of the table in the destination, required.
-            "primary_key": [], # Primary key column(s) for the table, optional.
-            "columns": { # Definition of columns and their types, optional.
-                "ants": "INT", # Contains a dictionary of column names and data types
+            "table": TABLE_NAME,  # Name of the table in the destination, required.
+            "primary_key": [],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "ants": "INT",  # Contains a dictionary of column names and data types
                 "bees": "INT",
                 "location": "STRING",
-                "time": "STRING"
-            }, # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+                "time": "STRING",
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
@@ -198,10 +200,14 @@ def update(configuration, state):
     # You can modify this query to fetch data as per your requirements.
     # The query fetches the records from the specified measurement that are newer than the last upserted timestamp in ascending order.
     # The order is important for incremental syncs to ensure that we only fetch new or updated records.
-    sql_query = f"SELECT * FROM '{measurement}' WHERE time > '{last_upserted_timestamp}' ORDER BY time ASC"
+    sql_query = (
+        f"SELECT * FROM '{measurement}' WHERE time > '{last_upserted_timestamp}' ORDER BY time ASC"
+    )
 
     # execute the query and upsert the data into destination
-    yield from execute_query_and_upsert(client, database, sql_query, TABLE_NAME, last_upserted_timestamp)
+    yield from execute_query_and_upsert(
+        client, database, sql_query, TABLE_NAME, last_upserted_timestamp
+    )
 
 
 # Create the connector object using the schema and update functions
@@ -213,7 +219,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally

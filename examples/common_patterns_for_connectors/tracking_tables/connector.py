@@ -17,6 +17,7 @@ To observe how adding a new table would work:
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
@@ -27,6 +28,7 @@ from datetime import datetime, timezone
 TABLES_TO_SYNC = ["A", "B", "C"]
 tables_synced_this_sync = []
 
+
 def update(configuration: dict, state: dict):
     """
     Required Fivetran SDK function called during each sync.
@@ -36,8 +38,12 @@ def update(configuration: dict, state: dict):
     :param state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
     :return:
     """
-    start_timestamp = datetime.now(timezone.utc).isoformat("T", "milliseconds").replace("+00:00", "Z")
-    from_timestamp, to_timestamp, initial_timestamp = set_timeranges(state, configuration, start_timestamp)
+    start_timestamp = (
+        datetime.now(timezone.utc).isoformat("T", "milliseconds").replace("+00:00", "Z")
+    )
+    from_timestamp, to_timestamp, initial_timestamp = set_timeranges(
+        state, configuration, start_timestamp
+    )
 
     """
     Get list of synced tables from state. 
@@ -69,6 +75,7 @@ def update(configuration: dict, state: dict):
     log.fine(new_state)
     yield op.checkpoint(new_state)
 
+
 def sync_tables(tables_previously_synced: list, from_timestamp, initial_timestamp):
 
     for table in TABLES_TO_SYNC:
@@ -83,6 +90,7 @@ def sync_tables(tables_previously_synced: list, from_timestamp, initial_timestam
         if table not in tables_synced_this_sync:
             tables_synced_this_sync.append(table)
 
+
 def set_timeranges(state, configuration, start_timestamp):
     """
     Takes in current state and start timestamp of current sync.
@@ -94,14 +102,18 @@ def set_timeranges(state, configuration, start_timestamp):
     :param start_timestamp: timestamp of the start of the sync
     :return: from_timestamp, to_timestamp, initial_timestamp
     """
-    if 'to_timestamp' in state:
-        from_timestamp = state['to_timestamp']
+    if "to_timestamp" in state:
+        from_timestamp = state["to_timestamp"]
     else:
         from_timestamp = configuration["initialSyncStart"]
 
     to_timestamp = start_timestamp
-    initial_timestamp_dt = datetime.fromisoformat(configuration["initialSyncStart"].replace("Z", "+00:00"))
-    initial_timestamp = initial_timestamp_dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    initial_timestamp_dt = datetime.fromisoformat(
+        configuration["initialSyncStart"].replace("Z", "+00:00")
+    )
+    initial_timestamp = initial_timestamp_dt.isoformat(timespec="milliseconds").replace(
+        "+00:00", "Z"
+    )
 
     return from_timestamp, to_timestamp, initial_timestamp
 

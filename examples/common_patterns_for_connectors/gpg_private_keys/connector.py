@@ -11,9 +11,14 @@
 # https://www.redhat.com/en/blog/creating-gpg-keypairs
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Importing the gnupg library for GPG encryption and decryption
 import gnupg
@@ -56,6 +61,7 @@ def sign_message(configuration, gpg, key, message):
     # return the signed message
     return signed_message.data
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -72,6 +78,7 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
+
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
@@ -80,10 +87,9 @@ def validate_configuration(configuration: dict):
 def schema(configuration: dict):
     return [
         {
-            "table": "signed_message", # Name of the table
+            "table": "signed_message",  # Name of the table
             "primary_key": ["id"],
-            "columns": { # Define the columns and their data types.
-            } # For any columns whose names are not provided here, e.g. message, their data types will be inferred
+            "columns": {},  # Define the columns and their data types.  # For any columns whose names are not provided here, e.g. message, their data types will be inferred
         }
     ]
 
@@ -132,7 +138,7 @@ def update(configuration: dict, state: dict):
     # - The first argument is the name of the table to upsert the data into, in this case, "signed_message".
     # - The second argument is a dictionary containing the data to be upserted,
     log.fine("upserting to table 'signed_message'")
-    yield op.upsert(table="signed_message", data={"id":1, "message": signed_message})
+    yield op.upsert(table="signed_message", data={"id": 1, "message": signed_message})
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -149,7 +155,7 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Allows testing the connector directly

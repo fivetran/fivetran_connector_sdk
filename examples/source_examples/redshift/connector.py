@@ -5,12 +5,19 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 import json  # Import the json module to handle JSON data.
+
 # Import datetime for handling date and time conversions.
 from datetime import datetime
+
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 import redshift_connector
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -48,11 +55,11 @@ def dt2str(incoming: datetime) -> str:
 
 def connect_to_redshift(configuration):
     return redshift_connector.connect(
-        host=configuration['host'],
-        database=configuration['database'],
-        port=configuration['port'],
-        user=configuration['user'],
-        password=configuration['password']
+        host=configuration["host"],
+        database=configuration["database"],
+        port=configuration["port"],
+        user=configuration["user"],
+        password=configuration["password"],
     )
 
 
@@ -100,12 +107,16 @@ def update(configuration: dict, state: dict):
     # If these prerequisites are not met, the connector will not function correctly.
 
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
-    last_updated_at = state["last_updated_at"] if "last_updated_at" in state else '2024-01-01T00:00:00Z'
+    last_updated_at = (
+        state["last_updated_at"] if "last_updated_at" in state else "2024-01-01T00:00:00Z"
+    )
 
     # Fetch records from DB sorted in ascending order.
     # REPLICATION_KEY is updated_at column.
-    query = (f"SELECT customer_id, first_name, last_name, email, updated_at FROM testers.customers WHERE {REPLICATION_KEY} > "
-             f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}")
+    query = (
+        f"SELECT customer_id, first_name, last_name, email, updated_at FROM testers.customers WHERE {REPLICATION_KEY} > "
+        f"'{last_updated_at}' ORDER BY {REPLICATION_KEY}"
+    )
 
     # This log message will only show while debugging.
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
@@ -123,14 +134,16 @@ def update(configuration: dict, state: dict):
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into, in this case, "customers".
             # - The second argument is a dictionary containing the data to be upserted,
-            yield op.upsert(table="customers",
-                            data={
-                                "customer_id": row[0],  # Customer id.
-                                "first_name": row[1],  # First Name.
-                                "last_name": row[2],  # Last name.
-                                "email": row[3],  # Email id.
-                                "updated_at": dt2str(row[4])  # record updated at.
-                            })
+            yield op.upsert(
+                table="customers",
+                data={
+                    "customer_id": row[0],  # Customer id.
+                    "first_name": row[1],  # First Name.
+                    "last_name": row[2],  # Last name.
+                    "email": row[3],  # Email id.
+                    "updated_at": dt2str(row[4]),  # record updated at.
+                },
+            )
             # Storing `updated_at` of last fetched record
             last_updated_at = dt2str(row[4])
         # Update the state to the updated_at of the last record.
@@ -152,7 +165,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

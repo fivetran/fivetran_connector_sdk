@@ -3,9 +3,12 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-# Import the Fivetran Connector SDK.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
 
 # Import required libraries.
 import json
@@ -42,12 +45,12 @@ def schema(configuration: dict):
         {
             "table": SENSOR_TABLE,  # Name of the table in the destination.
             "primary_key": ["sensor_id"],  # Primary key column(s) for the table.
-            "columns":{
+            "columns": {
                 "sensor_id": "INT",
                 "temperature": "FLOAT",
                 "humidity": "FLOAT",
                 "time": "UTC_DATETIME",
-            }
+            },
             # columns not defined will be inferred.
         },
         {
@@ -59,8 +62,8 @@ def schema(configuration: dict):
                 "embedding_type": "STRING",
                 "vector_data": "JSON",
                 "created_at": "UTC_DATETIME",
-            }
-        }
+            },
+        },
     ]
 
 
@@ -138,7 +141,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

@@ -8,11 +8,19 @@ from typing import Dict, List, Any
 import psycopg2
 import psycopg2.extras
 
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
+
+
 # Define the PostgresClient class to handle database operations.
 class PostgresClient:
     def __init__(self, config):
@@ -21,8 +29,10 @@ class PostgresClient:
         self.database = config.get("DATABASE")
         self.user = config.get("USERNAME")
         self.password = config.get("PASSWORD")
-        self.connection = self.connect() # Connect to the database and return the connection object
-        self.push_sample_data() # Push sample data to the database
+        self.connection = (
+            self.connect()
+        )  # Connect to the database and return the connection object
+        self.push_sample_data()  # Push sample data to the database
 
     def connect(self):
         try:
@@ -71,7 +81,7 @@ def schema(configuration: dict):
     # Check if the credentials for connecting to database are present in the configuration.
     for key in cred:
         if key not in configuration:
-             raise ValueError(f"Missing required configuration: {key}")
+            raise ValueError(f"Missing required configuration: {key}")
     return [
         {
             "table": "product_inventory",
@@ -95,7 +105,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Update Example with composite primary key")
     for key in cred:
         if key not in configuration:
-             raise ValueError(f"Missing required configuration: {key}")
+            raise ValueError(f"Missing required configuration: {key}")
     conn = PostgresClient(configuration)
 
     # IMPORTANT: This connector requires the following prerequisites in your PostgreSQL database:
@@ -126,7 +136,15 @@ def update(configuration: dict, state: dict):
 
         # CASE 1: Updating single record with product_id=102 and warehouse_id=2
         log.info("Updating record with product_id=102 and warehouse_id=2")
-        yield op.update(table="product_inventory", modified={"product_id": 102, "warehouse_id": 2, "quantity": 75, "last_updated": "2025-03-16"})
+        yield op.update(
+            table="product_inventory",
+            modified={
+                "product_id": 102,
+                "warehouse_id": 2,
+                "quantity": 75,
+                "last_updated": "2025-03-16",
+            },
+        )
 
         # CASE 2: Updating all records with product_id=101
         log.info("Updating all records with product_id=101")
@@ -165,7 +183,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

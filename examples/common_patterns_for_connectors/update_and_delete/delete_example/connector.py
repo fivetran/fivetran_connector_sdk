@@ -8,11 +8,19 @@ from typing import Dict, List, Any
 import psycopg2
 import psycopg2.extras
 
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
+
+
 # Define the PostgresClient class to handle database operations.
 class PostgresClient:
     def __init__(self, config):
@@ -21,7 +29,9 @@ class PostgresClient:
         self.database = config.get("DATABASE")
         self.user = config.get("USERNAME")
         self.password = config.get("PASSWORD")
-        self.connection = self.connect() # Connect to the database and return the connection object.
+        self.connection = (
+            self.connect()
+        )  # Connect to the database and return the connection object.
 
     def connect(self):
         try:
@@ -77,7 +87,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "sample_table",  # Name of the table in the destination.
-            "primary_key": ["id","department_id"],  # Primary key column(s) for the table.
+            "primary_key": ["id", "department_id"],  # Primary key column(s) for the table.
             # The primary key is a composite key consisting of two columns: id and department_id.
             # No columns are defined, meaning the types will be inferred.
         }
@@ -166,7 +176,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

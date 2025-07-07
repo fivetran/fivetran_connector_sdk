@@ -12,18 +12,28 @@
 import io
 import json
 from sshtunnel import SSHTunnelForwarder
-from fivetran_connector_sdk import Logging as log, Connector  # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 import requests as rq
 
-DEFAULT_REMOTE_PORT = 5005 # The port on the remote server where the API is running.
-DEFAULT_LOCAL_PORT = 8000 # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
+DEFAULT_REMOTE_PORT = 5005  # The port on the remote server where the API is running.
+DEFAULT_LOCAL_PORT = 8000  # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
+
 
 # Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
 # The function takes one parameter:
 # - config: dictionary contains any secrets or payloads you configure when deploying the connector.
 def get_auth_headers(config):
-    api_key = config.get('api_key')
+    api_key = config.get("api_key")
 
     if api_key is None:
         raise ValueError("API Key is missing in the configuration.")
@@ -34,6 +44,7 @@ def get_auth_headers(config):
         "Content-Type": "application/json",  # Optional: specify content type
     }
     return headers
+
 
 # The sync_items function retrieves data from the remote API over an SSH tunnel.
 # Steps:
@@ -65,6 +76,7 @@ def sync_items(params, state, configuration):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
+
 # The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
 # It performs the following tasks:
 # 1. Reads SSH connection details and password from the configuration. This uses password-based authentication.
@@ -86,16 +98,20 @@ def get_api_response(params, headers, configuration):
     ssh_user = configuration.get("ssh_user")
     ssh_password = configuration.get("ssh_password")
 
-    local_port = int(configuration.get("local_port", DEFAULT_LOCAL_PORT))  # Local port for the SSH tunnel
-    remote_port = int(configuration.get("remote_port", DEFAULT_REMOTE_PORT))  # Remote port where the API is running
+    local_port = int(
+        configuration.get("local_port", DEFAULT_LOCAL_PORT)
+    )  # Local port for the SSH tunnel
+    remote_port = int(
+        configuration.get("remote_port", DEFAULT_REMOTE_PORT)
+    )  # Remote port where the API is running
 
     try:
         with SSHTunnelForwarder(
-                (ssh_host, 22),
-                ssh_username=ssh_user,
-                ssh_password=ssh_password,
-                remote_bind_address=('127.0.0.1', remote_port),
-                local_bind_address=('127.0.0.1', local_port)
+            (ssh_host, 22),
+            ssh_username=ssh_user,
+            ssh_password=ssh_password,
+            remote_bind_address=("127.0.0.1", remote_port),
+            local_bind_address=("127.0.0.1", local_port),
         ) as tunnel:
             log.severe(f"Tunnel open at http://127.0.0.1:{local_port}")
 
@@ -114,6 +130,7 @@ def get_api_response(params, headers, configuration):
     except Exception as e:
         log.severe(f"SSH tunnel or API call failed: {e}")
         raise
+
 
 def validate_configuration(configuration: dict):
     """
@@ -143,6 +160,7 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
     yield from sync_items({}, state, configuration)
 
+
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update)
 
@@ -152,7 +170,7 @@ connector = Connector(update=update)
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     try:
-        with open("configuration.json", 'r') as f:
+        with open("configuration.json", "r") as f:
             configuration = json.load(f)
     except FileNotFoundError:
         # Fallback to an empty configuration if the file is not found

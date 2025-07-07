@@ -3,10 +3,15 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting operations like checkpoint
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 import requests
 from ODataClient import ODataClient
@@ -20,18 +25,18 @@ from ODataClient import ODataClient
 def schema(configuration: dict):
     return [
         {
-            "table": "Products", # Name of the table in the destination, required.
-            "primary_key": ["ProductID"], # Primary key column(s) for the table, optional.
-            "columns": { # Definition of columns and their types, optional.
+            "table": "Products",  # Name of the table in the destination, required.
+            "primary_key": ["ProductID"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
                 "ProductID": "INT",
                 "CategoryID": "INT",
-            }, # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "Orders",
             "primary_key": ["OrderID"],
             "columns": {
-                "Order_Details": "JSON", # For nested entities, use JSON type
+                "Order_Details": "JSON",  # For nested entities, use JSON type
             },
         },
         {
@@ -56,7 +61,7 @@ def schema(configuration: dict):
         {
             "table": "Customers_batch",
             "primary_key": ["CustomerID"],
-        }
+        },
     ]
 
 
@@ -71,18 +76,14 @@ def example_using_select(northwind_client):
     # - top: Limit the number of records to be fetched.
     # - orderby: Sort the data fetched. The value should be a string that represents the exact field name to sort by.
     query_options = {
-        'select': ['ProductID', 'ProductName', 'UnitPrice', 'CategoryID'],
+        "select": ["ProductID", "ProductName", "UnitPrice", "CategoryID"],
     }
 
     # entity dictionary contains the entity_set name, query_options and table name
     # Additionally, it can also contain update_state dictionary for incremental sync (Refer EXAMPLE 3)
     # The entity is passed a parameter to the upsert_entity() method to fetch data from the entity set and upsert it to the destination table.
     # If the key "table" is not provided, the destination table name will be the same as the entity_set name.
-    entity = {
-        "entity_set": "Products",
-        "query_options": query_options,
-        "table": "Products"
-    }
+    entity = {"entity_set": "Products", "query_options": query_options, "table": "Products"}
 
     # The upsert_entity() methods retrieves data from an OData entity set and upserts it to the destination table.
     # The method requires the entity dictionary as a parameter which contains the entity_set name, query_options and table name.
@@ -114,20 +115,12 @@ def example_using_expand(northwind_client, state):
     #     }
     # }
     query_options = {
-        'select': ['OrderID', 'CustomerID', 'OrderDate'],
-        'expand': {
-            'Order_Details': {
-                'select': ['ProductID', 'UnitPrice', 'Quantity']
-            }
-        },
+        "select": ["OrderID", "CustomerID", "OrderDate"],
+        "expand": {"Order_Details": {"select": ["ProductID", "UnitPrice", "Quantity"]}},
     }
 
     # entity dictionary contains the entity_set name, query_options and table name
-    entity = {
-        "entity_set": "Orders",
-        "query_options": query_options,
-        "table": "Orders"
-    }
+    entity = {"entity_set": "Orders", "query_options": query_options, "table": "Orders"}
 
     yield from northwind_client.upsert_entity(entity=entity, state=state)
 
@@ -137,22 +130,20 @@ def example_using_expand(northwind_client, state):
 def example_using_incremental_sync(northwind_client, state):
     # Incremental Sync allows you to fetch only the data that has changed since the last sync.
     # read the last order date fetched in the previous sync from the state dictionary
-    last_order_date = state.get("lastOrderDate", '1990-07-08T00:00:00')
+    last_order_date = state.get("lastOrderDate", "1990-07-08T00:00:00")
 
     # For incremental syncs, it is necessary to filter the data based on the last fetched data.
     # IMPORTANT : Make sure to add a filter condition to fetch only the data that has changed since the last sync.
     incremental_query = {
-        'select': ['OrderID', 'CustomerID', 'OrderDate'],
-        "filter": f"OrderDate gt datetime'{last_order_date}'"
+        "select": ["OrderID", "CustomerID", "OrderDate"],
+        "filter": f"OrderDate gt datetime'{last_order_date}'",
         # This will fetch orders after the last order date fetched in the previous sync
     }
 
     # update_state is used to map the state variable with the field in the fetched data to update it correctly
     # This dictionary allows the ODataClient to update the exact key in the state dictionary with the last value fetched from the source data.
     # The update dictionary can contain multiple key value pairs mapping the state variable with the exact field name in the fetched data.
-    update_state = {
-        "lastOrderDate": "OrderDate"
-    }
+    update_state = {"lastOrderDate": "OrderDate"}
 
     # The update_state dictionary is passed as the value of "update_state" key in the entity dictionary
     # This ensures that the upsert_entity() method updates the state dictionary with the last fetched data
@@ -161,7 +152,7 @@ def example_using_incremental_sync(northwind_client, state):
         "entity_set": "Orders",
         "query_options": incremental_query,
         "table": "Orders_Inc",
-        "update_state": update_state
+        "update_state": update_state,
     }
 
     modified_state = yield from northwind_client.upsert_entity(entity=entity, state=state)
@@ -186,9 +177,9 @@ def example_using_multiple_entities(northwind_client, state):
         "query_options": {
             "select": ["CustomerID", "CompanyName", "ContactName", "Country"],
             "filter": "Country eq 'Germany' or Country eq 'France'",
-            "orderby": "CompanyName"
+            "orderby": "CompanyName",
         },
-        "table": "Customers_Multiple"
+        "table": "Customers_Multiple",
     }
     # Append the customer_entity dictionary to the entity_list
     entity_list.append(customer_entity)
@@ -198,14 +189,10 @@ def example_using_multiple_entities(northwind_client, state):
         "entity_set": "Products",
         "query_options": {
             "select": ["ProductID", "ProductName", "UnitPrice", "CategoryID"],
-            "expand": {
-                "Category": {
-                    "select": ["CategoryName", "Description"]
-                }
-            },
-            "filter": "UnitPrice gt 50"
+            "expand": {"Category": {"select": ["CategoryName", "Description"]}},
+            "filter": "UnitPrice gt 50",
         },
-        "table": "Products_Multiple"
+        "table": "Products_Multiple",
     }
     # Append the product_entity dictionary to the entity_list
     entity_list.append(product_entity)
@@ -214,7 +201,9 @@ def example_using_multiple_entities(northwind_client, state):
     # This method queries the OData service for each entity in the entity_list and upserts the data to the destination table.
     # The method requires the entity_list and state dictionary as parameters.
 
-    modified_state = yield from northwind_client.upsert_multiple_entity(entity_list=entity_list, state=state)
+    modified_state = yield from northwind_client.upsert_multiple_entity(
+        entity_list=entity_list, state=state
+    )
 
     # The modified state dictionary is returned to the caller
     # This allows the caller to use the modified state dictionary for further operations
@@ -229,17 +218,25 @@ def example_using_batch(northwind_client, state):
     entity_1 = {
         "entity_set": "Customers",
         "query_options": {
-            'select': ['CustomerID', 'CompanyName', 'ContactName', 'ContactTitle', 'Address', 'PostalCode', 'Country',
-                       'Phone'],
+            "select": [
+                "CustomerID",
+                "CompanyName",
+                "ContactName",
+                "ContactTitle",
+                "Address",
+                "PostalCode",
+                "Country",
+                "Phone",
+            ],
         },
-        "table": "Customers_batch"
+        "table": "Customers_batch",
     }
 
     # entity dictionary contains the entity_set name, query_options and table name
     entity_2 = {
         "entity_set": "Orders",
         "query_options": {
-            'select': ['OrderID', 'CustomerID', 'OrderDate'],
+            "select": ["OrderID", "CustomerID", "OrderDate"],
         },
         "table": "Orders_batch",
     }
@@ -248,11 +245,7 @@ def example_using_batch(northwind_client, state):
     # The add_batch() method is used to add a batch operations to the ODataClient instance.
     # It takes the entity dictionary as parameter which contains the entity_set, query_options, table and update_state.
     # The add_batch() method supports method chaining
-    northwind_client.add_batch(
-        entity=entity_1
-    ).add_batch(
-        entity=entity_2
-    )
+    northwind_client.add_batch(entity=entity_1).add_batch(entity=entity_2)
 
     # The upsert_batch() method is used to execute the batch operations added to the ODataClient instance.
     # It takes the state dictionary as a parameter and returns the updated state dictionary.
@@ -282,32 +275,31 @@ def update(configuration: dict, state: dict):
 
     # Initialize the ODataClient object required to interact with the OData service
     # The ODataClient object requires the base URL of the OData service, session object and state dictionary
-    northwind_client = ODataClient(service_url="https://services.odata.org/V2/Northwind/Northwind.svc/",session=session, state=state)
-
+    northwind_client = ODataClient(
+        service_url="https://services.odata.org/V2/Northwind/Northwind.svc/",
+        session=session,
+        state=state,
+    )
 
     # EXAMPLE 1 : Fetch basic product information with specific field selection
     log.info("Example 1 : Fetching Products data from northwind odata service")
 
     modified_state = yield from example_using_select(northwind_client)
 
-
     # EXAMPLE 2 : Fetching orders data from northwind odata service with expand
     log.info("Example 2 : Fetching Orders data from northwind odata service with expand")
 
     yield from example_using_expand(northwind_client, modified_state)
-
 
     # EXAMPLE 3 : Fetching orders data from northwind odata service with Incremental Sync
     log.info("Example 3 : Fetching Orders data from northwind odata service with Incremental Sync")
 
     modified_state = yield from example_using_incremental_sync(northwind_client, state)
 
-
     # EXAMPLE 4 : Fetching Multiple entities
     log.info("Example 4 : Fetching data from multiple entities")
 
     modified_state = yield from example_using_multiple_entities(northwind_client, modified_state)
-
 
     # EXAMPLE 5 : Batch Operations to fetch multiple data in a single request
     log.info("Example 5 : Batch Operations to fetch multiple data in a single request")
@@ -328,4 +320,3 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()
-

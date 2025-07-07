@@ -10,7 +10,7 @@ from fivetran_connector_sdk import Logging as log
 
 # Import the required libraries
 import json
-import happybase # This is used to connect to Hbase
+import happybase  # This is used to connect to Hbase
 
 
 def create_hbase_connection(configuration: dict):
@@ -57,16 +57,16 @@ def execute_query_and_upsert(table_connection, column_family, table_name, state,
     # This method is optimized for handling large datasets and does not load the entire data in the memory
     # The filter parameter is used to filter the rows based on the created_at column
     # The batch_size parameter is used to specify how big the transferred chunks should be
-    for key, data in table_connection.scan(batch_size=batch_size,filter=filter_str.encode()):
+    for key, data in table_connection.scan(batch_size=batch_size, filter=filter_str.encode()):
         try:
             # Decode the key and data to get the row data
             # You can add data preprocessing here if needed
             row_data = {
-                "id": key.decode('utf-8'),
-                "name": data[f"{column_family}:name".encode()].decode('utf-8'),
-                "age": int(data[f"{column_family}:age".encode()].decode('utf-8')),
-                "city": data[f"{column_family}:city".encode()].decode('utf-8'),
-                "created_at": data[f"{column_family}:created_at".encode()].decode('utf-8'),
+                "id": key.decode("utf-8"),
+                "name": data[f"{column_family}:name".encode()].decode("utf-8"),
+                "age": int(data[f"{column_family}:age".encode()].decode("utf-8")),
+                "city": data[f"{column_family}:city".encode()].decode("utf-8"),
+                "created_at": data[f"{column_family}:created_at".encode()].decode("utf-8"),
             }
             # The yield statement returns a generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
@@ -103,7 +103,7 @@ def schema(configuration: dict):
     """
 
     # check if required configuration values are present in configuration
-    for key in ['hostname', 'port', 'table_name', 'column_family']:
+    for key in ["hostname", "port", "table_name", "column_family"]:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value : {key}")
 
@@ -144,7 +144,13 @@ def update(configuration: dict, state: dict):
     table_connection = connection.table(hbase_table)
 
     # Fetch the data and upsert it into the destination
-    yield from execute_query_and_upsert(table_connection=table_connection, column_family=column_family, table_name=table_name, state=state, batch_size=1000)
+    yield from execute_query_and_upsert(
+        table_connection=table_connection,
+        column_family=column_family,
+        table_name=table_name,
+        state=state,
+        batch_size=1000,
+    )
 
 
 # Create the connector object using the schema and update functions
@@ -152,7 +158,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally
