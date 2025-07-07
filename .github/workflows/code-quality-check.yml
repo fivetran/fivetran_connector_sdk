@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flake8 requests fivetran-connector-sdk
+          pip install flake8
 
       - name: Detect changed Python files
         id: detect_changes
