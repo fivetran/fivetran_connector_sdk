@@ -110,6 +110,6 @@ jobs:
         if: env.SKIP != 'true'
         run: |
           if [ "$FLAKE8_ISSUE_PRESENT" == "true" ]; then
-            echo "❌ Flake8 issues detected. Please fix them before merging."
+            echo "❌  Issues detected in Python files. Please fix them before merging."
             exit 1
           fi
