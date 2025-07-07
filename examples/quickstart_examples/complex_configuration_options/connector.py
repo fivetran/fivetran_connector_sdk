@@ -24,6 +24,21 @@ def schema(configuration: dict):
         }
     ]
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["regions", "api_quota", "use_bulk_api", "currencies"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
@@ -34,7 +49,7 @@ def schema(configuration: dict):
 #   The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Complex Configuration Options")
-
+    validate_configuration(configuration)
     # converts config string to list of regions
     regions = configuration['regions'].split(',')
     # converts config string to int

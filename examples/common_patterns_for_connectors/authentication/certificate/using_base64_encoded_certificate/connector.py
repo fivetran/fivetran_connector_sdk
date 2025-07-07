@@ -130,6 +130,22 @@ def get_data_with_certificate(configuration: dict):
         log.info("Temporary certificate and key files deleted")
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["ENCODED_CERTIFICATE", "ENCODED_PRIVATE_KEY", "PASSKEY"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -141,6 +157,8 @@ def update(configuration: dict, state: dict):
     log.info("Example: Using certificates for making API calls")
 
     last_index = state['last_index'] if 'last_index' in state else -1
+
+    validate_configuration(configuration)
 
     data = get_data_with_certificate(configuration)
     if not data:
