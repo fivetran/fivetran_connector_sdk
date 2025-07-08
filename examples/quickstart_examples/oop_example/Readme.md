@@ -75,6 +75,9 @@ This tables stores educational and informational articles about national parks.
 
 ![Articles](images/Articles.png "Articles Table in DB")
 
+#### Interact with Articles table
+
+Run the following query:
 #### Query the Articles table
 
 Run the following query:
@@ -108,6 +111,9 @@ This table lists key figures associated with the parks or their history.
 
 ![PEOPLE](images/People.png "People Table in DB")
 
+#### Interact with People table
+
+Run the following query:
 #### Query the People table
 
 Run the following query:
