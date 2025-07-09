@@ -11,20 +11,31 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # imported constants from same directory
-from constants import AUTH_URL, CONTACTS_URL, COMPANY_URL, CONTACTS_RESPONSE_LIMIT, COMPANY_RESPONSE_LIMIT
+from constants import (
+    AUTH_URL,
+    CONTACTS_URL,
+    COMPANY_URL,
+    CONTACTS_RESPONSE_LIMIT,
+    COMPANY_RESPONSE_LIMIT,
+)
+
 # Import datetime for handling date and time conversions.
 import time
+
 # import json to infer .
 import json
+
 # Imported requests for hubspot api requests generation
 import requests
 import urllib
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 # Global variables for
 ACCESS_TOKEN = ""
 REFRESH_TIME = 0
+
 
 def get_access_token(configuration: dict):
     global ACCESS_TOKEN
@@ -34,11 +45,11 @@ def get_access_token(configuration: dict):
         "grant_type": "refresh_token",
         "client_id": configuration.get("client_id"),
         "refresh_token": configuration.get("refresh_token"),
-        "client_secret": configuration.get("client_secret")
+        "client_secret": configuration.get("client_secret"),
     }
 
-    uri = AUTH_URL +  urllib.parse.urlencode(param_dict)
-    headers = {'content-type': 'application/x-www-form-urlencoded'}
+    uri = AUTH_URL + urllib.parse.urlencode(param_dict)
+    headers = {"content-type": "application/x-www-form-urlencoded"}
 
     response = requests.post(uri, headers=headers)
 
@@ -65,12 +76,16 @@ def sync_contacts(configuration, cursor, state):
         contact["vid"] = raw_contact["vid"]
         contact["firstname"] = raw_contact["properties"].get("firstname", {}).get("value", "")
         contact["company"] = raw_contact["properties"].get("company", {}).get("value", "")
-        contact["lastmodifieddate"] = raw_contact["properties"].get("lastmodifieddate", {}).get("value", "")
-        contact["email"] = raw_contact["identity-profiles"][0].get("identities", [{}])[0].get("value", "")
+        contact["lastmodifieddate"] = (
+            raw_contact["properties"].get("lastmodifieddate", {}).get("value", "")
+        )
+        contact["email"] = (
+            raw_contact["identity-profiles"][0].get("identities", [{}])[0].get("value", "")
+        )
         return contact
 
     has_more = True
-    params = {"count":CONTACTS_RESPONSE_LIMIT}
+    params = {"count": CONTACTS_RESPONSE_LIMIT}
     while has_more:
         data = get_data("contacts", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -80,7 +95,9 @@ def sync_contacts(configuration, cursor, state):
             has_more = False
         # sending contact details to fivetran connector
         for contact in data["contacts"]:
-            if contact["properties"].get("firstname") and contact["identity-profiles"][0].get("identities"):
+            if contact["properties"].get("firstname") and contact["identity-profiles"][0].get(
+                "identities"
+            ):
                 yield op.upsert("contacts", process_record(contact))
 
 
@@ -94,7 +111,7 @@ def sync_companies(configuration, cursor, state):
         return company
 
     has_more = True
-    params = {"properties":"name", "limit":COMPANY_RESPONSE_LIMIT}
+    params = {"properties": "name", "limit": COMPANY_RESPONSE_LIMIT}
     while has_more:
         data = get_data("companies", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -106,6 +123,24 @@ def sync_companies(configuration, cursor, state):
         for company in data["companies"]:
             yield op.upsert("companies", process_record(company))
 
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["refresh_token", "client_secret", "client_id"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -114,11 +149,12 @@ def sync_companies(configuration, cursor, state):
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    validate_configuration(configuration)
     curr_time = time.time()
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
-    cursor = state['last_updated_at'] if 'last_updated_at' in state else '0001-01-01T00:00:00Z'
+    cursor = state["last_updated_at"] if "last_updated_at" in state else "0001-01-01T00:00:00Z"
     log.info(f"Starting update process. Initial state: {cursor}")
 
     # Yeilds all the required data from individual methods, and pushes them into the connector upsert function
@@ -126,10 +162,13 @@ def update(configuration: dict, state: dict):
     yield from sync_companies(configuration, cursor, state)
 
     # Save the final checkpoint by updating the state with the current time
-    state['last_updated_at'] = curr_time
+    state["last_updated_at"] = curr_time
     yield op.checkpoint(state)
 
-    log.info(f"Completed the update process. Total duration of sync(in s): " + str(time.time()-curr_time))
+    log.info(
+        f"Completed the update process. Total duration of sync(in s): "
+        + str(time.time() - curr_time)
+    )
 
 
 def get_data(method, params, headers, configuration, body=None):
@@ -137,13 +176,13 @@ def get_data(method, params, headers, configuration, body=None):
     global REFRESH_TIME
     # This checks the refresh time set while fetching the last access token
     # if REFRESH TIME is less than the current time, it means the ACCESS TOKEN is expired and need a refresh
-    if REFRESH_TIME<time.time():
+    if REFRESH_TIME < time.time():
         get_access_token(configuration)
 
     headers["authorization"] = "Bearer " + ACCESS_TOKEN
-    if method=="contacts":
+    if method == "contacts":
         response = requests.get(CONTACTS_URL, params=params, headers=headers)
-    elif method=="companies":
+    elif method == "companies":
         response = requests.get(COMPANY_URL, params=params, headers=headers)
     else:
         log.severe(f"Failed to fetch data. Method: " + method)
@@ -156,6 +195,7 @@ def get_data(method, params, headers, configuration, body=None):
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
         raise Exception("Failed to obtain access token")
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -172,26 +212,23 @@ def schema(configuration: dict):
                 "lastmodifieddate": "STRING",
                 "firstname": "STRING",
                 "company": "STRING",
-                "email": "STRING"
-            }
+                "email": "STRING",
+            },
         },
         {
             "table": "companies",
             "primary_key": ["companyId"],
-            "columns": {
-                "companyId": "LONG",
-                "name": "STRING",
-                "timestamp": "LONG"
-            }
-        }
+            "columns": {"companyId": "LONG", "name": "STRING", "timestamp": "LONG"},
+        },
     ]
+
 
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

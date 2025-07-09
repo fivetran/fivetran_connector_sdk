@@ -4,9 +4,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -24,7 +29,7 @@ def schema(configuration: dict):
                 "_dec": {  # Decimal data type with precision and scale.
                     "type": "DECIMAL",
                     "precision": 15,
-                    "scale": 2
+                    "scale": 2,
                 },
                 "_float": "FLOAT",  # Floating-point data type.
                 "_double": "DOUBLE",  # Double precision floating-point data type.
@@ -35,8 +40,8 @@ def schema(configuration: dict):
                 "_xml": "XML",  # XML data type.
                 "_str": "STRING",  # String data type.
                 "_json": "JSON",  # JSON data type.
-                "_null": "STRING"  # String data type, can handle null values.
-            }
+                "_null": "STRING",  # String data type, can handle null values.
+            },
         }
     ]
 
@@ -67,8 +72,8 @@ def update(configuration: dict, state: dict):
             "_xml": "<tag>This is XML</tag>",  # XML data.
             "_str": "This is a string",  # String data.
             "_json": {"a": 10},  # JSON data.
-            "_null": None  # Null value.
-        }
+            "_null": None,  # Null value.
+        },
     )
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

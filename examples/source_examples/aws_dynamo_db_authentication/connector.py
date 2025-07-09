@@ -7,10 +7,14 @@
 
 import json  # Import the json module to handle JSON data.
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 import boto3
 import aws_dynamodb_parallel_scan
 
@@ -18,24 +22,23 @@ import aws_dynamodb_parallel_scan
 def get_dynamo_db_client(configuration: dict):
     # create security token service client
     sts = boto3.client(
-        'sts',
-        aws_access_key_id=configuration['AWS_ACCESS_KEY_ID'],
-        aws_secret_access_key=configuration['AWS_SECRET_ACCESS_KEY']
+        "sts",
+        aws_access_key_id=configuration["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=configuration["AWS_SECRET_ACCESS_KEY"],
     )
 
     # get role credentials
-    credentials = sts.assume_role(
-        RoleArn=configuration['ROLE_ARN'],
-        RoleSessionName="sdkSession"
-    )['Credentials']
+    credentials = sts.assume_role(RoleArn=configuration["ROLE_ARN"], RoleSessionName="sdkSession")[
+        "Credentials"
+    ]
 
     # create dynamo_db_client using role credentials
     dynamo_db_client = boto3.client(
-        'dynamodb',
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken'],
-        region_name=configuration['REGION']
+        "dynamodb",
+        aws_access_key_id=credentials["AccessKeyId"],
+        aws_secret_access_key=credentials["SecretAccessKey"],
+        aws_session_token=credentials["SessionToken"],
+        region_name=configuration["REGION"],
     )
 
     return dynamo_db_client
@@ -52,13 +55,17 @@ def schema(configuration: dict):
 
     try:
         # fetch and iterate over table names
-        for table in dynamo_client.list_tables()['TableNames']:
+        for table in dynamo_client.list_tables()["TableNames"]:
             # fetch table_meta_data, see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/client/describe_table.html
             table_meta_data = dynamo_client.describe_table(TableName=table)
             table_schema = {
                 "table": table,
                 "primary_key": list(
-                    map(lambda keySchema: keySchema['AttributeName'], table_meta_data['Table']['KeySchema']))
+                    map(
+                        lambda keySchema: keySchema["AttributeName"],
+                        table_meta_data["Table"]["KeySchema"],
+                    )
+                ),
             }
             schema.append(table_schema)
     except Exception as e:
@@ -83,16 +90,13 @@ def update(configuration: dict, state: dict):
         # get paginator for parallel scan
         paginator = aws_dynamodb_parallel_scan.get_paginator(dynamo_client)
         # fetch and iterate over table names
-        for table in dynamo_client.list_tables()['TableNames']:
+        for table in dynamo_client.list_tables()["TableNames"]:
             # get pages of 10 items and 4 parallel threads
             page_iterator = paginator.paginate(
-                TableName=table,
-                Limit=10,
-                TotalSegments=4,
-                ConsistentRead=True
+                TableName=table, Limit=10, TotalSegments=4, ConsistentRead=True
             )
             for page in page_iterator:
-                items = list(map(map_item, page['Items']))
+                items = list(map(map_item, page["Items"]))
                 for item in items:
                     yield op.upsert(table, item)
 
@@ -102,7 +106,7 @@ def update(configuration: dict, state: dict):
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         yield op.checkpoint(state)
 
-        log.info('Finished syncing...')
+        log.info("Finished syncing...")
     except Exception as e:
         log.severe(str(e))
         raise
@@ -128,7 +132,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

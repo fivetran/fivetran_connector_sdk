@@ -7,13 +7,19 @@ import json  # Import the json module to handle JSON data.
 
 # Import the Fernet class from the cryptography module for encryption and decryption. The cryptography module is listed as a requirement in requirements.txt
 from cryptography.fernet import Fernet
+
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # This is an encrypted message that will be decrypted using a key from the configuration.
-encrypted_message = b'gAAAAABl-3QGKUHpdUhBNpnW1_SnSkQGrAwev-uBBJaZo4NmtylIMg8UX6usuG4Z-h80OvfJajW6HU56O5hofapEIh4W33vuMpJgq0q3qMQx6R3Ol4qZ3Wc2DyIIapxbK5BrQHshBF95'
+encrypted_message = b"gAAAAABl-3QGKUHpdUhBNpnW1_SnSkQGrAwev-uBBJaZo4NmtylIMg8UX6usuG4Z-h80OvfJajW6HU56O5hofapEIh4W33vuMpJgq0q3qMQx6R3Ol4qZ3Wc2DyIIapxbK5BrQHshBF95"
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -23,7 +29,7 @@ encrypted_message = b'gAAAAABl-3QGKUHpdUhBNpnW1_SnSkQGrAwev-uBBJaZo4NmtylIMg8UX6
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     # Check if the 'my_key' is present in the configuration.
-    if 'my_key' not in configuration:
+    if "my_key" not in configuration:
         raise ValueError("Could not find 'my_key'")
 
     return [
@@ -46,7 +52,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Configuration")
 
     # Retrieve the encryption key from the configuration.
-    key = configuration['my_key']
+    key = configuration["my_key"]
     # Create a Fernet object for encryption and decryption using the provided key.
     f = Fernet(key.encode())
 
@@ -55,10 +61,9 @@ def update(configuration: dict, state: dict):
     message = f.decrypt(encrypted_message)
 
     # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
-    yield op.upsert(table="crypto",
-                    data={
-                        'msg': message.decode()  # Decode the decrypted message to a string.
-                    })
+    yield op.upsert(
+        table="crypto", data={"msg": message.decode()}  # Decode the decrypted message to a string.
+    )
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -76,7 +81,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

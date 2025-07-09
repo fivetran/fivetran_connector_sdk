@@ -8,10 +8,16 @@
 
 # Import requests to make HTTP calls to API
 import requests as rq
+
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -48,13 +54,15 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Pagination - Page Number")
 
-    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
-          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
     base_url = "http://127.0.0.1:5001/pagination/page_number"
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
-    cursor = state['last_updated_at'] if 'last_updated_at' in state else '0001-01-01T00:00:00Z'
+    cursor = state["last_updated_at"] if "last_updated_at" in state else "0001-01-01T00:00:00Z"
 
     params = {
         "order_by": "updatedAt",
@@ -93,8 +101,10 @@ def sync_items(base_url, params, state):
         # Iterate over each user in the 'items' list and yield an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        summary_first_item = {'id': items[0]['id'], 'name': items[0]['name']}
-        log.info(f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}")
+        summary_first_item = {"id": items[0]["id"], "name": items[0]["name"]}
+        log.info(
+            f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}"
+        )
         for user in items:
             yield op.upsert(table="user", data=user)
             state["last_updated_at"] = user["updatedAt"]

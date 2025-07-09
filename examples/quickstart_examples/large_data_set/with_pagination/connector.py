@@ -4,9 +4,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 import pandas as pd
 
@@ -50,10 +55,7 @@ def get_data(url, offset):
     pokemons = data["results"]
     pokemons_df = pd.DataFrame([])
     for i in range(len(pokemons)):
-        pokemon_data = {
-            "name": pokemons[i]["name"],
-            "url": pokemons[i]["url"]
-        }
+        pokemon_data = {"name": pokemons[i]["name"], "url": pokemons[i]["url"]}
         pokemons_df = pd.concat([pokemons_df, pd.DataFrame([pokemon_data])], ignore_index=True)
 
     return next_url, pokemons_df, offset + len(pokemons)

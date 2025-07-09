@@ -2,5 +2,7 @@
     "clientId": "<YOUR_CLIENT_ID>",
     "clientSecret": "<YOUR_CLIENT_SECRET>",
     "userAccessType": "TOAST_MACHINE_CLIENT",
-    "domain": "<YOUR_DOMAIN>"
+    "domain": "<YOUR_DOMAIN>",
+    "initialSyncStart": "<ISO_FORMAT_TIMESTAMP>",
+    "key": "<BASE_64_ENCODED_FERNET_KEY>"
 }

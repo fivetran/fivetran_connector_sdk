@@ -9,12 +9,19 @@
 
 # Import requests to make HTTP calls to API.
 import requests as rq
+
 # Import CSV for parsing CSV data.
 import csv
+
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 from io import StringIO
 
 
@@ -52,8 +59,10 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Handling CSV Response - Syncing data from CSV Export API")
 
-    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
-          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
     base_url = "http://127.0.0.1:5001/export/csv"
 
     # Call the sync_csv_data function to process the CSV data.

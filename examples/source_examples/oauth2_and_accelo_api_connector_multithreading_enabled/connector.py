@@ -14,11 +14,18 @@ Refer to the Multithreading Guidelines in api_threading_utils.py
 Author: Example submitted by our amazing community member Ahmed Zedan
 Date: 2024-09-20
 """
+
 import json
+
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 import requests
 import time
 from datetime import datetime, timezone
@@ -58,7 +65,7 @@ def get_access_token(client_id, client_secret, deployment):
         "grant_type": "client_credentials",
         "client_id": client_id,
         "client_secret": client_secret,
-        "scope": "read(all)"
+        "scope": "read(all)",
     }
     response = requests.post(token_url, data=data)
     if response.status_code == 200:
@@ -67,6 +74,7 @@ def get_access_token(client_id, client_secret, deployment):
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
         raise Exception("Failed to obtain access token")
+
 
 def update(configuration: dict, state: dict):
     """
@@ -101,7 +109,14 @@ def update(configuration: dict, state: dict):
 
         update_start_time = time.time()
 
-        for entity_sync in [sync_companies, sync_invoices, sync_payments, sync_prospects, sync_jobs, sync_staff]:
+        for entity_sync in [
+            sync_companies,
+            sync_invoices,
+            sync_payments,
+            sync_prospects,
+            sync_jobs,
+            sync_staff,
+        ]:
             yield from entity_sync(access_token)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -112,13 +127,23 @@ def update(configuration: dict, state: dict):
 
         update_duration = time.time() - update_start_time
         log.info(
-            f"Update process completed. Total time: {update_duration:.2f} seconds. Final state: {thread_local_state.state}")
+            f"Update process completed. Total time: {update_duration:.2f} seconds. Final state: {thread_local_state.state}"
+        )
     except Exception as e:
         log.severe(f"Update process failed: {str(e)}")
 
 
-def sync_entity(entity_name, access_token, fields, last_sync_key, process_record=None, date_field="date_modified",
-                timeout=constants.SYNC_TIMEOUT, batch_size=constants.BATCH_SIZE, fetch_data_func=None):
+def sync_entity(
+    entity_name,
+    access_token,
+    fields,
+    last_sync_key,
+    process_record=None,
+    date_field="date_modified",
+    timeout=constants.SYNC_TIMEOUT,
+    batch_size=constants.BATCH_SIZE,
+    fetch_data_func=None,
+):
     """
     Sync data for a specific entity from Accelo API.
 
@@ -145,7 +170,9 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
     log.info(f"Starting sync for {entity_name}")
     try:
         last_sync = thread_local_state.state.get(last_sync_key, "1970-01-01T00:00:00Z")
-        last_sync_unix = max(0, int(datetime.fromisoformat(last_sync.replace("Z", "+00:00")).timestamp()))
+        last_sync_unix = max(
+            0, int(datetime.fromisoformat(last_sync.replace("Z", "+00:00")).timestamp())
+        )
         log.info(f"Last sync time for {entity_name}: {last_sync} (Unix: {last_sync_unix})")
 
         params = {
@@ -153,7 +180,7 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
             "_filters": f"{date_field}_after({last_sync_unix})",
             "_limit": batch_size,
             "_page": 0,
-            "_order_by": date_field
+            "_order_by": date_field,
         }
 
         records_processed = 0
@@ -164,10 +191,13 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
         def fetch_page(page):
             nonlocal entities_received, max_date_value
             current_params = params.copy()
-            current_params['_page'] = page
+            current_params["_page"] = page
             try:
-                entities = fetch_data_func(current_params) if fetch_data_func else api_threading_utils.fetch_data(entity_name, access_token,
-                                                                                              current_params)
+                entities = (
+                    fetch_data_func(current_params)
+                    if fetch_data_func
+                    else api_threading_utils.fetch_data(entity_name, access_token, current_params)
+                )
                 return entities
             except Exception as e:
                 log.severe(f"Error fetching {entity_name} data for page {page}: {str(e)}")
@@ -181,12 +211,12 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
                 if entities:
                     entities_received += len(entities)
                     for entity in entities:
-                        entity_date = entity.get(date_field, 'unknown')
+                        entity_date = entity.get(date_field, "unknown")
 
-                        if entity_date != 'unknown':
+                        if entity_date != "unknown":
                             try:
-                                if isinstance(entity_date, str) and 'T' in entity_date:
-                                    dt = datetime.fromisoformat(entity_date.replace('Z', '+00:00'))
+                                if isinstance(entity_date, str) and "T" in entity_date:
+                                    dt = datetime.fromisoformat(entity_date.replace("Z", "+00:00"))
                                 else:
                                     timestamp = int(entity_date)
                                     dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
@@ -194,9 +224,13 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
                                 if date_value_unix > max_date_value:
                                     max_date_value = date_value_unix
                             except ValueError:
-                                log.warning(f"Could not convert {date_field} '{entity_date}' to int for {entity_name}")
+                                log.warning(
+                                    f"Could not convert {date_field} '{entity_date}' to int for {entity_name}"
+                                )
 
-            all_entities = [entity for page_entities in results for entity in page_entities if page_entities]
+            all_entities = [
+                entity for page_entities in results for entity in page_entities if page_entities
+            ]
 
             for entity in all_entities:
                 if process_record:
@@ -211,21 +245,25 @@ def sync_entity(entity_name, access_token, fields, last_sync_key, process_record
                 break
             page += constants.MAX_WORKERS
 
-        new_last_sync = datetime.fromtimestamp(max(max_date_value, int(time.time())), tz=timezone.utc).strftime(
-            '%Y-%m-%dT%H:%M:%SZ')
+        new_last_sync = datetime.fromtimestamp(
+            max(max_date_value, int(time.time())), tz=timezone.utc
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
         thread_local_state.state[last_sync_key] = new_last_sync
         log.info(
-            f"Sync completed for {entity_name}. Entities received: {entities_received}, Records processed: {records_processed}. Time taken: {time.time() - start_time:.2f} seconds")
+            f"Sync completed for {entity_name}. Entities received: {entities_received}, Records processed: {records_processed}. Time taken: {time.time() - start_time:.2f} seconds"
+        )
 
     except Exception as e:
         log.severe(f"Unhandled exception during sync of {entity_name}: {str(e)}")
         log.severe(f"Exception details: {type(e).__name__}: {str(e)}")
         import traceback
+
         log.severe(f"Traceback: {traceback.format_exc()}")
 
     sync_duration = time.time() - start_time
     log.info(
-        f"{entity_name.capitalize()} sync completed. Entities received: {entities_received}, Records processed: {records_processed}. Time taken: {sync_duration:.2f} seconds")
+        f"{entity_name.capitalize()} sync completed. Entities received: {entities_received}, Records processed: {records_processed}. Time taken: {sync_duration:.2f} seconds"
+    )
 
 
 def sync_companies(access_token):
@@ -236,9 +274,18 @@ def sync_companies(access_token):
     a custom record processing function to handle data type conversions.
     """
     company_fields = [
-        "id", "name", "website", "phone", "date_created",
-        "date_modified", "date_last_interacted", "comments", "standing", "status",
-        "postal_address", "default_affiliation"
+        "id",
+        "name",
+        "website",
+        "phone",
+        "date_created",
+        "date_modified",
+        "date_last_interacted",
+        "comments",
+        "standing",
+        "status",
+        "postal_address",
+        "default_affiliation",
     ]
 
     def process_company_record(record):
@@ -258,7 +305,7 @@ def sync_companies(access_token):
         process_record=process_company_record,
         date_field="date_modified",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
 
 
@@ -270,13 +317,32 @@ def sync_invoices(access_token):
     a custom record processing function to handle data type conversions.
     """
     invoice_fields = [
-        "id", "subject", "amount", "against_type", "against_id", "notes", "invoice_number",
-        "currency_id", "owner_id", "tax", "outstanding", "modified_by",
-        "date_raised", "date_due", "date_modified"
+        "id",
+        "subject",
+        "amount",
+        "against_type",
+        "against_id",
+        "notes",
+        "invoice_number",
+        "currency_id",
+        "owner_id",
+        "tax",
+        "outstanding",
+        "modified_by",
+        "date_raised",
+        "date_due",
+        "date_modified",
     ]
 
     def process_invoice_record(record):
-        int_fields = ["id", "against_id", "invoice_number", "currency_id", "owner_id", "modified_by"]
+        int_fields = [
+            "id",
+            "against_id",
+            "invoice_number",
+            "currency_id",
+            "owner_id",
+            "modified_by",
+        ]
         convert_int_fields(int_fields, record)
 
         float_fields = ["amount", "tax", "outstanding"]
@@ -295,7 +361,7 @@ def sync_invoices(access_token):
         process_record=process_invoice_record,
         date_field="date_modified",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
 
 
@@ -307,14 +373,32 @@ def sync_payments(access_token):
     a custom record processing function to handle data type conversions.
     """
     payment_fields = [
-        "id", "receipt_id", "amount", "currency_id", "method_id", "against_id", "against_type",
-        "date_created", "created_by_staff_id", "direction", "payment_currency", "payment_method", "payment_receipt"
+        "id",
+        "receipt_id",
+        "amount",
+        "currency_id",
+        "method_id",
+        "against_id",
+        "against_type",
+        "date_created",
+        "created_by_staff_id",
+        "direction",
+        "payment_currency",
+        "payment_method",
+        "payment_receipt",
     ]
 
     def process_payment_record(record):
         int_fields = [
-            "id", "receipt_id", "currency_id", "method_id", "against_id",
-            "created_by_staff_id", "payment_currency", "payment_method", "payment_receipt"
+            "id",
+            "receipt_id",
+            "currency_id",
+            "method_id",
+            "against_id",
+            "created_by_staff_id",
+            "payment_currency",
+            "payment_method",
+            "payment_receipt",
         ]
         convert_int_fields(int_fields, record)
 
@@ -334,7 +418,7 @@ def sync_payments(access_token):
         process_record=process_payment_record,
         date_field="date_created",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
 
 
@@ -346,18 +430,45 @@ def sync_prospects(access_token):
     a custom record processing function to handle data type conversions.
     """
     prospect_fields = [
-        "id", "title", "date_created", "date_actioned", "date_due", "date_last_interacted",
-        "date_modified", "weighting", "value", "success", "comments", "progress",
-        "value_weighted", "won_by_id", "cancelled_by_id", "abandoned_by_id",
-        "contact", "manager", "prospect_type", "status", "standing", "prospect_probability", "affiliation"
+        "id",
+        "title",
+        "date_created",
+        "date_actioned",
+        "date_due",
+        "date_last_interacted",
+        "date_modified",
+        "weighting",
+        "value",
+        "success",
+        "comments",
+        "progress",
+        "value_weighted",
+        "won_by_id",
+        "cancelled_by_id",
+        "abandoned_by_id",
+        "contact",
+        "manager",
+        "prospect_type",
+        "status",
+        "standing",
+        "prospect_probability",
+        "affiliation",
     ]
 
     def process_prospect_record(record):
         int_fields = [
-            "id", "weighting", "value_weighted", "won_by_id",
-            "cancelled_by_id", "abandoned_by_id", "contact",
-            "manager", "prospect_type", "status", "prospect_probability",
-            "affiliation"
+            "id",
+            "weighting",
+            "value_weighted",
+            "won_by_id",
+            "cancelled_by_id",
+            "abandoned_by_id",
+            "contact",
+            "manager",
+            "prospect_type",
+            "status",
+            "prospect_probability",
+            "affiliation",
         ]
         convert_int_fields(int_fields, record)
 
@@ -365,29 +476,32 @@ def sync_prospects(access_token):
         convert_float_fields(float_fields, record)
 
         date_fields = [
-            "date_created", "date_actioned", "date_due",
-            "date_last_interacted", "date_modified"
+            "date_created",
+            "date_actioned",
+            "date_due",
+            "date_last_interacted",
+            "date_modified",
         ]
         convert_date_fields(date_fields, record)
 
         # Convert 'success' field to boolean
-        value = record.get('success')
+        value = record.get("success")
         if value is not None:
             try:
                 if isinstance(value, bool):
-                    record['success'] = value
+                    record["success"] = value
                 elif isinstance(value, str):
-                    if value.lower() == 'yes' or value.lower() == 'true':
-                        record['success'] = True
-                    elif value.lower() == 'no' or value.lower() == 'false':
-                        record['success'] = False
+                    if value.lower() == "yes" or value.lower() == "true":
+                        record["success"] = True
+                    elif value.lower() == "no" or value.lower() == "false":
+                        record["success"] = False
                     else:
                         raise ValueError(f"Unexpected string value for success: {value}")
                 else:
                     raise ValueError(f"Unexpected type for success: {type(value)}")
             except (ValueError, TypeError) as e:
                 log.warning(f"Could not convert field 'success' with value '{value}' to bool: {e}")
-                record['success'] = None
+                record["success"] = None
 
         return record
 
@@ -399,7 +513,7 @@ def sync_prospects(access_token):
         process_record=process_prospect_record,
         date_field="date_modified",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
 
 
@@ -408,9 +522,20 @@ def sync_jobs(access_token):
     Sync job data from Accelo API.
     """
     job_fields = [
-        "id", "title", "status", "standing", "date_created", "date_started",
-        "date_due", "date_completed", "date_modified", "manager", "company",
-        "contact", "description", "value"
+        "id",
+        "title",
+        "status",
+        "standing",
+        "date_created",
+        "date_started",
+        "date_due",
+        "date_completed",
+        "date_modified",
+        "manager",
+        "company",
+        "contact",
+        "description",
+        "value",
     ]
 
     def process_job_record(record):
@@ -420,7 +545,13 @@ def sync_jobs(access_token):
         float_fields = ["value"]
         convert_float_fields(float_fields, record)
 
-        date_fields = ["date_created", "date_started", "date_due", "date_completed", "date_modified"]
+        date_fields = [
+            "date_created",
+            "date_started",
+            "date_due",
+            "date_completed",
+            "date_modified",
+        ]
         convert_date_fields(date_fields, record)
 
         return record
@@ -433,7 +564,7 @@ def sync_jobs(access_token):
         process_record=process_job_record,
         date_field="date_modified",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
 
 
@@ -442,8 +573,15 @@ def sync_staff(access_token):
     Sync staff data from Accelo API.
     """
     staff_fields = [
-        "id", "firstname", "surname", "email", "position", "title",
-        "date_created", "date_modified", "status"
+        "id",
+        "firstname",
+        "surname",
+        "email",
+        "position",
+        "title",
+        "date_created",
+        "date_modified",
+        "status",
     ]
 
     def process_staff_record(record):
@@ -463,8 +601,9 @@ def sync_staff(access_token):
         process_record=process_staff_record,
         date_field="date_modified",
         timeout=constants.SYNC_TIMEOUT,
-        batch_size=constants.BATCH_SIZE
+        batch_size=constants.BATCH_SIZE,
     )
+
 
 def convert_int_fields(int_fields, record):
     for field in int_fields:
@@ -476,6 +615,7 @@ def convert_int_fields(int_fields, record):
                 log.warning(f"Could not convert field {field} with value '{value}' to int")
                 record[field] = None
 
+
 def convert_float_fields(float_fields, record):
     for field in float_fields:
         value = record.get(field)
@@ -486,22 +626,26 @@ def convert_float_fields(float_fields, record):
                 log.warning(f"Could not convert field {field} with value '{value}' to float")
                 record[field] = None
 
+
 def convert_date_fields(date_fields, record):
     for field in date_fields:
         value = record.get(field)
         if value is not None:
             try:
-                if isinstance(value, str) and 'T' in value:
+                if isinstance(value, str) and "T" in value:
                     # ISO 8601 format
-                    dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
                 else:
                     # Unix timestamp
                     timestamp = int(value)
                     dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
-                record[field] = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+                record[field] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
             except (ValueError, TypeError) as e:
-                log.warning(f"Could not convert field {field} with value '{value}' to datetime: {e}")
+                log.warning(
+                    f"Could not convert field {field} with value '{value}' to datetime: {e}"
+                )
                 record[field] = None
+
 
 def schema(configuration: dict):
     """
@@ -526,7 +670,7 @@ def schema(configuration: dict):
     Raises:
         ValueError: If a required configuration key is missing.
     """
-    required_keys = ['deployment', 'client_id', 'client_secret']
+    required_keys = ["deployment", "client_id", "client_secret"]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
@@ -547,8 +691,8 @@ def schema(configuration: dict):
                 "standing": "STRING",
                 "status": "INT",
                 "postal_address": "INT",
-                "default_affiliation": "INT"
-            }
+                "default_affiliation": "INT",
+            },
         },
         {
             "table": "invoices",
@@ -568,8 +712,8 @@ def schema(configuration: dict):
                 "modified_by": "INT",
                 "date_raised": "UTC_DATETIME",
                 "date_due": "UTC_DATETIME",
-                "date_modified": "UTC_DATETIME"
-            }
+                "date_modified": "UTC_DATETIME",
+            },
         },
         {
             "table": "payments",
@@ -587,8 +731,8 @@ def schema(configuration: dict):
                 "direction": "STRING",
                 "payment_currency": "INT",
                 "payment_method": "INT",
-                "payment_receipt": "INT"
-            }
+                "payment_receipt": "INT",
+            },
         },
         {
             "table": "prospects",
@@ -616,8 +760,8 @@ def schema(configuration: dict):
                 "status": "INT",
                 "standing": "STRING",
                 "prospect_probability": "INT",
-                "affiliation": "INT"
-            }
+                "affiliation": "INT",
+            },
         },
         {
             "table": "jobs",
@@ -636,8 +780,8 @@ def schema(configuration: dict):
                 "company": "INT",
                 "contact": "INT",
                 "description": "STRING",
-                "value": "FLOAT"
-            }
+                "value": "FLOAT",
+            },
         },
         {
             "table": "staff",
@@ -651,9 +795,9 @@ def schema(configuration: dict):
                 "title": "STRING",
                 "date_created": "UTC_DATETIME",
                 "date_modified": "UTC_DATETIME",
-                "status": "INT"
-            }
-        }
+                "status": "INT",
+            },
+        },
     ]
     return schema_definition
 
@@ -662,7 +806,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

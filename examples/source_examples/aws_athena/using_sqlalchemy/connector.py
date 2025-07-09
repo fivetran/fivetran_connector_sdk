@@ -6,11 +6,16 @@
 from sqlalchemy import create_engine
 from sqlalchemy import text
 import json  # Import the json module to handle JSON data.
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 TABLE_NAME = "test_rows"
+
 
 # Define the schema function, which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -30,6 +35,7 @@ def schema(configuration: dict):
             },
         }
     ]
+
 
 def create_connection_engine(configuration):
     conn_str = f"awsathena+rest://{configuration['aws_access_key_id']}:{configuration['aws_secret_access_key']}@athena.{configuration['region_name']}.amazonaws.com:443/{configuration['database_name']}?s3_staging_dir={configuration['s3_staging_dir']}"
@@ -54,13 +60,15 @@ def update(configuration: dict, state: dict):
                 break
 
             for row in rows:
-                yield op.upsert(table="customers",
-                                data={
-                                    "customer_id": row[0],  # Customer id.
-                                    "first_name": row[1],  # First Name.
-                                    "last_name": row[2],  # Last name.
-                                    "email": row[3],  # Email id.
-                                })
+                yield op.upsert(
+                    table="customers",
+                    data={
+                        "customer_id": row[0],  # Customer id.
+                        "first_name": row[1],  # First Name.
+                        "last_name": row[2],  # Last name.
+                        "email": row[3],  # Email id.
+                    },
+                )
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -79,7 +87,7 @@ connector = Connector(update=update, schema=schema)
 # Test it by using the `debug` command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

@@ -5,9 +5,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Define the SOURCE_DATA which simulates the source data that will be upserted to Fivetran.
 SOURCE_DATA = [
@@ -46,21 +51,21 @@ def update(configuration: dict, state: dict):
 
     # Retrieve the cursor from the state object to determine the current position in the SOURCE_DATA.
     # If the cursor is not present in the state, start from the beginning (cursor = 0).
-    cursor = state['cursor'] if 'cursor' in state else 0
+    cursor = state["cursor"] if "cursor" in state else 0
     log.fine(f"current cursor is {repr(cursor)}")
 
     # Get the row of data from SOURCE_DATA using the cursor position.
     if cursor >= SOURCE_DATA.__len__():
-        raise Exception("Expected ‘list index out of range’ on 4th sync due to local data being exhausted in Example Connector")
+        raise Exception(
+            "Expected ‘list index out of range’ on 4th sync due to local data being exhausted in Example Connector"
+        )
     row = SOURCE_DATA[cursor]
 
     # Yield an upsert operation to insert/update the row in the "hello_world" table.
     yield op.upsert(table="hello_world", data=row)
 
     # Update the state with the new cursor position, incremented by 1.
-    new_state = {
-        "cursor": cursor + 1
-    }
+    new_state = {"cursor": cursor + 1}
     log.fine(f"state updated, new state: {repr(new_state)}")
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

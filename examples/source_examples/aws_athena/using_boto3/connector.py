@@ -5,9 +5,13 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 import boto3
 import json  # Import the json module to handle JSON data.
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 import time
 
 TABLE_NAME = "test_rows"
@@ -33,48 +37,58 @@ def schema(configuration: dict):
         }
     ]
 
+
 def create_athena_client(configuration):
-    return boto3.client('athena',
-                        aws_access_key_id=configuration["aws_access_key_id"],
-                        aws_secret_access_key=configuration["aws_secret_access_key"],
-                        region_name=configuration['region_name'])
+    return boto3.client(
+        "athena",
+        aws_access_key_id=configuration["aws_access_key_id"],
+        aws_secret_access_key=configuration["aws_secret_access_key"],
+        region_name=configuration["region_name"],
+    )
 
 
 def process_and_upsert_response(response):
     # Skipping first row as it contains only metadata
-    for row in response['ResultSet']['Rows'][1:]:
+    for row in response["ResultSet"]["Rows"][1:]:
         row_data = []
-        for cell in row['Data']:
-            if 'VarCharValue' in cell:
-                row_data.append(cell['VarCharValue'])
-            elif 'BigIntValue' in cell:
-                row_data.append(int(cell['BigIntValue']))
-            elif 'DoubleValue' in cell:
-                row_data.append(float(cell['DoubleValue']))
-            elif 'BooleanValue' in cell:
-                row_data.append(bool(cell['BooleanValue']))
+        for cell in row["Data"]:
+            if "VarCharValue" in cell:
+                row_data.append(cell["VarCharValue"])
+            elif "BigIntValue" in cell:
+                row_data.append(int(cell["BigIntValue"]))
+            elif "DoubleValue" in cell:
+                row_data.append(float(cell["DoubleValue"]))
+            elif "BooleanValue" in cell:
+                row_data.append(bool(cell["BooleanValue"]))
             else:
                 row_data.append(None)
-        yield op.upsert(table="customers",
-                        data={
-                            "customer_id": row_data[0],  # Customer id.
-                            "first_name": row_data[1],  # First Name.
-                            "last_name": row_data[2],  # Last name.
-                            "email": row_data[3],  # Email id.
-                        })
+        yield op.upsert(
+            table="customers",
+            data={
+                "customer_id": row_data[0],  # Customer id.
+                "first_name": row_data[1],  # First Name.
+                "last_name": row_data[2],  # Last name.
+                "email": row_data[3],  # Email id.
+            },
+        )
 
 
 def get_query_results(athena_client, query_execution_id):
     response = athena_client.get_query_results(QueryExecutionId=query_execution_id)
 
     while True:
-        response = athena_client.get_query_results(QueryExecutionId=query_execution_id,
-                                                   NextToken=response[NEXT_TOKEN]) \
-            if NEXT_TOKEN in response else athena_client.get_query_results(QueryExecutionId=query_execution_id)
+        response = (
+            athena_client.get_query_results(
+                QueryExecutionId=query_execution_id, NextToken=response[NEXT_TOKEN]
+            )
+            if NEXT_TOKEN in response
+            else athena_client.get_query_results(QueryExecutionId=query_execution_id)
+        )
 
         yield from process_and_upsert_response(response)
         if NEXT_TOKEN not in response:
             break
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -89,24 +103,22 @@ def update(configuration: dict, state: dict):
     query = f"SELECT * FROM {TABLE_NAME}"
     response = athena_client.start_query_execution(
         QueryString=query,
-        QueryExecutionContext={'Database': configuration['database_name']},
-        ResultConfiguration={
-            'OutputLocation': configuration['s3_staging_dir']
-        }
+        QueryExecutionContext={"Database": configuration["database_name"]},
+        ResultConfiguration={"OutputLocation": configuration["s3_staging_dir"]},
     )
 
-    query_execution_id = response['QueryExecutionId']
+    query_execution_id = response["QueryExecutionId"]
 
     # Wait for query completion (adjust polling interval as needed)
     while True:
         response = athena_client.get_query_execution(QueryExecutionId=query_execution_id)
-        status = response['QueryExecution']['Status']['State']
-        if status in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
+        status = response["QueryExecution"]["Status"]["State"]
+        if status in ["SUCCEEDED", "FAILED", "CANCELLED"]:
             break
 
         time.sleep(5)
 
-    if status == 'SUCCEEDED':
+    if status == "SUCCEEDED":
         yield from get_query_results(athena_client, query_execution_id)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -128,7 +140,7 @@ connector = Connector(update=update, schema=schema)
 # Test it by using the `debug` command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

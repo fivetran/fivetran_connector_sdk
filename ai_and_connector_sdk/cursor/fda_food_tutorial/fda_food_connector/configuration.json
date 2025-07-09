@@ -1,0 +1,6 @@
+{
+    "api_key": "",
+    "base_url": "https://api.fda.gov/food/enforcement.json",
+    "batch_size": "50",
+    "rate_limit_pause": "0.5"
+}
