@@ -72,7 +72,7 @@ This connector does not implement explicit pagination. Data is retrieved in batc
 
 * `all_traffic_visits` – Contains daily web traffic metrics for each domain and country combination.
 
-*Sample data structure:*
+Sample data structure:
 
 | domain           | country | date       | visits   | ... |
 |------------------|---------|------------|----------|-----|
