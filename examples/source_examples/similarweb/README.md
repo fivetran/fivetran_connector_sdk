@@ -17,9 +17,9 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Features
 
 * Supports batch report generation and download from Similarweb's API (see `request_report`, `check_report_status`, `download_report`)
-* Configurable list of domains, countries, and metrics (see `domain_list`, `country_list`, `metric_list`)
+* Configurable list of domains, countries, and metrics (see `DOMAIN_LIST`, `COUNTRY_LIST`, `__METRIC_LIST`)
 * Handles both historical and incremental syncs (see `update` function)
-* Delivers data to a single table: `all_traffic_visits`
+* Delivers data to a single table: `ALL_TRAFFIC_VISITS`
 * Uses Fivetran Connector SDK logging for status and error reporting (see `log` usage)
 
 ## Configuration file
