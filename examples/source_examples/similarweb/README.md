@@ -68,7 +68,7 @@ This connector does not implement explicit pagination. Data is retrieved in batc
 * Uses Fivetran Connector SDK logging for info, warning, and severe error messages (see `log` usage throughout)
 * Raises `RuntimeError` for failed report creation, failed status, or download errors (see `request_report`, `check_report_status`, `download_report`)
 
-## Tables Created
+## Tables created
 
 * `all_traffic_visits` – Contains daily web traffic metrics for each domain and country combination.
 
