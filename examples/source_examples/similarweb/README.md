@@ -38,7 +38,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 The `requirements.txt` file specifies any additional Python libraries required by the connector. For this example, the following libraries are required:
 
-*Example content of `requirements.txt`:*
+Example content of `requirements.txt`:
 
 ```
 pytz
