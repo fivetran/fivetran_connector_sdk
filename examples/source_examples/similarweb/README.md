@@ -76,7 +76,7 @@ This connector does not implement explicit pagination. Data is retrieved in batc
 
 | domain           | country | date       | visits   | ... |
 |------------------|---------|------------|----------|-----|
-| chatgpt.com      | US      | 2024-05-01 | 1000000  | ... |
+| example-website.com      | US      | 2024-05-01 | 1000000  | ... |
 
 ## Additional files
 
