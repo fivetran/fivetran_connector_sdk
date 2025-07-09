@@ -1,0 +1,253 @@
+Authentication
+An API key is required to make calls to the openFDA API. The key is free of charge. Your use of the API may be subject to certain limitations on access, calls, or use. These limitations are designed to manage load on the system, promote equitable access, and prevent abuse. Here are openFDA's standard limits:
+
+With no API key: 240 requests per minute, per IP address. 1,000 requests per day, per IP address.
+
+With an API key: 240 requests per minute, per key. 120,000 requests per day, per key.
+
+If you anticipate usage above the limits provided by an API key, please contact us. We’ll work with you to figure out a good solution to your requirements. Signing up for an API key means you agree to our terms of service.
+
+ Get your API key
+Using your API key
+Your API key should be passed to the API as the value of the api_key parameter. Include it before other parameters, such as the search parameter. For example:
+
+https://api.fda.gov/drug/event.json?api_key=yourAPIKeyHere&search=...
+
+HTTPS requests only
+Alternatively your API key may be provided as a basic auth username. For example:
+
+Authorization: Basic eW91ckFQSUtleUhlcmU6
+
+openFDA requires you to use https://api.fda.gov for all queries to ensure secure communication.
+
+How to use the API
+Getting started with and learning how to use the API is relatively straightforward. Here are some recommended steps:
+
+1
+If you haven't already, read the API Basics documentation.
+2
+Review the list of searchable fields available in the Tobacco Problem Reports dataset.
+3
+Try out the Tobacco Problem Reports endpoint using the interactive examples and tools below.
+Then, when you are ready, obtain an API Key. While you don’t need an API Key to try or use the API, we recommend you get one if you are planning to use the API on a regular basis. For more information on API Keys, see the Authentication documentation.
+
+Making a simple API Call
+You can call the API from a web browser. Simply type a valid API query in your browser’s address bar and press the Enter key.
+
+In the example below, we are searching the records in the tobacco problem reports endpoint for matches with report_id with the value 2082161. We are requesting to see the first 5 records that match."
+
+https://api.fda.gov/tobacco/problem.json
+base endpoint
+?
+?
+search=
+search=
+report_id:2082161
+field:term
+&
+&
+limit=5
+limit
+Some key pointers
+An openFDA API query always begins with the base endpoint, which in this case is: https://api.fda.gov/tobacco/problem.json
+Searches have a special syntax: search=field:term
+Unless otherwise specified, the API will return only one matching record for a search. You can specify the number of records to be returned by using the limit parameter. The maximum limit allowed is 1000 for any single API call. If no limit is set, the API will return one matching record.
+It is possible to construct very complex queries using the openFDA API. Review the Construct the query documentation to learn more about all the available query parameters, how to handle quotations, spaces, phrase matches, and groupings, how to search on dates and ranges, and more.
+
+
+Example tobacco problem reports API queries
+To help get you started, we have provided some API query examples below. Use the Run query button to call the API and get back results. You can experiment by editing the example queries in the black text box.
+
+Example query
+
+One Tobacco Problem Report
+This query searches for all records and asks for a single one.
+
+Search for all records and display one.
+
+limit to 1 record.
+
+https://api.fda.gov/tobacco/problem.json?limit=1
+Run queryClose
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2025-05-02",
+    "results": {
+      "skip": 0,
+      "limit": 1,
+      "total": 1265
+    }
+  },
+  "results": [
+    {
+      "date_submitted": "04/04/2019",
+      "nonuser_affected": "No",
+      "reported_health_problems": [
+        "Seizures"
+      ],
+      "number_tobacco_products": 1,
+      "report_id": 797,
+      "number_health_problems": 1,
+      "reported_product_problems": [
+        "No information provided"
+      ],
+      "tobacco_products": [
+        "Electronic cigarette, electronic nicotine or vaping product (E-cigarette, e-cigars, e-hookahs, e-pipes, vape pens, hookah pens, and personal vaporizers; E-liquids, e-juice or vape juice)"
+      ],
+      "number_product_problems": 0
+    }
+  ]
+}
+Example query
+
+Problem reports by submission date
+This query searches for all records in a certain date range.
+
+See the header fields reference for more about date_submitted. Brackets [ ] are used to specify a range for date, number, or string fields.
+
+search for all records with date_submitted between Jan 01, 2018 and July 23, 2020.
+
+https://api.fda.gov/tobacco/problem.json?search=date_submitted:[20180101+TO+20200723]
+Run queryClose
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2025-05-02",
+    "results": {
+      "skip": 0,
+      "limit": 1,
+      "total": 847
+    }
+  },
+  "results": [
+    {
+      "date_submitted": "04/04/2019",
+      "nonuser_affected": "No",
+      "reported_health_problems": [
+        "Seizures"
+      ],
+      "number_tobacco_products": 1,
+      "report_id": 797,
+      "number_health_problems": 1,
+      "reported_product_problems": [
+        "No information provided"
+      ],
+      "tobacco_products": [
+        "Electronic cigarette, electronic nicotine or vaping product (E-cigarette, e-cigars, e-hookahs, e-pipes, vape pens, hookah pens, and personal vaporizers; E-liquids, e-juice or vape juice)"
+      ],
+      "number_product_problems": 0
+    }
+  ]
+}
+Example query
+
+Problem reports by tobacco product
+The suffix .exact is required by openFDA to count the unique full phrases in the field product_type. Without it, the API will count each word in that field individually—Firm Initiated would be counted as separate values, Firm and Initiated.
+
+search the tobacco products selected by the reporter
+
+https://api.fda.gov/tobacco/problem.json?count=tobacco_products.exact
+Run queryClose
+{
+  "meta": {
+    "disclaimer": "Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.",
+    "terms": "https://open.fda.gov/terms/",
+    "license": "https://open.fda.gov/license/",
+    "last_updated": "2025-05-02"
+  },
+  "results": [
+    {
+      "term": "Electronic cigarette, electronic nicotine or vaping product (E-cigarette, e-cigars, e-hookahs, e-pipes, vape pens, hookah pens, and personal vaporizers; E-liquids, e-juice or vape juice)",
+      "count": 810
+    },
+    {
+      "term": "Electronic cigarette or vaping product (also known as E-cigarette, vape pen, hookah pen, mod, e-cigar, e-hookah, and e-pipe; E-liquid (also known as \"e-juice\" or \"vape juice\"))",
+      "count": 117
+    },
+    {
+      "term": "Electronic cigarette or vaping product (for example, E-cigarette, vape or vape pen, personal vaporizer, cigalike, e-pen, hookah pen, mod, e-cigar, e-hookah, and e-pipe; E-liquid (also known as \"e-juice\" or \"vape juice\"))",
+      "count": 104
+    },
+    {
+      "term": "Cigarette",
+      "count": 101
+    },
+    {
+      "term": "Other",
+      "count": 78
+    },
+    {
+      "term": "Snuff (dry or moist for use in nose or mouth)",
+      "count": 14
+    },
+    {
+      "term": "Roll-your-own cigarette",
+      "count": 13
+    },
+    {
+      "term": "Chewing tobacco (loose leaf chew, plug, twist/roll)",
+      "count": 9
+    },
+    {
+      "term": "Pipe or pipe tobacco",
+      "count": 8
+    },
+    {
+      "term": "Small Cigar, Little Cigar or Cigarillo",
+      "count": 5
+    },
+    {
+      "term": "Snus (pouches or loose)",
+      "count": 5
+    },
+    {
+      "term": "Tobacco Heating System (heats tobacco leaf not liquid)",
+      "count": 4
+    },
+    {
+      "term": "Cigar (large or premium)",
+      "count": 2
+    },
+    {
+      "term": "Dissolvable (for example, strips, sticks, orbs)",
+      "count": 2
+    },
+    {
+      "term": "Heated Tobacco Product (also known as \"Heat not Burn\"; heats dry or moist tobacco)",
+      "count": 2
+    },
+    {
+      "term": "Heated Tobacco Product (also known as “Heat not Burn”; heats dry or moist tobacco)",
+      "count": 2
+    },
+    {
+      "term": "Mixture of tobacco with spices, herbs, nuts, fruit, plant leaves, etc. (used for chewing)",
+      "count": 2
+    },
+    {
+      "term": "Nicotine Lotions or Gels (applied to the skin)",
+      "count": 2
+    },
+    {
+      "term": "Pipe (includes Midwakh) or pipe tobacco (includes Dokha)",
+      "count": 2
+    },
+    {
+      "term": "Waterpipe (also known as hookah, narghile, shisha, or goza)",
+      "count": 2
+    },
+    {
+      "term": "Gutka (or Gutkha), Betel Quid with Tobacco",
+      "count": 1
+    },
+    {
+      "term": "Waterpipe (also known as hookah, narghile, or goza); Uses tobacco, shisha, or mu’assel",
+      "count": 1
+    }
+  ]
+}

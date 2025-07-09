@@ -8,12 +8,18 @@
 
 # Import requests to make HTTP calls to API.
 import requests as rq
+
 # Import base64 for API Auth Param Encoding
 import base64
+
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import (
+    Connector,
+)  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
 
 
@@ -51,8 +57,10 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Authentication - HTTP BASIC")
 
-    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
-          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
     base_url = "http://127.0.0.1:5001/auth/http_basic"
 
     yield from sync_items(base_url, {}, state, configuration)
@@ -62,8 +70,8 @@ def update(configuration: dict, state: dict):
 # The function takes one parameter:
 # - config: dictionary contains any secrets or payloads you configure when deploying the connector.
 def get_auth_headers(config):
-    username = config.get('username')
-    password = config.get('password')
+    username = config.get("username")
+    password = config.get("password")
 
     if username is None or password is None:
         raise ValueError("Username or password is missing in the configuration.")
@@ -71,13 +79,12 @@ def get_auth_headers(config):
     # Create the auth string
     auth_string = f"{username}:{password}"
     # Encode the string in Base64
-    auth_base64 = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+    auth_base64 = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
     headers = {
         "Authorization": f"Basic {auth_base64}",
         "Content-Type": "application/json",  # Optional: specify content type
     }
     return headers
-
 
 
 # The sync_items function handles the retrieval of API data.
@@ -110,6 +117,7 @@ def sync_items(base_url, params, state, configuration):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
+
 # The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
 # It performs the following tasks:
 # 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
@@ -139,7 +147,7 @@ connector = Connector(update=update, schema=schema)
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

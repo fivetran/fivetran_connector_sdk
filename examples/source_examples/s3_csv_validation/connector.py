@@ -26,6 +26,7 @@ TABLE_NAME = "data"
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 
+
 def schema(configuration: dict):
     return [
         {
@@ -38,7 +39,7 @@ def schema(configuration: dict):
                 "string_value": "STRING",
                 "json_value": "JSON",
                 "naive_date_value": "NAIVE_DATE",
-                "naive_date_time_value": "NAIVE_DATETIME"
+                "naive_date_time_value": "NAIVE_DATETIME",
             },
         }
     ]
@@ -60,7 +61,7 @@ def update(configuration: dict, state: dict):
     response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
 
     # Read the content of the file
-    csv_content = response['Body'].read().decode('utf-8')
+    csv_content = response["Body"].read().decode("utf-8")
 
     # Load the CSV content into a Pandas DataFrame
     df = pd.read_csv(StringIO(csv_content), converters={col: str for col in range(100)})
@@ -99,8 +100,7 @@ def upsert_csv_row(row):
     if naive_date_value is None:
         yield None
 
-    naive_date_time_value = validate_naive_date_time_value(row, row[
-        "naive_date_time_column"])
+    naive_date_time_value = validate_naive_date_time_value(row, row["naive_date_time_column"])
     if naive_date_time_value is None:
         yield None
 
@@ -111,7 +111,7 @@ def upsert_csv_row(row):
         "string_value": string_value,
         "json_value": json_value,
         "naive_date_value": naive_date_value.strftime("%Y-%m-%d"),
-        "naive_date_time_value": naive_date_time_value.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        "naive_date_time_value": naive_date_time_value.strftime("%Y-%m-%dT%H:%M:%S.%f"),
     }
     yield op.upsert(TABLE_NAME, data=data)
 
@@ -129,8 +129,8 @@ def validate_bool_value(row, value: str):
         print_error_message(row, f"Invalid boolean value: '{value}'")
         return None
 
-    if value.lower() == 'true' or value.lower() == 'false':
-        return value.lower() == 'true'
+    if value.lower() == "true" or value.lower() == "false":
+        return value.lower() == "true"
 
     print_error_message(row, f"Invalid boolean value: '{value}'")
     return None
@@ -175,10 +175,12 @@ def print_error_message(row, message: str):
 
 
 def create_s3_client(configuration):
-    return boto3.client('s3',
-                        aws_access_key_id=configuration["aws_access_key_id"],
-                        aws_secret_access_key=configuration["aws_secret_access_key"],
-                        region_name=configuration['region_name'])
+    return boto3.client(
+        "s3",
+        aws_access_key_id=configuration["aws_access_key_id"],
+        aws_secret_access_key=configuration["aws_secret_access_key"],
+        region_name=configuration["region_name"],
+    )
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
@@ -190,7 +192,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)

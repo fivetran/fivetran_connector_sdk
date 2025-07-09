@@ -6,9 +6,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import self written modules
 from timestamp_serializer import TimestampSerializer
@@ -44,18 +49,12 @@ def update(configuration: dict, state: dict):
 
     timestamp_serializer = TimestampSerializer()
 
-    row_1 = {
-        "name": "Event1",
-        "timestamp": "2024/09/24 14:30:45"
-    }
-    row_1['timestamp'] = timestamp_serializer.serialize(row_1['timestamp'])
+    row_1 = {"name": "Event1", "timestamp": "2024/09/24 14:30:45"}
+    row_1["timestamp"] = timestamp_serializer.serialize(row_1["timestamp"])
     yield op.upsert(table="event", data=row_1)
 
-    row_2 = {
-        "name": "Event2",
-        "timestamp": "2024-09-24 10:30:45"
-    }
-    row_2['timestamp'] = timestamp_serializer.serialize(row_2['timestamp'])
+    row_2 = {"name": "Event2", "timestamp": "2024-09-24 10:30:45"}
+    row_2["timestamp"] = timestamp_serializer.serialize(row_2["timestamp"])
     yield op.upsert(table="event", data=row_2)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
