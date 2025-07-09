@@ -18,7 +18,6 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
 - **Python 3.9 - 3.12+** installed on your machine
 - **Basic Python knowledge** (functions, dictionaries, loops)
 - **Fivetran Connector SDK** (we'll install this)
-- **Git** (optional, for version control)
 
 ### API Access
 - **PokeAPI** (completely free, no authentication required)
@@ -31,9 +30,9 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
 - **Terminal/Command line** access
 - **Internet connection** for API calls
 
-## Required Files
+## Connector SDK Files
 
-2 core files got generated to create this Connector SDK:
+In this example 2 or the 3 core files got generated to create this Connector SDK:
 
 ### 1. `connector.py` - Main Connector Logic
 ```python
@@ -54,7 +53,10 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
 ### 3. `requirements.txt` - Dependencies
 no additional dependencies for this API are needed so this file was correctly skipped by the AI agent.
 
-## The Prompt
+## Context and The Prompt
+
+In this case we provided context by copying and pasting the [Fivetran Connector SDK technical reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+we also generated this [Claude.md](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md)
 
 Here's the original prompt that created this connector:
 
@@ -89,14 +91,14 @@ That was it for this case. We weren't particularly bothered by what data was syn
 
 ## Next Steps
 
-Once you've got the connector claude gereated for us working:
+Once you've got the connector claude generated for us working try using AI to enhance or change it
 
 1. **Extract more fields** ask AI to help change the schema or add more endpoints
 2. **Add custom data transformations** work with AI to change how the data is represented in your destination
-3. **Implement batch processing** for multiple Pokemon
-4. **Add data validation** for quality assurance
-5. **Deploy to production** with proper monitoring
-6. **Try different models** see our other tutorials
+3. **Add data validation** for quality assurance
+4. **Deploy to production** with proper monitoring
+5. **Try different models** see our other tutorials
+6. **Try creating a Connector for a different API** start meeting your own customer data needs
 
 ## Troubleshooting
 
