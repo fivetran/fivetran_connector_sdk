@@ -146,6 +146,7 @@ There are several examples available under `/examples`:
 - [oauth2_and_accelo_api_connector_multithreading_enabled](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/oauth2_and_accelo_api_connector_multithreading_enabled) - This example shows how to sync data from the Accelo API. It uses OAuth 2.0 Client Credentials flow authentication, rate limiting, and multithreading, which allows to make API calls in parallel to pull data faster. You need to provide your Accelo OAuth credentials for this example to work. Refer to the Multithreading Guidelines in `api_threading_utils.py`.
 - [github_traffic](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/github_traffic) - This example shows how to sync GitHub repositories traffic data using Connector SDK via REST API. You need to provide your GitHub Personal access token and specify the repositories you want to track.
 - [mastertax](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/mastertax) - This example shows how to sync extract data from MasterTax API using Connector SDK.
+- [oop_example](/examples/quickstart_examples/oop_example) - This example shows how to use object-oriented programming to build a connector for the National Parks Service API. It demonstrates how to create a class that encapsulates the logic for fetching data from the API and processing it.
 - OData APIs
   - [odata_version_2_using_pyodata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_2_using_pyodata) - This is an example of how to sync data from an OData API version 2 using Connector SDK.
   - [odata_version_4](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/odata_api/odata_version_4) - This is an example of how to sync data from an OData API version 4 using Connector SDK.
@@ -165,9 +166,6 @@ There are several examples available under `/examples`:
 <summary><h3>Workflows</h3></summary>
 
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
-
-- **[oop_example](/examples/quickstart_examples/oop_example)**
-  - This example shows the object-oriented programming approach while building the connector for National Parks Service API.
 
 </details>
 
