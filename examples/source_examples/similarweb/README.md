@@ -74,9 +74,9 @@ This connector does not implement explicit pagination. Data is retrieved in batc
 
 Sample data structure:
 
-| domain           | country | date       | visits   | ... |
-|------------------|---------|------------|----------|-----|
-| example-website.com      | US      | 2024-05-01 | 1000000  | ... |
+| domain              | country | date       | visits   | ... |
+|---------------------|---------|------------|----------|-----|
+| example-website.com | US      | 2024-05-01 | 1000000  | ... |
 
 ## Additional files
 
