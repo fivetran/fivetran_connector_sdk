@@ -3,10 +3,15 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting operations like checkpoint
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
 # python_odata is a library that provides a simple way to interact with OData services version 4
@@ -26,20 +31,17 @@ def schema(configuration: dict):
         {
             "table": "Customers",  # Name of the table in the destination, required.
             "primary_key": ["CustomerID"],  # Primary key column(s) for the table, optional.
-            "columns": {  # Definition of columns and their types, optional.
-            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+            "columns": {},  # Definition of columns and their types, optional.  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "Filtered_Customers",
             "primary_key": ["CustomerID"],
-            "columns": {
-            },
+            "columns": {},
         },
         {
             "table": "Orders",
             "primary_key": ["OrderID"],
-            "columns": {
-            },
+            "columns": {},
         },
     ]
 
@@ -49,7 +51,7 @@ def schema(configuration: dict):
 # For your own connector, you will need to replace the service_url with the URL of your OData service.
 # You can also add any authentication headers or other configurations needed for your service to the session object
 def setup_odata_service():
-    service_url = 'https://services.odata.org/v4/northwind/northwind.svc/'
+    service_url = "https://services.odata.org/v4/northwind/northwind.svc/"
     # Initialize the session object to be used by the pyOdata
     # This maintains connection state, headers, and authentication across requests
     # For more information on requests session object refer to the documentation
@@ -69,7 +71,7 @@ def upsert_all_customers(service, table):
 
     # Access the entity and fetch all records
     # Modify the entity name to match the structure of your OData service
-    entity = service.entities['Customers']
+    entity = service.entities["Customers"]
     query = service.query(entity)
     results = list(query)
 
@@ -91,16 +93,18 @@ def upsert_customer_name_starting_with_s(service, table):
 
     # Access the entity
     # Modify the entity name to match the structure of your OData service
-    entity = service.entities['Customers']
+    entity = service.entities["Customers"]
     query = service.query(entity)
 
     # Filtering only the data where Name starts with 'S' or
     # Modify the filter condition to match your requirements
-    query = query.filter(entity.ContactName.startswith('S'))
+    query = query.filter(entity.ContactName.startswith("S"))
 
     # Selecting only the required columns
     # Modify this with the columns you want to select
-    query = query.select(entity.CustomerID, entity.CompanyName, entity.ContactName, entity.ContactTitle)
+    query = query.select(
+        entity.CustomerID, entity.CompanyName, entity.ContactName, entity.ContactTitle
+    )
     results = list(query)
 
     # No need to convert the data to dictionaries as select query statement does that
@@ -116,9 +120,9 @@ def parse_iso_date(date_string):
     if not isinstance(date_string, str):
         return date_string
 
-    dateformat = '%Y-%m-%dT%H:%M:%S'
+    dateformat = "%Y-%m-%dT%H:%M:%S"
     try:
-        if date_string.endswith('Z'):
+        if date_string.endswith("Z"):
             date_string = date_string[:-1]  # Remove Z
         return datetime.strptime(date_string, dateformat).replace(tzinfo=timezone.utc)
     except ValueError as e:
@@ -131,11 +135,17 @@ def parse_iso_date(date_string):
 # This method also shows how to use filter to implement incremental sync.
 def query_orders(service, initial_date):
     # Access the entity
-    entity = service.entities['Orders']
+    entity = service.entities["Orders"]
     query = service.query(entity)
     # Selecting only the required columns
-    query = query.select(entity.OrderID, entity.CustomerID, entity.EmployeeID,
-                         entity.OrderDate, entity.RequiredDate, entity.ShippedDate)
+    query = query.select(
+        entity.OrderID,
+        entity.CustomerID,
+        entity.EmployeeID,
+        entity.OrderDate,
+        entity.RequiredDate,
+        entity.ShippedDate,
+    )
     # Filtering only the data where OrderDate is greater than the initial date
     query = query.filter(entity.OrderDate > initial_date)
     return list(query)
@@ -181,7 +191,7 @@ def upsert_all_orders(service, table, initial_state_value, track_column):
     max_date = yield from process_order_results(results, table, track_column, initial_date)
 
     # Return datetime as string in ISO format for updating the state
-    dateformat = '%Y-%m-%dT%H:%M:%S'
+    dateformat = "%Y-%m-%dT%H:%M:%S"
     if isinstance(max_date, datetime):
         return max_date.strftime(dateformat)
     return max_date
@@ -208,8 +218,13 @@ def update(configuration: dict, state: dict):
     yield op.checkpoint(state)
 
     # Upserting all the orders data to the destination while maintaining the state
-    last_order_date = state.get("latestOrderDate", '1990-01-01T00:00:00')
-    final_state_value = yield from upsert_all_orders(odata_service, table="Orders", initial_state_value=last_order_date, track_column="OrderDate")
+    last_order_date = state.get("latestOrderDate", "1990-01-01T00:00:00")
+    final_state_value = yield from upsert_all_orders(
+        odata_service,
+        table="Orders",
+        initial_state_value=last_order_date,
+        track_column="OrderDate",
+    )
     state["latestOrderDate"] = final_state_value
     yield op.checkpoint(state)
 

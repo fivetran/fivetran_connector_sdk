@@ -7,10 +7,16 @@
 
 # Import requests to make HTTP calls to API
 import requests as rq
+
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # Define the schema function which lets you configure the schema your connector delivers.
@@ -26,8 +32,8 @@ def schema(configuration: dict):
             "columns": {
                 "company_id": "STRING",
                 "company_name": "STRING",
-                "updated_at": "UTC_DATETIME"
-            }
+                "updated_at": "UTC_DATETIME",
+            },
         },
         {
             "table": "department",
@@ -36,9 +42,9 @@ def schema(configuration: dict):
                 "department_id": "STRING",
                 "company_id": "STRING",
                 "department_name": "STRING",
-                "updated_at": "UTC_DATETIME"
-            }
-        }
+                "updated_at": "UTC_DATETIME",
+            },
+        },
     ]
 
 
@@ -52,7 +58,9 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Cursors - Multiple Tables With Cursors")
 
-    company_cursor = state["company_cursor"] if "company_cursor" in state else '0001-01-01T00:00:00Z'
+    company_cursor = (
+        state["company_cursor"] if "company_cursor" in state else "0001-01-01T00:00:00Z"
+    )
     department_cursor = state["department_cursor"] if "department_cursor" in state else {}
 
     # Fetch and process the companies
@@ -111,7 +119,7 @@ def fetch_companies(company_cursor):
     # with params: {'order_by': 'updatedAt', 'order': 'asc', 'since': '0001-01-01T00:00:00Z'}
     data = [
         {"company_id": "1", "company_name": "ABC Inc", "updated_at": "2024-08-14T01:00:00Z"},
-        {"company_id": "2", "company_name": "XYZ Inc", "updated_at": "2024-08-14T02:01:00Z"}
+        {"company_id": "2", "company_name": "XYZ Inc", "updated_at": "2024-08-14T02:01:00Z"},
     ]
     return data
 
@@ -128,7 +136,11 @@ def fetch_companies(company_cursor):
 # - data: A dictionary containing the departments received from the API.
 def fetch_departments_for_company(department_cursor, company_id):
     # Fetch each company_id's cursor in department_cursor dict, if key is not present use default start value
-    cursor = department_cursor[company_id] if company_id in department_cursor else '0001-01-01T00:00:00Z'
+    cursor = (
+        department_cursor[company_id]
+        if company_id in department_cursor
+        else "0001-01-01T00:00:00Z"
+    )
 
     # Actual data fetch from API
     # params = {
@@ -144,12 +156,24 @@ def fetch_departments_for_company(department_cursor, company_id):
     # with params: {'order_by': 'updatedAt', 'order': 'asc', 'since': '0001-01-01T00:00:00Z'}
     if company_id == "1":
         data = [
-            {"department_id": "1", "company_id": "1", "department_name": "Engineering",
-             "updated_at": "2024-08-14T01:00:00Z"},
-            {"department_id": "2", "company_id": "1", "department_name": "R&D",
-             "updated_at": "2024-08-14T02:00:00Z"},
-            {"department_id": "3", "company_id": "1", "department_name": "Marketing",
-             "updated_at": "2024-08-14T03:00:00Z"},
+            {
+                "department_id": "1",
+                "company_id": "1",
+                "department_name": "Engineering",
+                "updated_at": "2024-08-14T01:00:00Z",
+            },
+            {
+                "department_id": "2",
+                "company_id": "1",
+                "department_name": "R&D",
+                "updated_at": "2024-08-14T02:00:00Z",
+            },
+            {
+                "department_id": "3",
+                "company_id": "1",
+                "department_name": "Marketing",
+                "updated_at": "2024-08-14T03:00:00Z",
+            },
         ]
 
     # Simulate data via API call to url:
@@ -157,12 +181,24 @@ def fetch_departments_for_company(department_cursor, company_id):
     # with params: {'order_by': 'updatedAt', 'order': 'asc', 'since': '0001-01-01T00:00:00Z'}
     elif company_id == "2":
         data = [
-            {"department_id": "1", "company_id": "2", "department_name": "Sales",
-             "updated_at": "2024-08-14T04:00:00Z"},
-            {"department_id": "2", "company_id": "2", "department_name": "Support",
-             "updated_at": "2024-08-14T05:00:00Z"},
-            {"department_id": "3", "company_id": "2", "department_name": "Design",
-             "updated_at": "2024-08-14T06:00:00Z"},
+            {
+                "department_id": "1",
+                "company_id": "2",
+                "department_name": "Sales",
+                "updated_at": "2024-08-14T04:00:00Z",
+            },
+            {
+                "department_id": "2",
+                "company_id": "2",
+                "department_name": "Support",
+                "updated_at": "2024-08-14T05:00:00Z",
+            },
+            {
+                "department_id": "3",
+                "company_id": "2",
+                "department_name": "Design",
+                "updated_at": "2024-08-14T06:00:00Z",
+            },
         ]
     else:
         data = []

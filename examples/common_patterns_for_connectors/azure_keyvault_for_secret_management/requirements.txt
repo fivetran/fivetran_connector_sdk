@@ -1,0 +1,4 @@
+psycopg2-binary
+azure-identity
+azure-keyvault
+azure-storage==0.36.0

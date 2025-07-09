@@ -6,9 +6,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import to connect to Snowflake
 import snowflake.connector
@@ -32,7 +37,7 @@ def get_snowflake_connection(configuration):
         password=configuration["password"],
         account=configuration["account"],
         database=configuration["database"],
-        schema=configuration["schema"]
+        schema=configuration["schema"],
     )
     log.info("Connected to Snowflake database")
 
@@ -63,7 +68,8 @@ def get_table_primary_key(cursor, table_name):
 def get_column_details(configuration, cursor, table_list):
     # Execute a SQL command to fetch the table name, column name, and data type of each column
     cursor.execute(
-        f"SELECT table_name, column_name, data_type FROM {configuration['database']}.information_schema.columns WHERE table_schema = '{configuration['schema']}';")
+        f"SELECT table_name, column_name, data_type FROM {configuration['database']}.information_schema.columns WHERE table_schema = '{configuration['schema']}';"
+    )
     columns = cursor.fetchall()
 
     table_columns = {}
@@ -89,16 +95,16 @@ def get_column_details(configuration, cursor, table_list):
 # https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes
 def get_fivetran_datatype(snowflake_type):
     TYPE_MAPPING = {
-        'STRING': 'STRING',
-        'NUMBER': 'DOUBLE',
-        'FLOAT': 'FLOAT',
-        'INTEGER': 'INTEGER',
-        'BOOLEAN': 'BOOLEAN',
-        'VARCHAR': 'STRING',
-        'CHAR': 'STRING',
-        'TEXT': 'STRING',
-        'DATE': 'NAIVE_DATE',
-        'DECIMAL': 'DECIMAL'
+        "STRING": "STRING",
+        "NUMBER": "DOUBLE",
+        "FLOAT": "FLOAT",
+        "INTEGER": "INTEGER",
+        "BOOLEAN": "BOOLEAN",
+        "VARCHAR": "STRING",
+        "CHAR": "STRING",
+        "TEXT": "STRING",
+        "DATE": "NAIVE_DATE",
+        "DECIMAL": "DECIMAL",
         # Add more mappings as needed
     }
     # Return the mapped type or default to STRING if not found
@@ -127,12 +133,7 @@ def build_schema(configuration, cursor):
         # Get the primary key for the table
         primary_key = get_table_primary_key(cursor, table_name)
         # Add the table schema to the schema_list
-        schema_list.append({
-            "table": table_name,
-            "primary_key": primary_key,
-            "columns": columns
-
-        })
+        schema_list.append({"table": table_name, "primary_key": primary_key, "columns": columns})
 
     return schema_list
 
@@ -195,7 +196,9 @@ def update(configuration: dict, state: dict):
 
     # Fetch the data from the orders table using a SQL command
     # The query fetches all orders that were placed after the last order date stored in the state dictionary.
-    last_order = state.get("lastOrder", "2020-08-10") # fetch the last order date from the state dictionary
+    last_order = state.get(
+        "lastOrder", "2020-08-10"
+    )  # fetch the last order date from the state dictionary
     query = f"SELECT * FROM orders WHERE order_date > '{last_order}'"
     cursor.execute(query)
     # Get the column names from the cursor description
@@ -207,7 +210,7 @@ def update(configuration: dict, state: dict):
         row = list(row)
 
         # If the fetched row needs to be modified, you can do it here.
-        for index,data in enumerate(row):
+        for index, data in enumerate(row):
             # Check if the data is a datetime object.
             # It needs to be converted to a string in ISO format
             if isinstance(data, datetime.datetime) or isinstance(data, datetime.date):
@@ -221,7 +224,9 @@ def update(configuration: dict, state: dict):
         yield op.upsert(table="orders", data=upsert_data)
 
         # Update the last order date in the state dictionary
-        last_order = upsert_data["order_date"] if upsert_data["order_date"] > last_order else last_order
+        last_order = (
+            upsert_data["order_date"] if upsert_data["order_date"] > last_order else last_order
+        )
 
     # Update the state dictionary with the last order date
     state["lastOrder"] = last_order
@@ -239,7 +244,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

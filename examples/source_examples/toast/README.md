@@ -1,6 +1,8 @@
 # Toast Fivetran Connector
 
-This is a custom [Fivetran Connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
+This is a custom [Fivetran connector](https://fivetran.com/docs/connectors/connector-sdk) implementation to extract and sync data from the [Toast POS API](https://doc.toasttab.com/) into a destination warehouse. Toast is a restaurant management platform providing point-of-sale, labor, menu, and operational data.
+
+For full implementation details, see the [Toast connector example code](https://github.com/fivetran/fivetran_connector_sdk/edit/main/examples/source_examples/toast/).
 
 ---
 
@@ -37,19 +39,24 @@ Example `configuration.json`:
 
 ---
 
-## How It Works
+## How it works
 
-1. **Authentication**: Generates and caches a Toast token using the provided credentials.
-2. **Sync Loop**: Runs in 30-day time chunks, paginating through endpoints.
-3. **Data Normalization**: Flattens nested objects and lists using `flatten_dict`, `extract_fields`, and `stringify_lists`.
-4. **Upserts and Deletes**: Emits operations using `op.upsert()` and `op.delete()`.
-5. **Checkpointing**: Updates state after each window to resume seamlessly.
+
+The connector performs the following actions for each key aspect:
+- Authentication: Generates and caches a Toast token using the provided credentials
+- Sync Loop: Runs in 30-day time chunks, paginating through endpoints
+- Data Normalization: Flattens nested objects and lists using `flatten_dict`, `extract_fields`, and `stringify_lists`
+- Upserts and Deletes: Emits operations using `op.upsert()` and `op.delete()`
+- Checkpointing: Updates state after each window to resume seamlessly
 
 ---
 
-## Data Coverage
+## Data coverage
 
-### Core Tables
+The entity-relationship diagram (ERD) below shows how tables are linked in the Toast schema.
+![Toast ERD](Toast_ERD.png)
+
+### Core tables
 - `restaurant`
 - `job`, `employee`, `shift`, `break`, `time_entry`
 - `orders`, `orders_check`, `payment`
@@ -57,16 +64,16 @@ Example `configuration.json`:
 ### Configuration
 - `menu`, `menu_item`, `menu_group`, `discounts`, `tables`, etc.
 
-### Nested Children
+### Nested children
 - `orders_check_payment`, `orders_check_selection`, `orders_check_selection_modifier`, etc.
 
-### Cash Management
+### Cash management
 - `cash_entry`, `cash_deposit`
 
 ---
 
 
-## Error Handling
+## Error handling
 
 - Retries on 401 Unauthorized (max 3)
 - Skips 403 Forbidden
