@@ -3,7 +3,7 @@
 
 # This is a simple example for how to work with the fivetran_connector_sdk module.
 # This code is currently configured to Retrieve Details from All Object Types in Veeva Vault and then utilize VQL to retrieve all Object records, creating one table per object
-# You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json 
+# You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json
 # Retrieve Details from All Object Types endpoint: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
 # VQL endpoint: https://developer.veevavault.com/api/24.2/#vault-query-language-vql
 # You can also add code to extract from other endpoints as needed.
@@ -11,47 +11,48 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 from collections import defaultdict
 import requests
 import json
 import time
-import  base64
 import datetime
 
 # Function to start a Veeva Session, inputs needed are: username, password, and subdomain -- all from the configuration.json file
-# Auth endpoint: https://developer.veevavault.com/api/24.2/#user-name-and-password 
+# Auth endpoint: https://developer.veevavault.com/api/24.2/#user-name-and-password
 # The startVeevaSession function takes 1 parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 
+
 def startVeevaSession(configuration: dict):
-    username = configuration.get('username')
-    password = configuration.get('password')
+    username = configuration.get("username")
+    password = configuration.get("password")
     auth_url = f"https://{configuration.get('subdomain')}/api/v24.2/auth"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json"
-    }
-    data = {
-        "username": username,
-        "password": password
-    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+    data = {"username": username, "password": password}
     response = requests.post(auth_url, headers=headers, data=data)
     if response.status_code == 200:
         response_json = response.json()
-        if response_json.get('responseStatus') == "SUCCESS":
-            session_id = response_json.get('sessionId')
+        if response_json.get("responseStatus") == "SUCCESS":
+            session_id = response_json.get("sessionId")
         else:
             log.severe(f"Failed to create session for user with username: {username}")
             session_id = None
     else:
-        log.severe(f"Authentication failed: {auth_url} returned {response.status_code}. Expected 200.")
+        log.severe(
+            f"Authentication failed: {auth_url} returned {response.status_code}. Expected 200."
+        )
         session_id = None
     log.info(f"Started session for user: {username}")
     return session_id
+
 
 # Function that ends a Veeva session, inputs needed are: active session_id and subdomain from configuration.json file
 # End session endpoint: https://developer.veevavault.com/api/24.2/#end-session
@@ -59,14 +60,15 @@ def startVeevaSession(configuration: dict):
 # - configuration: a dictionary that holds the configuration settings for the connector.
 # - session_id: a Veeva Vault session ID generated from the startVeevaSession function
 
+
 def endVeevaSession(configuration: dict, session_id):
     deactivate_session_url = f"https://{configuration.get('subdomain')}/api/v24.2/session"
-    headers = {
-    "Authorization": session_id
-    }
+    headers = {"Authorization": session_id}
     response_deact = requests.delete(deactivate_session_url, headers=headers)
-    log.info(f"Deactivation of session for user: {configuration.get('username')} responded with code: {response_deact.status_code}: {response_deact.reason}")
-    
+    log.info(
+        f"Deactivation of session for user: {configuration.get('username')} responded with code: {response_deact.status_code}: {response_deact.reason}"
+    )
+
 
 # Function to get list of available Veeva Vault objects
 # Endpoint documentation: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
@@ -74,24 +76,25 @@ def endVeevaSession(configuration: dict, session_id):
 # - configuration: a dictionary that holds the configuration settings for the connector.
 # - session_id: a Veeva Vault session_id generated by startVeevaSession() function
 
+
 def getVaultObjects(configuration: dict, session_id):
     base_url = f"https://{configuration.get('subdomain')}/v24.2/"
-    
-    headers = {'Authorization': session_id,
-            'Accept': 'application/json'}
-    get_objects_url = base_url + 'configuration/Objecttype'
-    obj_response = requests.get(get_objects_url, headers = headers).json()
-    objects = obj_response.get('data')
+
+    headers = {"Authorization": session_id, "Accept": "application/json"}
+    get_objects_url = base_url + "configuration/Objecttype"
+    obj_response = requests.get(get_objects_url, headers=headers).json()
+    objects = obj_response.get("data")
 
     # Merge if duplicate object names
     merged_objects = uniqueObjectsAndFields(objects)
     return merged_objects
 
+
 # Function to merge Veeva Vault objects if an object shows up multiple times in response from: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
 # The uniqueObjectsAndFields function takes in one parameter
 # - objects_response: the data node of the response from: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
 # And returns one object
-# - merged_objects: a de-duplicated list of object types and field names  
+# - merged_objects: a de-duplicated list of object types and field names
 def uniqueObjectsAndFields(objects_response):
     # Merge items in API response with same "object" value
     grouped = defaultdict(list)
@@ -101,11 +104,8 @@ def uniqueObjectsAndFields(objects_response):
         grouped[item["object"]].append(item)
 
     for object_name, items in grouped.items():
-        merged_object = {
-            "object": object_name,
-            "type_fields": []
-        }
-        
+        merged_object = {"object": object_name, "type_fields": []}
+
         # Collect unique "type_fields" for every unique "object"
         unique_fields = {}
         for item in items:
@@ -116,7 +116,7 @@ def uniqueObjectsAndFields(objects_response):
                     unique_fields[field_name] = {
                         "name": field_name,
                         "required": field["required"],
-                        "source": field["source"]  # Store sources in a set
+                        "source": field["source"],  # Store sources in a set
                     }
 
         # Convert dictionary values back to a list, ensuring source is a list of unique values
@@ -124,9 +124,10 @@ def uniqueObjectsAndFields(objects_response):
             {"name": field["name"], "required": field["required"], "source": field["source"]}
             for field in unique_fields.values()
         ]
-        
+
         merged_objects.append(merged_object)
     return merged_objects
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -142,14 +143,17 @@ def schema(configuration: dict):
     schema_def = []
     seen = set()
     for obj in objects:
-        object_name = obj.get('object').lower()
+        object_name = obj.get("object").lower()
         table_dict = {"table": object_name, "primary_key": ["id"]}
-        identifier = tuple((k, tuple(v) if isinstance(v, list) else v) for k, v in table_dict.items())
+        identifier = tuple(
+            (k, tuple(v) if isinstance(v, list) else v) for k, v in table_dict.items()
+        )
         if identifier not in seen:
             seen.add(identifier)
             schema_def.append(table_dict)
     endVeevaSession(configuration, session_id)
     return schema_def
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -160,32 +164,32 @@ def schema(configuration: dict):
 # The state dictionary is empty for the first sync or for any full re-sync
 # This function is designed to loop through and retrieve vault Object data using VQL endpoint: https://developer.veevavault.com/api/24.2/#submitting-a-query
 def update(configuration: dict, state: dict):
-    #Initialize the sync process
+    # Initialize the sync process
 
     # Define base_url
-    sub_domain = configuration.get('subdomain')
+    sub_domain = configuration.get("subdomain")
     base_url = f"https://{sub_domain}/v24.2/"
 
     session_id = startVeevaSession(configuration)
-    
+
     # Batch size to query, this can be updated and will be placed in every query's PAGESIZE VQL clause
     page_size = 1000
-    
+
     objects = getVaultObjects(configuration, session_id)
-    
-    #Loop through all objects to define fields and compose query
+
+    # Loop through all objects to define fields and compose query
     table_cursor = {}
     for obj in objects:
         more_data = True
-        object_type = obj.get('object')
-        fields_list = obj.get('type_fields')
+        object_type = obj.get("object")
+        fields_list = obj.get("type_fields")
 
-        obj_start_time = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        obj_start_time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         object_cursor = object_type + "_cursor"
         cursor = state.get(object_cursor)
 
         # May want to wrap some fields in TOLABEL() here depending on desired output
-        fields = ', '.join(d.get('name') for d in fields_list)
+        fields = ", ".join(d.get("name") for d in fields_list)
 
         # Query with date filter if incremental sync, without if initial sync
         if cursor:
@@ -196,36 +200,39 @@ def update(configuration: dict, state: dict):
 
         # Define headers and %20 spaces for query payload
         vql_headers = {
-                'Authorization': session_id,
-                'Accept': 'application/json',
-                'X-VaultAPI-DescribeQuery': 'true',
-                'Content-Type': 'application/x-www-form-urlencoded'
-                }
+            "Authorization": session_id,
+            "Accept": "application/json",
+            "X-VaultAPI-DescribeQuery": "true",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
         payload = f"q={query.replace(' ', '%20')}"
 
         # Generate API url and send VQL endpoint
         # VQL endpoint: https://developer.veevavault.com/api/24.2/#submitting-a-query
-        vql_url = base_url + 'query'
+        vql_url = base_url + "query"
         while more_data:
 
             response_page = callVQL(vql_url, vql_headers, payload)
-    
+
             data = response_page.get("data", [])
 
             if not data:
                 more_data = False
 
             for record in data:
-                row = {k: json.dumps(v) if isinstance(v, list) else v for k,v in record.items()}
+                row = {k: json.dumps(v) if isinstance(v, list) else v for k, v in record.items()}
                 yield op.upsert(object_type, row)
 
             # Until there is no next_page, keep calling next_page_url from API response to paginate through object
-            vql_url, more_data, payload = should_continue_pagination(base_url, vql_url, response_page, payload)
+            vql_url, more_data, payload = should_continue_pagination(
+                base_url, vql_url, response_page, payload
+            )
         table_cursor[object_cursor] = obj_start_time
         yield op.checkpoint(table_cursor)
-    
-    #end Veeva Session
+
+    # end Veeva Session
     endVeevaSession(configuration, session_id)
+
 
 # Function to make a call to the VQL endpoint: https://developer.veevavault.com/api/24.2/#vault-query-language-vql
 # This function takes three input parameters
@@ -238,25 +245,30 @@ def callVQL(url, headers, payload):
     # Burst Limit threshold and sleep time (5 min)
     burst_limit_threshold = 1000
     burst_limit_sleep_time = 300
-    
+
     # Call API and print status_code
-    response = requests.post(url, headers = headers, data = payload)
+    response = requests.post(url, headers=headers, data=payload)
     log.info(f"API call: {url}")
     log.info(f"Response status code: {response.status_code}")
     response.raise_for_status()
-    
+
     # Convert response to json, analyze responseStatus and Burst Limit Remaining
     response_page = response.json()
-    if response_page.get('responseStatus') != 'SUCCESS':
-        log.warning(f"Unsuccessful API call -- Response Status: {response_page.get('responseStatus')}, Errors: {response_page.get('errors')}")
+    if response_page.get("responseStatus") != "SUCCESS":
+        log.warning(
+            f"Unsuccessful API call -- Response Status: {response_page.get('responseStatus')}, Errors: {response_page.get('errors')}"
+        )
     resp_headers = response.headers
-    
+
     # If approaching Burst Limit, sleep for 5 min
-    if int(resp_headers.get('x-vaultapi-burstlimitremaining')) < burst_limit_threshold:
+    if int(resp_headers.get("x-vaultapi-burstlimitremaining")) < burst_limit_threshold:
         time.sleep(burst_limit_sleep_time)
-        log.warning(f"Burst Limit: {resp_headers.get('x-vaultapi-burstlimit')} -- Burst Limit Remaining:  {resp_headers.get('x-vaultapi-burstlimitremaining')}")
+        log.warning(
+            f"Burst Limit: {resp_headers.get('x-vaultapi-burstlimit')} -- Burst Limit Remaining:  {resp_headers.get('x-vaultapi-burstlimitremaining')}"
+        )
 
     return response_page
+
 
 # Function to check if there are more pages of data
 # Takes in four parameters
@@ -288,6 +300,7 @@ def should_continue_pagination(base_url, current_url, response_page, payload):
 
     return current_url, has_more_pages, payload
 
+
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
@@ -298,8 +311,8 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
 
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE: 
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)
