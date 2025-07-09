@@ -1,46 +1,63 @@
-# This example details how to pull data from Similarweb, which is a digital intelligence platform
-# that provides data,insights and analytics about websites and apps
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-# Refer to SimilarWeb's API for more information (https://developers.similarweb.com/docs/similarweb-web-traffic-api)
+"""
+This example details how to pull data from Similarweb, which is a digital intelligence platform
+that provides data,insights and analytics about websites and apps.
+Refer to SimilarWeb's API for more information (https://developers.similarweb.com/docs/similarweb-web-traffic-api)
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
-# Import requests to make HTTP calls to API
+# Import the json module to handle JSON data.
+import json
 
-import requests
-import json  
+# Import time module to handle time-related tasks, such as delays.
 import time
+
+# Import datetime and relativedelta to handle date and time calculations.
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-# Import required classes from fivetran_connector_sdk
+# Import requests to make HTTP calls to API
+import requests
 
-from fivetran_connector_sdk import Connector  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
 
-#Define the domains,countries and metrics you need
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
 
-DOMAIN_LIST = [ "chat.mistral.ai", 
-               "chat.deepseek.com",
-               "grok.com", "meta.ai",
-               "chatgpt.com",
-               "gemini.google.com",
-               "character.ai",
-               "claude.ai",
-               "copilot.microsoft.com",
-               "perplexity.ai",
-               "poe.com"]
-COUNTRY_LIST = ["WW", "US"] # Can specify specific countries of interest. WW is 'Worldwide'
-METRIC_LIST = ["all_traffic_visits"], # Necessary metric can be changed per requirements
-DELAY_DAYS = 4 # Set variable for end date on report data range
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
+# Define the domains,countries and metrics you need
+__DOMAIN_LIST = [
+    "chat.mistral.ai",
+    "chat.deepseek.com",
+    "grok.com",
+    "meta.ai",
+    "chatgpt.com",
+    "gemini.google.com",
+    "character.ai",
+    "claude.ai",
+    "copilot.microsoft.com",
+    "perplexity.ai",
+    "poe.com",
+]
+__COUNTRY_LIST = ["WW", "US"]  # Can specify specific countries of interest. WW is 'Worldwide'
+__METRIC_LIST = (["all_traffic_visits"],)  # Necessary metric can be changed per requirements
+__DELAY_DAYS = 4  # Set variable for end date on report data range
+__MAX_RETRIES = 5  # Maximum number of retries for API calls
+__BASE_DELAY = 2  # Base delay for exponential backoff in seconds
+
 
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "all_traffic_visits",  # Name of the table in the destination.
@@ -49,29 +66,36 @@ def schema(configuration: dict):
     ]
 
 
-# The request_report function is a helper function called within the required update function
-# The function takes two parameters:
-# - start_date: beginning date for the report
-# - end_date: end date for the report
-
 def request_report(start_date, end_date, api_key):
+    """
+    Requests a traffic and engagement report from the SimilarWeb API.
+
+    This function sends a POST request to the SimilarWeb batch reporting endpoint to
+    generate a report for specified domains and countries within the given date range.
+
+    Args:
+        start_date (str): The start date for the report in 'YYYY-MM-DD' format.
+        end_date (str): The end date for the report in 'YYYY-MM-DD' format.
+        api_key (str): The API key used for authenticating with SimilarWeb.
+
+    Returns:
+        str: The report ID generated by SimilarWeb for the requested report.
+
+    Raises:
+        RuntimeError: If the report creation fails and no report ID is returned.
+    """
 
     current_date = datetime.today().strftime("%Y-%m-%d")
 
     request_url = "https://api.similarweb.com/batch/v4/request-report"
-    headers = {
-        "api-key": api_key,
-        "Content-Type": "application/json"
-    }
+    headers = {"api-key": api_key, "Content-Type": "application/json"}
 
     # Payload can be altered per the required requests
 
     payload = {
         "delivery_information": {
             "response_format": "csv",
-            "delivery_method_params": {
-                "retention_days": 60
-            }
+            "delivery_method_params": {"retention_days": 60},
         },
         "report_query": {
             "tables": [
@@ -79,23 +103,22 @@ def request_report(start_date, end_date, api_key):
                     "vtable": "traffic_and_engagement",
                     "granularity": "daily",
                     "filters": {
-                        "domains": DOMAIN_LIST,
-                        "countries": COUNTRY_LIST,
-                        "include_subdomains": True
+                        "domains": __DOMAIN_LIST,
+                        "countries": __COUNTRY_LIST,
+                        "include_subdomains": True,
                     },
-                    "metrics": METRIC_LIST, # Necessary metric can be changed per requirements
+                    "metrics": __METRIC_LIST,  # Necessary metric can be changed per requirements
                     "start_date": start_date,
-                    "end_date": end_date
+                    "end_date": end_date,
                 }
             ]
         },
-        "report_name": f"Fivetran_Sync_{current_date}" # Name of the report generated directly within SimilarWeb
+        "report_name": f"Fivetran_Sync_{current_date}",  # Name of the report generated directly within SimilarWeb
     }
 
     response = requests.post(request_url, headers=headers, json=payload)
     report_data = response.json()
-    report_id = report_data.get("report_id") # After requesting a report, gather the report ID 
-
+    report_id = report_data.get("report_id")  # After requesting a report, gather the report ID
 
     if not report_id:
         log.info("Failed to create report:")
@@ -105,16 +128,30 @@ def request_report(start_date, end_date, api_key):
     return report_id
 
 
-# Check_report_status function is a helper function called within the required update function
-# The function takes two parameters:
-# - report_id: ID for the generated report
-# - api_key: Key for the API calls 
-# This returns the current status -- once the report is ready it will return the report URL
- 
-def check_report_status(report_id, api_key, max_retries=5, base_delay=2):
+def check_report_status(report_id, api_key):
+    """
+    Checks the status of a SimilarWeb report generation request.
+
+    This helper function polls the SimilarWeb batch reporting API using the given
+    report ID and API key to determine whether the report has completed.
+    It uses exponential backoff with a fixed number of retries and base delay defined
+    by internal constants. If the report is successfully completed, the function
+    returns the download URL. Otherwise, it raises a RuntimeError.
+
+    Args:
+        report_id (str): The unique identifier for the generated report.
+        api_key (str): The API key used for authenticating the request.
+
+    Returns:
+        str: The URL to download the completed report.
+
+    Raises:
+        RuntimeError: If the report generation fails, the request is invalid,
+        or the report is not ready after the maximum number of retries.
+    """
     status_url = f"https://api.similarweb.com/v3/batch/request-status/{report_id}"
 
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(1, __MAX_RETRIES + 1):
         try:
             status_response = requests.get(status_url, headers={"api-key": api_key})
             status_response.raise_for_status()
@@ -134,21 +171,35 @@ def check_report_status(report_id, api_key, max_retries=5, base_delay=2):
                 raise RuntimeError(status_data)
 
             log.info(f"[Attempt {attempt}] Report is still processing. Retrying with backoff...")
-        
+
         except requests.RequestException as e:
             log.warning(f"[Attempt {attempt}] Request failed: {e}")
 
         # Wait with exponential backoff
-        time.sleep(base_delay * (2 ** (attempt - 1)))
+        time.sleep(__BASE_DELAY * (2 ** (attempt - 1)))
 
-    raise RuntimeError(f"Report not ready after {max_retries} attempts.")
+    raise RuntimeError(f"Report not ready after {__MAX_RETRIES} attempts.")
 
-# The download_report is a helper function called within the required update function
-# The function takes one parameters:
-# - download_url: the url used to download the report -- this is typically passed along from the check_report_status function
-# Returns the report information as a JSON object (list of dictionaries).
 
 def download_report(download_url):
+    """
+    Downloads and parses a report from the given URL.
+
+    This helper function retrieves the CSV-formatted report from SimilarWeb using the
+    provided download URL and converts it into a list of dictionaries, where each
+    dictionary represents a row in the report.
+
+    Args:
+        download_url (str): The URL used to download the report. Typically obtained
+            from the `check_report_status` function.
+
+    Returns:
+        list[dict] or None: A list of dictionaries representing rows in the report,
+        or None if the download URL is invalid.
+
+    Raises:
+        RuntimeError: If the report cannot be processed due to download or parsing issues.
+    """
     if not download_url:
         log.info("Invalid download URL. Exiting.")
         return None
@@ -156,7 +207,7 @@ def download_report(download_url):
     report_response = requests.get(download_url)
 
     try:
-        # Decode CSV content into a list of dictionaries 
+        # Decode CSV content into a list of dictionaries
         csv_content = report_response.text
         lines = csv_content.splitlines()
         headers = lines[0].split(",")  # Extract headers from the first row
@@ -169,45 +220,73 @@ def download_report(download_url):
         log.info("Failed to process the report")
         raise RuntimeError(e)
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary contains any secrets or payloads you configure when deploying the connector
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
+    validate_configuration(configuration)
 
     api_key = configuration["api_key"]
 
     # Historical sync
-    if 'look_back' not in state:
-        look_back = (datetime.now() - relativedelta(days=5)).strftime('%Y-%m-%d') # for historical sync, do a 2 month lookback
-    else:  
-        look_back = (datetime.now() - relativedelta(days=5)).strftime("%Y-%m-%d")   # for incremental syncs, one week lookback from 11 days ago to 4 days ago
+    if "look_back" not in state:
+        look_back = (datetime.now() - relativedelta(days=60)).strftime(
+            "%Y-%m-%d"
+        )  # for historical sync, do a 2 month lookback
+    else:
+        look_back = (datetime.now() - relativedelta(days=5)).strftime(
+            "%Y-%m-%d"
+        )  # for incremental syncs, one week lookback from 11 days ago to 4 days ago
 
-    n_days_ago = (datetime.now() - relativedelta(days=DELAY_DAYS)).strftime("%Y-%m-%d") # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
-    report_id = request_report(look_back, n_days_ago, api_key) # will create a report and return the ID associated with it
+    n_days_ago = (datetime.now() - relativedelta(days=__DELAY_DAYS)).strftime(
+        "%Y-%m-%d"
+    )  # SimilarWeb reports are delayed by 3-4 days, so you can't get data up to current day
+    report_id = request_report(
+        look_back, n_days_ago, api_key
+    )  # will create a report and return the ID associated with it
 
     if report_id:
-        download_url = check_report_status(report_id, api_key) # takes report_id and returns the download URL. This will take about ~1 min for incremental syncs, ~5 minutes for historical
+        download_url = check_report_status(
+            report_id, api_key
+        )  # takes report_id and returns the download URL. This will take about ~1 min for incremental syncs, ~5 minutes for historical
         if download_url:
-            records = download_report(download_url)       
+            records = download_report(download_url)
             for record in records:
                 # write data into table
-                yield op.upsert(table="all_traffic_visits",
-                                            data=record)
+                yield op.upsert(table="all_traffic_visits", data=record)
         else:
             log.warning("No download URL")
     else:
         log.warning("No report found")
-    
-    #set state so Fivetran will know to do an incremental sync next time            
-    yield op.checkpoint(state={
-        "look_back": look_back
-    })
-                
+
+    # set state so Fivetran will know to do an incremental sync next time
+    yield op.checkpoint(state={"look_back": look_back})
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["api_key"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -218,7 +297,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

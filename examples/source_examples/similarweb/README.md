@@ -5,9 +5,10 @@ This example demonstrates how to build a Fivetran Connector SDK integration for 
 ## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating System:  
-  * Windows 10 or later  
-  * macOS 13 (Ventura) or later
+* Operating system:
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -56,11 +57,11 @@ This connector does not implement explicit pagination. Data is retrieved in batc
 
 ## Data handling
 
-* Data is requested from Similarweb using the `request_report` function (see lines ~38-74)
-* The status of the report is checked using `check_report_status` (see lines ~76-116)
-* Once ready, the report is downloaded and parsed using `download_report` (see lines ~118-143)
-* Data is delivered to Fivetran using the `op.upsert` operation in the `update` function (see lines ~145-197)
-* The schema is defined in the `schema` function (see lines ~23-29)
+* Data is requested from Similarweb using the `request_report` function
+* The status of the report is checked using `check_report_status` 
+* Once ready, the report is downloaded and parsed using `download_report` 
+* Data is delivered to Fivetran using the `op.upsert` operation in the `update` function 
+* The schema is defined in the `schema` function
 
 ## Error handling
 
