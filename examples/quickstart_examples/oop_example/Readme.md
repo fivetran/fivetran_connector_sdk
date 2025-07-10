@@ -77,8 +77,6 @@ This tables stores educational and informational articles about national parks.
 
 #### Interact with Articles table
 
-Run the following query:
-#### Query the Articles table
 
 Run the following query:
 
