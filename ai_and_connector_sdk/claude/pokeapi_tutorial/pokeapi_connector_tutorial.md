@@ -26,7 +26,7 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
   - Comprehensive Pokemon data available
 
 ### Development Environment
-- **Access to Claude** (In terminal like the blog, in IDE chat or independant web access)
+- **Access to Claude** (in terminal like the blog, in IDE chat, or independent web access)
 - **Terminal/Command line** access
 - **Internet connection** for API calls
 
