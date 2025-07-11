@@ -1,16 +1,16 @@
 # National Parks Example
 
-This example implements a connector to fetch, process, and store data from the [National Parks Service API (NPS API)](https://www.nps.gov/subjects/developer/index.htm). The process is built with the Object-Oriented Programming (OOP) approach, ensuring modular, maintainable, and reusable code. 
+This example implements a connector to fetch, process, and store data from the [National Parks Service API (NPS API)](https://www.nps.gov/subjects/developer/index.htm). The process is built based on the Object-Oriented Programming (OOP) approach, ensuring modular, maintainable, and reusable code. 
 
 ---
 
 ## Overview
 
 This example retrieves data from the NPS API, processes it, and stores it in a structured format across the following tables:  
-- Parks
-- Alerts
-- Articles
-- People
+- `PARKS`
+- `ALERTS`
+- `ARTICLES`
+- `PEOPLE`
 
 Each table is encapsulated within its own Python file, ensuring single responsibility and clean organization.
 
@@ -22,7 +22,7 @@ The project follows a modular architecture:
 
 ## Features
 
-- Modular Design - each table and the API client are encapsulated in separate files for clarity and reusability
+- Modular design - each table and the API client are encapsulated in separate files for clarity and reusability
 - Scalability - you can easily extend it to accommodate additional tables or API endpoints
 - Customizability - you can modify transformations or table structures without affecting unrelated components
 - Reliability - includes error handling for API interactions and data processing
@@ -71,7 +71,7 @@ select * from parks
 
 ### Articles
 
-This tables stores educational and informational articles about national parks.
+This table stores educational and informational articles about national parks.
 
 ![Articles](images/Articles.png "Articles Table in DB")
 
