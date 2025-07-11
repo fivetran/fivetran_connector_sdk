@@ -29,7 +29,7 @@ The project follows a modular architecture:
 
 ---
 
-## Project Structure
+## Project structure
 
 ```plaintext
 ├── parks.py         # Handles the Parks table
@@ -43,23 +43,23 @@ The project follows a modular architecture:
 ```
 
 
-## Run the Connector
+## Run the connector locally
 
-```bash
-Run the following command:
+Run the following command to run your connector locally:
+
 ```bash
 fivetran debug 
 ```
 
 ## Output
 
-### Parks
+### PARKS table
 
-This table contains detailed information about national parks
+The `PARKS` table contains detailed information about national parks.
 
 ![PARKS](images/Parks.png "Parks Table in DB")
 
-#### Interact with Parks table
+#### Query the PARKS table
 
 Run the following query:
 
@@ -69,14 +69,13 @@ select * from parks
 
 ```
 
-### Articles
+### ARTICLES table
 
-This table stores educational and informational articles about national parks.
+The `ARTICLES` table stores educational and informational articles about national parks.
 
 ![Articles](images/Articles.png "Articles Table in DB")
 
-#### Interact with Articles table
-
+#### Query the ARTICLES table
 
 Run the following query:
 
@@ -86,15 +85,14 @@ select * from articles
 
 ```
 
-### Alerts
+### ALERTS table
 
-This table captures active alerts for parks.
+The `ALERTS` table captures active alerts for parks.
 
 ![Alerts](images/Alerts.png "Alerts Table in DB")
 
 
-
-#### Query the Alerts table
+#### Query the ALERTS table
 
 Run the following query:
 
@@ -103,16 +101,14 @@ Run the following query:
 select * from alerts
 
 ```
-### People
+### PEOPLE table
 
-This table lists key figures associated with the parks or their history.
+The `PEOPLE` table lists key figures associated with parks or their history.
 
 ![PEOPLE](images/People.png "People Table in DB")
 
-#### Interact with People table
 
-Run the following query:
-#### Query the People table
+#### Query the PEOPLE table
 
 Run the following query:
 
