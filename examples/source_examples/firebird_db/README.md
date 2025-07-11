@@ -43,7 +43,7 @@ The connector requires configuration with your Firebird database credentials:
 }
 ```
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+> NOTE: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Schema file
 
