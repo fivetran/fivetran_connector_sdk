@@ -225,7 +225,7 @@ def sync_objects(base_url, objects, session_id, state):
             data = response_page.get("data", [])
 
             if not data:
-                more_data = False
+                break
 
             for record in data:
                 row = {k: json.dumps(v) if isinstance(v, list) else v for k, v in record.items()}
