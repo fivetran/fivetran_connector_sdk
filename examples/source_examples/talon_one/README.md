@@ -4,8 +4,8 @@
 
 This connector fetches event data from Talon.one using the Management API. The connector retrieves application events with pagination support and incremental sync capabilities.
 
-The connector maintains one table:
-- `event`: Contains application event data from Talon.one
+The connector maintains one table, `event`. This table contains application event data from Talon.one.
+
 
 ## Requirements
 
@@ -41,11 +41,11 @@ The connector requires configuration with your Talon.one credentials and sync se
 }
 ```
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+> NOTE: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
-The connector uses minimal external dependencies. The `requirements.txt` file should be empty as all required packages are pre-installed in the Fivetran environment.
+The connector uses minimal external dependencies. The `requirements.txt` file should be empty because all required packages are pre-installed in the Fivetran environment.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
@@ -83,6 +83,7 @@ The connector creates one table:
 
 ### event
 Primary key: `id`
+
 Contains application event data including:
 - Event ID
 - Event type and attributes
