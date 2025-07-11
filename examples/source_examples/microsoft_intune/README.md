@@ -1,4 +1,4 @@
-# Microsoft InTune Managed Devices Connector SDK Example
+# Microsoft InTune Connector SDK Example
 
 This example demonstrates how to build a Fivetran Connector SDK integration for Microsoft InTune, using the Microsoft Graph API to retrieve managed device data. The connector pulls data from the InTune managed devices endpoint and delivers it to your Fivetran destination in a single table called `managed_devices`. You will need to provide your own Microsoft credentials for this to work (`tenant_id`, `client_id`, and `client_secret`).
 
@@ -55,7 +55,7 @@ The connector handles pagination using the `@odata.nextLink` field returned by t
 * Uses Fivetran Connector SDK logging for info and severe error messages (see `log` usage throughout)
 * Raises exceptions for failed authentication or API errors (see `get_access_token` and `update` functions)
 
-## Tables Created
+## Tables created
 
 * `managed_devices` – Contains all managed device records retrieved from Microsoft InTune.
 
