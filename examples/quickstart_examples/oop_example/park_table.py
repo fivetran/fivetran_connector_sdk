@@ -8,7 +8,7 @@ class PARKS(NPS):
     and returns the processed data.
     """
 
-      # For more info, see https://www.nps.gov/subjects/developer/index.htm
+    # For more info, see https://www.nps.gov/subjects/developer/index.htm
 
     @staticmethod
     def path() -> str:
@@ -28,9 +28,7 @@ class PARKS(NPS):
         Returns:
             list: A list containing the primary key(s) for the parks table.
         """
-        return [
-            "park_id"
-        ]
+        return ["park_id"]
 
     @staticmethod
     def assign_schema():
@@ -88,7 +86,7 @@ class PARKS(NPS):
                 "state": state,
                 "latitude": float(latitude) if latitude else None,
                 "longitude": float(longitude) if longitude else None,
-                "activities": activities
+                "activities": activities,
             }
             processed_parks.append(col_mapping)  # Add the processed park data to the list
 

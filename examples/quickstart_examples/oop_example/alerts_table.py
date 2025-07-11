@@ -1,6 +1,3 @@
-from typing import List, Optional, Union
-from xml.sax.handler import property_encoding
-
 from nps_client import NPS
 
 
@@ -11,7 +8,7 @@ class ALERTS(NPS):
     and returns the processed data.
     """
 
-     # For more info, see https://www.nps.gov/subjects/developer/index.htm
+    # For more info, see https://www.nps.gov/subjects/developer/index.htm
 
     @staticmethod
     def path():
@@ -31,9 +28,7 @@ class ALERTS(NPS):
         Returns:
             list: A list containing the primary key(s) for the alerts table.
         """
-        return [
-            "alert_id"
-        ]
+        return ["alert_id"]
 
     @staticmethod
     def assign_schema():
@@ -77,7 +72,9 @@ class ALERTS(NPS):
             park_code = alert.get("parkCode", "")  # Get park ID or default to an empty string
             title = alert.get("title", "No Title")  # Get alert title or default to "No Title"
             description = alert.get("description", "No Description")  # Get description or default
-            category = alert.get("category", "No Category")  # Get category or default to "No Category"
+            category = alert.get(
+                "category", "No Category"
+            )  # Get category or default to "No Category"
             url = alert.get("url", "")  # Get URL or default to an empty string
 
             # Map fields to schema-defined column names

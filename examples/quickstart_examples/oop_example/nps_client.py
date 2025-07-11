@@ -1,5 +1,8 @@
 import requests as rq
 import json
+
+# Import required classes from fivetran_connector_sdk
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
 
@@ -19,7 +22,7 @@ class NPS:
         Raises:
             ValueError: If the API key is not provided in the configuration.
         """
-        with open("configuration.json", 'r') as f:
+        with open("configuration.json", "r") as f:
             configuration = json.load(f)
 
         self.api_key = configuration.get("api_key")

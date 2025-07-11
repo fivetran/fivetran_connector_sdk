@@ -28,9 +28,7 @@ class PEOPLE(NPS):
         Returns:
             list: A list containing the primary key(s) for the people table.
         """
-        return [
-            "person_id"
-        ]
+        return ["person_id"]
 
     @staticmethod
     def assign_schema():
@@ -73,7 +71,9 @@ class PEOPLE(NPS):
             person_id = p.get("id", "Unknown ID")  # Get person ID or default to "Unknown ID"
             name = p.get("title", "No Name")  # Get person's name or default to "No Name"
             title = p.get("listingDescription", "No Title")  # Get title or default to "No Title"
-            description = p.get("listingDescription", "No Description")  # Get description or default
+            description = p.get(
+                "listingDescription", "No Description"
+            )  # Get description or default
             url = p.get("url", "")  # Get URL or default to an empty string
             related_parks = ", ".join(p["parkCode"] for p in p.get("relatedParks", []))
             # Concatenate related park codes into a single string
@@ -91,8 +91,3 @@ class PEOPLE(NPS):
 
         # Return the final processed list of people
         return processed_people
-
-
-
-
-

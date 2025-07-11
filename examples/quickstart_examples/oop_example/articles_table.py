@@ -1,7 +1,3 @@
-from email.policy import default
-from typing import List, Optional, Union
-from xml.sax.handler import property_encoding
-
 from nps_client import NPS
 
 
@@ -12,7 +8,7 @@ class ARTICLES(NPS):
     and returns the processed data.
     """
 
-      # For more info, see https://www.nps.gov/subjects/developer/index.htm
+    # For more info, see https://www.nps.gov/subjects/developer/index.htm
 
     @staticmethod
     def path() -> str:
@@ -32,9 +28,7 @@ class ARTICLES(NPS):
         Returns:
             list: A list containing the primary key(s) for the articles table.
         """
-        return [
-            "article_id"
-        ]
+        return ["article_id"]
 
     @staticmethod
     def assign_schema():
@@ -76,16 +70,28 @@ class ARTICLES(NPS):
         # Process each article's data retrieved from the API
         for article in articles_response[ARTICLES.path()]:
             # Extract and map fields from the API response
-            article_id = article.get("id", "Unknown ID")  # Get article ID or default to "Unknown ID"
+            article_id = article.get(
+                "id", "Unknown ID"
+            )  # Get article ID or default to "Unknown ID"
             title = article.get("title", "No Title")  # Get article title or default to "No Title"
             url = article.get("url", "")  # Get article URL or default to an empty string
 
             # Extract related parks data as lists of codes, names, and states
-            park_code = [related_park.get("parkCode", "") for related_park in article.get("relatedParks", [])]
-            park_names = [related_park.get("fullName", "") for related_park in article.get("relatedParks", [])]
-            states = [related_park.get("states", "") for related_park in article.get("relatedParks", [])]
+            park_code = [
+                related_park.get("parkCode", "")
+                for related_park in article.get("relatedParks", [])
+            ]
+            park_names = [
+                related_park.get("fullName", "")
+                for related_park in article.get("relatedParks", [])
+            ]
+            states = [
+                related_park.get("states", "") for related_park in article.get("relatedParks", [])
+            ]
 
-            listing_description = article.get("listingDescription", "")  # Get description or default to an empty string
+            listing_description = article.get(
+                "listingDescription", ""
+            )  # Get description or default to an empty string
             date = article.get("date", "")  # Get publication date or default to an empty string
 
             # Map fields to schema-defined column names
