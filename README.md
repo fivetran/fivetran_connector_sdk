@@ -19,7 +19,7 @@
 # Overview
 Explore practical examples and helpful resources for building custom data connectors with the Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk). Learn how to develop and deploy [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python, and extend Fivetran’s capabilities to fit your data integration needs.
 
-You’ll also find tips on [using AI to help you code an SDK connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) quickly.
+You’ll also find tips on [using AI to help you code an SDK connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/AI_README.md) quickly.
 
 ## Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
@@ -154,6 +154,7 @@ There are several examples available under `/examples`:
 - [redshift](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/redshift) - This is an example to show how to sync records from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
 - [s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/s3_csv_validation) - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
 - [sensor_tower](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
+- [similarweb](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/similarweb) - This example shows how to use the Connector SDK to get website and app performance metrics from similarweb for domains of your choice.
 - [smartsheets](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/smartsheets) - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - [sql_server](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sql_server) - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
 - [timescale_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/timescale_db) - This example shows how to sync data from TimescaleDb using Connector SDK. It uses the `psycopg2` library to connect to TimescaleDb and fetch time-series and vector data from specified tables. You need to provide your TimescaleDb credentials for this example to work.
