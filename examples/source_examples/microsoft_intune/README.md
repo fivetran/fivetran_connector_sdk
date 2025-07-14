@@ -1,9 +1,10 @@
-# Microsoft InTune Connector SDK Example
+# Microsoft Intune Connector SDK Example
 
-This example demonstrates how to build a Fivetran Connector SDK integration for Microsoft InTune, using the Microsoft Graph API to retrieve managed device data. The connector pulls data from the InTune managed devices endpoint and delivers it to your Fivetran destination in a single table called `managed_devices`. You will need to provide your own Microsoft credentials for this to work (`tenant_id`, `client_id`, and `client_secret`).
+This example demonstrates how to build a connector for [Microsoft Intune](https://www.microsoft.com/en-us/security/business/microsoft-intune) with Fivetran Connector SDK, using the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/use-the-api) to retrieve managed device data. The connector pulls data from the Intune managed devices endpoint and delivers it to your Fivetran destination in a single table called `MANAGED_DEVICES`.
 
 ## Requirements
 
+* Microsoft Intune credentials: `tenant_id`, `client_id`, and `client_secret`
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 * Operating System:  
   * Windows 10 or later  
@@ -11,14 +12,14 @@ This example demonstrates how to build a Fivetran Connector SDK integration for 
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-* Retrieves managed device data from Microsoft InTune using the Microsoft Graph API (see `update` function)
+* Retrieves managed device data from Microsoft Intune using the Microsoft Graph API (see `update` function)
 * Handles API pagination using the `@odata.nextLink` field (see `update` function)
 * Converts list values in device records to JSON strings for compatibility (see `list_to_json` function)
-* Delivers data to a single table: `managed_devices`
+* Delivers data to a single table, `MANAGED_DEVICES`
 * Uses Fivetran Connector SDK logging for status and error reporting (see `log` usage)
 
 ## Configuration file
@@ -37,7 +38,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Authentication
 
-The connector uses OAuth2 client credentials flow to authenticate with Microsoft Graph API. You will need to provide your Azure tenant ID, client ID, and client secret in the `configuration.json` file. The connector retrieves an access token using these credentials (see `get_access_token` function in `test.py`).
+The connector uses a OAuth2 client credentials flow to authenticate with Microsoft Graph API. You will need to provide your Azure tenant ID, client ID, and client secret in the `configuration.json` file. The connector retrieves an access token using these credentials (see `get_access_token` function in `test.py`).
 
 ## Pagination
 
@@ -57,7 +58,7 @@ The connector handles pagination using the `@odata.nextLink` field returned by t
 
 ## Tables created
 
-* `managed_devices` – Contains all managed device records retrieved from Microsoft InTune.
+* `managed_devices` – Contains all managed device records retrieved from Microsoft Intune.
 
 *Sample data structure:*
 
