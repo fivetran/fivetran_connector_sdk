@@ -8,9 +8,6 @@ from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
 from couchbase.options import ClusterOptions, ClusterTimeoutOptions, QueryOptions
 
-import certifi  # for trusted CA bundle
-
-
 def create_couchbase_client(configuration: dict):
     """
     Create a Couchbase client for on-prem or cloud-hosted Couchbase Server.
@@ -31,10 +28,9 @@ def create_couchbase_client(configuration: dict):
         # Use secure connection if use_tls is true
         if use_tls:
             connection_string = f"couchbases://{endpoint}"
-            if cert_path:
-                cluster = Cluster(connection_string, options, cert_path=cert_path)
-            else:
-                cluster = Cluster(connection_string, options, cert_path=certifi.where())
+            if not cert_path:
+                raise ValueError("TLS is enabled but cert_path is not provided.")
+            cluster = Cluster(connection_string, options, cert_path=cert_path)
         else:
             connection_string = f"couchbase://{endpoint}"
             cluster = Cluster(connection_string, options)

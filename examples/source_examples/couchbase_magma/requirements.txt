@@ -1,2 +1,1 @@
-certifi==2024.12.14
 couchbase==4.3.6
