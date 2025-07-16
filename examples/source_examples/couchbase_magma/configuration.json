@@ -5,6 +5,6 @@
   "bucket_name": "airline_data",
   "scope": "_default",
   "collection": "_default",
-  "use_tls": "false",
-  "cert_path": "/etc/certs/couchbase-root.pem"
+  "use_tls": "true",   // Optional. Required only if TLS is enabled. Default is false, if not mentioned.
+  "cert_path": "/etc/certs/couchbase-root.pem"  // Optional. Required only if TLS is enabled ("use_tls": "true")
 }
