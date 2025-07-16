@@ -1,0 +1,10 @@
+{
+  "endpoint": "127.0.0.1",
+  "username": "Administrator",
+  "password": "password",
+  "bucket_name": "airline_data",
+  "scope": "_default",
+  "collection": "_default",
+  "use_tls": "false",
+  "cert_path": "/etc/certs/couchbase-root.pem"
+}
