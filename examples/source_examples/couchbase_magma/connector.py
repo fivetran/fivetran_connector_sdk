@@ -6,7 +6,7 @@ from datetime import timedelta
 import json
 from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
-from couchbase.options import ClusterOptions, ClusterTimeoutOptions, QueryOptions
+from couchbase.options import ClusterOptions, QueryOptions
 
 def create_couchbase_client(configuration: dict):
     """
