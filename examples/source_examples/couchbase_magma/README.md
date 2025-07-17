@@ -11,7 +11,7 @@ This connector example demonstrates how to sync data from Couchbase Magma using 
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
