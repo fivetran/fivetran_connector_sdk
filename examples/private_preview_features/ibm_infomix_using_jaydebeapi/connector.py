@@ -1,16 +1,20 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 # It fetches the data from IBM Informix database using JayDeBeApi package and upserts it using Fivetran Connector SDK.
 # It requires the Informix JDBC driver and BSON library to be installed in the environment using installation.sh script.
-
-# NOTE: Do check with Customer Support to implement this or similar installation.sh script file.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
+# Import json for handling JSON data
 import json
 
 # Import the JayDeBeApi library for connecting to the Informix database.

@@ -15,7 +15,11 @@ from fivetran_connector_sdk import Operations as op
 
 # Import the ibm_db module for connecting to IBM Informix
 import ibm_db
+
+# Import json for handling JSON data
 import json
+
+# Import datetime for handling date and time operations
 from datetime import datetime
 
 
