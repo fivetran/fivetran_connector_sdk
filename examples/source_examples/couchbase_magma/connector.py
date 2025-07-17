@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
 # Import the required libraries
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 import json
 from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
@@ -83,6 +83,8 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
         row_iter = client_scope.query(query, QueryOptions(metrics=False))
         for row in row_iter:
             row_data = row.get(collection)
+            created_at_str = row_data["created_at"]
+            row_data["created_at"] = to_utc_datetime_str(created_at_str)
             # The yield statement returns a generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
@@ -106,6 +108,29 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
 
     log.info(f"Upserted {count} records into {table_name} successfully.")
 
+
+def to_utc_datetime_str(timestamp_str: str) -> datetime:
+    """
+    Convert an ISO-8601 timestamp string to a UTC datetime object without microseconds.
+
+    Returns:
+        A timezone-aware datetime object in UTC (tzinfo=timezone.utc) with no microseconds.
+    """
+    # Normalize 'Z' to '+00:00' to make it ISO-8601 compliant
+    if timestamp_str.endswith("Z"):
+        timestamp_str = timestamp_str[:-1] + "+00:00"
+
+    # Parse the ISO string
+    dt = datetime.fromisoformat(timestamp_str)
+
+    # If tz-naive, assume UTC; else convert to UTC
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+
+    # Remove microseconds and ensure UTC tzinfo is preserved
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def schema(configuration: dict):
     """
@@ -133,7 +158,7 @@ def schema(configuration: dict):
                 "callsign": "STRING",
                 "iata": "STRING",
                 "icao": "STRING",
-                "created_at": "STRING"
+                "created_at": "UTC_DATETIME",  # Ensure created_at is in UTC format
             },
         }
     ]
