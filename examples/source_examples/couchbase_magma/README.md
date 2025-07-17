@@ -1,8 +1,4 @@
 # Couchbase Connector Example
-
-## Connector overview
-
-
 This connector example demonstrates how to sync data from Couchbase Magma using the Connector SDK. It connects to a Couchbase Server instance, executes SQL++ (N1QL) queries to fetch data from a specific Magma bucket, scope, and collection, and efficiently streams the data to destination table while implementing best practices for handling large datasets.
 
 ## Requirements
@@ -69,10 +65,10 @@ The connector handles data processing through the following steps:
 ## Error handling
 
 The connector implements error handling in several critical functions:  
-- In `create_couchbase_client`: Catches any exception during cluster connection and raises a meaningful error message
-- In `execute_query_and_upsert`: Catches exceptions during query execution and data processing, raising descriptive runtime errors
+- In `create_couchbase_client`: Catches any exception during cluster connection and raises a meaningful error message.
+- In `execute_query_and_upsert`: Catches exceptions during query execution and data processing, raising descriptive runtime errors.
 
-## Tables Created
+## Tables created
 
 The `schema()` function defines the structure of the destination table:
 
