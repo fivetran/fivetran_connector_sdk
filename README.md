@@ -136,9 +136,7 @@ There are several examples available under `/examples`:
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
 - [ibm_db2](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_db2) - This example shows how to connect and sync data from IBM Db2 using Connector SDK. It uses the `ibm_db` library to connect to the database and fetch data.
-- IBM Informix
-  - [using_ibm_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix/using_ibm_db) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `ibm_db` library to connect to the Informix database and fetch data.
-  - [using_jaydebeapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix/using_jaydebeapi) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `jaydebeapi` library with external JDBC Informix driver to connect to the Informix database and fetch data.
+- [ibm_informix_using_ibm_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/ibm_informix_using_ibm_db) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `ibm_db` library to connect to the Informix database and fetch data.
 - [influx_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/influx_db) - This example shows how to sync data from InfluxDB using Connector SDK. It uses the `influxdb3_python` library to connect to InfluxDB and fetch time-series data from a specified measurement.
 - [microsoft_excel](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/microsoft_excel) - This example shows how to sync data from Microsoft Excel using Connector SDK. It shows three different ways to sync data from Excel files using `pandas`, `python-calamine` and `openpyxl`.
 - [newsapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/newsapi) - This is a simple example of how to sync data from NewsAPI using Connector SDK.
@@ -179,6 +177,8 @@ There are several examples available under `/examples`:
   - This feature enables you to connect to Sybase IQ database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 - **[Sybase ASE](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_iq)**
   - This feature enables you to connect to Sybase ASE database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
+- **[ibm_infomix_using_jaydebeapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/ibm_infomix_using_jaydebeapi)**
+  - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `jaydebeapi` library with external JDBC Informix driver, using `installation.sh` file in the `drivers` folder, to connect to the Informix database and fetch data.
 
 </details>
 
