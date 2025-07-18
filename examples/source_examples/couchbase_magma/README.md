@@ -1,5 +1,8 @@
 # Couchbase Connector Example
-This connector example demonstrates how to sync data from Couchbase Magma using the Connector SDK. It connects to a Couchbase Server instance, executes SQL++ (N1QL) queries to fetch data from a specific Magma bucket, scope, and collection, and efficiently streams the data to destination table while implementing best practices for handling large datasets.
+This connector example demonstrates how to sync data from a self-managed Couchbase Server (local, on-premises, or self-hosted in the cloud) using the Magma storage engine with the Connector SDK. 
+It connects to a Couchbase instance, runs SQL++ (N1QL) queries to retrieve data from a specified Magma bucket, scope, and collection, and streams the results efficiently to a destination table—following best practices for handling large datasets.
+
+For syncing data from a Magma bucket on Couchbase Capella, please refer to the [Couchbase Capella connector example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/couchbase_capella).
 
 ## Requirements
 
@@ -84,7 +87,7 @@ The `schema()` function defines the structure of the destination table:
         "callsign": "STRING",
         "iata": "STRING",
         "icao": "STRING",
-        "created_at": "STRING",
+        "created_at": "UTC_DATETIME",
     },
 }
 ```
