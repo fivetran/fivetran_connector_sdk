@@ -1,4 +1,4 @@
-# Couchbase Connector Example
+# Couchbase Capella Connector Example
 
 ## Connector overview
 
