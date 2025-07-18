@@ -25,8 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Use a Python version similar to the one in the deploy command, if specified.
-
+          python-version: '3.11'
       - name: Change Directory & List Files
         working-directory: hello
         run: |

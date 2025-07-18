@@ -7,7 +7,7 @@ This repository contains a GitHub Actions workflow to deploy a Fivetran Connecto
 This workflow automates the deployment process for the Hello Connector using Fivetran. It:
 - Runs on pushes to the `master` branch if changes occur in the `hello/` directory.
 - Uses GitHub environment variables and secrets for secure configuration management.
-- Sets up Python and installs required dependencies.
+- Sets up Python 3.11 and installs required dependencies.
 - Creates a configuration file using GitHub Secrets.
 - Deploys the Fivetran connector using the `fivetran-connector-sdk`.
 
@@ -42,8 +42,7 @@ Before using this workflow, ensure you have:
 - Clones the repository to the runner environment.
 
 #### **Step 2: Set up Python**
-- Installs Python 3.11 for compatibility with Fivetran SDK.  
-The Python version here can technically be any supported version, but it’s preferable to keep it consistent with the version used in the `fivetran deploy` command (if provided) to avoid potential mismatches.
+- Installs Python 3.11 for compatibility with Fivetran SDK. 
 
 #### **Step 3: Change Directory & List Files**
 - Moves into the `hello/` directory.
