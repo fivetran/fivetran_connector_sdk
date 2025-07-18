@@ -43,7 +43,7 @@ Before using this workflow, ensure you have:
 
 #### **Step 2: Set up Python**
 - Installs Python 3.11 for compatibility with Fivetran SDK.  
-The Python version here can technically be any supported version, but it’s preferable to keep it consistent with the version used in the `fivetran deploy` command (if provided) to avoid potential mismatches.
+You can use any supported Python version, but it’s preferable to keep it consistent with the version used in the `fivetran deploy` command (if provided) to avoid potential mismatches.
 
 #### **Step 3: Change Directory & List Files**
 - Moves into the `hello/` directory.
