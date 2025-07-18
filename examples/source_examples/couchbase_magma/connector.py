@@ -42,7 +42,7 @@ def create_couchbase_client(configuration: dict):
             connection_string = f"couchbases://{endpoint}"
             if not cert_path:
                 raise ValueError("TLS is enabled but cert_path is not provided.")
-            cluster = Cluster(connection_string, options, cert_path=cert_path)
+            cluster = Cluster(connection_string, options, tested_cert_path=cert_path)
         else:
             connection_string = f"couchbase://{endpoint}"
             cluster = Cluster(connection_string, options)
