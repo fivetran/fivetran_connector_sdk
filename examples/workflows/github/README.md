@@ -42,7 +42,7 @@ Before using this workflow, ensure you have:
 - Clones the repository to the runner environment.
 
 #### **Step 2: Set up Python**
-- Installs Python 3.11 for compatibility with Fivetran SDK. 
+- Installs Python 3.11 for compatibility with Fivetran SDK.
 
 #### **Step 3: Change Directory & List Files**
 - Moves into the `hello/` directory.
