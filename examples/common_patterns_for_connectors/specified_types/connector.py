@@ -54,9 +54,9 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Specified Types")
 
-    # Yield an upsert operation to insert/update the row in the "specified" table.
+    # Upsert operation to insert/update the row in the "specified" table.
     log.fine("upserting to table 'specified'")
-    yield op.upsert(
+    op.upsert(
         table="specified",
         data={
             "_bool": True,  # Boolean value.
@@ -80,7 +80,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
