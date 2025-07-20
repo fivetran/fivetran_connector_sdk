@@ -216,12 +216,11 @@ def update(configuration: dict, state: dict):
                 record_generator = future.result()
                 # Process each record as it comes from the generator
                 for record in record_generator:
-                    # The yield statement returns a generator object.
-                    # This generator will yield an upsert operation to the Fivetran connector.
+                    # The 'upsert' operation inserts the data into the destination.
                     # The op.upsert method is called with two arguments:
                     # - The first argument is the name of the table to upsert the data into
                     # - The second argument is a dictionary containing the data to be upserted,
-                    yield op.upsert(table=table_name, data=record)
+                    op.upsert(table=table_name, data=record)
             except Exception as e:
                 log.severe(f"Error processing file for table {table_name}", e)
 
@@ -229,7 +228,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
