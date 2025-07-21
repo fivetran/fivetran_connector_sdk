@@ -1,0 +1,9 @@
+{
+    "api_key": "",
+    "base_url": "https://api.fda.gov/drug/",
+    "requests_per_checkpoint": "2",
+    "rate_limit_delay": "0.25",
+    "flatten_nested": "true",
+    "create_child_tables": "false",
+    "incremental_date_field": "listing_expiration_date"
+  }

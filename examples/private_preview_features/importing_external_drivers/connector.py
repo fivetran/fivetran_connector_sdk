@@ -1,5 +1,6 @@
 # Importing External Drivers using installation.sh script file.
 import datetime
+
 # This module implements a connector that requires external driver installation using installation.sh file
 # It is an example of using default-libmysqlclient-dev and build-essential
 # to communicate with MySql db and iterate over the data to update the connector
@@ -12,6 +13,7 @@ import datetime
 # Import datetime for handling date and time conversions.
 import time
 import json
+
 # Import MySQLdb to communicate with db
 import MySQLdb
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
@@ -22,7 +24,7 @@ from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
-def schema(configuration : dict):
+def schema(configuration: dict):
     return [
         {
             "table": "orders",
@@ -33,8 +35,8 @@ def schema(configuration : dict):
                 "name": "STRING",
                 "city": "STRING",
                 "mobile": "STRING",
-                "datetime": "STRING"
-            }
+                "datetime": "STRING",
+            },
         }
     ]
 
@@ -46,7 +48,8 @@ def schema(configuration : dict):
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
-def update(configuration : dict, state : dict):
+def update(configuration: dict, state: dict):
+    validate_configuration(configuration)
     try:
         host = configuration.get("host")
         database = configuration.get("database")
@@ -61,6 +64,23 @@ def update(configuration : dict, state : dict):
         yield op.checkpoint(state)
     except Exception as e:
         log.severe(f"An error occurred: {e}")
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["host", "database", "user", "password", "port", "table_name"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def read_postgres_and_upsert(host, database, user, password, port, table_name):
@@ -80,11 +100,7 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         # Establish a connection to the Sql database
         # Connect to the database
         conn = MySQLdb.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database,
-            port=int(port)
+            host=host, user=user, password=password, database=database, port=int(port)
         )
         cursor = conn.cursor()
 
@@ -118,7 +134,7 @@ connector = Connector(update=update, schema=schema)
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

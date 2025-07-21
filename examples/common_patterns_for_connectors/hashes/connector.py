@@ -6,9 +6,14 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import built-in Python modules
 import hashlib
@@ -51,7 +56,7 @@ def update(configuration: dict, state: dict):
         "first_name": "John",  # First name
         "last_name": "Doe",  # Last name
         "email": "john.doe@example.com",  # Email ID
-        "updated_at": "2007-12-03T10:15:30Z"  # Updated at timestamp
+        "updated_at": "2007-12-03T10:15:30Z",  # Updated at timestamp
     }
 
     # Generate hash and add this as a key in the dictionary
@@ -62,7 +67,7 @@ def update(configuration: dict, state: dict):
         "first_name": "John",  # First name
         "last_name": "Doe",  # Last name
         "email": "john.doe@example.com",  # Email ID
-        "updated_at": "2008-02-13T03:30:50Z"  # Updated at timestamp changed
+        "updated_at": "2008-02-13T03:30:50Z",  # Updated at timestamp changed
     }
 
     # Generate hash and add this as a key in the dictionary
@@ -73,7 +78,7 @@ def update(configuration: dict, state: dict):
         "first_name": "John",  # First name
         "last_name": "Doe",  # Last name
         "email": None,  # Email ID
-        "updated_at": "2008-02-13T03:30:50Z"  # Updated at timestamp remains same
+        "updated_at": "2008-02-13T03:30:50Z",  # Updated at timestamp remains same
     }
 
     # Generate hash and add this as a key in the dictionary
@@ -84,7 +89,7 @@ def update(configuration: dict, state: dict):
         "first_name": "Joe",  # First name
         "last_name": "Smith",  # Last name
         "email": None,  # Email ID
-        "updated_at": "2014-05-10T00:00:30Z"  # Updated at timestamp
+        "updated_at": "2014-05-10T00:00:30Z",  # Updated at timestamp
     }
 
     row_2["hash_id"] = generate_row_hash(row_2)
@@ -93,7 +98,7 @@ def update(configuration: dict, state: dict):
     row_3 = {
         "first_name": "Jane",  # First name
         "last_name": "Dalton",  # Last name
-        "updated_at": None  # Updated at timestamp
+        "updated_at": None,  # Updated at timestamp
     }
 
     row_3["hash_id"] = generate_row_hash(row_3)
@@ -120,7 +125,7 @@ def generate_row_hash(row: dict):
     sha1 = hashlib.sha1()
 
     # Update the hash with the dictionary string encoded in UTF-8
-    sha1.update(row_str.encode('utf-8'))
+    sha1.update(row_str.encode("utf-8"))
 
     # Return the hexadecimal representation of the hash
     return sha1.hexdigest()

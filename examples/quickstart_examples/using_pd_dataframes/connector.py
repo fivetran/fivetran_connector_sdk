@@ -7,9 +7,15 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import pandas as pd
@@ -42,8 +48,9 @@ def schema(configuration: dict):
         {
             "table": "table_with_nan",
             "primary_key": ["id"],
-        }
+        },
     ]
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function:
@@ -65,7 +72,7 @@ def update(configuration: dict, state: dict):
 
     # Approaches to upsert the records from dataFrame
     yield from upsert_dataframe_approach_1(profile_df=profile_df, state=state, cursor=cursor)
-    
+
     yield from upsert_dataframe_approach_2(location_df=location_df, state=state, cursor=cursor)
 
     yield from upsert_dataframe_approach_3(login_df=login_df, state=state, cursor=cursor)
@@ -94,7 +101,11 @@ def get_data(cursor):
         # Process and store profile data
         profile_data = {
             "id": cursor,
-            "fullName": data["name"]["title"] + " " + data["name"]["first"] + " " + data["name"]["last"],
+            "fullName": data["name"]["title"]
+            + " "
+            + data["name"]["first"]
+            + " "
+            + data["name"]["last"],
             "gender": data["gender"],
             "email": data["email"],
             "age": data["dob"]["age"],
@@ -102,23 +113,23 @@ def get_data(cursor):
             "mobile": data["cell"],
             "nationality": data["nat"],
             # Stores the JSON data e.g. {"large":"https://randomuser.me/api/portraits/women/67.jpg","medium":"https://randomuser.me/api/portraits/med/women/67.jpg","thumbnail":"https://randomuser.me/api/portraits/thumb/women/67.jpg"}
-            "picture": data["picture"]
+            "picture": data["picture"],
         }
-        profile_df = pd.concat(
-            [profile_df, pd.DataFrame([profile_data])], ignore_index=True)
+        profile_df = pd.concat([profile_df, pd.DataFrame([profile_data])], ignore_index=True)
 
         # Process and store location data
         location_details = data["location"]
         location_data = {
             "profileId": cursor,
-            "street": str(location_details["street"]["number"]) + " " + location_details["street"]["name"],
+            "street": str(location_details["street"]["number"])
+            + " "
+            + location_details["street"]["name"],
             "city": location_details["city"],
             "state": location_details["state"],
             "country": location_details["country"],
-            "postcode": location_details["postcode"]
+            "postcode": location_details["postcode"],
         }
-        location_df = pd.concat(
-            [location_df, pd.DataFrame([location_data])], ignore_index=True)
+        location_df = pd.concat([location_df, pd.DataFrame([location_data])], ignore_index=True)
 
         # Process and store login data
         login_details = data["login"]
@@ -126,12 +137,12 @@ def get_data(cursor):
             "profileId": cursor,
             "uuid": login_details["uuid"],
             "username": login_details["username"],
-            "password": login_details["password"]
+            "password": login_details["password"],
         }
-        login_df = pd.concat(
-            [login_df, pd.DataFrame([login_data])], ignore_index=True)
+        login_df = pd.concat([login_df, pd.DataFrame([login_data])], ignore_index=True)
 
     return profile_df, location_df, login_df, cursor
+
 
 def handle_tables_with_nan(state: dict):
     # Upsert tables with NaN
@@ -165,7 +176,8 @@ def generate_data_with_NaN():
     data[nan_mask] = np.nan
 
     # Create the DataFrame
-    return pd.DataFrame(data, columns=['id', 'column_1', 'Column_2'])
+    return pd.DataFrame(data, columns=["id", "column_1", "Column_2"])
+
 
 def upsert_dataframe(table_df, state):
     cursor = state["table_with_nan_cursor"] if "table_with_nan_cursor" in state else 0
@@ -180,6 +192,7 @@ def upsert_dataframe(table_df, state):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation)
     yield op.checkpoint(state)
+
 
 def upsert_dataframe_approach_1(profile_df, state, cursor):
     # APPROACH 1: Gives you direct access to individual row values by column name, Slower approach, helpful for custom row handling
@@ -204,6 +217,7 @@ def upsert_dataframe_approach_1(profile_df, state, cursor):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
 
+
 def upsert_dataframe_approach_2(location_df, state, cursor):
     # APPROACH 2: Generally faster and more memory-efficient, Simplifies the code since rows are already dictionaries and can be used directly
     # UPSERT all location table data.
@@ -219,6 +233,7 @@ def upsert_dataframe_approach_2(location_df, state, cursor):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     yield op.checkpoint(state)
+
 
 def upsert_dataframe_approach_3(login_df, state, cursor):
     # APPROACH 3: Faster approach, Keeps track of the original indices of the rows, which can be useful for certain operations that require indexing information.

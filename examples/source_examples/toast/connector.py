@@ -15,9 +15,16 @@ import copy
 import uuid
 from cryptography.fernet import Fernet
 
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 
 def update(configuration: dict, state: dict):
     """
@@ -35,7 +42,9 @@ def update(configuration: dict, state: dict):
         key = configuration["key"]
         headers, state = make_headers(configuration, base_url, state, key)
 
-        start_timestamp = datetime.now(timezone.utc).isoformat("T", "milliseconds").replace("+00:00", "Z")
+        start_timestamp = (
+            datetime.now(timezone.utc).isoformat("T", "milliseconds").replace("+00:00", "Z")
+        )
         from_ts, to_ts = set_timeranges(state, configuration, start_timestamp)
 
         # start the sync
@@ -47,6 +56,7 @@ def update(configuration: dict, state: dict):
         stack_trace = traceback.format_exc()
         detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
         raise RuntimeError(detailed_message)
+
 
 def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
     """
@@ -60,20 +70,22 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
     :return:
     """
     more_data = True
-    first_pass = True   # indicates whether to call endpoints that don't have an end timestamp
+    first_pass = True  # indicates whether to call endpoints that don't have an end timestamp
 
     # config endpoint is a list of tuples ("endpoint", "destination_table_name")
-    config_endpoints = [("/config/v2/alternatePaymentTypes", "alternate_payment_types"),
-                        ("/config/v2/diningOptions", "dining_option"),
-                        ("/config/v2/discounts", "discounts"),
-                        ("/config/v2/menus", "menu"),
-                        ("/config/v2/menuGroups", "menu_group"),
-                        ("/config/v2/menuItems", "menu_item"),
-                        ("/config/v2/restaurantServices", "restaurant_service"),
-                        ("/config/v2/revenueCenters", "revenue_center"),
-                        ("/config/v2/salesCategories", "sale_category"),
-                        ("/config/v2/serviceAreas", "service_area"),
-                        ("/config/v2/tables", "tables")]
+    config_endpoints = [
+        ("/config/v2/alternatePaymentTypes", "alternate_payment_types"),
+        ("/config/v2/diningOptions", "dining_option"),
+        ("/config/v2/discounts", "discounts"),
+        ("/config/v2/menus", "menu"),
+        ("/config/v2/menuGroups", "menu_group"),
+        ("/config/v2/menuItems", "menu_item"),
+        ("/config/v2/restaurantServices", "restaurant_service"),
+        ("/config/v2/revenueCenters", "revenue_center"),
+        ("/config/v2/salesCategories", "sale_category"),
+        ("/config/v2/serviceAreas", "service_area"),
+        ("/config/v2/tables", "tables"),
+    ]
 
     while more_data:
         # set timerange dicts
@@ -84,7 +96,9 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
         log.fine(f"state updated, new state: {repr(state)}")
 
         # Get response from API call.
-        response_page, next_token = get_api_response(base_url+"/partners/v1/restaurants", headers)
+        response_page, next_token = get_api_response(
+            base_url + "/partners/v1/restaurants", headers
+        )
 
         # Process the items.
         if not response_page:
@@ -96,7 +110,7 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
         log.info(f"***** timerange is from {ts_from} to {ts_to} ***** ")
         for index, r in enumerate(response_page):
             id = r["restaurantGuid"]
-            #rename some fields in response
+            # rename some fields in response
             rename_fields = [("restaurantGuid", "id"), ("restaurantName", "name")]
             for old_name, new_name in rename_fields:
                 r[new_name] = r.pop(old_name)
@@ -110,23 +124,43 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
             # only process these on the first pass since they don't have an end timestamp
             if first_pass:
                 for endpoint, table_name in config_endpoints:
-                    yield from process_config(base_url, headers, endpoint,table_name, id, config_params)
+                    yield from process_config(
+                        base_url, headers, endpoint, table_name, id, config_params
+                    )
 
                 # no timerange_params, only sync during first pass
-                for endpoint, table_name in [("/labor/v1/jobs", "job"),("/labor/v1/employees", "employee")]:
+                for endpoint, table_name in [
+                    ("/labor/v1/jobs", "job"),
+                    ("/labor/v1/employees", "employee"),
+                ]:
                     yield from process_labor(base_url, headers, endpoint, table_name, id)
 
             # cash management endpoints
-            yield from process_cash(base_url, headers, "/cashmgmt/v1/entries", "cash_entry", id, timerange_params)
-            yield from process_cash(base_url, headers, "/cashmgmt/v1/deposits", "cash_deposit", id, timerange_params)
+            yield from process_cash(
+                base_url, headers, "/cashmgmt/v1/entries", "cash_entry", id, timerange_params
+            )
+            yield from process_cash(
+                base_url, headers, "/cashmgmt/v1/deposits", "cash_deposit", id, timerange_params
+            )
 
             # orders
-            yield from process_orders(base_url, headers, "/orders/v2/ordersBulk", "orders", id, timerange_params)
+            yield from process_orders(
+                base_url, headers, "/orders/v2/ordersBulk", "orders", id, timerange_params
+            )
 
             # labor endpoints
             # these two endpoints can only retrieve 30 days at a time
-            yield from process_labor(base_url, headers, "/labor/v1/shifts", "shift", id, params=timerange_params)
-            yield from process_labor(base_url, headers, "/labor/v1/timeEntries", "time_entry", id, params=modified_params)
+            yield from process_labor(
+                base_url, headers, "/labor/v1/shifts", "shift", id, params=timerange_params
+            )
+            yield from process_labor(
+                base_url,
+                headers,
+                "/labor/v1/timeEntries",
+                "time_entry",
+                id,
+                params=modified_params,
+            )
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of interruptions.
@@ -141,6 +175,7 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
             ts_from, ts_to = set_timeranges(state, {}, start_timestamp)
         else:
             more_data = False
+
 
 def process_config(base_url, headers, endpoint, table_name, rst_id, timerange):
     """
@@ -160,16 +195,24 @@ def process_config(base_url, headers, endpoint, table_name, rst_id, timerange):
     # Keys represent table names, and values are lists of tuples.
     # Each tuple defines a mapping for one or more fields in the table:
     # (field containing a dictionary, key to extract from dictionary, new field name).
-    fields_to_extract = {"menu_group": [("menu", "guid", "menu_id")],
-                         "service_area": [("revenueCenter", "guid", "revenue_center_guid")],
-                         "tables": [("revenueCenter", "guid", "revenue_center_guid"),
-                                    ("serviceArea", "guid", "service_area_guid")]}
+    fields_to_extract = {
+        "menu_group": [("menu", "guid", "menu_id")],
+        "service_area": [("revenueCenter", "guid", "revenue_center_guid")],
+        "tables": [
+            ("revenueCenter", "guid", "revenue_center_guid"),
+            ("serviceArea", "guid", "service_area_guid"),
+        ],
+    }
 
     while more_data:
         try:
             param_string = "&".join(f"{key}={value}" for key, value in timerange.items())
-            response_page, next_token = get_api_response(base_url + endpoint + "?" + param_string, headers, params=pagination)
-            log.fine(f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}")
+            response_page, next_token = get_api_response(
+                base_url + endpoint + "?" + param_string, headers, params=pagination
+            )
+            log.fine(
+                f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}"
+            )
             for o in response_page:
                 if fields_to_extract.get(table_name):
                     o = extract_fields(fields_to_extract[table_name], o)
@@ -189,6 +232,7 @@ def process_config(base_url, headers, endpoint, table_name, rst_id, timerange):
             stack_trace = traceback.format_exc()
             detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
             raise RuntimeError(detailed_message)
+
 
 def process_labor(base_url, headers, endpoint, table_name, rst_id, params=None):
     """
@@ -212,23 +256,33 @@ def process_labor(base_url, headers, endpoint, table_name, rst_id, params=None):
     # Each tuple defines a mapping for one or more fields in the table:
     # (field containing a dictionary, key to extract from dictionary, new field name).
     fields_to_extract = {
-        "shift": [("employeeReference", "guid", "employee_reference_id"),
-                  ("jobReference", "guid", "job_reference_id")],
-        "time_entry": [("employeeReference", "guid", "employee_reference_id"),
-                       ("jobReference", "guid", "job_reference_id"),
-                       ("shiftReference", "guid", "shift_reference_id")]
+        "shift": [
+            ("employeeReference", "guid", "employee_reference_id"),
+            ("jobReference", "guid", "job_reference_id"),
+        ],
+        "time_entry": [
+            ("employeeReference", "guid", "employee_reference_id"),
+            ("jobReference", "guid", "job_reference_id"),
+            ("shiftReference", "guid", "shift_reference_id"),
+        ],
     }
 
     try:
         response_page, next_token = get_api_response(base_url + endpoint, headers, params=params)
-        log.fine(f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}")
+        log.fine(
+            f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}"
+        )
 
         for o in response_page:
             if endpoint == "/labor/v1/timeEntries" and o.get("breaks"):
                 yield from process_child(o["breaks"], "break", "time_entry_id", o["guid"])
             elif endpoint == "/labor/v1/employees":
-                yield from process_child(o.get("jobReferences", []), "employee_job_reference", "employee_id", o["guid"])
-                yield from process_child(o.get("wageOverrides", []), "employee_wage_override", "employee_id", o["guid"])
+                yield from process_child(
+                    o.get("jobReferences", []), "employee_job_reference", "employee_id", o["guid"]
+                )
+                yield from process_child(
+                    o.get("wageOverrides", []), "employee_wage_override", "employee_id", o["guid"]
+                )
             elif endpoint == "/labor/v1/shifts":
                 o = flatten_fields(["scheduleConfig"], o)
 
@@ -249,6 +303,7 @@ def process_labor(base_url, headers, endpoint, table_name, rst_id, params=None):
         stack_trace = traceback.format_exc()
         detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
         raise RuntimeError(detailed_message)
+
 
 def process_cash(base_url, headers, endpoint, table_name, rst_id, params):
     """
@@ -272,13 +327,23 @@ def process_cash(base_url, headers, endpoint, table_name, rst_id, params):
     # would become {"info_id": 1, "info_type": "foo} and the "info" key will be popped
     fields_to_flatten = {
         "cash_deposit": ["employee", "creator"],
-        "cash_entry": ["approverOrShiftReviewSubject", "creatorOrShiftReviewSubject", "cashDrawer",
-                       "employee1", "employee2", "payoutReason", "noSaleReason"]}
+        "cash_entry": [
+            "approverOrShiftReviewSubject",
+            "creatorOrShiftReviewSubject",
+            "cashDrawer",
+            "employee1",
+            "employee2",
+            "payoutReason",
+            "noSaleReason",
+        ],
+    }
     try:
         date_range = generate_business_dates(params["startDate"], params["endDate"])
 
         for d in date_range:
-            response_page, next_token = get_api_response(base_url + endpoint + "?businessDate=" + d, headers)
+            response_page, next_token = get_api_response(
+                base_url + endpoint + "?businessDate=" + d, headers
+            )
             # log.fine(f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}")
             for o in response_page:
                 o = flatten_fields(fields_to_flatten[table_name], o)
@@ -293,6 +358,7 @@ def process_cash(base_url, headers, endpoint, table_name, rst_id, params):
         detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
         raise RuntimeError(detailed_message)
 
+
 def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
     """
     This is the main generating function for the bulkOrders endpoint.
@@ -305,7 +371,6 @@ def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
     :param rst_id: id for restaurant to query
     :param params: This is a dictionary of timerange parameters which can vary by endpoint
     """
-
 
     headers["Toast-Restaurant-External-ID"] = rst_id  # Move outside loop for efficiency
     params = params.copy()  # Avoid modifying original params
@@ -320,8 +385,12 @@ def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
     try:
         for page_num in range(1, 1_000_000):  # Prevent infinite loops; max reasonable pages
             params["page"] = page_num
-            response_page, next_token = get_api_response(base_url + endpoint, headers, params=params)
-            log.fine(f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}")
+            response_page, next_token = get_api_response(
+                base_url + endpoint, headers, params=params
+            )
+            log.fine(
+                f"restaurant {rst_id}: response_page has {len(response_page)} items for {endpoint}"
+            )
 
             if not response_page:
                 break  # No more data
@@ -356,6 +425,7 @@ def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
         detailed_message = f"Error Message: {exception_message}\nStack Trace:\n{stack_trace}"
         raise RuntimeError(detailed_message)
 
+
 def process_payments(order):
     """
     This function processes payment information for an order.
@@ -366,7 +436,14 @@ def process_payments(order):
     """
     # flatten these fields, e.g. "info": {"id": 1, "type": "foo"}
     # would become {"info_id": 1, "info_type": "foo} and the "info" key will be popped
-    fields_to_flatten = ["cashDrawer", "createdDevice", "lastModifiedDevice", "otherPayment", "refund", "server"]
+    fields_to_flatten = [
+        "cashDrawer",
+        "createdDevice",
+        "lastModifiedDevice",
+        "otherPayment",
+        "refund",
+        "server",
+    ]
     if "checks" in order and order["checks"]:
         yield from process_child(order["checks"], "orders_check", "orders_id", order["guid"])
         for check in order["checks"]:
@@ -374,15 +451,18 @@ def process_payments(order):
                 for payment in check["payments"]:
                     yield op.upsert(
                         table="orders_check_payment",
-                        data={"orders_check_id": check["guid"],
-                              "payment_id": payment["guid"],
-                              "orders_guid": order["guid"]}
+                        data={
+                            "orders_check_id": check["guid"],
+                            "payment_id": payment["guid"],
+                            "orders_guid": order["guid"],
+                        },
                     )
                     payment = flatten_fields(fields_to_flatten, payment)
                     payment["restaurant_id"] = order["restaurant_id"]
                     process_void_info(payment)
                     payment = replace_guid_with_id(payment)
                     yield op.upsert(table="payment", data=payment)
+
 
 def process_pricing_features(order):
     """
@@ -394,11 +474,12 @@ def process_pricing_features(order):
         for feature in order["pricingFeatures"]:
             yield op.upsert(
                 table="orders_pricing_feature",
-                data={"orders_id": order["guid"], "pricing_feature": feature}
+                data={"orders_id": order["guid"], "pricing_feature": feature},
             )
         order.pop("pricingFeatures", None)  # Remove processed field
 
-def process_child (parent, table_name, id_field_name, id_field):
+
+def process_child(parent, table_name, id_field_name, id_field):
     """
     Iterates through records in parent list to generate child tables.
     If child tables also contain child records
@@ -411,23 +492,29 @@ def process_child (parent, table_name, id_field_name, id_field):
 
     # dictionary of connector tables and the child fields (lists) that get their own tables
     # e.g. {"table_name": [("childField01", "child_table_name_01"), ("childField02", "child_table_name_02")] }
-    relationships = {"orders_check": [
+    relationships = {
+        "orders_check": [
             ("selections", "orders_check_selection"),
             ("appliedDiscounts", "orders_check_applied_discount"),
-            ("appliedServiceCharges", "orders_check_applied_service_charge")],
+            ("appliedServiceCharges", "orders_check_applied_service_charge"),
+        ],
         "orders_check_applied_discount": [
             ("comboItems", "orders_check_applied_discount_combo_item"),
-            ("triggers", "orders_check_applied_discount_trigger")],
+            ("triggers", "orders_check_applied_discount_trigger"),
+        ],
         "orders_check_applied_service_charge": [
-            ("appliedTax", "orders_check_applied_service_charge_applied_tax")],
+            ("appliedTax", "orders_check_applied_service_charge_applied_tax")
+        ],
         "orders_check_selection": [
             ("appliedTaxes", "orders_check_selection_applied_tax"),
             ("modifiers", "orders_check_selection_modifier"),
-            ("appliedDiscounts", "orders_check_selection_applied_discount")],
-        "orders_check_selection_applied_discount":
-            [("comboItems", "orders_check_selection_applied_discount_combo_item"),
-             ("triggers", "orders_check_selection_applied_discount_trigger")]
-                     }
+            ("appliedDiscounts", "orders_check_selection_applied_discount"),
+        ],
+        "orders_check_selection_applied_discount": [
+            ("comboItems", "orders_check_selection_applied_discount_combo_item"),
+            ("triggers", "orders_check_selection_applied_discount_trigger"),
+        ],
+    }
 
     # fields_to_flatten is a mapping of fields to flatten from source data.
     # Keys represent table names, and values are lists of field names.
@@ -441,28 +528,44 @@ def process_child (parent, table_name, id_field_name, id_field):
         "orders_check_applied_discount": ["approver", "appliedDiscountReason", "discount"],
         "orders_check_applied_discount_trigger": ["selection"],
         "orders_check_applied_service_charge": ["serviceCharge"],
-        "orders_check_selection": ["salesCategory", "itemGroup", "item", "diningOption", "refundDetails", "voidReason"],
-        "orders_check_selection_applied_discount": ["approver", "appliedDiscountReason", "discount"],
+        "orders_check_selection": [
+            "salesCategory",
+            "itemGroup",
+            "item",
+            "diningOption",
+            "refundDetails",
+            "voidReason",
+        ],
+        "orders_check_selection_applied_discount": [
+            "approver",
+            "appliedDiscountReason",
+            "discount",
+        ],
         "orders_check_selection_applied_tax": ["taxRate"],
-        "orders_check_selection_modifier": ["diningOption", "item", "itemGroup", "optionGroup", "salesCategory"
-            , "preModifier", "voidReason" ],
-        "orders_check_selection_applied_discount_trigger": ["selection"]}
+        "orders_check_selection_modifier": [
+            "diningOption",
+            "item",
+            "itemGroup",
+            "optionGroup",
+            "salesCategory",
+            "preModifier",
+            "voidReason",
+        ],
+        "orders_check_selection_applied_discount_trigger": ["selection"],
+    }
 
     for p in parent:
-        #log.fine(f"processing {table_name}")
+        # log.fine(f"processing {table_name}")
         p[id_field_name] = id_field
         if table_name in relationships:
             for child_key, child_table_name in relationships[table_name]:
                 if len(p.get(child_key, [])) > 0:  # Use .get() to handle missing keys gracefully
                     yield from process_child(
-                        p[child_key],
-                        child_table_name,
-                        table_name + "_id",
-                        p["guid"]
+                        p[child_key], child_table_name, table_name + "_id", p["guid"]
                     )
                 p.pop(child_key, None)
         if table_name in fields_to_flatten:
-            #log.fine(f"flattening fields in {table_name}")
+            # log.fine(f"flattening fields in {table_name}")
             p = flatten_fields(fields_to_flatten[table_name], p)
         # check for null guids in appliedTaxes[]
         if table_name == "orders_check_selection_applied_tax" and p.get("guid") is None:
@@ -476,6 +579,7 @@ def process_child (parent, table_name, id_field_name, id_field):
 
         if p.get("deleted") and "id" in p:
             yield op.delete(table=table_name, keys={"id": p["id"]})
+
 
 def process_void_info(payment):
     """
@@ -491,9 +595,12 @@ def process_void_info(payment):
         if payment["voidInfo"].get("voidUser"):
             payment["void_info_user_guid"] = payment["voidInfo"]["voidUser"]["guid"]
         if payment["voidInfo"].get("voidReason"):
-            payment["void_info_reason_entity_type"] = payment["voidInfo"]["voidReason"]["entityType"]
+            payment["void_info_reason_entity_type"] = payment["voidInfo"]["voidReason"][
+                "entityType"
+            ]
             payment["void_info_reason_guid"] = payment["voidInfo"]["voidReason"]["guid"]
         payment.pop("voidInfo", None)
+
 
 def make_headers(conf, base_url, state, key):
     """
@@ -509,7 +616,11 @@ def make_headers(conf, base_url, state, key):
     current_time = time.time()
 
     # Check if a valid token exists and is not expiring in the next hour
-    if "encrypted_token" in state and "token_ttl" in state and state["token_ttl"] > current_time + 3600:
+    if (
+        "encrypted_token" in state
+        and "token_ttl" in state
+        and state["token_ttl"] > current_time + 3600
+    ):
         try:
             auth_token = fernet.decrypt(state["encrypted_token"].encode()).decode()
             log.info("encrypted_token found with at least an hour left, reusing")
@@ -521,13 +632,14 @@ def make_headers(conf, base_url, state, key):
     payload = {
         "clientId": conf.get("clientId"),
         "clientSecret": conf.get("clientSecret"),
-        "userAccessType": conf.get("userAccessType")
+        "userAccessType": conf.get("userAccessType"),
     }
 
     try:
         log.info("encrypted_token not found in state or is expiring soon, requesting new token")
-        auth_response = rq.post(f"{base_url}/authentication/v1/authentication/login",
-                                json=payload, timeout=10)
+        auth_response = rq.post(
+            f"{base_url}/authentication/v1/authentication/login", json=payload, timeout=10
+        )
         auth_response.raise_for_status()
         auth_page = auth_response.json()
 
@@ -551,6 +663,7 @@ def make_headers(conf, base_url, state, key):
     except rq.exceptions.RequestException as e:
         raise RuntimeError(f"❌ Failed to authenticate: {e}")
 
+
 def is_older_than_30_days(date_to_check):
     """
     Checks whether date_to_check is older than 30 days.
@@ -566,6 +679,7 @@ def is_older_than_30_days(date_to_check):
 
     return date_to_check < now - timedelta(days=30)
 
+
 def set_timeranges(state, configuration, start_timestamp):
     """
     Takes in current state and start timestamp of current sync.
@@ -577,8 +691,8 @@ def set_timeranges(state, configuration, start_timestamp):
     :param start_timestamp:
     :return: from_ts, to_ts
     """
-    if 'to_ts' in state:
-        from_ts = state['to_ts']
+    if "to_ts" in state:
+        from_ts = state["to_ts"]
     else:
         from_ts = configuration["initialSyncStart"]
 
@@ -591,7 +705,8 @@ def set_timeranges(state, configuration, start_timestamp):
 
     return from_ts, to_ts
 
-def generate_business_dates (start_ts, end_ts):
+
+def generate_business_dates(start_ts, end_ts):
     """
     Takes in start_date and end_date, and generates a list of dates in YYYYMMDD format that include those dates
     :param start_ts: ISO format datetime
@@ -612,6 +727,7 @@ def generate_business_dates (start_ts, end_ts):
         date_list.append((start_date + timedelta(days=i)).strftime("%Y%m%d"))
 
     return date_list
+
 
 def get_api_response(endpoint_path, headers, **kwargs):
     """
@@ -643,7 +759,7 @@ def get_api_response(endpoint_path, headers, **kwargs):
                 return None, None
 
             retry_count_401 += 1
-            #reauth here?
+            # reauth here?
 
             log.warning(f"401 Unauthorized - Retrying {retry_count_401}/{max_retries_401}")
             time.sleep(2)
@@ -694,6 +810,7 @@ def get_api_response(endpoint_path, headers, **kwargs):
 
         return response_page, next_page_token  # Return successful response
 
+
 def stringify_lists(d):
     """
     The stringify_lists function changes lists to strings
@@ -708,7 +825,8 @@ def stringify_lists(d):
             new_dict[key] = value
     return new_dict
 
-def flatten_dict (parent_row: dict, dict_field: dict, prefix: str):
+
+def flatten_dict(parent_row: dict, dict_field: dict, prefix: str):
     """
     Flattens a field containing a dictionary into a series of fields prefixed with the original field name
     Optionally leaves off prefix for specified fields
@@ -741,10 +859,12 @@ def flatten_dict (parent_row: dict, dict_field: dict, prefix: str):
 
     return parent_row
 
+
 def replace_guid_with_id(d: dict):
     if "guid" in d:
         d["id"] = d.pop("guid")
     return d
+
 
 def flatten_fields(fields: list, row: dict):
     """
@@ -763,6 +883,7 @@ def flatten_fields(fields: list, row: dict):
 
     return row
 
+
 def extract_fields(fields: list, row: dict):
     """
     Takes in a list of fields and sub-fields within a row.
@@ -775,12 +896,13 @@ def extract_fields(fields: list, row: dict):
     """
     row = {**row}
 
-    for (field, sub_field, new_name) in fields:
+    for field, sub_field, new_name in fields:
         if row.get(field) and sub_field in row[field]:
             row[new_name] = row[field][sub_field]
             row.pop(field, None)
 
     return row
+
 
 def schema(configuration: dict):
     """
@@ -790,118 +912,192 @@ def schema(configuration: dict):
     :param configuration: a dictionary that holds the configuration settings for the connector.
     :return: a list of tables with primary keys and any datatypes that we want to specify
     """
-    if 'key' not in configuration:
+    if "key" not in configuration:
         raise ValueError("Could not find 'key' in configs")
 
     return [
-        {"table": "restaurant","primary_key": ["id"]},
+        {"table": "restaurant", "primary_key": ["id"]},
         # labor tables
-        {"table": "job", "primary_key": ["id"],
-            "columns": {"createdDate": "UTC_DATETIME",
-                        "deletedDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "deleted": "BOOLEAN",
-                        "excludeFromReporting": "BOOLEAN",
-                        "tipped": "BOOLEAN"}},
-        {"table": "shift", "primary_key": ["id"],
-            "columns": {"createdDate": "UTC_DATETIME",
-                        "inDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "outDate": "UTC_DATETIME",
-                        "deleted": "BOOLEAN"}},
-        {"table": "employee", "primary_key": ["id"],
-            "columns": {"createdDate": "UTC_DATETIME",
-                        "deletedDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME", "deleted": "BOOLEAN"}},
+        {
+            "table": "job",
+            "primary_key": ["id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "deletedDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "deleted": "BOOLEAN",
+                "excludeFromReporting": "BOOLEAN",
+                "tipped": "BOOLEAN",
+            },
+        },
+        {
+            "table": "shift",
+            "primary_key": ["id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "inDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "outDate": "UTC_DATETIME",
+                "deleted": "BOOLEAN",
+            },
+        },
+        {
+            "table": "employee",
+            "primary_key": ["id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "deletedDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "deleted": "BOOLEAN",
+            },
+        },
         {"table": "employee_job_reference", "primary_key": ["id", "employee_id"]},
         {"table": "employee_wage_override", "primary_key": ["id", "employee_id"]},
-        {"table": "time_entry", "primary_key": ["id"],
-            "columns": {"createdDate": "UTC_DATETIME",
-                        "deletedDate": "UTC_DATETIME",
-                        "inDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "outDate": "UTC_DATETIME",
-                        "autoClockedOut": "BOOLEAN",
-                        "deleted": "BOOLEAN"}},
-        {"table": "break", "primary_key": ["id"],
-            "columns": {"inDate": "UTC_DATETIME", "outDate": "UTC_DATETIME",
-                        "auditResponse": "BOOLEAN",
-                        "missed": "BOOLEAN"}},
+        {
+            "table": "time_entry",
+            "primary_key": ["id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "deletedDate": "UTC_DATETIME",
+                "inDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "outDate": "UTC_DATETIME",
+                "autoClockedOut": "BOOLEAN",
+                "deleted": "BOOLEAN",
+            },
+        },
+        {
+            "table": "break",
+            "primary_key": ["id"],
+            "columns": {
+                "inDate": "UTC_DATETIME",
+                "outDate": "UTC_DATETIME",
+                "auditResponse": "BOOLEAN",
+                "missed": "BOOLEAN",
+            },
+        },
         # cash tables
-        {"table": "cash_deposit", "primary_key": ["id"],
-            "columns": {"date": "UTC_DATETIME"}},
-        {"table": "cash_entry", "primary_key": ["id"],
-            "columns": {"date": "UTC_DATETIME"}},
+        {"table": "cash_deposit", "primary_key": ["id"], "columns": {"date": "UTC_DATETIME"}},
+        {"table": "cash_entry", "primary_key": ["id"], "columns": {"date": "UTC_DATETIME"}},
         # config tables
         {"table": "alternate_payment_types", "primary_key": ["id"]},
         {"table": "dining_option", "primary_key": ["id"], "columns": {"curbside": "BOOLEAN"}},
-        {"table": "discounts", "primary_key": ["id"],
-            "columns":{"active": "BOOLEAN", "nonExclusive": "BOOLEAN"}},
+        {
+            "table": "discounts",
+            "primary_key": ["id"],
+            "columns": {"active": "BOOLEAN", "nonExclusive": "BOOLEAN"},
+        },
         {"table": "menu", "primary_key": ["id"]},
         {"table": "menu_group", "primary_key": ["id"]},
-        {"table": "menu_item", "primary_key": ["id"],
-            "columns": {"inheritOptionGroups": "BOOLEAN", "inheritUnitOfMeasure": "BOOLEAN"}},
+        {
+            "table": "menu_item",
+            "primary_key": ["id"],
+            "columns": {"inheritOptionGroups": "BOOLEAN", "inheritUnitOfMeasure": "BOOLEAN"},
+        },
         {"table": "restaurant_service", "primary_key": ["id"]},
         {"table": "revenue_center", "primary_key": ["id"]},
         {"table": "sale_category", "primary_key": ["id"]},
         {"table": "service_area", "primary_key": ["id"]},
         {"table": "tables", "primary_key": ["id"]},
         # orders tables
-        {"table": "orders", "primary_key":["id"],
-            "columns": {"closedDate": "UTC_DATETIME",
-                        "createdDate": "UTC_DATETIME",
-                        "deletedDate": "UTC_DATETIME",
-                        "estimatedFulfillmentDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "openedDate": "UTC_DATETIME",
-                        "paidDate": "UTC_DATETIME",
-                        "promisedDate": "UTC_DATETIME",
-                        "voidDate": "UTC_DATETIME",
-                        "createdInTestMode": "BOOLEAN",
-                        "deleted": "BOOLEAN",
-                        "excessFood": "BOOLEAN",
-                        "voided": "BOOLEAN"}},
-        {"table": "orders_check", "primary_key":["id"],
-            "columns": {"closedDate": "UTC_DATETIME",
-                        "createdDate": "UTC_DATETIME",
-                        "deletedDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "openedDate": "UTC_DATETIME",
-                        "paidDate": "UTC_DATETIME",
-                        "voidDate": "UTC_DATETIME",
-                        "deleted": "BOOLEAN",
-                        "taxExempt": "BOOLEAN",
-                        "voided": "BOOLEAN"}},
-        {"table": "orders_check_applied_discount", "primary_key":["id"]},
-        {"table": "orders_check_applied_discount_combo_item", "primary_key":["id"]},
-        {"table": "orders_check_applied_discount_trigger", "primary_key": ["orders_check_applied_discount_id"]},
-        {"table": "orders_check_applied_service_charge", "primary_key":["id", "orders_check_id"],
-         "columns": {"delivery": "BOOLEAN",
-                    "dineIn": "BOOLEAN",
-                    "gratuity": "BOOLEAN",
-                    "takeout": "BOOLEAN",
-                    "taxable": "BOOLEAN"}},
-        {"table": "orders_check_payment", "primary_key": ["orders_check_id", "payment_id", "orders_guid"]},
-        {"table": "orders_check_selection", "primary_key":["id", "orders_check_id"],
-            "columns": {"createdDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "voidDate": "UTC_DATETIME",
-                        "deferred": "BOOLEAN",
-                        "voided": "BOOLEAN"}},
+        {
+            "table": "orders",
+            "primary_key": ["id"],
+            "columns": {
+                "closedDate": "UTC_DATETIME",
+                "createdDate": "UTC_DATETIME",
+                "deletedDate": "UTC_DATETIME",
+                "estimatedFulfillmentDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "openedDate": "UTC_DATETIME",
+                "paidDate": "UTC_DATETIME",
+                "promisedDate": "UTC_DATETIME",
+                "voidDate": "UTC_DATETIME",
+                "createdInTestMode": "BOOLEAN",
+                "deleted": "BOOLEAN",
+                "excessFood": "BOOLEAN",
+                "voided": "BOOLEAN",
+            },
+        },
+        {
+            "table": "orders_check",
+            "primary_key": ["id"],
+            "columns": {
+                "closedDate": "UTC_DATETIME",
+                "createdDate": "UTC_DATETIME",
+                "deletedDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "openedDate": "UTC_DATETIME",
+                "paidDate": "UTC_DATETIME",
+                "voidDate": "UTC_DATETIME",
+                "deleted": "BOOLEAN",
+                "taxExempt": "BOOLEAN",
+                "voided": "BOOLEAN",
+            },
+        },
+        {"table": "orders_check_applied_discount", "primary_key": ["id"]},
+        {"table": "orders_check_applied_discount_combo_item", "primary_key": ["id"]},
+        {
+            "table": "orders_check_applied_discount_trigger",
+            "primary_key": ["orders_check_applied_discount_id"],
+        },
+        {
+            "table": "orders_check_applied_service_charge",
+            "primary_key": ["id", "orders_check_id"],
+            "columns": {
+                "delivery": "BOOLEAN",
+                "dineIn": "BOOLEAN",
+                "gratuity": "BOOLEAN",
+                "takeout": "BOOLEAN",
+                "taxable": "BOOLEAN",
+            },
+        },
+        {
+            "table": "orders_check_payment",
+            "primary_key": ["orders_check_id", "payment_id", "orders_guid"],
+        },
+        {
+            "table": "orders_check_selection",
+            "primary_key": ["id", "orders_check_id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "voidDate": "UTC_DATETIME",
+                "deferred": "BOOLEAN",
+                "voided": "BOOLEAN",
+            },
+        },
         {"table": "orders_check_selection_applied_discount", "primary_key": ["id"]},
-        {"table": "orders_check_selection_applied_discount_trigger", "primary_key": ["orders_check_selection_applied_discount_id"]},
-        {"table": "orders_check_selection_applied_tax", "primary_key":["id", "orders_check_selection_id"]},
-        {"table": "orders_check_selection_modifier", "primary_key":["id", "orders_check_selection_id"],
-             "columns": {"createdDate": "UTC_DATETIME",
-                        "modifiedDate": "UTC_DATETIME",
-                        "voidDate": "UTC_DATETIME",
-                         "deferred": "BOOLEAN"}},
-        {"table": "orders_pricing_feature", "primary_key":["orders_id"]},
-        {"table": "payment", "primary_key": ["id"],
-            "columns": {"paidDate": "UTC_DATETIME",
-                        "refundDate": "UTC_DATETIME",
-                        "void_info_date": "UTC_DATETIME"}}
+        {
+            "table": "orders_check_selection_applied_discount_trigger",
+            "primary_key": ["orders_check_selection_applied_discount_id"],
+        },
+        {
+            "table": "orders_check_selection_applied_tax",
+            "primary_key": ["id", "orders_check_selection_id"],
+        },
+        {
+            "table": "orders_check_selection_modifier",
+            "primary_key": ["id", "orders_check_selection_id"],
+            "columns": {
+                "createdDate": "UTC_DATETIME",
+                "modifiedDate": "UTC_DATETIME",
+                "voidDate": "UTC_DATETIME",
+                "deferred": "BOOLEAN",
+            },
+        },
+        {"table": "orders_pricing_feature", "primary_key": ["orders_id"]},
+        {
+            "table": "payment",
+            "primary_key": ["id"],
+            "columns": {
+                "paidDate": "UTC_DATETIME",
+                "refundDate": "UTC_DATETIME",
+                "void_info_date": "UTC_DATETIME",
+            },
+        },
     ]
+
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -912,8 +1108,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "main":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
-

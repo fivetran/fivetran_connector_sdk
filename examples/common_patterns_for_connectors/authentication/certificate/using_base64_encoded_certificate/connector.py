@@ -3,20 +3,26 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-import os # Import required for file operations
-import base64 # Import required for decoding the certificate and key data
-import tempfile # Import required for creation of temporary certificate and key files
-import ssl # Import required for SSL context
-import urllib.request # Import required for making HTTP requests
-import json # Import required for JSON operations
+import os  # Import required for file operations
+import base64  # Import required for decoding the certificate and key data
+import tempfile  # Import required for creation of temporary certificate and key files
+import ssl  # Import required for SSL context
+import urllib.request  # Import required for making HTTP requests
+import json  # Import required for JSON operations
 import re
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 BASE_URL = "https://client.badssl.com/"
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -75,9 +81,7 @@ def get_urllib_context(cert_path: str, key_path: str, passkey: str):
         passkey: password for the private key
     """
     context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-    context.load_cert_chain(certfile=cert_path,
-                            keyfile=key_path,
-                            password=passkey)
+    context.load_cert_chain(certfile=cert_path, keyfile=key_path, password=passkey)
     return context
 
 
@@ -87,9 +91,9 @@ def get_encoded_certificate_values(configuration: dict):
     Args:
         configuration: connector configuration
     """
-    encoded_cert = configuration['ENCODED_CERTIFICATE']
-    encoded_key = configuration['ENCODED_PRIVATE_KEY']
-    passkey = configuration['PASSKEY']
+    encoded_cert = configuration["ENCODED_CERTIFICATE"]
+    encoded_key = configuration["ENCODED_PRIVATE_KEY"]
+    passkey = configuration["PASSKEY"]
 
     if not encoded_cert:
         raise ValueError("Encoded certificate not found in configuration")
@@ -118,7 +122,7 @@ def get_data_with_certificate(configuration: dict):
             content = response.read()
 
         log.info(f"Data received from {BASE_URL}")
-        content = re.sub(r'<[^>]+>', '', content.decode('utf-8'))
+        content = re.sub(r"<[^>]+>", "", content.decode("utf-8"))
         content = [line.strip() for line in content.splitlines() if line.strip()]
         return content
 
@@ -128,6 +132,23 @@ def get_data_with_certificate(configuration: dict):
     finally:
         delete_temporary_certificates(cert_path, key_path)
         log.info("Temporary certificate and key files deleted")
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["ENCODED_CERTIFICATE", "ENCODED_PRIVATE_KEY", "PASSKEY"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -140,7 +161,9 @@ def get_data_with_certificate(configuration: dict):
 def update(configuration: dict, state: dict):
     log.info("Example: Using certificates for making API calls")
 
-    last_index = state['last_index'] if 'last_index' in state else -1
+    last_index = state["last_index"] if "last_index" in state else -1
+
+    validate_configuration(configuration)
 
     data = get_data_with_certificate(configuration)
     if not data:
@@ -163,7 +186,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
