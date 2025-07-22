@@ -15,6 +15,7 @@ from couchbase.auth import PasswordAuthenticator
 from couchbase.cluster import Cluster
 from couchbase.options import ClusterOptions, QueryOptions
 
+
 def create_couchbase_client(configuration: dict):
     """
     Create a Couchbase client for on-prem or cloud-hosted Couchbase Server.
@@ -131,6 +132,7 @@ def to_utc_datetime_str(timestamp_str: str) -> datetime:
 
     # Remove microseconds and ensure UTC tzinfo is preserved
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 def schema(configuration: dict):
     """
