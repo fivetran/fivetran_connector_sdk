@@ -1,9 +1,8 @@
-# Couchbase Connector Example
+# Couchbase Magma Connector Example
+This connector example demonstrates how to sync data from a self-managed Couchbase Server (local, on-premises, or self-hosted in the cloud) using the Magma storage engine with the Connector SDK. 
+It connects to a Couchbase instance, runs SQL++ (N1QL) queries to retrieve data from a specified Magma bucket, scope, and collection, and streams the results efficiently to a destination table—following best practices for handling large datasets.
 
-## Connector overview
-
-
-This connector example demonstrates how to sync data from Couchbase Capella using the Connector SDK. It connects to a Couchbase Capella instance, executes SQL++ (N1QL) queries to fetch data from a specific bucket, scope, and collection, and efficiently streams the data to destination table while implementing best practices for handling large datasets.
+>For syncing data from a Magma bucket on Couchbase Capella, please refer to the [Couchbase Capella connector example](https://github.com/fivetran/fivetran_connector_sdk/blob/main/examples/source_examples/couchbase_capella).
 
 ## Requirements
 
@@ -15,19 +14,18 @@ This connector example demonstrates how to sync data from Couchbase Capella usin
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-- Connect to Couchbase Capella instances using secure authentication
-- Execute SQL++ (N1QL) queries against Couchbase collections
+- Connect to Couchbase instances using secure authentication
+- Execute SQL++ (N1QL) queries against Couchbase Magma bucket collections
 - Stream data efficiently to handle large datasets. This prevents any potential memory overflow errors.
 - Implement regular checkpointing
-- Configure WAN development profile to handle latency issues when accessing Capella from different networks
 
 ## Configuration file
 
-The connector requires the following configuration parameters to connect to your Couchbase Capella instance:
+The connector requires the following configuration parameters to connect to your Couchbase instance:
 
 ```
 {
@@ -36,7 +34,9 @@ The connector requires the following configuration parameters to connect to your
     "endpoint": "YOUR_COUCHBASE_ENDPOINT",
     "bucket_name": "YOUR_COUCHBASE_BUCKET_NAME",
     "scope": "YOUR_COUCHBASE_SCOPE_NAME",
-    "collection": "YOUR_COUCHBASE_COLLECTION_NAME"
+    "collection": "YOUR_COUCHBASE_COLLECTION_NAME",
+    "use_tls": "<true/false>",  # Optional, defaults to false, required if couchbase instance requires TLS
+    "cert_path": "PATH_TO_YOUR_TLS_CERTIFICATE"  # Optional, required if use_tls is true
 }
 ```
 
@@ -68,10 +68,10 @@ The connector handles data processing through the following steps:
 ## Error handling
 
 The connector implements error handling in several critical functions:  
-- In `create_couchbase_client`: Catches any exception during cluster connection and raises a meaningful error message
-- In `execute_query_and_upsert`: Catches exceptions during query execution and data processing, raising descriptive runtime errors
+- In `create_couchbase_client`: Catches any exception during cluster connection and raises a meaningful error message.
+- In `execute_query_and_upsert`: Catches exceptions during query execution and data processing, raising descriptive runtime errors.
 
-## Tables Created
+## Tables created
 
 The `schema()` function defines the structure of the destination table:
 
@@ -87,6 +87,7 @@ The `schema()` function defines the structure of the destination table:
         "callsign": "STRING",
         "iata": "STRING",
         "icao": "STRING",
+        "created_at": "UTC_DATETIME",
     },
 }
 ```
