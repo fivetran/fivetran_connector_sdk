@@ -27,7 +27,7 @@ Cursor is an AI-powered code editor designed for productivity, smart completion,
 **Contents:**
 - [Fivetran Connector SDK AI System Instructions {Notepad}](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
 - [Installation Guide](https://www.cursor.com/)
-- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/README.md)
+- [Using Cursor with Fivetran Connector SDK](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor/CURSOR_README.md)
 
 ---
 
