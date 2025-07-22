@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# This example demonstrates how to work with a self-managed Couchbase Server using Magma storgae engine.
+# This example demonstrates how to work with a self-managed Couchbase Server using Magma storage engine.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
