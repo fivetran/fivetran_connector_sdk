@@ -44,19 +44,33 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - Reliability - includes error handling for API interactions and data processing
 
 ---
+## Configuration file
 
-## Project structure
+The example expects a configuration.json file with the following structure:
 
 ```plaintext
-├── parks.py         # Handles the Parks table
-├── alerts.py        # Handles the Alerts table
-├── articles.py      # Handles the Articles table
-├── people.py        # Handles the People table
-├── nps_client.py    # Handles API initialization and data fetching
-├── requirements.txt # Lists dependencies
-├── README.md        # Project documentation
-└── connector.py     # Main file to run the connector
+{"api_key": "<YOUR_API_KEY>"}
 ```
+
+Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
+
+---
+
+## Authentication
+
+The example uses a simple API-key authentication. It reads your NPS API key out of a configuration.json file and then includes it on every request as a query parameter.
+
+---
+## Pagination
+
+This example does not use any pagination. 
+
+---
+## Data handling
+
+	- Schema definition: The connector’s tables and their column schemas are built in the schema(configuration) function (see lines 13–18).
+	- Data retrieval & processing: On each sync, Fivetran calls update(configuration, state) (see lines 22–27), which instantiates each table handler and calls its process_data() method. Under the hood, process_data() uses the shared fetch_data() helper to pull JSON from the NPS API and then maps it into Python dicts.
+	- Upsert delivery: For every record returned by process_data(), the connector yields an op.upsert(table.path(), row) operation—handing each row off to Fivetran for insert/update in the destination (see lines 24–27).
 
 ---
 
@@ -135,4 +149,21 @@ select * from people
 
 ```
 
+---
+## Additional Files
 
+```plaintext
+├── parks.py         # Handles the Parks table
+├── alerts.py        # Handles the Alerts table
+├── articles.py      # Handles the Articles table
+├── people.py        # Handles the People table
+├── nps_client.py    # Handles API initialization and data fetching
+├── requirements.txt # Lists dependencies
+├── README.md        # Project documentation
+└── connector.py     # Main file to run the connector
+```
+---
+
+## Additional Considerations
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
