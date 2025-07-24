@@ -58,10 +58,10 @@ def update(configuration: dict, state: dict):
         port = configuration.get("port")
         table_name = configuration.get("table_name")
         log.info("Fetching the CSV from desired location.")
-        yield from read_postgres_and_upsert(host, database, user, password, port, table_name)
+        read_postgres_and_upsert(host, database, user, password, port, table_name)
 
         state["timestamp"] = time.time()
-        yield op.checkpoint(state)
+        op.checkpoint(state)
     except Exception as e:
         log.severe(f"An error occurred: {e}")
 
@@ -118,7 +118,7 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
                 if isinstance(value, datetime.date):
                     value = str(value)
                 upsert_line[headers[col_index]] = value
-            yield op.upsert("orders", upsert_line)
+            op.upsert("orders", upsert_line)
 
         # Close the cursor and connection
         cursor.close()

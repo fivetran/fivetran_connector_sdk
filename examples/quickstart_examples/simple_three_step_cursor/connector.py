@@ -61,8 +61,8 @@ def update(configuration: dict, state: dict):
         )
     row = SOURCE_DATA[cursor]
 
-    # Yield an upsert operation to insert/update the row in the "hello_world" table.
-    yield op.upsert(table="hello_world", data=row)
+    # Upsert operation to insert/update the row in the "hello_world" table.
+    op.upsert(table="hello_world", data=row)
 
     # Update the state with the new cursor position, incremented by 1.
     new_state = {"cursor": cursor + 1}
@@ -72,7 +72,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state=new_state)
+    op.checkpoint(state=new_state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
