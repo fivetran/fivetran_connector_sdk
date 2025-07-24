@@ -135,12 +135,12 @@ def update(configuration: dict, state: dict):
 
         # upsert each record into the destination table
         for record in records:
-            yield op.upsert(table="sample_table", data=record)
-        yield op.checkpoint(state)
+            op.upsert(table="sample_table", data=record)
+        op.checkpoint(state)
 
         # CASE 1: Deleting single record with id=3 and department_id=1
         log.info("Deleting record with id=3 and department_id=1")
-        yield op.delete(table="sample_table", keys={"id": 3, "department_id": 1})
+        op.delete(table="sample_table", keys={"id": 3, "department_id": 1})
 
         # CASE 2: Deleting all records with department_id=1
         log.info("Deleting all records with department_id=1")
@@ -151,14 +151,14 @@ def update(configuration: dict, state: dict):
         # The fetched records contain: {'id': 1, 'department_id': 1} and {'id': 1, 'department_id': 2}
         for record in records:
             # It is important to provide all the primary key defined in schema to delete the record.
-            yield op.delete(table="sample_table", keys=record)
+            op.delete(table="sample_table", keys=record)
 
         # Deleting the records with incomplete primary keys will raise an error.
         # Below are the examples of such cases:
-        # yield op.delete(table="sample_table", keys={"id": 1})
-        # yield op.delete(table="sample_table", keys={"department_id": 3})
+        # op.delete(table="sample_table", keys={"id": 1})
+        # op.delete(table="sample_table", keys={"department_id": 3})
 
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     except Exception as e:
         raise ValueError(f"Error deleting records: {e}")

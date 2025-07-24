@@ -47,8 +47,8 @@ def get_auth_headers(config):
 # Steps:
 # 1. Calls get_api_response to fetch data from the API using the provided parameters and authentication headers.
 # 2. Extracts the list of items from the API response.
-# 3. Yields an upsert operation for each item to insert/update it in the destination.
-# 4. Yields a checkpoint operation to save the current sync state for resuming future syncs.
+# 3. Upsert operation for each item to insert/update it in the destination.
+# 4. Checkpoint operation to save the current sync state for resuming future syncs.
 #
 # The function takes three parameters:
 # - params: A dictionary of query parameters to be sent with the API request.
@@ -62,16 +62,16 @@ def sync_items(params, state, configuration):
     if not items:
         return
 
-    # Iterate over each user in the 'items' list and yield an upsert operation.
+    # Iterate over each user in the 'items' list and perform an upsert operation.
     # The 'upsert' operation inserts the data into the destination.
     for user in items:
-        yield op.upsert(table="user", data=user)
+        op.upsert(table="user", data=user)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def validate_configuration(configuration: dict):
@@ -165,7 +165,7 @@ def get_api_response(params, headers, configuration):
 # The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
     validate_configuration(configuration)
-    yield from sync_items({}, state, configuration)
+    sync_items({}, state, configuration)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

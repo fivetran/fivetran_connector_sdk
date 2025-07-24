@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
     )
     base_url = "http://127.0.0.1:5001/auth/http_basic"
 
-    yield from sync_items(base_url, {}, state, configuration)
+    sync_items(base_url, {}, state, configuration)
 
 
 # Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
@@ -90,7 +90,7 @@ def get_auth_headers(config):
 # The sync_items function handles the retrieval of API data.
 # It performs the following tasks:
 # 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by yielding upsert operations to Fivetran.
+# 2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
 # 3. Saves the state periodically to ensure the sync can resume from the correct point.
 #
 # The function takes three parameters:
@@ -106,16 +106,16 @@ def sync_items(base_url, params, state, configuration):
     if not items:
         return
 
-    # Iterate over each user in the 'items' list and yield an upsert operation.
+    # Iterate over each user in the 'items' list and perform an upsert operation.
     # The 'upsert' operation inserts the data into the destination.
     for user in items:
-        yield op.upsert(table="user", data=user)
+        op.upsert(table="user", data=user)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.

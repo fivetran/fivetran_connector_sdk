@@ -66,7 +66,7 @@ def update(configuration: dict, state: dict):
     base_url = "http://127.0.0.1:5001/export/csv"
 
     # Call the sync_csv_data function to process the CSV data.
-    yield from sync_csv_data(base_url, state)
+    sync_csv_data(base_url, state)
 
 
 # The sync_csv_data function handles retrieving and processing CSV data from the API.
@@ -82,13 +82,13 @@ def sync_csv_data(base_url, state):
     # Process each row in the CSV response.
     log.info("Syncing CSV contents...")
     for item in items:
-        yield op.upsert(table="user", data=item)
+        op.upsert(table="user", data=item)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # The get_csv_response function sends an HTTP GET request and returns the raw CSV response as text.
