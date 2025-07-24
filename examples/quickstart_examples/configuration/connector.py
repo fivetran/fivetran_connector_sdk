@@ -60,8 +60,8 @@ def update(configuration: dict, state: dict):
     log.fine("decrypting the message")
     message = f.decrypt(encrypted_message)
 
-    # Yield an upsert operation to insert/update the decrypted message in the "crypto" table.
-    yield op.upsert(
+    # Upsert operation to insert/update the decrypted message in the "crypto" table.
+    op.upsert(
         table="crypto", data={"msg": message.decode()}  # Decode the decrypted message to a string.
     )
 
@@ -69,7 +69,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
