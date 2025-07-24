@@ -25,19 +25,18 @@ from fivetran_connector_sdk import Operations as op
 def update(configuration: dict, state: dict):
     log.warning("Example: QuickStart Examples - Hello")
 
-    # The yield statement returns a generator object.
-    # This generator will yield an upsert operation to the Fivetran connector.
+    # The 'upsert' operation is used to insert or update data in a table.
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into, in this case, "hello".
     # - The second argument is a dictionary containing the data to be upserted,
     log.fine(f"upserting to table 'hello'")
-    yield op.upsert(table="hello", data={"message": "hello, world!"})
+    op.upsert(table="hello", data={"message": "hello, world!"})
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
