@@ -116,7 +116,7 @@ def example_upserting_data_from_trippin(trippin_client):
     # The method also takes an optional parameter additional_headers which is a dictionary containing additional headers to be passed in the request.
     # To know more about the upsert_entity() method refer to the upsert_entity() method of ODataClient class
     # The method returns the state dictionary after the completion of the upsert operation.
-    modified_state = yield from trippin_client.upsert_entity(entity=entity)
+    modified_state = trippin_client.upsert_entity(entity=entity)
     # The modified state dictionary is empty as no modifications were done to the state dictionary in EXAMPLE 1
 
     # The modified state dictionary is returned to the caller
@@ -149,7 +149,7 @@ def example_using_expand(northwind_client, state):
     # The modified state from the EXAMPLE 1 is passed as the state parameter
     # This ensures that any changes done to state in EXAMPLE 1 are maintained in EXAMPLE 2
     # The upsert_entity() method will read the state key-value pairs from the modified state passed to the method.
-    yield from northwind_client.upsert_entity(entity=entity, state=state)
+    northwind_client.upsert_entity(entity=entity, state=state)
 
 
 # This method contains example to show the usage of incremental sync
@@ -182,7 +182,7 @@ def example_using_incremental_sync(odata_client, state):
         "update_state": update_state,
     }
 
-    modified_state = yield from odata_client.upsert_entity(entity=entity)
+    modified_state = odata_client.upsert_entity(entity=entity)
     # The modified state dictionary contains  {'latestReleaseDate': '2008-05-08T00:00:00', 'latestID': 10}
 
     # The modified state dictionary is returned to the caller
@@ -227,7 +227,7 @@ def example_using_multiple_entities(northwind_client, state):
     # The upsert_multiple_entity() method is used to fetch data from multiple entities.
     # This method queries the OData service for each entity in the entity_list and upserts the data to the destination table.
     # The method requires the entity_list and state dictionary as parameters.
-    yield from northwind_client.upsert_multiple_entity(entity_list=entity_list, state=state)
+    northwind_client.upsert_multiple_entity(entity_list=entity_list, state=state)
 
 
 # This method contains example to show how to use batch operations to fetch data from multiple entities in a single request
@@ -274,7 +274,7 @@ def example_using_batch_operations(northwind_client, state):
 
     # The upsert_batch() method is used to execute the batch operations added to the ODataClient instance.
     # It takes the state dictionary as a parameter and returns the updated state dictionary.
-    modified_state = yield from northwind_client.upsert_batch(state=state)
+    modified_state = northwind_client.upsert_batch(state=state)
 
     # The modified state dictionary is returned to the caller
     # This allows the caller to use the modified state dictionary for further operations
@@ -316,33 +316,33 @@ def update(configuration: dict, state: dict):
     # EXAMPLE 1 : Fetching data from People entity set
     log.info("Example 1 : Fetching People data from TripPin odata service")
 
-    modified_state_trippin = yield from example_upserting_data_from_trippin(trippin_client)
+    modified_state_trippin = example_upserting_data_from_trippin(trippin_client)
     log.info(f"Modified State after Example 1 : {modified_state_trippin}")
 
     # EXAMPLE 2 : Fetching orders data from northwind odata service with expand
     log.info("Example 2 : Fetching Orders data from northwind odata service with expand")
 
-    yield from example_using_expand(northwind_client, state)
+    example_using_expand(northwind_client, state)
 
     # EXAMPLE 3 : Fetching data from Products entity set with incremental sync
     log.info("Example 3 : Fetching Products data from OData service with incremental sync")
 
-    modified_state_odata = yield from example_using_incremental_sync(odata_client, state)
+    modified_state_odata = example_using_incremental_sync(odata_client, state)
     log.info(f"Modified State after Example 3 : {modified_state_odata}")
 
     # EXAMPLE 4 : Fetching Multiple entities
     log.info("Example 4 : Fetching data from multiple entities")
 
-    yield from example_using_multiple_entities(northwind_client, state)
+    example_using_multiple_entities(northwind_client, state)
 
     # EXAMPLE 5 : Batch Operations to fetch multiple data in a single request
     log.info("Example 5 : Batch Operations to fetch multiple data in a single request")
 
-    modified_state_batch = yield from example_using_batch_operations(northwind_client, state)
+    modified_state_batch = example_using_batch_operations(northwind_client, state)
     log.info(f"Modified State after Example 5 : {modified_state_batch}")
 
     # optional checkpoint as the checkpoint is called in the upsert_batch function during the sync
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

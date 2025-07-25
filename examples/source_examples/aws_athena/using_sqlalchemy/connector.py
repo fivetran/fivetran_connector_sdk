@@ -60,7 +60,7 @@ def update(configuration: dict, state: dict):
                 break
 
             for row in rows:
-                yield op.upsert(
+                op.upsert(
                     table="customers",
                     data={
                         "customer_id": row[0],  # Customer id.
@@ -74,7 +74,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

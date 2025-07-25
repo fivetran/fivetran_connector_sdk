@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
         token_header = make_headers(configuration)
 
         for extract in data_extracts:
-            yield from sync_items(token_header, extract)
+            sync_items(token_header, extract)
 
     except Exception as e:
         # Return error response
@@ -138,9 +138,9 @@ def sync_items(headers: dict, extract: dict):
         for file in matching_files:
             full_path = os.path.join(extract_path, file)
             log.fine(f"processing {full_path}")
-            yield from upsert_rows(full_path, layout_name)
+            upsert_rows(full_path, layout_name)
 
-    yield op.checkpoint({})
+    op.checkpoint({})
 
 
 def upsert_rows(filename: str, layout_name: str):
@@ -157,7 +157,7 @@ def upsert_rows(filename: str, layout_name: str):
         reader = csv.reader(file, delimiter="\t")  # Tab-delimited
 
         for row in reader:
-            yield op.upsert(table=layout_name, data=dict(zip(layout_column_names, row)))
+            op.upsert(table=layout_name, data=dict(zip(layout_column_names, row)))
 
 
 def submit_process(url: str, headers: dict, payload: dict):

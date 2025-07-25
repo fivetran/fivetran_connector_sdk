@@ -1,5 +1,0 @@
-{
-    "base_url": "https://api.fda.gov/animalandveterinary/event.json",
-    "limit": "10",
-    "api_key": ""
-}
