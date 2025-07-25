@@ -73,19 +73,19 @@ def update(configuration: dict, state: dict):
             "after": None,
         }
 
-        yield from sync_items(event_type_name, events_url, params, headers)
+        sync_items(event_type_name, events_url, params, headers)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint({"start_date": end_date})
+        op.checkpoint({"start_date": end_date})
 
 
 # The sync_items function handles the retrieval and processing of paginated API data.
 # It performs the following tasks:
 # 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by yielding upsert operations to Fivetran.
+# 2. Processes the items returned in the API response by performing upsert operations to send to Fivetran.
 # 3. Continues fetching and processing data from the API until all pages are processed.
 #
 # The function takes four parameters:
@@ -105,12 +105,12 @@ def sync_items(endpoint, api_url, params, headers):
         if not items:
             break  # End pagination if there are no records in response.
 
-        # Iterate over each user in the 'items' list and yield an upsert operation.
+        # Iterate over each user in the 'items' list and performs an upsert operation.
         for item in items:
 
             # Convert any column values that are Lists to json and upsert record
             item_mod = flatten_json(item)
-            yield op.upsert(table=endpoint, data=item_mod)
+            op.upsert(table=endpoint, data=item_mod)
 
         # Determine if we should continue pagination based on the total items and the current offset.
         more_data, params = should_continue_pagination(response_page, params)

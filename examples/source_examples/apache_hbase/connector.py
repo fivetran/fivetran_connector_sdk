@@ -68,12 +68,11 @@ def execute_query_and_upsert(table_connection, column_family, table_name, state,
                 "city": data[f"{column_family}:city".encode()].decode("utf-8"),
                 "created_at": data[f"{column_family}:created_at".encode()].decode("utf-8"),
             }
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
-            yield op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_at is greater
             last_created = max(last_created, row_data["created_at"])
@@ -90,7 +89,7 @@ def execute_query_and_upsert(table_connection, column_family, table_name, state,
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(new_state)
+    op.checkpoint(new_state)
 
 
 def schema(configuration: dict):
@@ -144,7 +143,7 @@ def update(configuration: dict, state: dict):
     table_connection = connection.table(hbase_table)
 
     # Fetch the data and upsert it into the destination
-    yield from execute_query_and_upsert(
+    execute_query_and_upsert(
         table_connection=table_connection,
         column_family=column_family,
         table_name=table_name,

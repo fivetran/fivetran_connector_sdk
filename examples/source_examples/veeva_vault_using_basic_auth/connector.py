@@ -175,14 +175,14 @@ def update(configuration: dict, state: dict):
 
             for record in data:
                 row = {k: json.dumps(v) if isinstance(v, list) else v for k, v in record.items()}
-                yield op.upsert(object_type, row)
+                op.upsert(object_type, row)
 
             # Until there is no next_page, keep calling next_page_url from API response to paginate through object
             vql_url, more_data, payload = should_continue_pagination(
                 base_url, vql_url, response_page, payload
             )
         table_cursor[object_cursor] = obj_start_time
-        yield op.checkpoint(table_cursor)
+        op.checkpoint(table_cursor)
 
 
 # Function to make a call to the VQL endpoint: https://developer.veevavault.com/api/19.3/#vault-query-language-vql
