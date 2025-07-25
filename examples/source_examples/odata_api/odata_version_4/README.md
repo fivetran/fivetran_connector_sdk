@@ -38,7 +38,7 @@ entity = {
 }
 
 # Execute the query and upsert data
-state = yield from odata_client.upsert_entity(entity=entity)
+state = odata_client.upsert_entity(entity=entity)
 ```
 
 #### Query Options
@@ -73,7 +73,7 @@ entity = {
     "table": "Orders"
 }
 
-yield from odata_client.upsert_entity(entity=entity)
+odata_client.upsert_entity(entity=entity)
 ```
 
 ### Incremental Sync
@@ -98,7 +98,7 @@ entity = {
 }
 
 # Execute incremental sync
-state = yield from odata_client.upsert_entity(entity=entity)
+state = odata_client.upsert_entity(entity=entity)
 ```
 
 ### Multiple Entity Operations
@@ -119,7 +119,7 @@ entity_list = [
     }
 ]
 
-state = yield from odata_client.upsert_multiple_entity(entity_list=entity_list, state=state)
+state = odata_client.upsert_multiple_entity(entity_list=entity_list, state=state)
 ```
 
 ### Batch Operations
@@ -146,7 +146,7 @@ odata_client.add_batch(
 )
 
 # Execute batch and process results
-state = yield from odata_client.upsert_batch(state=state)
+state = odata_client.upsert_batch(state=state)
 ```
 
 ## State Management
@@ -171,7 +171,7 @@ entity = {
     "update_state": update_state
 }
 
-state = yield from odata_client.upsert_entity(entity=entity)
+state = odata_client.upsert_entity(entity=entity)
 ```
 
 The client will:
@@ -263,7 +263,7 @@ def _handle_pagination(self, initial_url: str, table: str = None, update_state: 
         current_page = self._make_request(url=next_link)
         formatted_data = self._standardize_output(response=current_page)
         
-        yield from self._upsert_formatted_data(formatted_data=formatted_data, 
+        self._upsert_formatted_data(formatted_data=formatted_data, 
                                               table=table, 
                                               update_state=update_state)
         

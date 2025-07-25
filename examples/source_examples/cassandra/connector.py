@@ -119,7 +119,7 @@ def upsert_fetched_rows(session, keyspace: str, table_name: str, state: dict):
         }
 
         # Upsert the record into destination and increment the record count
-        yield op.upsert(table=table_name, data=record)
+        op.upsert(table=table_name, data=record)
         record_count += 1
 
         # Update the max_created_at if the current row's created_at is greater
@@ -135,14 +135,14 @@ def upsert_fetched_rows(session, keyspace: str, table_name: str, state: dict):
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(state)
+            op.checkpoint(state)
             log.info(f"{record_count} records processed")
 
     log.info(f"Total records processed: {record_count}")
 
     # checkpoint the last created_at timestamp
     state["last_created_at"] = max_created_at.isoformat()
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def schema(configuration: dict):
@@ -206,7 +206,7 @@ def update(configuration, state):
     # If these prerequisites are not met, the connector will not function correctly.
 
     # Fetch new rows from Cassandra and upsert them
-    yield from upsert_fetched_rows(
+    upsert_fetched_rows(
         session=session, keyspace=keyspace, table_name=table_name, state=state
     )
 

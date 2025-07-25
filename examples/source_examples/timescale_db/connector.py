@@ -119,10 +119,10 @@ def update(configuration: dict, state: dict):
 
     try:
         # Call the upsert_data method to fetch data from the TimescaleDb database and upsert it into the destination table.
-        yield from timescaledb_client.upsert_data(query, SENSOR_TABLE, state)
+        timescaledb_client.upsert_data(query, SENSOR_TABLE, state)
 
         # Call the upsert_vector_data method to fetch vector data from the TimescaleDb database and upsert it into the destination table.
-        yield from timescaledb_client.upsert_vector_data(vector_query, VECTOR_TABLE, state)
+        timescaledb_client.upsert_vector_data(vector_query, VECTOR_TABLE, state)
 
     except Exception as e:
         raise RuntimeError(f"Error during update: {e}")

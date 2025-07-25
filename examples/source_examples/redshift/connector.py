@@ -127,14 +127,12 @@ def update(configuration: dict, state: dict):
         result = cursor.fetchmany(2)
         if len(result) == 0:
             break
-        # Yield an upsert operation to insert/update the row in the "customers" table.
+        # An upsert operation to insert/update the row in the "customers" table.
         for row in result:
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into, in this case, "customers".
             # - The second argument is a dictionary containing the data to be upserted,
-            yield op.upsert(
+            op.upsert(
                 table="customers",
                 data={
                     "customer_id": row[0],  # Customer id.
@@ -153,7 +151,7 @@ def update(configuration: dict, state: dict):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

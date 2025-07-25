@@ -84,7 +84,7 @@ class ODataClient:
         """
         Upsert formatted data from an entity set.
         This method handles pagination and processes all results from a query,
-        yielding upsert operations for each record and checkpoint operations.
+        performing upsert operations for each record and checkpoint operations.
         """
         while True:
             for entity in entities:
@@ -96,12 +96,12 @@ class ODataClient:
                     )
 
                 record = self.clean_odata_fields(data=record)
-                yield op.upsert(table=table, data=record)
+                op.upsert(table=table, data=record)
                 self._update_state_tracker(item=record, update_state=update_state)
 
             log.info(f"upserted {len(entities)} records to table {table}")
 
-            yield op.checkpoint(self.state)
+            op.checkpoint(self.state)
 
             if entities.next_url is None:
                 break
@@ -110,7 +110,7 @@ class ODataClient:
 
     def upsert_entity(self, entity, state: Dict = None):
         """
-        Fetch data from an entity set and yield records.
+        Fetch data from an entity set and return records.
         This is the main method for querying a single entity set and upserting
         the results to a destination table.
         Modify this method to add custom pre-processing or validation for your specific entity types
@@ -131,7 +131,7 @@ class ODataClient:
             entities = self._exec_query(entity_set_obj=entity_set_obj, query_options=query_options)
             log.info(f"Fetched data from entity set: {entity_set}")
 
-            yield from self._upsert_formatted_data(
+            self._upsert_formatted_data(
                 entities=entities,
                 entity_set_obj=entity_set_obj,
                 query_options=query_options,
@@ -146,7 +146,7 @@ class ODataClient:
 
     def upsert_multiple_entity(self, entity_list: List[Dict], state: Dict = None):
         """
-        Fetch data from multiple entity sets and yield records.
+        Fetch data from multiple entity sets and upsert records.
         This method processes multiple entity configurations sequentially.
         You can modify to implement entity-specific processing logic.
         You can adjust the processing order of entities if there are dependencies
@@ -154,7 +154,7 @@ class ODataClient:
         if state:
             self.state = state
         for entity in entity_list:
-            yield from self.upsert_entity(entity=entity)
+            self.upsert_entity(entity=entity)
         return self.state
 
     def process_expand_options(
@@ -466,7 +466,7 @@ class ODataClient:
             table = self.batch_requests[index]["table"]
             update_state = self.batch_requests[index]["update_state"]
 
-            yield from self._upsert_formatted_data(
+            self._upsert_formatted_data(
                 entities=entities,
                 entity_set_obj=entity_set_obj,
                 query_options=query_options,

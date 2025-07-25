@@ -69,7 +69,7 @@ def handle_timestamp(value):
 
 def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_upserted_timestamp):
     """
-    This function processes a record batch and yields upsert operations for each row.
+    This function processes a record batch and performs upsert operations for each row.
     Args:
         num_rows: number of rows in the record batch
         record_batch: an Apache Arrow RecordBatch object containing the data
@@ -95,12 +95,11 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
         if "time" in row_dict and row_dict["time"] > latest_upserted_timestamp:
             latest_upserted_timestamp = row_dict["time"]
 
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation is used to insert or update the data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted.
-        yield op.upsert(table=table_name, data=row_dict)
+        op.upsert(table=table_name, data=row_dict)
 
     # Update the latest upserted timestamp in the state.
     new_state = {"last_upserted_timestamp": latest_upserted_timestamp}
@@ -108,7 +107,7 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(new_state)
+    op.checkpoint(new_state)
 
 
 def execute_query_and_upsert(client, database, query, table_name, last_upserted_timestamp):
@@ -143,7 +142,7 @@ def execute_query_and_upsert(client, database, query, table_name, last_upserted_
             log.info(f"Fetched record batch with {num_rows} rows")
 
             # Upsert the record batch into the destination.
-            yield from upsert_record_batch(
+            upsert_record_batch(
                 num_rows, record_batch, column_names, table_name, last_upserted_timestamp
             )
 
@@ -205,7 +204,7 @@ def update(configuration, state):
     )
 
     # execute the query and upsert the data into destination
-    yield from execute_query_and_upsert(
+    execute_query_and_upsert(
         client, database, sql_query, TABLE_NAME, last_upserted_timestamp
     )
 

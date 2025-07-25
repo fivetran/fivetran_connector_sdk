@@ -69,7 +69,7 @@ def update(configuration: dict, state: dict):
     query = f"SELECT * FROM pg_stat_activity WHERE query_start > '{last_query_timestamp}'"
 
     # Call the upsert_data method to fetch data from the Greenplum database and upsert it into the destination table.
-    yield from greenplum_client.upsert_data(query, DESTINATION_TABLE, state)
+    greenplum_client.upsert_data(query, DESTINATION_TABLE, state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

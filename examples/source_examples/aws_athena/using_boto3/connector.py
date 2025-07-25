@@ -62,7 +62,7 @@ def process_and_upsert_response(response):
                 row_data.append(bool(cell["BooleanValue"]))
             else:
                 row_data.append(None)
-        yield op.upsert(
+        op.upsert(
             table="customers",
             data={
                 "customer_id": row_data[0],  # Customer id.
@@ -85,7 +85,7 @@ def get_query_results(athena_client, query_execution_id):
             else athena_client.get_query_results(QueryExecutionId=query_execution_id)
         )
 
-        yield from process_and_upsert_response(response)
+        process_and_upsert_response(response)
         if NEXT_TOKEN not in response:
             break
 
@@ -119,13 +119,13 @@ def update(configuration: dict, state: dict):
         time.sleep(5)
 
     if status == "SUCCEEDED":
-        yield from get_query_results(athena_client, query_execution_id)
+        get_query_results(athena_client, query_execution_id)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
     else:
         print(f"Query failed with status: {status}")
 
