@@ -60,7 +60,7 @@ def execute_query_and_upsert(client, query, table_name, state):
             # Convert the row tuple to a dictionary using the column names
             row = dict(zip(column_names, row))
             # Upsert the data into the destination table
-            yield op.upsert(table=table_name, data=row)
+            op.upsert(table=table_name, data=row)
 
             # Update the state with the last created_at timestamp
             if row["created_at"]:
@@ -73,7 +73,7 @@ def execute_query_and_upsert(client, query, table_name, state):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def schema(configuration: dict):
@@ -146,7 +146,7 @@ def update(configuration, state):
     )
     # The name of the table to upsert data into
     destination_table = "destination_table"
-    yield from execute_query_and_upsert(
+    execute_query_and_upsert(
         client=client, query=clickhouse_query, table_name=destination_table, state=state
     )
 

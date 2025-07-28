@@ -79,7 +79,7 @@ def update(configuration: dict, state: dict):
         for t in topics:
             params["q"] = t
             params["page"] = "1"
-            yield from sync_items(base_url, headers, params, state, t)
+            sync_items(base_url, headers, params, state, t)
 
         # Update the state with the new cursor position, incremented by 1.
         new_state = {"to_ts": to_ts}
@@ -89,7 +89,7 @@ def update(configuration: dict, state: dict):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=new_state)
+        op.checkpoint(state=new_state)
 
     except Exception as e:
         # Return error response
@@ -119,13 +119,13 @@ def sync_items(base_url, headers, params, state, topic):
         if not items:
             break  # End pagination if there are no records in response.
 
-        # Iterate over each user in the 'items' list and yield an upsert operation.
+        # Iterate over each user in the 'items' list and performs an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
         summary_first_item = {"title": items[0]["title"], "source": items[0]["source"]}
 
         for a in items:
-            yield op.upsert(
+            op.upsert(
                 table="article",
                 data={
                     "topic": topic,
@@ -143,7 +143,7 @@ def sync_items(base_url, headers, params, state, topic):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
         # Determine if we should continue pagination based on the total items and the current offset.
         more_data, params = should_continue_pagination(params, response_page)

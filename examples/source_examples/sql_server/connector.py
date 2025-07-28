@@ -145,8 +145,7 @@ def setup_db(configuration):
 def update(configuration: dict, state: dict):
     log.warning("Example: Source Examples - SQL Server")
 
-    # The yield statement returns a generator object.
-    # This generator will yield an upsert operation to the Fivetran connector.
+    # The 'upsert' operation is used to insert or update data in a table.
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into, in this case, "employee_details".
     # - The second argument is a dictionary containing the data to be upserted,
@@ -181,7 +180,7 @@ def update(configuration: dict, state: dict):
                 break
 
             for row in rows:
-                yield op.upsert(
+                op.upsert(
                     table="employee_details",
                     data={
                         "employee_id": row[0],  # Employee Id.
@@ -209,7 +208,7 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     state["employee_details"] = last_query_dt.isoformat()
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

@@ -218,7 +218,7 @@ def update(configuration: dict, state: dict):
 
     for schema in base:
         log.info(f"Starting sync for {schema['table']}")
-        yield from sync_table(
+        sync_table(
             base_url=base_url,
             path=schema["request_info"]["path"],
             headers=headers,
@@ -230,13 +230,13 @@ def update(configuration: dict, state: dict):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
 
 def sync_table(base_url, path, headers, params, table):
     """
     Sync data from a specific table in the Fleetio API.
-    This function retrieves data from the Fleetio API, flattens it, and yields upsert operations for each record.
+    This function retrieves data from the Fleetio API, flattens it, and performs upsert operations for each record.
     Args:
         base_url: The base URL of the Fleetio API.
         path: The specific API endpoint path to request.
@@ -258,12 +258,11 @@ def sync_table(base_url, path, headers, params, table):
         log.info(f"Processing data for {path}")
         for item in data:
             flat_item = flatten(item)
-            # The yield statement yields a value from generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # The 'upsert' operation is used to insert or update records in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
-            yield op.upsert(table=table, data=flat_item)
+            op.upsert(table=table, data=flat_item)
 
         has_more_pages, params = continue_pagination(response)
 

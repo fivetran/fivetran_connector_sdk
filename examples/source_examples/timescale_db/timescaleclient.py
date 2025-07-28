@@ -90,12 +90,11 @@ class TimescaleClient:
                 upsert_row = dict(row)
                 # Converting datetime objects to ISO format.
                 upsert_row = TimescaleClient.serialize_upsert_row(upsert_row)
-                # The yield statement returns a generator object.
-                # This generator will yield an upsert operation to the Fivetran connector.
+                # The 'upsert' operation is used to insert or update data in a table.
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted.
-                yield op.upsert(table=table_name, data=upsert_row)
+                op.upsert(table=table_name, data=upsert_row)
 
                 # update the last_timestamp variable if the current row's time is greater than the last_timestamp
                 if upsert_row["time"] > last_timestamp:
@@ -106,11 +105,11 @@ class TimescaleClient:
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(state)
+            op.checkpoint(state)
 
         # After fetching all rows, update the state with the last_timestamp and checkpoint it.
         state["last_timestamp"] = last_timestamp
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     def upsert_vector_data(self, query, table_name, state, batch_size=1000):
         """
@@ -139,12 +138,11 @@ class TimescaleClient:
                 upsert_row = dict(row)
                 # Converting datetime objects to ISO format and vector data to list for JSON serialization.
                 upsert_row = TimescaleClient.serialize_upsert_row(upsert_row)
-                # The yield statement returns a generator object.
-                # This generator will yield an upsert operation to the Fivetran connector.
+                # The 'upsert' operation is used to insert or update data in a table.
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted.
-                yield op.upsert(table=table_name, data=upsert_row)
+                op.upsert(table=table_name, data=upsert_row)
 
                 # Update the last timestamp if needed
                 if upsert_row["created_at"] > last_vector_timestamp:
@@ -156,11 +154,11 @@ class TimescaleClient:
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(state)
+            op.checkpoint(state)
 
         # Final checkpoint after all data is processed
         state["last_vector_timestamp"] = last_vector_timestamp
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     @staticmethod
     def serialize_upsert_row(data):

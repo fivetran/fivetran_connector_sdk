@@ -82,10 +82,10 @@ def update(configuration, state):
         session = driver.session(database=database)
 
         # Upsert the users data from the Neo4j database
-        yield from process_users(session=session, state=state)
+        process_users(session=session, state=state)
 
         # Upsert the tweet-hashtag relationships from the Neo4j database in batches
-        yield from process_tweet_hashtags(session=session, state=state, batch_size=500)
+        process_tweet_hashtags(session=session, state=state, batch_size=500)
 
     except ServiceUnavailable as e:
         # Handle the case where the Neo4j database is unavailable
@@ -104,7 +104,7 @@ def update(configuration, state):
 
 def process_users(session, state):
     """
-    This function fetches user data from the Neo4j database and yields upsert operations for each user.
+    This function fetches user data from the Neo4j database and performs upsert operations for each user.
     Args:
         session: The Neo4j session object
         state: The state dictionary
@@ -132,19 +132,19 @@ def process_users(session, state):
     # Process each user record
     for record in results:
         # You can preprocess and modify the record to suit your needs.
-        # Yield an upsert operation to insert/update the record in the "users" table.
-        yield op.upsert(table="users", data=record)
+        # An upsert operation to insert/update the record in the "users" table.
+        op.upsert(table="users", data=record)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def process_tweet_hashtags(session, state, batch_size=100):
     """
-    This function fetches tweet-hashtag relationships from the Neo4j database and yields upsert operations for each relationship.
+    This function fetches tweet-hashtag relationships from the Neo4j database and performs upsert operations for each relationship.
     This is done in batches to avoid overwhelming the database and to manage memory usage.
     The function uses pagination to fetch data in chunks, which is useful for large datasets.
     Args:
@@ -185,8 +185,8 @@ def process_tweet_hashtags(session, state, batch_size=100):
         # Process each tweet-hashtag relationship record and upsert it
         for record in results:
             record = record.data()
-            # Yield an upsert operation
-            yield op.upsert(table="tweet_hashtags", data=record)
+            # An upsert operation
+            op.upsert(table="tweet_hashtags", data=record)
 
         # skip the processed records
         skip += batch_size
@@ -197,7 +197,7 @@ def process_tweet_hashtags(session, state, batch_size=100):
             has_more = False
 
     # Checkpoint after processing each batch
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # Create the connector object using the schema and update functions
