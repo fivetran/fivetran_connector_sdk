@@ -115,9 +115,6 @@ def update(configuration: dict, state: dict):
     Args:
         configuration (dict): Configuration parameters including ZIP codes to process
         state (dict): Current state of the connector, including the last sync time
-
-    Yields:
-        Operation: Fivetran operations (upsert, checkpoint) for data synchronization
     """
     log.warning("Example: QuickStart Examples - Weather with Configuration")
 
@@ -135,7 +132,7 @@ def update(configuration: dict, state: dict):
             (lat, lon), metadata = get_coordinates_from_zip(zip_code)
 
             # Store the zip code metadata
-            yield op.upsert(table="zip_code", data=metadata)
+            op.upsert(table="zip_code", data=metadata)
 
             # Get the forecast URL using the NWS API's two-step process
             forecast_url = get_forecast_url(lat, lon)
@@ -165,8 +162,8 @@ def update(configuration: dict, state: dict):
                 # This log message will only show while debugging.
                 log.fine(f"forecast_period={forecast['name']} for zip code {zip_code}")
 
-                # Yield an upsert operation to insert/update the row in the "forecast" table.
-                yield op.upsert(table="forecast", data=forecast)
+                # Upsert operation to insert/update the row in the "forecast" table.
+                op.upsert(table="forecast", data=forecast)
 
         except Exception as e:
             log.severe(f"Unexpected error occurred while processing ZIP code {zip_code}: {str(e)}")
@@ -174,7 +171,7 @@ def update(configuration: dict, state: dict):
 
     # Update the cursor to the end time of the current period.
     cursor = forecast["endTime"]
-    yield op.checkpoint(state={"startTime": cursor})
+    op.checkpoint(state={"startTime": cursor})
 
 
 def str2dt(incoming: str) -> datetime:
