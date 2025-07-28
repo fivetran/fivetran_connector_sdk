@@ -98,7 +98,7 @@ def sync_contacts(configuration, cursor, state):
             if contact["properties"].get("firstname") and contact["identity-profiles"][0].get(
                 "identities"
             ):
-                yield op.upsert("contacts", process_record(contact))
+                op.upsert("contacts", process_record(contact))
 
 
 def sync_companies(configuration, cursor, state):
@@ -121,7 +121,7 @@ def sync_companies(configuration, cursor, state):
             has_more = False
         # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
         for company in data["companies"]:
-            yield op.upsert("companies", process_record(company))
+            op.upsert("companies", process_record(company))
 
 
 def validate_configuration(configuration: dict):
@@ -158,12 +158,12 @@ def update(configuration: dict, state: dict):
     log.info(f"Starting update process. Initial state: {cursor}")
 
     # Yeilds all the required data from individual methods, and pushes them into the connector upsert function
-    yield from sync_contacts(configuration, cursor, state)
-    yield from sync_companies(configuration, cursor, state)
+    sync_contacts(configuration, cursor, state)
+    sync_companies(configuration, cursor, state)
 
     # Save the final checkpoint by updating the state with the current time
     state["last_updated_at"] = curr_time
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
     log.info(
         f"Completed the update process. Total duration of sync(in s): "

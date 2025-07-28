@@ -103,18 +103,18 @@ def update(configuration: dict, state: dict):
 
     row_3["hash_id"] = generate_row_hash(row_3)
 
-    # Yield an upsert operation to insert/update the row in the "user" table.
-    yield op.upsert(table="user", data=row_1)
-    yield op.upsert(table="user", data=row_11)
-    yield op.upsert(table="user", data=row_12)
-    yield op.upsert(table="user", data=row_2)
-    yield op.upsert(table="user", data=row_3)
+    # Upsert operation to insert/update the row in the "user" table.
+    op.upsert(table="user", data=row_1)
+    op.upsert(table="user", data=row_11)
+    op.upsert(table="user", data=row_12)
+    op.upsert(table="user", data=row_2)
+    op.upsert(table="user", data=row_3)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def generate_row_hash(row: dict):

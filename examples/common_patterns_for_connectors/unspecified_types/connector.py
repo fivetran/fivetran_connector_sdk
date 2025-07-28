@@ -40,11 +40,11 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Unspecified Types")
 
-    # Yield an upsert operation to insert/update the row in the "unspecified" table.
+    # Upsert operation to insert/update the row in the "unspecified" table.
     # The data dictionary contains various data types.
     # Since the schema does not specify column types, they will be inferred from the data.
     log.fine("upserting to table 'unspecified'")
-    yield op.upsert(
+    op.upsert(
         table="unspecified",
         data={  # The keys sent here, e.g. id, _bool, _short, _ndatetime etc,. will be used as column names
             "id": 1,  # Primary key.
@@ -69,7 +69,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

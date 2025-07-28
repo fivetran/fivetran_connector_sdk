@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
     log.fine(f"tables to sync: {TABLES_TO_SYNC}")
     log.fine(f"tables previously synced: {tables_previously_synced}")
 
-    yield from sync_tables(tables_previously_synced, from_timestamp, initial_timestamp)
+    sync_tables(tables_previously_synced, from_timestamp, initial_timestamp)
 
     """
     Save the progress by checkpointing the state. This stores the list of tables that are up-to-date.
@@ -73,7 +73,7 @@ def update(configuration: dict, state: dict):
     tables_synced_this_sync.sort()
     new_state["synced_tables"] = tables_synced_this_sync
     log.fine(new_state)
-    yield op.checkpoint(new_state)
+    op.checkpoint(new_state)
 
 
 def sync_tables(tables_previously_synced: list, from_timestamp, initial_timestamp):
@@ -85,7 +85,7 @@ def sync_tables(tables_previously_synced: list, from_timestamp, initial_timestam
         else:
             log.fine(f"{table} is new, needs history from {initial_timestamp}")
             data = {"message": f"syncing {table} since {initial_timestamp}"}
-        yield op.upsert(table=table, data=data)
+        op.upsert(table=table, data=data)
 
         if table not in tables_synced_this_sync:
             tables_synced_this_sync.append(table)

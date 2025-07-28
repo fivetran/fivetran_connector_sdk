@@ -115,9 +115,9 @@ def update(configuration: dict, state: dict):
     log.fine(f"fetching records from `customer` table modified after {last_updated_at}")
     result = conn.execute(query).fetchall()
 
-    # Yield an upsert operation to insert/update the row in the "customers" table.
+    # Upsert operation to insert/update the row in the "customers" table.
     for row in result:
-        yield op.upsert(
+        op.upsert(
             table="customers",
             data={
                 "customer_id": row[0],  # Customer id.
@@ -137,7 +137,7 @@ def update(configuration: dict, state: dict):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
