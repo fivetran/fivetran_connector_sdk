@@ -1,7 +1,7 @@
 # HTTP Basic Auth Connector Example
 
 ## Connector overview
-This is a simple example that demonstrates how to implement HTTP Basic Authentication with a REST API using the Fivetran Connector SDK. The connector fetches user records from a mock API and upserts them into a table named `USER`. It serves as a learning resource for implementing HTTP Basic Auth, schema management, state checkpointing, and syncing data to Fivetran destinations.
+This is a simple example that demonstrates how to implement HTTP basic authentication with a REST API using the Fivetran Connector SDK. The connector fetches user records from a mock API and upserts them into a table named `USER`. It serves as a learning resource for implementing HTTP Basic Auth, schema management, state checkpointing, and syncing data to Fivetran destinations.
 
 This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
@@ -13,10 +13,10 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Demonstrates how to use HTTP Basic authentication.
+- Demonstrates how to use HTTP basic authentication.
 - Retrieves mock user data using the `requests` library.
 - Defines a `schema()` function to register Fivetran-compatible output.
 - Uses the `update()` method to process and upsert rows.
@@ -44,7 +44,7 @@ requests
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-This connector authenticates using HTTP Basic Auth. The credentials (username and password) are base64-encoded and passed in the `Authorization` header of each API request.
+This connector authenticates using HTTP basic auth. The credentials (username and password) are base64-encoded and passed in the `Authorization` header of each API request.
 Example:
 `Authorization: Basic <base64_encoded_credentials>`
 
@@ -61,7 +61,7 @@ This connector retrieves all data in a single request (no pagination). If extend
 - HTTP errors are caught via `raise_for_status()` in the `get_api_response()` function.
 - Logging is done using the `fivetran_connector_sdk.Logging` module.
 
-## Tables Created
+## Tables created
 The connector creates one table:
 
 ```

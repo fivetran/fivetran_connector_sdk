@@ -1,7 +1,7 @@
 # HTTP Bearer Auth Connector Example
 
 ## Connector overview
-This connector demonstrates how to implement HTTP Bearer Token authentication for a REST API using the Fivetran Connector SDK. It retrieves mock user data from a REST endpoint and upserts it into a table named `USER`.
+This connector demonstrates how to implement HTTP bearer token authentication for a REST API using the Fivetran Connector SDK. It retrieves mock user data from a REST endpoint and upserts it into a table named `USER`.
 
 This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
@@ -13,10 +13,10 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Implements Bearer token-based API authentication.
+- Implements bearer token-based API authentication.
 - Syncs data from a mock REST endpoint using the `requests` library.
 - Upserts user data into a Fivetran-compatible destination table.
 - Demonstrates the use of `update()` and `op.checkpoint` for resumable syncs.
@@ -60,7 +60,7 @@ This connector retrieves all data in a single request (no pagination). If extend
 - HTTP errors are caught via `raise_for_status()` in the `get_api_response()` function.
 - Logging is done using the `fivetran_connector_sdk.Logging` module.
 
-## Tables Created
+## Tables created
 The connector creates one table:
 
 ```

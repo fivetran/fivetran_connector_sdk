@@ -13,7 +13,7 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 - Demonstrates API key authentication pattern.
@@ -43,7 +43,7 @@ requests
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-Authentication is handled via an API Key, which is sent in the `Authorization` header of each API request.
+Authentication is handled via an API key, which is sent in the `Authorization` header of each API request.
 Example:
 `Authorization: apiKey <YOUR_API_KEY>`
 
@@ -57,11 +57,11 @@ This connector retrieves all data in a single request (no pagination). If extend
 - The state object is checkpointed at the end of each sync for incremental syncs in the future.
 
 ## Error handling
-- Missing API Key in configuration raises a ValueError.
+- Missing API key in configuration raises a ValueError.
 - HTTP errors are raised via `response.raise_for_status()` in `get_api_response()`.
 - Logging is handled via `fivetran_connector_sdk.Logging`.
 
-## Tables Created
+## Tables created
 The connector creates one table:
 
 ```
