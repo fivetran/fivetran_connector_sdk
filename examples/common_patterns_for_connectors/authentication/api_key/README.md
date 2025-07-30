@@ -16,7 +16,7 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Demonstrates API Key authentication pattern.
+- Demonstrates API key authentication pattern.
 - Retrieves user data from a mock API using `requests`.
 - Implements the update method to upsert rows into the `USER` table.
 - Uses checkpointing to persist sync state.
