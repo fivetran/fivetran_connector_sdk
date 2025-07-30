@@ -1,7 +1,7 @@
 # API Key Auth Connector Example
 
 ## Connector overview
-This is a simple example that demonstrates how to implement API Key authentication with a REST API using the Fivetran Connector SDK. The connector retrieves user records from a mock API and upserts them into a table named `USER`. It illustrates core concepts such as schema definition, data sync via the update method, state checkpointing, and API request handling using the `requests` library.
+This is a simple example that demonstrates how to implement API key authentication with a REST API using the Fivetran Connector SDK. The connector retrieves user records from a mock API and upserts them into a table named `USER`. It illustrates core concepts such as schema definition, data sync via the update method, state checkpointing, and API request handling using the `requests` library.
 
 This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
