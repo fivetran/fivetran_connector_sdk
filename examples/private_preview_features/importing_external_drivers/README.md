@@ -1,6 +1,6 @@
 # MySQL Connector Using External Driver Installation
 
-## Connector Overview
+## Connector overview
 
 This example demonstrates how to build a Fivetran connector that requires external system-level libraries, such as `libmysqlclient-dev`, by using an `installation.sh` script. It connects to a MySQL database, reads all records from a specified table, and upserts them into a destination table named `ORDERS`.
 
@@ -19,7 +19,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Reads all rows from a MySQL table via MySQLdb.
-- Converts d`atetime.date` values to string for compatibility.
+- Converts `datetime.date` values to string for compatibility.
 - Performs upserts into the `ORDERS` table.
 - Uses `op.checkpoint()` to track progress after each sync.
 - Uses `installation.sh` to install native drivers.
@@ -61,7 +61,7 @@ This example retrieves all rows in a single call. You can modify the query to su
 
 
 ## Data handling
-Data is read from the configured table_name (assumed to match `ORDERS`). Each row is upserted into the destination.
+The connector reads the data from the configured `table_name` (assumed to match `ORDERS`). Each row is upserted into the destination.
 
 
 ## Error handling
@@ -88,11 +88,9 @@ The connector creates the `ORDERS` table:
 
 
 ## Additional files
-The connector uses `MySqldb` to connect to the MySQL database and retrieve data. The `MySqldb` requires an additional system package `default-libmysqlclient-dev` which contains MySQL database development files.
+The connector uses `MySqldb` to connect to the MySQL database and retrieve data. The `MySqldb` requires an additional system package, `default-libmysqlclient-dev`, which contains MySQL database development files.
 
-- drivers/installation.sh – Install MySqldb dependencies files. The script:
-  - Updates the packages for Linux distribution.
-  - Installs the `default-libmysqlclient-dev` package.
+The `drivers/installation.sh` script installs `MySqldb` dependencies files. The script updates the packages for Linux distributions and installs the `default-libmysqlclient-dev` package.
 
 > IMPORTANT: The feature to use external drivers is in private preview. Please connect with our professional services to get more information about them and enable it for your connector.
 
