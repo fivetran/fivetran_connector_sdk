@@ -62,7 +62,7 @@ This connector retrieves all data in a single request (no pagination). If extend
 - Logging is done using the `fivetran_connector_sdk.Logging` module.
 
 ## Tables created
-The connector creates one table:
+The connector creates the `USER` table:
 
 ```
 {
