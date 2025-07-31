@@ -1,8 +1,8 @@
-# MySQL Connector using External Driver Installation
+# MySQL Connector Using External Driver Installation
 
 ## Connector Overview
 
-This example demonstrates how to build a Fivetran connector that requires external system-level libraries - such as `libmysqlclient-dev` - by using an `installation.sh` script. It connects to a MySQL database, reads all records from a specified table, and upserts them into a destination table named `ORDERS`.
+This example demonstrates how to build a Fivetran connector that requires external system-level libraries, such as `libmysqlclient-dev`, by using an `installation.sh` script. It connects to a MySQL database, reads all records from a specified table, and upserts them into a destination table named `ORDERS`.
 
 
 ## Requirements
@@ -14,7 +14,7 @@ This example demonstrates how to build a Fivetran connector that requires extern
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -42,7 +42,7 @@ The connector requires the following configuration parameters:
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 
-## Requirements File
+## Requirements file
 This connector requires the following Python packages:
 
 ```
@@ -60,18 +60,17 @@ Authentication is handled using the `user` and `password` fields in your `config
 This example retrieves all rows in a single call. You can modify the query to support offset-based or key-based pagination for large datasets.
 
 
-## Data Handling
-- Data is read from the configured table_name (assumed to match `ORDERS`).
-- Each row is upserted into the destination.
+## Data handling
+Data is read from the configured table_name (assumed to match `ORDERS`). Each row is upserted into the destination.
 
 
-## Error Handling
+## Error handling
 - Configuration is validated at the start of the sync; missing fields raise a `ValueError`.
 - Any errors during MySQL connection or query execution are caught and logged using `log.severe()`.
 - The connector re-raises critical errors after logging to ensure sync visibility and failure propagation.
 
-## Tables Created
-The connector creates `ORDERS` table:
+## Tables created
+The connector creates the `ORDERS` table:
 ```json
 {
   "table": "orders",
@@ -88,7 +87,7 @@ The connector creates `ORDERS` table:
 ```
 
 
-## Additional Files
+## Additional files
 The connector uses `MySqldb` to connect to the MySQL database and retrieve data. The `MySqldb` requires an additional system package `default-libmysqlclient-dev` which contains MySQL database development files.
 
 - drivers/installation.sh – Install MySqldb dependencies files. The script:
@@ -98,5 +97,5 @@ The connector uses `MySqldb` to connect to the MySQL database and retrieve data.
 > IMPORTANT: The feature to use external drivers is in private preview. Please connect with our professional services to get more information about them and enable it for your connector.
 
 
-## Additional Considerations
+## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
