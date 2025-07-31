@@ -1,0 +1,38 @@
+{
+  "strategy": {
+    "type": "string",
+    "description": "The incremental sync strategy to use: keyset, offset, timestamp, step_size, or replay.",
+    "enum": ["keyset", "offset", "timestamp", "step_size", "replay"],
+    "default": "keyset"
+  },
+  "base_url": {
+    "type": "string",
+    "description": "Base URL for the API.",
+    "default": "http://127.0.0.1:5001/pagination/keyset"
+  },
+  "page_size": {
+    "type": "integer",
+    "description": "Page size for offset-based pagination.",
+    "default": 100
+  },
+  "initial_id": {
+    "type": "integer",
+    "description": "Initial ID for step-size strategy (used when pagination/count is not supported).",
+    "default": 1
+  },
+  "step_size": {
+    "type": "integer",
+    "description": "Step size for step-size strategy (number of IDs to process in each batch).",
+    "default": 1000
+  },
+  "max_id": {
+    "type": "integer",
+    "description": "Maximum ID for step-size strategy (safety limit).",
+    "default": 100000
+  },
+  "buffer_hours": {
+    "type": "integer",
+    "description": "Buffer hours for replay strategy (goes back this many hours from last timestamp).",
+    "default": 2
+  }
+} 

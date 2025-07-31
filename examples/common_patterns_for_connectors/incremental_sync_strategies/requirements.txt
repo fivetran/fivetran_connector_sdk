@@ -1,0 +1,3 @@
+fivetran-connector-sdk
+requests
+pytz 

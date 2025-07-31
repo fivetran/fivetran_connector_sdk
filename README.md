@@ -97,6 +97,8 @@ There are several examples available under `/examples`:
 
 - [hashes](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/hashes) - This example shows how to calculate a hash of fields to be used as primary key. This is useful in scenarios where the incoming rows do not have any field suitable to be used as a Primary Key.
 
+- [incremental_sync_strategies](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies) - This example demonstrates multiple ways to perform incremental syncs with different state management strategies: keyset pagination, offset-based pagination, timestamp-based sync, step-size sync (for APIs without pagination), and replay sync (with buffer for read-replica scenarios).
+
 - Pagination
   - [keyset](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/keyset) - This is a simple example of how to work with key-based pagination for a REST API.
   - [next_page_url](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/next_page_url) - This is a simple example for how to work with next-page-url pagination for a REST API.
