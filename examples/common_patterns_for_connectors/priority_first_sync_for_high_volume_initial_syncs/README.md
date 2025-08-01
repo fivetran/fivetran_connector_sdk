@@ -15,11 +15,11 @@ This connector also supports Priority Sync Flow (PFS) - a Fivetran optimization 
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
-- Uses Faker to generate diverse test `USER` data.
+- Uses `Faker` to generate diverse test `USER` data.
 - Syncs from a mock API with offset-based pagination.
 - Demonstrates modular connector design using `users_sync.py`.
 - Implements incremental sync logic using a timestamp field `updatedAt`.
@@ -28,7 +28,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 This example does not require a configuration file.
 
-In production, configuration.json might contain API tokens, initial cursors, or filters to narrow down API results.
+In production, a `configuration.json` might contain API tokens, initial cursors, or filters to narrow down API results.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -68,8 +68,8 @@ Pagination is implemented in the `users_sync.py` module using offset-based pagin
 - Sync will resume from the last checkpointed state if interrupted.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `USER` table:
 
 ```
 {
@@ -90,7 +90,8 @@ The connector creates one table:
 
 
 ## Additional files
-- `mock_api.py` – A FastAPI-based server that simulates a REST API for serving Faker-generated user data.
+The connector requires two additional files: 
+- `mock_api.py` – A FastAPI-based server that simulates a REST API for serving `Faker`-generated user data.
 - `users_sync.py` – A utility module that contains the `sync_users()` function, which handles all API requests, pagination logic, and sync state management.
 
 
