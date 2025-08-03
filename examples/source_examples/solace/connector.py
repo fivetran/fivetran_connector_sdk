@@ -41,7 +41,7 @@ def schema(configuration: dict):
     Define the schema for the Solace events table.
     
     Args:
-        configuration (dict): Configuration dictionary containing connector settings.
+        configuration (dict): Configuration dictionary containing connector credentials.
         
     Returns:
         list: List of table schema definitions.
@@ -95,15 +95,6 @@ class SolaceAuth:
                 raise RuntimeError(f"Solace connection failed: {e}")
         
         return self.messaging_service
-    
-    def get_rest_headers(self) -> Dict[str, str]:
-        """Get headers for REST API calls."""
-        credentials = f"{self.username}:{self.password}"
-        encoded_credentials = base64.b64encode(credentials.encode()).decode()
-        return {
-            "Authorization": f"Basic {encoded_credentials}",
-            "Content-Type": "application/json"
-        }
 
 
 ####################################################################################
@@ -142,7 +133,6 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
         durable_exclusive_queue = Queue.durable_exclusive_queue(queue_name)
 
         # Create message receiver
-
         receiver = messaging_service.create_persistent_message_receiver_builder().build(durable_exclusive_queue)
         
         # Start receiving messages
@@ -193,7 +183,7 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
         last_sync_time (datetime): Last sync timestamp for filtering
         
     Returns:
-        Optional[Dict]: Processed event record or None if filtered out
+        Optional[Dict]: Processed event record or None if old message
     """
     try:
         # Extract message properties
@@ -273,7 +263,7 @@ def sync_events(config: dict, state: dict) -> Generator:
     
     Args:
         config (dict): Configuration dictionary
-        state (dict): State dictionary for incremental sync
+        state (dict): State for incremental sync
         
     Yields:
         Generator: Operations for upserting events and checkpointing state
@@ -290,7 +280,6 @@ def sync_events(config: dict, state: dict) -> Generator:
     log.info(f"{method_name}: Starting sync from {last_sync_time}")
 
     try:
-
         events = fetch_events_messaging(config, last_sync_time)
         
         # Clean and deduplicate events
@@ -347,7 +336,7 @@ def update(configuration: dict, state: dict):
     Main update function called by Fivetran during each sync.
     
     Args:
-        configuration (dict): Configuration dictionary containing connector settings
+        configuration (dict): Configuration dictionary containing connector credentials
         state (dict): State dictionary for incremental sync
         
     Yields:
