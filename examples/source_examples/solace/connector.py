@@ -46,11 +46,7 @@ def schema(configuration: dict):
     Returns:
         list: List of table schema definitions.
     """
-    # Validate required configuration
-    required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
-    for key in required_keys:
-        if key not in configuration:
-            raise RuntimeError(f"Missing required configuration value: {key}")
+    validate_configuration(configuration, "schema")
     
     return [
         {
@@ -339,6 +335,13 @@ def publish_messages_for_testing(config: dict, count: int):
     publisher.connect()
     publisher.publish_messages(count)
 
+def validate_configuration(configuration: dict, method_name: str):
+    required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
+    for key in required_keys:
+        if key not in configuration:
+            log.severe(f"{method_name}: Missing required configuration key: {key}")
+            raise ValueError(f"Missing configuration key: {key}")
+
 def update(configuration: dict, state: dict):
     """
     Main update function called by Fivetran during each sync.
@@ -351,13 +354,8 @@ def update(configuration: dict, state: dict):
         Generator: Operations for syncing events
     """
     method_name = "update"
-    
-    # Validate configuration
-    required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
-    for key in required_keys:
-        if key not in configuration:
-            log.severe(f"{method_name}: Missing required configuration key: {key}")
-            raise ValueError(f"Missing configuration key: {key}")
+    validate_configuration(configuration, method_name)
+
 
     # Load messages for testing purpose
     publish_messages_for_testing(configuration, 10)
