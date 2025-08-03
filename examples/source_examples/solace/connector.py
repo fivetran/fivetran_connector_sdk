@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Generator
 import base64
 from solace.messaging.messaging_service import MessagingService
 from solace.messaging.receiver.inbound_message import InboundMessage
+from solace.messaging.resources.queue import Queue
 import pandas as pd
 
 
@@ -91,9 +92,9 @@ class SolaceAuth:
                 # Create messaging service
                 self.messaging_service = MessagingService.builder() \
                     .from_properties({
-                        "solace.messaging.service.transport.host": self.host,
-                        "solace.messaging.service.username": self.username,
-                        "solace.messaging.service.password": self.password,
+                        "solace.messaging.transport.host": self.host,
+                        "solace.messaging.authentication.basic.username": self.username,
+                        "solace.messaging.authentication.basic.password": self.password,
                         "solace.messaging.service.vpn-name": self.vpn_name,
                         "solace.messaging.service.ssl.trust-store": None,
                         "solace.messaging.service.ssl.validate-certificate": False
@@ -105,7 +106,7 @@ class SolaceAuth:
                 log.info(f"Successfully connected to Solace at {self.host}")
                 
             except Exception as e:
-                log.error(f"Failed to connect to Solace: {e}")
+                log.severe(f"Failed to connect to Solace: {e}")
                 raise RuntimeError(f"Solace connection failed: {e}")
         
         return self.messaging_service
@@ -183,13 +184,13 @@ def fetch_events_rest(config: dict, last_sync_time: datetime, batch_size: int = 
                 response.raise_for_status()
                 
         except Exception as e:
-            log.error(f"{method_name}: Error fetching events via REST API: {e}")
+            log.severe(f"{method_name}: Error fetching events via REST API: {e}")
             retries -= 1
             if retries > 0:
                 time.sleep(2 ** (MAX_RETRIES - retries))  # Exponential backoff
     
     if retries == 0:
-        log.error(f"{method_name}: Failed to fetch events after {MAX_RETRIES} attempts")
+        log.severe(f"{method_name}: Failed to fetch events after {MAX_RETRIES} attempts")
         return []
     
     return events
@@ -223,11 +224,11 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
     try:
         # Get queue name from config
         queue_name = config.get("solace_queue", "default_queue")
-        
+        durable_exclusive_queue = Queue.durable_exclusive_queue(queue_name)
+
         # Create message receiver
-        receiver = messaging_service.create_queue_message_receiver_builder() \
-            .with_queue_name(queue_name) \
-            .build()
+
+        receiver = messaging_service.create_persistent_message_receiver_builder().build(durable_exclusive_queue)
         
         # Start receiving messages
         receiver.start()
@@ -247,7 +248,7 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
                         message_count += 1
                         
                         # Acknowledge the message
-                        message.ack()
+                        receiver.ack(message)
                 else:
                     # No more messages available
                     break
@@ -259,10 +260,10 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
         log.info(f"{method_name}: Fetched {len(events)} events from messaging API")
         
     except Exception as e:
-        log.error(f"{method_name}: Error fetching events via messaging API: {e}")
+        log.severe(f"{method_name}: Error fetching events via messaging API: {e}")
     finally:
         if 'receiver' in locals():
-            receiver.stop()
+            receiver.terminate()
     
     return events
 
@@ -319,7 +320,7 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
         return event_record
         
     except Exception as e:
-        log.error(f"Error processing message: {e}")
+        log.severe(f"Error processing message: {e}")
         return None
 
 
@@ -376,7 +377,7 @@ def sync_events(config: dict, state: dict) -> Generator:
     log.info(f"{method_name}: Starting sync from {last_sync_time}")
     
     # Determine which API to use
-    use_rest_api = config.get("use_rest_api", True)
+    use_rest_api = config.get("use_rest_api", "False") == "True"
     
     try:
         if use_rest_api:
@@ -399,7 +400,7 @@ def sync_events(config: dict, state: dict) -> Generator:
             try:
                 yield op.upsert(table="solace_events", data=event)
             except Exception as e:
-                log.error(f"{method_name}: Error upserting event {event.get('event_id')}: {e}")
+                log.severe(f"{method_name}: Error upserting event {event.get('event_id')}: {e}")
         
         # Update state with latest timestamp
         latest_timestamp = max(event["timestamp"] for event in events)
@@ -408,7 +409,7 @@ def sync_events(config: dict, state: dict) -> Generator:
         log.info(f"{method_name}: Successfully processed {len(events)} events")
         
     except Exception as e:
-        log.error(f"{method_name}: Error during sync: {e}")
+        log.severe(f"{method_name}: Error during sync: {e}")
         raise
     
     # Checkpoint state
@@ -432,7 +433,7 @@ def update(configuration: dict, state: dict):
     required_keys = ["solace_host", "solace_username", "solace_password"]
     for key in required_keys:
         if key not in configuration:
-            log.error(f"{method_name}: Missing required configuration key: {key}")
+            log.severe(f"{method_name}: Missing required configuration key: {key}")
             raise ValueError(f"Missing configuration key: {key}")
     
     log.info(f"{method_name}: Starting Solace connector sync")
