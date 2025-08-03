@@ -47,7 +47,7 @@ def schema(configuration: dict):
         list: List of table schema definitions.
     """
     # Validate required configuration
-    required_keys = ["solace_host", "solace_username", "solace_password"]
+    required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
     for key in required_keys:
         if key not in configuration:
             raise RuntimeError(f"Missing required configuration value: {key}")
@@ -55,18 +55,7 @@ def schema(configuration: dict):
     return [
         {
             "table": "solace_events",
-            "primary_key": ["event_id", "timestamp"],
-            "columns": {
-                "event_id": "STRING",
-                "timestamp": "UTC_DATETIME",
-                "topic": "STRING",
-                "message_payload": "STRING",
-                "message_type": "STRING",
-                "correlation_id": "STRING",
-                "user_properties": "STRING",
-                "source_system": "STRING",
-                "processed_at": "UTC_DATETIME"
-            }
+            "primary_key": ["event_id", "timestamp"]
         }
     ]
 
@@ -176,9 +165,10 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
                     if event_record:
                         events.append(event_record)
                         message_count += 1
-                        
-                        # Acknowledge the message and remove it from the queue
-                        # receiver.ack(message)
+                    else:
+                        # event_record is None if the event was already consumed in a previous sync and loaded into the destination based on the checkpoint.
+                        # Acknowledge the message to remove it from the queue.
+                        receiver.ack(message)
                 else:
                     # No more messages available
                     break
@@ -215,27 +205,32 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
         topic = message.get_destination_name()
         timestamp = datetime.now(timezone.utc)
         
-        # Check if message is newer than last sync time
-        if last_sync_time and timestamp <= last_sync_time:
-            return None
-        
         # Parse payload as JSON if possible
         try:
             payload_json = json.loads(payload)
             message_type = payload_json.get("type", "unknown")
             event_timestamp = payload_json.get("event_timestamp", timestamp.isoformat())
+            message_id = payload_json.get("message_id", "")
+            details = payload_json.get("details", "")
         except (json.JSONDecodeError, TypeError):
             event_timestamp = timestamp.isoformat()
             message_type = "raw"
+            message_id = ""
+            details = ""
 
-        
+        # Check if message is newer than last sync time
+        if last_sync_time and datetime.fromisoformat(event_timestamp) <= last_sync_time:
+            return None
+
         event_record = {
             "event_id": f"{topic}_{timestamp.timestamp()}_{hash(payload) % 1000000}",
+            "message_id": message_id,
             "timestamp": event_timestamp,
             "topic": topic,
             "message_payload": payload,
             "message_type": message_type,
             "source_system": "solace",
+            "details": details,
             "processed_at": datetime.now(timezone.utc).isoformat()
         }
         
@@ -338,7 +333,7 @@ def publish_messages_for_testing(config: dict, count: int):
         username=config["solace_username"],
         password=config["solace_password"],
         topic_name="demo/topic",
-        vpn=config.get("solace_vpn")
+        vpn=config.get("solace_vpn", "default")
     )
 
     publisher.connect()
@@ -358,7 +353,7 @@ def update(configuration: dict, state: dict):
     method_name = "update"
     
     # Validate configuration
-    required_keys = ["solace_host", "solace_username", "solace_password"]
+    required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
     for key in required_keys:
         if key not in configuration:
             log.severe(f"{method_name}: Missing required configuration key: {key}")

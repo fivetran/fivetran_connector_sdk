@@ -35,12 +35,11 @@ class SolacePublisher:
     def publish_messages(self, count=10, delay=0.5):
         for i in range(count):
             event_data = {
-                "event_id": str(uuid.uuid4()),
+                "message_id": str(uuid.uuid4()),
                 "event_timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": "test_event",
                 "details": "This is a generate message and the number is : " + str(i)
             }
             message = json.dumps(event_data)
             self.publisher.publish(message, self.topic)
-            log.info(f"Published message {i + 1}: {message}")
             time.sleep(delay)
