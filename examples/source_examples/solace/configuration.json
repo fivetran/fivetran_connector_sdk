@@ -3,6 +3,5 @@
     "solace_username": "admin",
     "solace_password": "admin",
     "solace_vpn": "default",
-    "use_rest_api": "False",
     "solace_queue": "test-queue"
 }

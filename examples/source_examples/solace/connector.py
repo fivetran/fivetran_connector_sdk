@@ -1,6 +1,6 @@
 # This is a connector for fetching events from Solace using the Fivetran Connector SDK.
 # It supports incremental sync by tracking the last processed event timestamp.
-# The connector can work with Solace REST API or messaging APIs to fetch events.
+# The connector can work with Solace messaging APIs to fetch events.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -10,7 +10,6 @@ from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
 # Import required libraries for Solace integration
-import requests
 import json
 import time
 from datetime import datetime, timezone
@@ -21,6 +20,7 @@ from solace.messaging.receiver.inbound_message import InboundMessage
 from solace.messaging.resources.queue import Queue
 import pandas as pd
 
+from solace_publisher import SolacePublisher
 
 ####################################################################################
 # CONFIGURATION AND CONSTANTS
@@ -125,77 +125,6 @@ class SolaceAuth:
 # EVENT FETCHING AND PROCESSING
 ####################################################################################
 
-def fetch_events_rest(config: dict, last_sync_time: datetime, batch_size: int = MAX_BATCH_SIZE) -> List[Dict]:
-    """
-    Fetch events from Solace using REST API.
-    
-    Args:
-        config (dict): Configuration dictionary
-        last_sync_time (datetime): Last sync timestamp for incremental sync
-        batch_size (int): Number of events to fetch per batch
-        
-    Returns:
-        List[Dict]: List of event records
-    """
-    method_name = "fetch_events_rest"
-    
-    # Initialize authentication
-    auth = SolaceAuth(
-        host=config["solace_host"],
-        username=config["solace_username"],
-        password=config["solace_password"],
-        vpn_name=config.get("solace_vpn", "default")
-    )
-    
-    headers = auth.get_rest_headers()
-    base_url = f"https://{config['solace_host']}/SEMP/v2"
-    
-    # Build query parameters for incremental sync
-    params = {
-        "count": batch_size,
-        "select": "eventId,timestamp,topic,messagePayload,messageType,correlationId,userProperties"
-    }
-    
-    # Add time filter for incremental sync
-    if last_sync_time:
-        params["where"] = f"timestamp > '{last_sync_time.isoformat()}'"
-    
-    events = []
-    retries = MAX_RETRIES
-    
-    while retries > 0:
-        try:
-            log.info(f"{method_name}: Fetching events from Solace REST API (attempt {MAX_RETRIES - retries + 1})")
-            
-            response = requests.get(
-                f"{base_url}/events",
-                headers=headers,
-                params=params,
-                timeout=DEFAULT_TIMEOUT
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                events = data.get("data", [])
-                log.info(f"{method_name}: Fetched {len(events)} events from REST API")
-                break
-            else:
-                log.warning(f"{method_name}: REST API returned status {response.status_code}: {response.text}")
-                response.raise_for_status()
-                
-        except Exception as e:
-            log.severe(f"{method_name}: Error fetching events via REST API: {e}")
-            retries -= 1
-            if retries > 0:
-                time.sleep(2 ** (MAX_RETRIES - retries))  # Exponential backoff
-    
-    if retries == 0:
-        log.severe(f"{method_name}: Failed to fetch events after {MAX_RETRIES} attempts")
-        return []
-    
-    return events
-
-
 def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: int = MAX_BATCH_SIZE) -> List[Dict]:
     """
     Fetch events from Solace using messaging API (queue/topic subscription).
@@ -220,10 +149,11 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
     
     messaging_service = auth.get_messaging_service()
     events = []
+    receiver = None
     
     try:
         # Get queue name from config
-        queue_name = config.get("solace_queue", "default_queue")
+        queue_name = config.get("solace_queue")
         durable_exclusive_queue = Queue.durable_exclusive_queue(queue_name)
 
         # Create message receiver
@@ -234,9 +164,9 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
         receiver.start()
         log.info(f"{method_name}: Started receiving messages from queue: {queue_name}")
         
-        # Collect messages up to batch size
+        # Collect messages
         message_count = 0
-        timeout = time.time() + 30  # 30 second timeout
+        timeout = time.time() + 30
         
         while message_count < batch_size and time.time() < timeout:
             try:
@@ -247,8 +177,8 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
                         events.append(event_record)
                         message_count += 1
                         
-                        # Acknowledge the message
-                        receiver.ack(message)
+                        # Acknowledge the message and remove it from the queue
+                        # receiver.ack(message)
                 else:
                     # No more messages available
                     break
@@ -262,7 +192,7 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
     except Exception as e:
         log.severe(f"{method_name}: Error fetching events via messaging API: {e}")
     finally:
-        if 'receiver' in locals():
+        if receiver is not None:
             receiver.terminate()
     
     return events
@@ -293,26 +223,18 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
         try:
             payload_json = json.loads(payload)
             message_type = payload_json.get("type", "unknown")
-            correlation_id = payload_json.get("correlation_id", "")
+            event_timestamp = payload_json.get("event_timestamp", timestamp.isoformat())
         except (json.JSONDecodeError, TypeError):
+            event_timestamp = timestamp.isoformat()
             message_type = "raw"
-            correlation_id = ""
-        
-        # Extract user properties
-        user_properties = {}
-        if hasattr(message, 'get_application_message_id'):
-            user_properties["application_message_id"] = message.get_application_message_id()
-        if hasattr(message, 'get_correlation_id'):
-            user_properties["correlation_id"] = message.get_correlation_id()
+
         
         event_record = {
             "event_id": f"{topic}_{timestamp.timestamp()}_{hash(payload) % 1000000}",
-            "timestamp": timestamp.isoformat(),
+            "timestamp": event_timestamp,
             "topic": topic,
             "message_payload": payload,
             "message_type": message_type,
-            "correlation_id": correlation_id,
-            "user_properties": json.dumps(user_properties),
             "source_system": "solace",
             "processed_at": datetime.now(timezone.utc).isoformat()
         }
@@ -375,15 +297,10 @@ def sync_events(config: dict, state: dict) -> Generator:
         last_sync_time = DEFAULT_LAST_SYNC_DATE
     
     log.info(f"{method_name}: Starting sync from {last_sync_time}")
-    
-    # Determine which API to use
-    use_rest_api = config.get("use_rest_api", "False") == "True"
-    
+
     try:
-        if use_rest_api:
-            events = fetch_events_rest(config, last_sync_time)
-        else:
-            events = fetch_events_messaging(config, last_sync_time)
+
+        events = fetch_events_messaging(config, last_sync_time)
         
         # Clean and deduplicate events
         events = clean_and_deduplicate_events(events)
@@ -415,6 +332,17 @@ def sync_events(config: dict, state: dict) -> Generator:
     # Checkpoint state
     yield op.checkpoint(state)
 
+def publish_messages_for_testing(config: dict, count: int):
+    publisher = SolacePublisher(
+        host=config["solace_host"],
+        username=config["solace_username"],
+        password=config["solace_password"],
+        topic_name="demo/topic",
+        vpn=config.get("solace_vpn")
+    )
+
+    publisher.connect()
+    publisher.publish_messages(count)
 
 def update(configuration: dict, state: dict):
     """
@@ -435,7 +363,10 @@ def update(configuration: dict, state: dict):
         if key not in configuration:
             log.severe(f"{method_name}: Missing required configuration key: {key}")
             raise ValueError(f"Missing configuration key: {key}")
-    
+
+    # Load messages for testing purpose
+    publish_messages_for_testing(configuration, 10)
+
     log.info(f"{method_name}: Starting Solace connector sync")
     
     # Sync events
@@ -463,12 +394,11 @@ if __name__ == "__main__":
     else:
         # Default test configuration
         configuration = {
-            "solace_host": "localhost:8080",
-            "solace_username": "test_user",
-            "solace_password": "test_password",
+            "solace_host": "localhost:55554",
+            "solace_username": "admin",
+            "solace_password": "admin",
             "solace_vpn": "default",
-            "use_rest_api": True,
-            "solace_queue": "test_queue"
+            "solace_queue": "test-queue"
         }
     
     # Run connector in debug mode
