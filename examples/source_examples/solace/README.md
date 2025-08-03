@@ -1,158 +1,141 @@
-# Solace Connector for Fivetran
+# Solace Connector Example
 
-This connector fetches events from Solace messaging platform and syncs them to your Fivetran destination using the Fivetran Connector SDK. It supports both REST API and messaging API approaches for fetching events.
+## Connector overview
+
+This connector demonstrates how to sync data from a **Solace** queue using the [Fivetran Connector SDK](https://fivetran.com/docs/connectors/connector-sdk). It fetches messages from a durable Solace queue using the **Solace Messaging API**, processes the events, and upserts them into a destination table. The connector supports **incremental syncs** using message timestamps and checkpointing to ensure continuity.
+
+## Requirements
+
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating system:
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+
+
+## Getting started
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-- **Incremental Sync**: Tracks the last processed event timestamp to only fetch new events
-- **Dual API Support**: Can use either Solace REST API or messaging API
-- **Event Deduplication**: Automatically removes duplicate events
-- **Error Handling**: Robust error handling with retry logic
-- **Configurable Batching**: Configurable batch sizes for optimal performance
+- Connects to **Solace PubSub+** using the [Solace PubSub+ Python API](https://solace.dev).
+- Pulls events from a **durable exclusive queue**.
+- Supports **incremental data sync** using timestamp-based filtering.
+- Deduplicates messages using an internally generated `event_id`.
+- Graceful error handling and logging.
+- Tracks sync state for resumable operations.
+- Optionally supports publishing test messages for development.
+
 
 ## Configuration
 
-### Required Parameters
-
-- `solace_host`: Solace host address (e.g., "localhost:8080")
-- `solace_username`: Username for Solace authentication
-- `solace_password`: Password for Solace authentication
-
-### Optional Parameters
-
-- `solace_vpn`: VPN name (default: "default")
-- `use_rest_api`: Whether to use REST API or messaging API (default: true)
-- `solace_queue`: Queue name for messaging API (required if use_rest_api=false)
-- `batch_size`: Number of events to fetch per batch (default: 1000)
-- `timeout`: Request timeout in seconds (default: 30)
-
-## Schema
-
-The connector creates a single table called `solace_events` with the following columns:
-
-- `event_id`: Unique identifier for the event
-- `timestamp`: Event timestamp in UTC
-- `topic`: Solace topic name
-- `message_payload`: Raw message payload
-- `message_type`: Type of message (extracted from payload)
-- `correlation_id`: Correlation ID from message
-- `user_properties`: JSON string of user properties
-- `source_system`: Always "solace"
-- `processed_at`: Timestamp when event was processed
-
-## Usage
-
-### 1. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configure the Connector
-
-Create a `configuration.json` file with your Solace credentials:
+The connector expects the following configuration in a `configuration.json` file:
 
 ```json
 {
-    "solace_host": "your-solace-host:8080",
-    "solace_username": "your-username",
-    "solace_password": "your-password",
-    "solace_vpn": "default",
-    "use_rest_api": true,
-    "solace_queue": "your-queue-name",
-    "batch_size": 1000,
-    "timeout": 30
+    "solace_host": "<YOUR_SOLACE_HOST>",
+    "solace_username": "<YOUR_SOLACE_USERNAME>",
+    "solace_password": "<YOUR_SOLACE_PASSWORD>",
+    "solace_vpn": "<YOUR_SOLACE_VPN>",
+    "solace_queue": "<YOUR_SOLACE_QUEUE>"
 }
 ```
 
-### 3. Test the Connector
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-```bash
-python solace_connector.py
+## Requirements file
+
+Add the following to requirements.txt:
+
+```
+pandas==2.3.0
+solace-pubsubplus==1.10.0
 ```
 
-### 4. Deploy to Fivetran
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-Follow the Fivetran Connector SDK deployment guide to deploy your connector.
+## Authentication
 
-## API Modes
+The connector authenticates to Solace using basic credentials and VPN configuration:
 
-### REST API Mode (Default)
+- `solace_host`: Solace broker host
+- `solace_username`: Username for broker authentication
+- `solace_password`: Password for broker authentication
+- `solace_vpn`: VPN name (default is `default`)
 
-When `use_rest_api` is `true`, the connector uses Solace's REST API to fetch events. This is suitable for:
+SSL validation is disabled in local development. Modify the `SolaceAuth` class to enable certificate validation if required.
 
-- Historical event retrieval
-- Event replay scenarios
-- When you have REST API access
+## Pagination
 
-### Messaging API Mode
+The connector consumes messages in batches from a durable, exclusive queue until the configured batch size limit is reached.
 
-When `use_rest_api` is `false`, the connector uses Solace's messaging API to consume messages from a queue. This is suitable for:
+Messages are retrieved using:
+```python
+message = receiver.receive_message(timeout=1000)
+```
 
-- Real-time event processing
-- Queue-based message consumption
-- When you need to acknowledge messages
+This allows the connector to stream messages efficiently with timeout-based pagination
 
-## Incremental Sync
+## Data handling
 
-The connector implements incremental sync by:
+The connector processes events from Solace as follows:
 
-1. Storing the last processed event timestamp in the state
-2. Only fetching events newer than the last sync time
-3. Updating the state with the latest timestamp after successful sync
+- Establishes a connection to the Solace broker using durable queue subscriptions.
+- Receives messages one at a time using Solace’s persistent message receiver.
+- Parses each message payload (expects JSON structure).
+- Extracts relevant metadata including timestamp, topic, and message ID.
+- Skips and removes messages older than the last sync timestamp from queue.
+- Constructs structured records and appends processing metadata.
+- Deduplicates events using a combination of `event_id` and `timestamp`.
+- Yields cleaned records for upsert into the destination table.
 
-This ensures efficient syncing and prevents duplicate data.
+Each event includes:
 
-## Error Handling
+- `event_id`: A generated hash-based unique ID.
+- `message_id`: Optional ID from the payload.
+- `timestamp`: Event timestamp (from payload or receive time).
+- `topic`: Source Solace topic or queue.
+- `message_payload`: Raw message body.
+- `message_type`: Type extracted from payload (default: `"raw"`).
+- `details`: Optional field from payload.
+- `processed_at`: Timestamp the message was processed.
 
-The connector includes comprehensive error handling:
+---
 
-- **Retry Logic**: Automatic retries with exponential backoff
-- **Connection Management**: Proper connection cleanup
-- **Message Acknowledgment**: Messages are acknowledged after successful processing
-- **Logging**: Detailed logging for debugging and monitoring
+## Error handling
 
-## Development
+This connector includes robust error handling at various stages:
 
-### Local Testing
+- **Connection errors**: Fail fast with meaningful error messages if connection to the broker fails.
+- **Message processing errors**: Malformed or unexpected payloads are logged and skipped without halting the sync.
+- **Upsert failures**: Logged per record, allowing the connector to continue processing other events.
+- **Timeouts and retries**: Configurable timeout ensures the sync completes even if the queue is empty or slow.
 
-1. Set up a local Solace instance or use a test environment
-2. Update `configuration.json` with your test credentials
-3. Run `python solace_connector.py` to test locally
+---
 
-### Debugging
+## Testing & local debugging
 
-The connector includes extensive logging. Check the logs for:
-- Connection status
-- Event processing details
-- Error messages
-- Sync progress
+You can run the connector locally with a `configuration.json` file. The connector includes optional logic to publish test messages to a Solace topic:
 
-## Troubleshooting
+```python
+def publish_messages_for_testing(config: dict, count: int):
+    publisher = SolacePublisher(
+        host=config["solace_host"],
+        username=config["solace_username"],
+        password=config["solace_password"],
+        topic_name="demo/topic",
+        vpn=config.get("solace_vpn", "default")
+    )
 
-### Common Issues
+    publisher.connect()
+    publisher.publish_messages(count)
+```
 
-1. **Connection Failed**: Check host, username, and password
-2. **No Events Found**: Verify queue/topic configuration
-3. **Authentication Error**: Ensure VPN name is correct
-4. **Timeout Errors**: Increase timeout value in configuration
+This is helpful for development and testing. You can remove or comment this logic for production use.
 
-### Logs
+## Additional considerations
 
-The connector logs important events:
-- Connection attempts and status
-- Event fetching progress
-- Error details with stack traces
-- Sync completion status
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
-## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This connector is provided as-is for use with Fivetran Connector SDK.

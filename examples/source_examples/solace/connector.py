@@ -14,7 +14,6 @@ import json
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Generator
-import base64
 from solace.messaging.messaging_service import MessagingService
 from solace.messaging.receiver.inbound_message import InboundMessage
 from solace.messaging.resources.queue import Queue
@@ -141,9 +140,8 @@ def fetch_events_messaging(config: dict, last_sync_time: datetime, batch_size: i
         
         # Collect messages
         message_count = 0
-        timeout = time.time() + 30
-        
-        while message_count < batch_size and time.time() < timeout:
+
+        while message_count < batch_size:
             try:
                 message = receiver.receive_message(timeout=1000)  # 1 second timeout
                 if message:
