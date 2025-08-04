@@ -17,7 +17,7 @@ Note: This example uses hardcoded static data to simulate the API calls. It is i
 
   
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -33,7 +33,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 No external configuration is required for this connector.
 
-In a real implementation, you would include authentication tokens, API URLs, or pagination parameters in your configuration.json.
+In a real-life implementation, you would include authentication tokens, API URLs, or pagination parameters in your `configuration.json`.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -81,7 +81,7 @@ This approach ensures fine-grained incremental syncing for nested entities.
 - Each checkpoint ensures partial progress is saved even if a later step fails.
 
 
-## Tables Created
+## Tables created
 The connector creates two tables:
 
 `COMPANY`:

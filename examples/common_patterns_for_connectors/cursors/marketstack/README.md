@@ -1,7 +1,7 @@
 # Marketstack Stock Data Connector Example
 
 ## Connector overview
-This connector demonstrates how to implement a cursor-based sync strategy using the Fivetran Connector SDK. It connects to the [Marketstack API](https://marketstack.com/documentation), retrieves historical stock price data for a predefined list of tickers, and upserts the results into a table named ``TICKERS_PRICE``.
+This connector demonstrates how to implement a cursor-based sync strategy using the Fivetran Connector SDK. It connects to the [Marketstack API](https://marketstack.com/documentation), retrieves historical stock price data for a predefined list of tickers, and upserts the results into a table named `TICKERS_PRICE`.
 The connector tracks sync progress using a cursor-based state mechanism (`date_from`, `date_to`, and `ticker_offset`) to support resumable and incremental syncing. It is ideal for learning how to handle paginated, stateful data pipelines with external APIs.
 
 
@@ -14,7 +14,7 @@ The connector tracks sync progress using a cursor-based state mechanism (`date_f
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -59,14 +59,14 @@ You can obtain a free API key by signing up at [marketstack.com](https://markets
 
 
 ## Pagination
-Pagination is handled through the limit and offset parameters. The connector fetches up to 1000 records per request and continues retrieving data until the response contains no additional records.
-The offset is incremented internally within the `get_ticker_price()` method, which accumulates all pages for a ticker before proceeding to the next.
+Pagination is handled through the `limit` and `offset` parameters. The connector fetches up to 1000 records per request and continues retrieving data until the response contains no additional records.
+The `offset` is incremented internally within the `get_ticker_price()` method, which accumulates all pages for a ticker before proceeding to the next.
 
 
 ## Data handling
 The connector performs the following operations:
-- State Initialization: Initializes the cursor state with a date window (`start_cursor`, `end_cursor`) and a ticker_offset.
-- Data Fetching:
+- State initialization: Initializes the cursor state with a date window (`start_cursor`, `end_cursor`) and a `ticker_offset`.
+- Data fetching:
   - Iterates over a fixed set of tickers (`AAPL`, `MSFT`, `GOOG`, `INTC`). 
   - For each ticker, fetches all records in a date window using paginated requests. 
 - Upserting: Syncs each record using `op.upsert()` into the `TICKERS_PRICE` table.
@@ -80,8 +80,8 @@ The connector performs the following operations:
 - A data summary is logged after each sync for auditing purposes.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `TICKERS_PRICE` table:
 
 ```
 {

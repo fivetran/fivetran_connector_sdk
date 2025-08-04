@@ -20,7 +20,7 @@ Refer to the [Fivetran SDK best practices](https://fivetran.com/docs/connector-s
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -34,7 +34,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 This example does not require any configuration inputs.
 
-In a real-world scenario, configuration may include source API credentials, filters, or fields to include in the hash.
+In a real-world scenario, `configuration.json` may include source API credentials, filters, or fields to include in the hash.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -72,8 +72,8 @@ This pattern ensures repeatable, deterministic hashing and row tracking, even wi
 - Schema drift (e.g., added/removed columns) will result in a different `hash_id`, which creates a new row instead of updating the existing one.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `USER` table:
 
 ```
 {

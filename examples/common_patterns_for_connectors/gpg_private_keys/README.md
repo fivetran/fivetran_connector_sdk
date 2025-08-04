@@ -20,10 +20,10 @@ This connector is built for educational purposes and uses hardcoded test data. I
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
-## GPG Key Pair Setup
+## GPG key pair setup
 To use this example, you must generate a GPG key pair and copy the private key (ASCII-armored) into your `configuration.json`.
 
 Resources to help:
@@ -101,8 +101,8 @@ This connector does not interact with paginated data sources. It signs a static 
 - All actions are logged using the SDK’s `Logging` module.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `SIGNED_MESSAGE` table:
 
 ```
 {

@@ -19,7 +19,7 @@ This connector uses hardcoded sample data in DuckDB to simulate the behavior of 
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -33,7 +33,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 This example does not require any external configuration.
 
-In real connectors, you may provide database credentials, connection strings, or optional filtering parameters in a configuration.json file.
+For production connectors, you may provide database credentials, connection strings, or optional filtering parameters in a `configuration.json `file.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -55,7 +55,7 @@ In real-world use, your connector would authenticate to a source database using 
 
 
 ## Pagination
-This connector relies on a timestamp cursor (updated_at) instead of pagination. It fetches all rows greater than the last synced value.
+This connector relies on a timestamp cursor, `updated_at`, instead of pagination. It fetches all rows greater than the last synced value.
 
 To handle pagination for large datasets, use a cursor in combination with LIMIT/OFFSET or keyset pagination (e.g. WHERE updated_at > ? LIMIT 1000).
 
@@ -74,8 +74,8 @@ To handle pagination for large datasets, use a cursor in combination with LIMIT/
 - The use of `op.checkpoint()` ensures recoverability on restart.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `CUSTOMERS` table:
 
 ```
 {

@@ -15,7 +15,7 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -29,7 +29,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 This example does not require any user-supplied configuration.
 
-In a real implementation, you might include API keys, date ranges, or export task parameters in `configuration.json`.
+In a real-life implementation, you might include API keys, date ranges, or export task parameters in `configuration.json`.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -74,8 +74,8 @@ To support multipage or batched CSV exports in the future, consider:
 - `log.info()` is used for tracking sync steps and row-level operations.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `USER` table:
 
 ```
 {
