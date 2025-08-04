@@ -19,7 +19,7 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -32,7 +32,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ## Configuration file
 This example does not require a configuration file.
 
-In production, configuration.json might contain API tokens, initial cursors, or filters to narrow down API results.
+For production connectors, `configuration.json `might contain API tokens, initial cursors, or filters to narrow down API results.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -79,8 +79,8 @@ Pagination continues until no `next_page_url` is returned.
 - If no data or `next_page_url` is present, pagination ends gracefully.
 - All actions are logged with `log.info()` and `log.warning()`.
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `USER` table:
 
 ```
 {
