@@ -10,28 +10,27 @@
 
 *Do not use Title Case for any heading level other than H1 (a single top-level heading with a single `#`).*
 
-## Connector overview
 
+## Connector overview
 *Provide a detailed overview of the connector, including its functionality, the data source it connects to, and the use cases it addresses.*
 
-## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## Features
 
-* *List key features of the connector, such as supported endpoints, data replication methods, and any special capabilities.*
+## Features
+- *List key features of the connector, such as supported endpoints, data replication methods, and any special capabilities.*
+
 
 ## Configuration file
-
 *Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the configuration.json file.* 
 
 ```
@@ -44,8 +43,8 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Requirements file
 
+## Requirements file
 *Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.*
 
 *Example content of `requirements.txt`:*
@@ -56,37 +55,37 @@ pandas
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-## Authentication
 
+## Authentication
 *Explain the authentication mechanism used to access the source (e.g., API Key, OAuth2) and provide steps to obtain necessary credentials.*
 
-## Pagination
 
+## Pagination
 *Describe how the connector handles pagination when retrieving data from the source.*
 
-## Data handling
 
+## Data handling
 *Outline how data is processed, transformed, and delivered to Fivetran, including information on schema mapping and data types.*
 
-## Error handling
 
+## Error handling
 *Explain the error-handling strategies implemented in the connector.*
 
-## Tables created
 
+## Tables created
 *Summary of Tables replicated.*
 
 *Screenshot of the schema objects generated*
 
+
 ## Additional files
+Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose.*
 
-*Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose.*
+- **mock\_api.py** – *A simulated API for testing data retrieval.*  
+- **users\_sync.py** – *Handles user data synchronization logic.*  
+- **api\_threading\_utils.py** – *Manages API request threading for performance optimization.*  
+- **constants.py** – *Stores constant values used throughout the connector.*
 
-* **mock\_api.py** – *A simulated API for testing data retrieval.*  
-* **users\_sync.py** – *Handles user data synchronization logic.*  
-* **api\_threading\_utils.py** – *Manages API request threading for performance optimization.*  
-* **constants.py** – *Stores constant values used throughout the connector.*
 
 ## Additional considerations
-
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
