@@ -52,7 +52,7 @@ Not applicable - no API or iteration logic is present.
 
 ## Data handling
 - The `update()` function emits one hardcoded row.
-- No schema is declared, so the Fivetran infers the column name and type automatically.
+- No schema is declared, so Fivetran infers the column name and type automatically.
 
 
 ## Error handling
