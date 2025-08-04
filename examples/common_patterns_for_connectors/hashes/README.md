@@ -8,7 +8,7 @@ This is a recommended practice in cases where:
 - Data structure may change over time (e.g., columns added or removed)
 - Upserts need to be deterministic and idempotent
 
-Refer to the [Fivetran SDK best practices](https://fivetran.com/docs/connector-sdk/best-practices#declareprimarykeys) for more details on why primary keys are critical for sync performance and integrity.
+Refer to the [Fivetran SDK Best Practices documentation](https://fivetran.com/docs/connector-sdk/best-practices#declareprimarykeys) for more details on why primary keys are critical for sync performance and integrity.
 
 
 ## Requirements
