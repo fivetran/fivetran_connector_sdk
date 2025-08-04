@@ -185,9 +185,9 @@ def str2dt(incoming: str) -> datetime:
         incoming (str): ISO 8601 formatted timestamp string
 
     Returns:
-        datetime: Parsed datetime object with timezone information
+        datetime: Parsed datetime object
     """
-    return datetime.strptime(incoming, "%Y-%m-%dT%H:%M:%S%z")
+    return datetime.fromisoformat(incoming)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
