@@ -11,7 +11,6 @@ from fivetran_connector_sdk import Logging as log
 
 # Import required libraries for Solace integration
 import json
-import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Generator
 from solace.messaging.messaging_service import MessagingService
@@ -21,10 +20,7 @@ import pandas as pd
 
 from solace_publisher import SolacePublisher
 
-####################################################################################
 # CONFIGURATION AND CONSTANTS
-####################################################################################
-
 DEFAULT_LAST_SYNC_DATE = datetime(2020, 1, 1, tzinfo=timezone.utc)
 MAX_RETRIES = 3
 MAX_BATCH_SIZE = 1000
@@ -37,13 +33,11 @@ DEFAULT_TIMEOUT = 30
 
 def schema(configuration: dict):
     """
-    Define the schema for the Solace events table.
-    
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration (dict): Configuration dictionary containing connector credentials.
-        
-    Returns:
-        list: List of table schema definitions.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     validate_configuration(configuration, "schema")
     
@@ -251,10 +245,6 @@ def clean_and_deduplicate_events(events: List[Dict]) -> List[Dict]:
     return df.to_dict("records")
 
 
-####################################################################################
-# MAIN SYNC FUNCTIONS
-####################################################################################
-
 def sync_events(config: dict, state: dict) -> Generator:
     """
     Main function to sync events from Solace.
@@ -331,14 +321,13 @@ def validate_configuration(configuration: dict, method_name: str):
 
 def update(configuration: dict, state: dict):
     """
-    Main update function called by Fivetran during each sync.
-    
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration (dict): Configuration dictionary containing connector credentials
-        state (dict): State dictionary for incremental sync
-        
-    Yields:
-        Generator: Operations for syncing events
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     method_name = "update"
     validate_configuration(configuration, method_name)
@@ -355,31 +344,13 @@ def update(configuration: dict, state: dict):
     log.info(f"{method_name}: Solace connector sync completed")
 
 
-####################################################################################
-# CONNECTOR INSTANCE
-####################################################################################
-
-# Create the connector object
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    # For local testing
-    import os
-    
-    # Load configuration from file if it exists
-    config_file = "configuration.json"
-    if os.path.exists(config_file):
-        with open(config_file, "r") as f:
-            configuration = json.load(f)
-    else:
-        # Default test configuration
-        configuration = {
-            "solace_host": "localhost:55554",
-            "solace_username": "admin",
-            "solace_password": "admin",
-            "solace_vpn": "default",
-            "solace_queue": "test-queue"
-        }
-    
-    # Run connector in debug mode
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
     connector.debug(configuration=configuration)
