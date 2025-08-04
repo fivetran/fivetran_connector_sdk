@@ -26,7 +26,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Uses `installation.sh` to install native drivers.
 
 
-## Configuration File
+## Configuration file
 The connector requires the following configuration parameters:
 
 ```json
