@@ -90,7 +90,7 @@ The connector creates the `ORDERS` table:
 
 ## Additional files
 The connector uses `MySqldb` to connect to the MySQL database and retrieve data. The `MySqldb` requires an additional system package, `default-libmysqlclient-dev`, which contains MySQL database development files. The `drivers/installation.sh` script installs `MySqldb` dependencies files. The script updates the packages for Linux distributions and installs the `default-libmysqlclient-dev` package.
-Additionally, it's worth noting that the installation.sh script accepts a configuration.json file as a parameter. This file can be leveraged to provide any required configurations during package installation.
+Additionally, it's worth noting that the `installation.sh` script accepts a configuration.json file as a parameter. This file can be leveraged to provide any required configurations during package installation.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
