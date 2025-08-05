@@ -61,7 +61,7 @@ The connector creates one table:
 
 ```json
 {
-  "table": "unspecified",
+  "table": "as_specified_in_connector.py",
   "primary_key": ["id"],
   "columns": "inferred"
 }

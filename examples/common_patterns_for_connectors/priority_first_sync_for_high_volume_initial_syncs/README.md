@@ -1,7 +1,7 @@
 # Key-Based Pagination Connector Example
 
 ## Connector overview
-This connector demonstrates the Priority-First Sync (PFS) strategy, designed to sync recent data first while gradually backfilling historical records.
+This connector demonstrates the [Priority-First Sync (PFS)](https://fivetran.com/docs/using-fivetran/features#priorityfirstsync) strategy, designed to sync recent data first while gradually backfilling historical records.
 - Targets high-volume historical syncs where fresh data is prioritized for early availability.
 - Alternates between:
   - Incremental Syncs: Pulls new or recently updated records.
@@ -54,7 +54,7 @@ This connector connects to a local mock server and does not require authenticati
 
 
 ## Pagination
-- Pagination is handled within `users_sync.sync_users()` using a mock API response simulating has_more flags.
+- Pagination is handled within `users_sync.sync_users()` using a mock API response simulating `has_more` flags.
 - For incremental syncs, data is paginated forward using the `updated_at` field, fetching records newer than the incremental cursor.
 - For historical syncs, pagination proceeds backward in time, using a decreasing historical cursor until the historical limit is reached.
 - Each response is processed in sequence, and `last_updated_at` is updated as the cursor.

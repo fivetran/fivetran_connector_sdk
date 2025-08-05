@@ -19,7 +19,7 @@ This example shows how to:
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -83,8 +83,8 @@ Unsupported or unknown data types default to `STRING`.
 - Uses `raise_for_status()` for failed SQL queries.
 - Safely closes connections and cursors.
 
-## Tables Created
-The connector creates two tables:
+## Tables created
+The connector creates the `PRODUCTS` and `ORDERS` tables:
 
 `PRODUCTS`:
 ```json

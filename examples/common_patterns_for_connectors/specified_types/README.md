@@ -20,7 +20,7 @@ For full type details, refer to the [Technical Reference – Supported Data Type
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -34,7 +34,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Configuration file
-This example does not require a configuration.json file.
+This example does not require a `configuration.json` file.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -64,7 +64,7 @@ Not applicable. This connector emits a single static row during each sync.
 - Uses `raise_for_status()` for failed SQL queries.
 - Safely closes connections and cursors.
 
-## Tables Created
+## Tables created
 The connector creates one table:
 
 ```json

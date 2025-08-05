@@ -18,7 +18,7 @@ The connector generates synthetic data using Python’s `uuid` library and appli
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -32,7 +32,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Configuration file
-This example does not require a configuration.json file.
+This example does not require a `configuration.json` file.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -63,8 +63,8 @@ Each sync run performs the following:
   - The sync concludes by checkpointing the current state.
 
 
-## Tables Created
-The connector creates one table:
+## Tables created
+The connector creates the `THREE` table:
 
 ```json
 {
