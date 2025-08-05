@@ -76,7 +76,7 @@ Multithreading guidelines:
 ## Rate Limiting & Retries
 - Accelo rate limit: 5000 requests/hour
 - Retries: 3 attempts per call
-- Retry backoff: Exponential (e.g., 2s, 4s, 8s)****
+- Retry backoff: Exponential (e.g., 2s, 4s, 8s)
 
 
 ## Data handling
