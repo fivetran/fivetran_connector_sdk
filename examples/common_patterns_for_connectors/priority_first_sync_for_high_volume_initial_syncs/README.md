@@ -1,9 +1,15 @@
 # Key-Based Pagination Connector Example
 
 ## Connector overview
-This connector demonstrates how to build a modular, testable data pipeline using the Fivetran Connector SDK. It simulates syncing synthetic user data from a mock REST API powered by the `Faker` library. The connector supports incremental syncing using a timestamp `updatedAt` and paginated retrieval using an offset mechanism.
+This connector demonstrates the Priority-First Sync (PFS) strategy, designed to sync recent data first while gradually backfilling historical records.
+- Targets high-volume historical syncs where fresh data is prioritized for early availability.
+- Alternates between:
+  - Incremental Syncs: Pulls new or recently updated records.
+  - Historical Syncs: Walks backward in time until a defined limit.
+- Maintains separate cursors for incremental and historical progress per table.
+- Currently supports the `USER` table as an example, using keyset pagination based on `updated_at`.
 
-This connector also supports Priority Sync Flow (PFS) - a Fivetran optimization designed to prioritize the most critical or frequently-changing tables during a sync. This helps minimize sync latency for key datasets while allowing less critical data to sync afterward.
+Ideal for connectors with large datasets where early access to recent records is critical.
 
 
 ## Requirements
