@@ -15,13 +15,13 @@ This connector demonstrates how to sync data from a **Solace** queue using the [
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
 - Connects to **Solace PubSub+** using the [Solace PubSub+ Python API](https://solace.dev).
 - Pulls events from a **durable exclusive queue**.
-- Supports **incremental data sync** using timestamp-based filtering.
+- Supports **incremental data syncing** using timestamp-based filtering.
 - Deduplicates messages using an internally generated `event_id`.
 - Graceful error handling and logging.
 - Tracks sync state for resumable operations.
@@ -30,7 +30,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Configuration
 
-The connector expects the following configuration in a `configuration.json` file:
+The connector expects the following configuration in the `configuration.json` file:
 
 ```json
 {
@@ -46,7 +46,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-Add the following to requirements.txt:
+Add the following to `requirements.txt`:
 
 ```
 pandas==2.3.0
