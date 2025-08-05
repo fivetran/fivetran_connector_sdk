@@ -20,7 +20,7 @@ For more details on supported types and inference logic, refer to the [Technical
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
