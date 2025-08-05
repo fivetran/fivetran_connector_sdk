@@ -16,7 +16,7 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries.
 import json
 from datetime import date
-import teradatasql # Required for connecting to Teradata Vantage database.
+import teradatasql  # Required for connecting to Teradata Vantage database.
 
 
 __DESTINATION_TABLE = "employee"
