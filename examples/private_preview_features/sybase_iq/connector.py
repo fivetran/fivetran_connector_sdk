@@ -132,7 +132,9 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-
+            # Ensure date is in ISO format if it exists
+            if row_data["created_date"] and isinstance(row_data["created_date"], datetime.date):
+                row_data["created_date"] = row_data["created_date"].isoformat()
             # The yield statement yields a value from generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
@@ -141,10 +143,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             yield op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
-            if row_data["created_date"]:
-                date_isoformat = row_data["created_date"].isoformat()
-                if date_isoformat > last_created:
-                    last_created = row_data["created_date"]
+            if row_data["created_date"] and row_data["created_date"] > last_created:
+                last_created = row_data["created_date"]
 
         # Update the state with the last_created timestamp after processing each batch
         state["last_created"] = last_created
