@@ -66,10 +66,11 @@ def process_row_for_upsert(row, columns):
     # The zip() function pairs each column name with its corresponding value in the row.
     row_dict = dict(zip(columns, row))
 
-    # Format the date object into a YYYY-MM-DD string
+    # Format any date object into a YYYY-MM-DD string
     # isinstance() check ensures we only format if it's a date object
-    if 'JoiningDate' in row_dict and isinstance(row_dict['JoiningDate'], date):
-        row_dict['JoiningDate'] = row_dict['JoiningDate'].isoformat()
+    for col, val in row_dict.items():
+        if isinstance(val, date):
+            row_dict[col] = val.isoformat()
 
     return row_dict
 
@@ -112,8 +113,8 @@ def fetch_and_upsert_data(cursor, configuration, state):
 
     # SQL query to select data from the Teradata Vantage database.
     # You can modify the query to suit your needs, such as filtering by date or other criteria.
-    select_sql = f"SELECT * FROM {database}.{table_name} WHERE JoiningDate > '{last_joining_date}' ORDER BY JoiningDate"
-    cursor.execute(select_sql)
+    select_sql = f"SELECT * FROM {database}.{table_name} WHERE JoiningDate > ? ORDER BY JoiningDate"
+    cursor.execute(select_sql, (last_joining_date,))
 
     # Fetch the column names from the cursor description.
     columns = [desc[0] for desc in cursor.description]
