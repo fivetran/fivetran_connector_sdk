@@ -48,18 +48,21 @@ This connector connects to a local mock server and does not require authenticati
 
 
 ## Pagination
-Pagination is implemented in the `users_sync.py` module using offset-based pagination. Key behaviors:
-- Starts with `offset=0` and fetches batches of users using a `limit`.
-- Continues fetching until the API returns no further results.
-- Updates the replication cursor using the `updatedAt` timestamp.
-- Maintains pagination state in the connector’s `state` dictionary.
+- Pagination is handled within `users_sync.sync_users()` using a mock API response simulating has_more flags.
+- For incremental syncs, data is paginated forward using the `updated_at` field, fetching records newer than the incremental cursor.
+- For historical syncs, pagination proceeds backward in time, using a decreasing historical cursor until the historical limit is reached.
+- Each response is processed in sequence, and `last_updated_at` is updated as the cursor.
+- The `has_more` flag determines whether to continue paginating in the current batch.
 
 
 ## Data handling
-- User records are generated dynamically and returned as JSON.
-- The connector sync each user record using `op.upsert()` into the `USER` table.
-- After each batch, `op.checkpoint()` stores the updated sync state.
-- Schema is explicitly defined via the `schema()` function in `connector.py`.
+- Uses two time-based cursors per endpoint:
+  - `incremental_cursor` for recent data.
+  - `historical_cursor` for older data.
+- Sync alternates between incremental and historical runs to prioritize freshness while backfilling history.
+- Data is pulled using the `updated_since` param and batched by time range (1-day chunks).
+- Cursors are updated after each batch, ensuring resume-safe and idempotent syncs.
+- Checkpointing is performed after every successful data load.
 
 
 ## Error handling
@@ -69,7 +72,7 @@ Pagination is implemented in the `users_sync.py` module using offset-based pagin
 
 
 ## Tables created
-The connector creates the `USER` table:
+The connector creates a `USER` table:
 
 ```
 {
