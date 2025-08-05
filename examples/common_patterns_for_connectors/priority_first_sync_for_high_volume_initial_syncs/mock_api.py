@@ -23,8 +23,8 @@ def get_api_response(base_url, from_cursor):
                 "address": fake.address(),
                 "company": fake.company(),
                 "job": fake.job(),
-                "updated_at": updated_since.isoformat(),
-                "created_at": updated_since.isoformat(),
+                "updated_at": updated_since,
+                "created_at": updated_since,
             }
         )
         updated_since = updated_since + timedelta(hours=1)

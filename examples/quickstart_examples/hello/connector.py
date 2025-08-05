@@ -3,6 +3,7 @@
 # This example is the simplest possible as it doesn't define a schema() function, however it does not therefore provide a good template for writing a real connector.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+from datetime import datetime, timezone
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -32,6 +33,14 @@ def update(configuration: dict, state: dict):
     # - The second argument is a dictionary containing the data to be upserted,
     log.fine(f"upserting to table 'hello'")
     yield op.upsert(table="hello", data={"message": "hello, world!"})
+    value = datetime.now()
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        # value = value.isoformat()
+
+    yield op.upsert(table="check", data={"check_date": value})
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
