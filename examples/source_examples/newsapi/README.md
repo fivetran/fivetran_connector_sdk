@@ -86,7 +86,7 @@ The connector flattens nested dictionaries and handles missing or optional value
 - Paginated state is checkpointed after each page and topic sync.
 
 
-## Tables Created
+## Tables created
 The connector creates an `ARTICLE` table:
 
 ```json

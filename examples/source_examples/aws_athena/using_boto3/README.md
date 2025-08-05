@@ -85,7 +85,7 @@ The connector handles paginated Athena results using `NextToken`:
   - Adding retry handling for transient AWS errors.
 
 
-## Tables Created
+## Tables created
 The connector creates a `CUSTOMERS` table:
 
 ```json

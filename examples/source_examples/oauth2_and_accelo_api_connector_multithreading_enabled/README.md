@@ -66,7 +66,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector uses OAuth 2.0 Client Credentials flow to obtain an access token.
 
 
-## Pagination and Multithreading
+## Pagination and multithreading
 This connector uses parallel page fetching with `ThreadPoolExecutor`. Each entity is fetched in batches, and API calls are made concurrently to reduce overall sync time.
 
 Multithreading guidelines:
@@ -93,7 +93,7 @@ Multithreading guidelines:
 - Sync failures are logged and halted with detailed traceback for debugging.
 
 
-## Tables Created
+## Tables created
 The connector creates the following table in the destination:
 - `COMPANIES`
 - `INVOICES`

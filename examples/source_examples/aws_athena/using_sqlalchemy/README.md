@@ -81,7 +81,7 @@ awsathena+rest://<access_key>:<secret_key>@athena.<region>.amazonaws.com:443/<da
 - Consider wrapping query execution in a `try/except` block for production use.
 
 
-## Tables Created
+## Tables created
 The connector creates a `CUSTOMERS` table:
 
 ```json

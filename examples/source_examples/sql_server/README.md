@@ -79,7 +79,7 @@ The connector uses cursor-based pagination via the `updated_time` column. Batchi
 - State is checkpointed even if only partial sync is completed.
 
 
-## Tables Created
+## Tables created
 The connector creates an `EMPLOYEE_DETAILS` table:
 
 ```json

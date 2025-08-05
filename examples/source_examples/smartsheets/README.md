@@ -75,7 +75,7 @@ Pagination is not currently implemented in this example.
 - You can extend this with `try/except` blocks and log warnings for partial errors.
 
 
-## Tables Created
+## Tables created
 The connector creates a `SMARTSHEET_TABLE_NAME` table:
 
 ```json

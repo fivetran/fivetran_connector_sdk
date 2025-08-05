@@ -91,7 +91,7 @@ Not Applicable for this connector, as it processes a single CSV file.
 - Sync state is checkpointed after processing all rows.
 
 
-## Tables Created
+## Tables created
 The connector creates a `DATA` table:
 
 ```json

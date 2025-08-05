@@ -85,7 +85,7 @@ Pagination is handled via:
 - You can extend error handling with retry/backoff for robustness.
 
 
-## Tables Created
+## Tables created
 The connector creates a `CUSTOMERS` table:
 
 ```json

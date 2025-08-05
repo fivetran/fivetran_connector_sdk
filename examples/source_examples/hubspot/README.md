@@ -80,7 +80,7 @@ Pagination is handled using the `after` cursor returned in HubSpot’s `paging.n
 - Unrecognized response structures are gracefully handled with fallbacks.
 
 
-## Tables Created
+## Tables created
 The connector creates a `E_VISITED_PAGE` table:
 
 ```json
