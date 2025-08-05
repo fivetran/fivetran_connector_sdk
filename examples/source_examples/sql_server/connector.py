@@ -89,7 +89,7 @@ def setup_db(configuration):
         """
 
     insert_data_sql = """
-        INSERT INTO employee_details (first_name, last_name, hire_date, salary)
+        INSERT INTO employee_details (first_name, last_name, hire_date, salary, updated_time)
         VALUES 
             ('John', 'Doe', '2020-05-15', 55000, '2020-05-15T20:10:00'),
             ('Jane', 'Smith', '2018-03-22', 62000, '2020-05-16T20:10:00'),
@@ -189,7 +189,7 @@ def update(configuration: dict, state: dict):
                         "last_name": row[2],  # Last Name.
                         "hire_date": dt2str(row[3]),  # Hire Date.
                         "salary": row[4],  # Salary.
-                        "updated_time": row[5].isoformat(),  # Salary.
+                        "updated_time": row[5],  # updated_time.
                     },
                 )
                 if row[5] > last_query_dt:
