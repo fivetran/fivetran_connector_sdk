@@ -31,7 +31,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Configuration file
-This example does not require a configuration.json file.
+This example does not require a `configuration.json` file.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
