@@ -56,7 +56,7 @@ Not applicable - this connector emits a single static row each sync.
   - `int`, `float`, `bool`, `str`, `dict`, `bytes`, `datetime` (in string form), and `None`.
 
 
-## Tables Created
+## Tables created
 The connector creates one table:
 
 ```json
