@@ -36,7 +36,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-The requirements.txt file specifies the Python libraries required by the connector.
+The `requirements.txt` file specifies the Python libraries required by the connector. This connector uses the following library:
 
 ```
 teradatasql
