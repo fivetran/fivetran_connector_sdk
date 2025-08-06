@@ -35,7 +35,7 @@ fi
 # Run black on each staged file and re-add to the index
 echo "$PY_FILES" | while read -r file; do
     if [ -f "$file" ]; then
-        black "$file"
+        black --line-length=99 "$file"
         git add "$file"
         echo "Formatted: $file"
     fi
