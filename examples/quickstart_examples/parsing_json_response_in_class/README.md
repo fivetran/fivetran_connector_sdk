@@ -1,8 +1,7 @@
 # Parsing JSON Response in Class Connector Example
 
 ## Connector overview
-This example connector demonstrates how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation using the fivetran_connector_sdk library.
-It fetches data from the [https://jsonplaceholder.typicode.com/posts](https://jsonplaceholder.typicode.com/posts) endpoint and parses it into Python objects. It is a simple demonstration of how to:
+This example connector demonstrates how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation using the fivetran_connector_sdk library. It fetches data from the [https://jsonplaceholder.typicode.com/posts](https://jsonplaceholder.typicode.com/posts) endpoint and parses it into Python objects. It is a simple demonstration of how to:
 - Use `dataclass` to model API responses.
 - Implement retry logic with exponential backoff.
 - Map parsed JSON objects to upsert operations.
@@ -18,7 +17,7 @@ This pattern is useful for APIs with structured JSON responses and promotes read
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
@@ -28,7 +27,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Configuration file
-No configuration file is required for this example, as it connects to a Public API.
+No configuration file is required for this example, as it connects to a public API.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -43,7 +42,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector does not require authentication - as it connects to Public API that doesn't require any authentication.
+This connector does not require authentication - as it connects to a public API that doesn't require any authentication.
 
 
 ## Pagination
@@ -59,11 +58,10 @@ Not applicable - as this example fetches all data from a single endpoint without
 ## Error handling
 - Any record that fails deserialization or processing is logged and skipped, preventing sync interruption.
 - A capped exponential backoff ensures the connector gracefully retries failed API requests before exiting.
-- 
 
 
-## Tables Created
-The connector creates a `POSTS` table:
+## Tables created
+The connector creates the `POSTS` table:
 
 ```json
 {
