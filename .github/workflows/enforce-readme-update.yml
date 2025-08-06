@@ -71,7 +71,8 @@ jobs:
               '.circleci',
               '.devops',
               'ci',
-              '.ci'
+              '.ci',
+              'scripts'
             ];
             
             // Get all files changed in this PR
