@@ -39,7 +39,8 @@ def schema(configuration: dict):
                 "company": "STRING",
                 "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
-                "createdAt": "UTC_DATETIME",},
+                "createdAt": "UTC_DATETIME",
+            },
         }
     ]
 
@@ -54,11 +55,15 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Authentication - API KEY")
 
-    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
-        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
     base_url = "http://127.0.0.1:5001/auth/api_key"
 
     yield from sync_items(base_url, {}, state, configuration)
+
+
 # Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
 # The function takes one parameter:
 # - config: dictionary contains any secrets or payloads you configure when deploying the connector.
