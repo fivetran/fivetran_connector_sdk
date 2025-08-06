@@ -6,7 +6,8 @@ on:
       - '**.py'
 
 jobs:
-  lint:
+  code-quality-check:
+    name: Python Code Quality Check
     runs-on: ubuntu-latest
 
     steps:
