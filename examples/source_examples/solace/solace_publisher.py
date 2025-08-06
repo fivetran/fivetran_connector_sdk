@@ -71,20 +71,20 @@ class SolacePublisher:
         self.publisher.start()
         log.info("Publisher started.")
 
-    def publish_messages(self, count=10, delay=0.5):
+    def publish_messages(self, messages_to_send=10, delay=0.5):
         """
         Publishes a specified number of test messages to the configured topic.
 
         Args:
-            count (int, optional): Number of messages to publish. Defaults to 10.
+            messages_to_send (int, optional): Number of messages to publish. Defaults to 10.
             delay (float, optional): Delay in seconds between messages. Defaults to 0.5.
         """
-        for i in range(count):
+        for message_index in range(messages_to_send):
             event_data = {
                 "message_id": str(uuid.uuid4()),
                 "event_timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": "test_event",
-                "details": "This is a generate message and the number is : " + str(i)
+                "details": "This is a generate message and the number is : " + str(message_index)
             }
             message = json.dumps(event_data)
             self.publisher.publish(message, self.topic)
