@@ -44,6 +44,26 @@ jobs:
           name: python-formatting-diff
           path: formatting.diff
 
+      - name: Detect changed Python files
+        id: detect_changes
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            | jq -r '.[] | .filename' > all_files.txt
+
+          grep '\.py$' all_files.txt > changed_files.txt || true
+
+          if [[ ! -s changed_files.txt ]]; then
+            echo "No Python files changed."
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "SKIP=false" >> $GITHUB_ENV
+            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+          fi
+
       - name: Run Flake8 on changed files
         run: |
           echo "Running flake8 on: $CHANGED"
@@ -84,6 +104,7 @@ jobs:
           EOF
 
       - name: Upload full report
+        if: env.FLAKE8_ISSUE_PRESENT == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-code-quality-report
@@ -118,8 +139,8 @@ jobs:
         if: steps.black_check.outputs.black_failed == 'true' && env.FLAKE8_ISSUE_PRESENT != 'true'
         run: |
           echo "Python formatting check failed. See formatting.diff artifact for details."
-            echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
-            echo "./scripts/fix-python-formatting.sh"
+          echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
+          echo "./scripts/fix-python-formatting.sh"
           exit 1
 
       - name: Fail if only flake8 failed
