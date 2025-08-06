@@ -34,6 +34,7 @@ class SolacePublisher:
         publisher: Solace direct message publisher instance.
         topic: Solace topic resource.
     """
+
     def __init__(self, host: str, vpn: str, username: str, password: str, topic_name: str):
         """
         Initializes the SolacePublisher with connection and topic details.
@@ -58,12 +59,18 @@ class SolacePublisher:
         """
         Establishes a connection to the Solace broker and starts the publisher.
         """
-        self.messaging_service = MessagingService.builder().from_properties({
-            "solace.messaging.transport.host": self.host,
-            "solace.messaging.service.vpn-name": self.vpn,
-            "solace.messaging.authentication.basic.username": self.username,
-            "solace.messaging.authentication.basic.password": self.password
-        }).build()
+        self.messaging_service = (
+            MessagingService.builder()
+            .from_properties(
+                {
+                    "solace.messaging.transport.host": self.host,
+                    "solace.messaging.service.vpn-name": self.vpn,
+                    "solace.messaging.authentication.basic.username": self.username,
+                    "solace.messaging.authentication.basic.password": self.password,
+                }
+            )
+            .build()
+        )
         self.messaging_service.connect()
         log.info("Connected to Solace broker.")
 
@@ -84,7 +91,7 @@ class SolacePublisher:
                 "message_id": str(uuid.uuid4()),
                 "event_timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": "test_event",
-                "details": "This is a generate message and the number is : " + str(message_index)
+                "details": "This is a generate message and the number is : " + str(message_index),
             }
             message = json.dumps(event_data)
             self.publisher.publish(message, self.topic)

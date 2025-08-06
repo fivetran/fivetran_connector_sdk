@@ -44,6 +44,7 @@ from solace_publisher import SolacePublisher
 __DEFAULT_LAST_SYNC_DATE = datetime(2020, 1, 1, tzinfo=timezone.utc)
 __MAX_BATCH_SIZE = 1000
 
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
