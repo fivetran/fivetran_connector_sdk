@@ -27,7 +27,7 @@ import time
 
 # Constants
 __API_URL = "https://jsonplaceholder.typicode.com/posts"
-__MAX_RETRIES = 3 # Maximum number of retries for failed requests
+__MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __BASE_DELAY = 2  # Base delay for exponential backoff in seconds
 
 
@@ -37,6 +37,7 @@ class Post:
     """
     A class representing a post from the JSONPlaceholder API.
     """
+
     userId: int
     id: int
     title: str
@@ -55,12 +56,7 @@ def schema(configuration: dict):
         {
             "table": "posts",
             "primary_key": ["id"],
-            "columns": {
-                "id": "INT",
-                "userId": "INT",
-                "title": "STRING",
-                "body": "STRING"
-            }
+            "columns": {"id": "INT", "userId": "INT", "title": "STRING", "body": "STRING"},
         }
     ]
 
@@ -87,7 +83,7 @@ def update(configuration: dict, state: dict):
         except requests.RequestException as e:
             log.warning(f"Request attempt {attempt} failed: {e}")
             if attempt < __MAX_RETRIES:
-                delay = __BASE_DELAY ** attempt
+                delay = __BASE_DELAY**attempt
                 log.info(f"Retrying in {delay} seconds...")
                 time.sleep(delay)
             else:
@@ -99,12 +95,10 @@ def update(configuration: dict, state: dict):
             post = Post(**post_dict)  # Deserialize into a POJO
 
             # Emit upsert operation, to sync the post data
-            yield op.upsert("posts", {
-                "id": post.id,
-                "userId": post.userId,
-                "title": post.title,
-                "body": post.body
-            })
+            yield op.upsert(
+                "posts",
+                {"id": post.id, "userId": post.userId, "title": post.title, "body": post.body},
+            )
 
         except Exception as e:
             log.warning(f"Failed to process post: {post_dict.get('id', 'unknown')} - {e}")
