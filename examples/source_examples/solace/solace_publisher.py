@@ -1,14 +1,50 @@
+# Solace Python API for messaging service
 from solace.messaging.messaging_service import MessagingService
+
+# Solace topic resource for publishing messages
 from solace.messaging.resources.topic import Topic
+
+# For timestamping messages with timezone-aware datetimes
 from datetime import datetime, timezone
+
+# Fivetran logging utility
 from fivetran_connector_sdk import Logging as log
+
+# For generating unique message IDs
 import uuid
+
+# For serializing message payloads
 import json
+
+# For adding delays between message publishes
 import time
 
 
 class SolacePublisher:
+    """
+    Publishes messages to a Solace broker using the Solace Messaging API.
+
+    Attributes:
+        host (str): Solace broker host address.
+        vpn (str): Solace VPN name.
+        username (str): Username for authentication.
+        password (str): Password for authentication.
+        topic_name (str): Name of the topic to publish messages to.
+        messaging_service: Solace messaging service instance.
+        publisher: Solace direct message publisher instance.
+        topic: Solace topic resource.
+    """
     def __init__(self, host: str, vpn: str, username: str, password: str, topic_name: str):
+        """
+        Initializes the SolacePublisher with connection and topic details.
+
+        Args:
+            host (str): Solace broker host address.
+            vpn (str): Solace VPN name.
+            username (str): Username for authentication.
+            password (str): Password for authentication.
+            topic_name (str): Name of the topic to publish messages to.
+        """
         self.host = host
         self.vpn = vpn
         self.username = username
@@ -19,6 +55,9 @@ class SolacePublisher:
         self.topic = Topic.of(self.topic_name)
 
     def connect(self):
+        """
+        Establishes a connection to the Solace broker and starts the publisher.
+        """
         self.messaging_service = MessagingService.builder().from_properties({
             "solace.messaging.transport.host": self.host,
             "solace.messaging.service.vpn-name": self.vpn,
@@ -33,6 +72,13 @@ class SolacePublisher:
         log.info("Publisher started.")
 
     def publish_messages(self, count=10, delay=0.5):
+        """
+        Publishes a specified number of test messages to the configured topic.
+
+        Args:
+            count (int, optional): Number of messages to publish. Defaults to 10.
+            delay (float, optional): Delay in seconds between messages. Defaults to 0.5.
+        """
         for i in range(count):
             event_data = {
                 "message_id": str(uuid.uuid4()),

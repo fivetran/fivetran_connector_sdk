@@ -44,13 +44,6 @@ from solace_publisher import SolacePublisher
 __DEFAULT_LAST_SYNC_DATE = datetime(2020, 1, 1, tzinfo=timezone.utc)
 __MAX_BATCH_SIZE = 1000
 
-
-
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -338,13 +331,13 @@ def publish_messages_for_testing(config: dict, count: int):
 
 def validate_configuration(configuration: dict, method_name: str):
     """
-        Validate the configuration dictionary to ensure it contains all required parameters.
-        This function is called at the start of the schema and update method to ensure that the connector has all necessary configuration values.
-        Args:
-            configuration: a dictionary that holds the configuration settings for the connector.
-            method_name: the name of the method that is calling this method
-        Raises:
-            ValueError: if any required configuration parameter is missing.
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the schema and update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        method_name: the name of the method that is calling this method
+    Raises:
+        ValueError: if any required configuration parameter is missing.
     """
     required_keys = ["solace_host", "solace_username", "solace_password", "solace_queue"]
     for key in required_keys:
@@ -352,14 +345,17 @@ def validate_configuration(configuration: dict, method_name: str):
             log.severe(f"{method_name}: Missing required configuration key: {key}")
             raise ValueError(f"Missing configuration key: {key}")
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# Args:
-#     configuration: A dictionary containing connection details
-#     state: A dictionary containing state information from previous runs
-# The state dictionary is empty for the first sync or for any full re-sync
+
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+    The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Syncing data from Solace queue")
 
     method_name = "update"
