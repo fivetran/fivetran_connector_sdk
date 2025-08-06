@@ -1,6 +1,5 @@
 #!/bin/bash
 # Pre-commit hook to auto-format staged Python files using black.
-# Install by placing this file in .git/hooks/pre-commit (no .sh extension).
 
 echo "Running black auto-formatter for staged Python files"
 
