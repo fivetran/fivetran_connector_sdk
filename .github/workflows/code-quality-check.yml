@@ -2,7 +2,8 @@ name: Python Code Quality Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
 
 jobs:
   lint:
@@ -15,34 +16,34 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
-          pip install flake8
+          pip install flake8 black
 
-      - name: Detect changed Python files
-        id: detect_changes
+      - name: Run black and generate diff
+        id: black_check
         run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          REPO="${{ github.repository }}"
+          echo "Running black in check mode with diff output..."
+          black --check --diff --line-length 99 . > formatting.diff || true
 
-          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
-            | jq -r '.[] | .filename' > all_files.txt
-
-          grep '\.py$' all_files.txt > changed_files.txt || true
-
-          if [[ ! -s changed_files.txt ]]; then
-            echo "No Python files changed."
-            echo "SKIP=true" >> $GITHUB_ENV
+          if [ -s formatting.diff ]; then
+            echo "Formatting issues detected:"
+            cat formatting.diff
+            echo "black_failed=true" >> $GITHUB_OUTPUT
           else
-            echo "SKIP=false" >> $GITHUB_ENV
-            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+            echo "No formatting issues found."
           fi
 
+      - name: Upload formatting.diff
+        if: steps.black_check.outputs.black_failed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-formatting-diff
+          path: formatting.diff
+
       - name: Run Flake8 on changed files
-        if: env.SKIP != 'true'
         run: |
           echo "Running flake8 on: $CHANGED"
           flake8 $CHANGED > flake8_output.txt || true
@@ -53,12 +54,8 @@ jobs:
           import os
 
           try:
-              skip = os.getenv("SKIP") == "true"
-              if skip:
-                lines = []
-              else:
-                with open("flake8_output.txt") as f:
-                  lines = f.read().splitlines()
+              with open("flake8_output.txt") as f:
+                lines = f.read().splitlines()
               
           except FileNotFoundError:
               lines = []
@@ -86,7 +83,6 @@ jobs:
           EOF
 
       - name: Upload full report
-        if: env.SKIP != 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-code-quality-report
@@ -108,10 +104,25 @@ jobs:
           body-path: flake8_summary.md
           edit-mode: replace
 
-      - name: Fail if Flake8 issues found
-        if: env.SKIP != 'true'
+      - name: Fail if both black and flake8 failed
+        if: steps.black_check.outputs.black_failed == 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
         run: |
-          if [ "$FLAKE8_ISSUE_PRESENT" == "true" ]; then
-            echo "❌  Issues detected in Python files. Please fix them before merging."
-            exit 1
-          fi
+          echo "Python formatting check failed. See formatting.diff artifact for details."
+          echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
+          echo "./scripts/fix-python-formatting.sh"
+          echo "We also detected Linting Issues in Python files. Please fix them before merging."
+          exit 1
+
+      - name: Fail if only black failed
+        if: steps.black_check.outputs.black_failed == 'true' && env.FLAKE8_ISSUE_PRESENT != 'true'
+        run: |
+          echo "Python formatting check failed. See formatting.diff artifact for details."
+            echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
+            echo "./scripts/fix-python-formatting.sh"
+          exit 1
+
+      - name: Fail if only flake8 failed
+        if: steps.black_check.outputs.black_failed != 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
+        run: |
+          echo "❌  Issues detected in Python files. Please fix them before merging."
+          exit 1
