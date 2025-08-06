@@ -1,0 +1,44 @@
+#!/bin/bash
+# Pre-commit hook to auto-format staged Python files using black.
+# Install by placing this file in .git/hooks/pre-commit (no .sh extension).
+
+echo "Running black auto-formatter for staged Python files"
+
+# Ensure black is installed
+if ! command -v black &> /dev/null; then
+    echo "'black' is not installed. Attempting to install..."
+    if command -v pip3 &> /dev/null; then
+        pip3 install --user black
+        export PATH="$HOME/.local/bin:$PATH"
+    elif command -v pip &> /dev/null; then
+        pip install --user black
+        export PATH="$HOME/.local/bin:$PATH"
+    else
+        echo "pip not found. Please install pip and rerun."
+        exit 1
+    fi
+
+    # Check again after install
+    if ! command -v black &> /dev/null; then
+        echo "Failed to install 'black'. Aborting commit."
+        exit 1
+    fi
+fi
+
+# Get list of staged Python files
+PY_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.py$')
+if [ -z "$PY_FILES" ]; then
+    echo "No Python files to format."
+    exit 0
+fi
+
+# Run black on each staged file and re-add to the index
+echo "$PY_FILES" | while read -r file; do
+    if [ -f "$file" ]; then
+        black "$file"
+        git add "$file"
+        echo "Formatted: $file"
+    fi
+done
+
+echo "Finished formatting Python files."
