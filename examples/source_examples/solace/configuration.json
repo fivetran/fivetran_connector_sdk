@@ -1,7 +1,7 @@
 {
-    "solace_host": "localhost:55554",
-    "solace_username": "admin",
-    "solace_password": "admin",
-    "solace_vpn": "default",
-    "solace_queue": "test-queue"
+    "solace_host": "YOUR_SOLACE_HOST",
+    "solace_username": "YOUR_SOLACE_USERNAME",
+    "solace_password": "YOUR_SOLACE_PASSWORD",
+    "solace_vpn": "YOUR_SOLACE_VPN",
+    "solace_queue": "YOUR_SOLACE_QUEUE"
 }
