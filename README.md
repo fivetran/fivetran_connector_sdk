@@ -61,6 +61,8 @@ There are several examples available under `/examples`:
 
 - [base_64_encoding_decoding](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/base_64_encoding_decoding) - This example shows how to use base64 encoding and decoding in your connector code.
 
+- [parsing_json_response_in_class](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/parsing_json_response_in_class) - This example shows how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation.
+
 </details>
 
 <details class="details-heading" open="open">
