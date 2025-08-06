@@ -1,4 +1,4 @@
-name: Python Code Quality Check
+name: Python Check
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   code-quality-check:
-    name: Python Code Quality Check
+    name: Code Quality
     runs-on: ubuntu-latest
 
     steps:
