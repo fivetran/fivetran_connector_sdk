@@ -14,13 +14,13 @@ if ! command -v black &> /dev/null; then
         export PATH="$HOME/.local/bin:$PATH"
     else
         echo "pip not found. Please install pip and rerun."
-        exit 1
+        echo "skipping formatting!"
     fi
 
     # Check again after install
     if ! command -v black &> /dev/null; then
-        echo "Failed to install 'black'. Aborting commit."
-        exit 1
+        echo "Failed to install 'black'. Aborting formatting."
+        exit 0 # Github Actions will prevent merging of PRs if its not properly formatted, we want to continue with the commit.
     fi
 fi
 
