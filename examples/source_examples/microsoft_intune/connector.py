@@ -15,8 +15,9 @@ import json
 
 # Define base URL for Microsoft graph API
 BASE_URL = "https://graph.microsoft.com/v1.0/"
-#Max Retries to call on the API
+# Max Retries to call on the API
 MAX_RETRIES = 3
+
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -24,12 +25,8 @@ MAX_RETRIES = 3
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    return [
-        {
-            "table": "managed_devices",
-            "primary_key": ["id"]
-        }
-    ]
+    return [{"table": "managed_devices", "primary_key": ["id"]}]
+
 
 # The get_access_token function is to retrieve an access token from Culture Amp using client credentials flow
 # The function takes in two parameters:
@@ -40,9 +37,9 @@ def schema(configuration: dict):
 def get_access_token(tenant_id, client_id, client_secret):
     auth_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    payload = f'grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default'
+    payload = f"grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default"
     response = requests.post(auth_url, headers=headers, data=payload)
-    
+
     # Check the response
     if response.status_code == 200:
         access_token = response.json().get("access_token")
@@ -50,6 +47,7 @@ def get_access_token(tenant_id, client_id, client_secret):
     else:
         log.severe(f"Error: {response.status_code} - {response.text}")
         raise RuntimeError("Unable to fetch access_token")
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -61,22 +59,19 @@ def get_access_token(tenant_id, client_id, client_secret):
 def update(configuration: dict, state: dict):
 
     # Retrieve secrets from configuration.json and call Auth endpoint to get access token
-    tenant_id = configuration.get('tenant_id') 
-    client_id = configuration.get('client_id')
-    client_secret = configuration.get('client_secret')
+    tenant_id = configuration.get("tenant_id")
+    client_id = configuration.get("client_id")
+    client_secret = configuration.get("client_secret")
 
     access_token = get_access_token(tenant_id, client_id, client_secret)
 
     # Define API headers
-    headers = {
-    "Authorization": f"Bearer {access_token}",
-    "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     # Define Managed Devices endpoint
     devices_url = f"{BASE_URL}deviceManagement/managedDevices"
-    
-     # Set Boolean to handle pagination and loop through pages
+
+    # Set Boolean to handle pagination and loop through pages
     more_devices = True
     while more_devices:
 
@@ -95,7 +90,7 @@ def update(configuration: dict, state: dict):
                 if retry_count > MAX_RETRIES:
                     log.error("Max retries reached. Exiting.")
                     raise
-                sleep_time = MAX_RETRIES ** retry_count
+                sleep_time = MAX_RETRIES**retry_count
                 log.info(f"Retrying in {sleep_time} seconds...")
                 time.sleep(sleep_time)
 
@@ -104,10 +99,10 @@ def update(configuration: dict, state: dict):
 
         # Define Next Page Link and Count of records from API response
         next_page = response_page.get("@odata.nextLink")
-        count = response_page.get('@odata.count')
+        count = response_page.get("@odata.count")
         log.info(f"{count} records retrieved")
 
-        # Loop through records in response and upsert 
+        # Loop through records in response and upsert
         for record in response_page.get("value"):
             yield op.upsert("managed_devices", list_to_json(record))
 
@@ -118,6 +113,7 @@ def update(configuration: dict, state: dict):
         else:
             more_devices = False
 
+
 # Converts any list values in the input dictionary to JSON strings.
 # The function takes one parameter
 # - data: Dictionary to process
@@ -125,7 +121,10 @@ def update(configuration: dict, state: dict):
 # Returns
 # - New dictionary with lists converted to JSON strings
 def list_to_json(data: dict):
-    return {key: json.dumps(value) if isinstance(value, list) else value for key, value in data.items()}
+    return {
+        key: json.dumps(value) if isinstance(value, list) else value for key, value in data.items()
+    }
+
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -137,7 +136,7 @@ connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
