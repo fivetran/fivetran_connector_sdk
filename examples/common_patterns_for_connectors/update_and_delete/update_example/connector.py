@@ -131,12 +131,12 @@ def update(configuration: dict, state: dict):
 
         # upsert each record into the destination table
         for record in records:
-            yield op.upsert("product_inventory", record)
-        yield op.checkpoint(state)
+            op.upsert("product_inventory", record)
+        op.checkpoint(state)
 
         # CASE 1: Updating single record with product_id=102 and warehouse_id=2
         log.info("Updating record with product_id=102 and warehouse_id=2")
-        yield op.update(
+        op.update(
             table="product_inventory",
             modified={
                 "product_id": 102,
@@ -158,14 +158,14 @@ def update(configuration: dict, state: dict):
             # join both the dictionary to include primary key-value pairs and updated key-value pairs
             record.update(updated_values)
             # It is important to include all the primary key columns defined in scheme to update the desired row values.
-            yield op.update(table="product_inventory", modified=record)
+            op.update(table="product_inventory", modified=record)
 
         # Updating the records with incomplete primary keys will raise an error.
         # Below are the examples of such incorrect cases:
-        # yield op.update(table="product_inventory", modified={"product_id": 101})
-        # yield op.update(table="product_inventory", modified={"warehouse_id": 1})
+        # op.update(table="product_inventory", modified={"product_id": 101})
+        # op.update(table="product_inventory", modified={"warehouse_id": 1})
 
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     except Exception as e:
         raise ValueError(f"Error updating records: {e}")

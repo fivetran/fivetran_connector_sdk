@@ -81,12 +81,12 @@ def update(configuration: dict, state: dict):
             state, endpoints
         ):
             log.info("starting incremental syncs")
-            yield from run_incremental_sync_for_endpoints(state, endpoints)
+            run_incremental_sync_for_endpoints(state, endpoints)
             # try running historical sync in the next sync
             set_pfs_incremental_sync(state, False)
         else:
             log.info("starting historical syncs")
-            yield from run_historical_syncs_for_endpoints(state, endpoints)
+            run_historical_syncs_for_endpoints(state, endpoints)
             # try running incremental sync in the next sync
             set_pfs_incremental_sync(state, True)
 
@@ -94,7 +94,7 @@ def update(configuration: dict, state: dict):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
     except Exception:
         # logs stack trace
         log.severe(traceback.format_exc())
@@ -113,7 +113,7 @@ def is_historical_data_completely_synced(state, endpoints):
 def run_incremental_sync_for_endpoints(state, endpoints):
     for endpoint in endpoints:
         log.info("starting incremental sync for " + endpoint + " endpoint")
-        yield from incremental_sync_for_endpoint(state, endpoint)
+        incremental_sync_for_endpoint(state, endpoint)
 
 
 def run_historical_syncs_for_endpoints(state, endpoints):
@@ -122,7 +122,7 @@ def run_historical_syncs_for_endpoints(state, endpoints):
         while get_datetime_object(
             get_pfs_historical_cursor_for_endpoint(state, endpoint)
         ) > get_datetime_object(get_pfs_historical_limit_for_endpoint(state, endpoint)):
-            yield from historical_sync_for_endpoint(state, endpoint)
+            historical_sync_for_endpoint(state, endpoint)
             if is_sync_duration_threshold_breached():
                 log.info(
                     "Sync duration breached sync_duration_threshold. Stopping sync to flush data to destination..."
@@ -142,7 +142,7 @@ def incremental_sync_for_endpoint(state, endpoint):
     params = {"updated_since": get_pfs_incremental_cursor_for_endpoint(state, endpoint)}
 
     if endpoint == "user":
-        yield from users_sync.sync_users(base_url, params, state, False)
+        users_sync.sync_users(base_url, params, state, False)
 
 
 def historical_sync_for_endpoint(state, endpoint):
@@ -156,7 +156,7 @@ def historical_sync_for_endpoint(state, endpoint):
     params = {"updated_since": updated_since.isoformat()}
 
     if endpoint == "user":
-        yield from users_sync.sync_users(base_url, params, state, True)
+        users_sync.sync_users(base_url, params, state, True)
 
 
 def initialize_pfs_cursors_for_each_endpoint(state, endpoints):
