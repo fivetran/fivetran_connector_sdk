@@ -38,10 +38,10 @@ def update(configuration: dict, state: dict):
     while True:
         next_url, pokemons_df, next_offset = get_data(api_endpoint, offset)
         for index, row in pokemons_df.iterrows():
-            yield op.upsert(table="pokemons", data={col: row[col] for col in pokemons_df.columns})
+            op.upsert(table="pokemons", data={col: row[col] for col in pokemons_df.columns})
         offset = next_offset
         state["offset"] = offset
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         api_endpoint = next_url
         if next_url is None:
             break

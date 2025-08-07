@@ -32,9 +32,6 @@ def update(configuration: dict, state: dict):
     Args:
         configuration (dict): Configuration parameters (unused in this example)
         state (dict): State dictionary to track sync count and maintain sync history
-
-    Yields:
-        Operations: Upsert operations with evolving data types and checkpoint operations
     """
 
     log.warning("Example: Fivetran Platform Features - Schema Change")
@@ -60,9 +57,9 @@ def update(configuration: dict, state: dict):
         "Fourth sync with float again",
     ]
 
-    # Yield an upsert operation with the current value and its description
+    # Upsert operation with the current value and its description
     # The min(sync_count, 3) ensures we don't go beyond our defined values
-    yield op.upsert(
+    op.upsert(
         table="change_int_to_string",
         data={
             "id": 1,
@@ -71,8 +68,8 @@ def update(configuration: dict, state: dict):
         },
     )
 
-    # Yield a checkpoint operation to save the updated sync count
-    yield op.checkpoint({"sync_count": sync_count + 1})
+    # Checkpoint operation to save the updated sync count
+    op.checkpoint({"sync_count": sync_count + 1})
 
 
 # Create the connector object using the update function

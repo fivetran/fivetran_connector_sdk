@@ -51,17 +51,17 @@ def update(configuration: dict, state: dict):
 
     row_1 = {"name": "Event1", "timestamp": "2024/09/24 14:30:45"}
     row_1["timestamp"] = timestamp_serializer.serialize(row_1["timestamp"])
-    yield op.upsert(table="event", data=row_1)
+    op.upsert(table="event", data=row_1)
 
     row_2 = {"name": "Event2", "timestamp": "2024-09-24 10:30:45"}
     row_2["timestamp"] = timestamp_serializer.serialize(row_2["timestamp"])
-    yield op.upsert(table="event", data=row_2)
+    op.upsert(table="event", data=row_2)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
