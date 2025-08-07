@@ -115,19 +115,19 @@ def update(configuration: dict, state: dict):
         base_url = f"https://api.github.com/repos/{owner}/{repo_name}/traffic"
 
         # Sync repository views
-        yield from sync_views(base_url, headers, repository, state)
+        sync_views(base_url, headers, repository, state)
 
         # Sync repository clones
-        yield from sync_clones(base_url, headers, repository, state)
+        sync_clones(base_url, headers, repository, state)
 
         # Sync repository referrers
-        yield from sync_referrers(base_url, headers, repository, now, state)
+        sync_referrers(base_url, headers, repository, now, state)
 
         # Sync repository paths
-        yield from sync_paths(base_url, headers, repository, now, state)
+        sync_paths(base_url, headers, repository, now, state)
 
         # Checkpoint after processing each repository
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
 
 def sync_views(base_url, headers, repository, state):
@@ -145,7 +145,7 @@ def sync_views(base_url, headers, repository, state):
             "count": view.get("count"),
             "uniques": view.get("uniques"),
         }
-        yield op.upsert("repository_views", data)
+        op.upsert("repository_views", data)
 
     # Update state with last sync time
     state_key = f"{repository}_views_last_sync"
@@ -167,7 +167,7 @@ def sync_clones(base_url, headers, repository, state):
             "count": clone.get("count"),
             "uniques": clone.get("uniques"),
         }
-        yield op.upsert("repository_clones", data)
+        op.upsert("repository_clones", data)
 
     # Update state with last sync time
     state_key = f"{repository}_clones_last_sync"
@@ -190,7 +190,7 @@ def sync_referrers(base_url, headers, repository, sync_time, state):
             "uniques": referrer.get("uniques"),
             "fetch_date": datetime.now(timezone.utc).date().isoformat(),
         }
-        yield op.upsert("repository_referrers", data)
+        op.upsert("repository_referrers", data)
 
     # Update state with last sync time
     state_key = f"{repository}_referrers_last_sync"
@@ -214,7 +214,7 @@ def sync_paths(base_url, headers, repository, sync_time, state):
             "uniques": path_data.get("uniques"),
             "fetch_date": datetime.now(timezone.utc).date().isoformat(),
         }
-        yield op.upsert("repository_paths", data)
+        op.upsert("repository_paths", data)
 
     # Update state with last sync time
     state_key = f"{repository}_paths_last_sync"

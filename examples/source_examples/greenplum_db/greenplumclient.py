@@ -84,12 +84,11 @@ class GreenplumClient:
             upsert_row = dict(row)
             # Converting datetime objects to ISO format.
             upsert_row = GreenplumClient.convert_datetime_to_iso(upsert_row)
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # The 'upsert' operation is used to insert or update the data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
-            yield op.upsert(table=table_name, data=upsert_row)
+            op.upsert(table=table_name, data=upsert_row)
 
             # update the last_query_timestamp variable if the current row's query_start is greater than the last_query_timestamp
             if upsert_row["query_start"] > last_query_timestamp:
@@ -100,7 +99,7 @@ class GreenplumClient:
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     @staticmethod
     def convert_datetime_to_iso(data):

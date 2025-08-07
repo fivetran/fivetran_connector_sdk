@@ -100,18 +100,17 @@ def upsert_using_pandas(temp_filename, state):
         # Convert the row to a dictionary
         # Each row is a dictionary with column names as keys
         record = row.to_dict()
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation is used to insert or update the record in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "excel_data".
         # - The second argument is a dictionary containing the data to be upserted.
-        yield op.upsert(table="excel_data_pandas", data=record)
+        op.upsert(table="excel_data_pandas", data=record)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def upsert_using_calamine(temp_filename, state):
@@ -141,10 +140,10 @@ def upsert_using_calamine(temp_filename, state):
         # Each row is a dictionary with column names as keys
         record = row.to_dict()
         # Upsert the record into the destination table
-        yield op.upsert(table="excel_data_calamine", data=record)
+        op.upsert(table="excel_data_calamine", data=record)
 
     # Save the progress by checkpointing the state.
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def upsert_using_openpyxl(temp_filename, state):
@@ -174,10 +173,10 @@ def upsert_using_openpyxl(temp_filename, state):
         # Each row is a dictionary with column names as keys
         record = dict(zip(headers, row))
         # Upsert the record into the destination table
-        yield op.upsert(table="excel_data_openpyxl", data=record)
+        op.upsert(table="excel_data_openpyxl", data=record)
 
     # Save the progress by checkpointing the state.
-    yield op.checkpoint(state)
+    op.checkpoint(state)
     wb.close()
 
 
@@ -276,13 +275,13 @@ def update(configuration: dict, state: dict):
         # - pandas with default engine is not recommended for large files as it loads everything into memory and can cause memory overflow errors
 
         # Process the Excel file using pandas and upsert the data
-        yield from upsert_using_pandas(temp_filename, state)
+        upsert_using_pandas(temp_filename, state)
 
         # Process the Excel file using python-calamine and upsert the data
-        yield from upsert_using_calamine(temp_filename, state)
+        upsert_using_calamine(temp_filename, state)
 
         # Process the Excel file using openpyxl and upsert the data
-        yield from upsert_using_openpyxl(temp_filename, state)
+        upsert_using_openpyxl(temp_filename, state)
     except Exception as e:
         # Raise Runtime error if there is an error processing the file
         raise RuntimeError(f"Error processing file {file_key}: {e}")

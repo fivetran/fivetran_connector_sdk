@@ -83,14 +83,11 @@ def update(configuration: dict, state: dict):
     This function orchestrates the entire sync process:
     1. Authenticates with the Accelo API
     2. Syncs data for companies, invoices, payments, prospects, jobs, and staff
-    3. Yields checkpoints to update the sync state
+    3. Checkpoints to update the sync state
 
     Args:
         configuration (dict): The connector configuration.
         state (dict): The current state of the connector.
-
-    Yields:
-        dict: Checkpoint operations to update the sync state.
     """
     log.info(f"Starting update process. Initial state: {state}")
     thread_local_state.state = deepcopy(state)
@@ -117,13 +114,13 @@ def update(configuration: dict, state: dict):
             sync_jobs,
             sync_staff,
         ]:
-            yield from entity_sync(access_token)
+            entity_sync(access_token)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(thread_local_state.state)
+        op.checkpoint(thread_local_state.state)
 
         update_duration = time.time() - update_start_time
         log.info(
@@ -150,7 +147,7 @@ def sync_entity(
     This function handles the core logic for syncing each entity type:
     - Fetches data in batches
     - Processes records
-    - Yields upsert operations
+    - Upsert operations
     - Updates the sync state
 
     Args:
@@ -163,9 +160,6 @@ def sync_entity(
         timeout (int, optional): Timeout for the entire sync operation in seconds.
         batch_size (int, optional): Number of records to fetch per API request.
         fetch_data_func (callable, optional): A custom function to fetch data for this entity.
-
-    Yields:
-        dict: Upsert operations for each synced record.
     """
     log.info(f"Starting sync for {entity_name}")
     try:
@@ -236,7 +230,7 @@ def sync_entity(
                 if process_record:
                     entity = process_record(entity)
                 if entity:
-                    yield op.upsert(entity_name, {field: entity.get(field) for field in fields})
+                    op.upsert(entity_name, {field: entity.get(field) for field in fields})
                     records_processed += 1
                     if records_processed % 100 == 0:
                         log.info(f"Processed {records_processed} records for {entity_name}")
@@ -297,7 +291,7 @@ def sync_companies(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="companies",
         access_token=access_token,
         fields=company_fields,
@@ -353,7 +347,7 @@ def sync_invoices(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="invoices",
         access_token=access_token,
         fields=invoice_fields,
@@ -410,7 +404,7 @@ def sync_payments(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="payments",
         access_token=access_token,
         fields=payment_fields,
@@ -505,7 +499,7 @@ def sync_prospects(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="prospects",
         access_token=access_token,
         fields=prospect_fields,
@@ -556,7 +550,7 @@ def sync_jobs(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="jobs",
         access_token=access_token,
         fields=job_fields,
@@ -593,7 +587,7 @@ def sync_staff(access_token):
 
         return record
 
-    yield from sync_entity(
+    sync_entity(
         entity_name="staff",
         access_token=access_token,
         fields=staff_fields,
