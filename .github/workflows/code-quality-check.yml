@@ -131,7 +131,7 @@ jobs:
         run: |
           echo "Python formatting check failed. See formatting.diff artifact for details."
           echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
-          echo "./.github/scripts/fix-python-formatting.sh
+          echo "./.github/scripts/fix-python-formatting.sh"
           echo "We also detected Linting Issues in Python files. Please fix them before merging."
           exit 1
 
