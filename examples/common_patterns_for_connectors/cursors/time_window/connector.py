@@ -115,9 +115,14 @@ def is_older_than_n_days(date_to_check):
 
 def format_iso_timestamp(dt: datetime) -> str:
     """
-    Formats a datetime object to ISO format with 'Z' timezone indicator.
-    :param dt: datetime object to format
-    :return: ISO formatted string with 'Z' timezone
+    Formats a datetime object into an ISO 8601 string with milliseconds precision,
+    removes microseconds, and appends 'Z' to indicate UTC.
+
+    This is useful for systems or APIs that require ISO 8601 timestamps in the format:
+    'YYYY-MM-DDTHH:MM:SS.sssZ', where 'Z' denotes UTC time (as per RFC 3339).
+
+    :param dt: A timezone-aware datetime object in UTC
+    :return: ISO formatted string with 'Z' timezone indicator
     """
     return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 

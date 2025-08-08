@@ -57,11 +57,10 @@ def process_row(columns, row):
     """
     row_data = {}
     for col_name, value in zip(columns, row):
-        # Convert the datetime objects to ISO format strings
+        # Add timezone to the datetime object
         if isinstance(value, datetime):
             if value.tzinfo is None:
                 value = value.replace(tzinfo=timezone.utc)
-            value = value.isoformat()
         row_data[col_name] = value
     return row_data
 

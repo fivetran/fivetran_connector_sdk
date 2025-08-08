@@ -132,10 +132,9 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-            # Ensure created_date is in ISO format if it exists
+            # Ensure date is in ISO format if it exists
             if row_data["created_date"] and isinstance(row_data["created_date"], datetime.date):
                 row_data["created_date"] = row_data["created_date"].isoformat()
-
             # The yield statement yields a value from generator object.
             # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
