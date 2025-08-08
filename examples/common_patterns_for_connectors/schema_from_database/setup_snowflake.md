@@ -32,7 +32,7 @@ The tables should follow the following conditions:
         in_stock BOOLEAN,
         description VARCHAR(255),
         weight FLOAT,
-        created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+        created_at DATE DEFAULT CURRENT_DATE()
     );
     
     -- Create ORDERS table
@@ -51,7 +51,7 @@ The tables should follow the following conditions:
         state VARCHAR(2),
         zip VARCHAR(10),
         discount_applied FLOAT,
-        created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+        created_at TIMESTAMP_NTZ DEFAULT CURRENT_DATE()
     );
     ```
 3. **Insert Sample Data**:

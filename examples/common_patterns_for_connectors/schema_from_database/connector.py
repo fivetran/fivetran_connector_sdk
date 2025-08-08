@@ -45,8 +45,6 @@ def validate_configuration(configuration: dict):
 def get_snowflake_connection(configuration):
     """
     This function connects to the Snowflake database using the provided configuration.
-    It checks if all required keys are present in the configuration dictionary.
-    If any key is missing, it raises a ValueError with a message indicating which key is missing.
     This method returns a connection object that can be used to interact with the Snowflake database.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
@@ -157,11 +155,7 @@ def build_schema(configuration, cursor):
     """
     # The tables key in configuration should contain a comma-separated string of table names
     # These tables should be present in the Snowflake database
-    # These tables will be used to fetch the schema from the Snowflake database
-    # Split the tables string into a list of table names
-    table_list = configuration["tables"].split(",")
-    # Convert the table names to strip any leading/trailing whitespace
-    table_list = [table.strip() for table in table_list]
+    table_list = get_table_name_from_configuration(configuration=configuration)
     # fetch the column details for the specified tables
     table_columns = get_column_details(configuration, cursor, table_list)
     schema_list = []
@@ -209,6 +203,18 @@ def schema(configuration: dict):
 
     # return the schema list
     return schema_list
+
+
+def get_table_name_from_configuration(configuration):
+    """
+    This function retrieves the list of table names from the configuration dictionary.
+    It splits the "tables" key in the configuration into a list of table names.
+    Args:
+        configuration: A dictionary containing the configuration settings for the connector.
+    """
+    table_list = configuration["tables"].split(",")
+    table_list = [table.strip() for table in table_list]
+    return table_list
 
 
 def process_row(row, columns):
@@ -301,8 +307,8 @@ def update(configuration: dict, state: dict):
     connection = get_snowflake_connection(configuration)
     cursor = connection.cursor()
 
-    table_list = configuration["tables"].split(",")
-    table_list = [table.strip() for table in table_list]
+    # Fetch the list of table names from the configuration
+    table_list = get_table_name_from_configuration(configuration)
 
     for table in table_list:
         # Fetch the data from each table using a SQL command
@@ -343,21 +349,21 @@ if __name__ == "__main__":
 
 # Resulting tables:
 # Table "orders":
-# ┌────────────┬──────────────┬────────────────┬──────────┬──────────┬──────────────────────────────┬────────┐─────────────────────────────┐
-# | product_id | product_code | product_name   | price    | in_stock | description                  | weight |          created_at         |
-# |────────────|──────────────|────────────────|──────────|──────────|──────────────────────────────|────────|─────────────────────────────|
-# | 101        | LP01         | Laptop Pro     | 1299.99  | True     | High-performance laptop      | 2.5    |  2025-08-08T03:03:47.29400  |
-# | 102        | SW01         | Smart Watch    | 249.50   | True     | Fitness tracking smart watch | 0.3    |  2025-08-08T03:03:48.29400  |
-# | 103        | OC01         | Office Chair   | 189.95   | False    | Ergonomic office chair       | 12.8   |  2025-08-08T03:03:49.29400  |
-# └────────────┴──────────────┴────────────────┴──────────┴──────────┴──────────────────────────────┴────────┘─────────────────────────────┘
+# ┌────────────┬──────────────┬────────────────┬──────────┬──────────┬──────────────────────────────┬────────┐──────────────┐
+# | product_id | product_code | product_name   | price    | in_stock | description                  | weight |  created_at  |
+# |────────────|──────────────|────────────────|──────────|──────────|──────────────────────────────|────────|──────────────|
+# | 101        | LP01         | Laptop Pro     | 1299.99  | True     | High-performance laptop      | 2.5    |  2025-08-08  |
+# | 102        | SW01         | Smart Watch    | 249.50   | True     | Fitness tracking smart watch | 0.3    |  2025-08-08  |
+# | 103        | OC01         | Office Chair   | 189.95   | False    | Ergonomic office chair       | 12.8   |  2025-08-08  |
+# └────────────┴──────────────┴────────────────┴──────────┴──────────┴──────────────────────────────┴────────┘──────────────┘
 #
 # Table "products":
-# ┌───────────────┬─────────────┬─────────────┬────────────┬──────────┬────────────┬──────────┬────────────────┬────────────┬─────────────────┬───────────┬───────┬───────┬──────────────────┐─────────────────────────────┐
-# | order_id      | customer_id | order_date  | product_id | quantity | unit_price | amount   | payment_method | status     | street_address  | city      | state | zip   | discount_applied |          created_at         |
-# |───────────────|─────────────|─────────────|────────────|──────────|────────────|──────────|────────────────|────────────|─────────────────|───────────|───────|───────|──────────────────|─────────────────────────────|
-# | ord-45678-a   | 1           | 2023-08-15  | 101        | 1        | 1299.99    | 1299.99  | Credit Card    | Completed  | 123 Main St     | Austin    | TX    | 78701 | 10.00            |  2025-08-08T03:03:46.29400  |
-# | ord-45678-b   | 1           | 2023-08-15  | 103        | 1        | 189.95     | 189.95   | Credit Card    | Completed  | 123 Main St     | Austin    | TX    | 78701 | 0.00             |  2025-08-08T03:03:47.29400  |
-# | ord-98765     | 2           | 2023-09-03  | 102        | 1        | 249.50     | 249.50   | PayPal         | Processing | 456 Park Ave    | New York  | NY    | 10022 | 0.00             |  2025-08-08T03:03:48.29400  |
-# | ord-12345-a   | 3           | 2023-09-10  | 101        | 1        | 1299.99    | 1299.99  | Debit Card     | Shipped    | 789 Beach Rd    | Miami     | FL    | 33139 | 15.50            |  2025-08-08T03:03:49.29400  |
-# | ord-12345-b   | 3           | 2023-09-10  | 102        | 1        | 249.50     | 249.50   | Debit Card     | Shipped    | 789 Beach Rd    | Miami     | FL    | 33139 | 0.00             |  2025-08-08T03:03:50.29400  |
-# └───────────────┴─────────────┴─────────────┴────────────┴──────────┴────────────┴──────────┴────────────────┴────────────┴─────────────────┴───────────┴───────┴───────┴──────────────────┘─────────────────────────────┘
+# ┌───────────────┬─────────────┬─────────────┬────────────┬──────────┬────────────┬──────────┬────────────────┬────────────┬─────────────────┬───────────┬───────┬───────┬──────────────────┐──────────────┐
+# | order_id      | customer_id | order_date  | product_id | quantity | unit_price | amount   | payment_method | status     | street_address  | city      | state | zip   | discount_applied |  created_at  |
+# |───────────────|─────────────|─────────────|────────────|──────────|────────────|──────────|────────────────|────────────|─────────────────|───────────|───────|───────|──────────────────|──────────────|
+# | ord-45678-a   | 1           | 2023-08-15  | 101        | 1        | 1299.99    | 1299.99  | Credit Card    | Completed  | 123 Main St     | Austin    | TX    | 78701 | 10.00            |  2025-08-08  |
+# | ord-45678-b   | 1           | 2023-08-15  | 103        | 1        | 189.95     | 189.95   | Credit Card    | Completed  | 123 Main St     | Austin    | TX    | 78701 | 0.00             |  2025-08-08  |
+# | ord-98765     | 2           | 2023-09-03  | 102        | 1        | 249.50     | 249.50   | PayPal         | Processing | 456 Park Ave    | New York  | NY    | 10022 | 0.00             |  2025-08-08  |
+# | ord-12345-a   | 3           | 2023-09-10  | 101        | 1        | 1299.99    | 1299.99  | Debit Card     | Shipped    | 789 Beach Rd    | Miami     | FL    | 33139 | 15.50            |  2025-08-08  |
+# | ord-12345-b   | 3           | 2023-09-10  | 102        | 1        | 249.50     | 249.50   | Debit Card     | Shipped    | 789 Beach Rd    | Miami     | FL    | 33139 | 0.00             |  2025-08-08  |
+# └───────────────┴─────────────┴─────────────┴────────────┴──────────┴────────────┴──────────┴────────────────┴────────────┴─────────────────┴───────────┴───────┴───────┴──────────────────┘──────────────┘
