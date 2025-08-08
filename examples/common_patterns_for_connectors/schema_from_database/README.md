@@ -98,7 +98,8 @@ The connector creates the `PRODUCTS` and `ORDERS` tables:
     "price": "DOUBLE",
     "in_stock": "BOOLEAN",
     "description": "STRING",
-    "weight": "DOUBLE"
+    "weight": "DOUBLE",
+    "created_at": "UTC_DATETIME"
   }
 }
 ```
@@ -122,11 +123,14 @@ The connector creates the `PRODUCTS` and `ORDERS` tables:
     "city": "STRING",
     "state": "STRING",
     "zip": "STRING",
-    "discount_applied": "DOUBLE"
+    "discount_applied": "DOUBLE",
+    "created_at": "UTC_DATETIME"
   }
 }
 ```
 
+## Additional files
+- `setup_snowflake.md`: The file contains instructions for setting up the Snowflake environment, including creating the database, schema, and tables, as well as inserting sample data. This ensures that the connector can run successfully with the expected schema and data.
 
 ## Additional considerations
 
