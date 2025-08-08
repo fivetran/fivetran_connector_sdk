@@ -130,7 +130,7 @@ def get_fivetran_datatype(snowflake_type):
     """
     TYPE_MAPPING = {
         "STRING": "STRING",
-        "NUMBER": "DOUBLE",
+        "NUMBER": "INT",
         "FLOAT": "FLOAT",
         "INTEGER": "INTEGER",
         "BOOLEAN": "BOOLEAN",
@@ -267,7 +267,9 @@ def fetch_and_upsert_data(cursor, columns, table, state, last_created):
 
             # Update the last created date in the state dictionary
             last_created = (
-                upsert_data["created_at"] if upsert_data["created_at"] > last_created else last_created
+                upsert_data["created_at"]
+                if upsert_data["created_at"] > last_created
+                else last_created
             )
 
         # Update the state dictionary with the last created date after processing the batch
@@ -305,9 +307,7 @@ def update(configuration: dict, state: dict):
     for table in table_list:
         # Fetch the data from each table using a SQL command
         # The last_created date is fetched from the state dictionary, or set to a default value if not present
-        last_created = state.get(
-            f"{table}_last_created", "1990-01-01"
-        )
+        last_created = state.get(f"{table}_last_created", "1990-01-01")
         query = f"SELECT * FROM {table} WHERE created_at > '{last_created}'"
         cursor.execute(query)
 
