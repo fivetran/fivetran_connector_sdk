@@ -37,6 +37,8 @@ Connector SDK provides native support for many Fivetran features and relies on e
 
 See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
+Run the `.github/scripts/setup-hooks.sh` script from the root of the repository to set up pre-commit hooks. This ensures that your code is formatted correctly and passes all tests before you commit them.
+
 ## Examples
 There are several examples available under `/examples`:
 
