@@ -20,19 +20,19 @@ jobs:
 
       - name: Verify CODEOWNERS approval
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
           OWNER="${REPO%%/*}"
 
           echo "Getting changed files..."
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
             | jq -r '.[].filename' > changed_files.txt
 
           echo "Getting approved reviewers..."
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
             | jq -r 'map(select(.state == "APPROVED")) | .[].user.login' | sort -u > approved_users.txt
 
@@ -72,16 +72,22 @@ jobs:
                   org="${username%%/*}"
                   echo "Checking team '$team' members from org '$org'..."
 
-                  members=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                    "https://api.github.com/orgs/$org/teams/$team/members?per_page=100" \
-                    | jq -r '.[].login')
+                  response=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                    "https://api.github.com/orgs/$org/teams/$team/members?per_page=100")
 
-                  for member in $members; do
-                    if grep -qx "$member" approved_users.txt; then
-                      approved=1
-                      break 2
-                    fi
-                  done
+                  if echo "$response" | jq -e 'type == "array"' > /dev/null; then
+                    members=$(echo "$response" | jq -r '.[].login')
+                    for member in $members; do
+                      if grep -qx "$member" approved_users.txt; then
+                        approved=1
+                        break 2
+                      fi
+                    done
+                  else
+                    echo "Could not resolve members of '$org/$team':"
+                    echo "$response"
+                    continue
+                  fi
                 else
                   if grep -qx "$username" approved_users.txt; then
                     approved=1
@@ -95,7 +101,7 @@ jobs:
               echo "File '$file' has no CODEOWNER approval."
               MISSING_APPROVAL=1
             else
-              echo "File '$file' approved."
+              echo "File '$file' is approved."
             fi
 
           done < changed_files.txt
