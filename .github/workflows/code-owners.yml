@@ -1,11 +1,8 @@
 name: CODEOWNERS
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-
   pull_request_review:
-    types: [submitted]
+    types: [submitted, edited, dismissed]
 
 jobs:
   check-codeowners-approval:
