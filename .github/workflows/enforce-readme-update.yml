@@ -1,4 +1,4 @@
-name: Enforce README Update for New Examples
+name: README Check
 
 on:
   pull_request:
