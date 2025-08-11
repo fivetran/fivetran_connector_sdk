@@ -22,7 +22,7 @@ This example demonstrates multiple ways to perform incremental syncs using the F
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## How It Works
+## How it works
 
 - The connector exposes a `strategy` configuration option. Set this to `keyset`, `offset`, or `timestamp` to select the incremental sync method.
 - The connector saves and updates state differently for each strategy, demonstrating best practices for incremental syncs.
