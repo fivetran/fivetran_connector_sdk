@@ -3,6 +3,7 @@
 # Strategies included: keyset pagination, offset-based pagination, timestamp-based sync,
 # step-size sync, and replay sync.
 
+
 # Importing Json for parsing configuration
 import json
 # Importing requests for fetching data over api calls
@@ -16,7 +17,7 @@ def schema(configuration: dict):
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
+        configuration: a dictionary that holds the configuration settings required for the connector.
     """
     return [
         {
