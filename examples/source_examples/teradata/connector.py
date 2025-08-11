@@ -30,7 +30,13 @@ def validate_configuration(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     # Check if the credentials for connecting to database is present in the configuration.
-    cred = ["teradata_host", "teradata_user", "teradata_password", "teradata_database", "teradata_table"]
+    cred = [
+        "teradata_host",
+        "teradata_user",
+        "teradata_password",
+        "teradata_database",
+        "teradata_table",
+    ]
     for key in cred:
         if key not in configuration:
             raise ValueError(f"Missing required configuration: {key}")
@@ -113,7 +119,9 @@ def fetch_and_upsert_data(cursor, configuration, state):
 
     # SQL query to select data from the Teradata Vantage database.
     # You can modify the query to suit your needs, such as filtering by date or other criteria.
-    select_sql = f"SELECT * FROM {database}.{table_name} WHERE JoiningDate > ? ORDER BY JoiningDate"
+    select_sql = (
+        f"SELECT * FROM {database}.{table_name} WHERE JoiningDate > ? ORDER BY JoiningDate"
+    )
     cursor.execute(select_sql, (last_joining_date,))
 
     # Fetch the column names from the cursor description.
