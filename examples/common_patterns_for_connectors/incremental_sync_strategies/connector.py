@@ -5,10 +5,12 @@
 #
 # To run, you need the fivetran-connector-sdk and requests packages.
 
+# Importing Json for parsing configuration
+import json
+# Importing requests for fetching data over api calls
 import requests as rq
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 def schema(configuration: dict):
     return [
@@ -34,7 +36,7 @@ def update_keyset(configuration: dict, state: dict):
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/keyset")
     cursor = state.get('last_updated_at', '0001-01-01T00:00:00Z')
     params = {"updated_since": cursor}
-    yield from sync_items_keyset(base_url, params, state)
+    sync_items_keyset(base_url, params, state)
 
 def sync_items_keyset(base_url, params, state):
     while True:
@@ -44,9 +46,9 @@ def sync_items_keyset(base_url, params, state):
         if not data:
             break
         for user in data:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
             state["last_updated_at"] = user["updatedAt"]
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         scroll_param = response.json().get("scroll_param")
         if not scroll_param:
             break
@@ -66,10 +68,10 @@ def update_offset(configuration: dict, state: dict):
         if not data:
             break
         for user in data:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
         offset += len(data)
         state["offset"] = offset
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         if len(data) < page_size:
             break
 
@@ -86,9 +88,9 @@ def update_timestamp(configuration: dict, state: dict):
         if not data:
             break
         for user in data:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
             state["last_timestamp"] = user["updatedAt"]
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         # Assume API returns all new/updated records since last_timestamp in one call
         break
 
@@ -108,10 +110,10 @@ def update_step_size(configuration: dict, state: dict):
         if not data:
             break
         for user in data:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
         current_id += step_size
         state["current_id"] = current_id
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         if len(data) < step_size:
             break
 
@@ -142,9 +144,9 @@ def update_replay(configuration: dict, state: dict):
         if not data:
             break
         for user in data:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
             state["last_timestamp"] = user["updatedAt"]
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         # Assume API returns all records since buffer_ts in one call
         break
 
@@ -152,19 +154,24 @@ def update_replay(configuration: dict, state: dict):
 def update(configuration: dict, state: dict):
     strategy = configuration.get("strategy", "keyset")
     if strategy == "keyset":
-        yield from update_keyset(configuration, state)
+        update_keyset(configuration, state)
     elif strategy == "offset":
-        yield from update_offset(configuration, state)
+        update_offset(configuration, state)
     elif strategy == "timestamp":
-        yield from update_timestamp(configuration, state)
+        update_timestamp(configuration, state)
     elif strategy == "step_size":
-        yield from update_step_size(configuration, state)
+        update_step_size(configuration, state)
     elif strategy == "replay":
-        yield from update_replay(configuration, state)
+        update_replay(configuration, state)
     else:
         raise ValueError(f"Unknown incremental sync strategy: {strategy}")
 
+# required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    connector.debug() 
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
