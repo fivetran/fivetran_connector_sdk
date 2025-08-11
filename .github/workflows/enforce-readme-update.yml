@@ -1,4 +1,4 @@
-name: Enforce README Update for New Examples
+name: README
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 jobs:
   check-readme-update:
     runs-on: ubuntu-latest
-    name: Check README Update for New Examples
+    name: Check Updates for New Examples
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
