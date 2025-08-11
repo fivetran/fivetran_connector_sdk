@@ -1,4 +1,4 @@
-name: CODEOWNERS / Check Approvals
+name: CODEOWNERS
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ on:
 
 jobs:
   check-codeowners-approval:
+    name: Check Approvals
     runs-on: ubuntu-latest
     permissions:
       contents: read
