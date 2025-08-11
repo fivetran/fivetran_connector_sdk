@@ -1,13 +1,14 @@
-name: CODEOWNERS
+name: CODEOWNERS / Check Approvals
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize]
+
   pull_request_review:
-    types: [ submitted, edited, dismissed ]
+    types: [submitted]
 
 jobs:
   check-codeowners-approval:
-    name: Check Approvals
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,11 +16,17 @@ jobs:
       checks: write
 
     steps:
+      - name: Exit early for non-approved reviews
+        if: github.event_name == 'pull_request_review' && github.event.review.state != 'approved'
+        run: |
+          echo "Skipping check — review is not an approval."
+          exit 0
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install jq
-        run: sudo apt-get install jq
+        run: sudo apt-get install -y jq
 
       - name: Verify CODEOWNERS approval
         env:
@@ -37,7 +44,7 @@ jobs:
           echo "Getting approved reviewers..."
           curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
-            | jq -r 'map(select(.state == "APPROVED")) | .[].user.login' | sort -u > approved_users.txt
+            | jq -r 'map(select(.state == \"APPROVED\")) | .[].user.login' | sort -u > approved_users.txt
 
           echo "Parsing CODEOWNERS..."
           if [[ -f .github/CODEOWNERS ]]; then
@@ -63,6 +70,11 @@ jobs:
               fi
             done < "$CODEOWNERS_FILE"
 
+            if [[ -z "$matched_owner" ]]; then
+              echo "File '$file' has no CODEOWNERS entry - skipping approval check."
+              continue
+            fi
+
             echo "File '$file' owned by: $matched_owner"
             approved=0
 
@@ -87,7 +99,7 @@ jobs:
                       fi
                     done
                   else
-                    echo "Could not resolve members of '$org/$team':"
+                    echo "Could not resolve members of '$org/$team'."
                     echo "$response"
                     continue
                   fi
