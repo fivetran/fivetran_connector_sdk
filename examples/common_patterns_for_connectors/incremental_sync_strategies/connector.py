@@ -3,13 +3,15 @@
 # Strategies included: keyset pagination, offset-based pagination, timestamp-based sync,
 # step-size sync, and replay sync.
 
-
 # Importing Json for parsing configuration
 import json
+
 # Importing requests for fetching data over api calls
 import requests as rq
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+
 
 def schema(configuration: dict):
     """
@@ -36,13 +38,15 @@ def schema(configuration: dict):
         }
     ]
 
+
 # --- Keyset Pagination Strategy ---
 def update_keyset(configuration: dict, state: dict):
     log.info("Running keyset pagination incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/keyset")
-    cursor = state.get('last_updated_at', '0001-01-01T00:00:00Z')
+    cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
     params = {"updated_since": cursor}
     sync_items_keyset(base_url, params, state)
+
 
 def sync_items_keyset(base_url, params, state):
     while True:
@@ -60,12 +64,13 @@ def sync_items_keyset(base_url, params, state):
             break
         params = {"scroll_param": scroll_param}
 
+
 # --- Offset-based Pagination Strategy ---
 def update_offset(configuration: dict, state: dict):
     log.info("Running offset-based incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/offset")
-    offset = state.get('offset', 0)
-    page_size = configuration.get('page_size', 100)
+    offset = state.get("offset", 0)
+    page_size = configuration.get("page_size", 100)
     while True:
         params = {"offset": offset, "limit": page_size}
         response = rq.get(base_url, params=params)
@@ -81,11 +86,12 @@ def update_offset(configuration: dict, state: dict):
         if len(data) < page_size:
             break
 
+
 # --- Timestamp-based Incremental Sync ---
 def update_timestamp(configuration: dict, state: dict):
     log.info("Running timestamp-based incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/timestamp")
-    last_ts = state.get('last_timestamp', '0001-01-01T00:00:00Z')
+    last_ts = state.get("last_timestamp", "0001-01-01T00:00:00Z")
     params = {"since": last_ts}
     while True:
         response = rq.get(base_url, params=params)
@@ -100,14 +106,15 @@ def update_timestamp(configuration: dict, state: dict):
         # Assume API returns all new/updated records since last_timestamp in one call
         break
 
+
 # --- Step-size Incremental Sync ---
 def update_step_size(configuration: dict, state: dict):
     log.info("Running step-size incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/step")
-    current_id = state.get('current_id', configuration.get('initial_id', 1))
-    step_size = configuration.get('step_size', 1000)
-    max_id = configuration.get('max_id', 100000)  # Safety limit
-    
+    current_id = state.get("current_id", configuration.get("initial_id", 1))
+    step_size = configuration.get("step_size", 1000)
+    max_id = configuration.get("max_id", 100000)  # Safety limit
+
     while current_id <= max_id:
         params = {"start_id": current_id, "end_id": current_id + step_size - 1}
         response = rq.get(base_url, params=params)
@@ -123,25 +130,26 @@ def update_step_size(configuration: dict, state: dict):
         if len(data) < step_size:
             break
 
+
 # --- Replay Incremental Sync (with buffer) ---
 def update_replay(configuration: dict, state: dict):
     log.info("Running replay incremental sync with buffer")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/replay")
-    buffer_hours = configuration.get('buffer_hours', 2)
-    last_ts = state.get('last_timestamp', '0001-01-01T00:00:00Z')
-    
+    buffer_hours = configuration.get("buffer_hours", 2)
+    last_ts = state.get("last_timestamp", "0001-01-01T00:00:00Z")
+
     # Apply buffer by going back buffer_hours from the last timestamp
     # This is useful for read-replica scenarios where there might be replication lag
     from datetime import datetime, timedelta
     import pytz
-    
-    if last_ts != '0001-01-01T00:00:00Z':
-        last_dt = datetime.fromisoformat(last_ts.replace('Z', '+00:00'))
+
+    if last_ts != "0001-01-01T00:00:00Z":
+        last_dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
         buffer_dt = last_dt - timedelta(hours=buffer_hours)
-        buffer_ts = buffer_dt.isoformat().replace('+00:00', 'Z')
+        buffer_ts = buffer_dt.isoformat().replace("+00:00", "Z")
     else:
         buffer_ts = last_ts
-    
+
     params = {"since": buffer_ts}
     while True:
         response = rq.get(base_url, params=params)
@@ -155,6 +163,7 @@ def update_replay(configuration: dict, state: dict):
         op.checkpoint(state)
         # Assume API returns all records since buffer_ts in one call
         break
+
 
 # --- Main update function that dispatches based on configuration ---
 def update(configuration: dict, state: dict):
@@ -180,6 +189,7 @@ def update(configuration: dict, state: dict):
         update_replay(configuration, state)
     else:
         raise ValueError(f"Unknown incremental sync strategy: {strategy}")
+
 
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 connector = Connector(update=update, schema=schema)
