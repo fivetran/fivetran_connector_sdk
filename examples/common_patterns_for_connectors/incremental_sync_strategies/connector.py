@@ -2,8 +2,6 @@
 # This connector demonstrates several ways to perform incremental syncs and save state.
 # Strategies included: keyset pagination, offset-based pagination, timestamp-based sync,
 # step-size sync, and replay sync.
-#
-# To run, you need the fivetran-connector-sdk and requests packages.
 
 # Importing Json for parsing configuration
 import json
