@@ -10,7 +10,6 @@ jobs:
       contents: read
       pull-requests: read
       checks: write
-      members: read
 
     steps:
       - name: Checkout repository
