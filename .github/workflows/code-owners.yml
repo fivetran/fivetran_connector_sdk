@@ -45,7 +45,7 @@ jobs:
           echo "Getting approved reviewers..."
           curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
-            | jq -r 'map(select(.state == \"APPROVED\")) | .[].user.login' | sort -u > approved_users.txt
+            | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u > approved_users.txt
 
           echo "Parsing CODEOWNERS..."
           if [[ -f .github/CODEOWNERS ]]; then
