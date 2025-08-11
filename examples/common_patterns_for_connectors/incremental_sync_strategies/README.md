@@ -67,21 +67,25 @@ Edit `configuration.json` to set the desired strategy and parameters:
 
 ## Tables Created
 
-The connector syncs the data to table `sample_table` in the destination.
-This connector replicates data from the source's `sample_table` to a destination table with the same name. The table has a composite primary key consisting of `id` and `department_id`.
+The connector syncs the data to table `user` in the destination.
+This connector replicates data from the source's `user` to a destination table with the same name. The table has a composite primary key consisting of `id` only.
 
 The schema of the table is as follows:
 
 ```json
 {
-  "table": "sample_table",
-  "primary_key": ["id","department_id"],
-  "columns": {
-    "id": "INT",
-    "department_id": "INT",
-    "address": "STRING",
-    "name": "STRING"
-  }
+   "table": "user",
+   "primary_key": ["id"],
+   "columns": {
+      "id": "STRING",
+      "name": "STRING",
+      "email": "STRING",
+      "address": "STRING",
+      "company": "STRING",
+      "job": "STRING",
+      "updatedAt": "UTC_DATETIME",
+      "createdAt": "UTC_DATETIME"
+   }
 }
 ```
 
