@@ -142,7 +142,6 @@ def update_replay(configuration: dict, state: dict):
     # Apply buffer by going back buffer_hours from the last timestamp
     # This is useful for read-replica scenarios where there might be replication lag
     from datetime import datetime, timedelta
-    import pytz
 
     if last_ts != "0001-01-01T00:00:00Z":
         last_dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
