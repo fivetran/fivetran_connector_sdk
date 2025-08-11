@@ -3,7 +3,7 @@ name: CODEOWNERS
 on:
   pull_request:
   pull_request_review:
-    types: [ submitted ]
+    types: [ submitted, edited, dismissed ]
 
 jobs:
   check-codeowners-approval:
