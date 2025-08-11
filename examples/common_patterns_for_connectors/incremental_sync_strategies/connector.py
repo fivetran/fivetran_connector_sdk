@@ -3,6 +3,7 @@
 # Strategies included: keyset pagination, offset-based pagination, timestamp-based sync,
 # step-size sync, and replay sync.
 
+
 # Importing Json for parsing configuration
 import json
 
