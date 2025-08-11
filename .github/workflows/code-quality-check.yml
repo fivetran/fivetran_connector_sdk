@@ -63,11 +63,13 @@ jobs:
           fi
 
       - name: Run Flake8 on changed files
+        if: env.SKIP == 'false'
         run: |
           echo "Running flake8 on: $CHANGED"
           flake8 $CHANGED > flake8_output.txt || true
 
       - name: Format Flake8 results as PR comment
+        if: env.SKIP == 'false'
         run: |
           python3 <<'EOF' > flake8_summary.md
           import os
@@ -117,6 +119,7 @@ jobs:
           body-includes: "### 🧹 Python Code Quality Check"
 
       - name: Create or update PR comment
+        if: env.SKIP == 'false'
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.find.outputs.comment-id }}
