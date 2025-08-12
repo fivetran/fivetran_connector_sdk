@@ -237,8 +237,6 @@ class ODataClient:
             }
         elif isinstance(data, list):
             return [ODataClient.clean_odata_fields(item) for item in data]
-        elif isinstance(data, datetime.datetime):
-            return data.isoformat()
         else:
             return data
 

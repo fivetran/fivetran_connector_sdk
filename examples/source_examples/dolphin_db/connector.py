@@ -46,12 +46,10 @@ def serialize_row_data(row: dict):
         A serialized dictionary with datetime objects converted to strings.
     """
     for key, value in row.items():
-        if isinstance(value, datetime.datetime):
-            row[key] = value.isoformat()  # Convert datetime to ISO format string
-        elif isinstance(value, pd.Timestamp):
+        if isinstance(value, pd.Timestamp):
             row[key] = (
-                value.to_pydatetime().isoformat()
-            )  # Convert pandas Timestamp to ISO format string
+                value.to_pydatetime()
+            )  # Convert pandas Timestamp to datetime object
     return row
 
 

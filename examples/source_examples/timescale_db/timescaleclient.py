@@ -98,8 +98,8 @@ class TimescaleClient:
                 yield op.upsert(table=table_name, data=upsert_row)
 
                 # update the last_timestamp variable if the current row's time is greater than the last_timestamp
-                if upsert_row["time"] > last_timestamp:
-                    last_timestamp = upsert_row["time"]
+                if upsert_row["time"].isoformat() > last_timestamp:
+                    last_timestamp = upsert_row["time"].isoformat()
 
             state["last_timestamp"] = last_timestamp
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -164,13 +164,10 @@ class TimescaleClient:
 
     @staticmethod
     def serialize_upsert_row(data):
-        # This method converts datetime objects in the data dictionary to ISO format.
-        # This method also converts any iterable objects (like vectors) to lists for JSON serialization.
+        # This method converts any iterable objects (like vectors) to lists for JSON serialization.
         # This is a helper method to ensure that values are serialized correctly.
         for key, value in data.items():
-            if isinstance(value, datetime):
-                data[key] = value.isoformat()
             # The vector_data field is a string representation of a list, so we need to convert it to a list for JSON serialization .
-            elif key == "vector_data" and isinstance(value, str):
+            if key == "vector_data" and isinstance(value, str):
                 data[key] = ast.literal_eval(value)
         return data

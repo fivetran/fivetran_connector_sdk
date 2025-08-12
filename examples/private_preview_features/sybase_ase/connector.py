@@ -133,7 +133,7 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-            # Ensure created_date is in ISO format if it exists
+            # Ensure date is in ISO format if it exists
             if row_data["date"] and isinstance(row_data["date"], datetime.date):
                 row_data["date"] = row_data["date"].isoformat()
 
