@@ -68,8 +68,20 @@ Refer to method `fetch_and_upsert_data(cursor, configuration, state)`.
 - Database connections and cursors are closed in a `finally` block.
 
 ## Tables created
-- employee: Contains columns `EmployeeID` (INT, primary key) and `JoiningDate` (NAIVE_DATE).
+- `EMPLOYEE`: Contains columns `EmployeeID` (INT, primary key) and `JoiningDate` (NAIVE_DATE).
 
+The destination table schema is as follows:
+
+```json
+{
+  "table": "Employee",
+  "primary_key": ["EmployeeID"],
+  "columns": {
+    "EmployeeID": "INT",
+    "JoiningDate": "NAIVE_DATE"
+  }
+}
+```
 Additional columns are inferred from the source table.
 
 ## Additional considerations
