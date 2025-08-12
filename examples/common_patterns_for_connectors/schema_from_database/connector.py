@@ -65,7 +65,7 @@ def get_snowflake_connection(configuration):
     return conn
 
 
-def get_table_primary_key(cursor, table_name):
+def get_table_primary_keys(cursor, table_name):
     """
     This function retrieves the primary keys of a specified table from the Snowflake database.
     It executes a SQL command to fetch the primary keys of the table and returns them in lowercase
@@ -126,11 +126,11 @@ def get_fivetran_datatype(snowflake_type):
     Returns:
         The corresponding Fivetran data type as a string, or "STRING" if the type is not found in the mapping.
     """
-    TYPE_MAPPING = {
+    type_mapping = {
         "STRING": "STRING",
         "NUMBER": "INT",
         "FLOAT": "FLOAT",
-        "INTEGER": "INTEGER",
+        "INTEGER": "INT",
         "BOOLEAN": "BOOLEAN",
         "VARCHAR": "STRING",
         "CHAR": "STRING",
@@ -140,13 +140,13 @@ def get_fivetran_datatype(snowflake_type):
         # Add more mappings as needed
     }
     # Return the mapped type or default to STRING if not found
-    return TYPE_MAPPING.get(snowflake_type, "STRING")
+    return type_mapping.get(snowflake_type, "STRING")
 
 
 def build_schema(configuration, cursor):
     """
     This function builds the schema by fetching the table and column details from the Snowflake database.
-    It uses the get_column_details and get_table_primary_key functions to retrieve the necessary information.
+    It uses the get_column_details and get_table_primary_keys functions to retrieve the necessary information.
     Args:
         configuration: dictionary contains any secrets or payloads you configure when deploying the connector
         cursor: a cursor object to execute SQL commands
@@ -162,7 +162,7 @@ def build_schema(configuration, cursor):
 
     for table_name, columns in table_columns.items():
         # Get the primary key for the table
-        primary_key = get_table_primary_key(cursor, table_name)
+        primary_key = get_table_primary_keys(cursor, table_name)
         # Add the table schema to the schema_list
         schema_list.append({"table": table_name, "primary_key": primary_key, "columns": columns})
 
