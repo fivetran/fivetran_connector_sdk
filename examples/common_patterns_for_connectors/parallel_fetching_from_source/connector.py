@@ -209,7 +209,7 @@ def update(configuration: dict, state: dict):
             for file_key, table_name in file_table_pairs
         }
 
-        # The as_completed function returns an iterator that yields futures as they complete
+        # The as_completed function is a standard library function that returns an iterator yielding futures as they complete
         # enabling immediate handling of results or errors for each file as they complete
         for future in as_completed(futures_dict):
             table_name = str(futures_dict[future])
