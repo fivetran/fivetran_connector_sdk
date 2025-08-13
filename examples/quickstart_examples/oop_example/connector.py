@@ -53,7 +53,7 @@ def update(configuration: dict, state: dict):
         con = table(configuration=configuration)
         data = con.process_data()
         for row in data:
-            yield op.upsert(table.path(), row)
+            op.upsert(table.path(), row)
 
 
 # Create the connector object for Fivetran.

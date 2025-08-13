@@ -71,7 +71,7 @@ This example does not use any pagination.
 
 - Schema definition: The connector’s tables and their column schemas are built in the schema(configuration) function (see lines 13–18).
 - Data retrieval & processing: On each sync, Fivetran calls update(configuration, state) (see lines 22–27), which instantiates each table handler and calls its process_data() method. Under the hood, process_data() uses the shared fetch_data() helper to pull JSON from the NPS API and then maps it into Python dicts.
-- Upsert delivery: For every record returned by process_data(), the connector yields an op.upsert(table.path(), row) operation—handing each row off to Fivetran for insert/update in the destination (see lines 24–27).
+- Upsert delivery: For every record returned by process_data(), the connector performs an op.upsert(table.path(), row) operation—handing each row off to Fivetran for insert/update in the destination (see lines 24–27).
 - Sync: This example does not use incremental syncs; all data is fetched and upserted on every sync.
 
 ---

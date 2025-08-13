@@ -94,8 +94,8 @@ def update(configuration: dict, state: dict):
         try:
             post = Post(**post_dict)  # Deserialize into a POJO
 
-            # Emit upsert operation, to sync the post data
-            yield op.upsert(
+            # Perform upsert operation, to sync the post data
+            op.upsert(
                 "posts",
                 {"id": post.id, "userId": post.userId, "title": post.title, "body": post.body},
             )
