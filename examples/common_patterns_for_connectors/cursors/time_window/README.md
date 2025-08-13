@@ -47,7 +47,7 @@ This connector does not implement traditional pagination (such as page-based or 
 
 **Refer to the `update()` function:**
 
-The connector yields timestamp data to demonstrate the time window concept. 
+The connector insert/update timestamp data to demonstrate the time window concept. 
 
 **Refer to the `is_older_than_n_days()` function:**
 
