@@ -40,6 +40,9 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 Run the `.github/scripts/setup-hooks.sh` script from the root of the repository to set up pre-commit hooks. This ensures that your code is formatted correctly and passes all tests before you commit them.
 
 ## Examples
+
+> Note: To make building Connector SDK integrations as simple as possible, we have removed the need to use the Python generator pattern (`yield`) starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to work without modification. For more information, refer to the [changelog](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
