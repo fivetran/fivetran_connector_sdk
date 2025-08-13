@@ -86,12 +86,11 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
             row_data = row.get(collection)
             created_at_str = row_data["created_at"]
             row_data["created_at"] = to_utc_datetime_str(created_at_str)
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # Perform an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
-            yield op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
             # Update state based on the latest "created_at"
             state["last_created_at"] = row_data["created_at"]
             count += 1
@@ -99,9 +98,9 @@ def execute_query_and_upsert(client, scope, collection, query, table_name, state
             if count % checkpoint_interval == 0:
                 # Checkpoint the state every CHECKPOINT_INTERVAL records to avoid losing progress
                 # With regular checkpointing, the next sync will start from the last checkpoint of the previous failed sync, thus saving time.
-                yield op.checkpoint(state)
+                op.checkpoint(state)
 
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     except Exception as e:
         # In case of exception, raise a RuntimeError
@@ -194,7 +193,7 @@ def update(configuration, state):
     )
 
     # execute the query and upsert the data into destination
-    yield from execute_query_and_upsert(
+    execute_query_and_upsert(
         client=client,
         scope=scope,
         collection=collection,
@@ -207,7 +206,7 @@ def update(configuration, state):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # Create the connector object using the schema and update functions

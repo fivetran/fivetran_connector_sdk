@@ -88,7 +88,7 @@ The connector processes events from Solace as follows:
 - Skips and removes messages older than the last sync timestamp from queue.
 - Constructs structured records and appends processing metadata.
 - Deduplicates events using a combination of `event_id` and `timestamp`.
-- Yields cleaned records for upsert into the destination table.
+- Upserts cleaned records for inserting into the destination table.
 
 Each event includes:
 
