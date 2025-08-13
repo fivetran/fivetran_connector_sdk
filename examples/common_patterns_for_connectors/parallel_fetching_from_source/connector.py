@@ -68,7 +68,7 @@ def get_file_table_pairs(s3_client, bucket_name: str, prefix: str):
 
 # This method is used to process a single file from the S3 bucket.
 # The method takes the S3 client, bucket name, file key, and table name as parameters.
-# The method returns a generator that yields records one by one.
+# The method upserts records one by one.
 # You can modify this method to process each record in a different way based on your requirements.
 def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
     log.info(f"Processing file: {file_key} for table: {table_name}")
@@ -86,7 +86,6 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
     csv_reader = csv.DictReader(text_stream)
 
     # Iterate over the CSV rows
-    # This will yield each record one by one
     for record in csv_reader:
         try:
             # Parse any JSON fields in the record, if needed
@@ -103,8 +102,11 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
                     except json.JSONDecodeError:
                         # Keep as string if JSON parsing fails
                         pass
-            # Yield the record for upsert
-            yield record
+            # The 'upsert' operation inserts the data into the destination.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(table=table_name, data=record)
         except Exception as e:
             log.severe(f"Error processing record from {file_key}", e)
             # Continue processing other records even if one fails
@@ -208,19 +210,11 @@ def update(configuration: dict, state: dict):
         }
 
         # The as_completed function returns an iterator that yields futures as they complete
-        # This allows us to process the results as soon as they are yielded from process_file_get_stream()
+        # enabling immediate handling of results or errors for each file as they complete
         for future in as_completed(futures_dict):
             table_name = str(futures_dict[future])
             try:
-                # Get the generator from the future as soon as the thread starts streaming
-                record_generator = future.result()
-                # Process each record as it comes from the generator
-                for record in record_generator:
-                    # The 'upsert' operation inserts the data into the destination.
-                    # The op.upsert method is called with two arguments:
-                    # - The first argument is the name of the table to upsert the data into
-                    # - The second argument is a dictionary containing the data to be upserted,
-                    op.upsert(table=table_name, data=record)
+                future.result()
             except Exception as e:
                 log.severe(f"Error processing file for table {table_name}", e)
 
