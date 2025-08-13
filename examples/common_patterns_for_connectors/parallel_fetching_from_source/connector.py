@@ -68,8 +68,8 @@ def get_file_table_pairs(s3_client, bucket_name: str, prefix: str):
 
 # This method is used to process a single file from the S3 bucket.
 # The method takes the S3 client, bucket name, file key, and table name as parameters.
-# The method upserts records one by one.
-# You can modify this method to process each record in a different way based on your requirements.
+# The method upserts records one by one and does not return anything.
+# You can modify this method to process each record and upsert.
 def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
     log.info(f"Processing file: {file_key} for table: {table_name}")
 
