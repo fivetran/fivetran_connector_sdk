@@ -12,7 +12,6 @@ from fivetran_connector_sdk import Logging as log
 # Import modules for connection to Firebird and multi-threading
 import firebirdsql
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue, Empty
 import threading
 from datetime import datetime, timedelta, date, timezone
 import json
@@ -147,16 +146,14 @@ def process_table(
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
     shared_timestamps = dict(state)  # start from prior state
-    out_q = Queue()
     done = []
     end_all = threading.Event()  # flipped when all threads done
 
     def worker(tbl):
         try:
-            for op_obj in process_table(
+            process_table(
                 configuration, tbl, state, shared_timestamps, batch_query_size, batch_process_size
-            ):
-                out_q.put(op_obj)
+            )
         except Exception as exc:
             log.error(f"[{tbl['table_name']}] thread error: {exc}")
         finally:
@@ -170,11 +167,8 @@ def update(configuration: dict, state: dict):
             pool.submit(worker, tbl)
 
         # main loop: stream queue until everything done
-        while not end_all.is_set() or not out_q.empty():
-            try:
-                out_q.get(timeout=0.2)
-            except Empty:
-                continue
+        while not end_all.is_set():
+            continue
 
 
 # Instantiate the Connector object
