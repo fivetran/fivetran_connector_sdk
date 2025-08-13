@@ -50,9 +50,7 @@ def update(configuration: dict, state: dict):
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "timestamps".
         # - The second argument is a dictionary containing the data to be upserted.
-        op.upsert(
-            table="timestamps", data={"message": f"from {from_timestamp} to {to_timestamp}"}
-        )
+        op.upsert(table="timestamps", data={"message": f"from {from_timestamp} to {to_timestamp}"})
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
