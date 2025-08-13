@@ -41,7 +41,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ## Examples
 
-> Note: To make building Connector SDK integrations as simple as possible, we have removed the need to use the Python generator pattern (`yield`) starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to work without modification. For more information, refer to the [changelog](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+> Note: To simplify the processeses of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
 
 There are several examples available under `/examples`:
 
@@ -198,7 +198,7 @@ There are several examples available under `/examples`:
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
  - [claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/) - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
-> Note: Starting with Connector SDK version 2.0.0, `yield` is no longer required for Connector SDK operations. This folder contains examples that still use `yield`, but we recommend using the latest version of the Connector SDK and avoiding `yield` in your connector code. We will be updating this folder soon. For more information, refer to the [changelog](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+> Note: As of Connector SDK version 2.0.0, `yield` is no longer required for Connector SDK operations. This folder contains examples that still use `yield`, but we recommend using the latest version of Connector SDK and avoiding `yield` in your connector code. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
 
 ## Issue
 Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connector_sdk/issues) and get connected to a Fivetran developer.
