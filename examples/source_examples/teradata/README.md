@@ -78,11 +78,12 @@ The destination table schema is as follows:
   "primary_key": ["EmployeeID"],
   "columns": {
     "EmployeeID": "INT",
-    "JoiningDate": "NAIVE_DATE"
+    "JoiningDate": "NAIVE_DATE",
+    "full_name": "STRING",
+    "city": "STRING"
   }
 }
 ```
-Additional columns are inferred from the source table.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
