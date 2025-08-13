@@ -72,8 +72,7 @@ awsathena+rest://<access_key>:<secret_key>@athena.<region>.amazonaws.com:443/<da
 ## Data handling
 - Query executed: `SELECT * FROM test_rows`.
 - Assumes the table contains: `customer_id`, `first_name`, `last_name`, `email`.
-- Each row is yielded as a dictionary to `op.upsert()`.
-
+- Each row is upserted as a dictionary using `op.upsert()`.
 
 ## Error handling
 - Query results are paginated safely via `fetchmany()`.

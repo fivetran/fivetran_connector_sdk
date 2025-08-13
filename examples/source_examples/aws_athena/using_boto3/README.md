@@ -79,7 +79,7 @@ The connector handles paginated Athena results using `NextToken`:
 ## Error handling
 - If Athena query fails, the sync ends and prints the failure state.
 - The connector checks for terminal statuses: `SUCCEEDED`, `FAILED`, or `CANCELLED`.
-- All paginated results are safely streamed with yield.
+- All paginated results are upserted directly as they are retrieved.
 - You can enhance it by:
   - Adding timeout logic for long-running queries.
   - Adding retry handling for transient AWS errors.
