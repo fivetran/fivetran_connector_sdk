@@ -146,11 +146,11 @@ def update(configuration: dict, state: dict):
 
     for value in data:
         last_index += 1
-        yield op.upsert(table="sample_data", data={"id": last_index, "content": value})
+        op.upsert(table="sample_data", data={"id": last_index, "content": value})
         if last_index % 5 == 0:  # checkpoint after every 5 record
-            yield op.checkpoint({"last_index": last_index})
+            op.checkpoint({"last_index": last_index})
 
-    yield op.checkpoint({"last_index": last_index})  # checkpoint after all records are processed
+    op.checkpoint({"last_index": last_index})  # checkpoint after all records are processed
 
 
 connector = Connector(update=update, schema=schema)

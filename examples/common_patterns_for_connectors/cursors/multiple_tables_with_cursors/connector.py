@@ -65,7 +65,7 @@ def update(configuration: dict, state: dict):
 
     # Fetch and process the companies
     for company in fetch_companies(company_cursor):
-        yield op.upsert(table="company", data=company)
+        op.upsert(table="company", data=company)
         company_id = company["company_id"]
 
         # Update Cursor for Companies
@@ -75,12 +75,12 @@ def update(configuration: dict, state: dict):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
         # Fetch departments for a company
         department_data = fetch_departments_for_company(department_cursor, company_id)
         for department in department_data:
-            yield op.upsert(table="department", data=department)
+            op.upsert(table="department", data=department)
 
             # Update Cursor for a Department in department_cursor
             department_cursor[company_id] = department["updated_at"]
@@ -90,7 +90,7 @@ def update(configuration: dict, state: dict):
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(state)
+            op.checkpoint(state)
 
     # State at the end of sync for simulated records
     # {"company_cursor": "2024-08-14T02:01:00Z",

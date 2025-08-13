@@ -21,7 +21,7 @@ def sync_users(base_url, params, state, is_historical_sync):
             break  # End pagination if there are no records in response.
 
         for user in items:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
             last_updated_at = user[
                 "updated_at"
             ]  # Assuming the API returns the data in ascending order
@@ -51,4 +51,4 @@ def sync_users(base_url, params, state, is_historical_sync):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
