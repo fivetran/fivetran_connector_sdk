@@ -124,9 +124,7 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
             # only process these on the first pass since they don't have an end timestamp
             if first_pass:
                 for endpoint, table_name in config_endpoints:
-                    process_config(
-                        base_url, headers, endpoint, table_name, id, config_params
-                    )
+                    process_config(base_url, headers, endpoint, table_name, id, config_params)
 
                 # no timerange_params, only sync during first pass
                 for endpoint, table_name in [
@@ -560,9 +558,7 @@ def process_child(parent, table_name, id_field_name, id_field):
         if table_name in relationships:
             for child_key, child_table_name in relationships[table_name]:
                 if len(p.get(child_key, [])) > 0:  # Use .get() to handle missing keys gracefully
-                    process_child(
-                        p[child_key], child_table_name, table_name + "_id", p["guid"]
-                    )
+                    process_child(p[child_key], child_table_name, table_name + "_id", p["guid"])
                 p.pop(child_key, None)
         if table_name in fields_to_flatten:
             # log.fine(f"flattening fields in {table_name}")

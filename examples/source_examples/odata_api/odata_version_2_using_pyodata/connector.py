@@ -201,9 +201,7 @@ def example_using_multiple_entities(northwind_client, state):
     # This method queries the OData service for each entity in the entity_list and upserts the data to the destination table.
     # The method requires the entity_list and state dictionary as parameters.
 
-    modified_state = northwind_client.upsert_multiple_entity(
-        entity_list=entity_list, state=state
-    )
+    modified_state = northwind_client.upsert_multiple_entity(entity_list=entity_list, state=state)
 
     # The modified state dictionary is returned to the caller
     # This allows the caller to use the modified state dictionary for further operations

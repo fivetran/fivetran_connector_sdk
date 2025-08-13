@@ -207,9 +207,7 @@ def update(configuration, state):
 
     try:
         # Execute the query and upsert the results into the destination table
-        execute_query_and_upsert(
-            cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE
-        )
+        execute_query_and_upsert(cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE)
         log.info(f"Successfully upserted data into {table_name} table.")
 
     except Exception as e:

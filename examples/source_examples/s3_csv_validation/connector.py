@@ -71,6 +71,7 @@ def update(configuration: dict, state: dict):
         if not result:
             log.warning(f"Skip the upsert for the row no {index + 1} of file {file_key}")
 
+
 def upsert_csv_row(row):
     int_value = validate_int_value(row, row["int_column"])
     if int_value is None:

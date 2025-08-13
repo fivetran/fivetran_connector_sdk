@@ -194,9 +194,7 @@ def update(configuration, state):
     # The table should be created before running the example connector.
 
     # Fetch new rows from Apache Hive and upsert them
-    fetch_and_upsert_data(
-        cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size
-    )
+    fetch_and_upsert_data(cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size)
 
     # Close the cursor and connection
     cursor.close()

@@ -204,9 +204,7 @@ def update(configuration, state):
     )
 
     # execute the query and upsert the data into destination
-    execute_query_and_upsert(
-        client, database, sql_query, TABLE_NAME, last_upserted_timestamp
-    )
+    execute_query_and_upsert(client, database, sql_query, TABLE_NAME, last_upserted_timestamp)
 
 
 # Create the connector object using the schema and update functions

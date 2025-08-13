@@ -206,9 +206,7 @@ def update(configuration, state):
     # If these prerequisites are not met, the connector will not function correctly.
 
     # Fetch new rows from Cassandra and upsert them
-    upsert_fetched_rows(
-        session=session, keyspace=keyspace, table_name=table_name, state=state
-    )
+    upsert_fetched_rows(session=session, keyspace=keyspace, table_name=table_name, state=state)
 
 
 # Create the connector object using the schema and update functions

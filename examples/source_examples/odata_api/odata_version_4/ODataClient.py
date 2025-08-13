@@ -179,9 +179,7 @@ class ODataClient:
 
         try:
             if handle_pagination:
-                self._handle_pagination(
-                    initial_url=url, table=table, update_state=update_state
-                )
+                self._handle_pagination(initial_url=url, table=table, update_state=update_state)
             else:
                 response_data = self._make_request(url=url)
                 formatted_data = self._standardize_output(response=response_data)
