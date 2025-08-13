@@ -79,7 +79,7 @@ def upsert_all_customers(service, table):
     results = [data.__odata__ for data in results]
     for data in results:
         # Upsert the data to the destination
-        yield op.upsert(table=table, data=data.data)
+        op.upsert(table=table, data=data.data)
 
     log.info(f"upserted {len(results)} records to the destination")
 
@@ -110,7 +110,7 @@ def upsert_customer_name_starting_with_s(service, table):
     # No need to convert the data to dictionaries as select query statement does that
     for data in results:
         # Upsert the data to the destination
-        yield op.upsert(table=table, data=data)
+        op.upsert(table=table, data=data)
 
     log.info(f"upserted {len(results)} records to the destination")
 
@@ -151,7 +151,7 @@ def query_orders(service, initial_date):
     return list(query)
 
 
-# Processes the order results and yields upserts and tracks the latest date
+# Processes the order results and upserts and tracks the latest date
 # The results parameter is the list of order data, table is the destination table name, track_column is the column to track the latest date
 # initial_max_date is the initial max date to start with
 # This method upserts the data to the destination and gets the last date from the fetched data.
@@ -162,7 +162,7 @@ def process_order_results(results, table, track_column, initial_max_date):
 
     for data in results:
         count += 1
-        yield op.upsert(table=table, data=data)
+        op.upsert(table=table, data=data)
 
         # Track the latest date
         current_date = data.get(track_column)
@@ -188,7 +188,7 @@ def upsert_all_orders(service, table, initial_state_value, track_column):
 
     initial_date = parse_iso_date(initial_state_value)
     results = query_orders(service, initial_date)
-    max_date = yield from process_order_results(results, table, track_column, initial_date)
+    max_date = process_order_results(results, table, track_column, initial_date)
 
     # Return datetime as string in ISO format for updating the state
     dateformat = "%Y-%m-%dT%H:%M:%S"
@@ -210,23 +210,23 @@ def update(configuration: dict, state: dict):
     odata_service = setup_odata_service()
 
     # Upserting all the customer data to the destination
-    yield from upsert_all_customers(odata_service, table="Customers")
-    yield op.checkpoint(state)
+    upsert_all_customers(odata_service, table="Customers")
+    op.checkpoint(state)
 
     # Upserting selected data from customer to the destination
-    yield from upsert_customer_name_starting_with_s(odata_service, table="Filtered_Customers")
-    yield op.checkpoint(state)
+    upsert_customer_name_starting_with_s(odata_service, table="Filtered_Customers")
+    op.checkpoint(state)
 
     # Upserting all the orders data to the destination while maintaining the state
     last_order_date = state.get("latestOrderDate", "1990-01-01T00:00:00")
-    final_state_value = yield from upsert_all_orders(
+    final_state_value = upsert_all_orders(
         odata_service,
         table="Orders",
         initial_state_value=last_order_date,
         track_column="OrderDate",
     )
     state["latestOrderDate"] = final_state_value
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

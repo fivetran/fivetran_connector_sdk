@@ -12,7 +12,6 @@ from fivetran_connector_sdk import Logging as log
 # Import modules for connection to Firebird and multi-threading
 import firebirdsql
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue, Empty
 import threading
 from datetime import datetime, timedelta, date, timezone
 import json
@@ -116,12 +115,12 @@ def process_table(
                 for row in rows:
                     rec = {c: dt2str(v) for c, v in zip(cols, row)}
                     last_value = rec[incr_col]  # advance cursor
-                    yield op.upsert(name.replace(".", "_"), rec)
+                    op.upsert(name.replace(".", "_"), rec)
 
                 # ── checkpoint right after a successful chunk ──
                 with state_lock:
                     shared_timestamps[cursor_key] = last_value
-                    yield op.checkpoint(dict(shared_timestamps))  # copy!
+                    op.checkpoint(dict(shared_timestamps))  # copy!
 
                 # stop early if short chunk (end of data)
                 if len(rows) < batch_fetch:
@@ -147,16 +146,14 @@ def process_table(
 # The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
     shared_timestamps = dict(state)  # start from prior state
-    out_q = Queue()
     done = []
     end_all = threading.Event()  # flipped when all threads done
 
     def worker(tbl):
         try:
-            for op_obj in process_table(
+            process_table(
                 configuration, tbl, state, shared_timestamps, batch_query_size, batch_process_size
-            ):
-                out_q.put(op_obj)
+            )
         except Exception as exc:
             log.error(f"[{tbl['table_name']}] thread error: {exc}")
         finally:
@@ -170,11 +167,8 @@ def update(configuration: dict, state: dict):
             pool.submit(worker, tbl)
 
         # main loop: stream queue until everything done
-        while not end_all.is_set() or not out_q.empty():
-            try:
-                yield out_q.get(timeout=0.2)
-            except Empty:
-                continue
+        while not end_all.is_set():
+            continue
 
 
 # Instantiate the Connector object

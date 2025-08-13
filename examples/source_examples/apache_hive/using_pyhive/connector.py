@@ -105,7 +105,7 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
             # Process each row and convert it into a dictionary format
             row_data = process_row(columns=columns, row=row)
             # Upsert the row data into the destination table
-            yield op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
 
             # Update the last_created state with the maximum created_at value.
             # This is used to track the last created record for incremental sync.
@@ -120,7 +120,7 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(new_state)
+        op.checkpoint(new_state)
 
 
 def validate_configuration(configuration: dict):
@@ -194,9 +194,7 @@ def update(configuration, state):
     # The table should be created before running the example connector.
 
     # Fetch new rows from Apache Hive and upsert them
-    yield from fetch_and_upsert_data(
-        cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size
-    )
+    fetch_and_upsert_data(cursor=cursor, table_name=TABLE_NAME, state=state, batch_size=batch_size)
 
     # Close the cursor and connection
     cursor.close()

@@ -72,7 +72,7 @@ The connector uses PlainTextAuthProvider for authentication with Cassandra. Prov
 The connector implements efficient pagination when retrieving data from Cassandra:  
 - Uses Cassandra's native pagination capabilities with the fetch_size parameter
 - Default page size is set to 100 records but can be adjusted
-- Uses generator pattern to yield one record at a time, avoiding excessive memory usage
+- Performs upserts one record at a time, avoiding excessive memory usage
 - Handles checkpointing every 1000 records to maintain state during long-running syncs
 
 ## **Data Handling**

@@ -62,9 +62,9 @@ To set up authentication:
 
 The connector implements a simple pagination strategy by fetching records in batches of 2 rows at a time (refer to the `cursor.fetchmany(2)` call in the `update()` function). After processing each batch, the connector:
 
-- Yields upsert operations for each record
+- Performs upsert operations for each record
 - Updates the state with the latest timestamp
-- Yields a checkpoint operation to save progress
+- Performs a checkpoint operation to save progress
 
 This approach ensures reliable processing of large datasets and allows the connector to resume from where it left off if interrupted.
 
@@ -76,7 +76,7 @@ The connector handles data as follows (refer to the `update()` function):
 - Retrieves the last sync timestamp from state (or uses a default date for initial sync)
 - Executes a SQL query to fetch records modified after the last sync timestamp
 - Transforms each database record into the target schema format
-- Yields upsert operations for each record
+- Performs upsert operations for each record
 - Maintains state with the latest processed timestamp
 
 The `dt2str()` function handles timestamp formatting, converting database datetime objects to the required string format.

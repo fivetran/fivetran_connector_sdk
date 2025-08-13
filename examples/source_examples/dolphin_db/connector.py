@@ -116,12 +116,11 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         for row in rows:
             upsert_row = dict(zip(column_names, row))
             upsert_row = serialize_row_data(upsert_row)
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # The 'upsert' operation is used to insert or update the data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
-            yield op.upsert(table=table_name, data=upsert_row)
+            op.upsert(table=table_name, data=upsert_row)
 
             if upsert_row["timestamp"] > last_timestamp:
                 # Update the last_timestamp if the current row's timestamp is greater
@@ -132,11 +131,11 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     # After processing all rows, update the state with the last processed timestamp and checkpoint it
     state["last_timestamp"] = last_timestamp
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def schema(configuration: dict):
@@ -208,9 +207,7 @@ def update(configuration, state):
 
     try:
         # Execute the query and upsert the results into the destination table
-        yield from execute_query_and_upsert(
-            cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE
-        )
+        execute_query_and_upsert(cursor, dolphin_query, table_name, state, batch_size=BATCH_SIZE)
         log.info(f"Successfully upserted data into {table_name} table.")
 
     except Exception as e:

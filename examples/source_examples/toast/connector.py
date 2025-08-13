@@ -48,7 +48,7 @@ def update(configuration: dict, state: dict):
         from_ts, to_ts = set_timeranges(state, configuration, start_timestamp)
 
         # start the sync
-        yield from sync_items(base_url, headers, from_ts, to_ts, start_timestamp, state)
+        sync_items(base_url, headers, from_ts, to_ts, start_timestamp, state)
 
     except Exception as e:
         # Return error response
@@ -61,7 +61,7 @@ def update(configuration: dict, state: dict):
 def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
     """
     This is the main generator function for the connector.
-    It yields from other functions that are specific to the endpoint type.
+    It calls other functions that are specific to the endpoint type.
     :param base_url: Toast API URL
     :param headers: authentication headers
     :param ts_from: Timestamp to start the current iteration
@@ -104,7 +104,7 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
         if not response_page:
             break  # End pagination if there are no records in response.
 
-        # Iterate over each user in the 'items' list and yield an upsert operation.
+        # Iterate over each user in the 'items' list and perform an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         restaurant_count = len(response_page)
         log.info(f"***** timerange is from {ts_from} to {ts_to} ***** ")
@@ -115,45 +115,43 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
             for old_name, new_name in rename_fields:
                 r[new_name] = r.pop(old_name)
             log.info(f"***** starting restaurant {id}, {index + 1} of {restaurant_count} ***** ")
-            yield op.upsert(table="restaurant", data=r)
+            op.upsert(table="restaurant", data=r)
 
             if r.get("deleted") and "id" in r:
-                yield op.delete(table="restaurant", keys={"id": r["id"]})
+                op.delete(table="restaurant", keys={"id": r["id"]})
 
             # config endpoints
             # only process these on the first pass since they don't have an end timestamp
             if first_pass:
                 for endpoint, table_name in config_endpoints:
-                    yield from process_config(
-                        base_url, headers, endpoint, table_name, id, config_params
-                    )
+                    process_config(base_url, headers, endpoint, table_name, id, config_params)
 
                 # no timerange_params, only sync during first pass
                 for endpoint, table_name in [
                     ("/labor/v1/jobs", "job"),
                     ("/labor/v1/employees", "employee"),
                 ]:
-                    yield from process_labor(base_url, headers, endpoint, table_name, id)
+                    process_labor(base_url, headers, endpoint, table_name, id)
 
             # cash management endpoints
-            yield from process_cash(
+            process_cash(
                 base_url, headers, "/cashmgmt/v1/entries", "cash_entry", id, timerange_params
             )
-            yield from process_cash(
+            process_cash(
                 base_url, headers, "/cashmgmt/v1/deposits", "cash_deposit", id, timerange_params
             )
 
             # orders
-            yield from process_orders(
+            process_orders(
                 base_url, headers, "/orders/v2/ordersBulk", "orders", id, timerange_params
             )
 
             # labor endpoints
             # these two endpoints can only retrieve 30 days at a time
-            yield from process_labor(
+            process_labor(
                 base_url, headers, "/labor/v1/shifts", "shift", id, params=timerange_params
             )
-            yield from process_labor(
+            process_labor(
                 base_url,
                 headers,
                 "/labor/v1/timeEntries",
@@ -166,7 +164,7 @@ def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state):
         # from the correct position in case of interruptions.
         # checkpointing every 30 days for convenience,
         # since we can only ask for 30 days of shifts and time entries at a time
-        yield op.checkpoint(state)
+        op.checkpoint(state)
         first_pass = False
 
         # Determine if we should continue pagination based on the total items and the current offset.
@@ -219,7 +217,7 @@ def process_config(base_url, headers, endpoint, table_name, rst_id, timerange):
                 o = stringify_lists(o)
                 o["restaurant_id"] = rst_id
                 o = replace_guid_with_id(o)
-                yield op.upsert(table=table_name, data=o)
+                op.upsert(table=table_name, data=o)
 
             if next_token:
                 pagination["pageToken"] = next_token
@@ -275,12 +273,12 @@ def process_labor(base_url, headers, endpoint, table_name, rst_id, params=None):
 
         for o in response_page:
             if endpoint == "/labor/v1/timeEntries" and o.get("breaks"):
-                yield from process_child(o["breaks"], "break", "time_entry_id", o["guid"])
+                process_child(o["breaks"], "break", "time_entry_id", o["guid"])
             elif endpoint == "/labor/v1/employees":
-                yield from process_child(
+                process_child(
                     o.get("jobReferences", []), "employee_job_reference", "employee_id", o["guid"]
                 )
-                yield from process_child(
+                process_child(
                     o.get("wageOverrides", []), "employee_wage_override", "employee_id", o["guid"]
                 )
             elif endpoint == "/labor/v1/shifts":
@@ -292,10 +290,10 @@ def process_labor(base_url, headers, endpoint, table_name, rst_id, params=None):
             o = stringify_lists(o)
             o["restaurant_id"] = rst_id
             o = replace_guid_with_id(o)
-            yield op.upsert(table=table_name, data=o)
+            op.upsert(table=table_name, data=o)
 
             if o.get("deleted") and "id" in o:
-                yield op.delete(table=table_name, keys={"id": o["id"]})
+                op.delete(table=table_name, keys={"id": o["id"]})
 
     except Exception as e:
         # Return error response
@@ -349,7 +347,7 @@ def process_cash(base_url, headers, endpoint, table_name, rst_id, params):
                 o = flatten_fields(fields_to_flatten[table_name], o)
                 o["restaurant_id"] = rst_id
                 o = replace_guid_with_id(o)
-                yield op.upsert(table=table_name, data=o)
+                op.upsert(table=table_name, data=o)
 
     except Exception as e:
         # Return error response
@@ -397,8 +395,8 @@ def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
 
             for order in response_page:
                 order["restaurant_id"] = rst_id
-                yield from process_payments(order)
-                yield from process_pricing_features(order)
+                process_payments(order)
+                process_pricing_features(order)
 
                 order = flatten_fields(fields_to_flatten, order)
 
@@ -410,10 +408,10 @@ def process_orders(base_url, headers, endpoint, table_name, rst_id, params):
                 order.pop("checks", None)
                 order = stringify_lists(order)
                 order = replace_guid_with_id(order)
-                yield op.upsert(table=table_name, data=order)
+                op.upsert(table=table_name, data=order)
 
                 if order.get("deleted") and "id" in order:
-                    yield op.delete(table=table_name, keys={"id": order["id"]})
+                    op.delete(table=table_name, keys={"id": order["id"]})
 
             if len(response_page) < params["pageSize"]:
                 break  # No more pages available
@@ -445,11 +443,11 @@ def process_payments(order):
         "server",
     ]
     if "checks" in order and order["checks"]:
-        yield from process_child(order["checks"], "orders_check", "orders_id", order["guid"])
+        process_child(order["checks"], "orders_check", "orders_id", order["guid"])
         for check in order["checks"]:
             if "payments" in check:
                 for payment in check["payments"]:
-                    yield op.upsert(
+                    op.upsert(
                         table="orders_check_payment",
                         data={
                             "orders_check_id": check["guid"],
@@ -461,7 +459,7 @@ def process_payments(order):
                     payment["restaurant_id"] = order["restaurant_id"]
                     process_void_info(payment)
                     payment = replace_guid_with_id(payment)
-                    yield op.upsert(table="payment", data=payment)
+                    op.upsert(table="payment", data=payment)
 
 
 def process_pricing_features(order):
@@ -472,7 +470,7 @@ def process_pricing_features(order):
     """
     if "pricingFeatures" in order and order["pricingFeatures"]:
         for feature in order["pricingFeatures"]:
-            yield op.upsert(
+            op.upsert(
                 table="orders_pricing_feature",
                 data={"orders_id": order["guid"], "pricing_feature": feature},
             )
@@ -560,9 +558,7 @@ def process_child(parent, table_name, id_field_name, id_field):
         if table_name in relationships:
             for child_key, child_table_name in relationships[table_name]:
                 if len(p.get(child_key, [])) > 0:  # Use .get() to handle missing keys gracefully
-                    yield from process_child(
-                        p[child_key], child_table_name, table_name + "_id", p["guid"]
-                    )
+                    process_child(p[child_key], child_table_name, table_name + "_id", p["guid"])
                 p.pop(child_key, None)
         if table_name in fields_to_flatten:
             # log.fine(f"flattening fields in {table_name}")
@@ -574,11 +570,11 @@ def process_child(parent, table_name, id_field_name, id_field):
             p.pop("payments", None)
         p = stringify_lists(p)
         p = replace_guid_with_id(p)
-        yield op.upsert(table=table_name, data=p)
+        op.upsert(table=table_name, data=p)
         # need to also handle deletes here, for child tables and their children (e.g. orders_check and orders_check_selection)
 
         if p.get("deleted") and "id" in p:
-            yield op.delete(table=table_name, keys={"id": p["id"]})
+            op.delete(table=table_name, keys={"id": p["id"]})
 
 
 def process_void_info(payment):

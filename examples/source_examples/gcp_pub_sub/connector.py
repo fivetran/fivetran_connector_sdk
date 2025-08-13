@@ -215,9 +215,6 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
         subscription_path: path of the subscription
         max_messages: maximum number of messages to pull in each batch
         state: state dictionary to checkpoint the progress
-    Yields:
-        upsert operations for each message in the batch
-        checkpoint operation to save the state
     """
     while True:
         # pull messages from the subscription
@@ -244,7 +241,7 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
                 data["key"] = msg.message.message_id
 
                 # upsert the data to the destination
-                yield op.upsert(table="sample_table", data=data)
+                op.upsert(table="sample_table", data=data)
 
             # Acknowledge processed messages to remove them from the subscription
             # This prevents redelivery of already processed messages
@@ -266,7 +263,7 @@ def pull_and_upsert_messages(subscriber, subscription_path, max_messages, state)
     # checkpoint the state
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -310,7 +307,7 @@ def update(configuration: dict, state: dict):
     # Process messages in batches until no more messages are available and upsert them to the destination
     # This pagination approach handles large volumes of messages efficiently
     # To build you own connector, replace the upsert logic in this method with your own data processing logic
-    yield from pull_and_upsert_messages(
+    pull_and_upsert_messages(
         subscriber=subscriber,
         subscription_path=subscription_path,
         max_messages=max_messages,

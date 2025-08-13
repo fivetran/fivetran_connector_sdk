@@ -269,8 +269,7 @@ def sync_events(config: dict, state: dict) -> Generator:
         config (dict): Configuration dictionary
         state (dict): State for incremental sync
 
-    Yields:
-        Generator: Operations for upserting events and checkpointing state
+    This function fetches, cleans, deduplicates, and upserts events, then updates and checkpoints the sync state.
     """
     method_name = "sync_events"
 
@@ -291,7 +290,7 @@ def sync_events(config: dict, state: dict) -> Generator:
 
         if not events:
             log.info(f"{method_name}: No new events found")
-            yield op.checkpoint(state)
+            op.checkpoint(state)
             return
 
         log.info(f"{method_name}: Processing {len(events)} events")
@@ -299,7 +298,7 @@ def sync_events(config: dict, state: dict) -> Generator:
         # Upsert events
         for event in events:
             try:
-                yield op.upsert(table="solace_events", data=event)
+                op.upsert(table="solace_events", data=event)
             except Exception as e:
                 log.severe(f"{method_name}: Error upserting event {event.get('event_id')}: {e}")
 
@@ -314,7 +313,7 @@ def sync_events(config: dict, state: dict) -> Generator:
         raise
 
     # Checkpoint state
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def publish_messages_for_testing(config: dict, count: int):
@@ -368,7 +367,7 @@ def update(configuration: dict, state: dict):
     log.info(f"{method_name}: Starting Solace connector sync")
 
     # Sync events
-    yield from sync_events(configuration, state)
+    sync_events(configuration, state)
 
     log.info(f"{method_name}: Solace connector sync completed")
 

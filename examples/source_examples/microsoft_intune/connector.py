@@ -104,7 +104,7 @@ def update(configuration: dict, state: dict):
 
         # Loop through records in response and upsert
         for record in response_page.get("value"):
-            yield op.upsert("managed_devices", list_to_json(record))
+            op.upsert("managed_devices", list_to_json(record))
 
         # If there was a nextLink in API response, call that API next
         # If no nextLink in API response, end pagination

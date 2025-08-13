@@ -140,12 +140,11 @@ def update(configuration: dict, state: dict):
     data = ibm_db.fetch_assoc(stmt)
     # Iterate over the result set and upsert each record until there are no more records
     while data:
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation is used to insert or update the record in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "sample_table".
         # - The second argument is a dictionary containing the data to be upserted,
-        yield op.upsert(table="sample_table", data=data)
+        op.upsert(table="sample_table", data=data)
 
         # Update the last_created variable with the created_at value of the current record
         last_created_from_data = get_datetime_str(data["created_at"])
@@ -165,7 +164,7 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     state["last_created"] = last_created
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

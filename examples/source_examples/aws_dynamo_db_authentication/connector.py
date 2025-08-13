@@ -98,13 +98,13 @@ def update(configuration: dict, state: dict):
             for page in page_iterator:
                 items = list(map(map_item, page["Items"]))
                 for item in items:
-                    yield op.upsert(table, item)
+                    op.upsert(table, item)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
         log.info("Finished syncing...")
     except Exception as e:
