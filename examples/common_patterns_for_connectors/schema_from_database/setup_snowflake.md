@@ -7,7 +7,7 @@ This guide provides the necessary steps to set up your Snowflake environment bef
 - Snowflake credentials (`username`, `password` and `account`)
 - Python with the `snowflake-connector-python` package installed
 
-## Setting Up Snowflake Environment
+## Setting up Snowflake environment
 
 1. **Create a Database and Schema**:
    ```sql
