@@ -321,7 +321,7 @@ def update(configuration: dict, state: dict):
         columns = [col[0].lower() for col in cursor.description]
 
         # Yield the upsert operations for the fetched data
-        yield from fetch_and_upsert_data(
+        fetch_and_upsert_data(
             cursor=cursor,
             columns=columns,
             table=table,
