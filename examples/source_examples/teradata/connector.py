@@ -140,12 +140,10 @@ def fetch_and_upsert_data(cursor, configuration, state):
         for row in data:
             # process the row and prepare it for upsert.
             upsert_row = process_row_for_upsert(row, columns)
-            # The yield statement returns a generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
-            yield op.upsert(table=__DESTINATION_TABLE, data=upsert_row)
+            op.upsert(table=__DESTINATION_TABLE, data=upsert_row)
 
             if upsert_row["JoiningDate"] > last_joining_date:
                 # Update the last joining date in the state if the current row's JoiningDate is greater.
@@ -157,7 +155,7 @@ def fetch_and_upsert_data(cursor, configuration, state):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
 
 def update(configuration: dict, state: dict):
@@ -181,7 +179,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Fetch data from the Teradata Vantage database and upsert it into the destination table.
-        yield from fetch_and_upsert_data(cursor=cursor, configuration=configuration, state=state)
+        fetch_and_upsert_data(cursor=cursor, configuration=configuration, state=state)
     except Exception as e:
         raise RuntimeError(f"An error occurred during the update process: {e}")
     finally:
