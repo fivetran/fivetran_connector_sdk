@@ -26,8 +26,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Dynamically builds schema by querying Snowflake’s metadata.
 - Supports column type mapping from Snowflake to Fivetran types.
 - Automatically discovers primary keys using `SHOW PRIMARY KEYS`.
-- Syncs `PRODUCTS` via full refresh.
-- Syncs `ORDERS` incrementally using the `order_date` field.
+- Syncs `ORDERS` and `PRODUCTS` table incrementally.
 
 
 ## Configuration file
@@ -51,7 +50,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 This connector requires the following Python dependencies:
 
 ```
-snowflake_connector_python==3.14.0
+snowflake_connector_python==3.16.0
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -72,9 +71,8 @@ Unsupported or unknown data types default to `STRING`.
 
 
 ## Data handling
-- The `PRODUCTS` table is loaded completely each time (full sync).
-- The `ORDERS` table is synced incrementally using the `order_date` column:
-  - It compares against state["lastOrder"].
+- The `ORDERS` and `PRODUCTS` table is synced incrementally using the `created_at` column:
+  - It compares against `state["orders_last_created"]` and `state["products_last_created"]` for `ORDERS` and `PRODUCTS` table respectively.
   - Updates state after every row.
 
 
@@ -99,7 +97,7 @@ The connector creates the `PRODUCTS` and `ORDERS` tables:
     "in_stock": "BOOLEAN",
     "description": "STRING",
     "weight": "DOUBLE",
-    "created_at": "UTC_DATETIME"
+    "created_at": "NAIVE_DATE"
   }
 }
 ```
@@ -124,7 +122,7 @@ The connector creates the `PRODUCTS` and `ORDERS` tables:
     "state": "STRING",
     "zip": "STRING",
     "discount_applied": "DOUBLE",
-    "created_at": "UTC_DATETIME"
+    "created_at": "NAIVE_DATE"
   }
 }
 ```
