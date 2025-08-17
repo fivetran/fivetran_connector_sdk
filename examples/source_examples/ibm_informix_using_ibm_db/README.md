@@ -84,3 +84,29 @@ The connector implements error handling for:
 > NOTE : This example was tested using the IBM Informix developer edition local server. If you face any difficulties while writing your connector, please connect with [our professional services](https://support.fivetran.com/hc/en-us/requests/new?isSdkIssue=true).
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+
+## Troubleshooting
+
+**Error: `ImportError: DLL load failed while importing ibm_db` on Windows**
+
+Issue: This error occurs on Windows because the Python interpreter cannot find the required library files (`clidriver` DLLs) needed by the `ibm_db` package.
+
+Resolution:
+
+You must explicitly provide the path to the `clidriver\\bin` directory before the `ibm_db` module is imported. The recommended way is to add the path to the conditional logic in the code.
+
+- Update `connector.py` file : In your connector file, add logic to check if the operating system is Windows. If it is, construct the path to the bin directory and add it to the DLL search path. This code must run before import ibm_db.
+
+    ```python
+    import os
+    import sys
+    # Check if the platform is Windows
+    if sys.platform == 'win32':
+        # Add the path to the clidriver\\bin directory before importing ibm_db library
+        os.add_dll_directory("C:\\path\\to\\your\\python\\env\\Lib\\site-packages\\clidriver\\bin")
+    
+    # Now it is safe to import ibm_db
+    import ibm_db
+    ```
+
+This ensures the connector works for local debugging on Windows and the logic is safely ignored when deployed in Fivetran's production environment.
