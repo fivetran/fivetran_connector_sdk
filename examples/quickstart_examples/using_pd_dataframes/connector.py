@@ -110,11 +110,7 @@ def get_data(cursor):
         # Process and store profile data
         profile_data = {
             "id": cursor,
-            "fullName": data["name"]["title"]
-            + " "
-            + data["name"]["first"]
-            + " "
-            + data["name"]["last"],
+            "fullName": f"{data['name']['title']} {data['name']['first']} {data['name']['last']}",
             "gender": data["gender"],
             "email": data["email"],
             "age": data["dob"]["age"],
@@ -130,9 +126,7 @@ def get_data(cursor):
         location_details = data["location"]
         location_data = {
             "profileId": cursor,
-            "street": str(location_details["street"]["number"])
-            + " "
-            + location_details["street"]["name"],
+            "street": f"{location_details['street']['number']} {location_details['street']['name']}",
             "city": location_details["city"],
             "state": location_details["state"],
             "country": location_details["country"],
