@@ -37,7 +37,12 @@ Connector SDK provides native support for many Fivetran features and relies on e
 
 See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
+Run the `.github/scripts/setup-hooks.sh` script from the root of the repository to set up pre-commit hooks. This ensures that your code is formatted correctly and passes all tests before you commit them.
+
 ## Examples
+
+> Note: To simplify the processeses of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
@@ -60,6 +65,8 @@ There are several examples available under `/examples`:
 - [complex_configuration_options](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/complex_configuration_options) - This example shows how to cast configuration fields to LIST, INTEGER, BOOLEAN, and DICT for use in connector code.
 
 - [base_64_encoding_decoding](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/base_64_encoding_decoding) - This example shows how to use base64 encoding and decoding in your connector code.
+
+- [parsing_json_response_in_class](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/parsing_json_response_in_class) - This example shows how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation.
 
 </details>
 
@@ -157,7 +164,9 @@ There are several examples available under `/examples`:
 - [sensor_tower](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
 - [similarweb](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/similarweb) - This example shows how to use the Connector SDK to get website and app performance metrics from similarweb for domains of your choice.
 - [smartsheets](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/smartsheets) - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
+- [solace](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/solace): This example demonstrates how to sync messages from a Solace queue. To run it, you must provide your Solace broker credentials, including the host, username, password, and queue name.
 - [sql_server](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/sql_server) - This example uses pyodbc to connect to SQL Server for syncing data using Connector SDK. You need to provide your SQL Server credentials for this example to work.
+- [teradata](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/teradata) - This example shows how to sync data from Teradata Vantage database using Connector SDK. It uses the `teradatasql` library to connect to Teradata and fetch data from a specified table. You need to provide your Teradata credentials for this example to work.
 - [timescale_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/timescale_db) - This example shows how to sync data from TimescaleDb using Connector SDK. It uses the `psycopg2` library to connect to TimescaleDb and fetch time-series and vector data from specified tables. You need to provide your TimescaleDb credentials for this example to work.
 - [toast](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/toast) - This is an example of how we can sync Toast data using the Connector SDK. You would need to provide your Toast credentials for this example to work.
 - [veeva_vault_using_basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault_using_basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
@@ -179,7 +188,7 @@ There are several examples available under `/examples`:
   - This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 - **[Sybase IQ](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_iq)**
   - This feature enables you to connect to Sybase IQ database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
-- **[Sybase ASE](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_iq)**
+- **[Sybase ASE](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/sybase_ase)**
   - This feature enables you to connect to Sybase ASE database using the `FreeTDS` driver and `PyODBC` by writing a `installation.sh` file in the `drivers` folder. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
 - **[ibm_infomix_using_jaydebeapi](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/ibm_infomix_using_jaydebeapi)**
   - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `jaydebeapi` library with external JDBC Informix driver, using `installation.sh` file in the `drivers` folder, to connect to the Informix database and fetch data.
@@ -190,6 +199,7 @@ There are several examples available under `/examples`:
  - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
  - [claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/) - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
+> Note: As of Connector SDK version 2.0.0, `yield` is no longer required for Connector SDK operations. This folder contains examples that still use `yield`, but we recommend using the latest version of Connector SDK and avoiding `yield` in your connector code. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
 
 ## Issue
 Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connector_sdk/issues) and get connected to a Fivetran developer.

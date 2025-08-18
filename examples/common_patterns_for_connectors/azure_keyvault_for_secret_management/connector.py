@@ -167,19 +167,18 @@ def update(configuration: dict, state: dict):
         # This is required to create a dictionary with the column names as keys and the record values as values.
         upsert_data = dict(zip(columns, record))
 
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation inserts the data into the destination.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "employees".
         # - The second argument is a dictionary containing the data to be upserted.
-        yield op.upsert("employees", upsert_data)
+        op.upsert("employees", upsert_data)
 
     log.fine(f"Upserted {len(records)} records to table 'employees'")
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.

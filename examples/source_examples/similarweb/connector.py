@@ -261,14 +261,14 @@ def update(configuration: dict, state: dict):
             records = download_report(download_url)
             for record in records:
                 # write data into table
-                yield op.upsert(table="all_traffic_visits", data=record)
+                op.upsert(table="all_traffic_visits", data=record)
         else:
             log.warning("No download URL")
     else:
         log.warning("No report found")
 
     # set state so Fivetran will know to do an incremental sync next time
-    yield op.checkpoint(state={"look_back": look_back})
+    op.checkpoint(state={"look_back": look_back})
 
 
 def validate_configuration(configuration: dict):

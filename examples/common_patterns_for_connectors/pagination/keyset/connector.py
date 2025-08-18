@@ -66,13 +66,13 @@ def update(configuration: dict, state: dict):
 
     params = {"updated_since": cursor}
 
-    yield from sync_items(base_url, params, state)
+    sync_items(base_url, params, state)
 
 
 # The sync_items function handles the retrieval and processing of paginated API data.
 # It performs the following tasks:
 # 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by yielding upsert operations to Fivetran.
+# 2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
 # 3. Updates the state with the 'updatedAt' timestamp of the last processed item.
 # 4. Saves the state periodically to ensure the sync can resume from the correct point.
 # 5. Continues fetching and processing data from the API until all pages are processed.
@@ -93,7 +93,7 @@ def sync_items(base_url, params, state):
         if not items:
             break  # End pagination if there are no records in response.
 
-        # Iterate over each user in the 'items' list and yield an upsert operation.
+        # Iterate over each user in the 'items' list and perform an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
         summary_first_item = {"id": items[0]["id"], "name": items[0]["name"]}
@@ -101,7 +101,7 @@ def sync_items(base_url, params, state):
             f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}"
         )
         for user in items:
-            yield op.upsert(table="user", data=user)
+            op.upsert(table="user", data=user)
             state["last_updated_at"] = user[
                 "updatedAt"
             ]  # Assuming the API returns the data in ascending order
@@ -110,7 +110,7 @@ def sync_items(base_url, params, state):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
         more_data, params = should_continue_pagination(response_page)
 

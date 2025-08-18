@@ -63,7 +63,7 @@ The connector:
 1. Creates a named cursor during connection initialization.
 2. Executes a time-bounded query to fetch only new data.
 3. Uses `fetchmany()` with a `batch_size` parameter (default: 1000) to retrieve rows incrementally.
-4. Processes each batch and yields records before fetching the next batch. This approach prevents loading the entire result set into memory at once, making the connector suitable for large datasets.
+4. Processes each batch and upsert records before fetching the next batch. This approach prevents loading the entire result set into memory at once, making the connector suitable for large datasets.
 
 ## Data handling
 

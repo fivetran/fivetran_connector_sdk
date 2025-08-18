@@ -186,13 +186,13 @@ def update(configuration: dict, state: dict):
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
         upsert_data = dict(zip(columns, row))
-        yield op.upsert(table="products", data=upsert_data)
+        op.upsert(table="products", data=upsert_data)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
     # Fetch the data from the orders table using a SQL command
     # The query fetches all orders that were placed after the last order date stored in the state dictionary.
@@ -221,7 +221,7 @@ def update(configuration: dict, state: dict):
         # The zip function pairs each column name with its corresponding value in the row tuple
         # The dict function creates a dictionary from these pairs
         upsert_data = dict(zip(columns, row))
-        yield op.upsert(table="orders", data=upsert_data)
+        op.upsert(table="orders", data=upsert_data)
 
         # Update the last order date in the state dictionary
         last_order = (
@@ -232,7 +232,7 @@ def update(configuration: dict, state: dict):
     state["lastOrder"] = last_order
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
     # close the cursor and connection
     cursor.close()

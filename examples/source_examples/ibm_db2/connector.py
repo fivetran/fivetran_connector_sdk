@@ -158,7 +158,7 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
     """
     Fetch data from the IBM DB2 database table and upsert the row to destination.
     This function executes a SQL query to retrieve rows from the specified table where the hire date is greater than the last hired date.
-    It processes each row, standardizes the data, and yields an upsert operation for each row.
+    It processes each row, standardizes the data, and performs an upsert operation for each row.
     Args:
         conn: A connection object to the IBM DB2 database.
         schema_name: The name of the schema in which the table resides.
@@ -184,15 +184,14 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
         if not row:
             break
 
-        # Standardize the row data and yield an upsert operation
+        # Standardize the row data and performs an upsert operation
         row_data = standardize_row_data(row)
 
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation is used to insert or update the data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "employee".
         # - The second argument is a dictionary containing the data to be upserted,
-        yield op.upsert(table="employee", data=row_data)
+        op.upsert(table="employee", data=row_data)
         row_count += 1
 
         # Update the latest hire date if the current row's hire date is more recent
@@ -200,19 +199,19 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
             latest_hire = row_data["hire_date"]
 
         if row_count % CHECKPOINT_INTERVAL == 0:
-            # Yield a checkpoint operation every CHECKPOINT_INTERVAL rows
+            # Checkpoint operation every CHECKPOINT_INTERVAL rows
             new_state = {"last_hire_date": latest_hire}
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(new_state)
+            op.checkpoint(new_state)
 
     log.info(f"Upserted {row_count} rows from {schema_name}.{table_name}.")
 
-    # After processing all rows, yield a final checkpoint with the latest hire date
+    # After processing all rows, a final checkpoint with the latest hire date
     new_state = {"last_hire_date": latest_hire}
-    yield op.checkpoint(new_state)
+    op.checkpoint(new_state)
 
 
 def update(configuration: dict, state: dict):
@@ -237,7 +236,7 @@ def update(configuration: dict, state: dict):
     last_hired = state.get("last_hire_date", "1990-01-01T00:00:00")
 
     # fetch data from the IBM DB2 database table and upsert the data to destination
-    yield from fetch_and_upsert_data(
+    fetch_and_upsert_data(
         conn, configuration["schema_name"], configuration["table_name"], last_hired
     )
 

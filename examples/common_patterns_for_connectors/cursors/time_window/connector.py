@@ -46,20 +46,17 @@ def update(configuration: dict, state: dict):
 
         # save the end of the current time range to the state
         state["to_timestamp"] = to_timestamp
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation inserts the data into the destination.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "timestamps".
         # - The second argument is a dictionary containing the data to be upserted.
-        yield op.upsert(
-            table="timestamps", data={"message": f"from {from_timestamp} to {to_timestamp}"}
-        )
+        op.upsert(table="timestamps", data={"message": f"from {from_timestamp} to {to_timestamp}"})
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
         if to_timestamp < start_timestamp:
             # if we haven't reached the start of the sync yet

@@ -67,42 +67,39 @@ def update(configuration: dict, state: dict):
     df = pd.read_csv(StringIO(csv_content), converters={col: str for col in range(100)})
 
     for index, row in df.iterrows():
-        for result in upsert_csv_row(row):
-            if result is None:
-                log.warning(f"Skip the upsert for the row no {index + 1} of file {file_key}")
-                break
-            else:
-                yield result
+        result = upsert_csv_row(row)
+        if not result:
+            log.warning(f"Skip the upsert for the row no {index + 1} of file {file_key}")
 
 
 def upsert_csv_row(row):
     int_value = validate_int_value(row, row["int_column"])
     if int_value is None:
-        yield None
+        return False
 
     long_value = validate_int_value(row, row["long_column"])
     if long_value is None:
-        yield None
+        return False
 
     bool_value = validate_bool_value(row, row["bool_column"])
     if bool_value is None:
-        yield None
+        return False
 
     string_value = validate_string_value(row, row["string_column"])
     if string_value is None:
-        yield None
+        return False
 
     json_value = validate_json_value(row, row["json_column"])
     if json_value is None:
-        yield None
+        return False
 
     naive_date_value = validate_naive_date_value(row, row["naive_date_column"])
     if naive_date_value is None:
-        yield None
+        return False
 
     naive_date_time_value = validate_naive_date_time_value(row, row["naive_date_time_column"])
     if naive_date_time_value is None:
-        yield None
+        return False
 
     data = {
         "int_value": int_value,
@@ -113,7 +110,8 @@ def upsert_csv_row(row):
         "naive_date_value": naive_date_value.strftime("%Y-%m-%d"),
         "naive_date_time_value": naive_date_time_value.strftime("%Y-%m-%dT%H:%M:%S.%f"),
     }
-    yield op.upsert(TABLE_NAME, data=data)
+    op.upsert(TABLE_NAME, data=data)
+    return True
 
 
 def validate_int_value(row, value: str):

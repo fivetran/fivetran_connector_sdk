@@ -63,7 +63,7 @@ The connector uses basic username and password authentication to connect to Clic
 
 ## **Pagination**
 
-The connector uses ClickHouse's streaming query capabilities to efficiently process large datasets without loading all data into memory. This is implemented using the `client.query_rows_stream()` method which yields rows as they are retrieved from the database. 
+The connector uses ClickHouse's streaming query capabilities to efficiently process large datasets without loading all data into memory. This is implemented using the `client.query_rows_stream()` method which upserts rows as they are retrieved from the database. 
 
 ## **Data Handling**
 

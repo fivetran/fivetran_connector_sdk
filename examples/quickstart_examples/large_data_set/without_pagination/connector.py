@@ -40,13 +40,13 @@ def update(configuration: dict, state: dict):
     pokemon_batches = divide_into_batches(pokemons_df)
     for batch in pokemon_batches:
         for index, row in batch.iterrows():
-            yield op.upsert(table="pokemons", data={col: row[col] for col in batch.columns})
+            op.upsert(table="pokemons", data={col: row[col] for col in batch.columns})
         offset = offset + len(batch)
         state["offset"] = offset
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
 
-# Function to divide large data frame into small batches
+# Function to divide a large DataFrame into smaller batches and yield them for processing
 def divide_into_batches(pokemons):
     for index in range(0, len(pokemons), BATCH_SIZE):
         yield pokemons.iloc[index : index + BATCH_SIZE]

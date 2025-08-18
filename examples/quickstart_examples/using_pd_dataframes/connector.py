@@ -71,14 +71,14 @@ def update(configuration: dict, state: dict):
     profile_df, location_df, login_df, cursor = get_data(profile_cursor)
 
     # Approaches to upsert the records from dataFrame
-    yield from upsert_dataframe_approach_1(profile_df=profile_df, state=state, cursor=cursor)
+    upsert_dataframe_approach_1(profile_df=profile_df, state=state, cursor=cursor)
 
-    yield from upsert_dataframe_approach_2(location_df=location_df, state=state, cursor=cursor)
+    upsert_dataframe_approach_2(location_df=location_df, state=state, cursor=cursor)
 
-    yield from upsert_dataframe_approach_3(login_df=login_df, state=state, cursor=cursor)
+    upsert_dataframe_approach_3(login_df=login_df, state=state, cursor=cursor)
 
     # Approaches to handle NaN values in dataframes
-    yield from handle_tables_with_nan(state)
+    handle_tables_with_nan(state)
 
 
 # Function to fetch data from an API and process it into DataFrames
@@ -154,15 +154,15 @@ def handle_tables_with_nan(state: dict):
 
     # Approach 1: Convert NaN to None using the replace method
     table_df_1 = table_df_1.replace(np.nan, None)
-    yield from upsert_dataframe(table_df=table_df_1, state=state)
+    upsert_dataframe(table_df=table_df_1, state=state)
 
     # Approach 2: Convert NaN to None using the where method
     table_df_2 = table_df_2.astype(object).where(pd.notnull(table_df_2), None)
-    yield from upsert_dataframe(table_df=table_df_2, state=state)
+    upsert_dataframe(table_df=table_df_2, state=state)
 
     # Approach 3: Fill NaN values with np.nan and then replace any NaN with None.
     table_df_3 = table_df_3.fillna(np.nan).replace([np.nan], [None])
-    yield from upsert_dataframe(table_df=table_df_3, state=state)
+    upsert_dataframe(table_df=table_df_3, state=state)
 
 
 def generate_data_with_NaN():
@@ -182,7 +182,7 @@ def generate_data_with_NaN():
 def upsert_dataframe(table_df, state):
     cursor = state["table_with_nan_cursor"] if "table_with_nan_cursor" in state else 0
     for row in table_df.to_dict("records"):
-        yield op.upsert("table_with_nan", row)
+        op.upsert("table_with_nan", row)
         cursor += 1
 
     state["table_with_nan_cursor"] = cursor
@@ -191,14 +191,14 @@ def upsert_dataframe(table_df, state):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation)
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def upsert_dataframe_approach_1(profile_df, state, cursor):
     # APPROACH 1: Gives you direct access to individual row values by column name, Slower approach, helpful for custom row handling
     # UPSERT all profile table data, checkpoint periodically to save progress. In this example every 5 records.
     for index, row in profile_df.iterrows():
-        yield op.upsert("profile", {col: row[col] for col in profile_df.columns})
+        op.upsert("profile", {col: row[col] for col in profile_df.columns})
         if index % 5 == 0:
             state["profile_cursor"] = row["id"]
 
@@ -206,7 +206,7 @@ def upsert_dataframe_approach_1(profile_df, state, cursor):
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            yield op.checkpoint(state)
+            op.checkpoint(state)
 
     # Checkpointing at the end of the "profile" table data processing
     state["profile_cursor"] = cursor
@@ -215,7 +215,7 @@ def upsert_dataframe_approach_1(profile_df, state, cursor):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def upsert_dataframe_approach_2(location_df, state, cursor):
@@ -223,7 +223,7 @@ def upsert_dataframe_approach_2(location_df, state, cursor):
     # UPSERT all location table data.
     # Iterate over each row in the DataFrame, converting it to a dictionary
     for row in location_df.to_dict("records"):
-        yield op.upsert("location", row)
+        op.upsert("location", row)
 
     # Checkpointing at the end of the "location" table data processing
     state["location_cursor"] = cursor
@@ -232,7 +232,7 @@ def upsert_dataframe_approach_2(location_df, state, cursor):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def upsert_dataframe_approach_3(login_df, state, cursor):
@@ -240,7 +240,7 @@ def upsert_dataframe_approach_3(login_df, state, cursor):
     # UPSERT all login table data.
     # Iterate over the values of the dictionary (which are the DataFrame rows)
     for value in login_df.to_dict("index").values():
-        yield op.upsert("login", value)
+        op.upsert("login", value)
 
     # Checkpointing at the end of the "login" table data processing
     state["login_cursor"] = cursor
@@ -249,7 +249,7 @@ def upsert_dataframe_approach_3(login_df, state, cursor):
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.

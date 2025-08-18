@@ -145,11 +145,11 @@ class ODataClient:
         """Upsert the formatted data and update the state tracker."""
         if formatted_data["success"]:
             for item in formatted_data["data"]:
-                yield op.upsert(table=table, data=item)
+                op.upsert(table=table, data=item)
                 self._update_state_tracker(item=item, update_state=update_state)
 
             log.info(f"upserted {formatted_data['count']} records into {table}")
-            yield op.checkpoint(self.state)
+            op.checkpoint(self.state)
         else:
             raise RuntimeError(f"Error fetching entity set for table {table}")
 
@@ -160,7 +160,7 @@ class ODataClient:
         handle_pagination: bool = True,
         state: Dict = None,
     ):
-        """Fetch an entity set from the OData service and yield records."""
+        """Fetch an entity set from the OData service and upsert records."""
         entity_set = entity.get("entity_set", None)
         query_options = entity.get("query_options", {})
         table = entity.get("table", entity_set)
@@ -179,13 +179,11 @@ class ODataClient:
 
         try:
             if handle_pagination:
-                yield from self._handle_pagination(
-                    initial_url=url, table=table, update_state=update_state
-                )
+                self._handle_pagination(initial_url=url, table=table, update_state=update_state)
             else:
                 response_data = self._make_request(url=url)
                 formatted_data = self._standardize_output(response=response_data)
-                yield from self._upsert_formatted_data(
+                self._upsert_formatted_data(
                     formatted_data=formatted_data, table=table, update_state=update_state
                 )
 
@@ -196,13 +194,13 @@ class ODataClient:
 
     def upsert_multiple_entity(self, entity_list: List[Dict], state: Dict = None):
         """
-        Fetch data from multiple entity sets and yield records.
+        Fetch data from multiple entity sets and upserts records.
         Convenient method to process multiple entity sets sequentially.
         """
         if state:
             self.state = state
         for entity in entity_list:
-            yield from self.upsert_entity(entity=entity)
+            self.upsert_entity(entity=entity)
         return self.state
 
     def _handle_pagination(self, initial_url: str, table: str = None, update_state: Dict = None):
@@ -215,7 +213,7 @@ class ODataClient:
         while next_link:
             current_page = self._make_request(url=next_link)
             formatted_data = self._standardize_output(response=current_page)
-            yield from self._upsert_formatted_data(
+            self._upsert_formatted_data(
                 formatted_data=formatted_data, table=table, update_state=update_state
             )
             next_link = current_page.get("@odata.nextLink") or current_page.get("odata.nextLink")
@@ -278,7 +276,7 @@ class ODataClient:
 
         if initial_response:
             formatted_data = self._standardize_output(response=initial_response)
-            yield from self._upsert_formatted_data(
+            self._upsert_formatted_data(
                 formatted_data=formatted_data, table=table, update_state=update_state
             )
             next_link = initial_response.get("@odata.nextLink") or initial_response.get(
@@ -287,7 +285,7 @@ class ODataClient:
 
             if next_link:
                 next_url = f"{self.base_url}{next_link}"
-                yield from self._handle_pagination(
+                self._handle_pagination(
                     initial_url=next_url, table=table, update_state=update_state
                 )
         else:
@@ -343,7 +341,7 @@ class ODataClient:
                 if i >= len(self.batch_requests):
                     break
 
-                yield from self._process_batch_part(part=part, part_index=i)
+                self._process_batch_part(part=part, part_index=i)
 
         except Exception as e:
             log.severe(f"Failed to process batch response: {str(e)}")
@@ -374,7 +372,7 @@ class ODataClient:
             log.info(f"Part {part_index} contains {record_count} records")
 
             # Process with pagination
-            yield from self._paginate_with_batch(
+            self._paginate_with_batch(
                 table=table, update_state=update_state, initial_response=response_data
             )
 
@@ -467,7 +465,7 @@ class ODataClient:
         )
         response.raise_for_status()
 
-        yield from self._process_batch_response(response=response)
+        self._process_batch_response(response=response)
 
         self.batch_requests = []
         return self.state
