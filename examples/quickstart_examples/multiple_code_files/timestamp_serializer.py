@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 class TimestampSerializer:
     """
     This class allows you to parse timestamp strings in two specific formats
-    This class aldo converts them into a standardized ISO 8601 format which is widely recommended, including by Fivetran
+    This class also converts them into a standardized ISO 8601 format which is widely recommended, including by Fivetran
     This class assumes that the incoming timestamps are in UTC timezone.
     """
 
