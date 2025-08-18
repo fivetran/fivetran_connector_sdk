@@ -19,6 +19,7 @@ import datetime
 
 from hdbcli import dbapi
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary for required fields.
@@ -50,7 +51,7 @@ def schema(configuration: dict):
                 "transaction_id": "STRING",  # Contains a dictionary of column names and data types
                 "transaction_amount": "DOUBLE",
                 "transaction_status": "STRING",
-                "created_at": "NAIVE_DATETIME"
+                "created_at": "NAIVE_DATETIME",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
@@ -72,15 +73,13 @@ def create_sap_hana_database_connection(configuration: dict):
 
     try:
         connection = dbapi.connect(
-            address=f"{host}",
-            port=port,
-            user=f"{username}",
-            password=f"{password}"
+            address=f"{host}", port=port, user=f"{username}", password=f"{password}"
         )
         log.info("Connection to SAP HANA established successfully.")
         return connection
     except Exception as e:
         raise RuntimeError("Connection to SAP HANA failed") from e
+
 
 def close_sap_hana_connection(connection, cursor):
     """
@@ -180,7 +179,9 @@ def update(configuration: dict, state: dict):
     # SQL query to fetch data from the SAP HANA database
     # Adjust the query to match your table structure and requirements
     # The order by clause ensures that the data is processed in the order of creation. This is important for incremental updates.
-    query = f"SELECT * FROM  {table_name} where created_at > '{last_created_at}' ORDER BY created_at"
+    query = (
+        f"SELECT * FROM  {table_name} WHERE created_at > '{last_created_at}' ORDER BY created_at"
+    )
 
     # Create a connection to the SAP HANA database using the provided configuration
     connection = create_sap_hana_database_connection(configuration=configuration)
