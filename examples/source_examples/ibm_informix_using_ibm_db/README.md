@@ -93,7 +93,7 @@ Issue: This error occurs on Windows because the Python interpreter cannot find t
 
 Resolution:
 
-You must explicitly provide the path to the `clidriver\\bin` directory before the `ibm_db` module is imported. The recommended way is to add the path to the conditional logic in the code.
+You must explicitly provide the path to the `clidriver\\bin` directory before the `ibm_db` module is imported. We recommend to add the path to the conditional logic in the code.
 
 - Update `connector.py` file : In your connector file, add logic to check if the operating system is Windows. If it is, construct the path to the bin directory and add it to the DLL search path. This code must run before import ibm_db.
 
