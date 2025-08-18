@@ -131,12 +131,10 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             if row_data["created_at"] and isinstance(row_data["created_at"], datetime.date):
                 row_data["created_at"] = row_data["created_at"].isoformat()
 
-            # The yield statement yields a value from generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            yield op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
             if row_data["created_at"] and row_data["created_at"] > last_created_at:
@@ -148,12 +146,12 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     # After processing all rows, update the state with the last_created timestamp and checkpoint it.
     # this ensures that the next run will start from the correct position
     state["last_created_at"] = last_created_at
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def update(configuration: dict, state: dict):
@@ -189,7 +187,7 @@ def update(configuration: dict, state: dict):
     cursor = connection.cursor()
 
     # Fetch data from the SAP HANA database and upsert it into the destination table
-    yield from fetch_and_upsert(
+    fetch_and_upsert(
         cursor=cursor, query=query, table_name=table_name, state=state, batch_size=1000
     )
 

@@ -6,11 +6,11 @@ This connector extracts data from a SAP HANA database using the `hdbcli`. The co
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -88,9 +88,9 @@ Refer to `fetch_and_upsert()` function for data processing implementation.
 
 The connector implements error handling in several key areas:
 
-1. Configuration validation ensures all required parameters are present.
-2. Connection errors are caught and raised with meaningful error messages.
-3. Resource cleanup is handled properly even if exceptions occur
+- Configuration validation ensures all required parameters are present.
+- Connection errors are caught and raised with meaningful error messages.
+- Resource cleanup is handled properly even if exceptions occur
 
 ## Tables created
 
