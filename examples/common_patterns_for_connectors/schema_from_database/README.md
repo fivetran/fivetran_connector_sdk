@@ -71,8 +71,10 @@ Unsupported or unknown data types default to `STRING`.
 
 
 ## Data handling
-- The `ORDERS` and `PRODUCTS` table is synced incrementally using the `created_at` column:
-  - It compares against `state["orders_last_created"]` and `state["products_last_created"]` for `ORDERS` and `PRODUCTS` table respectively.
+- The `ORDERS` and `PRODUCTS` tables are synced incrementally using the `created_at` column:
+  - Each row’s `created_at` value is compared to the corresponding value stored in the state:  
+   - `state["orders_last_created"]` for the `ORDERS` table  
+   - `state["products_last_created"]` for the `PRODUCTS` table
   - Updates state after every row.
 
 
