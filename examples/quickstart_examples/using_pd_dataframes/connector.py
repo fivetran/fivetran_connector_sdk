@@ -21,14 +21,15 @@ import requests as rq
 import pandas as pd
 import numpy as np
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
-
 
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "profile",
@@ -52,16 +53,16 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary containing the state checkpointed during the prior sync.
-#   The state dictionary is empty for the first sync or for any full re-sync.
-
-
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: QuickStart Examples - User Profiles")
 
     # Retrieve the last processed profile ID from state or set it to 0 if not present
@@ -81,8 +82,16 @@ def update(configuration: dict, state: dict):
     handle_tables_with_nan(state)
 
 
-# Function to fetch data from an API and process it into DataFrames
 def get_data(cursor):
+    """
+    Function to fetch data from an API and process it into DataFrames
+    Args:
+        cursor: An integer representing the last processed profile ID, used to increment the primary key for new profiles.
+    Returns:
+        profile_df: DataFrame containing profile data.
+        location_df: DataFrame containing location data.
+        login_df: DataFrame containing login data.
+    """
     # Initialize empty DataFrames for profile, location, and login tables
     profile_df = pd.DataFrame([])
     location_df = pd.DataFrame([])
@@ -145,6 +154,11 @@ def get_data(cursor):
 
 
 def handle_tables_with_nan(state: dict):
+    """
+    Function to handle tables with NaN values by converting them to None before upserting.
+    Args:
+        state: A dictionary containing state information from previous runs.
+    """
     # Upsert tables with NaN
     table_df_1 = generate_data_with_NaN()
     table_df_2 = generate_data_with_NaN()
@@ -166,6 +180,11 @@ def handle_tables_with_nan(state: dict):
 
 
 def generate_data_with_NaN():
+    """
+    Function to generate a DataFrame with random numbers and NaN values.
+    Returns:
+        pd.DataFrame: A DataFrame with random numbers and some NaN values.
+    """
     np.random.seed(0)
 
     # Create a DataFrame with 10 rows and 3 columns of random numbers
@@ -180,6 +199,12 @@ def generate_data_with_NaN():
 
 
 def upsert_dataframe(table_df, state):
+    """
+    Function to upsert a DataFrame to the destination
+    Args:
+        table_df: pd.DataFrame: The DataFrame to be upserted.
+        state: A dictionary containing state information from previous runs.
+    """
     cursor = state["table_with_nan_cursor"] if "table_with_nan_cursor" in state else 0
     for row in table_df.to_dict("records"):
         op.upsert("table_with_nan", row)

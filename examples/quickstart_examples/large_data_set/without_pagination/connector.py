@@ -24,14 +24,16 @@ BATCH_SIZE = 100
 BASE_URL = "https://pokeapi.co/api/v2/pokemon"
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: QuickStart Examples - Large Data Set Without Pagination")
 
     offset = 0
@@ -46,14 +48,26 @@ def update(configuration: dict, state: dict):
         op.checkpoint(state)
 
 
-# Function to divide a large DataFrame into smaller batches and yield them for processing
 def divide_into_batches(pokemons):
+    """
+    Function to divide a large DataFrame into smaller batches and yield them for processing
+    Args:
+        pokemons: A pandas DataFrame containing the pokemons data to be divided into batches.
+    """
     for index in range(0, len(pokemons), BATCH_SIZE):
         yield pokemons.iloc[index : index + BATCH_SIZE]
 
 
-# Function to fetch data from an API
 def get_data(url, offset):
+    """
+    This method fetches the data from the API
+    Args:
+        url: The URL of the API endpoint to fetch data from.
+        offset: The offset to be used for pagination, indicating how many records to skip.
+    Returns:
+        next_url: The URL for the next page of results, or None if there are no more pages.
+        pokemons_df: A DataFrame containing the results of the API call, with columns for "name" and "url".
+    """
     response = rq.get(url)
     data = response.json()
     next_url = data["next"]
