@@ -26,10 +26,14 @@ DEFAULT_REMOTE_PORT = 5005  # The port on the remote server where the API is run
 DEFAULT_LOCAL_PORT = 8000  # The local port that the SSH tunnel will bind to. This is the port you will use to access the API locally.
 
 
-# Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
-# The function takes one parameter:
-# - config: dictionary contains any secrets or payloads you configure when deploying the connector.
 def get_auth_headers(config):
+    """
+    Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
+    Args:
+        config: dictionary contains any secrets or payloads you configure when deploying the connector.
+    Returns:
+        headers: A dictionary containing the authentication headers for the API request.
+    """
     api_key = config.get("api_key")
 
     if api_key is None:
@@ -43,18 +47,19 @@ def get_auth_headers(config):
     return headers
 
 
-# The sync_items function retrieves data from the remote API over an SSH tunnel.
-# Steps:
-# 1. Calls get_api_response to fetch data from the API using the provided parameters and authentication headers.
-# 2. Extracts the list of items from the API response.
-# 3. Upsert operation for each item to insert/update it in the destination.
-# 4. Checkpoint operation to save the current sync state for resuming future syncs.
-#
-# The function takes three parameters:
-# - params: A dictionary of query parameters to be sent with the API request.
-# - state: A dictionary representing the current state of the sync, including the last retrieved key.
-# - configuration: A dictionary contains any secrets or payloads you configure when deploying the connector.
 def sync_items(params, state, configuration):
+    """
+    The sync_items function retrieves data from the remote API over an SSH tunnel.
+    Steps:
+        1. Calls get_api_response to fetch data from the API using the provided parameters and authentication headers.
+        2. Extracts the list of items from the API response.
+        3. Upsert operation for each item to insert/update it in the destination.
+        4. Checkpoint operation to save the current sync state for resuming future syncs.
+    Args:
+        params: A dictionary of query parameters to be sent with the API request.
+        state: A dictionary representing the current state of the sync, including the last retrieved key.
+        configuration: A dictionary contains any secrets or payloads you configure when deploying the connector.
+    """
     response_page = get_api_response(params, get_auth_headers(configuration), configuration)
 
     # Process the items.
@@ -91,23 +96,23 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-# The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
-# It performs the following tasks:
-# 1. Reads SSH connection details and private key from the configuration.
-# 2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
-# 3. Logs the tunnel status for diagnostics.
-# 4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
-# 5. Raises an exception for any HTTP errors.
-# 6. Parses and returns the JSON response from the API as a dictionary.
-#
-# Parameters:
-# - params: A dictionary of query parameters to include in the API request.
-# - headers: A dictionary of HTTP headers for authentication and content type.
-# - configuration: A dictionary containing SSH and API connection details.
-#
-# Returns:
-# - response_page: A dictionary containing the parsed JSON response from the API.
 def get_api_response(params, headers, configuration):
+    """
+    The get_api_response function establishes an SSH tunnel to the remote server and sends an HTTP GET request to the API endpoint over the tunnel.
+    It performs the following tasks:
+        1. Reads SSH connection details and private key from the configuration.
+        2. Opens an SSH tunnel from a local port to the remote API server port using sshtunnel and paramiko.
+        3. Logs the tunnel status for diagnostics.
+        4. Sends an HTTP GET request to the API endpoint through the tunnel, passing query parameters and authentication headers.
+        5. Raises an exception for any HTTP errors.
+        6. Parses and returns the JSON response from the API as a dictionary.
+    Args:
+        params: A dictionary of query parameters to include in the API request.
+        headers: A dictionary of HTTP headers for authentication and content type.
+        configuration: A dictionary containing SSH and API connection details.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    """
     ssh_host = configuration.get("ssh_host")
     ssh_user = configuration.get("ssh_user")
     private_key_string = configuration.get("ssh_private_key")
@@ -156,14 +161,17 @@ def get_api_response(params, headers, configuration):
         raise
 
 
-# Define the update function, which is a required function and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
     validate_configuration(configuration)
     sync_items({}, state, configuration)
 

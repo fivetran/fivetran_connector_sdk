@@ -30,7 +30,14 @@ import requests
 import urllib
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Global variables for
 ACCESS_TOKEN = ""
@@ -38,6 +45,13 @@ REFRESH_TIME = 0
 
 
 def get_access_token(configuration: dict):
+    """
+    This function is used to obtain an access token from the Hubspot API using the provided refresh token.
+    It constructs the request with the necessary parameters and headers, sends the request,
+    and updates the global variables ACCESS_TOKEN and REFRESH_TIME with the new access token and its expiration time.
+    Args:
+        configuration: A dictionary containing the client_id, client_secret, and refresh_token.
+    """
     global ACCESS_TOKEN
     global REFRESH_TIME
 
@@ -69,6 +83,15 @@ def get_access_token(configuration: dict):
 
 
 def sync_contacts(configuration, cursor, state):
+    """
+    Define the sync_contacts function, which is a custom function to sync contacts from Hubspot API.
+    This function retrieves contacts from the Hubspot API, processes them, and upserts them.
+    Args:
+        configuration: A dictionary containing connection details such as client_id, client_secret, and refresh_token.
+        cursor: A string representing the last updated time or state from the previous sync.
+        state: A dictionary containing state information from previous runs.
+    """
+
     # this is a custom function, meant to process the contacts
     # this processed data is then sent to fivetran
     def process_record(raw_contact):
@@ -102,6 +125,15 @@ def sync_contacts(configuration, cursor, state):
 
 
 def sync_companies(configuration, cursor, state):
+    """
+    Define the sync_companies function, which is a custom function to sync companies from Hubspot API.
+    This function retrieves companies from the Hubspot API, processes them, and upserts them.
+    Args:
+        configuration: A dictionary containing connection details such as client_id, client_secret, and refresh_token.
+        cursor: A string representing the last updated time or state from the previous sync.
+        state: A dictionary containing state information from previous runs.
+    """
+
     # this is a custom function, meant to process the company record
     def process_record(raw_company):
         company = {}
@@ -141,14 +173,16 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     validate_configuration(configuration)
     curr_time = time.time()
 
@@ -197,12 +231,14 @@ def get_data(method, params, headers, configuration, body=None):
         raise Exception("Failed to obtain access token")
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "contacts",
@@ -226,6 +262,10 @@ def schema(configuration: dict):
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
     with open("configuration.json", "r") as f:

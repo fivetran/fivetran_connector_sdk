@@ -26,13 +26,20 @@ import os
 import json
 
 
-# This method is used to import the private key into the GPG object.
-# The private key is used to sign messages.
-# The method takes the configuration dictionary and the GPG object as parameters.
-# The method returns the imported key.
-# You can also have multiple keys in the configuration, and you can import them all using similar logic.
-# This is a simple example that imports only one key.
 def get_gpg_key(configuration: dict, gpg):
+    """
+    This method is used to import the private key into the GPG object.
+    The private key is used to sign messages.
+    The method takes the configuration dictionary and the GPG object as parameters.
+    The method returns the imported key.
+    You can also have multiple keys in the configuration, and you can import them all using similar logic.
+    This is a simple example that imports only one key.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        gpg: the GPG object used to import the private key.
+    Returns:
+        The imported key object.
+    """
     # Get the private key from the configuration
     # Ensure that the private key string in configuration is properly escaped as JSON string.
     # You can also import multiple keys from the configuration if needed.
@@ -46,12 +53,21 @@ def get_gpg_key(configuration: dict, gpg):
         return key
 
 
-# This method is used to sign a message using the GPG object.
-# The method takes the configuration dictionary, the GPG object, the key, and the message to be signed as parameters.
-# The method returns the signed message.
-# In case of multiple keys, you can specify which key to use for signing.
-# The passphrase should correspond to the private key used for signing.
 def sign_message(configuration, gpg, key, message):
+    """
+    This method is used to sign a message using the GPG object.
+    The method takes the configuration dictionary, the GPG object, the key, and the message to be signed as parameters.
+    The method returns the signed message.
+    In case of multiple keys, you can specify which key to use for signing.
+    The passphrase should correspond to the private key used for signing.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        gpg: the GPG object used to sign the message.
+        key: the imported key object used for signing.
+        message: the message to be signed.
+    Returns:
+        The signed message as a string.
+    """
     # You can also have multiple passphrase in the configuration, depending on the private keys.
     # The passphrase used for signing should correspond to the private key used for signing.
     passphrase = configuration.get("passphrase")
@@ -79,12 +95,14 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "signed_message",  # Name of the table
@@ -94,14 +112,16 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Common Pattern for Connectors Examples - GPG Private Keys")
 
     validate_configuration(configuration)

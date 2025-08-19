@@ -4,8 +4,13 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import Azure libraries
@@ -102,6 +107,23 @@ def get_data_from_database(conn):
         raise RuntimeError(f"Failed to fetch data from database: {str(e)}")
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["tenant_id", "client_id", "client_secret", "vault_url"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -110,13 +132,6 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Check if the required fields are present in the configuration
-    # These fields are necessary for connecting to the Azure Key Vault
-    required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
-    for field in required_fields:
-        if field not in configuration:
-            raise ValueError(f"Missing required configuration: {field}")
-
     return [
         {
             "table": "employees",  # Name of the table
@@ -145,11 +160,7 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Common Patterns For Connectors - Azure Key Vault For Secret Management")
 
     # Check if the required fields are present in the configuration
-    # These fields are necessary for connecting to the Azure Key Vault
-    required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
-    for field in required_fields:
-        if field not in configuration:
-            raise ValueError(f"Missing required configuration: {field}")
+    validate_configuration(configuration=configuration)
 
     # Fetch database credentials from vault
     db_config = fetch_secrets_from_vault(configuration)
@@ -184,12 +195,12 @@ def update(configuration: dict, state: dict):
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Check if the script is being run as the main module.
-    # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-    # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-    # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+    # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
