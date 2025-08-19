@@ -1,7 +1,7 @@
-import re
-from pathlib import Path
-import pdfplumber
-from dateutil import parser as dateparser
+import re  # Regular expressions for pattern matching
+from pathlib import Path  # For handling file paths
+import pdfplumber  # PDF processing library for extracting text and tables
+from dateutil import parser as dateparser  # For parsing dates in various formats
 
 
 class PDFInvoiceExtractor:

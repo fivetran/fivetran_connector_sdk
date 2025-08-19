@@ -1,8 +1,9 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# The example demonstrates how to extract data from a PDF file stored in AWS S3 bucket using pdfplumber and regex.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
+"""
+This is an example for how to work with the fivetran_connector_sdk module.
+The example demonstrates how to extract data from a PDF file stored in AWS S3 bucket using pdfplumber and regex.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -74,6 +75,9 @@ def get_invoice_files(s3_client, bucket_name: str, prefix: str, state: dict):
     Returns:
         A list which contains the file key of the invoice pdf files which have not been processed.
     """
+    # Define the file extension to filter for PDF files
+    file_extension = ".pdf"
+
     # Create a paginator to list objects in the S3 bucket with the specified prefix
     paginator = s3_client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
@@ -85,14 +89,15 @@ def get_invoice_files(s3_client, bucket_name: str, prefix: str, state: dict):
     for page in pages:
         if "Contents" in page:
             for obj in page["Contents"]:
+                file_key = obj["Key"]
                 last_modified = obj[
                     "LastModified"
                 ].isoformat()  # Convert to ISO format for consistency
                 # Check if the object is a PDF file and if it has been modified since the last processed time
-                if obj["Key"].endswith(".pdf") and last_modified > state_last_modified:
+                if file_key.endswith(file_extension) and last_modified > state_last_modified:
                     # Append the file key and last modified time to the invoice_files list
                     invoice_files.append(
-                        {"file_key": obj["Key"], "last_modified_time": last_modified}
+                        {"file_key": file_key, "last_modified_time": last_modified}
                     )
 
     # Sort the invoice files by last modified time in ascending order
