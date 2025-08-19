@@ -3,16 +3,14 @@
 # The data is processed such that for each file, the records are upserted sequentially.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
-# Import required classes from fivetran_connector_sdk
-# For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Connector
-
-# For enabling Logs in your connector code
-from fivetran_connector_sdk import Logging as log
-
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Operations as op
+# # Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import (
+    Connector,
+)  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For supporting Data operations like upsert(), update(), delete() and checkpoint()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
 
 # Import required libraries
 import csv  # For reading CSV files
@@ -23,33 +21,10 @@ from io import TextIOWrapper  # For wrapping the binary stream in a text decoder
 from concurrent.futures import ThreadPoolExecutor, as_completed  # For parallel processing
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-
-    # Validate required configuration parameters
-    required_configs = ["aws_access_key_id", "aws_secret_access_key", "region_name", "bucket_name"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-
-
+# This method is used to create an S3 client using the boto3 library.
+# The method takes the configuration dictionary as a parameter and returns the S3 client.
+# The S3 client is used to interact with the AWS S3 service.
 def create_s3_client(configuration: dict):
-    """
-    This method is used to create an S3 client using the boto3 library.
-    The method takes the configuration dictionary as a parameter and returns the S3 client.
-    The S3 client is used to interact with the AWS S3 service.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Returns:
-        boto3.client: an S3 client that can be used to interact with the AWS S3 service.
-    """
     # Set default values for parallelism and prefix if not provided
     if "parallelism" not in configuration:
         log.warning("parallelism is not set in the configuration, defaulting to 4 threads.")
@@ -57,6 +32,13 @@ def create_s3_client(configuration: dict):
     if "prefix" not in configuration:
         log.warning("prefix is not set in the configuration, defaulting to '/' prefix.")
         configuration["prefix"] = "/"
+
+    # Check if the required keys are present in the configuration
+    required_keys = ["aws_access_key_id", "aws_secret_access_key", "region_name", "bucket_name"]
+    for key in required_keys:
+        if key not in configuration:
+            # Raise an error if any required key is missing
+            raise ValueError(f"Missing required configuration key: {key}")
 
     return boto3.client(
         "s3",
@@ -66,20 +48,12 @@ def create_s3_client(configuration: dict):
     )
 
 
+# This method is used to get the list of CSV files from the S3 bucket.
+# The method takes the S3 client, bucket name, and prefix as parameters.
+# The method returns a list of tuples containing the file key and table name.
+# The tables names are extracted from the file names by removing the ".csv" extension.
+# You can modify this method to select and process only specific files based on your requirements.
 def get_file_table_pairs(s3_client, bucket_name: str, prefix: str):
-    """
-    This method is used to get the list of CSV files from the S3 bucket.
-    The method takes the S3 client, bucket name, and prefix as parameters.
-    The method returns a list of tuples containing the file key and table name.
-    The tables names are extracted from the file names by removing the ".csv" extension.
-    You can modify this method to select and process only specific files based on your requirements.
-    Args:
-        s3_client: boto3.client: an S3 client that can be used to interact with the AWS S3 service.
-        bucket_name: str: the name of the S3 bucket to list files from.
-        prefix: str: the prefix (folder path) in the S3 bucket to list files from.
-    Returns:
-        list: a list of tuples where each tuple contains the file key and the corresponding table name.
-    """
     # List all CSV files in the specified prefix
     response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
 
@@ -92,17 +66,11 @@ def get_file_table_pairs(s3_client, bucket_name: str, prefix: str):
     return file_table_pairs
 
 
+# This method is used to process a single file from the S3 bucket.
+# The method takes the S3 client, bucket name, file key, and table name as parameters.
+# The method upserts records one by one and does not return anything.
+# You can modify this method to process each record and upsert.
 def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
-    """
-    This method is used to process a single file from the S3 bucket.
-    The method upserts records one by one and does not return anything.
-    You can modify this method to process each record and upsert.
-    Args:
-        s3_client: boto3.client: an S3 client that can be used to interact with the AWS S3 service.
-        bucket_name: str: the name of the S3 bucket where the file is located.
-        file_key: str: the key (path) of the file in the S3 bucket.
-        table_name: str: the name of the table to upsert the data into.
-    """
     log.info(f"Processing file: {file_key} for table: {table_name}")
 
     # Get the S3 object using get_object, which returns a streaming response
@@ -123,7 +91,12 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
             # Parse any JSON fields in the record, if needed
             # You can modify it to handle specific fields
             for key, value in record.items():
-                if value and isinstance(value, str) and value.startswith("{") and value.endswith("}"):
+                if (
+                    value
+                    and isinstance(value, str)
+                    and value.startswith("{")
+                    and value.endswith("}")
+                ):
                     try:
                         record[key] = json.loads(value)
                     except json.JSONDecodeError:
@@ -140,14 +113,12 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
             continue
 
 
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    """
-    Define the schema function which lets you configure the schema your connector delivers.
-    See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    """
     return [
         {
             "table": "campaigns",  # Name of the table
@@ -206,20 +177,15 @@ def schema(configuration: dict):
     ]
 
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
-    """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-    Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
-    """
     log.warning("Example: Common Pattern for Connectors Examples - Parallel Fetching from Source")
-
-    # validate the configuration to ensure it contains all required values.
-    validate_configuration(configuration=configuration)
 
     # create S3 client using the configuration
     s3_client = create_s3_client(configuration)
