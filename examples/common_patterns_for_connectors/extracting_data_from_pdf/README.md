@@ -60,7 +60,7 @@ Refer to `create_s3_client()` function in `connector.py` for the authentication 
 ## Data handling
 The connector processes PDF files through these steps:
 
-- Lists PDF files in the specified S3 bucket prefix (refer to `get_invoice_file_pairs()` method)
+- Lists PDF files in the specified S3 bucket prefix (refer to `get_invoice_files()` method)
 - Downloads each PDF file to a temporary location (refer to `process_single_pdf()` method)
 - Processes each PDF using the `PDFInvoiceExtractor` class to extract structured data
 - Upserts the extracted data to the `invoices` table
