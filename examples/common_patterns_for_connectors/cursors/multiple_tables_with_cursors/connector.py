@@ -1,10 +1,12 @@
-# This is an example for how to work with parent-child relationship between tables from incremental API endpoints.
-# It defines a simple `update` method, which upserts retrieved data to respective 'company' and 'department' tables.
-# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
-# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
-# See the Technical Reference documentation
-# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This is an example for how to work with parent-child relationship between tables from incremental API endpoints.
+It defines a simple `update` method, which upserts retrieved data to respective 'company' and 'department' tables.
+THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+(https://pypi.org/project/fivetran-api-playground/) TO RUN.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import requests to make HTTP calls to API
 import requests as rq
@@ -18,6 +20,9 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+
+__COMPANY_URL = "http://127.0.0.1:5001/cursors/companies"
 
 
 def schema(configuration: dict):
@@ -122,11 +127,10 @@ def fetch_companies(company_cursor):
     Returns:
         data: A list of dictionary containing the companies received from the API.
     """
-    company_url = "http://127.0.0.1:5001/cursors/companies"
 
     # Actual data fetch from API
     params = {"order_by": "updatedAt", "order_type": "asc", "updated_since": company_cursor}
-    response_page = get_api_response(company_url, params)
+    response_page = get_api_response(__COMPANY_URL, params)
     data = response_page.get("data", [])
 
     return data
