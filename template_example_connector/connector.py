@@ -93,8 +93,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: <type_of_example> : <name_of_the_example>")
-    log.warning("Example: Template Example Connector: Sample Example Connector")
+    log.warning("Example: <TYPE_OF_EXAMPLE> : <NAME_OF_THE_EXAMPLE>")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -114,9 +113,12 @@ def update(configuration: dict, state: dict):
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="table_name", data=record)
-            new_sync_time = record.get(
-                "updated_at"
-            )  # Assuming the API returns the data in ascending order
+
+            record_time = record.get("updated_at")
+
+            # Update only if record_time is greater than current new_sync_time
+            if new_sync_time is None or (record_time and record_time > new_sync_time):
+                new_sync_time = record_time  # Assuming the API returns the data in ascending order
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_time": new_sync_time}
