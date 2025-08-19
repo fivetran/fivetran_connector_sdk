@@ -1,14 +1,10 @@
-"""
-Fivetran Connector for Weather Data by ZIP Code
+# This is an example for how to work with the fivetran_connector_sdk module.
+# This connector fetches weather forecast data for specified US ZIP codes using:
+# 1. Zippopotam.us API to get coordinates from ZIP codes
+# 2. National Weather Service (NWS) API to get weather forecasts
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-This connector fetches weather forecast data for specified US ZIP codes using:
-1. Zippopotam.us API to get coordinates from ZIP codes
-2. National Weather Service (NWS) API to get weather forecasts
-
-The connector maintains two tables:
-- forecast: Contains weather forecast data for each ZIP code
-- zip_code: Contains metadata about each ZIP code
-"""
 
 import json  # Import the json module to handle JSON data.
 from datetime import datetime  # Import datetime for handling date and time conversions.
@@ -28,13 +24,11 @@ from fivetran_connector_sdk import Operations as op
 
 def schema(configuration: dict):
     """
-    Define the schema for the connector's tables.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration (dict): Configuration parameters for the connector
-
-    Returns:
-        list: List of table definitions with their primary keys
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -48,18 +42,30 @@ def schema(configuration: dict):
     ]
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    if "zip_codes" not in configuration:
+        raise ValueError("Missing required configuration value: 'zip_codes'")
+
+
 def get_coordinates_from_zip(zip_code: str) -> tuple:
     """
     Get latitude and longitude for a zip code using Zippopotam.us API.
-
     Args:
         zip_code (str): The US ZIP code to look up
-
     Returns:
         tuple: A tuple containing:
             - tuple: (latitude, longitude) coordinates
             - dict: ZIP code metadata including city, state, etc.
-
     Raises:
         requests.exceptions.HTTPError: If the API request fails
     """
@@ -84,14 +90,11 @@ def get_coordinates_from_zip(zip_code: str) -> tuple:
 def get_forecast_url(lat: float, lon: float) -> str:
     """
     Get the forecast URL for a location using the NWS API's two-step process.
-
     Args:
         lat (float): Latitude of the location
         lon (float): Longitude of the location
-
     Returns:
         str: URL to fetch the weather forecast for the location
-
     Raises:
         requests.exceptions.HTTPError: If the API request fails
     """
@@ -110,13 +113,18 @@ def get_forecast_url(lat: float, lon: float) -> str:
 
 def update(configuration: dict, state: dict):
     """
-    Main update function that fetches and processes weather data for configured ZIP codes.
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration (dict): Configuration parameters including ZIP codes to process
-        state (dict): Current state of the connector, including the last sync time
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: QuickStart Examples - Weather with Configuration")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
@@ -177,10 +185,8 @@ def update(configuration: dict, state: dict):
 def str2dt(incoming: str) -> datetime:
     """
     Convert a string timestamp to a datetime object.
-
     Args:
         incoming (str): ISO 8601 formatted timestamp string
-
     Returns:
         datetime: Parsed datetime object with timezone information
     """
