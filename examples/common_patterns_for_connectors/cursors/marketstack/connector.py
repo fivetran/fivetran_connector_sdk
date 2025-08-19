@@ -130,13 +130,12 @@ def api_response(state, configuration):
 
 
 def get_tickers():
-    """This is a function to list all the tickers for which information is needed
+    """
+    This is a function to list all the tickers for which information is needed
+    If you need to fetch the list of tickers from the API,
+    please refer to the documentation at https://marketstack.com/documentation for more information.
     Returns:
         list: tickers
-    """
-    """
-    If you need to fetch the list of tickers from the API, 
-    please refer to the documentation at https://marketstack.com/documentation for more information.
     """
     return ["AAPL", "MSFT", "GOOG", "INTC"]
 

@@ -70,11 +70,9 @@ def update(configuration: dict, state: dict):
         state, configuration, start_timestamp
     )
 
-    """
-    Get list of synced tables from state. 
-    If state doesn't contain a list of tables, getting it from configuration allows
-    implementing this with connectors that don't yet track which tables are synced.
-    """
+    # Get list of synced tables from state.
+    # If state doesn't contain a list of tables, getting it from configuration allows
+    # implementing this with connectors that don't yet track which tables are synced.
     if state.get("synced_tables"):
         tables_previously_synced = state["synced_tables"]
         log.fine(f"tables synced from state: {tables_previously_synced}")
@@ -90,11 +88,9 @@ def update(configuration: dict, state: dict):
 
     sync_tables(tables_previously_synced, from_timestamp, initial_timestamp)
 
-    """
-    Save the progress by checkpointing the state. This stores the list of tables that are up-to-date.
-    Learn more about how and where to checkpoint by reading our best practices documentation
-    (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    """
+    # Save the progress by checkpointing the state. This stores the list of tables that are up-to-date.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     tables_synced_this_sync.sort()
     new_state["synced_tables"] = tables_synced_this_sync
     log.fine(new_state)

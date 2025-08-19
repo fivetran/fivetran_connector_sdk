@@ -141,7 +141,7 @@ def get_api_response(params, headers, configuration):
             ssh_pkey=private_key,
             remote_bind_address=("127.0.0.1", remote_port),
             local_bind_address=("127.0.0.1", local_port),
-        ) as tunnel:
+        ) as _:
             log.severe(f"Tunnel open at http://127.0.0.1:{local_port}")
 
             base_url = f"http://127.0.0.1:{local_port}/auth/api_key"

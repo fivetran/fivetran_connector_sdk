@@ -9,7 +9,6 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # Import requests to make HTTP calls to API.
-import io
 import json
 from sshtunnel import SSHTunnelForwarder
 
@@ -117,7 +116,7 @@ def get_api_response(params, headers, configuration):
             ssh_password=ssh_password,
             remote_bind_address=("127.0.0.1", remote_port),
             local_bind_address=("127.0.0.1", local_port),
-        ) as tunnel:
+        ) as _:
             log.severe(f"Tunnel open at http://127.0.0.1:{local_port}")
 
             base_url = f"http://127.0.0.1:{local_port}/auth/api_key"

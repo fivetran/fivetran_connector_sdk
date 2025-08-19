@@ -22,7 +22,6 @@ from fivetran_connector_sdk import Operations as op
 
 # Importing the gnupg library for GPG encryption and decryption
 import gnupg
-import os
 import json
 
 
