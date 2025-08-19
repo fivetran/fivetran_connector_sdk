@@ -16,7 +16,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-""" Add your source-specific imports here
+""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
 Example: import pandas, boto3, etc.
 Add comment for each import to explain its purpose for users to follow.
 """
