@@ -1,13 +1,13 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-"""Add one line description of your connector here.
+"""ADD ONE LINE DESCRIPTION OF YOUR CONNECTOR HERE.
 For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
+# For reading configuration from a JSON file
+import json
 
 # Import required classes from fivetran_connector_sdk
-# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
@@ -16,11 +16,10 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
-""" Add your source-specific imports here
+""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
 Example: import pandas, boto3, etc.
-Add comment for each import to explain its purpose for users to follow."""
-import json
+Add comment for each import to explain its purpose for users to follow.
+"""
 
 
 """
@@ -28,12 +27,14 @@ GUIDELINES TO FOLLOW WHILE WRITING AN EXAMPLE CONNECTOR:
 - Import only the necessary modules and libraries to keep the code clean and efficient.
 - Use clear, consistent and descriptive names for your functions and variables.
 - For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
+- Keep constants as private by default, unless they are meant to be used outside the module (e.g. __CHECKPOINT_INTERVAL).
 - Add comments to explain the purpose of each function in the docstring.
-- Add comments to explain the purpose of complex logic within functions, where necessary.
+- Add comments to explain the purpose of complex logic within functions, wherever necessary. Ideally try to split the main logic into smaller functions to avoid too many comments.
 - Add comments to highlight where users can make changes to the code to suit their specific use case.
 - Split your code into smaller functions to improve readability and maintainability where required.
 - Use logging to provide useful information about the connector's execution. Do not log excessively.
 - Implement error handling to catch exceptions and log them appropriately. Catch specific exceptions where possible.
+- Add retry for API requests to handle transient errors. Use exponential backoff strategy for retries.
 - Define the complete data model with primary key and data types in the schema function.
 - Ensure that the connector does not load all data into memory at once. This can cause memory overflow errors. Use pagination or streaming where possible.
 - Add comments to explain pagination or streaming logic to help users understand how to handle large datasets.
@@ -92,7 +93,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: <type_of_example> : <name_of_the_example>")
+    log.warning("Example: <TYPE_OF_EXAMPLE> : <NAME_OF_THE_EXAMPLE>")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -102,9 +103,9 @@ def update(configuration: dict, state: dict):
 
     # Get the state variable for the sync, if needed
     last_sync_time = state.get("last_sync_time")
-
+    new_sync_time = last_sync_time
     try:
-        data = get_data()
+        data = get_data(last_sync_time, param1)
         for record in data:
 
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -113,9 +114,14 @@ def update(configuration: dict, state: dict):
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="table_name", data=record)
 
+            record_time = record.get("updated_at")
+
+            # Update only if record_time is greater than current new_sync_time
+            if new_sync_time is None or (record_time and record_time > new_sync_time):
+                new_sync_time = record_time  # Assuming the API returns the data in ascending order
+
         # Update state with the current sync time for the next run
         new_state = {"last_sync_time": new_sync_time}
-
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -125,6 +131,23 @@ def update(configuration: dict, state: dict):
     except Exception as e:
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync data: {str(e)}")
+
+
+def get_data(last_sync_time, param1):
+    """
+    This function simulates fetching data from a source.
+    In a real-world scenario, this would involve making API calls or database queries.
+    Args:
+        last_sync_time: The last sync time to fetch data from.
+        param1: A configuration parameter that might be used to filter or modify the data fetching logic.
+    Returns:
+        A list of dictionaries representing the data to be upserted.
+    """
+    # Simulate data fetching logic
+    return [
+        {"id": "1", "data": "example_data_1", "updated_at": "2023-10-01T00:00:00Z"},
+        {"id": "2", "data": "example_data_2", "updated_at": "2023-10-01T01:00:00Z"},
+    ]
 
 
 # Create the connector object using the schema and update functions
