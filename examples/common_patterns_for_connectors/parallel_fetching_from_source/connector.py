@@ -123,12 +123,7 @@ def process_file_get_stream(s3_client, bucket_name, file_key, table_name):
             # Parse any JSON fields in the record, if needed
             # You can modify it to handle specific fields
             for key, value in record.items():
-                if (
-                    value
-                    and isinstance(value, str)
-                    and value.startswith("{")
-                    and value.endswith("}")
-                ):
+                if value and isinstance(value, str) and value.startswith("{") and value.endswith("}"):
                     try:
                         record[key] = json.loads(value)
                     except json.JSONDecodeError:
