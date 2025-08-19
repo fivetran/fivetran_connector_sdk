@@ -21,6 +21,11 @@ import tempfile  # For creating temporary files
 from process_pdf import PDFInvoiceExtractor  # For extracting data from PDF files
 
 
+# Define the number of files to process before checkpointing the state
+# This is useful to reduce the risk of losing progress in case of an error or interruption during processing.
+__CHECKPOINT_INTERVAL = 100
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -56,7 +61,7 @@ def create_s3_client(configuration: dict):
     return client
 
 
-def get_invoice_file_pairs(s3_client, bucket_name: str, prefix: str):
+def get_invoice_files(s3_client, bucket_name: str, prefix: str, state: dict):
     """
     This method is used to get the list of PDF invoices from the S3 bucket.
     The method takes the S3 client, bucket name, and prefix as parameters.
@@ -65,17 +70,35 @@ def get_invoice_file_pairs(s3_client, bucket_name: str, prefix: str):
         s3_client: S3 client to interact with AWS S3 service.
         bucket_name: name of the S3 bucket to list files from.
         prefix: prefix in the S3 bucket to filter files.
+        state: A dictionary containing state information from previous runs, which can be used to track processed files.
     Returns:
-        A list which contains the file key of the invoice pdf files.
+        A list which contains the file key of the invoice pdf files which have not been processed.
     """
-    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+    # Create a paginator to list objects in the S3 bucket with the specified prefix
+    paginator = s3_client.get_paginator("list_objects_v2")
+    pages = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
 
+    state_last_modified = state["last_modified_time"]
     invoice_files = []
-    if "Contents" in response:
-        for obj in response["Contents"]:
-            if obj["Key"].endswith(".pdf"):
-                # If the file is a PDF, append the file key to the list
-                invoice_files.append(obj["Key"])
+
+    # Iterate through each page of results and filter for PDF files
+    for page in pages:
+        if "Contents" in page:
+            for obj in page["Contents"]:
+                last_modified = obj[
+                    "LastModified"
+                ].isoformat()  # Convert to ISO format for consistency
+                # Check if the object is a PDF file and if it has been modified since the last processed time
+                if obj["Key"].endswith(".pdf") and last_modified > state_last_modified:
+                    # Append the file key and last modified time to the invoice_files list
+                    invoice_files.append(
+                        {"file_key": obj["Key"], "last_modified_time": last_modified}
+                    )
+
+    # Sort the invoice files by last modified time in ascending order
+    # This ensures that the oldest files are processed first, which is required for data integrity.
+    invoice_files.sort(key=lambda item: item["last_modified_time"], reverse=False)
+
     return invoice_files
 
 
@@ -118,7 +141,7 @@ def get_prefix_from_configuration(configuration: dict) -> str:
     return configuration.get("prefix")
 
 
-def process_single_pdf(s3_client, bucket_name: str, file_key: str, pdf_processor):
+def process_single_pdf(s3_client, bucket_name: str, file_key: dict, state: dict, pdf_processor):
     """
     This function downloads a PDF file from S3, processes it using the PDFInvoiceExtractor instance
     The extracted data is then upserted into the "invoices" table.
@@ -126,53 +149,78 @@ def process_single_pdf(s3_client, bucket_name: str, file_key: str, pdf_processor
     Args:
         s3_client: S3 client to download the file
         bucket_name: Name of the S3 bucket
-        file_key: Key of the file in S3
+        file_key: A dictionary containing the file key and last modified time of the PDF file
+        state: A dictionary containing state information from previous runs
         pdf_processor: Initialized PDFInvoiceExtractor instance
     """
+    file_name = file_key["file_key"]
+    file_last_modified = file_key["last_modified_time"]
+
     # Create a temporary file for the downloaded PDF
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file_path = temp_file.name
 
     try:
         # Download the file from S3
-        log.info(f"Downloading {file_key} from S3 bucket {bucket_name}")
-        s3_client.download_file(bucket_name, file_key, temp_file_path)
+        log.info(f"Downloading {file_name} from S3 bucket {bucket_name}")
+        s3_client.download_file(bucket_name, file_name, temp_file_path)
 
         # Process the PDF file
-        log.info(f"Processing {file_key}")
         result = pdf_processor.process_pdf(temp_file_path)
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="invoices", data=result)
 
+        if state["last_modified_time"] < file_last_modified:
+            # Update the state with the last modified time of the processed file
+            state["last_modified_time"] = file_last_modified
+
     except Exception as e:
-        log.severe(f"Error processing {file_key}: {str(e)}")
+        log.severe(f"Error processing {file_name}: {str(e)}")
     finally:
         # Delete the downloaded invoice file after processing
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-            log.info(f"Deleted temporary file for {file_key}")
+            log.info(f"Deleted temporary file for {file_name}")
 
 
-def process_all_pdfs(s3_client, bucket_name: str, prefix: str):
+def process_all_pdfs(s3_client, bucket_name: str, prefix: str, state: dict):
     """
     Process all PDF files found in the specified S3 bucket and prefix.
     Args:
         s3_client: S3 client to interact with AWS S3
         bucket_name: Name of the S3 bucket
         prefix: Prefix path in the S3 bucket
+        state: A dictionary containing state information from previous runs
     """
-    # Get the list of invoice PDF files
-    invoice_files = get_invoice_file_pairs(s3_client, bucket_name, prefix)
+    # Get the list of invoice PDF files which have not been processed yet
+    invoice_files = get_invoice_files(
+        s3_client=s3_client, bucket_name=bucket_name, prefix=prefix, state=state
+    )
     log.info(f"Found {len(invoice_files)} PDF invoices in {prefix} folder")
 
     # Initialize PDF processor
     pdf_processor = PDFInvoiceExtractor()
 
     # Process each PDF file
-    for file_key in invoice_files:
-        process_single_pdf(s3_client, bucket_name, file_key, pdf_processor)
+    for count, files in enumerate(invoice_files):
+        process_single_pdf(
+            s3_client=s3_client,
+            bucket_name=bucket_name,
+            file_key=files,
+            pdf_processor=pdf_processor,
+            state=state,
+        )
+        if count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
+
+    # After processing all files, checkpoint the state to ensure the last processed time is saved
+    op.checkpoint(state)
 
 
 def update(configuration: dict, state: dict):
@@ -190,6 +238,11 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
+    if "last_modified_time" not in state:
+        # Initialize the state with a default value if it doesn't exist
+        # This is useful for the first run or if the state is empty
+        state["last_modified_time"] = "1990-01-01T00:00:00+00:0"
+
     # create S3 client using the configuration
     s3_client = create_s3_client(configuration=configuration)
     bucket_name = configuration["bucket_name"]
@@ -198,13 +251,7 @@ def update(configuration: dict, state: dict):
     prefix = get_prefix_from_configuration(configuration=configuration)
 
     # Process all PDF invoices in the specified S3 bucket and prefix
-    process_all_pdfs(s3_client=s3_client, bucket_name=bucket_name, prefix=prefix)
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
+    process_all_pdfs(s3_client=s3_client, bucket_name=bucket_name, prefix=prefix, state=state)
 
 
 # Create the connector object using the schema and update functions

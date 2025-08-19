@@ -20,7 +20,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Extracts text and tables from PDF documents using `pdfplumber`
 - Uses regex pattern matching to extract structured invoice data
 - Supports extraction of key invoice details including invoice ID, invoice date and due date, total amounts, contact information and amount in words
-- Processes multiple PDF files in a specified S3 bucket path
+- Processes PDF files modified after the last successful sync
 
 
 ## Configuration file
@@ -65,6 +65,7 @@ The connector processes PDF files through these steps:
 - Processes each PDF using the `PDFInvoiceExtractor` class to extract structured data
 - Upserts the extracted data to the `invoices` table
 - Cleans up temporary files after processing
+- Checkpoints the last processed file to ensure incremental processing in subsequent syncs.
 
 
 ## Error handling
