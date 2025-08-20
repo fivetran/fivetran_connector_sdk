@@ -1,4 +1,4 @@
-# Extracting Data from PDF Example
+# Extracting Data from PDF Connector Example
 
 ## Connector overview
 This connector extracts data from PDF invoice files stored in an AWS S3 bucket. It uses `pdfplumber` to read PDF content and applies regular expressions to extract structured information like invoice IDs, dates, amounts, and other invoice-related details. The extracted data is then upserted to the destination as structured tables.
