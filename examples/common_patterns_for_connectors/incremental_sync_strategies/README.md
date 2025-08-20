@@ -1,14 +1,53 @@
-# Incremental Sync Strategies Example
+# Incremental Sync Strategies Examples
 
-## Connector overview
+This directory contains individual examples demonstrating different incremental sync strategies using the Fivetran Connector SDK. Each strategy is implemented as a separate, focused example with its own configuration and documentation.
 
-This example demonstrates multiple ways to perform incremental syncs using the Fivetran Connector SDK. It includes five common strategies:
+## Available Strategies
 
-- **Keyset Pagination**: Uses a cursor (e.g., updatedAt timestamp) to fetch new/updated records since the last sync.
-- **Offset-based Pagination**: Uses an offset and page size to fetch records in batches, saving the offset as state.
-- **Timestamp-based Sync**: Uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state.
-- **Step-size Sync**: Uses ID ranges to fetch records in batches when pagination/count is not supported, saving the current ID as state.
-- **Replay Sync**: Uses timestamp-based sync with a buffer (goes back X hours from last timestamp) for read-replica scenarios with replication lag.
+### 1. [Keyset Pagination](./keyset_pagination/)
+**Best for**: APIs with cursor-based pagination support
+- Uses a cursor (e.g., `updatedAt` timestamp) to fetch new/updated records
+- Saves the last `updatedAt` value as state
+- Handles scroll parameters for pagination continuation
+- **Most efficient** for truly incremental syncs
+
+### 2. [Offset Pagination](./offset_pagination/)
+**Best for**: APIs with offset/limit pagination support
+- Uses offset and page size to fetch records in batches
+- Saves the current offset position as state
+- Processes records sequentially from the beginning
+- **Simple and reliable** but not truly incremental
+
+### 3. [Timestamp Sync](./timestamp_sync/)
+**Best for**: APIs with timestamp-based filtering
+- Uses a timestamp to fetch records updated since the last sync
+- Saves the latest processed timestamp as state
+- **Truly incremental** - only processes changed records
+- **Most efficient** for APIs that support timestamp filtering
+
+### 4. [Step-size Sync](./step_size_sync/)
+**Best for**: APIs without traditional pagination support
+- Uses ID ranges to fetch records in batches
+- Saves the current ID position as state
+- Works with any API that supports ID-based filtering
+- **Universal compatibility** but not truly incremental
+
+### 5. [Replay Sync](./replay_sync/)
+**Best for**: Read-replica scenarios with replication lag
+- Uses timestamp-based sync with a configurable buffer
+- Goes back X hours from the last timestamp to handle delays
+- **Most robust** for distributed systems
+- **Data consistency** focused
+
+## Quick Comparison
+
+| Strategy | Incremental | Efficiency | Complexity | Use Case |
+|----------|-------------|------------|------------|----------|
+| Keyset Pagination | ✅ Yes | High | Medium | APIs with cursor support |
+| Offset Pagination | ❌ No | Medium | Low | Simple APIs with offset/limit |
+| Timestamp Sync | ✅ Yes | High | Low | APIs with timestamp filtering |
+| Step-size Sync | ❌ No | Medium | Low | APIs without pagination |
+| Replay Sync | ✅ Yes | Medium | Medium | Read-replica systems |
 
 ## Requirements
 
@@ -18,59 +57,23 @@ This example demonstrates multiple ways to perform incremental syncs using the F
   * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-## Getting started
+## Getting Started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
-
-## How it works
-
-- The connector exposes a `strategy` configuration option. Set this to `keyset`, `offset`, or `timestamp` to select the incremental sync method.
-- The connector saves and updates state differently for each strategy, demonstrating best practices for incremental syncs.
-- The schema is the same for all strategies and delivers a `user` table.
-
-## Configuration
-
-Edit `configuration.json` to set the desired strategy and parameters:
-
-```
-{
-  "strategy": "keyset", // or "offset", "timestamp", "step_size", "replay"
-  "base_url": "http://127.0.0.1:5001/pagination/keyset",
-  "page_size": 100,
-  "initial_id": 1,
-  "step_size": 1000,
-  "max_id": 100000,
-  "buffer_hours": 2
-}
-```
-
-## Usage
-
-1. Install dependencies:
+1. **Choose your strategy** based on your API capabilities and requirements
+2. **Navigate to the strategy folder** (e.g., `keyset_pagination/`)
+3. **Install dependencies**:
    ```
    pip install fivetran-connector-sdk requests
    ```
-2. Run a mock API (see [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/)) or point to your own API.
-3. Run the connector for local testing:
+4. **Configure your API endpoint** in `configuration.json`
+5. **Run the connector** for local testing:
    ```
    python connector.py
    ```
-4. Change the `strategy` in `configuration.json` to try different incremental sync methods.
 
-## Strategies explained
+## Common Schema
 
-- **Keyset Pagination**: Saves the last `updatedAt` value and fetches records where `updatedAt` is greater than the saved value.
-- **Offset-based Pagination**: Saves the last offset and fetches the next batch of records using `offset` and `limit` parameters.
-- **Timestamp-based Sync**: Saves the last processed timestamp and fetches all records updated since that timestamp.
-- **Step-size Sync**: Saves the current ID and fetches records in ID ranges (e.g., IDs 1-1000, then 1001-2000). Useful when APIs don't support pagination or count.
-- **Replay Sync**: Similar to timestamp-based sync but applies a buffer (e.g., 2 hours) to the last timestamp. Useful for read-replica scenarios where there might be replication lag.
-
-## Tables Created
-
-The connector syncs the data to table `user` in the destination.
-This connector replicates data from the source's `user` to a destination table with the same name. The table has a composite primary key consisting of `id` only.
-
-The schema of the table is as follows:
+All strategies sync data to the same `user` table with this schema:
 
 ```json
 {
@@ -89,11 +92,35 @@ The schema of the table is as follows:
 }
 ```
 
+## Choosing the Right Strategy
+
+### For APIs with cursor-based pagination:
+- **Use**: Keyset Pagination
+- **Why**: Most efficient for incremental syncs
+
+### For APIs with offset/limit pagination:
+- **Use**: Offset Pagination
+- **Why**: Simple and reliable
+
+### For APIs with timestamp filtering:
+- **Use**: Timestamp Sync
+- **Why**: Truly incremental and efficient
+
+### For APIs without pagination support:
+- **Use**: Step-size Sync
+- **Why**: Works with ID-based filtering
+
+### For read-replica systems:
+- **Use**: Replay Sync
+- **Why**: Handles replication lag
+
 ## Notes
-- This example is for educational purposes and uses dummy/mock data.
-- See the code comments in `connector.py` for more details on each strategy.
 
+- All examples use dummy/mock data for educational purposes
+- Each strategy includes detailed documentation in its respective folder
+- See the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for getting started with the Fivetran Connector SDK
+- For inquiries, please reach out to our Support team
 
-## Additional considerations
+## Additional Considerations
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.

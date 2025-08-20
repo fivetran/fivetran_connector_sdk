@@ -1,9 +1,0 @@
-{
-  "strategy": "keyset",
-  "base_url": "http://127.0.0.1:5001/pagination/keyset",
-  "page_size": "100",
-  "initial_id": "1",
-  "step_size": "1000",
-  "max_id": "100000",
-  "buffer_hours": "2"
-}
