@@ -50,7 +50,7 @@ def update(configuration: dict, state: dict):
     """
     log.info("Running offset-based incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/offset")
-    page_size = int(configuration.get("page_size", 100))
+    page_size = int(configuration.get("page_size", 50))
 
     # Get the cursor from state or use default for initial sync
     cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
@@ -60,6 +60,7 @@ def update(configuration: dict, state: dict):
         "order_type": "asc",
         "updated_since": cursor,
         "limit": page_size,
+        "offset": 0,  # Start from offset 0
     }
 
     sync_items(base_url, params, state)
