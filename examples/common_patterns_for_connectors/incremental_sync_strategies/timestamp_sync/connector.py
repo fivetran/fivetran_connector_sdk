@@ -2,8 +2,13 @@
 # This connector demonstrates timestamp-based incremental sync.
 # It uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state.
 
+# Importing Json for parsing configuration
 import json
+
+# Importing requests for fetching data over api calls
 import requests as rq
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 

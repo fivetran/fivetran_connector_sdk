@@ -2,8 +2,13 @@
 # This connector demonstrates step-size incremental sync.
 # It uses ID ranges to fetch records in batches when pagination/count is not supported, saving the current ID as state.
 
+# Importing Json for parsing configuration
 import json
+
+# Importing requests for fetching data over api calls
 import requests as rq
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 

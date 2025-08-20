@@ -2,8 +2,13 @@
 # This connector demonstrates keyset pagination for incremental syncs.
 # It uses a cursor (e.g., updatedAt timestamp) to fetch new/updated records since the last sync.
 
+# Importing Json for parsing configuration
 import json
+
+# Importing requests for fetching data over api calls
 import requests as rq
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 

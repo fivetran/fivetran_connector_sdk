@@ -2,8 +2,13 @@
 # This connector demonstrates offset-based pagination for incremental syncs.
 # It uses an offset and page size to fetch records in batches, saving the offset as state.
 
+# Importing Json for parsing configuration
 import json
+
+# Importing requests for fetching data over api calls
 import requests as rq
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 

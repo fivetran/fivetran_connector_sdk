@@ -2,9 +2,16 @@
 # This connector demonstrates replay incremental sync with buffer.
 # It uses timestamp-based sync with a buffer (goes back X hours from last timestamp) for read-replica scenarios with replication lag.
 
+# Importing Json for parsing configuration
 import json
+
+# Importing requests for fetching data over api calls
 import requests as rq
+
+# Importing datetime for timestamp manipulation
 from datetime import datetime, timedelta
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 
@@ -59,18 +66,14 @@ def update(configuration: dict, state: dict):
         buffer_ts = last_ts
 
     params = {"since": buffer_ts}
-    while True:
-        response = rq.get(base_url, params=params)
-        response.raise_for_status()
-        data = response.json().get("data", [])
-        if not data:
-            break
-        for user in data:
-            op.upsert(table="user", data=user)
-            state["last_timestamp"] = user["updatedAt"]
-        op.checkpoint(state)
-        # Assume API returns all records since buffer_ts in one call
-        break
+    response = rq.get(base_url, params=params)
+    response.raise_for_status()
+    data = response.json().get("data", [])
+    for user in data:
+        op.upsert(table="user", data=user)
+        state["last_timestamp"] = user["updatedAt"]
+    # Assume API returns all records since buffer_ts in one call
+    op.checkpoint(state)
 
 
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
