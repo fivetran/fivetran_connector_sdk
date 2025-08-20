@@ -53,7 +53,7 @@ def update(configuration: dict, state: dict):
     """
     log.info("Running replay incremental sync with buffer")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/replay")
-    buffer_hours = configuration.get("buffer_hours", 2)
+    buffer_hours = int(configuration.get("buffer_hours", 2))
     last_ts = state.get("last_timestamp", "0001-01-01T00:00:00Z")
 
     # Apply buffer by going back buffer_hours from the last timestamp

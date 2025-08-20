@@ -2,21 +2,21 @@
 
 ## Overview
 
-This example demonstrates **offset-based pagination** for incremental syncs using the Fivetran Connector SDK. Offset pagination uses an offset and page size to fetch records in batches, saving the offset as state for the next sync.
+This example demonstrates **offset-based pagination** for incremental syncs using the Fivetran Connector SDK. This strategy uses timestamp-based filtering with offset pagination to fetch records in batches, saving the latest timestamp as state for the next sync.
 
 ## How Offset Pagination Works
 
-- **Batch Processing**: Fetches records in configurable page sizes
-- **Offset Tracking**: Saves the current offset position in connector state
-- **Sequential Access**: Processes records sequentially from the beginning
-- **State Management**: Updates offset after each batch to maintain sync progress
+- **Timestamp Filtering**: Uses `updated_since` parameter to filter records by timestamp
+- **Offset Tracking**: Uses offset from API response to track pagination progress
+- **State Management**: Saves the latest processed timestamp in connector state
+- **Batch Processing**: Processes records in configurable page sizes
 
 ## Key Benefits
 
-- **Simple**: Easy to implement and understand
-- **Predictable**: Sequential processing ensures no records are missed
-- **Configurable**: Adjustable page size for performance optimization
-- **Reliable**: Works with any API that supports offset/limit parameters
+- **Incremental**: Only processes records updated since the last sync
+- **Efficient**: Uses timestamp filtering to avoid reprocessing unchanged records
+- **Reliable**: Handles large datasets with proper pagination
+- **Stateful**: Maintains sync progress across runs
 
 ## Configuration
 
@@ -46,16 +46,33 @@ Edit `configuration.json` to set your API endpoint and page size:
 ## API Requirements
 
 Your API should support:
-- `offset` parameter to specify the starting position
+- `updated_since` parameter to filter records by timestamp
+- `order_by` and `order_type` parameters for consistent ordering
 - `limit` parameter to specify the number of records per page
-- Consistent record ordering (usually by ID or creation date)
+- Response should include `offset`, `limit`, and `total` fields
+- Records with an `updatedAt` field for timestamp tracking
+
+## API Response Format
+
+The API should return responses in this format:
+```json
+{
+  "data": [
+    {"id": "1", "name": "John Doe", "updatedAt": "2024-01-15T10:30:00Z", ...},
+    {"id": "2", "name": "Jane Smith", "updatedAt": "2024-01-15T11:00:00Z", ...}
+  ],
+  "offset": 0,
+  "limit": 100,
+  "total": 500
+}
+```
 
 ## State Management
 
 The connector saves state as:
 ```json
 {
-  "offset": 250
+  "last_updated_at": "2024-01-15T10:30:00Z"
 }
 ```
 
@@ -82,22 +99,27 @@ The connector syncs data to the `user` table with the following schema:
 
 ## When to Use Offset Pagination
 
-- APIs that support offset/limit pagination
-- When you need to process all records sequentially
-- Simple APIs without cursor-based pagination
-- When record ordering is consistent and predictable
-- Initial sync scenarios where you need to process all historical data
+- APIs that support both timestamp filtering and offset pagination
+- When you need truly incremental syncs with pagination
+- Large datasets where you want to avoid reprocessing unchanged records
+- APIs that return offset information in responses
 
 ## Important Considerations
 
-- **Not truly incremental**: This strategy processes all records from the beginning each time
-- **Performance**: May be slower for large datasets as it processes from offset 0
-- **Data consistency**: Assumes records don't change order between syncs
-- **Memory usage**: Processes records in batches to manage memory efficiently
+- **API Compatibility**: Requires specific API response format with offset/total fields
+- **Timestamp Accuracy**: Requires accurate and consistent `updatedAt` timestamps
+- **Ordering**: API must support consistent ordering by timestamp
+- **Performance**: More efficient than simple offset pagination for incremental syncs
+
+## Comparison with Other Strategies
+
+- **vs Keyset Pagination**: Similar efficiency but different API requirements
+- **vs Simple Offset Pagination**: More efficient due to timestamp filtering
+- **vs Timestamp Sync**: Adds pagination support for large datasets
 
 ## Notes
 
 - This example uses dummy/mock data for educational purposes
-- The connector automatically handles the initial sync (offset 0) and subsequent syncs
+- The connector automatically handles the initial sync (no timestamp) and subsequent incremental syncs
 - Checkpointing occurs after each batch to ensure progress is saved
-- Consider using keyset pagination for truly incremental syncs with large datasets 
+- This strategy combines the benefits of timestamp filtering with offset pagination 

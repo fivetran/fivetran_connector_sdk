@@ -50,9 +50,9 @@ def update(configuration: dict, state: dict):
     """
     log.info("Running step-size incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/step")
-    current_id = state.get("current_id", configuration.get("initial_id", 1))
-    step_size = configuration.get("step_size", 1000)
-    max_id = configuration.get("max_id", 100000)  # Safety limit
+    current_id = state.get("current_id", int(configuration.get("initial_id", 1)))
+    step_size = int(configuration.get("step_size", 1000))
+    max_id = int(configuration.get("max_id", 100000))  # Safety limit
 
     while current_id <= max_id:
         params = {"start_id": current_id, "end_id": current_id + step_size - 1}

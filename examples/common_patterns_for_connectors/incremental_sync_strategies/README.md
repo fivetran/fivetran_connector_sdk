@@ -12,11 +12,11 @@ This directory contains individual examples demonstrating different incremental 
 - **Most efficient** for truly incremental syncs
 
 ### 2. [Offset Pagination](./offset_pagination/)
-**Best for**: APIs with offset/limit pagination support
-- Uses offset and page size to fetch records in batches
-- Saves the current offset position as state
-- Processes records sequentially from the beginning
-- **Simple and reliable** but not truly incremental
+**Best for**: APIs with offset pagination and timestamp filtering support
+- Uses timestamp filtering with offset pagination to fetch records in batches
+- Saves the latest processed timestamp as state
+- Combines incremental sync with pagination for large datasets
+- **Efficient incremental sync** with pagination support
 
 ### 3. [Timestamp Sync](./timestamp_sync/)
 **Best for**: APIs with timestamp-based filtering
@@ -44,7 +44,7 @@ This directory contains individual examples demonstrating different incremental 
 | Strategy | Incremental | Efficiency | Complexity | Use Case |
 |----------|-------------|------------|------------|----------|
 | Keyset Pagination | ✅ Yes | High | Medium | APIs with cursor support |
-| Offset Pagination | ❌ No | Medium | Low | Simple APIs with offset/limit |
+| Offset Pagination | ✅ Yes | High | Medium | APIs with offset + timestamp filtering |
 | Timestamp Sync | ✅ Yes | High | Low | APIs with timestamp filtering |
 | Step-size Sync | ❌ No | Medium | Low | APIs without pagination |
 | Replay Sync | ✅ Yes | Medium | Medium | Read-replica systems |
@@ -98,9 +98,9 @@ All strategies sync data to the same `user` table with this schema:
 - **Use**: Keyset Pagination
 - **Why**: Most efficient for incremental syncs
 
-### For APIs with offset/limit pagination:
+### For APIs with offset pagination and timestamp filtering:
 - **Use**: Offset Pagination
-- **Why**: Simple and reliable
+- **Why**: Combines incremental sync with pagination for large datasets
 
 ### For APIs with timestamp filtering:
 - **Use**: Timestamp Sync

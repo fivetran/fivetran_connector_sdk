@@ -50,23 +50,70 @@ def update(configuration: dict, state: dict):
     """
     log.info("Running offset-based incremental sync")
     base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/offset")
-    offset = state.get("offset", 0)
-    page_size = configuration.get("page_size", 100)
+    page_size = int(configuration.get("page_size", 100))
 
-    while True:
-        params = {"offset": offset, "limit": page_size}
-        response = rq.get(base_url, params=params)
-        response.raise_for_status()
-        data = response.json().get("data", [])
-        if not data:
-            break
-        for user in data:
+    # Get the cursor from state or use default for initial sync
+    cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
+
+    params = {
+        "order_by": "updatedAt",
+        "order_type": "asc",
+        "updated_since": cursor,
+        "limit": page_size,
+    }
+
+    sync_items(base_url, params, state)
+
+
+def sync_items(base_url, params, state):
+    """
+    Handle the retrieval and processing of paginated API data.
+    """
+    more_data = True
+
+    while more_data:
+        # Get response from API call
+        response_page = get_api_response(base_url, params)
+
+        # Process the items
+        items = response_page.get("data", [])
+        if not items:
+            break  # End pagination if there are no records in response
+
+        # Process each user and update state
+        for user in items:
             op.upsert(table="user", data=user)
-        offset += len(data)
-        state["offset"] = offset
+            state["last_updated_at"] = user["updatedAt"]
+
+        # Save progress by checkpointing the state
         op.checkpoint(state)
-        if len(data) < page_size:
-            break
+
+        # Determine if we should continue pagination
+        more_data, params = should_continue_pagination(params, response_page, len(items))
+
+
+def should_continue_pagination(params, response_page, current_page_size):
+    """
+    Determine whether pagination should continue based on the API response.
+    """
+    offset = response_page.get("offset", 0)
+    total = response_page.get("total", 0)
+
+    has_more_pages = (offset + current_page_size) < total
+    if has_more_pages:
+        params["offset"] = offset + current_page_size
+    return has_more_pages, params
+
+
+def get_api_response(base_url, params):
+    """
+    Send an HTTP GET request to the provided URL with the specified parameters.
+    """
+    log.info(f"Making API call to url: {base_url} with params: {params}")
+    response = rq.get(base_url, params=params)
+    response.raise_for_status()
+    response_page = response.json()
+    return response_page
 
 
 # required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
