@@ -39,7 +39,7 @@ This directory contains individual examples demonstrating different incremental 
 - **Most robust** for distributed systems
 - **Data consistency** focused
 
-## Quick Comparison
+## Quick comparison
 
 | Strategy | Incremental | Efficiency | Complexity | Use Case |
 |----------|-------------|------------|------------|----------|
@@ -57,7 +57,7 @@ This directory contains individual examples demonstrating different incremental 
   * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-## Getting Started
+## Getting started
 
 1. **Choose your strategy** based on your API capabilities and requirements
 2. **Navigate to the strategy folder** (e.g., `keyset_pagination/`)
@@ -71,7 +71,7 @@ This directory contains individual examples demonstrating different incremental 
    python connector.py
    ```
 
-## Common Schema
+## Common schema
 
 All strategies sync data to the same `user` table with this schema:
 
@@ -92,7 +92,7 @@ All strategies sync data to the same `user` table with this schema:
 }
 ```
 
-## Choosing the Right Strategy
+## Choosing the right strategy
 
 ### For APIs with cursor-based pagination:
 - **Use**: Keyset Pagination
@@ -121,6 +121,6 @@ All strategies sync data to the same `user` table with this schema:
 - See the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for getting started with the Fivetran Connector SDK
 - For inquiries, please reach out to our Support team
 
-## Additional Considerations
+## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
