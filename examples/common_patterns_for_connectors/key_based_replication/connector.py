@@ -76,30 +76,32 @@ def update(configuration: dict, state: dict):
     # Connect to your database instance instance.
     conn = duckdb.connect()
 
-    # Ensure that the source has the required table and data.
-    # If the table and data are not present, the connector will not work as expected
-    # The connector expects the source to have a table named "customers" with the following schema:
-    # CREATE TABLE IF NOT EXISTS customers
-    # (customer_id INTEGER PRIMARY KEY,
-    # first_name VARCHAR,
-    # last_name VARCHAR,
-    # email VARCHAR,
-    # updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+    """
+    Ensure that the source has the required table and data.
+    If the table and data are not present, the connector will not work as expected
+    The connector expects the source to have a table named "customers" with the following schema:
+    CREATE TABLE IF NOT EXISTS customers
+    (customer_id INTEGER PRIMARY KEY,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    email VARCHAR,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
 
-    # Sample data in the "customers" table can be inserted using the following query:
-    # INSERT INTO customers (customer_id, first_name, last_name, email, updated_at)
-    # VALUES
-    # ('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'),
-    # ('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'),
-    # ('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'),
-    # ('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'),
-    # ('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')
-    # ON CONFLICT (customer_id)
-    # DO UPDATE SET
-    # first_name = EXCLUDED.first_name,
-    # last_name = EXCLUDED.last_name,
-    # email = EXCLUDED.email,
-    # updated_at = EXCLUDED.updated_at
+    Sample data in the "customers" table can be inserted using the following query:
+    INSERT INTO customers (customer_id, first_name, last_name, email, updated_at)
+    VALUES
+    ('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'),
+    ('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'),
+    ('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'),
+    ('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'),
+    ('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')
+    ON CONFLICT (customer_id)
+    DO UPDATE SET
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    email = EXCLUDED.email,
+    updated_at = EXCLUDED.updated_at
+    """
 
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
     last_updated_at = (
