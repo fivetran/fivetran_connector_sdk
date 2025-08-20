@@ -1,10 +1,10 @@
 # Keyset Pagination Incremental Sync Strategy Example
 
-**Connector Overview**
+## Connector overview
 
 This connector demonstrates **keyset pagination** for incremental syncs using the Fivetran Connector SDK. Keyset pagination uses a cursor (typically an `updatedAt` timestamp) to fetch new and updated records since the last sync.
 
-## **Requirements**
+## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 * Operating System:  
@@ -17,7 +17,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## **Features**
+## Features
 
 - **Cursor-based**: Uses a cursor value (like `updatedAt` timestamp) to track the last processed record
 - **State Management**: Saves the last `updatedAt` value in the connector state
@@ -27,7 +27,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - **Reliable**: Handles large datasets without missing records
 - **Scalable**: Works well with APIs that support cursor-based pagination
 
-## **Configuration**
+## Configuration
 
 Edit the global variables in `connector.py` to set your API endpoint:
 

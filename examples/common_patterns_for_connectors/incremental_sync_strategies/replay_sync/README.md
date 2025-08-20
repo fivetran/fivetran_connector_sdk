@@ -1,10 +1,10 @@
 # Replay Incremental Sync Strategy Example
 
-**Connector Overview**
+## Connector overview
 
 This connector demonstrates **replay incremental sync with buffer** using the Fivetran Connector SDK. This strategy uses timestamp-based sync with a configurable buffer (goes back X hours from the last timestamp) to handle read-replica scenarios with replication lag.
 
-## **Requirements**
+## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 * Operating System:  
@@ -17,7 +17,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## **Features**
+## Features
 
 - **Buffer-based Filtering**: Applies a time buffer to the last processed timestamp
 - **Replication Lag Handling**: Accounts for delays in read-replica systems
@@ -28,7 +28,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - **Configurable Buffer**: Adjustable buffer time for different replication scenarios
 - **Reliable**: Robust against timing-related data inconsistencies
 
-## **Configuration**
+## Configuration
 
 Edit the global variables in `connector.py` to set your API endpoint and buffer time:
 

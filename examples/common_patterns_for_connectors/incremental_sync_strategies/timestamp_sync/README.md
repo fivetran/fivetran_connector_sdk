@@ -1,6 +1,6 @@
 # Timestamp-based Incremental Sync Strategy Example
 
-## Connector Overview
+## Connector overview
 
 This connector demonstrates **timestamp-based incremental sync** using the Fivetran Connector SDK. This strategy uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state for the next sync.
 

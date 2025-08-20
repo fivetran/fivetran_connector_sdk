@@ -1,6 +1,6 @@
 # Step-size Incremental Sync Strategy Example
 
-## Connector Overview
+## Connector overview
 
 This connector demonstrates **step-size incremental sync** using the Fivetran Connector SDK. This strategy uses ID ranges to fetch records in batches when pagination or count is not supported, saving the current ID as state for the next sync.
 

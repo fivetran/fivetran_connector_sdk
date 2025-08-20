@@ -1,10 +1,10 @@
 # Offset-based Pagination Incremental Sync Strategy Example
 
-**Connector Overview**
+## Connector overview
 
 This connector demonstrates **offset-based pagination** for incremental syncs using the Fivetran Connector SDK. This strategy uses timestamp-based filtering with offset pagination to fetch records in batches, saving the latest timestamp as state for the next sync.
 
-## **Requirements**
+## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 * Operating System:  
@@ -15,7 +15,7 @@ This connector demonstrates **offset-based pagination** for incremental syncs us
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## **Features**
+## Features
 
 - **Timestamp Filtering**: Uses `updated_since` parameter to filter records by timestamp
 - **Offset Tracking**: Uses offset from API response to track pagination progress
@@ -25,7 +25,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - **Efficient**: Uses timestamp filtering to avoid reprocessing unchanged records
 - **Reliable**: Handles large datasets with proper pagination
 
-## **Configuration**
+## Configuration
 
 Edit the global variables in `connector.py` to set your API endpoint and page size:
 
@@ -61,7 +61,7 @@ The API should return responses in this format:
 }
 ```
 
-## **State Management**
+## State management
 
 The connector saves state as:
 ```json
