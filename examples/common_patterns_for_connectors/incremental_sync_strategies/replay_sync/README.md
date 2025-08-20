@@ -11,7 +11,9 @@ This connector demonstrates **replay incremental sync with buffer** using the Fi
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
 
-## **Getting Started**
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
+
+## **Getting started**
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
@@ -36,17 +38,9 @@ BASE_URL = "http://127.0.0.1:5001/incremental/replay"
 BUFFER_HOURS = 2
 ```
 
-## **Requirements File**
-
-The connector requires the following Python packages:
-
-```
-requests
-```
-
 Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## **API Requirements**
+## **API requirements**
 
 Your API should support:
 - `since` parameter to filter records by timestamp
@@ -54,7 +48,7 @@ Your API should support:
 - Consistent timestamp format (ISO 8601 recommended)
 - Ability to return all records updated since a given timestamp
 
-## **State Management**
+## **State management**
 
 The connector saves state as:
 ```json
@@ -63,7 +57,7 @@ The connector saves state as:
 }
 ```
 
-## **Data Handling**
+## **Data handling**
 
 The connector processes data as follows:
 - **Data Extraction**: Fetches records using timestamp-based filtering with buffer
@@ -90,7 +84,7 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## **When to Use Replay Sync**
+## **When to use replay sync**
 
 - **Read-replica scenarios**: When reading from a replica with potential replication lag
 - **High-availability systems**: Where data consistency is critical
@@ -98,7 +92,7 @@ The connector syncs data to the `user` table with the following schema:
 - **APIs with timing delays**: Where updates may not be immediately available
 - **Critical data scenarios**: Where missing records is not acceptable
 
-## **Error Handling**
+## **Error handling**
 
 The connector implements comprehensive error handling:
 - **API Response Validation**: Checks for successful HTTP responses
@@ -107,7 +101,7 @@ The connector implements comprehensive error handling:
 - **State Management**: Safely updates and checkpoints state
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
-## **Buffer Configuration**
+## **Buffer configuration**
 
 The `buffer_hours` parameter determines how far back to look from the last timestamp:
 
@@ -115,20 +109,20 @@ The `buffer_hours` parameter determines how far back to look from the last times
 - **Medium buffer (2-6 hours)**: For typical read-replica scenarios
 - **Large buffer (6+ hours)**: For systems with significant replication delays
 
-## **Important Considerations**
+## **Important considerations**
 
 - **Overlap Processing**: This strategy may re-process some records due to the buffer
 - **Performance Impact**: Larger buffers mean more data processing
 - **Duplicate Handling**: The connector uses upsert to handle potential duplicates
 - **Buffer Sizing**: Choose buffer size based on your replication lag characteristics
 
-## **Example Buffer Calculation**
+## **Example buffer calculation**
 
 If your last timestamp was `2024-01-15T10:30:00Z` and buffer_hours is 2:
 - Buffer timestamp: `2024-01-15T08:30:00Z`
 - The connector will fetch all records updated since 8:30 AM instead of 10:30 AM
 - This ensures any records that were delayed in replication are captured
 
-## **Additional Considerations**
+## **Additional considerations**
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

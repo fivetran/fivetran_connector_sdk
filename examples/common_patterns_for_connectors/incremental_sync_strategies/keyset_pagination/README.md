@@ -11,7 +11,9 @@ This connector demonstrates **keyset pagination** for incremental syncs using th
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
 
-## **Getting Started**
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
+
+## **Getting started**
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
@@ -34,24 +36,20 @@ Edit the global variables in `connector.py` to set your API endpoint:
 BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
 ```
 
-## **Requirements File**
+## **Requirements file**
 
-The connector requires the following Python packages:
+The connector requires no packages.
 
-```
-requests
-```
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
-
-## **API Requirements**
+## **API requirements**
 
 Your API should support:
 - `updated_since` parameter to filter records by timestamp
 - Optional `scroll_param` for pagination continuation
 - Records with an `updatedAt` field for cursor tracking
 
-## **State Management**
+## **State management**
 
 The connector saves state as:
 ```json
@@ -60,7 +58,7 @@ The connector saves state as:
 }
 ```
 
-## **Data Handling**
+## **Data handling**
 
 The connector processes data as follows:
 - **Data Extraction**: Fetches records using cursor-based pagination
@@ -86,14 +84,14 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## **When to Use Keyset Pagination**
+## **When to use keyset pagination**
 
 - APIs that support cursor-based pagination
 - When you need to track record updates by timestamp
 - Large datasets where you want to avoid reprocessing unchanged records
 - APIs that provide scroll parameters for pagination continuation
 
-## **Error Handling**
+## **Error handling**
 
 The connector implements comprehensive error handling:
 - **API Response Validation**: Checks for successful HTTP responses
@@ -101,6 +99,6 @@ The connector implements comprehensive error handling:
 - **State Management**: Safely updates and checkpoints state
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
-## **Additional Considerations**
+## **Additional considerations**
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

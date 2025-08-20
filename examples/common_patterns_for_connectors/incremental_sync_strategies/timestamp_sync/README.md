@@ -35,17 +35,9 @@ Edit the global variables in `connector.py` to set your API endpoint:
 BASE_URL = "http://127.0.0.1:5001/incremental/timestamp"
 ```
 
-## **Requirements File**
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-The connector requires the following Python packages:
-
-```
-requests
-```
-
-Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
-
-## **API Requirements**
+## **API requirements**
 
 Your API should support:
 - `since` parameter to filter records by timestamp
@@ -53,7 +45,7 @@ Your API should support:
 - Consistent timestamp format (ISO 8601 recommended)
 - Ability to return all records updated since a given timestamp
 
-## **State Management**
+## **State management**
 
 The connector saves state as:
 ```json
@@ -62,7 +54,7 @@ The connector saves state as:
 }
 ```
 
-## **Data Handling**
+## **Data handling**
 
 The connector processes data as follows:
 - **Data Extraction**: Fetches records using timestamp-based filtering
@@ -88,7 +80,7 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## **When to Use Timestamp-based Sync**
+## **When to use timestamp-based sync**
 
 - APIs that support timestamp-based filtering
 - When you need truly incremental syncs
@@ -96,7 +88,7 @@ The connector syncs data to the `user` table with the following schema:
 - When records have reliable `updatedAt` timestamps
 - APIs that can return all changes since a given timestamp
 
-## **Error Handling**
+## **Error handling**
 
 The connector implements comprehensive error handling:
 - **API Response Validation**: Checks for successful HTTP responses
@@ -104,13 +96,13 @@ The connector implements comprehensive error handling:
 - **State Management**: Safely updates and checkpoints state
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
-## **Important Considerations**
+## **Important considerations**
 
 - **Timestamp Accuracy**: Requires accurate and consistent `updatedAt` timestamps
 - **Time Zones**: Ensure consistent timezone handling
 - **API Limitations**: Some APIs may have limits on how far back you can query
 - **Data Consistency**: Assumes records are updated with current timestamps
 
-## **Additional Considerations**
+## **Additional considerations**
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
