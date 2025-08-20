@@ -25,6 +25,8 @@ from process_pdf import PDFInvoiceExtractor  # For extracting data from PDF file
 # Define the number of files to process before checkpointing the state
 # This is useful to reduce the risk of losing progress in case of an error or interruption during processing.
 __CHECKPOINT_INTERVAL = 100
+# Define the file extension to filter for PDF files
+__FILE_EXTENSION = ".pdf"
 
 
 def validate_configuration(configuration: dict):
@@ -75,9 +77,6 @@ def get_invoice_files(s3_client, bucket_name: str, prefix: str, state: dict):
     Returns:
         A list which contains the file key of the invoice pdf files which have not been processed.
     """
-    # Define the file extension to filter for PDF files
-    file_extension = ".pdf"
-
     # Create a paginator to list objects in the S3 bucket with the specified prefix
     paginator = s3_client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
@@ -94,7 +93,7 @@ def get_invoice_files(s3_client, bucket_name: str, prefix: str, state: dict):
                     "LastModified"
                 ].isoformat()  # Convert to ISO format for consistency
                 # Check if the object is a PDF file and if it has been modified since the last processed time
-                if file_key.endswith(file_extension) and last_modified > state_last_modified:
+                if file_key.endswith(__FILE_EXTENSION) and last_modified > state_last_modified:
                     # Append the file key and last modified time to the invoice_files list
                     invoice_files.append(
                         {"file_key": file_key, "last_modified_time": last_modified}
@@ -162,7 +161,7 @@ def process_single_pdf(s3_client, bucket_name: str, file_key: dict, state: dict,
     file_last_modified = file_key["last_modified_time"]
 
     # Create a temporary file for the downloaded PDF
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=__FILE_EXTENSION) as temp_file:
         temp_file_path = temp_file.name
 
     try:
