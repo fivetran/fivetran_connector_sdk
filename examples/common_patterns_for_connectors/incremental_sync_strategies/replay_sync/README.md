@@ -1,49 +1,52 @@
-# Replay Incremental Sync Strategy (with Buffer)
+# Replay Incremental Sync Strategy Example
 
-## Overview
+**Connector Overview**
 
-This example demonstrates **replay incremental sync with buffer** using the Fivetran Connector SDK. This strategy uses timestamp-based sync with a configurable buffer (goes back X hours from the last timestamp) to handle read-replica scenarios with replication lag.
+This connector demonstrates **replay incremental sync with buffer** using the Fivetran Connector SDK. This strategy uses timestamp-based sync with a configurable buffer (goes back X hours from the last timestamp) to handle read-replica scenarios with replication lag.
 
-## How Replay Sync Works
+## **Requirements**
+
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating System:  
+  * Windows 10 or later  
+  * macOS 13 (Ventura) or later
+
+## **Getting Started**
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## **Features**
 
 - **Buffer-based Filtering**: Applies a time buffer to the last processed timestamp
 - **Replication Lag Handling**: Accounts for delays in read-replica systems
 - **State Management**: Saves the latest processed timestamp in connector state
 - **Overlap Processing**: Re-processes some records to ensure no data is missed
-
-## Key Benefits
-
 - **Replication Lag Safe**: Handles delays in read-replica systems
 - **Data Consistency**: Ensures no records are missed due to timing issues
 - **Configurable Buffer**: Adjustable buffer time for different replication scenarios
 - **Reliable**: Robust against timing-related data inconsistencies
 
-## Configuration
+## **Configuration**
 
-Edit `configuration.json` to set your API endpoint and buffer time:
+Edit the global variables in `connector.py` to set your API endpoint and buffer time:
 
-```json
-{
-  "base_url": "http://127.0.0.1:5001/incremental/replay",
-  "buffer_hours": 2
-}
+```python
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/incremental/replay"
+BUFFER_HOURS = 2
 ```
 
-## Usage
+## **Requirements File**
 
-1. Install dependencies:
-   ```
-   pip install fivetran-connector-sdk requests
-   ```
+The connector requires the following Python packages:
 
-2. Run a mock API (see [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/)) or point to your own API.
+```
+requests
+```
 
-3. Run the connector for local testing:
-   ```
-   python connector.py
-   ```
+Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## API Requirements
+## **API Requirements**
 
 Your API should support:
 - `since` parameter to filter records by timestamp
@@ -51,7 +54,7 @@ Your API should support:
 - Consistent timestamp format (ISO 8601 recommended)
 - Ability to return all records updated since a given timestamp
 
-## State Management
+## **State Management**
 
 The connector saves state as:
 ```json
@@ -60,7 +63,13 @@ The connector saves state as:
 }
 ```
 
-## Tables Created
+## **Data Handling**
+
+The connector processes data as follows:
+- **Data Extraction**: Fetches records using timestamp-based filtering with buffer
+- **Buffer Application**: Applies time buffer to handle replication lag
+- **Incremental Processing**: Only processes records updated since the buffered timestamp
+- **State Tracking**: Updates the timestamp after processing all records
 
 The connector syncs data to the `user` table with the following schema:
 
@@ -81,7 +90,7 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## When to Use Replay Sync
+## **When to Use Replay Sync**
 
 - **Read-replica scenarios**: When reading from a replica with potential replication lag
 - **High-availability systems**: Where data consistency is critical
@@ -89,7 +98,16 @@ The connector syncs data to the `user` table with the following schema:
 - **APIs with timing delays**: Where updates may not be immediately available
 - **Critical data scenarios**: Where missing records is not acceptable
 
-## Buffer Configuration
+## **Error Handling**
+
+The connector implements comprehensive error handling:
+- **API Response Validation**: Checks for successful HTTP responses
+- **Timestamp Validation**: Ensures proper timestamp format and buffer calculation
+- **Data Validation**: Ensures data contains required fields
+- **State Management**: Safely updates and checkpoints state
+- **Detailed Logging**: Provides informative log messages for troubleshooting
+
+## **Buffer Configuration**
 
 The `buffer_hours` parameter determines how far back to look from the last timestamp:
 
@@ -97,29 +115,20 @@ The `buffer_hours` parameter determines how far back to look from the last times
 - **Medium buffer (2-6 hours)**: For typical read-replica scenarios
 - **Large buffer (6+ hours)**: For systems with significant replication delays
 
-## Important Considerations
+## **Important Considerations**
 
 - **Overlap Processing**: This strategy may re-process some records due to the buffer
 - **Performance Impact**: Larger buffers mean more data processing
 - **Duplicate Handling**: The connector uses upsert to handle potential duplicates
 - **Buffer Sizing**: Choose buffer size based on your replication lag characteristics
 
-## Comparison with Other Strategies
-
-- **vs Timestamp Sync**: Adds buffer to handle replication lag
-- **vs Keyset Pagination**: More robust for read-replica scenarios
-- **vs Offset Pagination**: Much more efficient for incremental syncs
-
-## Example Buffer Calculation
+## **Example Buffer Calculation**
 
 If your last timestamp was `2024-01-15T10:30:00Z` and buffer_hours is 2:
 - Buffer timestamp: `2024-01-15T08:30:00Z`
 - The connector will fetch all records updated since 8:30 AM instead of 10:30 AM
 - This ensures any records that were delayed in replication are captured
 
-## Notes
+## **Additional Considerations**
 
-- This example uses dummy/mock data for educational purposes
-- The connector automatically handles the initial sync (no timestamp) and subsequent incremental syncs
-- Checkpointing occurs after processing all records to ensure state is saved
-- The buffer is only applied when there's a previous timestamp (not on initial sync) 
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

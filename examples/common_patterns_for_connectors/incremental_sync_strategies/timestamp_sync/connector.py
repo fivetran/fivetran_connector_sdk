@@ -2,14 +2,21 @@
 # This connector demonstrates timestamp-based incremental sync.
 # It uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state.
 
-# Importing Json for parsing configuration
-import json
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/incremental/timestamp"
 
 # Importing requests for fetching data over api calls
 import requests as rq
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 def schema(configuration: dict):
@@ -49,12 +56,11 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Running timestamp-based incremental sync")
-    base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/timestamp")
     last_ts = state.get("last_timestamp", "0001-01-01T00:00:00Z")
     params = {"since": last_ts}
 
     while True:
-        response = rq.get(base_url, params=params)
+        response = rq.get(BASE_URL, params=params)
         response.raise_for_status()
         data = response.json().get("data", [])
         if not data:
@@ -62,6 +68,7 @@ def update(configuration: dict, state: dict):
         for user in data:
             op.upsert(table="user", data=user)
             state["last_timestamp"] = user["updatedAt"]
+        # Checkpoint the state after processing all records to ensure state is saved
         op.checkpoint(state)
         # Assume API returns all new/updated records since last_timestamp in one call
         break
@@ -71,8 +78,5 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug(configuration=configuration)
+    connector.debug()

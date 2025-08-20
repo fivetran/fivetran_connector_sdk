@@ -2,14 +2,24 @@
 # This connector demonstrates step-size incremental sync.
 # It uses ID ranges to fetch records in batches when pagination/count is not supported, saving the current ID as state.
 
-# Importing Json for parsing configuration
-import json
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/incremental/step"
+INITIAL_ID = 1
+STEP_SIZE = 1000
+MAX_ID = 100000
 
 # Importing requests for fetching data over api calls
 import requests as rq
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 def schema(configuration: dict):
@@ -49,24 +59,22 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Running step-size incremental sync")
-    base_url = configuration.get("base_url", "http://127.0.0.1:5001/incremental/step")
-    current_id = state.get("current_id", int(configuration.get("initial_id", 1)))
-    step_size = int(configuration.get("step_size", 1000))
-    max_id = int(configuration.get("max_id", 100000))  # Safety limit
+    current_id = state.get("current_id", INITIAL_ID)
 
-    while current_id <= max_id:
-        params = {"start_id": current_id, "end_id": current_id + step_size - 1}
-        response = rq.get(base_url, params=params)
+    while current_id <= MAX_ID:
+        params = {"start_id": current_id, "end_id": current_id + STEP_SIZE - 1}
+        response = rq.get(BASE_URL, params=params)
         response.raise_for_status()
         data = response.json().get("data", [])
         if not data:
             break
         for user in data:
             op.upsert(table="user", data=user)
-        current_id += step_size
+        current_id += STEP_SIZE
         state["current_id"] = current_id
+        # Checkpoint the state after processing each batch to ensure progress is saved
         op.checkpoint(state)
-        if len(data) < step_size:
+        if len(data) < STEP_SIZE:
             break
 
 
@@ -74,8 +82,5 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug(configuration=configuration)
+    connector.debug()

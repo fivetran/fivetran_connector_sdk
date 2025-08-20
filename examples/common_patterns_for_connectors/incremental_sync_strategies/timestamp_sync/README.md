@@ -1,48 +1,51 @@
-# Timestamp-based Incremental Sync Strategy
+# Timestamp-based Incremental Sync Strategy Example
 
-## Overview
+**Connector Overview**
 
-This example demonstrates **timestamp-based incremental sync** using the Fivetran Connector SDK. This strategy uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state for the next sync.
+This connector demonstrates **timestamp-based incremental sync** using the Fivetran Connector SDK. This strategy uses a timestamp to fetch all records updated since the last sync, saving the latest timestamp as state for the next sync.
 
-## How Timestamp-based Sync Works
+## **Requirements**
+
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating System:  
+  * Windows 10 or later  
+  * macOS 13 (Ventura) or later
+
+## **Getting Started**
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## **Features**
 
 - **Time-based Filtering**: Uses a timestamp to filter records updated since the last sync
 - **State Management**: Saves the latest processed timestamp in connector state
 - **Incremental Processing**: Only fetches records with `updatedAt` greater than the saved timestamp
 - **Efficient Updates**: Processes only new and modified records
-
-## Key Benefits
-
 - **Truly Incremental**: Only processes records that have changed since the last sync
 - **Efficient**: Minimizes API calls and data processing
 - **Reliable**: Handles large datasets without performance degradation
 - **Simple**: Easy to implement and maintain
 
-## Configuration
+## **Configuration**
 
-Edit `configuration.json` to set your API endpoint:
+Edit the global variables in `connector.py` to set your API endpoint:
 
-```json
-{
-  "base_url": "http://127.0.0.1:5001/incremental/timestamp"
-}
+```python
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/incremental/timestamp"
 ```
 
-## Usage
+## **Requirements File**
 
-1. Install dependencies:
-   ```
-   pip install fivetran-connector-sdk requests
-   ```
+The connector requires the following Python packages:
 
-2. Run a mock API (see [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/)) or point to your own API.
+```
+requests
+```
 
-3. Run the connector for local testing:
-   ```
-   python connector.py
-   ```
+Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## API Requirements
+## **API Requirements**
 
 Your API should support:
 - `since` parameter to filter records by timestamp
@@ -50,7 +53,7 @@ Your API should support:
 - Consistent timestamp format (ISO 8601 recommended)
 - Ability to return all records updated since a given timestamp
 
-## State Management
+## **State Management**
 
 The connector saves state as:
 ```json
@@ -59,7 +62,12 @@ The connector saves state as:
 }
 ```
 
-## Tables Created
+## **Data Handling**
+
+The connector processes data as follows:
+- **Data Extraction**: Fetches records using timestamp-based filtering
+- **Incremental Processing**: Only processes records updated since the last sync
+- **State Tracking**: Updates the timestamp after processing all records
 
 The connector syncs data to the `user` table with the following schema:
 
@@ -80,7 +88,7 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## When to Use Timestamp-based Sync
+## **When to Use Timestamp-based Sync**
 
 - APIs that support timestamp-based filtering
 - When you need truly incremental syncs
@@ -88,22 +96,21 @@ The connector syncs data to the `user` table with the following schema:
 - When records have reliable `updatedAt` timestamps
 - APIs that can return all changes since a given timestamp
 
-## Important Considerations
+## **Error Handling**
+
+The connector implements comprehensive error handling:
+- **API Response Validation**: Checks for successful HTTP responses
+- **Data Validation**: Ensures data contains required fields
+- **State Management**: Safely updates and checkpoints state
+- **Detailed Logging**: Provides informative log messages for troubleshooting
+
+## **Important Considerations**
 
 - **Timestamp Accuracy**: Requires accurate and consistent `updatedAt` timestamps
 - **Time Zones**: Ensure consistent timezone handling
 - **API Limitations**: Some APIs may have limits on how far back you can query
 - **Data Consistency**: Assumes records are updated with current timestamps
 
-## Comparison with Other Strategies
+## **Additional Considerations**
 
-- **vs Keyset Pagination**: Similar concept, but timestamp sync is simpler for APIs that return all changes in one call
-- **vs Offset Pagination**: Much more efficient for incremental syncs
-- **vs Step-size Sync**: Better for APIs that support timestamp filtering
-
-## Notes
-
-- This example uses dummy/mock data for educational purposes
-- The connector automatically handles the initial sync (no timestamp) and subsequent incremental syncs
-- Checkpointing occurs after processing all records to ensure state is saved
-- This strategy assumes the API returns all relevant records in a single call 
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

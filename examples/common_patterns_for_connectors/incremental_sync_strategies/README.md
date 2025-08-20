@@ -65,7 +65,7 @@ This directory contains individual examples demonstrating different incremental 
    ```
    pip install fivetran-connector-sdk requests
    ```
-4. **Configure your API endpoint** in `configuration.json`
+4. **Configure your API endpoint** by modifying the global variables in `connector.py`
 5. **Run the connector** for local testing:
    ```
    python connector.py

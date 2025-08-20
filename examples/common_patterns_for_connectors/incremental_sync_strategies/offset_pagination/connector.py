@@ -2,14 +2,22 @@
 # This connector demonstrates offset-based pagination for incremental syncs.
 # It uses an offset and page size to fetch records in batches, saving the offset as state.
 
-# Importing Json for parsing configuration
-import json
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/pagination/offset"
+PAGE_SIZE = 50
 
 # Importing requests for fetching data over api calls
 import requests as rq
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 def schema(configuration: dict):
@@ -49,8 +57,6 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Running offset-based incremental sync")
-    base_url = configuration.get("base_url", "http://127.0.0.1:5001/pagination/offset")
-    page_size = int(configuration.get("page_size", 50))
 
     # Get the cursor from state or use default for initial sync
     cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
@@ -59,11 +65,11 @@ def update(configuration: dict, state: dict):
         "order_by": "updatedAt",
         "order_type": "asc",
         "updated_since": cursor,
-        "limit": page_size,
+        "limit": PAGE_SIZE,
         "offset": 0,  # Start from offset 0
     }
 
-    sync_items(base_url, params, state)
+    sync_items(BASE_URL, params, state)
 
 
 def sync_items(base_url, params, state):
@@ -86,7 +92,7 @@ def sync_items(base_url, params, state):
             op.upsert(table="user", data=user)
             state["last_updated_at"] = user["updatedAt"]
 
-        # Save progress by checkpointing the state
+        # Checkpoint the state after processing each batch to ensure progress is saved
         op.checkpoint(state)
 
         # Determine if we should continue pagination
@@ -121,8 +127,5 @@ def get_api_response(base_url, params):
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug(configuration=configuration)
+    connector.debug()

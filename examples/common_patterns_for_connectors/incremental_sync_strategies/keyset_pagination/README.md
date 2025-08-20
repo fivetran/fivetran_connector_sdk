@@ -1,55 +1,57 @@
-# Keyset Pagination Incremental Sync Strategy
+# Keyset Pagination Incremental Sync Strategy Example
 
-## Overview
+**Connector Overview**
 
-This example demonstrates **keyset pagination** for incremental syncs using the Fivetran Connector SDK. Keyset pagination uses a cursor (typically an `updatedAt` timestamp) to fetch new and updated records since the last sync.
+This connector demonstrates **keyset pagination** for incremental syncs using the Fivetran Connector SDK. Keyset pagination uses a cursor (typically an `updatedAt` timestamp) to fetch new and updated records since the last sync.
 
-## How Keyset Pagination Works
+## **Requirements**
+
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating System:  
+  * Windows 10 or later  
+  * macOS 13 (Ventura) or later
+
+## **Getting Started**
+
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## **Features**
 
 - **Cursor-based**: Uses a cursor value (like `updatedAt` timestamp) to track the last processed record
 - **State Management**: Saves the last `updatedAt` value in the connector state
 - **Incremental Fetching**: Only fetches records where `updatedAt` is greater than the saved cursor
 - **Scroll Support**: Handles APIs that use scroll parameters for pagination
-
-## Key Benefits
-
 - **Efficient**: Only processes new/updated records
 - **Reliable**: Handles large datasets without missing records
 - **Scalable**: Works well with APIs that support cursor-based pagination
-- **Stateful**: Maintains sync progress across runs
 
-## Configuration
+## **Configuration**
 
-Edit `configuration.json` to set your API endpoint:
+Edit the global variables in `connector.py` to set your API endpoint:
 
-```json
-{
-  "base_url": "http://127.0.0.1:5001/pagination/keyset"
-}
+```python
+# Global configuration variables
+BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
 ```
 
-## Usage
+## **Requirements File**
 
-1. Install dependencies:
-   ```
-   pip install fivetran-connector-sdk requests
-   ```
+The connector requires the following Python packages:
 
-2. Run a mock API (see [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/)) or point to your own API.
+```
+requests
+```
 
-3. Run the connector for local testing:
-   ```
-   python connector.py
-   ```
+Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## API Requirements
+## **API Requirements**
 
 Your API should support:
 - `updated_since` parameter to filter records by timestamp
 - Optional `scroll_param` for pagination continuation
 - Records with an `updatedAt` field for cursor tracking
 
-## State Management
+## **State Management**
 
 The connector saves state as:
 ```json
@@ -58,7 +60,12 @@ The connector saves state as:
 }
 ```
 
-## Tables Created
+## **Data Handling**
+
+The connector processes data as follows:
+- **Data Extraction**: Fetches records using cursor-based pagination
+- **Incremental Processing**: Only processes records updated since the last sync
+- **State Tracking**: Updates the cursor after processing each batch
 
 The connector syncs data to the `user` table with the following schema:
 
@@ -79,15 +86,21 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## When to Use Keyset Pagination
+## **When to Use Keyset Pagination**
 
 - APIs that support cursor-based pagination
 - When you need to track record updates by timestamp
 - Large datasets where you want to avoid reprocessing unchanged records
 - APIs that provide scroll parameters for pagination continuation
 
-## Notes
+## **Error Handling**
 
-- This example uses dummy/mock data for educational purposes
-- The connector automatically handles the initial sync (no cursor) and subsequent incremental syncs
-- Checkpointing occurs after each batch to ensure progress is saved 
+The connector implements comprehensive error handling:
+- **API Response Validation**: Checks for successful HTTP responses
+- **Data Validation**: Ensures data contains required fields
+- **State Management**: Safely updates and checkpoints state
+- **Detailed Logging**: Provides informative log messages for troubleshooting
+
+## **Additional Considerations**
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
