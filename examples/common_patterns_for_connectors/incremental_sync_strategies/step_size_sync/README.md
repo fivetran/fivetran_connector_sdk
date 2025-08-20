@@ -1,21 +1,21 @@
 # Step-size Incremental Sync Strategy Example
 
-**Connector Overview**
+## Connector Overview
 
 This connector demonstrates **step-size incremental sync** using the Fivetran Connector SDK. This strategy uses ID ranges to fetch records in batches when pagination or count is not supported, saving the current ID as state for the next sync.
 
-## **Requirements**
+## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 * Operating System:  
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
 
-## **Getting Started**
+## Getting Started
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## **Features**
+## Features
 
 - **ID-based Ranges**: Fetches records in configurable ID ranges (e.g., IDs 1-1000, then 1001-2000)
 - **Sequential Processing**: Processes records sequentially by ID
@@ -26,7 +26,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - **Configurable**: Adjustable step size for performance optimization
 - **Reliable**: Works even when APIs don't support traditional pagination
 
-## **Configuration**
+## Configuration
 
 Edit the global variables in `connector.py` to set your API endpoint and step parameters:
 
@@ -40,7 +40,7 @@ MAX_ID = 100000
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## **API requirements**
+## API requirements
 
 Your API should support:
 - `start_id` parameter to specify the beginning of the ID range
@@ -48,7 +48,7 @@ Your API should support:
 - Records with sequential or predictable IDs
 - Ability to return records within a specified ID range
 
-## **State management**
+## State management
 
 The connector saves state as:
 ```json
@@ -57,7 +57,7 @@ The connector saves state as:
 }
 ```
 
-## **Data handling**
+## Data handling
 
 The connector processes data as follows:
 - **Data Extraction**: Fetches records using ID-based range filtering
@@ -84,7 +84,7 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## **When to use step-size sync**
+## When to use step-size sync
 
 - APIs that don't support traditional pagination
 - When you need to process records by ID ranges
@@ -92,7 +92,7 @@ The connector syncs data to the `user` table with the following schema:
 - When record IDs are sequential or predictable
 - Initial sync scenarios for large datasets
 
-## **Error handling**
+## Error handling
 
 The connector implements comprehensive error handling:
 - **API Response Validation**: Checks for successful HTTP responses
@@ -101,7 +101,7 @@ The connector implements comprehensive error handling:
 - **State Management**: Safely updates and checkpoints state
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
-## **Important considerations**
+## Important considerations
 
 - **Not truly incremental**: This strategy processes all records from the beginning each time
 - **ID Requirements**: Requires sequential or predictable record IDs
@@ -109,12 +109,12 @@ The connector implements comprehensive error handling:
 - **Gaps**: May miss records if there are gaps in the ID sequence
 - **Max ID**: Set an appropriate `max_id` to prevent infinite loops
 
-## **Configuration parameters**
+## Configuration parameters
 
 - **initial_id**: Starting ID for the sync (default: 1)
 - **step_size**: Number of IDs to process in each batch (default: 1000)
 - **max_id**: Maximum ID to process (safety limit)
 
-## **Additional considerations**
+## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

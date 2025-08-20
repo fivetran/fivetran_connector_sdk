@@ -11,7 +11,7 @@ This connector demonstrates **offset-based pagination** for incremental syncs us
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
 
-## **Getting started**
+## Getting started
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
@@ -37,7 +37,7 @@ PAGE_SIZE = 50
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-## **API requirements**
+## API requirements
 
 Your API should support:
 - `updated_since` parameter to filter records by timestamp
@@ -46,7 +46,7 @@ Your API should support:
 - Response should include `offset`, `limit`, and `total` fields
 - Records with an `updatedAt` field for timestamp tracking
 
-## **API response format**
+## API response format
 
 The API should return responses in this format:
 ```json
@@ -70,7 +70,7 @@ The connector saves state as:
 }
 ```
 
-## **Data handling**
+## Data handling
 
 The connector processes data as follows:
 - **Data Extraction**: Fetches records using offset-based pagination with timestamp filtering
@@ -97,14 +97,14 @@ The connector syncs data to the `user` table with the following schema:
 }
 ```
 
-## **When to use offset pagination**
+## When to use offset pagination
 
 - APIs that support both timestamp filtering and offset pagination
 - When you need truly incremental syncs with pagination
 - Large datasets where you want to avoid reprocessing unchanged records
 - APIs that return offset information in responses
 
-## **Error handling**
+## Error handling
 
 The connector implements comprehensive error handling:
 - **API Response Validation**: Checks for successful HTTP responses
@@ -113,13 +113,13 @@ The connector implements comprehensive error handling:
 - **State Management**: Safely updates and checkpoints state
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
-## **Important considerations**
+## Important considerations
 
 - **API Compatibility**: Requires specific API response format with offset/total fields
 - **Timestamp Accuracy**: Requires accurate and consistent `updatedAt` timestamps
 - **Ordering**: API must support consistent ordering by timestamp
 - **Performance**: More efficient than simple offset pagination for incremental syncs
 
-## **Additional considerations**
+## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
