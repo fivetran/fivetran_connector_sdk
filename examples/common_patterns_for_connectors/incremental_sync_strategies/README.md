@@ -2,7 +2,7 @@
 
 This directory contains individual examples demonstrating different incremental sync strategies using the Fivetran Connector SDK. Each strategy is implemented as a separate, focused example with its own configuration and documentation.
 
-## Available Strategies
+## Available strategies
 
 ### 1. [Keyset Pagination](./keyset_pagination/)
 **Best for**: APIs with cursor-based pagination support
