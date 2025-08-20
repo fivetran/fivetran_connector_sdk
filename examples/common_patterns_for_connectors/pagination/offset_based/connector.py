@@ -20,12 +20,14 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "user",
@@ -44,14 +46,16 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Common Patterns For Connectors - Pagination - Offset Based")
 
     print(
@@ -75,18 +79,20 @@ def update(configuration: dict, state: dict):
     sync_items(base_url, params, state)
 
 
-# The sync_items function handles the retrieval and processing of paginated API data.
-# It performs the following tasks:
-# 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
-# 3. Updates the state with the 'updatedAt' timestamp of the last processed item.
-# 4. Saves the state periodically to ensure the sync can resume from the correct point.
-# 5. Continues fetching and processing data from the API until all pages are processed.
-#
-# The function takes three parameters:
-# - base_url: The URL to the API endpoint.
-# - params: A dictionary of query parameters to be sent with the API request.
 def sync_items(base_url, params, state):
+    """
+    The sync_items function handles the retrieval and processing of paginated API data.
+    It performs the following tasks:
+        1. Sends an API request to the specified URL with the provided parameters.
+        2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
+        3. Updates the state with the 'updatedAt' timestamp of the last processed item.
+        4. Saves the state periodically to ensure the sync can resume from the correct point.
+        5. Continues fetching and processing data from the API until all pages are processed.
+    Args:
+        base_url: The URL to the API endpoint.
+        params: A dictionary of query parameters to be sent with the API request.
+        state: A dictionary that holds the state of the sync process, including the last updated timestamp.
+    """
     more_data = True
 
     while more_data:
@@ -119,37 +125,37 @@ def sync_items(base_url, params, state):
         more_data, params = should_continue_pagination(params, response_page, len(items))
 
 
-# The should_continue_pagination function determines whether pagination should continue based on the
-# 'total' and 'offset' in the API response.
-# It performs the following tasks:
-# 1. Checks if the sum of the current offset and current page's record count is less than the total number of items.
-# 2. If the current offset + current_page_size is less than the total, updates the parameters with the new offset
-# for the next API request.
-# 3. If the current offset + current_page_size is greater than or equal to the total,
-# sets the flag to end the pagination process.
-#
-# Parameters:
-# - params: A dictionary of query parameters used in the API request. It will be updated with the new offset.
-# - response_page: A dictionary representing the parsed JSON response from the API.
-#
-# Returns:
-# - has_more_pages: A boolean indicating whether there are more pages to retrieve.
-# - params: The updated query parameters for the next API request.
-#
-# API response will look like the following structure:
-# {
-#   "data": [
-#     {"id": "c8fda876-6869-4aae-b989-b514a8e45dc6", "name": "Mark Taylor", ... },
-#     {"id": "3910cbb0-27d4-47f5-9003-a401338eff6e", "name": "Alan Taylor", ... }
-#   ],
-#   "offset": 20, // Current offset
-#   "limit": 100,  // Number of items per page
-#   "total": 100  // Total number of items available
-# }
-#
-# For real API example you can refer vwo's Campaign's API:
-# https://developers.vwo.com/reference/get-the-campaigns-of-an-account
 def should_continue_pagination(params, response_page, current_page_size):
+    """
+    The should_continue_pagination function determines whether pagination should continue based on the
+    'total' and 'offset' in the API response.
+    It performs the following tasks:
+        1. Checks if the sum of the current offset and current page's record count is less than the total number of items.
+        2. If the current offset + current_page_size is less than the total, updates the parameters with the new offset
+        for the next API request.
+        3. If the current offset + current_page_size is greater than or equal to the total,
+        sets the flag to end the pagination process.
+
+    API response will look like the following structure:
+        {
+          "data": [
+            {"id": "c8fda876-6869-4aae-b989-b514a8e45dc6", "name": "Mark Taylor", ... },
+            {"id": "3910cbb0-27d4-47f5-9003-a401338eff6e", "name": "Alan Taylor", ... }
+          ],
+          "offset": 20, // Current offset
+          "limit": 100,  // Number of items per page
+          "total": 100  // Total number of items available
+        }
+    For real API example you can refer vwo's Campaign's API:
+        https://developers.vwo.com/reference/get-the-campaigns-of-an-account
+    Args:
+        params: A dictionary of query parameters used in the API request. It will be updated with the new offset.
+        response_page: A dictionary representing the parsed JSON response from the API.
+        current_page_size: The number of items in the current page of the response.
+    Returns:
+        has_more_pages: A boolean indicating whether there are more pages to retrieve.
+        params: The updated query parameters for the next API request.
+    """
     offset = response_page.get("offset", 0)
     total = response_page.get("total", 0)
 
@@ -159,19 +165,19 @@ def should_continue_pagination(params, response_page, current_page_size):
     return has_more_pages, params
 
 
-# The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
-# It performs the following tasks:
-# 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
-# 2. Makes the API request using the 'requests' library, passing the URL and parameters.
-# 3. Parses the JSON response from the API and returns it as a dictionary.
-#
-# The function takes two parameters:
-# - base_url: The URL to which the API request is made.
-# - params: A dictionary of query parameters to be included in the API request.
-#
-# Returns:
-# - response_page: A dictionary containing the parsed JSON response from the API.
 def get_api_response(base_url, params):
+    """
+    The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
+    It performs the following tasks:
+        1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
+        2. Makes the API request using the 'requests' library, passing the URL and parameters.
+        3. Parses the JSON response from the API and returns it as a dictionary.
+    Args:
+        base_url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    """
     log.info(f"Making API call to url: {base_url} with params: {params}")
     response = rq.get(base_url, params=params)
     response.raise_for_status()  # Ensure

@@ -23,15 +23,13 @@ from datetime import date, timedelta
 import traceback
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    """This is a function to get schema
-    Returns:
-        json: schema
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -42,15 +40,34 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary containing the state checkpointed during the prior sync.
-#   The state dictionary is empty for the first sync or for any full re-sync.
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    # Validate required configuration parameters
+    if "apiKey" not in configuration:
+        raise ValueError("Missing required configuration value: 'apiKey'")
+
+
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Common Patterns For Connectors - Cursors - Marketstack")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
 
     try:
         # Initialize state
@@ -86,11 +103,6 @@ def api_response(state, configuration):
     insert_tickers = get_tickers()
     log.info(f"Fetching data for the following tickers: {insert_tickers}")
 
-    if not configuration.get("apiKey"):
-        raise ValueError(
-            "ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json "
-        )
-
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
     insert_ticker_price = []
@@ -118,13 +130,12 @@ def api_response(state, configuration):
 
 
 def get_tickers():
-    """This is a function to list all the tickers for which information is needed
+    """
+    This is a function to list all the tickers for which information is needed
+    If you need to fetch the list of tickers from the API,
+    please refer to the documentation at https://marketstack.com/documentation for more information.
     Returns:
         list: tickers
-    """
-    """
-    If you need to fetch the list of tickers from the API, 
-    please refer to the documentation at https://marketstack.com/documentation for more information.
     """
     return ["AAPL", "MSFT", "GOOG", "INTC"]
 
@@ -243,37 +254,36 @@ if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
 
-"""
-Resulting table:
-Table tickers_price
-┌─────────┬──────────────────────┬──────────────┬────────────┬──────────┬───┬───────────┬──────────┬────────┬─────────┬─────────┐
-│ symbol  │         date         │ split_factor │   volume   │   high   │ … │ adj_close │ exchange │ close  │  open   │ adj_low │
-│ varchar │       varchar        │    float     │   float    │  float   │   │   float   │ varchar  │ float  │  float  │  float  │
-├─────────┼──────────────────────┼──────────────┼────────────┼──────────┼───┼───────────┼──────────┼────────┼─────────┼─────────┤
-│ AAPL    │ 2024-10-14T00:00:0…  │          1.0 │ 32607920.0 │ 231.7278 │ … │     231.3 │ XNAS     │  231.3 │   228.7 │   228.6 │
-│ AAPL    │ 2024-10-11T00:00:0…  │          1.0 │ 31668000.0 │   229.41 │ … │    227.55 │ XNAS     │ 227.55 │   229.3 │  227.34 │
-│ AAPL    │ 2024-10-10T00:00:0…  │          1.0 │ 27959432.0 │    229.5 │ … │    229.04 │ XNAS     │ 229.04 │  227.78 │  227.17 │
-│ AAPL    │ 2024-10-09T00:00:0…  │          1.0 │ 32108384.0 │   229.75 │ … │    229.54 │ XNAS     │ 229.54 │  225.17 │  224.83 │
-├─────────┴──────────────────────┴──────────────┴────────────┴──────────┴───┴───────────┴──────────┴────────┴─────────┴─────────┤
+
+# Resulting table:
+# Table tickers_price
+# ┌─────────┬──────────────────────┬──────────────┬────────────┬──────────┬───┬───────────┬──────────┬────────┬─────────┬─────────┐
+# │ symbol  │         date         │ split_factor │   volume   │   high   │ … │ adj_close │ exchange │ close  │  open   │ adj_low │
+# │ varchar │       varchar        │    float     │   float    │  float   │   │   float   │ varchar  │ float  │  float  │  float  │
+# ├─────────┼──────────────────────┼──────────────┼────────────┼──────────┼───┼───────────┼──────────┼────────┼─────────┼─────────┤
+# │ AAPL    │ 2024-10-14T00:00:0…  │          1.0 │ 32607920.0 │ 231.7278 │ … │     231.3 │ XNAS     │  231.3 │   228.7 │   228.6 │
+# │ AAPL    │ 2024-10-11T00:00:0…  │          1.0 │ 31668000.0 │   229.41 │ … │    227.55 │ XNAS     │ 227.55 │   229.3 │  227.34 │
+# │ AAPL    │ 2024-10-10T00:00:0…  │          1.0 │ 27959432.0 │    229.5 │ … │    229.04 │ XNAS     │ 229.04 │  227.78 │  227.17 │
+# │ AAPL    │ 2024-10-09T00:00:0…  │          1.0 │ 32108384.0 │   229.75 │ … │    229.54 │ XNAS     │ 229.54 │  225.17 │  224.83 │
+# ├─────────┴──────────────────────┴──────────────┴────────────┴──────────┴───┴───────────┴──────────┴────────┴─────────┴─────────┤
 
 # List of columns present:
-┌──────────────┐
-│ column_name  │
-├──────────────┤
-│ symbol       │
-│ date         │
-│ split_factor │
-│ volume       │
-│ high         │
-│ adj_open     │
-│ adj_volume   │
-│ adj_high     │
-│ low          │
-│ dividend     │
-│ adj_close    │
-│ exchange     │
-│ close        │
-│ open         │
-│ adj_low      │
-├──────────────┤
-"""
+# ┌──────────────┐
+# │ column_name  │
+# ├──────────────┤
+# │ symbol       │
+# │ date         │
+# │ split_factor │
+# │ volume       │
+# │ high         │
+# │ adj_open     │
+# │ adj_volume   │
+# │ adj_high     │
+# │ low          │
+# │ dividend     │
+# │ adj_close    │
+# │ exchange     │
+# │ close        │
+# │ open         │
+# │ adj_low      │
+# ├──────────────┤

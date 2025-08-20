@@ -25,12 +25,14 @@ from fivetran_connector_sdk import Operations as op
 from io import StringIO
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "user",
@@ -49,14 +51,16 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Handling CSV Response - Syncing data from CSV Export API")
 
     print(
@@ -69,8 +73,13 @@ def update(configuration: dict, state: dict):
     sync_csv_data(base_url, state)
 
 
-# The sync_csv_data function handles retrieving and processing CSV data from the API.
 def sync_csv_data(base_url, state):
+    """
+    The sync_csv_data function handles retrieving and processing CSV data from the API.
+    Args:
+        base_url: The base URL of the API endpoint to fetch CSV data.
+        state: The state dictionary containing information about the last sync.
+    """
     # Get response from API call.
     response_page = get_csv_response(base_url, {})
 
@@ -91,16 +100,29 @@ def sync_csv_data(base_url, state):
     op.checkpoint(state)
 
 
-# The get_csv_response function sends an HTTP GET request and returns the raw CSV response as text.
 def get_csv_response(base_url, params):
+    """
+    The get_csv_response function sends an HTTP GET request and returns the raw CSV response as text.
+    Args:
+        base_url: The base URL of the API endpoint to fetch CSV data.
+        params: A dictionary of query parameters to include in the request.
+    Returns:
+        str: The raw CSV response as a string.
+    """
     log.info(f"Making API call to url: {base_url} with params: {params}")
     response = rq.get(base_url, params=params)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     return response.text
 
 
-# The parse_csv function converts the raw CSV string into a list of dictionaries.
 def parse_csv(csv_content):
+    """
+    The parse_csv function converts the raw CSV string into a list of dictionaries.
+    Args:
+        csv_content: The raw CSV content as a string.
+    Returns:
+        list: A list of dictionaries where each dictionary represents a row in the CSV.
+    """
     log.info("Parsing CSV content.")
     csv_reader = csv.DictReader(StringIO(csv_content))
     return [row for row in csv_reader]
@@ -110,6 +132,9 @@ def parse_csv(csv_content):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     connector.debug()
 

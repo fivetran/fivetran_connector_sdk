@@ -94,6 +94,22 @@ def schema(configuration: dict):
     ]
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    for key in cred:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -104,10 +120,11 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Delete Example with composite primary key")
-    for key in cred:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration: {key}")
+    log.warning("Example: Common Patterns For Connectors - Delete Operation")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
+
     conn = PostgresClient(configuration)
     log.info("Connected to PostgreSQL database.")
 

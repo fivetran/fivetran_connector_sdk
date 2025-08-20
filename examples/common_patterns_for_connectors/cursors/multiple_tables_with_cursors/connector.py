@@ -141,6 +141,7 @@ def fetch_departments_for_company(department_cursor, company_id):
         if company_id in department_cursor
         else "0001-01-01T00:00:00Z"
     )
+    log.info(f"Fetching departments for company_id: {company_id} with cursor: {cursor}")
 
     # Actual data fetch from API
     # params = {

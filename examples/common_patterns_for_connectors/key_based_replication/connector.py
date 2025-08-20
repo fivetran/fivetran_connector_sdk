@@ -26,12 +26,14 @@ TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 REPLICATION_KEY = "updated_at"
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "customers",  # Name of the table in the destination.
@@ -49,58 +51,58 @@ def schema(configuration: dict):
 
 
 def dt2str(incoming: datetime) -> str:
+    """
+    Converts a datetime object to a string in the specified format.
+    Args:
+        incoming: datetime object to be converted.
+    Returns:
+        str: The formatted string representation of the datetime object.
+    """
     return incoming.strftime(TIMESTAMP_FORMAT)
 
 
-def setup_source_warehouse(conn: duckdb.DuckDBPyConnection):
-    # Creating a table.
-    create_query = (
-        "CREATE TABLE IF NOT EXISTS customers "
-        "(customer_id INTEGER PRIMARY KEY, "
-        "first_name VARCHAR, "
-        "last_name VARCHAR, "
-        "email VARCHAR, "
-        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-    )
-
-    # Executing create query.
-    conn.execute(create_query)
-
-    # Inserting records to the table.
-    insert_query = (
-        "INSERT INTO customers (customer_id, first_name, last_name, email, updated_at) "
-        "VALUES "
-        "('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'), "
-        "('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'), "
-        "('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'), "
-        "('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'), "
-        "('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')  "
-        "ON CONFLICT (customer_id) "
-        "DO UPDATE SET "
-        "first_name = EXCLUDED.first_name, "
-        "last_name = EXCLUDED.last_name, "
-        "email = EXCLUDED.email, "
-        "updated_at = EXCLUDED.updated_at"
-    )
-
-    # Executing insert query.
-    conn.execute(insert_query)
-
-
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Source Examples - Common Patterns - Key Based Replication")
 
     # Connect to your database instance instance.
     conn = duckdb.connect()
-    # This is not required. This is just for example illustration purposes.
-    setup_source_warehouse(conn)
+
+    """
+    Ensure that the source has the required table and data.
+    If the table and data are not present, the connector will not work as expected
+    The connector expects the source to have a table named "customers" with the following schema:
+    CREATE TABLE IF NOT EXISTS customers
+    (customer_id INTEGER PRIMARY KEY,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    email VARCHAR,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+
+    Sample data in the "customers" table can be inserted using the following query:
+    INSERT INTO customers (customer_id, first_name, last_name, email, updated_at)
+    VALUES
+    ('1', 'Mathew', 'Perry', 'mathew@fivetran.com', '2023-12-31T23:59:59Z'),
+    ('2', 'Joe', 'Doe', 'joe@fivetran.com', '2024-01-31T23:04:39Z'),
+    ('3', 'Jake', 'Anderson', 'jake@fivetran.com', '2023-11-01T23:59:59Z'),
+    ('4', 'John', 'William', 'john@fivetran.com', '2024-02-14T22:59:59Z'),
+    ('5', 'Ricky', 'Roma', 'ricky@fivetran.com', '2024-03-16T16:40:29Z')
+    ON CONFLICT (customer_id)
+    DO UPDATE SET
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    email = EXCLUDED.email,
+    updated_at = EXCLUDED.updated_at
+    """
+
     # If the cursor is not present in the state, starting from ('2024-01-01T00:00:00Z') to represent incremental syncs.
     last_updated_at = (
         state["last_updated_at"] if "last_updated_at" in state else "2024-01-01T00:00:00Z"

@@ -1,21 +1,22 @@
-"""
-This is a simple example for how to work with the fivetran_connector_sdk module.
-It defines a "from" and "to" timestamp that can be sent to an API, and limits the time range to DAYS_PER_SYNC days at a time for an initial sync.
-It does not sync any data from a source.
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-"""
+# This is an example for how to work with the fivetran_connector_sdk module.
+# It defines a "from" and "to" timestamp that can be sent to an API, and limits the time range to DAYS_PER_SYNC days at a time for an initial sync.
+# It does not sync any data from a source.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
 
 from datetime import datetime, timezone, timedelta
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import (
-    Connector,
-)  # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
-from fivetran_connector_sdk import (
-    Operations as op,
-)  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 
 __INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
 __DAYS_PER_SYNC = 30
@@ -128,18 +129,14 @@ def parse_iso_timestamp(timestamp: str) -> datetime:
     return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
 
-"""
-This creates the connector object that will use the update function defined in this connector.py file.
-This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
-"""
+# This creates the connector object that will use the update function defined in this connector.py file.
+# This example does not use the schema() function. If it did, it would need to be included in the connector object definition.
 connector = Connector(update=update)
 
-"""
-Check if the script is being run as the main module.
-This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-"""
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug()

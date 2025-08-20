@@ -70,6 +70,22 @@ class PostgresClient:
             raise ValueError(f"Error fetching data from PostgreSQL: {e}")
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    for key in cred:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -78,10 +94,7 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Check if the credentials for connecting to database are present in the configuration.
-    for key in cred:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration: {key}")
+
     return [
         {
             "table": "product_inventory",
@@ -102,10 +115,11 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Update Example with composite primary key")
-    for key in cred:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration: {key}")
+    log.warning("Example: Common Patterns For Connectors - Update Operation")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
+
     conn = PostgresClient(configuration)
 
     # IMPORTANT: This connector requires the following prerequisites in your PostgreSQL database:
