@@ -50,7 +50,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-This connector deos not require any additional Python packages.
+This connector does not require any additional Python packages.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
