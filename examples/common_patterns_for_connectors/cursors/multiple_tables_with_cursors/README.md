@@ -5,7 +5,7 @@ This connector demonstrates how to handle parent-child relationships between tab
 
 Each company is incrementally synced based on its `updated_at` field, and for each company, the connector fetches and syncs its associated departments using a separate per-company cursor.
 
-Note: This example uses hardcoded static data to simulate the API calls. It is intended for learning purposes and not for production use.
+This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
 
 ## Requirements
@@ -49,9 +49,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This example uses hardcoded mock data and does not require authentication.
+This connector does not use authentication.
 
-In a production scenario, API calls would include headers or credentials, and the `get_api_response()` function would handle token injection or OAuth flows.
+In real-world scenarios, modify `get_api_response()` to add `Authorization` headers or include API keys in query parameters.
 
 
 ## Pagination
@@ -76,7 +76,7 @@ This approach ensures fine-grained incremental syncing for nested entities.
 
 
 ## Error handling
-- All API calls (mocked) log the request URL and parameters.
+- All API calls log the request URL and parameters.
 - In a real implementation, get_api_response() would raise exceptions on HTTP errors.
 - Each checkpoint ensures partial progress is saved even if a later step fails.
 
@@ -93,7 +93,8 @@ The connector creates two tables:
   "columns": {
     "company_id": "STRING",
     "company_name": "STRING",
-    "updated_at": "UTC_DATETIME"
+    "updatedAt": "UTC_DATETIME",
+    "createdAt": "UTC_DATETIME"
   }
 }
 ```
@@ -108,7 +109,8 @@ The connector creates two tables:
     "department_id": "STRING",
     "company_id": "STRING",
     "department_name": "STRING",
-    "updated_at": "UTC_DATETIME"
+    "updatedAt": "UTC_DATETIME",
+    "createdAt": "UTC_DATETIME"
   }
 }
 ```
