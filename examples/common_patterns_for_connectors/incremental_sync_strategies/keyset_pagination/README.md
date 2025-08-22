@@ -1,5 +1,7 @@
 # Keyset Pagination Incremental Sync Strategy Example
 
+**Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/keyset_pagination/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/keyset_pagination/)
+
 ## Connector overview
 
 This connector demonstrates **keyset pagination** for incremental syncs using the Fivetran Connector SDK. Keyset pagination uses a cursor (typically an `updatedAt` timestamp) to fetch new and updated records since the last sync.
@@ -10,6 +12,10 @@ This connector demonstrates **keyset pagination** for incremental syncs using th
 * Operating System:  
   * Windows 10 or later  
   * macOS 13 (Ventura) or later
+
+## Requirements file
+
+* No additional requirements required
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
@@ -29,11 +35,11 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Configuration
 
-Edit the global variables in `connector.py` to set your API endpoint:
+Edit the private global variables in `connector.py` to set your API endpoint:
 
 ```python
-# Global configuration variables
-BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
+# Private global configuration variables
+__BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
 ```
 
 ## Requirements file
@@ -100,5 +106,7 @@ The connector implements comprehensive error handling:
 - **Detailed Logging**: Provides informative log messages for troubleshooting
 
 ## Additional considerations
+
+This example is intended for learning purposes and uses the fivetran-api-playground package to mock the API responses locally. It is not meant for production use.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 

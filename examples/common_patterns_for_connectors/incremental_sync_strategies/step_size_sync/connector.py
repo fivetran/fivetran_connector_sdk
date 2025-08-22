@@ -1,12 +1,9 @@
-# Example: Step-size Incremental Sync Strategy
-# This connector demonstrates step-size incremental sync.
-# It uses ID ranges to fetch records in batches when pagination/count is not supported, saving the current ID as state.
-
-# Global configuration variables
-BASE_URL = "http://127.0.0.1:5001/incremental/step"
-INITIAL_ID = 1
-STEP_SIZE = 1000
-MAX_ID = 100000
+"""This connector demonstrates step-size incremental sync using the Fivetran Connector SDK.
+It uses ID ranges to fetch records in batches when pagination/count is not supported, saving the current ID as state.
+This example is intended for learning purposes and uses the fivetran-api-playground package to mock the API responses locally. It is not meant for production use.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Importing requests for fetching data over api calls
 import requests as rq
@@ -20,6 +17,12 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+# Private global configuration variables
+__BASE_URL = "http://127.0.0.1:5001/incremental/step"
+__INITIAL_ID = 1
+__STEP_SIZE = 1000
+__MAX_ID = 100000
 
 
 def schema(configuration: dict):
@@ -58,29 +61,45 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Running step-size incremental sync")
-    current_id = state.get("current_id", INITIAL_ID)
+    log.warning(
+        "Example: Common Patterns For Connectors - Incremental Sync - Step Size Sync Example"
+    )
 
-    while current_id <= MAX_ID:
-        params = {"start_id": current_id, "end_id": current_id + STEP_SIZE - 1}
-        response = rq.get(BASE_URL, params=params)
+    current_id = state.get("current_id", __INITIAL_ID)
+
+    while current_id <= __MAX_ID:
+        params = {"start_id": current_id, "end_id": current_id + __STEP_SIZE - 1}
+        response = rq.get(__BASE_URL, params=params)
         response.raise_for_status()
         data = response.json().get("data", [])
         if not data:
             break
         for user in data:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="user", data=user)
-        current_id += STEP_SIZE
+        current_id += __STEP_SIZE
         state["current_id"] = current_id
-        # Checkpoint the state after processing each batch to ensure progress is saved
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
-        if len(data) < STEP_SIZE:
+
+        if len(data) < __STEP_SIZE:
             break
 
 
-# required inputs docs https://fivetran.com/docs/connectors/connector-sdk/technical-reference#technicaldetailsrequiredobjectconnector
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    # Test the connector locally
     connector.debug()

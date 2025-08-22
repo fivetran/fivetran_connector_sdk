@@ -4,35 +4,35 @@ This directory contains individual examples demonstrating different incremental 
 
 ## Available strategies
 
-### 1. [Keyset Pagination](./keyset_pagination/)
+### 1. [Keyset Pagination](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/keyset_pagination/)
 **Best for**: APIs with cursor-based pagination support
 - Uses a cursor (e.g., `updatedAt` timestamp) to fetch new/updated records
 - Saves the last `updatedAt` value as state
 - Handles scroll parameters for pagination continuation
 - **Most efficient** for truly incremental syncs
 
-### 2. [Offset Pagination](./offset_pagination/)
+### 2. [Offset Pagination](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/offset_pagination/)
 **Best for**: APIs with offset pagination and timestamp filtering support
 - Uses timestamp filtering with offset pagination to fetch records in batches
 - Saves the latest processed timestamp as state
 - Combines incremental sync with pagination for large datasets
 - **Efficient incremental sync** with pagination support
 
-### 3. [Timestamp Sync](./timestamp_sync/)
+### 3. [Timestamp Sync](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/timestamp_sync/)
 **Best for**: APIs with timestamp-based filtering
 - Uses a timestamp to fetch records updated since the last sync
 - Saves the latest processed timestamp as state
 - **Truly incremental** - only processes changed records
 - **Most efficient** for APIs that support timestamp filtering
 
-### 4. [Step-size Sync](./step_size_sync/)
+### 4. [Step-size Sync](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/step_size_sync/)
 **Best for**: APIs without traditional pagination support
 - Uses ID ranges to fetch records in batches
 - Saves the current ID position as state
 - Works with any API that supports ID-based filtering
 - **Universal compatibility** but not truly incremental
 
-### 5. [Replay Sync](./replay_sync/)
+### 5. [Replay Sync](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/replay_sync/)
 **Best for**: Read-replica scenarios with replication lag
 - Uses timestamp-based sync with a configurable buffer
 - Goes back X hours from the last timestamp to handle delays
@@ -65,7 +65,7 @@ This directory contains individual examples demonstrating different incremental 
    ```
    pip install fivetran-connector-sdk requests
    ```
-4. **Configure your API endpoint** by modifying the global variables in `connector.py`
+4. **Configure your API endpoint** by modifying the private global variables in `connector.py`
 5. **Run the connector** for local testing:
    ```
    python connector.py
@@ -116,7 +116,7 @@ All strategies sync data to the same `user` table with this schema:
 
 ## Notes
 
-- All examples use dummy/mock data for educational purposes
+- All examples are intended for learning purposes and use the fivetran-api-playground package to mock the API responses locally. They are not meant for production use.
 - Each strategy includes detailed documentation in its respective folder
 - See the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for getting started with the Fivetran Connector SDK
 - For inquiries, please reach out to our Support team

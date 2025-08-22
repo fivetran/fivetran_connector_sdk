@@ -1,5 +1,7 @@
 # Offset-based Pagination Incremental Sync Strategy Example
 
+**Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/offset_pagination/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/offset_pagination/)
+
 ## Connector overview
 
 This connector demonstrates **offset-based pagination** for incremental syncs using the Fivetran Connector SDK. This strategy uses timestamp-based filtering with offset pagination to fetch records in batches, saving the latest timestamp as state for the next sync.
@@ -27,13 +29,17 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Configuration
 
-Edit the global variables in `connector.py` to set your API endpoint and page size:
+Edit the private global variables in `connector.py` to set your API endpoint and page size:
 
 ```python
-# Global configuration variables
-BASE_URL = "http://127.0.0.1:5001/pagination/offset"
-PAGE_SIZE = 50
+# Private global configuration variables
+__BASE_URL = "http://127.0.0.1:5001/pagination/offset"
+__PAGE_SIZE = 50
 ```
+
+## Requirements file
+
+* No additional requirements required
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
@@ -121,5 +127,7 @@ The connector implements comprehensive error handling:
 - **Performance**: More efficient than simple offset pagination for incremental syncs
 
 ## Additional considerations
+
+This example is intended for learning purposes and uses the fivetran-api-playground package to mock the API responses locally. It is not meant for production use.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
