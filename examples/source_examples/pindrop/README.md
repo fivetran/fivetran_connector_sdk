@@ -1,8 +1,8 @@
-# Pindrop Connector for Fivetran
+# Pindrop Connector SDK Example
 
 ## Connector overview
 
-The Pindrop Connector for Fivetran fetches nightly reports from the Pindrop API and syncs them to your data warehouse. This connector supports multiple report types including blacklist data, call analysis, audit logs, case management, account risk assessments, and enrollment data. The connector implements OAuth2 authentication and provides both initial and incremental sync capabilities with robust error handling and retry logic.
+The Pindrop connector for Fivetran fetches nightly reports from the Pindrop API and syncs them to your data warehouse. This connector supports multiple report types including blacklist data, call analysis, audit logs, case management, account risk assessments, and enrollment data. The connector implements OAuth2 authentication and provides both initial and incremental sync capabilities with robust error handling and retry logic.
 
 ## Requirements
 
@@ -18,13 +18,13 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-* **Multiple Report Types**: Supports blacklist, calls, audit, cases, account_risk, and enrollment reports
-* **OAuth2 Authentication**: Secure authentication using client credentials flow with automatic token refresh
-* **Incremental Sync**: Initial sync from a configurable start date, incremental syncs look back 1 day
-* **State Management**: Maintains sync state to enable efficient incremental updates and resume capability
-* **Error Handling**: Comprehensive error handling with exponential backoff retry logic
-* **Rate Limiting**: Built-in rate limiting to respect API constraints
-* **CSV Data Processing**: Handles CSV response format from Pindrop API endpoints
+* **Multiple report types**: Supports blacklist, calls, audit, cases, account_risk, and enrollment reports
+* **OAuth2 authentication**: Secure authentication using client credentials flow with automatic token refresh
+* **Incremental sync**: Initial sync from a configurable start date, incremental syncs look back 1 day
+* **State management**: Maintains sync state to enable efficient incremental updates and resume capability
+* **Error handling**: Comprehensive error handling with exponential backoff retry logic
+* **Rate limiting**: Built-in rate limiting to respect API constraints
+* **CSV data processing**: Handles CSV response format from Pindrop API endpoints
 
 ## Configuration file
 
@@ -73,10 +73,10 @@ Refer to the `generate_reports_to_process` function for pagination logic.
 
 The connector processes CSV data from the Pindrop API and transforms it into structured records:
 
-* **CSV Parsing**: Uses the `parse_csv_data` function to convert CSV responses into dictionaries
-* **Schema Mapping**: Each record includes metadata fields (report_date, report_type, _fivetran_synced)
-* **Data Cleaning**: Handles null values and trims whitespace from string fields
-* **Primary Keys**: Generates unique IDs for records when not provided by the source
+* **CSV parsing**: Uses the `parse_csv_data` function to convert CSV responses into dictionaries
+* **Schema mapping**: Each record includes metadata fields (report_date, report_type, _fivetran_synced)
+* **Data cleaning**: Handles null values and trims whitespace from string fields
+* **Primary keys**: Generates unique IDs for records when not provided by the source
 
 Data is delivered to Fivetran using upsert operations for each record, ensuring data consistency and enabling incremental updates.
 
@@ -84,11 +84,11 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 The connector implements comprehensive error handling strategies:
 
-* **Retry Logic**: Exponential backoff for failed API requests (refer to `make_api_request` function)
-* **Token Refresh**: Automatic retry with fresh tokens on authentication failures
-* **Partial Failures**: Continues processing other reports if individual requests fail
-* **State Preservation**: Checkpoints progress to enable recovery from interruptions
-* **Detailed Logging**: Comprehensive logging at INFO, WARNING, and SEVERE levels
+* **Retry logic**: Exponential backoff for failed API requests (refer to `make_api_request` function)
+* **Token refresh**: Automatic retry with fresh tokens on authentication failures
+* **Partial failures**: Continues processing other reports if individual requests fail
+* **State preservation**: Checkpoints progress to enable recovery from interruptions
+* **Detailed logging**: Comprehensive logging at INFO, WARNING, and SEVERE levels
 
 Refer to the `OAuth2TokenManager._request_new_token` method for authentication error handling and the `fetch_report_data` function for API error handling.
 
