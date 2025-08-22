@@ -71,7 +71,7 @@ The connector processes data as follows:
 - **Incremental Processing**: Only processes records updated since the last sync
 - **State Tracking**: Updates the cursor after processing each batch
 
-The connector syncs data to the `user` table with the following schema:
+The connector syncs data to the `USER` table with the following schema:
 
 ```json
 {

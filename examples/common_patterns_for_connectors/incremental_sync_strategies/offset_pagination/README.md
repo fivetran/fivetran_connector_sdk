@@ -1,4 +1,4 @@
-# Offset-based Pagination Incremental Sync Strategy Example
+# Offset-based Pagination Incremental Sync Strategy Connector Example
 
 **Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/offset_pagination/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/offset_pagination/)
 
@@ -84,7 +84,7 @@ The connector processes data as follows:
 - **Batch Processing**: Processes records in configurable page sizes
 - **State Tracking**: Updates the timestamp after processing each batch
 
-The connector syncs data to the `user` table with the following schema:
+The connector syncs data to the `USER` table with the following schema:
 
 ```json
 {

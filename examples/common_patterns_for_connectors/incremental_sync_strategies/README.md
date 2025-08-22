@@ -71,9 +71,9 @@ This directory contains individual examples demonstrating different incremental 
    python connector.py
    ```
 
-## Common schema
+## Tables created
 
-All strategies sync data to the same `user` table with this schema:
+All strategies sync data to the same `USER` table with this schema:
 
 ```json
 {

@@ -1,4 +1,4 @@
-# Timestamp-based Incremental Sync Strategy Example
+# Timestamp-based Incremental Sync Strategy Connector Example
 
 **Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/timestamp_sync/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/timestamp_sync/)
 
@@ -67,7 +67,7 @@ The connector processes data as follows:
 - **Incremental Processing**: Only processes records updated since the last sync
 - **State Tracking**: Updates the timestamp after processing all records
 
-The connector syncs data to the `user` table with the following schema:
+The connector syncs data to the `USER` table with the following schema:
 
 ```json
 {

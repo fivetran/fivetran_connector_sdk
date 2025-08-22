@@ -1,4 +1,4 @@
-# Step-size Incremental Sync Strategy Example
+# Step-size Incremental Sync Strategy Connector Example
 
 **Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/step_size_sync/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/step_size_sync/)
 
@@ -71,7 +71,7 @@ The connector processes data as follows:
 - **Batch Processing**: Processes records in configurable step sizes
 - **State Tracking**: Updates the current ID after processing each batch
 
-The connector syncs data to the `user` table with the following schema:
+The connector syncs data to the `USER` table with the following schema:
 
 ```json
 {
