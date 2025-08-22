@@ -22,7 +22,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Private global configuration variables
-__BASE_URL = "http://127.0.0.1:5001/incremental/replay"
+__BASE_URL = "http://127.0.0.1:5001/incremental/timestamp"
 __BUFFER_HOURS = 2
 
 
