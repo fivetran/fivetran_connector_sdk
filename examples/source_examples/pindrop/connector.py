@@ -460,8 +460,12 @@ def _process_report(
         for record in records:
             op.upsert(table=table_name, data=record)
 
+        # Check if this is a newer date than what we have for this report type
+        is_newer_report_type = report_type not in latest_dates_by_type
+        is_newer_report_date = report_date > latest_dates_by_type[report_type]
+
         # Track the latest date for this report type
-        if report_type not in latest_dates_by_type or report_date > latest_dates_by_type[report_type]:
+        if is_newer_report_date or is_newer_report_type:
             latest_dates_by_type[report_type] = report_date
 
         log.info(
