@@ -89,9 +89,6 @@ def update(configuration: dict, state: dict):
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
 
-        if len(data) < __STEP_SIZE:
-            break
-
 
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)

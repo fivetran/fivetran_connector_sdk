@@ -80,14 +80,12 @@ def update(configuration: dict, state: dict):
             # Prerequisite: This line only works if data is sorted by updatedAt in ascending order
             state["last_timestamp"] = user["updatedAt"]
 
+        params["since"] = state["last_timestamp"]
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
-
-        # Assume API returns all new/updated records since last_timestamp in one call
-        break
 
 
 # Create the connector object using the schema and update functions

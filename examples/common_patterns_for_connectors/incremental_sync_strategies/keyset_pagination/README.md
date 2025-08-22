@@ -1,4 +1,4 @@
-# Keyset Pagination Incremental Sync Strategy Example
+# Keyset Pagination Incremental Sync Strategy Connector Example
 
 **Complete Example Link:** [examples/common_patterns_for_connectors/incremental_sync_strategies/keyset_pagination/](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/keyset_pagination/)
 
