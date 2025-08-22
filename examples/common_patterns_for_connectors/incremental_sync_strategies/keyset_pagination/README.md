@@ -9,15 +9,10 @@ This connector demonstrates **keyset pagination** for incremental syncs using th
 ## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating System:  
-  * Windows 10 or later  
-  * macOS 13 (Ventura) or later
-
-## Requirements file
-
-* No additional requirements required
-
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
+* Operating system:
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -70,6 +65,8 @@ The connector processes data as follows:
 - **Data Extraction**: Fetches records using cursor-based pagination
 - **Incremental Processing**: Only processes records updated since the last sync
 - **State Tracking**: Updates the cursor after processing each batch
+
+## Table created
 
 The connector syncs data to the `USER` table with the following schema:
 

@@ -59,6 +59,8 @@ This directory contains individual examples demonstrating different incremental 
 
 ## Getting started
 
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
 1. **Choose your strategy** based on your API capabilities and requirements
 2. **Navigate to the strategy folder** (e.g., `keyset_pagination/`)
 3. **Install dependencies**:
