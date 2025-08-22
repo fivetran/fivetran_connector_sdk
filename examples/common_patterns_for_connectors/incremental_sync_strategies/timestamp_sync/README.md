@@ -68,6 +68,9 @@ The connector processes data as follows:
 - **Incremental Processing**: Only processes records updated since the last sync
 - **State Tracking**: Updates the timestamp after processing all records
 
+
+## Table created
+
 The connector syncs data to the `USER` table with the following schema:
 
 ```json

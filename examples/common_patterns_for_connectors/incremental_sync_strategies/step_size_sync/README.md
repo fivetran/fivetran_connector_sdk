@@ -72,6 +72,9 @@ The connector processes data as follows:
 - **Batch Processing**: Processes records in configurable step sizes
 - **State Tracking**: Updates the current ID after processing each batch
 
+
+## Table created
+
 The connector syncs data to the `USER` table with the following schema:
 
 ```json
