@@ -96,14 +96,14 @@ Refer to the `OAuth2TokenManager._request_new_token` method for authentication e
 
 The connector creates the following tables in your destination:
 
-| Table Name | Primary Key | Description |
-|------------|-------------|-------------|
-| `blacklist` | `[report_date, phone_number]` | Blacklisted phone numbers and associated data |
-| `calls` | `[report_date, id]` | Call detail records and analysis |
-| `audit` | `[report_date, id]` | Audit logs and security events |
-| `cases` | `[report_date, id]` | Case management data |
-| `account_risk` | `[report_date, id]` | Account risk assessment reports |
-| `enrollment` | `[report_date, id]` | Enrollment and registration data |
+| Table Name     | Primary Key | Description |
+|----------------|-------------|-------------|
+| `BLACKLIST`    | `[report_date, phone_number]` | Blacklisted phone numbers and associated data |
+| `CALLS`        | `[report_date, id]` | Call detail records and analysis |
+| `AUDIT`        | `[report_date, id]` | Audit logs and security events |
+| `CASES`        | `[report_date, id]` | Case management data |
+| `ACCOUNT_RISK` | `[report_date, id]` | Account risk assessment reports |
+| `ENROLLMENT`   | `[report_date, id]` | Enrollment and registration data |
 
 All tables include the following metadata fields:
 * `report_date`: Date of the report (YYYY-MM-DD)
