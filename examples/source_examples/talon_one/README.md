@@ -1,4 +1,4 @@
-# Talon.one Connector
+# Talon.one Connector Example
 
 ## Connector overview
 
@@ -35,9 +35,7 @@ The connector requires configuration with your Talon.one credentials and sync se
 ```json
 {
     "base_url": "https://<your_subdomain>.us-west1.talon.one/v1/", 
-    "api_key": "<your_api_key>",        
-    "page_size": "1000",                        
-    "initial_sync_start_time": "2025-01-01T00:00:00.00Z"                          
+    "api_key": "<your_api_key>"           
 }
 ```
 
