@@ -14,17 +14,18 @@ The Pindrop connector for Fivetran fetches nightly reports from the Pindrop API 
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
+The connector supports the following features:
 
-* **Multiple report types**: Supports blacklist, calls, audit, cases, account_risk, and enrollment reports
-* **OAuth2 authentication**: Secure authentication using client credentials flow with automatic token refresh
-* **Incremental sync**: Initial sync from a configurable start date, incremental syncs look back 1 day
-* **State management**: Maintains sync state to enable efficient incremental updates and resume capability
-* **Error handling**: Comprehensive error handling with exponential backoff retry logic
-* **Rate limiting**: Built-in rate limiting to respect API constraints
-* **CSV data processing**: Handles CSV response format from Pindrop API endpoints
+- **Multiple report types**: Supports blacklist, calls, audit, cases, account_risk, and enrollment reports
+- **OAuth2 authentication**: Secure authentication using client credentials flow with automatic token refresh
+- **Incremental sync**: Initial sync from a configurable start date, incremental syncs look back 1 day
+- **State management**: Maintains sync state to enable efficient incremental updates and resume capability
+- **Error handling**: Comprehensive error handling with exponential backoff retry logic
+- **Rate limiting**: Built-in rate limiting to respect API constraints
+- **CSV data processing**: Handles CSV response format from Pindrop API endpoints
 
 ## Configuration file
 
@@ -49,10 +50,10 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 The connector uses OAuth2 client credentials flow for authentication with the Pindrop API. The authentication process is handled by the `OAuth2TokenManager` class which:
 
-1. Requests access tokens using client_id and client_secret
-2. Automatically refreshes tokens before expiration
-3. Implements retry logic with exponential backoff for token requests
-4. Handles authentication errors gracefully
+- Requests access tokens using client_id and client_secret
+- Automatically refreshes tokens before expiration
+- Implements retry logic with exponential backoff for token requests
+- Handles authentication errors gracefully
 
 To obtain the necessary credentials:
 1. Contact your Pindrop account representative to set up API access
