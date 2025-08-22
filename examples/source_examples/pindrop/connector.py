@@ -319,7 +319,7 @@ def fetch_report_data(token_manager: OAuth2TokenManager, report_type: str, repor
             # Try to refresh token and retry once
             log.warning("Authentication failed, attempting to refresh token")
             try:
-                access_token = token_manager._request_new_token()
+                access_token = token_manager._request_new_token(max_retries=__MAX_RETRIES)
                 headers["Authorization"] = f"Bearer {access_token}"
                 csv_data = make_api_request(url, headers, max_retries=1, expect_csv=True)
 
