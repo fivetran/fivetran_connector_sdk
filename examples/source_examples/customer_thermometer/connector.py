@@ -279,19 +279,18 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    This function fetches data from the Customer Thermometer API and loads it into destination tables.
+    The update function is called by Fivetran during each sync. It fetches data from the Customer Thermometer API and loads it into destination tables.
+    This connector is stateless and does not maintain or checkpoint any sync state.
 
     Args:
         configuration (dict): A dictionary containing connection details and API credentials
-        state (dict): A dictionary containing state information from previous runs
-                     The state dictionary is empty for the first sync or for any full re-sync
+        state (dict): Unused; present for SDK compatibility only
 
     Raises:
         ValueError: If configuration validation fails
         RuntimeError: If any error occurs during the sync process
     """
-    log.warning("Example: Customer Thermometer API Connector")
+    log.info("Example: Customer Thermometer API Connector")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
@@ -301,8 +300,7 @@ def update(configuration: dict, state: dict):
     from_date = configuration.get("from_date")
     to_date = configuration.get("to_date")
 
-    # Get the state variable for the sync, if needed
-    last_sync_time = state.get("last_sync_time")
+    # Track the number of records processed (for logging only)
     records_processed = 0
 
     try:
@@ -313,14 +311,6 @@ def update(configuration: dict, state: dict):
             op.upsert(table="comments", data=comment)
             records_processed += 1
 
-            # Checkpoint progress every DEFAULT_CHECKPOINT_INTERVAL records
-            if records_processed % DEFAULT_CHECKPOINT_INTERVAL == 0:
-                new_state = {
-                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
-                    "records_processed": records_processed,
-                }
-                op.checkpoint(new_state)
-
         log.info(f"Processed {len(comments)} comment records")
 
         # Sync Blast Results data - Refer to fetch_blast_results function
@@ -329,13 +319,6 @@ def update(configuration: dict, state: dict):
         for blast_result in blast_results:
             op.upsert(table="blast_results", data=blast_result)
             records_processed += 1
-
-            if records_processed % DEFAULT_CHECKPOINT_INTERVAL == 0:
-                new_state = {
-                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
-                    "records_processed": records_processed,
-                }
-                op.checkpoint(new_state)
 
         log.info(f"Processed {len(blast_results)} blast result records")
 
@@ -378,17 +361,7 @@ def update(configuration: dict, state: dict):
                 log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
                 continue
 
-        # Final state update with the current sync time for the next run
-        final_state = {
-            "last_sync_time": datetime.now(timezone.utc).isoformat(),
-            "records_processed": records_processed,
-        }
-
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(final_state)
+        # No final state checkpointing required
 
         log.info(f"Sync completed successfully. Total records processed: {records_processed}")
 
@@ -433,6 +406,6 @@ if __name__ == "__main__":
 # Deletes         | 0
 # Truncates       | 0
 # SchemaChanges   | 5
-# Checkpoints     | 1
+# Checkpoints     | 0
 #
 # Aug 23, 2025 11:29:41 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED

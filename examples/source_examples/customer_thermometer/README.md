@@ -2,15 +2,15 @@
 
 ## Connector overview
 
-The Customer Thermometer connector for Fivetran fetches customer feedback data from the Customer Thermometer API and syncs it to your data warehouse. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. The connector implements API key authentication, parses XML responses, and provides reliable incremental syncs with checkpointing, following Fivetran best practices for reliability, security, and maintainability.
+The Customer Thermometer connector for Fivetran fetches customer feedback data from the Customer Thermometer API and syncs it to your data warehouse. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. The connector implements API key authentication, parses XML responses, and is stateless, following Fivetran best practices for reliability, security, and maintainability.
 
 ## Requirements
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 * Operating system:
-    * Windows: 10 or later (64-bit only)
-    * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -23,7 +23,7 @@ The connector supports the following features:
 - Multiple endpoints: Supports comments, blast results, recipient lists, thermometers, and metrics
 - API key authentication: Secure authentication using Customer Thermometer API keys
 - XML parsing: Converts XML API responses to structured records
-- Incremental sync: Checkpoint-based state management for reliable syncs
+
 - Error handling: Individual record and API error handling without stopping entire sync
 - Comprehensive logging: Uses Fivetran's logging framework for troubleshooting and monitoring
 - SDK v2.0.0+ compliance: Uses direct operation calls (no yield statements)
@@ -88,7 +88,7 @@ The connector implements comprehensive error handling strategies in the `update`
 - API error management: HTTP and XML errors are caught and logged with severity levels
 - Timeout configuration: 30-second timeout for API requests to prevent hanging
 - Detailed logging: Uses Fivetran's logging framework (INFO, WARNING, ERROR levels)
-- State preservation: Checkpoints progress after each batch to enable recovery
+
 
 Refer to the `update` and `make_api_request` functions for error handling and record processing logic.
 
