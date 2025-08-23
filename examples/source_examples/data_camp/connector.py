@@ -4,6 +4,7 @@ This connector fetches course catalog data from DataCamp's LMS Catalog API inclu
 projects, assessments, practices, tracks, and custom tracks. It flattens nested objects and
 creates breakout tables for array relationships following Fivetran best practices.
 """
+
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -20,50 +21,22 @@ ENDPOINTS = {
     "custom_tracks": {
         "url": "/v1/catalog/live-custom-tracks",
         "table": "custom_tracks",
-        "pk": ["id"]
+        "pk": ["id"],
     },
     "custom_tracks_content": {
         "table": "custom_tracks_content",
-        "pk": ["custom_track_id", "position"]
+        "pk": ["custom_track_id", "position"],
     },
-    "courses": {
-        "url": "/v1/catalog/live-courses",
-        "table": "courses",
-        "pk": ["id"]
-    },
-    "courses_chapters": {
-        "table": "courses_chapters",
-        "pk": ["id", "course_id"]
-    },
-    "projects": {
-        "url": "/v1/catalog/live-projects",
-        "table": "projects",
-        "pk": ["id"]
-    },
-    "projects_topics": {
-        "table": "projects_topics",
-        "pk": ["project_id", "name"]
-    },
-    "assessments": {
-        "url": "/v1/catalog/live-assessments",
-        "table": "assessments",
-        "pk": ["id"]
-    },
-    "practices": {
-        "url": "/v1/catalog/live-practices",
-        "table": "practices",
-        "pk": ["id"]
-    },
-    "tracks": {
-        "url": "/v1/catalog/live-tracks",
-        "table": "tracks",
-        "pk": ["id"]
-    },
-    "tracks_content": {
-        "table": "tracks_content",
-        "pk": ["track_id", "position"]
-    }
+    "courses": {"url": "/v1/catalog/live-courses", "table": "courses", "pk": ["id"]},
+    "courses_chapters": {"table": "courses_chapters", "pk": ["id", "course_id"]},
+    "projects": {"url": "/v1/catalog/live-projects", "table": "projects", "pk": ["id"]},
+    "projects_topics": {"table": "projects_topics", "pk": ["project_id", "name"]},
+    "assessments": {"url": "/v1/catalog/live-assessments", "table": "assessments", "pk": ["id"]},
+    "practices": {"url": "/v1/catalog/live-practices", "table": "practices", "pk": ["id"]},
+    "tracks": {"url": "/v1/catalog/live-tracks", "table": "tracks", "pk": ["id"]},
+    "tracks_content": {"table": "tracks_content", "pk": ["track_id", "position"]},
 }
+
 
 # Custom flatten for custom tracks
 def flatten_custom_track(track: Dict[str, Any]) -> Dict[str, Any]:
@@ -139,6 +112,7 @@ def flatten_practice(practice: Dict[str, Any]) -> Dict[str, Any]:
             flat[key] = value
     return flat
 
+
 # Custom flatten for assessments
 def flatten_assessment(assessment: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -159,6 +133,7 @@ def flatten_assessment(assessment: Dict[str, Any]) -> Dict[str, Any]:
             flat[key] = value
     return flat
 
+
 # Custom flatten for projects
 def flatten_project(project: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -176,13 +151,18 @@ def flatten_project(project: Dict[str, Any]) -> Dict[str, Any]:
             for img_type, url in value.items():
                 flat[f"imageUrl_{img_type}"] = url
         elif key == "instructors" and isinstance(value, list):
-            flat["instructors"] = ", ".join(instructor.get("fullName", "") for instructor in value if isinstance(instructor, dict))
+            flat["instructors"] = ", ".join(
+                instructor.get("fullName", "")
+                for instructor in value
+                if isinstance(instructor, dict)
+            )
         elif key == "topics":
             # topics handled separately
             continue
         else:
             flat[key] = value
     return flat
+
 
 def validate_configuration(configuration: dict):
     """
@@ -198,6 +178,7 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration or not configuration[key]:
             raise ValueError(f"Missing required configuration value: {key}")
+
 
 def schema(configuration: dict):
     """
@@ -215,8 +196,7 @@ def schema(configuration: dict):
     validate_configuration(configuration)
     # Only include tables, not endpoints without a table key
     return [
-        {"table": v["table"], "primary_key": v["pk"]}
-        for k, v in ENDPOINTS.items() if "table" in v
+        {"table": v["table"], "primary_key": v["pk"]} for k, v in ENDPOINTS.items() if "table" in v
     ]
 
 
@@ -242,7 +222,11 @@ def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
         elif key == "includedInLicenses" and isinstance(value, list):
             flat["includedInLicenses"] = ", ".join(str(item) for item in value)
         elif key == "instructors" and isinstance(value, list):
-            flat["instructors"] = ", ".join(instructor.get("fullName", "") for instructor in value if isinstance(instructor, dict))
+            flat["instructors"] = ", ".join(
+                instructor.get("fullName", "")
+                for instructor in value
+                if isinstance(instructor, dict)
+            )
         elif key == "chapters":
             # chapters handled separately
             continue
@@ -250,8 +234,9 @@ def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
             flat[key] = value
     return flat
 
+
 # Generic flatten for other endpoints
-def flatten_dict(data: Dict[str, Any], parent_key: str = '', sep: str = '_') -> Dict[str, Any]:
+def flatten_dict(data: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
     """
     Generic function to flatten nested dictionaries and convert lists to JSON strings.
 
@@ -277,6 +262,7 @@ def flatten_dict(data: Dict[str, Any], parent_key: str = '', sep: str = '_') -> 
             items.append((new_key, value))
     return dict(items)
 
+
 def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict[str, Any]]:
     """
     Fetch data from a DataCamp API endpoint with proper error handling.
@@ -293,10 +279,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict
         Exception: Logs severe errors but returns empty list on failure
     """
     url = base_url.rstrip("/") + endpoint
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {bearer_token}"}
     try:
         response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
@@ -315,6 +298,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict
     except Exception as e:
         log.severe(f"Failed to fetch {endpoint}: {e}")
         return []
+
 
 def update(configuration: dict, state: dict):
     """
@@ -478,7 +462,7 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     connector.debug(configuration=configuration)
 
