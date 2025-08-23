@@ -1,0 +1,5 @@
+{
+    "api_key": "<api_key_value>",
+    "from_date": "<YYYY-MM-DD>",
+    "to_date": "<YYYY-MM-DD"
+}
