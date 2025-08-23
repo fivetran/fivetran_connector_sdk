@@ -424,3 +424,15 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
+
+# Aug 23, 2025 11:29:41 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
+# Operation       | Calls
+# ----------------+------------
+# Upserts         | 19
+# Updates         | 0
+# Deletes         | 0
+# Truncates       | 0
+# SchemaChanges   | 5
+# Checkpoints     | 1
+#
+# Aug 23, 2025 11:29:41 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED
