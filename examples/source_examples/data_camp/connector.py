@@ -15,8 +15,9 @@ import requests
 from typing import Dict, Any, List
 
 # Constants for endpoints and table mapping
-BASE_URL_DEFAULT = "https://lms-catalog-api.datacamp.com"
-REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests
+__BASE_URL_DEFAULT = "https://lms-catalog-api.datacamp.com"
+__REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests in seconds
+__MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 ENDPOINTS = {
     "custom_tracks": {
         "url": "/v1/catalog/live-custom-tracks",
@@ -174,7 +175,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: If any required configuration value is missing or empty
     """
-    required_configs = ["base_url", "bearer_token"]
+    required_configs = ["bearer_token"]
     for key in required_configs:
         if key not in configuration or not configuration[key]:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -281,7 +282,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict
     url = base_url.rstrip("/") + endpoint
     headers = {"Accept": "application/json", "Authorization": f"Bearer {bearer_token}"}
     try:
-        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+        response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
         data = response.json()
         # If the response is a dict with a top-level list, extract it
@@ -305,16 +306,17 @@ def update(configuration: dict, state: dict):
     Sync data from DataCamp LMS Catalog API endpoints.
 
     Args:
-        configuration (dict): Configuration containing base_url and bearer_token
+        configuration (dict): Configuration containing bearer_token
         state (dict): Current state for incremental syncing
     """
     # Extract configuration values
-    base_url = configuration.get("base_url", BASE_URL_DEFAULT)
     bearer_token = configuration["bearer_token"]
 
     # Handle custom tracks endpoint with custom flattening and content breakout
     log.info("Fetching endpoint: /v1/catalog/live-custom-tracks")
-    custom_tracks = fetch_endpoint(base_url, "/v1/catalog/live-custom-tracks", bearer_token)
+    custom_tracks = fetch_endpoint(
+        __BASE_URL_DEFAULT, "/v1/catalog/live-custom-tracks", bearer_token
+    )
     custom_tracks_upserted = 0
     custom_tracks_content_upserted = 0
     for track in custom_tracks:
@@ -342,7 +344,7 @@ def update(configuration: dict, state: dict):
 
     # Handle courses endpoint with custom flattening and chapters breakout
     log.info("Fetching endpoint: /v1/catalog/live-courses")
-    courses = fetch_endpoint(base_url, "/v1/catalog/live-courses", bearer_token)
+    courses = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-courses", bearer_token)
     courses_upserted = 0
     courses_chapters_upserted = 0
     for course in courses:
@@ -367,11 +369,11 @@ def update(configuration: dict, state: dict):
 
     # Checkpoint after courses
     log.info(f"Upserted {courses_upserted} courses, {courses_chapters_upserted} chapters")
-    op.checkpoint({"last_synced": "courses"})
+    op.checkpoint(state={"last_synced_endpoint": "courses"})
 
     # Handle projects endpoint with custom flattening and topics breakout
     log.info("Fetching endpoint: /v1/catalog/live-projects")
-    projects = fetch_endpoint(base_url, "/v1/catalog/live-projects", bearer_token)
+    projects = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-projects", bearer_token)
     projects_upserted = 0
     projects_topics_upserted = 0
     for project in projects:
@@ -399,7 +401,7 @@ def update(configuration: dict, state: dict):
 
     # Handle tracks endpoint with custom flattening and content breakout
     log.info("Fetching endpoint: /v1/catalog/live-tracks")
-    tracks = fetch_endpoint(base_url, "/v1/catalog/live-tracks", bearer_token)
+    tracks = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-tracks", bearer_token)
     tracks_upserted = 0
     tracks_content_upserted = 0
     for track in tracks:
@@ -427,7 +429,7 @@ def update(configuration: dict, state: dict):
 
     # Handle practices endpoint with custom flattening
     log.info("Fetching endpoint: /v1/catalog/live-practices")
-    practices = fetch_endpoint(base_url, "/v1/catalog/live-practices", bearer_token)
+    practices = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-practices", bearer_token)
     practices_upserted = 0
     for practice in practices:
         flat = flatten_practice(practice)
@@ -443,7 +445,7 @@ def update(configuration: dict, state: dict):
 
     # Handle assessments endpoint with custom flattening
     log.info("Fetching endpoint: /v1/catalog/live-assessments")
-    assessments = fetch_endpoint(base_url, "/v1/catalog/live-assessments", bearer_token)
+    assessments = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-assessments", bearer_token)
     assessments_upserted = 0
     for assessment in assessments:
         flat = flatten_assessment(assessment)

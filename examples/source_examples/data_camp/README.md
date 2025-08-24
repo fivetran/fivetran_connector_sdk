@@ -8,9 +8,9 @@ The DataCamp connector for Fivetran fetches course catalog data from the DataCam
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 * Operating system:
-    * Windows: 10 or later (64-bit only)
-    * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -31,11 +31,10 @@ The connector supports the following features:
 
 ## Configuration file
 
-The connector requires Bearer token authentication for the DataCamp LMS Catalog API. The base URL is configurable but defaults to the standard DataCamp API endpoint.
+The connector requires Bearer token authentication for the DataCamp LMS Catalog API. The base URL is configured as a constant in the connector code and defaults to the standard DataCamp API endpoint.
 
 ```json
 {
-  "base_url": "https://lms-catalog-api.datacamp.com",
   "bearer_token": "YOUR_ACCESS_TOKEN"
 }
 ```
@@ -91,11 +90,11 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies in the `fetch_endpoint` function and individual record processing loops:
+The connector implements comprehensive error handling strategies following Fivetran best practices:
 
 * **Individual record handling**: Failed records don't stop the entire sync process
 * **API error management**: HTTP errors are caught and logged with severity levels
-* **Timeout configuration**: 30-second timeout for API requests to prevent hanging
+* **Timeout configuration**: Configurable timeout (30 seconds default) for API requests to prevent hanging
 * **Detailed logging**: Uses Fivetran's logging framework (INFO, WARNING, SEVERE levels)
 * **State preservation**: Checkpoints progress after each endpoint to enable recovery
 
@@ -121,5 +120,13 @@ The connector creates the following tables in your destination:
 All main tables include flattened versions of complex nested objects, while breakout tables maintain relationships through foreign keys.
 
 ## Additional considerations
+
+This connector has been updated to follow Fivetran Python coding standards including:
+
+- **Private constants**: Uses double underscore prefix (`__BASE_URL_DEFAULT`, `__REQUEST_TIMEOUT_SECONDS`) for private constants
+- **Simplified configuration**: Removes configurable base URL in favor of code-based constant for security
+- **Consistent naming**: Follows PEP 8 naming conventions throughout
+- **Error handling**: Comprehensive error handling with proper logging
+- **State management**: Consistent checkpoint state structure across all endpoints
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
