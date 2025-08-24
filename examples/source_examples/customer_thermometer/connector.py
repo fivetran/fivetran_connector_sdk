@@ -19,11 +19,21 @@ from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
 # Constants for API configuration
-BASE_URL = "https://app.customerthermometer.com/api.php"
-DEFAULT_CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
-API_TIMEOUT_SECONDS = 30  # API request timeout in seconds
-REQUIRED_CONFIG_PARAMS = ["api_key"]  # Required configuration parameters
-MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
+__BASE_URL = "https://app.customerthermometer.com/api.php"
+__DEFAULT_CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
+__API_TIMEOUT_SECONDS = 30  # API request timeout in seconds
+__REQUIRED_CONFIG_PARAMS = ["api_key"]  # Required configuration parameters
+__MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
+
+# Constants for metric endpoints
+__METRIC_ENDPOINTS = [
+    "getNumResponsesValue",
+    "getResponseRateValue",
+    "getTempRatingValue",
+    "getNPSValue",
+    "getHappinessValue",
+    "getSendQuota",
+]
 
 
 def validate_configuration(configuration: dict):
@@ -39,13 +49,13 @@ def validate_configuration(configuration: dict):
         ValueError: If any required configuration parameter is missing or invalid.
     """
     # Check for required configuration parameters
-    for key in REQUIRED_CONFIG_PARAMS:
+    for key in __REQUIRED_CONFIG_PARAMS:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
     # Validate API key format (basic check)
     api_key = configuration.get("api_key")
-    if not api_key or len(api_key) < MIN_API_KEY_LENGTH:
+    if not api_key or len(api_key) < __MIN_API_KEY_LENGTH:
         raise ValueError("Invalid API key format")
 
 
@@ -76,7 +86,7 @@ def make_api_request(
         params["endDate"] = to_date
 
     try:
-        response = requests.get(BASE_URL, params=params, timeout=API_TIMEOUT_SECONDS)
+        response = requests.get(__BASE_URL, params=params, timeout=__API_TIMEOUT_SECONDS)
         response.raise_for_status()
         return response
     except requests.RequestException as e:
@@ -295,8 +305,8 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
 
-    # Extract configuration parameters
-    api_key = configuration.get("api_key")
+    # Extract configuration parameters (validated above, so safe to assume they exist)
+    api_key: str = configuration["api_key"]
     from_date = configuration.get("from_date")
     to_date = configuration.get("to_date")
 
@@ -342,16 +352,8 @@ def update(configuration: dict, state: dict):
 
         # Sync Metrics data - Refer to fetch_metric_value function for each metric endpoint
         log.info("Fetching metrics data...")
-        metric_endpoints = [
-            "getNumResponsesValue",
-            "getResponseRateValue",
-            "getTempRatingValue",
-            "getNPSValue",
-            "getHappinessValue",
-            "getSendQuota",
-        ]
 
-        for endpoint in metric_endpoints:
+        for endpoint in __METRIC_ENDPOINTS:
             try:
                 metric_data = fetch_metric_value(api_key, endpoint, from_date, to_date)
                 op.upsert(table="metrics", data=metric_data)
