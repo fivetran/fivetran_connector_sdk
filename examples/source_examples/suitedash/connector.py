@@ -333,7 +333,7 @@ def sync_companies(configuration: dict, state: dict):
         else:
             more_data = False
 
-        log.info(f"Processed page {page-1} of companies, total processed: {companies_processed}")
+        log.info(f"Processed page {page - 1} of companies, total processed: {companies_processed}")
 
     log.info(f"Companies sync completed. Total companies processed: {companies_processed}")
 
@@ -394,7 +394,7 @@ def sync_contacts(configuration: dict, state: dict):
             more_data = False
 
         log.info(
-            f"Processed page {page-1} of contacts, total processed: {contacts_processed}, relationships: {relationships_processed}"
+            f"Processed page {page - 1} of contacts, total processed: {contacts_processed}, relationships: {relationships_processed}"
         )
 
     log.info(
