@@ -65,11 +65,11 @@ The connector simulates data processing in the following way:
 
 - Data Processing: Generated data is transformed into a structured format with the following fields:
 
-    - key: Timestamp used as the primary key
-    - request: Configuration value
-    - result: Response message from simulated data
-    - metadata: JSON-serialized object containing timestamp and random value
-    - Data Storage: The processed data is upserted to the demo_response_test table using the Connector SDK's operations interface.
+    - `key`: Timestamp used as the primary key
+    - `request`: Configuration value
+    - `result`: Response message from simulated data
+    - `metadata`: JSON-serialized object containing timestamp and random value
+- Data Storage: The processed data is upserted to the `DEMO_TEST` table using the Connector SDK's operations interface.
 
 - State Management: The connector maintains state using a cursor timestamp that tracks the last successful sync time, ensuring proper incremental syncs.
 
@@ -87,9 +87,9 @@ This connector demonstrates five key error handling patterns:
 
 - Database Operation Error Handling: Gracefully handles failures during data upsert operations to the destination (Error type 5).
 
-All errors are processed through a centralized `handle_critical_error` function that:
+All errors are processed through a centralized `handle_critical_error` function that does the following:
 
-- Logs the error with appropriate severity level
+- Logs the errors with appropriate severity level
 - Includes detailed error information when available
 - Raises an exception to stop connector execution when necessary
 
