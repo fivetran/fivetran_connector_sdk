@@ -1,14 +1,16 @@
-# NOTE: NEEDS TO BE VALIDATED WITH VEEVA USERNAME/PASSWORD, only the basic_auth example has been fully validated
-# IF INTENDING TO USE - PLEASE CREATE A SAVE ME TIME TICKET HERE: https://fivetran.com/docs/connector-sdk#connectorsdk
+"""
+NOTE: NEEDS TO BE VALIDATED WITH VEEVA USERNAME/PASSWORD, only the basic_auth example has been fully validated
+IF INTENDING TO USE - PLEASE CREATE A SAVE ME TIME TICKET HERE: https://fivetran.com/docs/connector-sdk#connectorsdk
 
-# This is a simple example for how to work with the fivetran_connector_sdk module.
-# This code is currently configured to Retrieve Details from All Object Types in Veeva Vault and then utilize VQL to retrieve all Object records, creating one table per object
-# You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json
-# Retrieve Details from All Object Types endpoint: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
-# VQL endpoint: https://developer.veevavault.com/api/24.2/#vault-query-language-vql
-# You can also add code to extract from other endpoints as needed.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+This is a simple example for how to work with the fivetran_connector_sdk module.
+This code is currently configured to Retrieve Details from All Object Types in Veeva Vault and then utilize VQL to retrieve all Object records, creating one table per object
+You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json
+Retrieve Details from All Object Types endpoint: https://developer.veevavault.com/api/24.2/#retrieve-details-from-all-object-types
+VQL endpoint: https://developer.veevavault.com/api/24.2/#vault-query-language-vql
+You can also add code to extract from other endpoints as needed.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
