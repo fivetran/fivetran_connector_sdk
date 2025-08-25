@@ -8,11 +8,11 @@ This connector demonstrates **keyset pagination** for incremental syncs using th
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -27,15 +27,6 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - **Efficient**: Only processes new/updated records
 - **Reliable**: Handles large datasets without missing records
 - **Scalable**: Works well with APIs that support cursor-based pagination
-
-## Configuration
-
-Edit the private global variables in `connector.py` to set your API endpoint:
-
-```python
-# Private global configuration variables
-__BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
-```
 
 ## Requirements file
 
