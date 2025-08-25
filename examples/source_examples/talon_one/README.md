@@ -9,11 +9,11 @@ The connector maintains one table, `event`. This table contains application even
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating System:  
-  * Windows 10 or later  
-  * macOS 13 (Ventura) or later
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating System:  
+- Windows 10 or later  
+- macOS 13 (Ventura) or later
+- Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -21,12 +21,12 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-* Fetches application events from Talon.one Management API
-* Supports incremental sync based on event creation time
-* Implements pagination with configurable page size
-* Rate limiting compliance (3 calls per second)
-* Automatic JSON conversion for list-type fields
-* Checkpointing for reliable data synchronization
+- Fetches application events from Talon.one Management API
+- Supports incremental sync based on event creation time
+- Implements pagination with configurable page size
+- Rate limiting compliance (3 calls per second)
+- Automatic JSON conversion for list-type fields
+- Checkpointing for reliable data synchronization
 
 ## Configuration file
 
@@ -34,8 +34,8 @@ The connector requires configuration with your Talon.one credentials and sync se
 
 ```json
 {
-    "base_url": "https://<your_subdomain>.us-west1.talon.one/v1/", 
-    "api_key": "<your_api_key>"           
+    "base_url": "https://<YOUR_SUBDOMAIN>.us-west1.talon.one/v1/", 
+    "api_key": "<YOUR_API_KEY>"           
 }
 ```
 

@@ -1,4 +1,4 @@
 {
-    "base_url": "https://<your_subdomain>.us-west1.talon.one/v1/",
+    "base_url": "https://<YOUR_SUBDOMAIN>.us-west1.talon.one/v1/",
     "api_key": "<YOUR_API_KEY>"
 }
