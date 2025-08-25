@@ -1,6 +1,6 @@
 # Connector SDK Frequently Asked Questions
 
-## General
+## Overview
 
 ### Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
@@ -41,7 +41,7 @@ The Connector SDK documentation is available at https://fivetran.com/docs/connec
 ### I'm new to the Connector SDK. Is there a tutorial or a guide to help me get started?
 Absolutely. The best place to start is with our [Beginner Tutorial](https://fivetran.com/docs/connector-sdk/tutorials/beginners-tutorial) for the Connector SDK. This step-by-step guide is an excellent resource designed to walk you through the process of building your first connector.
 
-We encourage you to try the tutorial, and if you have any questions or run into issues, please feel free to reach out to our [support team](https://support.fivetran.com/hc/en-us). We also welcome any feedback you may have on the tutorial or the SDK to help us improve.
+We encourage you to try the tutorial, and if you have any questions or run into issues, feel free to reach out to our [support team](https://support.fivetran.com/hc/en-us). We also welcome any feedback you may have on the tutorial or the SDK to help us improve.
 
 
 ## Development
@@ -69,13 +69,13 @@ No, Fivetran will not create the column automatically. To sync a column that con
 
 ### Can I use the Connector SDK with an SSH tunnel to connect to a data source on a private network?
 Yes, you can. If your data source is on a private network that is not directly accessible from the internet, you can use an SSH tunnel to establish a secure connection. This is a common pattern where you connect to an intermediate server that has both internet access and access to the private data source.
-You can refer to the [SSH tunnel example](https://github.com/fivetran/fivetran_connector_sdk/blob/main/examples/common_patterns_for_connectors/ssh_tunnels/key_based_authentication/README.md ) for this scenario
+You can refer to the [SSH tunnel example](https://github.com/fivetran/fivetran_connector_sdk/blob/main/examples/common_patterns_for_connectors/ssh_tunnels/key_based_authentication/README.md ) for this scenario.
 
 ### How can I use a feature that is currently in Private Preview?
-Features in Private Preview are not enabled by default. To get more information about a specific feature and to have it enabled for your connector, please contact our Professional Services team for assistance.
+Features in Private Preview are not enabled by default. To get more information about a specific feature and to have it enabled for your connector, contact our Professional Services team for assistance.
 
 ### I'm encountering errors with my custom connector. Where can I find help?
-For assistance with specific errors and common issues, please refer to our comprehensive [Troubleshooting Guide](https://fivetran.com/docs/connector-sdk/troubleshooting). This document provides solutions and guidance for a variety of problems you may encounter while developing and running your Connector SDK connectors.
+For assistance with specific errors and common issues, refer to our comprehensive [Troubleshooting Guide](https://fivetran.com/docs/connector-sdk/troubleshooting). This document provides solutions and guidance for a variety of problems you may encounter while developing and running your Connector SDK connectors.
 
 ### How can I learn best practices for more advanced or complex API patterns?
 We've developed the [Fivetran SDK Playground](https://pypi.org/project/fivetran-api-playground/), a Python package designed to help you explore and understand how to handle complex API behaviors with the Connector SDK.
@@ -91,7 +91,7 @@ For more information, check out the [Fivetran SDK Playground](https://pypi.org/p
 Once you have tested your connector locally, you can deploy it using the `fivetran deploy` command. You will need your Fivetran API key, a destination name, and a unique connection name. Refer to the [deployment guide](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#examplecommands) for detailed instructions.
 
 ### How can I view the logs for my connector?
-You can access logs for your Connector SDK connections through the Fivetran dashboard, the Fivetran Platform Connector, or by using external log services. Refer to the [logging guide](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#connectorsdklogs) for more information.
+You can access logs for your Connector SDK connections through the Fivetran dashboard, the [Fivetran Platform Connector](https://fivetran.com/docs/logs/fivetran-platform), or by using [external log services](https://fivetran.com/docs/logs/external-logs). Refer to the [logging guide](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#connectorsdklogs) for more information.
 
 
 ## Maintenance
