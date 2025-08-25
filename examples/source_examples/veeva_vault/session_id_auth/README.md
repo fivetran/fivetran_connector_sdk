@@ -1,4 +1,4 @@
-# Veeva Vault Connector Example
+# Veeva Vault using Session Authentication Connector Example
 
 ## Connector overview
 This connector demonstrates how to sync all object types and their records from Veeva Vault using the Fivetran Connector SDK. It leverages the Vault Configuration API to dynamically retrieve schema information and uses VQL (Vault Query Language) to query and paginate through object records.
@@ -50,23 +50,23 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-This connector requires the following Python packages:
-
-```
-requests
-```
+This connector does not require any additional Python packages.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
 ## Authentication
-This connector uses Basic Auth with `Base64` encoding of the `username:password` string.
+This connector uses Session ID authentication. The process involves:
+
+- Obtaining a session ID using username and password via the `/api/v24.2/auth` endpoint
+- Including the session ID in the Authorization header for subsequent API calls
+- Properly ending the session with a `DELETE` request to `/api/v24.2/session` when the sync is complete
 
 
 ## Pagination
 Pagination is handled via:
 - `next_page` in the responseDetails object
-- URL rewriting logic based on Vault’s `/api/v19.3/` URL structure
+- URL rewriting logic based on Vault’s `/api/v24.2/` URL structure
 
 Pagination continues until `next_page` is no longer returned.
 
