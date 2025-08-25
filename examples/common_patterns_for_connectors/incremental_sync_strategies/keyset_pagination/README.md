@@ -39,7 +39,7 @@ __BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
 
 ## Requirements file
 
-The connector requires no packages.
+* The connector requires no packages
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
@@ -66,7 +66,7 @@ The connector processes data as follows:
 - **Incremental Processing**: Only processes records updated since the last sync
 - **State Tracking**: Updates the cursor after processing each batch
 
-## Table created
+## Tables created
 
 The connector syncs data to the `USER` table with the following schema:
 

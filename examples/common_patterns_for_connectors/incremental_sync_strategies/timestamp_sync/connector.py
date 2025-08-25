@@ -59,7 +59,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning(
-        "Example: Common Patterns For Connectors - Incremental Sync - Timestamp Sync Example"
+        "Example: Common Patterns For Connectors - Incremental Sync Strategies - Timestamp Sync Example"
     )
 
     last_ts = state.get("last_timestamp", "0001-01-01T00:00:00Z")

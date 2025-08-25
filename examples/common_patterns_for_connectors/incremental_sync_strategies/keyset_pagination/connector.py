@@ -59,7 +59,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning(
-        "Example: Common Patterns For Connectors - Incremental Sync - Keyset Pagination Example"
+        "Example: Common Patterns For Connectors - Incremental Sync Strategies - Keyset Pagination Example"
     )
 
     cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")

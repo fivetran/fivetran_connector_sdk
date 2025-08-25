@@ -61,16 +61,18 @@ This directory contains individual examples demonstrating different incremental 
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
+## Workflow
+
 1. **Choose your strategy** based on your API capabilities and requirements
 2. **Navigate to the strategy folder** (e.g., `keyset_pagination/`)
 3. **Install dependencies**:
    ```
-   pip install fivetran-connector-sdk requests
+   pip install fivetran-connector-sdk
    ```
 4. **Configure your API endpoint** by modifying the private global variables in `connector.py`
 5. **Run the connector** for local testing:
    ```
-   python connector.py
+   fivetran debug
    ```
 
 ## Tables created

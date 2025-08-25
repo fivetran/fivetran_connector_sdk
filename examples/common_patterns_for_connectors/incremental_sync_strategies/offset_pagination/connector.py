@@ -60,7 +60,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning(
-        "Example: Common Patterns For Connectors - Incremental Sync - Offset Pagination Example"
+        "Example: Common Patterns For Connectors - Incremental Sync Strategies - Offset Pagination Example"
     )
 
     # Get the cursor from state or use default for initial sync

@@ -42,7 +42,7 @@ __BUFFER_HOURS = 2
 
 ## Requirements file
 
-* No additional requirements required
+* The connector requires no packages
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
@@ -72,7 +72,7 @@ The connector processes data as follows:
 - **State Tracking**: Updates the timestamp after processing all records
 
 
-## Table created
+## Tables created
 
 The connector syncs data to the `USER` table with the following schema:
 
