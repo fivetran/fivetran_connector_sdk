@@ -6,11 +6,11 @@ The Pindrop connector for Fivetran fetches nightly reports from the Pindrop API 
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+- Windows: 10 or later (64-bit only)
+- macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+- Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -74,10 +74,10 @@ Refer to the `generate_reports_to_process` function for pagination logic.
 
 The connector processes CSV data from the Pindrop API and transforms it into structured records:
 
-* **CSV parsing**: Uses the `parse_csv_data` function to convert CSV responses into dictionaries
-* **Schema mapping**: Each record includes metadata fields (report_date, report_type, _fivetran_synced)
-* **Data cleaning**: Handles null values and trims whitespace from string fields
-* **Primary keys**: Generates unique IDs for records when not provided by the source
+- **CSV parsing**: Uses the `parse_csv_data` function to convert CSV responses into dictionaries
+- **Schema mapping**: Each record includes metadata fields (report_date, report_type, _fivetran_synced)
+- **Data cleaning**: Handles null values and trims whitespace from string fields
+- **Primary keys**: Generates unique IDs for records when not provided by the source
 
 Data is delivered to Fivetran using upsert operations for each record, ensuring data consistency and enabling incremental updates.
 
@@ -85,11 +85,11 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 The connector implements comprehensive error handling strategies:
 
-* **Retry logic**: Exponential backoff for failed API requests (refer to `make_api_request` function)
-* **Token refresh**: Automatic retry with fresh tokens on authentication failures
-* **Partial failures**: Continues processing other reports if individual requests fail
-* **State preservation**: Checkpoints progress to enable recovery from interruptions
-* **Detailed logging**: Comprehensive logging at INFO, WARNING, and SEVERE levels
+- **Retry logic**: Exponential backoff for failed API requests (refer to `make_api_request` function)
+- **Token refresh**: Automatic retry with fresh tokens on authentication failures
+- **Partial failures**: Continues processing other reports if individual requests fail
+- **State preservation**: Checkpoints progress to enable recovery from interruptions
+- **Detailed logging**: Comprehensive logging at INFO, WARNING, and SEVERE levels
 
 Refer to the `OAuth2TokenManager._request_new_token` method for authentication error handling and the `fetch_report_data` function for API error handling.
 
@@ -107,9 +107,9 @@ The connector creates the following tables in your destination:
 | `ENROLLMENT`   | `[report_date, id]`           | Enrollment and registration data |
 
 All tables include the following metadata fields:
-* `report_date`: Date of the report (YYYY-MM-DD)
-* `report_type`: Type of report (lowercase)
-* `_fivetran_synced`: Timestamp when the record was synced
+- `report_date`: Date of the report (YYYY-MM-DD)
+- `report_type`: Type of report (lowercase)
+- `_fivetran_synced`: Timestamp when the record was synced
 
 ## Additional considerations
 
