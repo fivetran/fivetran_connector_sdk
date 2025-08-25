@@ -50,11 +50,58 @@ This connector does not require any additional python packages.
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
+## Authentication
+This connector does not require authentication.
+
+
+## Pagination
+Pagination is not applicable for this connector.
+
+
+## Data handling
+The connector simulates data processing in the following way:
+
+- Data Generation: The connector generates simulated data containing a response message, timestamp, and random numeric value based on the provided configuration.
+
+- Data Processing: Generated data is transformed into a structured format with the following fields:
+
+    - key: Timestamp used as the primary key
+    - request: Configuration value
+    - result: Response message from simulated data
+    - metadata: JSON-serialized object containing timestamp and random value
+    - Data Storage: The processed data is upserted to the demo_response_test table using the Connector SDK's operations interface.
+
+- State Management: The connector maintains state using a cursor timestamp that tracks the last successful sync time, ensuring proper incremental syncs.
+
+
+## Error handling
+This connector demonstrates five key error handling patterns:
+
+- Configuration Validation: Verifies required configuration parameters are present before proceeding with any operations. Missing parameters trigger a critical error (Error type 1).
+
+- State Validation: Validates the format and content of the state object before using it, preventing errors from invalid state data (Error type 2).
+
+- Data Generation Error Handling: Implements try/except blocks around data retrieval logic with appropriate logging and error propagation (Error type 3).
+
+- Processing Error Handling: Validates data integrity before processing and handles exceptions that occur during transformation (Error type 4).
+
+- Database Operation Error Handling: Gracefully handles failures during data upsert operations to the destination (Error type 5).
+
+All errors are processed through a centralized `handle_critical_error` function that:
+
+- Logs the error with appropriate severity level
+- Includes detailed error information when available
+- Raises an exception to stop connector execution when necessary
+
+
 ## Tables created
 This connector creates a single table:
 
 - `DEMO_RESPONSE_TEST` - Contains simulated data with a primary key of `key`
 
+
+## Additional files
+This example does not include additional files
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
