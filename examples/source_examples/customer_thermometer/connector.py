@@ -374,7 +374,7 @@ def update(configuration: dict, state: dict):
         process_thermometers(api_key)
         process_metrics(api_key, from_date, to_date)
 
-        log.info(f"Sync completed successfully. Processed all endpoints.")
+        log.info("Sync completed successfully. Processed all endpoints.")
 
     except requests.RequestException as e:
         # Handle API request failures
