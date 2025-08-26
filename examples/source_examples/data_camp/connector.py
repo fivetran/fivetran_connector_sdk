@@ -207,7 +207,7 @@ def validate_configuration(configuration: dict):
     """
 
     if "bearer_token" not in configuration:
-        raise ValueError(f"Missing required configuration value: 'bearer_token'")
+        raise ValueError("Missing required configuration value: 'bearer_token'")
 
 
 def schema(configuration: dict):
