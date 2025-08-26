@@ -262,7 +262,7 @@ def schema(configuration: dict):
 
 def process_comments(
     api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> int:
+) -> None:
     """Process comments data from Customer Thermometer API."""
     log.info("Fetching comments data...")
     comments = fetch_comments(api_key, from_date, to_date)
@@ -275,12 +275,11 @@ def process_comments(
         op.upsert(table="comments", data=comment)
 
     log.info(f"Processed {len(comments)} comment records")
-    return len(comments)
 
 
 def process_blast_results(
     api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> int:
+) -> None:
     """Process blast results data from Customer Thermometer API."""
     log.info("Fetching blast results data...")
     blast_results = fetch_blast_results(api_key, from_date, to_date)
@@ -293,10 +292,9 @@ def process_blast_results(
         op.upsert(table="blast_results", data=blast_result)
 
     log.info(f"Processed {len(blast_results)} blast result records")
-    return len(blast_results)
 
 
-def process_recipient_lists(api_key: str) -> int:
+def process_recipient_lists(api_key: str) -> None:
     """Process recipient lists data from Customer Thermometer API."""
     log.info("Fetching recipient lists data...")
     recipient_lists = fetch_recipient_lists(api_key)
@@ -309,10 +307,9 @@ def process_recipient_lists(api_key: str) -> int:
         op.upsert(table="recipient_lists", data=recipient_list)
 
     log.info(f"Processed {len(recipient_lists)} recipient list records")
-    return len(recipient_lists)
 
 
-def process_thermometers(api_key: str) -> int:
+def process_thermometers(api_key: str) -> None:
     """Process thermometers data from Customer Thermometer API."""
     log.info("Fetching thermometers data...")
     thermometers = fetch_thermometers(api_key)
@@ -325,12 +322,11 @@ def process_thermometers(api_key: str) -> int:
         op.upsert(table="thermometers", data=thermometer)
 
     log.info(f"Processed {len(thermometers)} thermometer records")
-    return len(thermometers)
 
 
 def process_metrics(
     api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> int:
+) -> None:
     """Process metrics data from Customer Thermometer API."""
     log.info("Fetching metrics data...")
     metrics_processed = 0
@@ -348,8 +344,6 @@ def process_metrics(
         except Exception as e:
             log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
             continue
-
-    return metrics_processed
 
 
 def update(configuration: dict, state: dict):
@@ -374,22 +368,13 @@ def update(configuration: dict, state: dict):
 
     try:
         # Process each endpoint
-        comments_count = process_comments(api_key, from_date, to_date)
-        blast_results_count = process_blast_results(api_key, from_date, to_date)
-        recipient_lists_count = process_recipient_lists(api_key)
-        thermometers_count = process_thermometers(api_key)
-        metrics_count = process_metrics(api_key, from_date, to_date)
+        process_comments(api_key, from_date, to_date)
+        process_blast_results(api_key, from_date, to_date)
+        process_recipient_lists(api_key)
+        process_thermometers(api_key)
+        process_metrics(api_key, from_date, to_date)
 
-        # Calculate total records processed
-        total_records = (
-            comments_count
-            + blast_results_count
-            + recipient_lists_count
-            + thermometers_count
-            + metrics_count
-        )
-
-        log.info(f"Sync completed successfully. Total records processed: {total_records}")
+        log.info(f"Sync completed successfully. Processed all endpoints.")
 
     except requests.RequestException as e:
         # Handle API request failures
