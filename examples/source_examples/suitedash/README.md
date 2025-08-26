@@ -32,8 +32,8 @@ The configuration file defines the authentication credentials required to connec
 
 ```json
 {
-  "public_id": "00000000-0000-0000-0000-000000000000",
-  "secret_key": "DummySecretKey"
+  "public_id": "<YOUR_PUBLIC_ID>",
+  "secret_key": "<YOUR_SECRET_KEY>"
 }
 ```
 

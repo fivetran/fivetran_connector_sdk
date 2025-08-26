@@ -1,7 +1,5 @@
-# This is a Fivetran Connector SDK connector for SuiteDash API.
-"""
-[SuiteDash](https://app.suitedash.com/secure-api) - This is an example to show how to sync CRM data from SuiteDash's API by using Connector SDK. You need to provide your SuiteDash Public ID and Secret Key for this example to work.
-"""
+# This is an example for how to work with the fivetran_connector_sdk module.
+# This is an example to show how to sync CRM data from SuiteDash's API by using Connector SDK. You need to provide your SuiteDash Public ID and Secret Key for this example to work.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -23,23 +21,20 @@ import requests
 import json
 
 
-# Constants for SuiteDash API configuration
-_BASE_URL = "https://app.suitedash.com/secure-api"
-_COMPANIES_ENDPOINT = "/companies"
-_CONTACTS_ENDPOINT = "/contacts"
-_DEFAULT_PAGE_SIZE = 50
+_BASE_URL = "https://app.suitedash.com/secure-api"  # Base URL for SuiteDash API
+_COMPANIES_ENDPOINT = "/companies"  # Endpoint for fetching companies
+_CONTACTS_ENDPOINT = "/contacts"  # Endpoint for fetching contacts
+_DEFAULT_PAGE_SIZE = 50  # Default page size for API requests
 
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters for SuiteDash API authentication.
+    Validate the configuration dictionary to ensure it contains all required parameters.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-
     Args:
-        configuration (dict): A dictionary that holds the configuration settings for the connector.
-
+        configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing.
     """
 
     # Validate required configuration parameters for SuiteDash API
@@ -53,11 +48,9 @@ def flatten_nested_object(obj: dict, prefix: str = "") -> dict:
     """
     Flatten nested dictionary objects into a flat structure with prefixed keys.
     Converts nested dictionaries like {"contact": {"name": "John"}} to {"contact_name": "John"}.
-
     Args:
         obj (dict): The nested dictionary to flatten
         prefix (str): The prefix to add to the flattened keys
-
     Returns:
         dict: A flattened dictionary with prefixed keys
     """
@@ -78,10 +71,8 @@ def process_company_record(company: dict) -> dict:
     """
     Process a company record by flattening nested objects and handling arrays.
     Transforms raw SuiteDash company data into a flat structure suitable for database storage.
-
     Args:
         company (dict): Raw company record from SuiteDash API
-
     Returns:
         dict: Processed company record ready for upsert operation
     """
@@ -133,10 +124,8 @@ def process_contact_record(contact: dict) -> dict:
     """
     Process a contact record by flattening nested objects and handling arrays.
     Transforms raw SuiteDash contact data into a flat structure suitable for database storage.
-
     Args:
         contact (dict): Raw contact record from SuiteDash API
-
     Returns:
         dict: Processed contact record ready for upsert operation
     """
@@ -190,10 +179,8 @@ def extract_contact_company_relationships(contact: dict) -> list:
     """
     Extract contact-company relationships from a contact record to create junction table records.
     Creates separate relationship records for each company associated with a contact.
-
     Args:
         contact (dict): Contact record from SuiteDash API
-
     Returns:
         list: List of contact-company relationship records for junction table
     """
@@ -215,18 +202,12 @@ def extract_contact_company_relationships(contact: dict) -> list:
 
 def schema(configuration: dict):
     """
-    Define the schema function which configures the tables and primary keys for the SuiteDash connector.
-    Creates three tables: companies, contacts, and their relationships with appropriate primary keys.
+    Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
     Args:
-        configuration (dict): A dictionary that holds the configuration settings for the connector.
-
-    Returns:
-        list: List of table schema definitions with primary keys
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
-
     return [
         {
             "table": "companies",  # Companies table from /companies endpoint
@@ -247,10 +228,8 @@ def get_api_headers(configuration: dict) -> dict:
     """
     Build authentication headers required for SuiteDash API requests.
     Creates headers with public ID and secret key for API authentication.
-
     Args:
         configuration (dict): Configuration dictionary containing API credentials
-
     Returns:
         dict: Headers dictionary for API requests including authentication
     """
@@ -265,15 +244,12 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
     """
     Make an authenticated HTTP GET request to the SuiteDash API with error handling.
     Handles HTTP errors and provides meaningful error messages for API failures.
-
     Args:
         url (str): The API endpoint URL to request
         headers (dict): Authentication headers for the request
         params (dict, optional): Query parameters for the request
-
     Returns:
         dict: JSON response parsed as dictionary
-
     Raises:
         RuntimeError: If the API request fails or returns an error status
     """
@@ -283,7 +259,7 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        log.error(f"API request failed: {str(e)}")
+        log.severe(f"API request failed: {str(e)}")
         raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
 
 
@@ -291,7 +267,6 @@ def sync_companies(configuration: dict, state: dict):
     """
     Sync companies data from SuiteDash /companies API endpoint with pagination support.
     Processes all company records, flattens nested data, and upserts to destination.
-
     Args:
         configuration (dict): Configuration dictionary containing API credentials
         state (dict): State dictionary for maintaining sync progress (unused after checkpoint removal)
@@ -309,7 +284,7 @@ def sync_companies(configuration: dict, state: dict):
         response_data = make_api_request(url, headers, params)
 
         if not response_data.get("success", False):
-            log.error(f"API returned error: {response_data.get('message', 'Unknown error')}")
+            log.severe(f"API returned error: {response_data.get('message', 'Unknown error')}")
             break
 
         companies = response_data.get("data", [])
@@ -320,8 +295,13 @@ def sync_companies(configuration: dict, state: dict):
         # Process each company record
         for company in companies:
             processed_company = process_company_record(company)
+
             # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert(table="companies", data=processed_company)
+
             companies_processed += 1
 
         # Check pagination metadata to determine if more pages exist
@@ -342,7 +322,6 @@ def sync_contacts(configuration: dict, state: dict):
     """
     Sync contacts data from SuiteDash /contacts API endpoint with pagination support.
     Processes contact records, extracts contact-company relationships, and upserts all data.
-
     Args:
         configuration (dict): Configuration dictionary containing API credentials
         state (dict): State dictionary for maintaining sync progress (unused after checkpoint removal)
@@ -361,7 +340,7 @@ def sync_contacts(configuration: dict, state: dict):
         response_data = make_api_request(url, headers, params)
 
         if not response_data.get("success", False):
-            log.error(f"API returned error: {response_data.get('message', 'Unknown error')}")
+            log.severe(f"API returned error: {response_data.get('message', 'Unknown error')}")
             break
 
         contacts = response_data.get("data", [])
@@ -373,15 +352,24 @@ def sync_contacts(configuration: dict, state: dict):
         for contact in contacts:
             # Process main contact data
             processed_contact = process_contact_record(contact)
+
             # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert(table="contacts", data=processed_contact)
+
             contacts_processed += 1
 
             # Extract and process contact-company relationships
             relationships = extract_contact_company_relationships(contact)
             for relationship in relationships:
-                # The 'upsert' operation creates separate records for each contact-company relationship
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted
                 op.upsert(table="contact_company_relationships", data=relationship)
+
                 relationships_processed += 1
 
         # Check pagination metadata to determine if more pages exist
@@ -404,21 +392,16 @@ def sync_contacts(configuration: dict, state: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main update function called by Fivetran during each sync to extract data from SuiteDash API.
-    Orchestrates the complete sync process for companies, contacts, and their relationships.
-    See the technical reference documentation for more details on the update function:
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
-        configuration (dict): Dictionary containing SuiteDash API connection details
-        state (dict): Dictionary containing state information from previous runs
-                     (empty for first sync or full re-sync)
-
-    Raises:
-        RuntimeError: If the sync process fails due to API errors or configuration issues
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: SuiteDash CRM Connector")
+    log.warning("Example: Source Examples : SuiteDash")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -451,15 +434,3 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
-
-# Aug 24, 2025 01:23:15 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 33
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 3
-# Checkpoints     | 0
-#
-# Aug 24, 2025 01:23:15 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED
