@@ -1,4 +1,4 @@
-# Veeva Vault Using Basic Authentication Connector Example
+# Veeva Vault Connector - Using Basic Authentication Example
 
 ## Connector overview
 This connector demonstrates how to sync all object types and their records from Veeva Vault using the Fivetran Connector SDK. It leverages the Vault Configuration API to dynamically retrieve schema information and uses VQL (Vault Query Language) to query and paginate through object records.

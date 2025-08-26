@@ -1,4 +1,4 @@
-# Veeva Vault using Session Authentication Connector Example
+# Veeva Vault Connector - Using Session Authentication Example
 
 ## Connector overview
 This connector demonstrates how to sync all object types and their records from Veeva Vault using the Fivetran Connector SDK. It leverages the Vault Configuration API to dynamically retrieve schema information and uses VQL (Vault Query Language) to query and paginate through object records.
@@ -23,7 +23,7 @@ See [Veeva Vault API documentation](https://developer.veevavault.com/api/19.3/) 
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 
 ## Features
