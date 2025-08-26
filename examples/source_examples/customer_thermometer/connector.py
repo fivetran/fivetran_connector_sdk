@@ -1,28 +1,29 @@
-# Customer Thermometer API Connector for Fivetran
-"""
-This connector demonstrates how to fetch data from Customer Thermometer API
-and upsert it into destination using the Fivetran Connector SDK.
-"""
+# This is an example for how to work with the fivetran_connector_sdk module.
+# This connector demonstrates how to fetch data from Customer Thermometer API and upsert it into destination using the Fivetran Connector SDK.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Import required classes from fivetran_connector_sdk
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import additional libraries for data processing and API requests
-import json
-import requests
-import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+# Import required libraries
+import requests  # For making HTTP requests to the Common Paper API
+import json  # For JSON data handling and serialization
+import xml.etree.ElementTree as ET  # For parsing XML responses
+from datetime import datetime, timezone  # For handling date and time
+from typing import Dict, List, Any, Optional  # For type hinting
 
-# Constants for API configuration
+# Base URL for the Customer Thermometer API
 __BASE_URL = "https://app.customerthermometer.com/api.php"
 __DEFAULT_CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
 __API_TIMEOUT_SECONDS = 30  # API request timeout in seconds
-__REQUIRED_CONFIG_PARAMS = ["api_key"]  # Required configuration parameters
 __MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
 
 # Constants for metric endpoints
@@ -39,23 +40,19 @@ __METRIC_ENDPOINTS = [
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector
-    has all necessary configuration values.
-
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
-        configuration (dict): A dictionary that holds the configuration settings for the connector.
-
+        configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If any required configuration parameter is missing or invalid.
+        ValueError: if any required configuration parameter is missing.
     """
     # Check for required configuration parameters
-    for key in __REQUIRED_CONFIG_PARAMS:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    if "api_key" not in configuration:
+        raise ValueError("Missing required configuration value: api_key")
 
     # Validate API key format (basic check)
     api_key = configuration.get("api_key")
-    if not api_key or len(api_key) < __MIN_API_KEY_LENGTH:
+    if len(api_key) < __MIN_API_KEY_LENGTH:
         raise ValueError("Invalid API key format")
 
 
@@ -64,16 +61,13 @@ def make_api_request(
 ) -> requests.Response:
     """
     Make an authenticated request to the Customer Thermometer API.
-
     Args:
         endpoint (str): The API method to call (e.g., 'getComments', 'getThermometers')
         api_key (str): The API key for authentication
         from_date (str, optional): Optional start date filter (YYYY-MM-DD format)
         to_date (str, optional): Optional end date filter (YYYY-MM-DD format)
-
     Returns:
         requests.Response: The API response object
-
     Raises:
         requests.RequestException: If the API request fails
     """
@@ -99,15 +93,12 @@ def parse_xml_response(
 ) -> List[Dict[str, Any]]:
     """
     Parse XML response from Customer Thermometer API into list of dictionaries.
-
     Args:
         xml_content (str): The XML response content as string
         root_element (str): The root XML element name to search within
         child_element (str): The child XML element name to extract data from
-
     Returns:
         List[Dict[str, Any]]: List of dictionaries with flattened XML data
-
     Raises:
         ET.ParseError: If the XML content cannot be parsed
     """
@@ -135,15 +126,12 @@ def fetch_comments(
     """
     Fetch comments data from Customer Thermometer API.
     Refer to getComments endpoint in the API documentation.
-
     Args:
         api_key (str): The API key for authentication
         from_date (str, optional): Start date filter in YYYY-MM-DD format
         to_date (str, optional): End date filter in YYYY-MM-DD format
-
     Returns:
         List[Dict[str, Any]]: List of comment records with extracted fields
-
     Raises:
         requests.RequestException: If the API request fails
         ET.ParseError: If the XML response cannot be parsed
@@ -158,15 +146,12 @@ def fetch_blast_results(
     """
     Fetch blast results data from Customer Thermometer API.
     Refer to getBlastResults endpoint in the API documentation.
-
     Args:
         api_key (str): The API key for authentication
         from_date (str, optional): Start date filter in YYYY-MM-DD format
         to_date (str, optional): End date filter in YYYY-MM-DD format
-
     Returns:
         List[Dict[str, Any]]: List of blast result records with response details
-
     Raises:
         requests.RequestException: If the API request fails
         ET.ParseError: If the XML response cannot be parsed
@@ -181,13 +166,10 @@ def fetch_recipient_lists(api_key: str) -> List[Dict[str, Any]]:
     """
     Fetch recipient lists from Customer Thermometer API.
     Refer to getRecipientLists endpoint in the API documentation.
-
     Args:
         api_key (str): The API key for authentication
-
     Returns:
         List[Dict[str, Any]]: List of recipient list records with IDs and metadata
-
     Raises:
         requests.RequestException: If the API request fails
         ET.ParseError: If the XML response cannot be parsed
@@ -200,13 +182,10 @@ def fetch_thermometers(api_key: str) -> List[Dict[str, Any]]:
     """
     Fetch thermometers from Customer Thermometer API.
     Refer to getThermometers endpoint in the API documentation.
-
     Args:
         api_key (str): The API key for authentication
-
     Returns:
         List[Dict[str, Any]]: List of thermometer records with IDs and configuration
-
     Raises:
         requests.RequestException: If the API request fails
         ET.ParseError: If the XML response cannot be parsed
@@ -224,16 +203,13 @@ def fetch_metric_value(
     """
     Fetch single metric values from Customer Thermometer API.
     Used for endpoints that return single values like getNumResponsesValue, getResponseRateValue, etc.
-
     Args:
         api_key (str): The API key for authentication
         metric_endpoint (str): The specific metric endpoint to call
         from_date (str, optional): Start date filter in YYYY-MM-DD format
         to_date (str, optional): End date filter in YYYY-MM-DD format
-
     Returns:
         Dict[str, Any]: Dictionary containing the metric value and metadata
-
     Raises:
         requests.RequestException: If the API request fails
     """
@@ -255,13 +231,10 @@ def fetch_metric_value(
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
-    This function specifies the tables and their primary keys for the destination.
-
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration (dict): A dictionary that holds the configuration settings for the connector.
-
-    Returns:
-        list: A list of dictionaries defining tables and their primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -287,20 +260,109 @@ def schema(configuration: dict):
     ]
 
 
+def process_comments(
+    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+) -> int:
+    """Process comments data from Customer Thermometer API."""
+    log.info("Fetching comments data...")
+    comments = fetch_comments(api_key, from_date, to_date)
+
+    for comment in comments:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted
+        op.upsert(table="comments", data=comment)
+
+    log.info(f"Processed {len(comments)} comment records")
+    return len(comments)
+
+
+def process_blast_results(
+    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+) -> int:
+    """Process blast results data from Customer Thermometer API."""
+    log.info("Fetching blast results data...")
+    blast_results = fetch_blast_results(api_key, from_date, to_date)
+
+    for blast_result in blast_results:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted
+        op.upsert(table="blast_results", data=blast_result)
+
+    log.info(f"Processed {len(blast_results)} blast result records")
+    return len(blast_results)
+
+
+def process_recipient_lists(api_key: str) -> int:
+    """Process recipient lists data from Customer Thermometer API."""
+    log.info("Fetching recipient lists data...")
+    recipient_lists = fetch_recipient_lists(api_key)
+
+    for recipient_list in recipient_lists:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted
+        op.upsert(table="recipient_lists", data=recipient_list)
+
+    log.info(f"Processed {len(recipient_lists)} recipient list records")
+    return len(recipient_lists)
+
+
+def process_thermometers(api_key: str) -> int:
+    """Process thermometers data from Customer Thermometer API."""
+    log.info("Fetching thermometers data...")
+    thermometers = fetch_thermometers(api_key)
+
+    for thermometer in thermometers:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted
+        op.upsert(table="thermometers", data=thermometer)
+
+    log.info(f"Processed {len(thermometers)} thermometer records")
+    return len(thermometers)
+
+
+def process_metrics(
+    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+) -> int:
+    """Process metrics data from Customer Thermometer API."""
+    log.info("Fetching metrics data...")
+    metrics_processed = 0
+
+    for endpoint in __METRIC_ENDPOINTS:
+        try:
+            metric_data = fetch_metric_value(api_key, endpoint, from_date, to_date)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
+            op.upsert(table="metrics", data=metric_data)
+            metrics_processed += 1
+            log.info(f"Processed metric: {endpoint}")
+        except Exception as e:
+            log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
+            continue
+
+    return metrics_processed
+
+
 def update(configuration: dict, state: dict):
     """
-    The update function is called by Fivetran during each sync. It fetches data from the Customer Thermometer API and loads it into destination tables.
-    This connector is stateless and does not maintain or checkpoint any sync state.
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration (dict): A dictionary containing connection details and API credentials
-        state (dict): Unused; present for SDK compatibility only
-
-    Raises:
-        ValueError: If configuration validation fails
-        RuntimeError: If any error occurs during the sync process
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Example: Customer Thermometer API Connector")
+    log.warning("Example: Source Examples : Customer Thermometer")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
@@ -310,78 +372,40 @@ def update(configuration: dict, state: dict):
     from_date = configuration.get("from_date")
     to_date = configuration.get("to_date")
 
-    # Track the number of records processed (for logging only)
-    records_processed = 0
-
     try:
-        # Sync Comments data - Refer to fetch_comments function
-        log.info("Fetching comments data...")
-        comments = fetch_comments(api_key, from_date, to_date)
-        for comment in comments:
-            op.upsert(table="comments", data=comment)
-            records_processed += 1
+        # Process each endpoint
+        comments_count = process_comments(api_key, from_date, to_date)
+        blast_results_count = process_blast_results(api_key, from_date, to_date)
+        recipient_lists_count = process_recipient_lists(api_key)
+        thermometers_count = process_thermometers(api_key)
+        metrics_count = process_metrics(api_key, from_date, to_date)
 
-        log.info(f"Processed {len(comments)} comment records")
+        # Calculate total records processed
+        total_records = (
+            comments_count
+            + blast_results_count
+            + recipient_lists_count
+            + thermometers_count
+            + metrics_count
+        )
 
-        # Sync Blast Results data - Refer to fetch_blast_results function
-        log.info("Fetching blast results data...")
-        blast_results = fetch_blast_results(api_key, from_date, to_date)
-        for blast_result in blast_results:
-            op.upsert(table="blast_results", data=blast_result)
-            records_processed += 1
-
-        log.info(f"Processed {len(blast_results)} blast result records")
-
-        # Sync Recipient Lists data - Refer to fetch_recipient_lists function
-        log.info("Fetching recipient lists data...")
-        recipient_lists = fetch_recipient_lists(api_key)
-        for recipient_list in recipient_lists:
-            op.upsert(table="recipient_lists", data=recipient_list)
-            records_processed += 1
-
-        log.info(f"Processed {len(recipient_lists)} recipient list records")
-
-        # Sync Thermometers data - Refer to fetch_thermometers function
-        log.info("Fetching thermometers data...")
-        thermometers = fetch_thermometers(api_key)
-        for thermometer in thermometers:
-            op.upsert(table="thermometers", data=thermometer)
-            records_processed += 1
-
-        log.info(f"Processed {len(thermometers)} thermometer records")
-
-        # Sync Metrics data - Refer to fetch_metric_value function for each metric endpoint
-        log.info("Fetching metrics data...")
-
-        for endpoint in __METRIC_ENDPOINTS:
-            try:
-                metric_data = fetch_metric_value(api_key, endpoint, from_date, to_date)
-                op.upsert(table="metrics", data=metric_data)
-                records_processed += 1
-                log.info(f"Processed metric: {endpoint}")
-            except Exception as e:
-                log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
-                continue
-
-        # No final state checkpointing required
-
-        log.info(f"Sync completed successfully. Total records processed: {records_processed}")
+        log.info(f"Sync completed successfully. Total records processed: {total_records}")
 
     except requests.RequestException as e:
         # Handle API request failures
-        log.error(f"API request failed: {str(e)}")
+        log.severe(f"API request failed: {str(e)}")
         raise RuntimeError(f"Failed to sync data due to API error: {str(e)}")
     except ET.ParseError as e:
         # Handle XML parsing errors
-        log.error(f"XML parsing failed: {str(e)}")
+        log.severe(f"XML parsing failed: {str(e)}")
         raise RuntimeError(f"Failed to parse API response: {str(e)}")
     except ValueError as e:
         # Handle validation and data errors
-        log.error(f"Validation error: {str(e)}")
+        log.severe(f"Validation error: {str(e)}")
         raise RuntimeError(f"Failed due to validation error: {str(e)}")
     except Exception as e:
         # Catch-all for unexpected errors
-        log.error(f"Sync failed with unexpected error: {str(e)}")
+        log.severe(f"Sync failed with unexpected error: {str(e)}")
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
@@ -399,15 +423,3 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
-
-# Aug 23, 2025 11:29:41 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 19
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 5
-# Checkpoints     | 0
-#
-# Aug 23, 2025 11:29:41 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED

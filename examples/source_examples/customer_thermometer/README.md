@@ -6,11 +6,11 @@ The Customer Thermometer connector for Fivetran fetches customer feedback data f
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -34,9 +34,9 @@ The connector requires API key authentication for the Customer Thermometer API. 
 
 ```json
 {
-  "api_key": "YOUR_CUSTOMER_THERMOMETER_API_KEY",
-  "from_date": "2023-01-01",
-  "to_date": "2023-12-31"
+  "api_key": "<YOUR_CUSTOMER_THERMOMETER_API_KEY>",
+  "from_date": "<FROM_DATE AS YYYY-MM-DD>",
+  "to_date": "<TO_DATE AS YYYY-MM-DD>"
 }
 ```
 
@@ -48,7 +48,9 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-This connector includes a minimal `requirements.txt` file. The core dependencies are pre-installed in the Fivetran environment.
+This connector example uses the standard libraries provided by Python and does not require any additional packages
+
+Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ```
 # Core dependencies are pre-installed in Fivetran environment
