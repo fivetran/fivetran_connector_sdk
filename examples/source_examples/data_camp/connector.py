@@ -1,23 +1,28 @@
-"""DataCamp LMS Catalog API Connector for Fivetran.
-
-This connector fetches course catalog data from DataCamp's LMS Catalog API including courses,
-projects, assessments, practices, tracks, and custom tracks. It flattens nested objects and
-creates breakout tables for array relationships following Fivetran best practices.
-"""
-
+# This is an example for how to work with the fivetran_connector_sdk module.
+# This connector fetches course catalog data from DataCamp's LMS Catalog API including courses,projects, assessments, practices, tracks, and custom tracks. It flattens nested objects and creates breakout tables for array relationships following Fivetran best practices.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
-# Required imports
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
-import json
-import requests
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+# Import required libraries
+import requests  # For making HTTP requests to the Common Paper API
+import json  # For JSON data handling and serialization
 from typing import Dict, Any, List
 
-# Constants for endpoints and table mapping
+# Base URL for the DataCamp LMS Catalog API
 __BASE_URL_DEFAULT = "https://lms-catalog-api.datacamp.com"
 __REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests in seconds
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
+
 ENDPOINTS = {
     "custom_tracks": {
         "url": "/v1/catalog/live-custom-tracks",
@@ -28,18 +33,46 @@ ENDPOINTS = {
         "table": "custom_tracks_content",
         "pk": ["custom_track_id", "position"],
     },
-    "courses": {"url": "/v1/catalog/live-courses", "table": "courses", "pk": ["id"]},
-    "courses_chapters": {"table": "courses_chapters", "pk": ["id", "course_id"]},
-    "projects": {"url": "/v1/catalog/live-projects", "table": "projects", "pk": ["id"]},
-    "projects_topics": {"table": "projects_topics", "pk": ["project_id", "name"]},
-    "assessments": {"url": "/v1/catalog/live-assessments", "table": "assessments", "pk": ["id"]},
-    "practices": {"url": "/v1/catalog/live-practices", "table": "practices", "pk": ["id"]},
-    "tracks": {"url": "/v1/catalog/live-tracks", "table": "tracks", "pk": ["id"]},
-    "tracks_content": {"table": "tracks_content", "pk": ["track_id", "position"]},
+    "courses": {
+        "url": "/v1/catalog/live-courses",
+        "table": "courses",
+        "pk": ["id"],
+    },
+    "courses_chapters": {
+        "table": "courses_chapters",
+        "pk": ["id", "course_id"],
+    },
+    "projects": {
+        "url": "/v1/catalog/live-projects",
+        "table": "projects",
+        "pk": ["id"],
+    },
+    "projects_topics": {
+        "table": "projects_topics",
+        "pk": ["project_id", "name"],
+    },
+    "assessments": {
+        "url": "/v1/catalog/live-assessments",
+        "table": "assessments",
+        "pk": ["id"],
+    },
+    "practices": {
+        "url": "/v1/catalog/live-practices",
+        "table": "practices",
+        "pk": ["id"],
+    },
+    "tracks": {
+        "url": "/v1/catalog/live-tracks",
+        "table": "tracks",
+        "pk": ["id"],
+    },
+    "tracks_content": {
+        "table": "tracks_content",
+        "pk": ["track_id", "position"],
+    },
 }
 
 
-# Custom flatten for custom tracks
 def flatten_custom_track(track: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten custom track data by extracting nested topic and imageUrl objects.
@@ -114,7 +147,6 @@ def flatten_practice(practice: Dict[str, Any]) -> Dict[str, Any]:
     return flat
 
 
-# Custom flatten for assessments
 def flatten_assessment(assessment: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten assessment data by extracting nested imageUrl objects.
@@ -135,7 +167,6 @@ def flatten_assessment(assessment: Dict[str, Any]) -> Dict[str, Any]:
     return flat
 
 
-# Custom flatten for projects
 def flatten_project(project: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten project data by extracting nested imageUrl objects and instructors list.
@@ -168,40 +199,34 @@ def flatten_project(project: Dict[str, Any]) -> Dict[str, Any]:
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
-
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
-        configuration (dict): Configuration dictionary to validate
-
+        configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If any required configuration value is missing or empty
+        ValueError: if any required configuration parameter is missing.
     """
-    required_configs = ["bearer_token"]
-    for key in required_configs:
-        if key not in configuration or not configuration[key]:
-            raise ValueError(f"Missing required configuration value: {key}")
+
+    if "bearer_token" not in configuration:
+        raise ValueError(f"Missing required configuration value: 'bearer_token'")
 
 
 def schema(configuration: dict):
     """
-    Define the schema for each endpoint as a table with only primary key(s) defined.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration (dict): Configuration dictionary containing connection details
-
-    Returns:
-        List[Dict]: List of table schemas with primary keys defined
-
-    Raises:
-        ValueError: If configuration validation fails
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     validate_configuration(configuration)
     # Only include tables, not endpoints without a table key
     return [
-        {"table": v["table"], "primary_key": v["pk"]} for k, v in ENDPOINTS.items() if "table" in v
+        {"table": value["table"], "primary_key": value["pk"]}
+        for key, value in ENDPOINTS.items()
+        if "table" in value
     ]
 
 
-# Custom flatten for courses
 def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten course data by extracting nested topic and imageUrl objects, and instructors list.
@@ -236,7 +261,6 @@ def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
     return flat
 
 
-# Generic flatten for other endpoints
 def flatten_dict(data: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
     """
     Generic function to flatten nested dictionaries and convert lists to JSON strings.
@@ -301,24 +325,15 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict
         return []
 
 
-def update(configuration: dict, state: dict):
-    """
-    Sync data from DataCamp LMS Catalog API endpoints.
-
-    Args:
-        configuration (dict): Configuration containing bearer_token
-        state (dict): Current state for incremental syncing
-    """
-    # Extract configuration values
-    bearer_token = configuration["bearer_token"]
-
-    # Handle custom tracks endpoint with custom flattening and content breakout
+def process_custom_tracks(bearer_token: str) -> None:
+    """Process custom tracks endpoint with custom flattening and content breakout."""
     log.info("Fetching endpoint: /v1/catalog/live-custom-tracks")
     custom_tracks = fetch_endpoint(
         __BASE_URL_DEFAULT, "/v1/catalog/live-custom-tracks", bearer_token
     )
     custom_tracks_upserted = 0
     custom_tracks_content_upserted = 0
+
     for track in custom_tracks:
         flat = flatten_custom_track(track)
         try:
@@ -326,27 +341,39 @@ def update(configuration: dict, state: dict):
             custom_tracks_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in custom_tracks: {e}")
+
         # Handle content breakout
         content = track.get("content", [])
         for content_row in content:
             content_row_out = dict(content_row)
             content_row_out["custom_track_id"] = track.get("id")
             try:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted
                 op.upsert("custom_tracks_content", content_row_out)
                 custom_tracks_content_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert content for custom_track {track.get('id')}: {e}")
+
     log.info(f"Upserted {custom_tracks_upserted} records into custom_tracks")
     log.info(f"Upserted {custom_tracks_content_upserted} records into custom_tracks_content")
 
-    # Checkpoint progress after custom tracks sync
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": "custom_tracks"})
 
-    # Handle courses endpoint with custom flattening and chapters breakout
+
+def process_courses(bearer_token: str) -> None:
+    """Process courses endpoint with custom flattening and chapters breakout."""
     log.info("Fetching endpoint: /v1/catalog/live-courses")
     courses = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-courses", bearer_token)
     courses_upserted = 0
     courses_chapters_upserted = 0
+
     for course in courses:
         flat = flatten_course(course)
         try:
@@ -354,28 +381,39 @@ def update(configuration: dict, state: dict):
             courses_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in courses: {e}")
+
         # Handle chapters breakout
         chapters = course.get("chapters", [])
         for chapter in chapters:
-            chapter_row = dict(chapter)  # shallow copy
+            chapter_row = dict(chapter)
             chapter_row["course_id"] = course.get("id")
             try:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted
                 op.upsert("courses_chapters", chapter_row)
                 courses_chapters_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert chapter for course {course.get('id')}: {e}")
+
     log.info(f"Upserted {courses_upserted} records into courses")
     log.info(f"Upserted {courses_chapters_upserted} records into courses_chapters")
 
-    # Checkpoint after courses
-    log.info(f"Upserted {courses_upserted} courses, {courses_chapters_upserted} chapters")
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": "courses"})
 
-    # Handle projects endpoint with custom flattening and topics breakout
+
+def process_projects(bearer_token: str) -> None:
+    """Process projects endpoint with custom flattening and topics breakout."""
     log.info("Fetching endpoint: /v1/catalog/live-projects")
     projects = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-projects", bearer_token)
     projects_upserted = 0
     projects_topics_upserted = 0
+
     for project in projects:
         flat = flatten_project(project)
         try:
@@ -383,34 +421,51 @@ def update(configuration: dict, state: dict):
             projects_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in projects: {e}")
+
         # Handle topics breakout
         topics = project.get("topics", [])
         for topic in topics:
-            topic_row = dict(topic)  # shallow copy
+            topic_row = dict(topic)
             topic_row["project_id"] = project.get("id")
             try:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted
                 op.upsert("projects_topics", topic_row)
                 projects_topics_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert topic for project {project.get('id')}: {e}")
+
     log.info(f"Upserted {projects_upserted} records into projects")
     log.info(f"Upserted {projects_topics_upserted} records into projects_topics")
 
-    # Checkpoint progress after projects sync
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": "projects"})
 
-    # Handle tracks endpoint with custom flattening and content breakout
+
+def process_tracks(bearer_token: str) -> None:
+    """Process tracks endpoint with custom flattening and content breakout."""
     log.info("Fetching endpoint: /v1/catalog/live-tracks")
     tracks = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-tracks", bearer_token)
     tracks_upserted = 0
     tracks_content_upserted = 0
+
     for track in tracks:
         flat = flatten_track(track)
         try:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert("tracks", flat)
             tracks_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in tracks: {e}")
+
         # Handle content breakout
         content = track.get("content", [])
         for content_row in content:
@@ -421,61 +476,110 @@ def update(configuration: dict, state: dict):
                 tracks_content_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert content for track {track.get('id')}: {e}")
+
     log.info(f"Upserted {tracks_upserted} records into tracks")
     log.info(f"Upserted {tracks_content_upserted} records into tracks_content")
 
-    # Checkpoint progress after tracks sync
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": "tracks"})
 
-    # Handle practices endpoint with custom flattening
+
+def process_practices(bearer_token: str) -> None:
+    """Process practices endpoint with custom flattening."""
     log.info("Fetching endpoint: /v1/catalog/live-practices")
     practices = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-practices", bearer_token)
     practices_upserted = 0
+
     for practice in practices:
         flat = flatten_practice(practice)
         try:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert("practices", flat)
             practices_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in practices: {e}")
+
     log.info(f"Upserted {practices_upserted} records into practices")
 
-    # Checkpoint progress after practices sync
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": "practices"})
 
-    # Handle assessments endpoint with custom flattening
+
+def process_assessments(bearer_token: str) -> None:
+    """Process assessments endpoint with custom flattening."""
     log.info("Fetching endpoint: /v1/catalog/live-assessments")
     assessments = fetch_endpoint(__BASE_URL_DEFAULT, "/v1/catalog/live-assessments", bearer_token)
     assessments_upserted = 0
+
     for assessment in assessments:
         flat = flatten_assessment(assessment)
         try:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert("assessments", flat)
             assessments_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in assessments: {e}")
+
     log.info(f"Upserted {assessments_upserted} records into assessments")
 
-    # Final checkpoint after all endpoints synced
-    op.checkpoint(state={"last_synced_endpoint": "assessments", "sync_completed": True})
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state={"last_synced_endpoint": "assessments"})
 
 
-# Standard connector initialization
+def update(configuration: dict, state: dict):
+    """
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
+    log.warning("Example: Source Examples : DataCamp")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration)
+
+    # Extract configuration values
+    bearer_token = configuration["bearer_token"]
+
+    # Process each endpoint
+    process_custom_tracks(bearer_token)
+    process_courses(bearer_token)
+    process_projects(bearer_token)
+    process_tracks(bearer_token)
+    process_practices(bearer_token)
+    process_assessments(bearer_token)
+
+
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-    connector.debug(configuration=configuration)
 
-# Aug 23, 2025 03:37:27 PM: INFO Fivetran-Tester-Process: SYNC PROGRESS:
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 20
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 10
-# Checkpoints     | 6
-#
-# Aug 23, 2025 03:37:27 PM: INFO Fivetran-Tester-Process: Sync SUCCEEDED
+    # Test the connector locally
+    connector.debug(configuration=configuration)
