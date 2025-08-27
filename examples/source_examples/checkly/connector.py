@@ -1,7 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-"""
-Checkly Connector: This connector demonstrates how to fetch data from Checkly API and upsert it into destination using the Fivetran Connector SDK.
-"""
+# This connector demonstrates how to fetch data from Checkly API and upsert it into destination using the Fivetran Connector SDK.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -17,49 +15,28 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 
-""" Add your source-specific imports here
-requests - for making HTTP API calls to Checkly API
-json - for handling JSON configuration and response data
-time - for rate limiting between API requests"""
-import json
-import time
+# Import required libraries
+import json  # For JSON data handling and serialization
+import requests  # For making HTTP requests to the Checkly API
+import time  # For handling time-related functions like sleep for rate limiting
 
 
-"""
-GUIDELINES TO FOLLOW WHILE WRITING AN EXAMPLE CONNECTOR:
-- Import only the necessary modules and libraries to keep the code clean and efficient.
-- Use clear, consistent and descriptive names for your functions and variables.
-- For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
-- Add comments to explain the purpose of each function in the docstring.
-- Add comments to explain the purpose of complex logic within functions, where necessary.
-- Add comments to highlight where users can make changes to the code to suit their specific use case.
-- Split your code into smaller functions to improve readability and maintainability where required.
-- Use logging to provide useful information about the connector's execution. Do not log excessively.
-- Implement error handling to catch exceptions and log them appropriately. Catch specific exceptions where possible.
-- Define the complete data model with primary key and data types in the schema function.
-- Ensure that the connector does not load all data into memory at once. This can cause memory overflow errors. Use pagination or streaming where possible.
-- Add comments to explain pagination or streaming logic to help users understand how to handle large datasets.
-- Add comments for upsert, update and delete to explain the purpose of upsert, update and delete. This will help users understand the upsert, update and delete processes.
-- Checkpoint your state at regular intervals to ensure that the connector can resume from the last successful sync in case of interruptions.
-- Add comments for checkpointing to explain the purpose of checkpoint. This will help users understand the checkpointing process.
-- Refer to the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
-"""
-
-# Constants
-BASE_URL = "https://api.checklyhq.com/v1"
-PAGE_SIZE = 100
-RATE_LIMIT_DELAY_SECONDS = 0.1
-MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 5
+__BASE_URL = "https://api.checklyhq.com/v1"
+__PAGE_SIZE = 100
+__MAX_RETRIES = 3
+__RETRY_DELAY_SECONDS = 60
 
 # Analytics metrics constants
 NON_AGGREGATED_METRICS = [
+    # Performance metrics
     "responseTime",
     "TTFB",
+    # Core Web Vitals
     "FCP",
     "LCP",
     "CLS",
     "TBT",
+    # Error metrics
     "consoleErrors",
     "networkErrors",
     "userScriptErrors",
@@ -67,8 +44,10 @@ NON_AGGREGATED_METRICS = [
 ]
 
 AGGREGATED_METRICS = [
+    # General availability metrics
     "availability",
     "retries",
+    # Response Time metrics
     "responseTime_avg",
     "responseTime_max",
     "responseTime_median",
@@ -79,6 +58,7 @@ AGGREGATED_METRICS = [
     "responseTime_p99",
     "responseTime_stddev",
     "responseTime_sum",
+    # Time To First Byte (TTFB) metrics
     "TTFB_avg",
     "TTFB_max",
     "TTFB_median",
@@ -89,6 +69,7 @@ AGGREGATED_METRICS = [
     "TTFB_p99",
     "TTFB_stddev",
     "TTFB_sum",
+    # First Contentful Paint (FCP) metrics
     "FCP_avg",
     "FCP_max",
     "FCP_median",
@@ -99,6 +80,7 @@ AGGREGATED_METRICS = [
     "FCP_p99",
     "FCP_stddev",
     "FCP_sum",
+    # Largest Contentful Paint (LCP) metrics
     "LCP_avg",
     "LCP_max",
     "LCP_median",
@@ -109,6 +91,7 @@ AGGREGATED_METRICS = [
     "LCP_p99",
     "LCP_stddev",
     "LCP_sum",
+    # Cumulative Layout Shift (CLS) metrics
     "CLS_avg",
     "CLS_max",
     "CLS_median",
@@ -119,6 +102,7 @@ AGGREGATED_METRICS = [
     "CLS_p99",
     "CLS_stddev",
     "CLS_sum",
+    # Total Blocking Time (TBT) metrics
     "TBT_avg",
     "TBT_max",
     "TBT_median",
@@ -129,6 +113,7 @@ AGGREGATED_METRICS = [
     "TBT_p99",
     "TBT_stddev",
     "TBT_sum",
+    # Console Errors metrics
     "consoleErrors_avg",
     "consoleErrors_max",
     "consoleErrors_median",
@@ -139,6 +124,7 @@ AGGREGATED_METRICS = [
     "consoleErrors_p99",
     "consoleErrors_stddev",
     "consoleErrors_sum",
+    # Network Errors metrics
     "networkErrors_avg",
     "networkErrors_max",
     "networkErrors_median",
@@ -149,6 +135,7 @@ AGGREGATED_METRICS = [
     "networkErrors_p99",
     "networkErrors_stddev",
     "networkErrors_sum",
+    # User Script Errors metrics
     "userScriptErrors_avg",
     "userScriptErrors_max",
     "userScriptErrors_median",
@@ -159,6 +146,7 @@ AGGREGATED_METRICS = [
     "userScriptErrors_p99",
     "userScriptErrors_stddev",
     "userScriptErrors_sum",
+    # Document Errors metrics
     "documentErrors_avg",
     "documentErrors_max",
     "documentErrors_median",
@@ -189,7 +177,15 @@ def validate_configuration(configuration: dict):
 
     # Validate optional analytics parameters with defaults
     quick_range = configuration.get("quick_range", "last24Hours")
-    valid_quick_ranges = ["last24Hours", "last7Days", "last30Days", "last90Days"]
+    valid_quick_ranges = [
+        "last24Hours",
+        "last7Days",
+        "last30Days",
+        "thisWeek",
+        "thisMonth",
+        "lastWeek",
+        "lastMonth",
+    ]
     if quick_range not in valid_quick_ranges:
         raise ValueError(f"quick_range must be one of: {', '.join(valid_quick_ranges)}")
 
@@ -197,24 +193,23 @@ def validate_configuration(configuration: dict):
     aggregation_interval = configuration.get("aggregation_interval", "60")
     try:
         interval = int(aggregation_interval)
-        if interval < 1:
-            raise ValueError("aggregation_interval must be a positive integer")
+        if interval < 1 or interval > 43200:
+            raise ValueError("aggregation_interval must be a positive integer between 1 and 43200")
     except ValueError:
-        raise ValueError("aggregation_interval must be a valid integer")
+        raise ValueError("aggregation_interval must be a valid integer between 1 and 43200")
 
 
 def flatten_nested_objects(data: dict, parent_key: str = "", separator: str = "_") -> dict:
     """
     Flatten nested dictionary objects into a single level dictionary.
-
     Args:
         data: Dictionary to flatten
         parent_key: Parent key for nested objects
         separator: Separator to use between parent and child keys
-
     Returns:
         Flattened dictionary
     """
+
     items = []
 
     for key, value in data.items():
@@ -238,50 +233,43 @@ def flatten_nested_objects(data: dict, parent_key: str = "", separator: str = "_
 
 def make_api_request(url: str, headers: dict):
     """
-    Make an API request to Checkly with proper error handling and rate limiting.
-
+    Make an API request to Checkly with proper error handling and retry logic.
     Args:
         url: Complete API endpoint URL with parameters
         headers: Request headers including authentication
-
     Returns:
         JSON response data (dict or list)
-
     Raises:
-        RuntimeError: If API request fails
+        RuntimeError: If API request fails after all retries
     """
-    # Import requests here to avoid global import as it's pre-installed
-    import requests
 
-    try:
-        # Add rate limiting delay to avoid hitting API limits
-        time.sleep(RATE_LIMIT_DELAY_SECONDS)
-
-        # Set a timeout for the request to prevent hanging
-        response = requests.get(url, headers=headers, timeout=30)
-
-        if response.status_code == 429:
-            log.warning(f"Rate limit hit, waiting {RETRY_DELAY_SECONDS} seconds before retry")
-            time.sleep(RETRY_DELAY_SECONDS)
+    for attempt in range(__MAX_RETRIES):
+        try:
             response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            return response.json()
 
-        response.raise_for_status()
-        return response.json()
+        except requests.exceptions.RequestException as e:
+            if attempt == __MAX_RETRIES - 1:  # Last attempt
+                log.severe(f"API request failed after {__MAX_RETRIES} attempts: {str(e)}")
+                raise RuntimeError(f"API request failed: {str(e)}")
 
-    except requests.exceptions.RequestException as e:
-        log.error(f"API request failed for URL: {url}")
-        raise RuntimeError(f"API request failed: {str(e)}")
+            # Wait before retry with exponential backoff
+            wait_time = __RETRY_DELAY_SECONDS * (2**attempt)
+            log.warning(
+                f"Request failed (attempt {attempt + 1}/{__MAX_RETRIES}), retrying in {wait_time}s: {str(e)}"
+            )
+            time.sleep(wait_time)
+    return None
 
 
 def get_analytics_data(configuration: dict, check_id: str, check_type: str):
     """
     Fetch analytics data for browser checks from Checkly API.
-
     Args:
         configuration: Configuration dictionary with API credentials
         check_id: The check ID to fetch analytics for
         check_type: The type of check (only process if it's BROWSER)
-
     Process analytics records and upsert them to destination tables.
     """
     # Only fetch analytics for browser checks
@@ -311,7 +299,7 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
             metrics_params = "&".join([f"metrics={metric}" for metric in metrics_list])
 
             # Construct URL with quickRange - single API call, no pagination
-            url = f"{BASE_URL}/analytics/browser-checks/{check_id}?quickRange={quick_range}&aggregationInterval={aggregation_interval}&{metrics_params}"
+            url = f"{__BASE_URL}/analytics/browser-checks/{check_id}?quickRange={quick_range}&aggregationInterval={aggregation_interval}&{metrics_params}"
 
             response_data = make_api_request(url, headers)
 
@@ -347,14 +335,11 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
             continue
 
 
-def get_checks_data(configuration: dict, state: dict):
+def get_checks_data(configuration: dict):
     """
     Fetch checks data from Checkly API with pagination support.
-
     Args:
         configuration: Configuration dictionary with API credentials
-        state: State dictionary for incremental sync support
-
     Process check records and upsert them to destination table.
     """
     api_key = configuration.get("api_key")
@@ -372,10 +357,10 @@ def get_checks_data(configuration: dict, state: dict):
     browser_checks_found = 0
 
     # Pagination loop to fetch all checks data from Checkly API
-    # Each page returns up to PAGE_SIZE records until all data is retrieved
+    # Each page returns up to __PAGE_SIZE records until all data is retrieved
     while has_more_data:
         # Construct URL with query parameters for pagination
-        url = f"{BASE_URL}/checks?limit={PAGE_SIZE}&page={page}&applyGroupSettings=false"
+        url = f"{__BASE_URL}/checks?limit={__PAGE_SIZE}&page={page}&applyGroupSettings=false"
 
         try:
             response_data = make_api_request(url, headers)
@@ -404,18 +389,18 @@ def get_checks_data(configuration: dict, state: dict):
                     try:
                         get_analytics_data(configuration, check_id, check_type)
                     except Exception as e:
-                        log.error(f"Failed to process analytics for check {check_id}: {str(e)}")
+                        log.severe(f"Failed to process analytics for check {check_id}: {str(e)}")
                         # Continue with other checks for non-critical errors
                         continue
 
             # Check if we have more data to fetch
-            if len(response_data) < PAGE_SIZE:
+            if len(response_data) < __PAGE_SIZE:
                 has_more_data = False
             else:
                 page += 1
 
         except Exception as e:
-            log.error(f"Error fetching checks data on page {page}: {str(e)}")
+            log.severe(f"Error fetching checks data on page {page}: {str(e)}")
             raise
 
     log.info(f"Successfully processed {total_records} check records")
@@ -429,7 +414,7 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    schema_definition = [
+    return [
         {
             "table": "checks",  # Name of the table in the destination, required.
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
@@ -445,8 +430,6 @@ def schema(configuration: dict):
             ],  # Primary key for non-aggregated analytics data, optional.
         },
     ]
-
-    return schema_definition
 
 
 def update(configuration: dict, state: dict):
@@ -464,17 +447,9 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    # Get the state variable for the sync, if needed
-    last_sync_time = state.get("last_sync_time")
-
-    if last_sync_time:
-        log.info(f"Incremental sync from last sync time: {last_sync_time}")
-    else:
-        log.info("Performing full sync - no previous state found")
-
     try:
         # Fetch and process checks data with pagination
-        get_checks_data(configuration, state)
+        get_checks_data(configuration)
 
         log.info("Checkly sync completed successfully")
 
@@ -492,17 +467,8 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    try:
-        with open("configuration.json", "r") as f:
-            configuration = json.load(f)
-    except Exception as e:
-        print(f"Failed to load configuration.json: {str(e)}")
-        raise
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
 
     # Test the connector locally
-    try:
-        connector.debug(configuration=configuration)
-        print("Connector debug execution completed successfully")
-    except Exception as e:
-        print(f"Connector debug execution failed: {str(e)}")
-        raise
+    connector.debug(configuration=configuration)
