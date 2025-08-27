@@ -2,7 +2,9 @@
 
 ## Connector overview
 
-The DataCamp connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your data warehouse. This connector supports multiple content endpoints including courses, projects, tracks, practices, assessments, and custom tracks. The connector implements Bearer token authentication and provides comprehensive data flattening with breakout tables for nested relationships, following Fivetran best practices for reliability, security, and maintainability.
+The [DataCamp](https://www.datacamp.com/) connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your destination. This connector syncs data from content endpoints, including courses, projects, tracks, practices, assessments, and custom tracks.
+
+The connector implements bearer token authentication and provides comprehensive data flattening with breakout tables for nested relationships, following Fivetran best practices for reliability, security, and maintainability.
 
 ## Requirements
 
@@ -30,7 +32,7 @@ The connector supports the following features:
 
 ## Configuration file
 
-The connector requires Bearer token authentication for the DataCamp LMS Catalog API. The base URL is configured as a constant in the connector code and defaults to the standard DataCamp API endpoint.
+The connector requires bearer token authentication for the DataCamp LMS Catalog API. The base URL is configured as a constant in the connector code and defaults to the standard DataCamp API endpoint.
 
 ```json
 {
@@ -42,23 +44,23 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-This connector example uses the standard libraries provided by Python and does not require any additional packages
+This connector example uses the standard libraries provided by Python and does not require any additional packages.
 
 Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
-The connector uses Bearer token authentication with the DataCamp LMS Catalog API. The authentication is handled in the `update` function through the following process:
+The connector uses bearer token authentication with the DataCamp LMS Catalog API. The authentication is handled in the `update` function through the following process:
 
-- Using a pre-configured Bearer token for all API requests
-- Adding the token to the Authorization header as `Bearer {token}`
+- Using a pre-configured bearer token for all API requests
+- Adding the token to the authorization header as `Bearer {token}`
 - Validating token presence during connector initialization
 - Handling authentication errors gracefully with detailed logging
 
 To obtain the necessary credentials:
-1. Contact your DataCamp account representative to set up API access
-2. Request Bearer token credentials for the LMS Catalog API
-3. Ensure your token has access to all required catalog endpoints
+1. Contact your DataCamp account representative to set up API access.
+2. Request bearer token credentials for the LMS Catalog API.
+3. Ensure your token has access to all required catalog endpoints.
 
 ## Pagination
 
@@ -75,11 +77,11 @@ Refer to the `update` function for the sequential endpoint processing logic.
 
 The connector processes JSON data from the DataCamp API and transforms it into structured records using specialized functions:
 
-- **Custom flattening**: Uses specialized flatten functions for each content type (`flatten_course`, `flatten_project`, `flatten_track`, `flatten_practice`, `flatten_assessment`, `flatten_custom_track`)
-- **Nested object handling**: Flattens nested dictionaries while preserving important relationships
-- **Array breakout**: Creates separate tables for nested arrays (chapters, topics, content)
-- **Data preservation**: Maintains all original field names and values where possible
-- **Primary key generation**: Uses natural keys from the API (id fields)
+- **Custom flattening**: Uses specialized flatten functions for each content type (`flatten_course`, `flatten_project`, `flatten_track`, `flatten_practice`, `flatten_assessment`, and `flatten_custom_track`).
+- **Nested object handling**: Flattens nested dictionaries while preserving important relationships.
+- **Array breakout**: Creates separate tables for nested arrays (chapters, topics, and content).
+- **Data preservation**: Maintains all original field names and values where possible.
+- **Primary key generation**: Uses natural keys from the API (`id` fields).
 
 Data is delivered to Fivetran using upsert operations for each record, ensuring data consistency and enabling incremental updates.
 
@@ -87,11 +89,11 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 The connector implements comprehensive error handling strategies following Fivetran best practices:
 
-- **Individual record handling**: Failed records don't stop the entire sync process
-- **API error management**: HTTP errors are caught and logged with severity levels
-- **Timeout configuration**: Configurable timeout (30 seconds default) for API requests to prevent hanging
-- **Detailed logging**: Uses Fivetran's logging framework (INFO, WARNING, SEVERE levels)
-- **State preservation**: Checkpoints progress after each endpoint to enable recovery
+- **Individual record handling**: Failed records don't stop the entire sync process.
+- **API error management**: HTTP errors are caught and logged with severity levels.
+- **Timeout configuration**: Configurable timeout (30 seconds default) for API requests to prevent hanging.
+- **Detailed logging**: Uses Fivetran's logging framework (INFO, WARNING, SEVERE levels).
+- **State preservation**: Checkpoints progress after each endpoint to enable recovery.
 
 Refer to the `fetch_endpoint` function for API error handling and individual record processing loops for error isolation.
 
