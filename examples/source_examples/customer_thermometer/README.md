@@ -2,7 +2,9 @@
 
 ## Connector overview
 
-The Customer Thermometer connector for Fivetran fetches customer feedback data from the Customer Thermometer API and syncs it to your data warehouse. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. The connector implements API key authentication, parses XML responses, and is stateless, following Fivetran best practices for reliability, security, and maintainability.
+The [Customer Thermometer](https://www.customerthermometer.com/) custom connector for Fivetran fetches customer feedback data from the Customer Thermometer API and syncs it to your destination. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. 
+
+The connector implements API key authentication, parses XML responses, and is stateless, following Fivetran best practices for reliability, security, and maintainability.
 
 ## Requirements
 
@@ -48,7 +50,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-This connector example uses the standard libraries provided by Python and does not require any additional packages
+This connector example uses standard libraries provided by Python and does not require any additional packages.
 
 Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
@@ -68,9 +70,9 @@ The connector uses API key authentication with the Customer Thermometer API. Aut
 - Handles authentication errors gracefully with detailed logging
 
 To obtain the necessary credentials:
-1. Log in to your Customer Thermometer account
-2. Navigate to Account Settings > API
-3. Generate a new API key or use an existing one
+1. Log in to your Customer Thermometer account.
+2. Navigate to **Account Settings** > **API**.
+3. Generate a new API key or use an existing one.
 
 ## Data handling
 
