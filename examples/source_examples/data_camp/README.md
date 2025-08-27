@@ -101,18 +101,18 @@ Refer to the `fetch_endpoint` function for API error handling and individual rec
 
 The connector creates the following tables in your destination:
 
-| Table name              | Primary key                    | Description |
-|-------------------------|--------------------------------|-------------|
-| `COURSES`               | `[id]`                         | Course catalog with flattened course data |
-| `COURSES_CHAPTERS`      | `[id, course_id]`              | Breakout table for course chapters |
-| `PROJECTS`              | `[id]`                         | Project catalog with flattened project data |
-| `PROJECTS_TOPICS`       | `[project_id, name]`           | Breakout table for project topics |
-| `TRACKS`                | `[id]`                         | Learning track catalog |
-| `TRACKS_CONTENT`        | `[track_id, position]`         | Breakout table for track content items |
-| `PRACTICES`             | `[id]`                         | Practice exercise catalog |
-| `ASSESSMENTS`           | `[id]`                         | Assessment catalog |
-| `CUSTOM_TRACKS`         | `[id]`                         | Custom learning track catalog |
-| `CUSTOM_TRACKS_CONTENT` | `[custom_track_id, position]`  | Breakout table for custom track content |
+| Table name              | Primary key    | Description |
+|-------------------------|----------------|-------------|
+| `COURSES`               | `id`           | Course catalog with flattened course data |
+| `COURSES_CHAPTERS`      | `id`,`course_id` | Breakout table for course chapters |
+| `PROJECTS`              | `id`           | Project catalog with flattened project data |
+| `PROJECTS_TOPICS`       | `project_id`,`name` | Breakout table for project topics |
+| `TRACKS`                | `id`           | Learning track catalog |
+| `TRACKS_CONTENT`        | `track_id`,`position` | Breakout table for track content items |
+| `PRACTICES`             | `id`           | Practice exercise catalog |
+| `ASSESSMENTS`           | `id`           | Assessment catalog |
+| `CUSTOM_TRACKS`         | `id`           | Custom learning track catalog |
+| `CUSTOM_TRACKS_CONTENT` | `custom_track_id`,`position` | Breakout table for custom track content |
 
 All main tables include flattened versions of complex nested objects, while breakout tables maintain relationships through foreign keys.
 
