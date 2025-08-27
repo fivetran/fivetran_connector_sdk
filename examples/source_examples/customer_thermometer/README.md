@@ -25,10 +25,8 @@ The connector supports the following features:
 - Multiple endpoints: Supports comments, blast results, recipient lists, thermometers, and metrics
 - API key authentication: Secure authentication using Customer Thermometer API keys
 - XML parsing: Converts XML API responses to structured records
-
 - Error handling: Individual record and API error handling without stopping entire sync
 - Comprehensive logging: Uses Fivetran's logging framework for troubleshooting and monitoring
-- SDK v2.0.0+ compliance: Uses direct operation calls (no yield statements)
 
 ## Configuration file
 
@@ -51,12 +49,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 
 This connector example uses standard libraries provided by Python and does not require any additional packages.
-
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
-```
-# Core dependencies are pre-installed in Fivetran environment
-```
 
 Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
@@ -100,13 +92,13 @@ Refer to the `update` and `make_api_request` functions for error handling and re
 
 The connector creates the following tables in your destination:
 
-| Table name        | Primary key                              | Description                                 |
-|-------------------|------------------------------------------|---------------------------------------------|
-| `COMMENTS`        | `[response_id]`                          | Customer feedback comments                  |
-| `BLAST_RESULTS`   | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
-| `RECIPIENT_LISTS` | `[id]`                                   | Lists of feedback recipients                |
-| `THERMOMETERS`    | `[id]`                                   | Configured feedback collection tools        |
-| `METRICS`         | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
+| Table name        | Primary key                                 | Description                                 |
+|-------------------|---------------------------------------------|---------------------------------------------|
+| `COMMENTS`        | `response_id`                               | Customer feedback comments                  |
+| `BLAST_RESULTS`   | `blast_id`, `response_id`, `thermometer_id` | Results from feedback collection campaigns  |
+| `RECIPIENT_LISTS` | `id`                                        | Lists of feedback recipients                |
+| `THERMOMETERS`    | `id`                                        | Configured feedback collection tools        |
+| `METRICS`         | `metric_name`,  `recorded_at`               | Aggregated feedback metrics                 |
 
 All tables include flattened versions of complex nested objects where applicable.
 
