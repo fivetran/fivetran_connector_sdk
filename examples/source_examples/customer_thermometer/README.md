@@ -102,11 +102,11 @@ The connector creates the following tables in your destination:
 
 | Table name        | Primary key                              | Description                                 |
 |-------------------|------------------------------------------|---------------------------------------------|
-| `comments`        | `[response_id]`                          | Customer feedback comments                  |
-| `blast_results`   | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
-| `recipient_lists` | `[id]`                                   | Lists of feedback recipients                |
-| `thermometers`    | `[id]`                                   | Configured feedback collection tools        |
-| `metrics`         | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
+| `COMMENTS`        | `[response_id]`                          | Customer feedback comments                  |
+| `BLAST_RESULTS`   | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
+| `RECIPIENT_LISTS` | `[id]`                                   | Lists of feedback recipients                |
+| `THERMOMETERS`    | `[id]`                                   | Configured feedback collection tools        |
+| `METRICS`         | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
 
 All tables include flattened versions of complex nested objects where applicable.
 
