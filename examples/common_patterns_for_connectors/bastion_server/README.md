@@ -1,4 +1,4 @@
-# Bastian Server Connector Example
+# Bastion Server Connector Example
 
 
 ## Connector overview
