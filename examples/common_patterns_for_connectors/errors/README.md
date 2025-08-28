@@ -101,7 +101,7 @@ This connector creates a single table:
 
 
 ## Additional files
-This example does not include additional files
+This example does not include additional files.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
