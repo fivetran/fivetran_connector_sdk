@@ -2,7 +2,7 @@
 
 
 ## Connector overview
-This connector extracts data from `Harness.io` API and loads it into a destination using Fivetran's Connector SDK. It fetches information about user projects, connectors catalog, budgets, and performance metrics like mean time to resolution, making it useful for organizations that want to analyze their Harness.io data alongside other business data.
+This connector extracts data from `Harness.io` API and loads it into a destination using Fivetran's Connector SDK. It fetches information about user projects, connector catalog, budgets, and performance metrics like mean time to resolution, making it useful for organizations that want to analyze their Harness.io data alongside other business data.
 
 
 ## Requirements
@@ -54,7 +54,7 @@ Authentication with the Harness.io API is performed using an API token and accou
 
 
 ## Pagination
-Refer to the `upsert_all_projects_for_user function()` method for pagination implementation. The connector handles pagination for the projects endpoint by:
+Refer to the `upsert_all_projects_for_user function()` method for pagination implementation. The connector handles pagination for the projects endpoint by doing the following:
 
 - Setting an initial page size (100 records)
 - Making API requests in a loop until all pages are processed
@@ -63,7 +63,7 @@ Refer to the `upsert_all_projects_for_user function()` method for pagination imp
 
 
 ## Data handling
-The connector defines a schema for four destination tables and processes data using for each table in following way:
+The connector defines a schema for four destination tables and processes data used for each table in the following way:
 
 - User projects: Data is fetched from the `/ng/api/projects` endpoint. The connector processes each project record, flattening nested structures before upserting to the destination table.
 
