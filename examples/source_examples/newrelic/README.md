@@ -6,30 +6,21 @@
 
 The New Relic Feature APIs Connector is a Fivetran Connector SDK implementation that extracts comprehensive monitoring and performance data from New Relic's various feature APIs. It provides detailed insights into application performance, infrastructure health, user experience, and system reliability across multiple New Relic services.
 
-**Key Capabilities:**
-- **APM Data Extraction**: Transaction performance, error rates, throughput, and Apdex scores
-- **Infrastructure Monitoring**: Host status, domain analysis, and infrastructure health tracking
-- **Browser Performance**: Page load times, browser analytics, and device performance insights
-- **Mobile App Monitoring**: Crash analysis, platform performance, and device utilization
-- **Synthetic Monitoring**: Uptime monitoring, response time analysis, and failure detection
-- **Cross-Service Analytics**: Correlated performance analysis across all monitoring services
-- **Incremental Syncs**: Efficient data updates with state management
-
 **Data Source**: New Relic NerdGraph API (GraphQL queries for APM, Infrastructure, Browser, Mobile, and Synthetic monitoring data)
 
 **Use Cases**: Application performance monitoring, infrastructure health tracking, user experience optimization, mobile app quality assurance, synthetic monitoring, and comprehensive observability analysis.
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -112,7 +103,7 @@ The connector implements efficient data handling by:
 
 Refer to functions `get_apm_data`, `get_infrastructure_data`, `get_browser_data`, `get_mobile_data`, and `get_synthetic_data` in `connector.py` for the data retrieval implementation.
 
-## Dynamic Time Range Management
+## Dynamic time range management
 
 The connector intelligently manages data fetching based on sync type:
 
