@@ -1,8 +1,7 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# This connector demonstrates how to fetch data from Checkly API and upsert it into destination using the Fivetran Connector SDK.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
+"""This connector demonstrates how to fetch data from Checkly API and upsert it into destination using the Fivetran Connector SDK.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -327,6 +326,9 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
                     table_name = f"browser_checks_analytics_{metrics_type}"
 
                     # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The op.upsert method is called with two arguments:
+                    # - The first argument is the name of the table to upsert the data into.
+                    # - The second argument is a dictionary containing the data to be upserted,
                     op.upsert(table=table_name, data=flattened_record)
 
         except Exception as e:

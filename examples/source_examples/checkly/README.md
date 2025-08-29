@@ -62,12 +62,12 @@ You'll need to obtain the following credentials:
 1. **API Key**: A Checkly API key with read permissions for checks and analytics endpoints
 2. **Account ID**: Your Checkly account identifier for proper API access
 
-**Steps to obtain credentials:**
-1. Log into your Checkly dashboard at https://app.checklyhq.com/
-2. Navigate to Account Settings > API Keys
-3. Create a new API key with appropriate read permissions
-4. Copy your Account ID from the account settings page
-5. Add both values to your `configuration.json` file
+#### Steps to obtain credentials
+1. Log into your Checkly dashboard at https://app.checklyhq.com/.
+2. Navigate to **Account Settings > API Keys**.
+3. Create a new API key with appropriate read permissions.
+4. Copy your Account ID from the account settings page.
+5. Add both values to your `configuration.json` file.
 
 ## Pagination
 The connector implements page-based pagination using the Checkly API's `limit` and `page` parameters. Pagination is handled automatically in the `get_checks_data` function (lines 263-336) which:
@@ -82,12 +82,12 @@ The pagination loop automatically increments the page number and constructs the 
 ## Data handling
 The connector processes Checkly data through several transformation steps implemented across multiple functions:
 
-1. **Check Data Retrieval**: Fetches check configurations from `/v1/checks` endpoint with automatic pagination (refer to `get_checks_data` function)
-2. **Data Flattening**: Converts nested JSON objects into flat SQL-compatible structures using the `flatten_nested_objects` function (lines 122-154)
-3. **Analytics Processing**: For browser checks, fetches analytics data from `/v1/analytics/browser-checks/{check_id}` endpoint (refer to `get_analytics_data` function, lines 192-262)
-4. **Metrics Separation**: Separates analytics into aggregated and non-aggregated metrics tables using predefined metric constants (`AGGREGATED_METRICS` and `NON_AGGREGATED_METRICS`)
-5. **Array Handling**: Converts string arrays to comma-separated values and complex arrays to JSON strings for optimal database storage
-6. **Rate Limiting**: Implements configurable delays between API calls (`RATE_LIMIT_DELAY_SECONDS = 0.1`) to respect Checkly's rate limits (refer to `make_api_request` function)
+- **Check Data Retrieval**: Fetches check configurations from `/v1/checks` endpoint with automatic pagination (refer to `get_checks_data` function)
+- **Data Flattening**: Converts nested JSON objects into flat SQL-compatible structures using the `flatten_nested_objects` function
+- **Analytics Processing**: For browser checks, fetches analytics data from `/v1/analytics/browser-checks/{check_id}` endpoint
+- **Metrics Separation**: Separates analytics into aggregated and non-aggregated metrics tables using predefined metric constants (`AGGREGATED_METRICS` and `NON_AGGREGATED_METRICS`)
+- **Array Handling**: Converts string arrays to comma-separated values and complex arrays to JSON strings for optimal database storage
+- **Rate Limiting**: Implements configurable delays between API calls (`RATE_LIMIT_DELAY_SECONDS = 0.1`) to respect Checkly's rate limits
 
 The connector ensures all nested objects are flattened using underscore separation (e.g., `settings_timeout` becomes a single column) and handles data type conversion for SQL compatibility.
 
