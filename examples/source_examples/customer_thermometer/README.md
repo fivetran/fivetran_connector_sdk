@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-The [Customer Thermometer](https://www.customerthermometer.com/) custom connector for Fivetran fetches customer feedback data from the Customer Thermometer API and syncs it to your destination. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. 
+The [Customer Thermometer](https://www.customerthermometer.com/) custom Fivetran connector fetches customer feedback data from the Customer Thermometer API and syncs it to your destination. This connector supports multiple endpoints including comments, blast results, recipient lists, thermometers, and feedback metrics. 
 
 The connector implements API key authentication, parses XML responses, and is stateless, following Fivetran best practices for reliability, security, and maintainability.
 
