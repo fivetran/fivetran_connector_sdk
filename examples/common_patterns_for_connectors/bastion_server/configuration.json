@@ -1,0 +1,12 @@
+{
+  "bastion_host": "<YOUR_BASTION_PUBLIC_IP_OR_DNS>",
+  "bastion_port": "<YOUR_BASTION_SSH_PORT>",
+  "bastion_user": "<YOUR_BASTION_USERNAME>",
+  "bastion_private_key": "<YOUR_BASE64_ENCODED_BASTION_PEM>",
+  "bastion_passphrase": "<YOUR_BASTION_PASSPHRASE>",
+  "private_host": "<YOUR_PRIVATE_DATABASE_HOST>",
+  "private_port": "<YOUR_PRIVATE_DATABASE_PORT>",
+  "db_user": "<YOUR_DATABASE_USERNAME>",
+  "db_password": "<YOUR_DATABASE_PASSWORD>",
+  "db_name": "<YOUR_DATABASE_NAME>"
+}
