@@ -1,8 +1,7 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# This is an example to show how to sync CRM data from SuiteDash's API by using Connector SDK. You need to provide your SuiteDash Public ID and Secret Key for this example to work.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
+"""This is an example to show how to sync CRM data from SuiteDash's API by using Connector SDK. You need to provide your SuiteDash Public ID and Secret Key for this example to work.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -21,10 +20,9 @@ import requests
 import json
 
 
-_BASE_URL = "https://app.suitedash.com/secure-api"  # Base URL for SuiteDash API
-_COMPANIES_ENDPOINT = "/companies"  # Endpoint for fetching companies
-_CONTACTS_ENDPOINT = "/contacts"  # Endpoint for fetching contacts
-_DEFAULT_PAGE_SIZE = 50  # Default page size for API requests
+__BASE_URL = "https://app.suitedash.com/secure-api"  # Base URL for SuiteDash API
+__COMPANIES_ENDPOINT = "/companies"  # Endpoint for fetching companies
+__CONTACTS_ENDPOINT = "/contacts"  # Endpoint for fetching contacts
 
 
 def validate_configuration(configuration: dict):
@@ -175,16 +173,17 @@ def process_contact_record(contact: dict) -> dict:
     return processed
 
 
-def extract_contact_company_relationships(contact: dict) -> list:
+def extract_contact_company_relationships(contact: dict, op) -> int:
     """
-    Extract contact-company relationships from a contact record to create junction table records.
-    Creates separate relationship records for each company associated with a contact.
+    Extract contact-company relationships from a contact record and upsert them directly.
+    Creates separate relationship records for each company associated with a contact and upserts them immediately.
     Args:
         contact (dict): Contact record from SuiteDash API
+        op: Operations object for upserting data
     Returns:
-        list: List of contact-company relationship records for junction table
+        int: Number of relationships processed
     """
-    relationships = []
+    relationships_processed = 0
     contact_uid = contact.get("uid")
     companies = contact.get("companies", [])
 
@@ -195,9 +194,15 @@ def extract_contact_company_relationships(contact: dict) -> list:
                 "company_uid": company.get("uid"),
                 "company_name": company.get("name"),
             }
-            relationships.append(relationship)
 
-    return relationships
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
+            op.upsert(table="contact_company_relationships", data=relationship)
+            relationships_processed += 1
+
+    return relationships_processed
 
 
 def schema(configuration: dict):
@@ -278,7 +283,7 @@ def sync_companies(configuration: dict, state: dict):
     companies_processed = 0
 
     while more_data:
-        url = f"{_BASE_URL}{_COMPANIES_ENDPOINT}"
+        url = f"{__BASE_URL}{__COMPANIES_ENDPOINT}"
         params = {"page": page}
 
         response_data = make_api_request(url, headers, params)
@@ -317,6 +322,12 @@ def sync_companies(configuration: dict, state: dict):
 
     log.info(f"Companies sync completed. Total companies processed: {companies_processed}")
 
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state={"last_synced_endpoint": "companies"})
+
 
 def sync_contacts(configuration: dict, state: dict):
     """
@@ -334,7 +345,7 @@ def sync_contacts(configuration: dict, state: dict):
     relationships_processed = 0
 
     while more_data:
-        url = f"{_BASE_URL}{_CONTACTS_ENDPOINT}"
+        url = f"{__BASE_URL}{__CONTACTS_ENDPOINT}"
         params = {"page": page}
 
         response_data = make_api_request(url, headers, params)
@@ -362,15 +373,7 @@ def sync_contacts(configuration: dict, state: dict):
             contacts_processed += 1
 
             # Extract and process contact-company relationships
-            relationships = extract_contact_company_relationships(contact)
-            for relationship in relationships:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="contact_company_relationships", data=relationship)
-
-                relationships_processed += 1
+            relationships_processed += extract_contact_company_relationships(contact, op)
 
         # Check pagination metadata to determine if more pages exist
         pagination = response_data.get("meta", {}).get("pagination", {})
@@ -388,6 +391,12 @@ def sync_contacts(configuration: dict, state: dict):
     log.info(
         f"Contacts sync completed. Total contacts processed: {contacts_processed}, relationships: {relationships_processed}"
     )
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state={"last_synced_endpoint": "contacts"})
 
 
 def update(configuration: dict, state: dict):

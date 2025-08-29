@@ -43,11 +43,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 The requirements.txt file specifies additional Python libraries required by the connector. Following Fivetran best practices, this connector doesn't require additional dependencies.
 
-```
-# No additional requirements needed
-# The fivetran_connector_sdk and requests packages are pre-installed in the Fivetran environment
-```
-
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
@@ -82,8 +77,8 @@ The connector handles SuiteDash's pagination using the next-page-URL mechanism. 
 ```
 
 The pagination logic is implemented in:
-- **sync_companies()** function (lines 234-280)
-- **sync_contacts()** function (lines 283-340)
+- **sync_companies()** function 
+- **sync_contacts()** function 
 
 
 ## Data handling
