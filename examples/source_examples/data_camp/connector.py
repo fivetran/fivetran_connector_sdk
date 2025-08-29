@@ -1,7 +1,7 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# This connector fetches course catalog data from DataCamp's LMS Catalog API including courses,projects, assessments, practices, tracks, and custom tracks. It flattens nested objects and creates breakout tables for array relationships following Fivetran best practices.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+""" This connector fetches course catalog data from DataCamp's LMS Catalog API including courses,projects, assessments, practices, tracks, and custom tracks. It flattens nested objects and creates breakout tables for array relationships following Fivetran best practices.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like Update() and Schema()
@@ -21,54 +21,53 @@ from typing import Dict, Any, List
 # Base URL for the DataCamp LMS Catalog API
 __BASE_URL_DEFAULT = "https://lms-catalog-api.datacamp.com"
 __REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests in seconds
-__MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 
-ENDPOINTS = {
+__ENDPOINTS = {
     "custom_tracks": {
         "url": "/v1/catalog/live-custom-tracks",
         "table": "custom_tracks",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "custom_tracks_content": {
         "table": "custom_tracks_content",
-        "pk": ["custom_track_id", "position"],
+        "primary_key": ["custom_track_id", "position"],
     },
     "courses": {
         "url": "/v1/catalog/live-courses",
         "table": "courses",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "courses_chapters": {
         "table": "courses_chapters",
-        "pk": ["id", "course_id"],
+        "primary_key": ["id", "course_id"],
     },
     "projects": {
         "url": "/v1/catalog/live-projects",
         "table": "projects",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "projects_topics": {
         "table": "projects_topics",
-        "pk": ["project_id", "name"],
+        "primary_key": ["project_id", "name"],
     },
     "assessments": {
         "url": "/v1/catalog/live-assessments",
         "table": "assessments",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "practices": {
         "url": "/v1/catalog/live-practices",
         "table": "practices",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "tracks": {
         "url": "/v1/catalog/live-tracks",
         "table": "tracks",
-        "pk": ["id"],
+        "primary_key": ["id"],
     },
     "tracks_content": {
         "table": "tracks_content",
-        "pk": ["track_id", "position"],
+        "primary_key": ["track_id", "position"],
     },
 }
 
@@ -218,11 +217,11 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    validate_configuration(configuration)
+
     # Only include tables, not endpoints without a table key
     return [
-        {"table": value["table"], "primary_key": value["pk"]}
-        for key, value in ENDPOINTS.items()
+        {"table": value["table"], "primary_key": value["primary_key"]}
+        for key, value in __ENDPOINTS.items()
         if "table" in value
     ]
 
@@ -259,33 +258,6 @@ def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
         else:
             flat[key] = value
     return flat
-
-
-def flatten_dict(data: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
-    """
-    Generic function to flatten nested dictionaries and convert lists to JSON strings.
-
-    Args:
-        data (Dict[str, Any]): Dictionary to flatten
-        parent_key (str): Parent key prefix for nested keys
-        sep (str): Separator for nested key names
-
-    Returns:
-        Dict[str, Any]: Flattened dictionary with nested objects as separate columns
-    """
-    items = []
-    for key, value in data.items():
-        new_key = f"{parent_key}{sep}{key}" if parent_key else key
-        if isinstance(value, dict):
-            items.extend(flatten_dict(value, new_key, sep=sep).items())
-        elif isinstance(value, list):
-            if value and all(isinstance(item, dict) for item in value):
-                items.append((new_key, json.dumps([flatten_dict(item) for item in value])))
-            else:
-                items.append((new_key, json.dumps(value)))
-        else:
-            items.append((new_key, value))
-    return dict(items)
 
 
 def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict[str, Any]]:
@@ -337,7 +309,11 @@ def process_custom_tracks(bearer_token: str) -> None:
     for track in custom_tracks:
         flat = flatten_custom_track(track)
         try:
-            op.upsert("custom_tracks", flat)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
+            op.upsert(table="custom_tracks", data=flat)
             custom_tracks_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in custom_tracks: {e}")
@@ -352,7 +328,7 @@ def process_custom_tracks(bearer_token: str) -> None:
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted
-                op.upsert("custom_tracks_content", content_row_out)
+                op.upsert(table="custom_tracks_content",data=content_row_out)
                 custom_tracks_content_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert content for custom_track {track.get('id')}: {e}")
@@ -377,7 +353,11 @@ def process_courses(bearer_token: str) -> None:
     for course in courses:
         flat = flatten_course(course)
         try:
-            op.upsert("courses", flat)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
+            op.upsert(table="courses",data=flat)
             courses_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in courses: {e}")
@@ -392,7 +372,7 @@ def process_courses(bearer_token: str) -> None:
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted
-                op.upsert("courses_chapters", chapter_row)
+                op.upsert(table="courses_chapters", data=chapter_row)
                 courses_chapters_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert chapter for course {course.get('id')}: {e}")
@@ -417,7 +397,11 @@ def process_projects(bearer_token: str) -> None:
     for project in projects:
         flat = flatten_project(project)
         try:
-            op.upsert("projects", flat)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
+            op.upsert(table="projects",data=flat)
             projects_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in projects: {e}")
@@ -432,7 +416,7 @@ def process_projects(bearer_token: str) -> None:
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted
-                op.upsert("projects_topics", topic_row)
+                op.upsert(table="projects_topics",data=topic_row)
                 projects_topics_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert topic for project {project.get('id')}: {e}")
@@ -461,7 +445,7 @@ def process_tracks(bearer_token: str) -> None:
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            op.upsert("tracks", flat)
+            op.upsert(table="tracks",data=flat)
             tracks_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in tracks: {e}")
@@ -472,7 +456,11 @@ def process_tracks(bearer_token: str) -> None:
             content_row_out = dict(content_row)
             content_row_out["track_id"] = track.get("id")
             try:
-                op.upsert("tracks_content", content_row_out)
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted
+                op.upsert(table="tracks_content", data=content_row_out)
                 tracks_content_upserted += 1
             except Exception as e:
                 log.severe(f"Failed to upsert content for track {track.get('id')}: {e}")
@@ -500,7 +488,7 @@ def process_practices(bearer_token: str) -> None:
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            op.upsert("practices", flat)
+            op.upsert(table="practices",data=flat)
             practices_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in practices: {e}")
@@ -527,7 +515,7 @@ def process_assessments(bearer_token: str) -> None:
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            op.upsert("assessments", flat)
+            op.upsert(table="assessments", data=flat)
             assessments_upserted += 1
         except Exception as e:
             log.severe(f"Failed to upsert record in assessments: {e}")
