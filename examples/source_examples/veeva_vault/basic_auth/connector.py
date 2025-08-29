@@ -1,11 +1,13 @@
-# This is a simple example for how to work with the fivetran_connector_sdk module.
-# This code is currently configured to Retrieve Details from All Object Types in Veeva Vault and then utilize VQL to retrieve all Object records, creating one table per object
-# You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json
-# Retrieve Details from All Object Types endpoint: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
-# VQL endpoint: https://developer.veevavault.com/api/19.3/#vault-query-language-vql
-# You can also add code to extract from other endpoints as needed.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This is a simple example for how to work with the fivetran_connector_sdk module.
+This code is currently configured to Retrieve Details from All Object Types in Veeva Vault and then utilize VQL to retrieve all Object records, creating one table per object
+You will need to provide your own Veeva Vault credentials for this to work --> subdomain, username, and password variables in configuration.json
+Retrieve Details from All Object Types endpoint: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
+VQL endpoint: https://developer.veevavault.com/api/19.3/#vault-query-language-vql
+You can also add code to extract from other endpoints as needed.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk
 
@@ -25,14 +27,14 @@ import base64
 import datetime
 
 
-# Function to get list of available Veeva Vault objects
-# Endpoint documentation: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
-# The getVaultObjects function takes two parameters:
-# - configuration: a dictionary that holds the configuration settings for the connector.
-# - credentials: a Veeva Vault base64 encoded username:password
-
-
 def get_vault_objects(configuration: dict, credentials):
+    """
+    Function to get list of available Veeva Vault objects
+    Endpoint documentation: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        credentials: a Veeva Vault base64 encoded username:password
+    """
     base_url = f"https://{configuration.get('subdomain')}/v19.3/"
 
     headers = {"Authorization": f"Basic {credentials}", "Accept": "application/json"}
@@ -45,12 +47,16 @@ def get_vault_objects(configuration: dict, credentials):
     return merged_objects
 
 
-# Function to merge Veeva Vault objects if an object shows up multiple times in response from: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
-# The uniqueObjectsAndFields function takes in one parameter
-# - objects_response: the data node of the response from: https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
-# And returns one object
-# - merged_objects: a de-duplicated list of object types and field names
 def unique_objects_and_fields(objects_response):
+    """
+    Function to merge Veeva Vault objects if an object shows up multiple times in response from:
+    https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
+    Args:
+        objects_response: the data node of the response from:
+        https://developer.veevavault.com/api/19.3/#retrieve-details-from-all-object-types
+    Returns:
+        merged_objects: a de-duplicated list of object types and field names
+    """
     # Merge items in API response with same "object" value
     grouped = defaultdict(list)
     merged_objects = []
@@ -84,12 +90,14 @@ def unique_objects_and_fields(objects_response):
     return merged_objects
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
 
     encoded_credentials = encode_credentials(configuration)
     # Dynamically define schema based on getVaultObjects response
@@ -118,6 +126,16 @@ def schema(configuration: dict):
 # The state dictionary is empty for the first sync or for any full re-sync
 # This function is designed to loop through and retrieve vault Object data using VQL endpoint: https://developer.veevavault.com/api/24.2/#submitting-a-query
 def update(configuration: dict, state: dict):
+    """
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+    log.warning("Example: Source Examples - Veeva Vault Basic Auth Connector")
     # Initialize the sync process
 
     # Define base_url
@@ -185,14 +203,16 @@ def update(configuration: dict, state: dict):
         op.checkpoint(table_cursor)
 
 
-# Function to make a call to the VQL endpoint: https://developer.veevavault.com/api/19.3/#vault-query-language-vql
-# This function takes three input parameters
-# - url: URL of the API endpoint to call
-# - headers: headers for the API call
-# - payload: payload to send in the API call
-# And returns one object
-# - response_page: the response page from the API
 def call_vql(url, headers, payload):
+    """
+    Function to make a call to the VQL endpoint: https://developer.veevavault.com/api/19.3/#vault-query-language-vql
+    Args:
+        url: URL of the API endpoint to call
+        headers: headers for the API call
+        payload: payload to send in the API call
+    Returns:
+        response_page: the response page from the API
+    """
     # Burst Limit threshold and sleep time (5 min)
     burst_limit_threshold = 1000
     burst_limit_sleep_time = 300
@@ -221,17 +241,20 @@ def call_vql(url, headers, payload):
     return response_page
 
 
-# Function to check if there are more pages of data
-# Takes in four parameters
-# - base_url: API base url
-# - current_url: most recent full API url that was retrieved
-# - response_page: most recent response page from the API
-# - payload: most recent payload sent to the API
-# And returns three objects
-# - current_url: new API url to call next, retrieved from the "next_page" key of the response_page
-# - has_more_pages: Boolean to indicate whether there are more pages or not
-# - payload: new payload for next API call if needed
 def should_continue_pagination(base_url, current_url, response_page, payload):
+    """
+    Function to check if there are more pages of data
+    Args:
+        base_url: API base url
+        current_url: most recent full API url that was retrieved
+        response_page: most recent response page from the API
+        payload: most recent payload sent to the API
+    Returns:
+        current_url: new API url to call next, retrieved from the "next_page" key of the response_page
+        has_more_pages: Boolean to indicate whether there are more pages or not
+        payload: new payload for next API call if needed
+    """
+
     has_more_pages = True
 
     # Check if there is a next page URL in the response to continue the pagination
@@ -252,8 +275,14 @@ def should_continue_pagination(base_url, current_url, response_page, payload):
     return current_url, has_more_pages, payload
 
 
-# Function to base64 encode username and password for Basic Auth
 def encode_credentials(configuration: dict):
+    """
+    Function to base64 encode username and password for Basic Auth
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Returns:
+        encoded_credentials: base64 encoded string of username:password
+    """
     username = configuration.get("username")
     password = configuration.get("password")
     credentials = f"{username}:{password}"

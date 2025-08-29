@@ -1,4 +1,4 @@
-# Veeva Vault Connector Example
+# Veeva Vault Connector - Using Basic Authentication Example
 
 ## Connector overview
 This connector demonstrates how to sync all object types and their records from Veeva Vault using the Fivetran Connector SDK. It leverages the Vault Configuration API to dynamically retrieve schema information and uses VQL (Vault Query Language) to query and paginate through object records.
@@ -50,11 +50,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-This connector requires the following Python packages:
-
-```
-requests
-```
+This connector does not require any additional Python packages.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
