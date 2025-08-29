@@ -1,7 +1,7 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# This connector demonstrates how to fetch data from Customer Thermometer API and upsert it into destination using the Fivetran Connector SDK.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""This connector demonstrates how to fetch data from Customer Thermometer API and upsert it into destination using the Fivetran Connector SDK.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like Update() and Schema()
@@ -16,13 +16,12 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import requests  # For making HTTP requests to the Common Paper API
 import json  # For JSON data handling and serialization
-import xml.etree.ElementTree as ET  # For parsing XML responses
+import xml.etree.ElementTree as et  # For parsing XML responses
 from datetime import datetime, timezone  # For handling date and time
 from typing import Dict, List, Any, Optional  # For type hinting
 
 # Base URL for the Customer Thermometer API
 __BASE_URL = "https://app.customerthermometer.com/api.php"
-__DEFAULT_CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
 __API_TIMEOUT_SECONDS = 30  # API request timeout in seconds
 __MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
 
@@ -84,7 +83,7 @@ def make_api_request(
         response.raise_for_status()
         return response
     except requests.RequestException as e:
-        log.error(f"API request failed for endpoint {endpoint}: {str(e)}")
+        log.severe(f"API request failed for endpoint {endpoint}: {str(e)}")
         raise
 
 
@@ -103,7 +102,7 @@ def parse_xml_response(
         ET.ParseError: If the XML content cannot be parsed
     """
     try:
-        root = ET.fromstring(xml_content)
+        root = et.fromstring(xml_content)
         results = []
 
         for item in root.findall(child_element):
@@ -115,8 +114,8 @@ def parse_xml_response(
             results.append(record)
 
         return results
-    except ET.ParseError as e:
-        log.error(f"Failed to parse XML response: {str(e)}")
+    except et.ParseError as e:
+        log.severe(f"Failed to parse XML response: {str(e)}")
         raise
 
 
@@ -380,7 +379,7 @@ def update(configuration: dict, state: dict):
         # Handle API request failures
         log.severe(f"API request failed: {str(e)}")
         raise RuntimeError(f"Failed to sync data due to API error: {str(e)}")
-    except ET.ParseError as e:
+    except et.ParseError as e:
         # Handle XML parsing errors
         log.severe(f"XML parsing failed: {str(e)}")
         raise RuntimeError(f"Failed to parse API response: {str(e)}")
