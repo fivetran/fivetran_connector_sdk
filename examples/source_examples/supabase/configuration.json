@@ -1,0 +1,6 @@
+{
+  "supabase_url": "<YOUR_SUPABASE_PROJECT_URL>",
+  "supabase_key": "<YOUR_SUPABASE_ANON_KEY>",
+  "schema_name": "public",
+  "table_name": "employee"
+}
