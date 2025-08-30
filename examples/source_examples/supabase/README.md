@@ -1,4 +1,4 @@
-# Supabase Employee Data Connector
+# Supabase Connector Example 
 
 ## Connector overview
 This connector demonstrates how to fetch employee data from a [Supabase](https://supabase.com/) database and sync it to Fivetran using the Fivetran Connector SDK. The connector retrieves employee records from a Supabase table and performs incremental synchronization based on the hire_date field. It connects to Supabase using the Python Supabase client library and handles data extraction, transformation, and loading into the destination.
