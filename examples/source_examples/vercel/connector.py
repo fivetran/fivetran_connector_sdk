@@ -27,7 +27,7 @@ from typing import Optional
 
 
 __BASE_URL = "https://api.vercel.com"  # Base URL for Vercel API
-__LIMIT = 10  # Pagination limit - you can change this constant value
+__PAGINATION_LIMIT = 20  # Pagination limit - you can change this constant value
 __REQUEST_TIMEOUT = 30  # Request timeout in seconds
 
 
@@ -158,6 +158,7 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters as required
     api_token = configuration.get("api_token")
+    team_id = configuration.get("team_id")  # Optional team ID for accessing team resources
 
     # Set up authentication headers
     headers = {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
@@ -168,7 +169,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Sync deployments data from /v6/deployments endpoint
-        sync_deployments(headers, last_sync_timestamp)
+        sync_deployments(headers, last_sync_timestamp, team_id)
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_timestamp": current_sync_timestamp}
@@ -183,7 +184,9 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
-def sync_deployments(headers: dict, last_sync_timestamp: Optional[int] = None):
+def sync_deployments(
+    headers: dict, last_sync_timestamp: Optional[int] = None, team_id: Optional[str] = None
+):
     """
     Fetch and sync deployments data from Vercel API.
     This function handles pagination to process all deployments in batches.
@@ -191,12 +194,17 @@ def sync_deployments(headers: dict, last_sync_timestamp: Optional[int] = None):
     Args:
         headers: HTTP headers including authorization
         last_sync_timestamp: Timestamp of last sync for incremental updates
+        team_id: Optional team ID to access team resources instead of personal account
     """
     log.info("Starting deployments sync")
 
     # Build the URL and query parameters
     url = f"{__BASE_URL}/v6/deployments"
-    params: dict = {"limit": __LIMIT}
+    params: dict = {"limit": __PAGINATION_LIMIT}
+
+    # Add team ID if provided to access team resources
+    if team_id:
+        params["teamId"] = team_id
 
     # Use last_sync_timestamp for incremental sync if available
     if last_sync_timestamp:
