@@ -5,6 +5,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 # For reading configuration from a JSON file
 import json
+from typing import Any
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -28,7 +29,6 @@ import time
 import random
 
 
-# Constants for API configuration
 __BASE_URL = "https://api.leavedates.com"  # Base URL for the LeaveDates API
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
@@ -155,11 +155,7 @@ def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_da
     while True:
         # Make API request with retry logic
         url = f"{__BASE_URL}/reports/leave"
-        headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {api_token}",
-            "X-CSRF-TOKEN": "",
-        }
+        headers = {"accept": "application/json", "Authorization": f"Bearer {api_token}"}
         params = {
             "company": company_id,
             "page": page,
@@ -192,7 +188,7 @@ def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_da
     return all_reports
 
 
-def make_api_request_with_retry(url: str, headers: dict, params: dict) -> dict:
+def make_api_request_with_retry(url: str, headers: dict, params: dict) -> Any | None:
     """
     Make an API request with retry logic and exponential backoff.
     This function implements retry strategy for handling transient API errors.
@@ -221,6 +217,7 @@ def make_api_request_with_retry(url: str, headers: dict, params: dict) -> dict:
                 f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}), retrying in {delay:.2f} seconds: {str(e)}"
             )
             time.sleep(delay)
+    return None
 
 
 def flatten_record(record: dict, prefix: str = "", separator: str = "_") -> dict:

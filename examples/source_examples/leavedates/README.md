@@ -1,7 +1,7 @@
-# LeaveDates API Connector
+# LeaveDates API Connector Example
 
 ## Connector overview
-This connector fetches leave report data from the LeaveDates.com API `/reports/leave` endpoint and syncs it to your destination. The connector retrieves detailed leave information including employee names, leave types, amounts, dates, status, and other related metadata. It supports incremental synchronization based on timestamps and handles pagination automatically to ensure all leave records are captured efficiently. The connector uses the LeaveDates detail-report format to provide comprehensive leave data for analytics and reporting purposes.
+The [LeaveDates](https://app.leavedates.com/) connector fetches leave report data from the LeaveDates  API `/reports/leave` endpoint and syncs it to your destination. The connector retrieves detailed leave information including employee names, leave types, amounts, dates, status, and other related metadata. It supports incremental synchronization based on timestamps and handles pagination automatically to ensure all leave records are captured efficiently. The connector uses the LeaveDates detail-report format to provide comprehensive leave data for analytics and reporting purposes.
 
 
 ## Requirements
@@ -31,9 +31,9 @@ The connector requires the following configuration parameters in the configurati
 
 ```
 {
-  "api_token": "YOUR_API_TOKEN_HERE",
-  "company_id": "YOUR_COMPANY_ID_HERE",
-  "start_date": "2020-01-01T00:00:00+00:00"
+  "api_token": "<YOUR_LEAVE_DATES_API_TOKEN>",
+  "company_id": "<YOUR_LEAVE_DATES_COMPANY_ID>",
+  "start_date": "<OPTIONAL_START_DATE>"
 }
 ```
 
@@ -48,17 +48,9 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-The requirements.txt file specifies the Python libraries required by the connector.
+This connector example uses the standard libraries provided by Python and does not require any additional packages.
 
-Example content of `requirements.txt`:
-
-```
-# No additional requirements needed
-# The fivetran_connector_sdk and requests packages are pre-installed
-```
-
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
+Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 The connector uses Bearer token authentication to access the LeaveDates API. To obtain your API token:
@@ -71,15 +63,15 @@ The connector uses Bearer token authentication to access the LeaveDates API. To 
 
 
 ## Pagination
-The connector handles pagination automatically by iterating through all pages of results. It starts from page 1 and continues until all data is retrieved. The pagination logic is implemented in the `fetch_leave_reports` function (lines 119-178), which tracks the current page and total pages to ensure complete data retrieval.
+The connector handles pagination automatically by iterating through all pages of results. It starts from page 1 and continues until all data is retrieved. The pagination logic is implemented in the `fetch_leave_reports` function, which tracks the current page and total pages to ensure complete data retrieval.
 
 
 ## Data handling
-The connector processes leave report data by flattening nested JSON structures into a tabular format suitable for database storage. The `flatten_record` function (lines 218-244) converts nested objects into underscore-separated keys and handles arrays by converting them to JSON strings. Data is processed in the `update` function (lines 66-116) and upserted into the `leave_reports` table with incremental synchronization based on the last sync timestamp. The `schema` function (lines 53-63) defines the table structure with `id` as the primary key.
+The connector processes leave report data by flattening nested JSON structures into a tabular format suitable for database storage. The `flatten_record` function converts nested objects into underscore-separated keys and handles arrays by converting them to JSON strings. Data is processed in the `update` function and upserted into the `leave_reports` table with incremental synchronization based on the last sync timestamp. The `schema` function defines the table structure with `id` as the primary key.
 
 
 ## Error handling
-The connector implements comprehensive error handling including retry logic with exponential backoff for API requests. The `make_api_request_with_retry` function (lines 181-215) handles transient network errors and API rate limits. Configuration validation is performed by the `validate_configuration` function (lines 33-50) which ensures all required parameters are present before execution.
+The connector implements comprehensive error handling including retry logic with exponential backoff for API requests. The `make_api_request_with_retry` function handles transient network errors and API rate limits. Configuration validation is performed by the `validate_configuration` function which ensures all required parameters are present before execution.
 
 
 ## Tables created
