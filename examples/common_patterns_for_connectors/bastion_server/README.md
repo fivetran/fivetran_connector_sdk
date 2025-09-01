@@ -102,7 +102,7 @@ The connector includes error handling mechanisms to manage potential issues duri
 ## Tables created
 The connector creates the following table in the destination:
 
-- `SAMPLE_USERS`: Contains user data with fields such as `id`, `name` and `modified_at`.
+- `SAMPLE_USERS`: Contains user data with fields such as `id`, `name`, and `modified_at`.
 
 The schema of the `SAMPLE_USERS` table is as follows:
 ```json
@@ -114,8 +114,6 @@ The schema of the `SAMPLE_USERS` table is as follows:
 ```
 
 
-## Additional files
-There are no additional files required for this connector.
 
 
 ## Additional considerations
