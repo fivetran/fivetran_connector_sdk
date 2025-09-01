@@ -50,7 +50,7 @@ Authentication with the Harness.io API is performed using an API token and accou
 
 1. Obtain your API token from your Harness.io account settings.
 2. Identify your account ID from your Harness.io account.
-3. Add these credentials to your `configuration.json` file
+3. Add these credentials to your `configuration.json` file.
 
 
 ## Pagination
