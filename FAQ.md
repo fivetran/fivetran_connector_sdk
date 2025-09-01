@@ -82,7 +82,6 @@ We've developed the [Fivetran SDK Playground](https://pypi.org/project/fivetran-
 
 This allows you to get hands-on experience by interacting with these patterns and exploring our example code in your own development environment. It's a great way to build confidence and learn how to build robust, high-quality connectors.
 
-For more information, check out the [Fivetran SDK Playground](https://pypi.org/project/fivetran-api-playground/).
 
 
 ## Deployment
