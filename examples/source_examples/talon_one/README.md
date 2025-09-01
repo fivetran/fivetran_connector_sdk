@@ -34,8 +34,9 @@ The connector requires configuration with your Talon.one credentials and sync se
 
 ```json
 {
-    "base_url": "https://<YOUR_SUBDOMAIN>.us-west1.talon.one/v1/", 
-    "api_key": "<YOUR_API_KEY>"           
+    "base_url": "<YOUR_TALON.ONE_DOMAIN_URL>", 
+    "api_key": "<YOUR_API_KEY>",
+    "application_id": "<YOUR_TALON.ONE_APPLICATION_ID>"
 }
 ```
 

@@ -32,15 +32,23 @@ __TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 __DEFAULT_PAGE_SIZE = 100
 __INITIAL_SYNC_START_TIME = "2020-01-01T00:00:00.00Z"
 
-# Define the endpoints and corresponding table names
-# You can add more endpoints and tables as per your requirement
-TABLE_ENDPOINT_LIST = [
-    {
-        "table": "event",
-        "primary_key": ["id"],
-        "endpoint": f"applications/{__APPLICATION_ID}/events/no_total",
-    }
-]
+
+def get_table_endpoint_list(application_id):
+    """
+    Function to get the list of table and endpoint mappings
+    You can add more endpoints and tables as per your requirement
+    Args:
+        application_id: Talon.one Application ID
+    Returns:
+        List of dictionaries containing table names, primary keys, and endpoints
+    """
+    return [
+        {
+            "table": "event",
+            "primary_key": ["id"],
+            "endpoint": f"applications/{application_id}/events/no_total",
+        }
+    ]
 
 
 def validate_configuration(configuration: dict):
@@ -54,7 +62,7 @@ def validate_configuration(configuration: dict):
     """
 
     # Validate required configuration parameters
-    required_configs = ["base_url", "api_key"]
+    required_configs = ["base_url", "api_key", "application_id"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -68,8 +76,11 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
+    application_id = configuration.get("application_id")
+    table_endpoint_list = get_table_endpoint_list(application_id=application_id)
+
     return [
-        {"table": d.get("table"), "primary_key": d.get("primary_key")} for d in TABLE_ENDPOINT_LIST
+        {"table": d.get("table"), "primary_key": d.get("primary_key")} for d in table_endpoint_list
     ]
 
 
@@ -128,11 +139,13 @@ def update(configuration: dict, state: dict):
     # Extract constants from configuration.json and compose headers
     base_url = configuration.get("base_url")
     api_key = configuration.get("api_key")
+    application_id = configuration.get("application_id")
+    table_endpoint_list = get_table_endpoint_list(application_id=application_id)
 
     headers = {"Authorization": f"ManagementKey-v1 {api_key}", "Accept": "application/json"}
 
     # Retrieve and sync data
-    for table in TABLE_ENDPOINT_LIST:
+    for table in table_endpoint_list:
         # Extract table name and endpoint from the table definition
         table_name = table.get("table")
         endpoint = table.get("endpoint")
