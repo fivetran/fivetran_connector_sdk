@@ -1,4 +1,4 @@
-# Bastion Server Connector Example
+# SSH Tunnels Using Bastion Server Connector Example
 
 
 ## Connector overview
@@ -112,8 +112,6 @@ The schema of the `SAMPLE_USERS` table is as follows:
   "modified_at": "UTC_DATETIME"
 }
 ```
-
-
 
 
 ## Additional considerations
