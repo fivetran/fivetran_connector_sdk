@@ -8,7 +8,7 @@ Fivetran Connector SDK allows you to code a custom data connector using Python a
 Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
 
 ### What sources can I use the Connector SDK for?
-You can use the Connector SDK to connect to any data source that you can access using Python. The main requirement is that you can interact with the source via a Python library and connect to it.
+You can use the Connector SDK to connect to any data source that you can access using Python. You can connect using the Python standard library, a generic HTTP client, database drivers, or any other Python accessible interface. The only requirements are that you can implement it in Python and establish network connectivity to the source
 
 
 ## Installation & Setup
@@ -22,12 +22,7 @@ pip install fivetran-connector-sdk
 For more detailed installation instructions, refer to the [installation guide](https://fivetran.com/docs/connector-sdk/setup-guide).
 
 ### What are the system requirements for Connector SDK?
-To write and deploy a custom connector using Connector SDK, you need:
-- Python version ≥3.9 and ≤3.12
-- Operating system:
-  - Windows: 10 or later (64-bit only)
-  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+You need a supported Python runtime and a 64‑bit OS (`Windows`, `macOS`, or `Linux`) on `arm64` or `x86_64`. Refer to the [Requirements section](https://github.com/fivetran/fivetran_connector_sdk?tab=readme-ov-file#requirements) of the [README](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md) for exact version bounds and supported distributions.
 
 ### How are Python version upgrades and dependencies handled for my connector?
 The responsibility for managing dependencies and version upgrades is shared between Fivetran and you, the customer.
@@ -90,7 +85,7 @@ This allows you to get hands-on experience by interacting with these patterns an
 Once you have tested your connector locally, you can deploy it using the `fivetran deploy` command. You will need your Fivetran API key, a destination name, and a unique connection name. Refer to the [Example Commands section](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#examplecommands) for detailed instructions.
 
 ### How can I view the logs for my connector?
-You can access general [Fivetran logs](https://fivetran.com/docs/logs) for your Connector SDK connections the [Fivetran Platform Connector](https://fivetran.com/docs/logs/fivetran-platform), or by using [external log services](https://fivetran.com/docs/logs/external-logs). You can see [Connector SDK-specific logs](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#connectorsdklogs) on the **Connector SDK logs** tab of the Connection Details page in the [Fivetran dashboard](https://fivetran.com/dashboard/).
+You can access general [Fivetran logs](https://fivetran.com/docs/logs) for your Connector SDK connections through the [Fivetran Platform Connector](https://fivetran.com/docs/logs/fivetran-platform), or by using [external log services](https://fivetran.com/docs/logs/external-logs). You can see [Connector SDK-specific logs](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#connectorsdklogs) on the **Connector SDK logs** tab of the Connection Details page in the [Fivetran dashboard](https://fivetran.com/dashboard/).
 
 
 ## Maintenance
