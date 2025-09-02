@@ -1,4 +1,4 @@
-# dashboard_queries.sql - Sample queries for building dashboards with New Relic Feature APIs Connector data
+-- dashboard_queries.sql - Sample queries for building dashboards with New Relic Feature APIs Connector data
 
 -- ============================================================================
 -- EXECUTIVE PERFORMANCE SUMMARY QUERIES
