@@ -1,0 +1,65 @@
+name: Deploy New Relic Connector
+
+env:
+  PYTHON_VERSION: '3.11'
+  WORKING_DIRECTORY: '.'
+  CONNECTOR_NAME: 'New Relic'
+  CONFIG_FILE: 'configuration.json'
+  EXCLUDED_DEPENDENCIES: '^requests\b'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**'
+
+jobs:
+  deploy-fivetran-connector:
+    runs-on: ubuntu-latest
+    environment: Fivetran
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Change Directory & List Files
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Deploying ${{ env.CONNECTOR_NAME }} connector from ${{ env.WORKING_DIRECTORY }} directory"
+          ls -la
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fivetran-connector-sdk
+
+      - name: Install requirements.txt
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ -e requirements.txt ]; then
+            echo '{"level":"INFO", "message": "Pip installing requirements.txt", "message-origin": "connector_sdk"}'
+            pip install -r <(grep -v '${{ env.EXCLUDED_DEPENDENCIES }}' requirements.txt)
+          fi
+
+      - name: Create Configuration File
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "{\"api_key\": \"${{ secrets.NEWRELIC_API_KEY }}\", 
+            \"account_id\": \"${{ secrets.NEWRELIC_ACCOUNT_ID }}\",
+            \"region\": \"${{ secrets.NEWRELIC_REGION }}\"}" > ${{ env.CONFIG_FILE }}
+
+      - name: Deploy Fivetran Connector
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          FIVETRAN_API_KEY: ${{ secrets.FIVETRAN_API_KEY }}
+          FIVETRAN_DESTINATION: ${{ vars.FIVETRAN_DEV_DESTINATION }}
+          FIVETRAN_CONNECTION: ${{ vars.NEWRELIC_DEV }}
+        run: |
+          echo "Deploying ${{ env.CONNECTOR_NAME }} connector"
+          fivetran deploy --api-key $FIVETRAN_API_KEY --destination $FIVETRAN_DESTINATION --connection $FIVETRAN_CONNECTION --configuration ${{ env.CONFIG_FILE }} --python-version ${{ env.PYTHON_VERSION }}

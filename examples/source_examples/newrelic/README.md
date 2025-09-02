@@ -12,15 +12,116 @@ The New Relic Feature APIs Connector is a Fivetran Connector SDK implementation 
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-- Operating system:
-  - Windows: 10 or later (64-bit only)
-  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+* Operating system:
+  * Windows: 10 or later (64-bit only)
+  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
-Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+### **Quick Start (Recommended)**
+
+1. **Fork or clone this repository**
+2. **Set up GitHub secrets and variables** (see [Deployment](#deployment) section)
+3. **Push changes to `main` branch** - deployment happens automatically!
+
+### **Alternative: Manual Setup**
+
+For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#-secondary-manual-deployment-debugging--testing) section below.
+
+## Deployment
+
+> **🚀 PRODUCTION DEPLOYMENT RECOMMENDATION**  
+> **We recommend using GitHub Actions workflow for all production deployments.**  
+> Manual deployment is available for development, testing, and debugging purposes, but we encourage using the automated workflow for production environments.
+
+The connector is designed to work with **GitHub Actions workflow** as the **recommended production deployment mechanism**, while keeping manual deployment available for development and testing scenarios.
+
+### **🚀 Primary: Automated Deployment via GitHub Actions**
+
+The connector includes a GitHub Actions workflow (`.github/workflows/deploy_connector.yaml`) for automated deployment.
+
+#### **Workflow Features:**
+- **Automated Triggers**: Deploys on pushes to the `main` branch
+- **Path-Based Triggers**: Only runs when changes are made to the connector directory
+- **Parameterized Configuration**: Easy to customize Python version, working directory, and other settings
+- **Environment Management**: Uses GitHub Environments for secure credential management
+- **Zero-Downtime Deployment**: Seamless updates without service interruption
+
+#### **Quick Setup:**
+
+1. **Create GitHub Environment:**
+   - Go to repository Settings → Environments
+   - Create environment named `Fivetran`
+
+2. **Add Repository Secrets** (Settings → Secrets and variables → Actions):
+   ```
+   NEWRELIC_API_KEY          # Your New Relic API key (NRAK-xxxxx)
+   NEWRELIC_ACCOUNT_ID       # Your New Relic account ID
+   NEWRELIC_REGION           # Your New Relic region (US or EU)
+   FIVETRAN_API_KEY          # Your Fivetran API key
+   ```
+
+3. **Add Repository Variables** (Settings → Secrets and variables → Actions):
+   ```
+   FIVETRAN_DEV_DESTINATION  # Your Fivetran destination ID
+   NEWRELIC_DEV              # Your Fivetran connection name
+   ```
+
+4. **Deploy**: Simply push changes to the `main` branch - deployment happens automatically!
+
+#### **Workflow Configuration:**
+
+The workflow uses parameterized environment variables for easy customization:
+
+```yaml
+env:
+  PYTHON_VERSION: '3.11'
+  WORKING_DIRECTORY: '.'
+  CONNECTOR_NAME: 'New Relic'
+  CONFIG_FILE: 'configuration.json'
+  EXCLUDED_DEPENDENCIES: '^requests\b'
+```
+
+#### **Deployment Process:**
+
+1. **Automatic Trigger**: Push changes to `main` branch
+2. **Environment Setup**: Python 3.11, dependencies installation
+3. **Configuration Creation**: Generates `configuration.json` from GitHub secrets
+4. **Fivetran Deployment**: Executes `fivetran deploy` command
+5. **Status Reporting**: Provides deployment success/failure feedback
+
+#### **Customization:**
+
+To adapt this workflow for other connectors, simply update the environment variables:
+
+```yaml
+env:
+  PYTHON_VERSION: '3.11'
+  WORKING_DIRECTORY: 'connections/csdk/other-connector'
+  CONNECTOR_NAME: 'Other'
+  CONFIG_FILE: 'configuration.json'
+  EXCLUDED_DEPENDENCIES: '^requests\b'
+```
+
+### **🔧 Secondary: Manual Deployment (Debugging & Testing)**
+
+For local development, testing, and debugging purposes:
+
+1. **Install Dependencies:**
+   ```bash
+   pip install fivetran-connector-sdk
+   ```
+
+2. **Configure Credentials:**
+   - Update `configuration.json` with your New Relic API credentials
+   - Ensure the file is not committed to version control
+
+3. **Deploy to Fivetran:**
+   ```bash
+   fivetran deploy --api-key YOUR_FIVETRAN_API_KEY --destination YOUR_DESTINATION_ID --connection YOUR_CONNECTION_NAME --configuration configuration.json --python-version 3.11
+   ```
 
 ## Features
 
@@ -34,10 +135,15 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 * **Incremental Syncs**: Efficient data updates with checkpoint-based state management
 * **Configurable Filtering**: Service and account-level filtering for focused monitoring analysis
 * **Error Handling**: Robust error handling with comprehensive logging and validation
+* **CI/CD Integration**: Automated deployment via GitHub Actions with parameterized configuration
+* **Environment Management**: Secure credential management using GitHub Environments
+* **Zero-Downtime Deployment**: Seamless updates without service interruption
 
 ## Configuration file
 
-The connector requires the following configuration keys defined in `configuration.json`:
+💡 **PRODUCTION DEPLOYMENT GUIDANCE**: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
+
+The connector requires the following configuration keys. For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
 
 ```json
 {
@@ -54,7 +160,23 @@ The connector requires the following configuration keys defined in `configuratio
 **Optional Configuration Keys:**
 - `region`: New Relic region (US or EU, defaults to US)
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+## Production vs Development Configuration
+
+### **🚀 Production Deployment (Recommended)**
+- **Method**: GitHub Actions workflow with GitHub secrets
+- **Security**: Credentials stored securely in GitHub
+- **Automation**: Push-to-deploy workflow
+- **Compliance**: Enterprise-grade security practices
+
+### **🔧 Development & Testing (Available)**
+- **Method**: Local `configuration.json` or environment variables
+- **Security**: Credentials stored locally (never commit to repository)
+- **Use Case**: Local development, debugging, testing
+- **Guidance**: We recommend using GitHub secrets for production
+
+**💡 Security Note**: For production deployments, we recommend using **GitHub secrets**. Local configuration files are available for development but we encourage using GitHub secrets for production environments.
+
+Note: We recommend keeping the `configuration.json` file out of version control to protect sensitive information. You can add it to your `.gitignore` file for additional security.
 
 ## Requirements file
 
@@ -84,7 +206,26 @@ The connector uses New Relic API keys for authentication with the NerdGraph API.
 1. Go to your New Relic account
 2. Navigate to API Keys section
 3. Create a new API key with appropriate permissions
-4. Add credentials to `configuration.json`
+4. **For Production**: We recommend adding credentials as GitHub secrets (see [Deployment](#deployment) section)
+5. **For Development**: You can add credentials to `configuration.json` (remember not to commit this file)
+
+### **Development Configuration (Local Testing)**
+
+💡 **Development Setup**: The following configuration methods are designed for local development and testing. We recommend using GitHub secrets for production deployments.
+
+For local development and testing:
+
+```bash
+# Option 1: Set environment variables locally
+export NEWRELIC_API_KEY="your_api_key"
+export NEWRELIC_ACCOUNT_ID="your_account_id"
+export NEWRELIC_REGION="US"
+
+# Option 2: Use configuration.json file (never commit this file)
+# Update configuration.json with your test credentials
+```
+
+**Production Deployment**: We recommend using the GitHub Actions workflow with GitHub secrets (see [Deployment](#deployment) section above).
 
 ## Pagination
 
@@ -103,7 +244,7 @@ The connector implements efficient data handling by:
 
 Refer to functions `get_apm_data`, `get_infrastructure_data`, `get_browser_data`, `get_mobile_data`, and `get_synthetic_data` in `connector.py` for the data retrieval implementation.
 
-## Dynamic time range management
+## Dynamic Time Range Management
 
 The connector intelligently manages data fetching based on sync type:
 
@@ -178,73 +319,80 @@ The connector creates the following tables for comprehensive New Relic monitorin
 ### **apm_data**
 Primary table for application performance monitoring data with transaction-level metrics and performance indicators.
 
-**Key Columns:**
-- `account_id` (STRING): New Relic account identifier
-- `timestamp` (STRING): Data collection timestamp
-- `transaction_name` (STRING): Name of the monitored transaction
-- `duration` (FLOAT): Transaction response time in milliseconds
-- `error_rate` (FLOAT): Error rate percentage (0-1)
-- `throughput` (FLOAT): Transactions per second
-- `apdex_score` (FLOAT): Apdex performance score (0-1)
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `account_id` | STRING | New Relic account identifier |
+| `timestamp` | STRING | Data collection timestamp |
+| `transaction_name` | STRING | Name of the monitored transaction |
+| `duration` | FLOAT | Transaction response time in milliseconds |
+| `error_rate` | FLOAT | Error rate percentage (0-1) |
+| `throughput` | FLOAT | Transactions per second |
+| `apdex_score` | FLOAT | Apdex performance score (0-1) |
 
 ### **infrastructure_data**
 Infrastructure monitoring data for host status, domain analysis, and infrastructure health tracking.
 
-**Key Columns:**
-- `account_id` (STRING): New Relic account identifier
-- `timestamp` (STRING): Data collection timestamp
-- `host_name` (STRING): Infrastructure host name
-- `domain` (STRING): Host domain classification
-- `type` (STRING): Host type classification
-- `reporting` (BOOLEAN): Whether the host is currently reporting
-- `tags` (STRING): JSON-formatted host tags and metadata
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `account_id` | STRING | New Relic account identifier |
+| `timestamp` | STRING | Data collection timestamp |
+| `host_name` | STRING | Infrastructure host name |
+| `domain` | STRING | Host domain classification |
+| `type` | STRING | Host type classification |
+| `reporting` | BOOLEAN | Whether the host is currently reporting |
+| `tags` | STRING | JSON-formatted host tags and metadata |
 
 ### **browser_data**
 Browser performance monitoring data for user experience analysis and page performance insights.
 
-**Key Columns:**
-- `account_id` (STRING): New Relic account identifier
-- `timestamp` (STRING): Data collection timestamp
-- `page_url` (STRING): Monitored page URL
-- `browser_name` (STRING): Browser name and version
-- `browser_version` (STRING): Browser version information
-- `device_type` (STRING): Device type classification
-- `load_time` (FLOAT): Page load time in milliseconds
-- `dom_content_loaded` (FLOAT): DOM content loaded time in milliseconds
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `account_id` | STRING | New Relic account identifier |
+| `timestamp` | STRING | Data collection timestamp |
+| `page_url` | STRING | Monitored page URL |
+| `browser_name` | STRING | Browser name and version |
+| `browser_version` | STRING | Browser version information |
+| `device_type` | STRING | Device type classification |
+| `load_time` | FLOAT | Page load time in milliseconds |
+| `dom_content_loaded` | FLOAT | DOM content loaded time in milliseconds |
 
 ### **mobile_data**
 Mobile application monitoring data for crash analysis, platform performance, and device utilization insights.
 
-**Key Columns:**
-- `account_id` (STRING): New Relic account identifier
-- `timestamp` (STRING): Data collection timestamp
-- `app_name` (STRING): Mobile application name
-- `platform` (STRING): Mobile platform (iOS/Android)
-- `version` (STRING): Application version
-- `device_model` (STRING): Device model information
-- `os_version` (STRING): Operating system version
-- `crash_count` (INTEGER): Number of crashes detected
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `account_id` | STRING | New Relic account identifier |
+| `timestamp` | STRING | Data collection timestamp |
+| `app_name` | STRING | Mobile application name |
+| `platform` | STRING | Mobile platform (iOS/Android) |
+| `version` | STRING | Application version |
+| `device_model` | STRING | Device model information |
+| `os_version` | STRING | Operating system version |
+| `crash_count` | INTEGER | Number of crashes detected |
 
 ### **synthetic_data**
 Synthetic monitoring data for uptime monitoring, response time analysis, and failure detection.
 
-**Key Columns:**
-- `account_id` (STRING): New Relic account identifier
-- `timestamp` (STRING): Data collection timestamp
-- `monitor_name` (STRING): Synthetic monitor name
-- `monitor_type` (STRING): Type of synthetic monitor
-- `status` (STRING): Monitor execution status
-- `response_time` (FLOAT): Monitor response time in milliseconds
-- `location` (STRING): Monitor execution location
-- `error_message` (STRING): Error message if monitor failed
+| Column Name | Data Type | Description |
+|-------------|-----------|-------------|
+| `account_id` | STRING | New Relic account identifier |
+| `timestamp` | STRING | Data collection timestamp |
+| `monitor_name` | STRING | Synthetic monitor name |
+| `monitor_type` | STRING | Type of synthetic monitor |
+| `status` | STRING | Monitor execution status |
+| `response_time` | FLOAT | Monitor response time in milliseconds |
+| `location` | STRING | Monitor execution location |
+| `error_message` | STRING | Error message if monitor failed |
 
 ## Additional files
 
 The connector includes several additional files to support functionality and deployment:
 
+* **`.github/workflows/deploy_connector.yaml`** – **Primary deployment mechanism**: GitHub Actions workflow for automated deployment to Fivetran with parameterized configuration and secure credential management.
+
 * **`dashboard_queries.sql`** – Comprehensive SQL queries for building New Relic monitoring dashboards and reports. Includes executive summaries, performance trends, infrastructure analysis, and alerting queries.
 
-* **`deploy_connector.sh`** – Deployment script for automating connector deployment to Fivetran environment.
+* **`deploy_connector.sh`** – Alternative deployment script for manual connector deployment to Fivetran environment (for debugging and testing).
 
 * **`requirements.txt`** – Python dependency specification for New Relic API integration and connector requirements.
 
@@ -266,10 +414,19 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 - Use incremental syncs for production environments
 
 **Security Best Practices:**
-- Use API keys with minimal required permissions
-- Regularly rotate API keys
-- Monitor API usage and rate limits
-- Implement proper error handling and logging
+- We recommend using API keys with minimal required permissions
+- Consider regularly rotating API keys for enhanced security
+- Monitor API usage and rate limits to maintain optimal performance
+- Implement proper error handling and logging for better troubleshooting
+
+**GitHub Actions Workflow Management:**
+- **Recommended Production Method**: We recommend using GitHub Actions workflow for production deployments
+- Keep secrets and variables updated in GitHub repository settings
+- Use environment protection rules for production deployments
+- Monitor workflow execution logs for any deployment issues
+- Regularly review and update workflow permissions and access controls
+- Consider using branch protection rules to prevent unauthorized deployments
+- **Manual Deployment**: Available for development, testing, and debugging, but we encourage using GitHub Actions for production
 
 ## References
 
