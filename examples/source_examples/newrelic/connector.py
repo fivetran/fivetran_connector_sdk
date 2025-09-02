@@ -13,7 +13,7 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries for API interactions
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
 
@@ -95,18 +95,56 @@ def get_time_range(last_sync_time: Optional[str] = None) -> str:
         return "SINCE 90 days ago"
 
 
+def get_timestamp_from_data(result: Dict[str, Any], fallback_timestamp: str) -> str:
+    """
+    Extract timestamp from New Relic data result, with fallback to provided timestamp.
+    Args:
+        result: The data result from New Relic API
+        fallback_timestamp: Fallback timestamp if no timestamp found in data
+    Returns:
+        ISO format timestamp string
+    """
+    # Try to get timestamp from various possible fields
+    timestamp_fields = [
+        "timestamp",
+        "eventTime",
+        "occurredAt",
+        "createdAt",
+        "lastUpdated",
+        "startTime",
+        "endTime",
+        "time",
+    ]
+
+    for field in timestamp_fields:
+        if field in result and result[field]:
+            # If it's already a string, return as is
+            if isinstance(result[field], str):
+                return result[field]
+            # If it's a number (Unix timestamp), convert to ISO format
+            elif isinstance(result[field], (int, float)):
+                try:
+                    dt = datetime.fromtimestamp(result[field], tz=timezone.utc)
+                    return dt.isoformat()
+                except (ValueError, OSError):
+                    continue
+
+    # If no timestamp found in data, use fallback
+    return fallback_timestamp
+
+
 def get_apm_data(
     api_key: str, region: str, account_id: str, last_sync_time: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
-    Fetch APM (Application Performance Monitoring) data from New Relic.
+    Fetch APM data from New Relic.
     Args:
         api_key: New Relic API key
         region: New Relic region
         account_id: New Relic account ID
         last_sync_time: Last sync timestamp for incremental sync
     Returns:
-        List of APM application data
+        List of APM data
     """
     time_range = get_time_range(last_sync_time)
     query = f"""
@@ -132,11 +170,12 @@ def get_apm_data(
         .get("results")
     ):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
+        current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
             apm_data.append(
                 {
                     "account_id": account_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": get_timestamp_from_data(result, current_time),
                     "transaction_name": result.get("transactionName", ""),
                     "duration": result.get("duration", 0),
                     "error_rate": result.get("errorRate", 0),
@@ -197,11 +236,12 @@ def get_infrastructure_data(
         .get("entities")
     ):
         entities = response["data"]["actor"]["entitySearch"]["results"]["entities"]
+        current_time = datetime.now(timezone.utc).isoformat()
         for entity in entities:
             infra_data.append(
                 {
                     "account_id": account_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": get_timestamp_from_data(entity, current_time),
                     "host_name": entity.get("name", ""),
                     "domain": entity.get("domain", ""),
                     "type": entity.get("type", ""),
@@ -250,11 +290,12 @@ def get_browser_data(
         .get("results")
     ):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
+        current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
             browser_data.append(
                 {
                     "account_id": account_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": get_timestamp_from_data(result, current_time),
                     "page_url": result.get("pageUrl", ""),
                     "browser_name": result.get("browserName", ""),
                     "browser_version": result.get("browserVersion", ""),
@@ -304,11 +345,12 @@ def get_mobile_data(
         .get("results")
     ):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
+        current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
             mobile_data.append(
                 {
                     "account_id": account_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": get_timestamp_from_data(result, current_time),
                     "app_name": result.get("appName", ""),
                     "platform": result.get("platform", ""),
                     "version": result.get("version", ""),
@@ -358,11 +400,12 @@ def get_synthetic_data(
         .get("results")
     ):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
+        current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
             synthetic_data.append(
                 {
                     "account_id": account_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": get_timestamp_from_data(result, current_time),
                     "monitor_name": result.get("monitorName", ""),
                     "monitor_type": result.get("monitorType", ""),
                     "status": result.get("status", ""),
@@ -511,7 +554,7 @@ def update(configuration: dict, state: dict):
             op.upsert(table="synthetic_data", data=record)
 
         # Update state with the current sync time
-        new_state = {"last_sync_time": datetime.now().isoformat()}
+        new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
 
         # Checkpoint the state
         op.checkpoint(new_state)
