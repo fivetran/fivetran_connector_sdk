@@ -199,31 +199,28 @@ def get_infrastructure_data(
     Returns:
         List of infrastructure host data
     """
-    query = (
-        """
-    {
-      actor {
-        entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = %s") {
+    query = f"""
+    {{
+      actor {{
+        entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = {account_id}") {{
           count
-          results {
-            entities {
+          results {{
+            entities {{
               name
               accountId
               domain
               type
               reporting
-              tags {
+              tags {{
                 key
                 values
-              }
-            }
-          }
-        }
-      }
-    }
+              }}
+            }}
+          }}
+        }}
+      }}
+    }}
     """
-        % account_id
-    )
 
     response = execute_nerdgraph_query(query, api_key, region)
 

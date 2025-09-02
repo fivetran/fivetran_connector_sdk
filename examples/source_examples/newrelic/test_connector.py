@@ -157,7 +157,7 @@ def test_api_connectivity():
         print("   Optional: Set NEWRELIC_REGION (defaults to US)")
         return False
 
-    print("✅ New Relic credentials found")
+    print(f"✅ New Relic credentials found")
     print(f"   Account ID: {account_id}")
     print(f"   Region: {region}")
 
@@ -169,19 +169,16 @@ def test_api_connectivity():
         headers = {"API-Key": api_key, "Content-Type": "application/json"}
 
         # Simple test query
-        query = (
-            """
-        {
-          actor {
-            account(id: %s) {
+        query = f"""
+        {{
+          actor {{
+            account(id: {account_id}) {{
               id
               name
-            }
-          }
-        }
+            }}
+          }}
+        }}
         """
-            % account_id
-        )
 
         payload = {"query": query}
 
@@ -249,7 +246,7 @@ def main():
     account_id = os.environ.get("NEWRELIC_ACCOUNT_ID")
 
     if api_key and account_id:
-        print("✅ New Relic credentials found in environment variables")
+        print(f"✅ New Relic credentials found in environment variables")
         print("   Running API connectivity test...")
         test_api_connectivity()
     else:
@@ -268,7 +265,7 @@ def main():
     print("⚠️  This test requires valid New Relic credentials")
 
     if api_key and account_id:
-        print("✅ New Relic credentials found in environment variables")
+        print(f"✅ New Relic credentials found in environment variables")
         print("   Running full connector test...")
         test_connector()
     else:
