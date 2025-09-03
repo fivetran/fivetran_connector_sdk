@@ -27,7 +27,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 
 ## Configuration file
-The connector requires the following configuration parameters in the configuration.json file:
+The connector requires the following configuration parameters in the `configuration.json` file:
 
 ```
 {
@@ -55,11 +55,11 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 ## Authentication
 The connector uses Bearer token authentication to access the LeaveDates API. To obtain your API token:
 
-1. Log in to your LeaveDates.com account
-2. Navigate to API settings in your account dashboard
-3. Generate or copy your API token
-4. Add the token to your configuration.json file
-5. Ensure you have the correct company ID from your LeaveDates account
+1. Log in to your LeaveDates.com account.
+2. Navigate to the API settings in your account dashboard.
+3. Generate or copy your API token.
+4. Add the token to your configuration.json file.
+5. Ensure you have the correct company ID from your LeaveDates account.
 
 
 ## Pagination
@@ -71,7 +71,7 @@ The connector processes leave report data by flattening nested JSON structures i
 
 
 ## Error handling
-The connector implements comprehensive error handling including retry logic with exponential backoff for API requests. The `make_api_request_with_retry` function handles transient network errors and API rate limits. Configuration validation is performed by the `validate_configuration` function which ensures all required parameters are present before execution.
+The connector implements comprehensive error handling including retry logic with exponential backoff for API requests. The `make_api_request_with_retry` function handles transient network errors and API rate limits. Configuration validation is performed by the `validate_configuration` function, which ensures all required parameters are present before execution.
 
 
 ## Tables created
