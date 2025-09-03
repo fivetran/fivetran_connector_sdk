@@ -405,7 +405,9 @@ def get_checks_data(configuration: dict):
             log.severe(f"Error fetching checks data on page {page}: {str(e)}")
             raise
 
-    log.info(f"Successfully processed {total_records} check records")
+    log.info(
+        f"Successfully processed {total_records} check records, {browser_checks_found} with analytics"
+    )
 
 
 def schema(configuration: dict):
@@ -423,12 +425,16 @@ def schema(configuration: dict):
         },
         {
             "table": "browser_checks_analytics_aggregated",  # Name of the aggregated analytics table in the destination, required.
-            "primary_key": ["check_id"],  # Primary key for aggregated analytics data, optional.
+            "primary_key": [
+                "check_id",
+                "aggregation_interval",
+            ],  # Primary key for aggregated analytics data, optional.
         },
         {
             "table": "browser_checks_analytics_non_aggregated",  # Name of the non-aggregated analytics table in the destination, required.
             "primary_key": [
-                "check_id"
+                "check_id",
+                "timestamp",
             ],  # Primary key for non-aggregated analytics data, optional.
         },
     ]
@@ -444,7 +450,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: API Connector : Checkly Checks")
+    log.warning("Example: API Connector : Checkly")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)

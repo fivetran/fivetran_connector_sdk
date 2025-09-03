@@ -1,4 +1,4 @@
-# Checkly API Connector
+# Checkly API Connector Example
 
 ## Connector overview
 The [Checkly](https://www.checklyhq.com/) custom connector for Fivetran fetches monitoring check data and performance analytics from the Checkly API and syncs it to your destination. This connector supports multiple endpoints including check configurations and browser analytics.
@@ -70,7 +70,7 @@ You'll need to obtain the following credentials:
 5. Add both values to your `configuration.json` file.
 
 ## Pagination
-The connector implements page-based pagination using the Checkly API's `limit` and `page` parameters. Pagination is handled automatically in the `get_checks_data` function (lines 263-336) which:
+The connector implements page-based pagination using the Checkly API's `limit` and `page` parameters. Pagination is handled automatically in the `get_checks_data` function which:
 
 - Fetches data in batches of 100 records per page (defined by `PAGE_SIZE` constant)
 - Continues fetching pages until no more data is available (when `len(response_data) < PAGE_SIZE`)
@@ -82,20 +82,18 @@ The pagination loop automatically increments the page number and constructs the 
 ## Data handling
 The connector processes Checkly data through several transformation steps implemented across multiple functions:
 
-- **Check Data Retrieval**: Fetches check configurations from `/v1/checks` endpoint with automatic pagination (refer to `get_checks_data` function)
-- **Data Flattening**: Converts nested JSON objects into flat SQL-compatible structures using the `flatten_nested_objects` function
+- **Check Data Retrieval**: Fetches check configurations from `/v1/checks` endpoint with automatic pagination 
+- **Data Flattening**: Converts nested JSON objects into flat SQL-compatible structures
 - **Analytics Processing**: For browser checks, fetches analytics data from `/v1/analytics/browser-checks/{check_id}` endpoint
 - **Metrics Separation**: Separates analytics into aggregated and non-aggregated metrics tables using predefined metric constants (`AGGREGATED_METRICS` and `NON_AGGREGATED_METRICS`)
 - **Array Handling**: Converts string arrays to comma-separated values and complex arrays to JSON strings for optimal database storage
-- **Rate Limiting**: Implements configurable delays between API calls (`RATE_LIMIT_DELAY_SECONDS = 0.1`) to respect Checkly's rate limits
-
-The connector ensures all nested objects are flattened using underscore separation (e.g., `settings_timeout` becomes a single column) and handles data type conversion for SQL compatibility.
+- **Rate Limiting**: Implements configurable delays between API calls to respect Checkly's rate limits
 
 ## Error handling
 The connector implements comprehensive error handling strategies across multiple functions:
 
-- **API Rate Limiting**: Automatically handles HTTP 429 responses with retry delays using `RETRY_DELAY_SECONDS = 5` (refer to `make_api_request` function, lines 155-191)
-- **Configuration Validation**: Validates all required configuration parameters and optional parameters with sensible defaults before any API calls (refer to `validate_configuration` function, lines 91-121)
+- **API Rate Limiting**: Automatically handles HTTP 429 responses with retry delays 
+- **Configuration Validation**: Validates all required configuration parameters and optional parameters with sensible defaults before any API calls
 - **Exception Handling**: Catches and logs specific `requests.exceptions.RequestException` while continuing processing where possible
 - **Graceful Degradation**: If analytics data fails for a specific check, the connector logs the error and continues processing other checks rather than failing the entire sync
 - **Request Timeouts**: Implements 30-second timeouts for all API requests to prevent hanging connections
@@ -105,7 +103,7 @@ The connector implements comprehensive error handling strategies across multiple
 All errors are logged appropriately using the Fivetran SDK logging system while maintaining sync reliability.
 
 ## Tables created
-The connector creates three main tables in your data warehouse as defined in the `schema` function (lines 337-362):
+The connector creates three main tables in your data warehouse as defined in the `schema` function
 
 ### 1. **checks**
 - **Purpose**: Contains all check configurations and metadata from the Checkly API
