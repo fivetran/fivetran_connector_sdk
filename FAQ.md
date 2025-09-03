@@ -5,7 +5,7 @@
 ### Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
 
-Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
+Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations typical of iPaaS and serverless platforms.
 
 ### What sources can I use the Connector SDK for?
 You can use the Connector SDK to connect to any data source that you can access using Python. You can connect using the Python standard library, a generic HTTP client, database drivers, or any other Python accessible interface. The only requirements are that you can implement it in Python and establish network connectivity to the source
@@ -36,7 +36,7 @@ The Connector SDK documentation is available at https://fivetran.com/docs/connec
 ### I'm new to the Connector SDK. Is there a tutorial or a guide to help me get started?
 Absolutely. The best place to start is with our [Beginner Tutorial](https://fivetran.com/docs/connector-sdk/tutorials/beginners-tutorial) for the Connector SDK. This step-by-step guide is an excellent resource designed to walk you through the process of building your first connector.
 
-We encourage you to try the tutorial, and if you have any questions or run into issues, feel free to reach out to our [support team](https://support.fivetran.com/hc/en-us). We also welcome any feedback you may have on the tutorial or the SDK to help us improve.
+We encourage you to try the tutorial, and if you have any questions or run into issues, feel free to reach out to our [support team](https://support.fivetran.com/hc/en-us). We also welcome any feedback you may have on the tutorial or the SDK to help us improve. If you have feedback, feature requests, or run into issues, please [open an Issue on our GitHub repository](https://github.com/fivetran/fivetran_connector_sdk/issues/new/choose).
 
 
 ## Development
@@ -59,15 +59,17 @@ Fivetran supports several methods for establishing a secure connection between y
 
 Refer to the [Connection Options documentation page](https://fivetran.com/docs/connector-sdk/connection-options#connectionoptions) for more information.
 
-### Will Fivetran automatically create a column in the destination if an API returns all NULL values for it?
-No, Fivetran will not create the column automatically. To sync a column that contains only empty or NULL values from your source, you must explicitly define that column in the schema. If the column is not defined in the schema, Fivetran will ignore it during the sync, and it will not be created in your destination.
-
 ### Can I use the Connector SDK with an SSH tunnel to connect to a data source on a private network?
 Yes, you can. If your data source is on a private network that is not directly accessible from the internet, you can use an SSH tunnel to establish a secure connection. This is a common pattern where you connect to an intermediate server that has both internet access and access to the private data source.
 You can refer to the [SSH tunnel example](https://github.com/fivetran/fivetran_connector_sdk/blob/main/examples/common_patterns_for_connectors/ssh_tunnels/key_based_authentication/README.md) for this scenario.
 
+### Will Fivetran automatically create a column in the destination if an API returns all NULL values for it?
+No, Fivetran will not create the column automatically. To sync a column that contains only empty or NULL values from your source, you must explicitly define that column in the schema. If the column is not defined in the schema, Fivetran will ignore it during the sync, and it will not be created in your destination.
+
 ### How can I use a feature that is currently in Private Preview?
 Features in [Private Preview](https://fivetran.com/docs/core-concepts#releasephases) are not enabled by default. To get more information about a specific feature and to have it enabled for your connector, contact our Professional Services team for assistance.
+
+Feel free to open a [Save Me Time Ticket](https://support.fivetran.com/hc/en-us/requests/new?isSdkIssue=true) to get access to Private Preview features and free help to write and deploy your first Connector SDK connector.
 
 ### I'm encountering errors with my custom connector. Where can I find help?
 For assistance with specific errors and common issues, refer to our comprehensive [Troubleshooting Guide](https://fivetran.com/docs/connector-sdk/troubleshooting). This document provides solutions and guidance for a variety of problems you may encounter while developing and running your Connector SDK connectors.
@@ -89,4 +91,4 @@ You can access general [Fivetran logs](https://fivetran.com/docs/logs) for your 
 
 
 ## Maintenance
-The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
+The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. If you have any feedback, feature requests, or run into issues, please [open an Issue on our GitHub repository](https://github.com/fivetran/fivetran_connector_sdk/issues/new/choose).
