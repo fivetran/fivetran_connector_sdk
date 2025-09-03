@@ -42,10 +42,10 @@ We encourage you to try the tutorial, and if you have any questions or run into 
 ## Development
 
 ### How do I test my connector locally?
-You can use the `fivetran debug` command to test your connector. This will create a local `warehouse.db` file (a DuckDB instance) that you can inspect to verify that your data is being processed correctly. Refer to the [local testing guide](https://fivetran.com/docs/connector-sdk/setup-guide#testyourcustomconnector) for more details.
+You can use the `fivetran debug` command to test your connector. This will create a local `warehouse.db` file (a DuckDB instance) that you can inspect to verify that your data is being processed correctly. Refer to [Test your custom connector section of the setup guide](https://fivetran.com/docs/connector-sdk/setup-guide#testyourcustomconnector) for more details.
 
 ### How do I handle sensitive information like API keys?
-Use a `configuration.json` file to pass sensitive information to your connector. This file is used during deployment and the values can be managed in the Fivetran dashboard. Do not hardcode credentials in your source code. Refer to the [configuration section](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithconfigurationjsonfile) for more details.
+Configuration values are often sensitive and are securely stored with in Fivetran's platform. During connector deploy a temporary `configuration.json` file can be used to set any configuration needed by your connector. Configuration values can also be managed in the Fivetran dashboard. Do not hardcode credentials in your source code. Refer to the [configuration section](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithconfigurationjsonfile) for more details.
 
 ### How do I manage state for incremental syncs?
 The SDK uses a `state.json` file to save cursors, which allows your connector to resume syncing from where it left off. Do not store sensitive information in the state file as it is not encrypted. Refer to the [state management section](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithstatejsonfile) for best practices.
