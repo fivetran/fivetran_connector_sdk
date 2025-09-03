@@ -14,7 +14,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
-import requests  # For making HTTP requests to the Common Paper API
+import requests  # For making HTTP requests to the Customer Thermometer API
 import json  # For JSON data handling and serialization
 import xml.etree.ElementTree as et  # For parsing XML responses
 from datetime import datetime, timezone  # For handling date and time
@@ -343,6 +343,8 @@ def process_metrics(
         except Exception as e:
             log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
             continue
+
+    log.info(f"Processed {metrics_processed} metric records")
 
 
 def update(configuration: dict, state: dict):
