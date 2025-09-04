@@ -2,7 +2,7 @@
 
 
 ## Connector overview
-This example demonstrates how to fetch and upsert data from a private PostgreSQL database server through an SSH tunnel via a bastion host. It establishes an SSH tunnel using `paramiko` and `sshtunnel` to bastion host which then connects to the database with `psycopg2`, and incrementally syncs rows from `SAMPLE_USERS` based on a `modified_at` timestamp.
+This example demonstrates how to fetch and upsert data from a private PostgreSQL database server through an SSH tunnel via a bastion host. It establishes an SSH tunnel using `paramiko` and `sshtunnel` to a bastion host which then connects to the database with `psycopg2`, and incrementally syncs rows from `SAMPLE_USERS` based on a `modified_at` timestamp.
 
 
 ## Requirements
@@ -26,7 +26,7 @@ The connector includes the following features:
 
 
 ## Configuration file
-The connector reads `configuration.json` to establish the SSH tunnel and DB connection.
+The connector reads the `configuration.json` to establish the SSH tunnel and DB connection.
 
 - `bastion_host`: Public DNS/IP of the bastion.
 - `bastion_port`: SSH port on bastion (default 22).
