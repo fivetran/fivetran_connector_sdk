@@ -85,6 +85,26 @@ def test_configuration_validation():
     valid_configs = [
         {"api_key": "NRAK-ABC123DEF456", "account_id": "123456789", "region": "US"},
         {"api_key": "NRAK-TEST123456789", "account_id": "987654321", "region": "EU"},
+        # Test extended configuration with all optional parameters
+        {
+            "api_key": "NRAK-EXTENDED123456",
+            "account_id": "123456789",
+            "region": "US",
+            "sync_frequency_minutes": "30",
+            "initial_sync_days": "60",
+            "max_records_per_query": "500",
+            "enable_apm_data": "true",
+            "enable_infrastructure_data": "false",
+            "enable_browser_data": "true",
+            "enable_mobile_data": "false",
+            "enable_synthetic_data": "true",
+            "timeout_seconds": "60",
+            "retry_attempts": "5",
+            "retry_delay_seconds": "10",
+            "data_quality_threshold": "0.90",
+            "alert_on_errors": "false",
+            "log_level": "DEBUG",
+        },
     ]
 
     for i, config in enumerate(valid_configs, 1):
@@ -104,6 +124,49 @@ def test_configuration_validation():
         },
         {"account_id": "123456789", "region": "US"},
         {"api_key": "NRAK-ABC123DEF456", "region": "US"},
+        # Test extended configuration validation
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "sync_frequency_minutes": "0",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "initial_sync_days": "0",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "max_records_per_query": "0",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "timeout_seconds": "0",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "retry_attempts": "-1",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "data_quality_threshold": "1.5",
+        },
+        {
+            "api_key": "NRAK-TEST",
+            "account_id": "123456",
+            "region": "US",
+            "log_level": "INVALID",
+        },
     ]
 
     for i, config in enumerate(invalid_configs, 1):

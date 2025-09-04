@@ -50,9 +50,25 @@ jobs:
       - name: Create Configuration File
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
-          echo "{\"api_key\": \"${{ secrets.NEWRELIC_API_KEY }}\", 
+          echo "{
+            \"api_key\": \"${{ secrets.NEWRELIC_API_KEY }}\", 
             \"account_id\": \"${{ secrets.NEWRELIC_ACCOUNT_ID }}\",
-            \"region\": \"${{ secrets.NEWRELIC_REGION }}\"}" > ${{ env.CONFIG_FILE }}
+            \"region\": \"${{ secrets.NEWRELIC_REGION }}\",
+            \"sync_frequency_minutes\": \"${{ vars.SYNC_FREQUENCY_MINUTES || '15' }}\",
+            \"initial_sync_days\": \"${{ vars.INITIAL_SYNC_DAYS || '90' }}\",
+            \"max_records_per_query\": \"${{ vars.MAX_RECORDS_PER_QUERY || '1000' }}\",
+            \"enable_apm_data\": \"${{ vars.ENABLE_APM_DATA || 'true' }}\",
+            \"enable_infrastructure_data\": \"${{ vars.ENABLE_INFRASTRUCTURE_DATA || 'true' }}\",
+            \"enable_browser_data\": \"${{ vars.ENABLE_BROWSER_DATA || 'true' }}\",
+            \"enable_mobile_data\": \"${{ vars.ENABLE_MOBILE_DATA || 'true' }}\",
+            \"enable_synthetic_data\": \"${{ vars.ENABLE_SYNTHETIC_DATA || 'true' }}\",
+            \"timeout_seconds\": \"${{ vars.TIMEOUT_SECONDS || '30' }}\",
+            \"retry_attempts\": \"${{ vars.RETRY_ATTEMPTS || '3' }}\",
+            \"retry_delay_seconds\": \"${{ vars.RETRY_DELAY_SECONDS || '5' }}\",
+            \"data_quality_threshold\": \"${{ vars.DATA_QUALITY_THRESHOLD || '0.95' }}\",
+            \"alert_on_errors\": \"${{ vars.ALERT_ON_ERRORS || 'true' }}\",
+            \"log_level\": \"${{ vars.LOG_LEVEL || 'INFO' }}\"
+          }" > ${{ env.CONFIG_FILE }}
 
       - name: Deploy Fivetran Connector
         working-directory: ${{ env.WORKING_DIRECTORY }}

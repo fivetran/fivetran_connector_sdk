@@ -143,13 +143,29 @@ For local development, testing, and debugging purposes:
 
 💡 **PRODUCTION DEPLOYMENT GUIDANCE**: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
 
-The connector requires the following configuration keys. For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
+### Basic Configuration
+
+For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
 
 ```json
 {
   "api_key": "NRAK-ABC123DEF456",
   "account_id": "123456789",
-  "region": "US"
+  "region": "US",
+  "sync_frequency_minutes": "15",
+  "initial_sync_days": "90",
+  "max_records_per_query": "1000",
+  "enable_apm_data": "true",
+  "enable_infrastructure_data": "true",
+  "enable_browser_data": "true",
+  "enable_mobile_data": "true",
+  "enable_synthetic_data": "true",
+  "timeout_seconds": "30",
+  "retry_attempts": "3",
+  "retry_delay_seconds": "5",
+  "data_quality_threshold": "0.95",
+  "alert_on_errors": "true",
+  "log_level": "INFO"
 }
 ```
 
@@ -159,6 +175,16 @@ The connector requires the following configuration keys. For production deployme
 
 **Optional Configuration Keys:**
 - `region`: New Relic region (US or EU, defaults to US)
+- `sync_frequency_minutes`: Sync frequency in minutes (1-1440, defaults to 15)
+- `initial_sync_days`: Days of historical data for initial sync (1-365, defaults to 90)
+- `max_records_per_query`: Maximum records per API query (1-10000, defaults to 1000)
+- `enable_*_data`: Enable/disable specific data sources (defaults to true)
+- `timeout_seconds`: API request timeout (5-300, defaults to 30)
+- `retry_attempts`: Number of retry attempts on failure (0-10, defaults to 3)
+- `retry_delay_seconds`: Delay between retry attempts (defaults to 5)
+- `data_quality_threshold`: Data quality threshold for alerts (0-1, defaults to 0.95)
+- `alert_on_errors`: Enable error alerting (defaults to true)
+- `log_level`: Logging level (DEBUG, INFO, WARNING, ERROR, SEVERE, defaults to INFO)
 
 ## Production vs Development Configuration
 
