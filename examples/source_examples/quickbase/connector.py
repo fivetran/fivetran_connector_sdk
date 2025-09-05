@@ -33,6 +33,7 @@ RECORD_ID_FIELD = "3"  # QuickBase standard Record ID field
 
 class SyncType(Enum):
     """Enumeration for sync types."""
+
     INITIAL = "initial"
     INCREMENTAL = "incremental"
 
@@ -40,6 +41,7 @@ class SyncType(Enum):
 @dataclass
 class QuickBaseConfig:
     """Configuration class for QuickBase connector."""
+
     user_token: str
     realm_hostname: str
     app_id: str
@@ -70,28 +72,25 @@ class QuickBaseAPIClient:
         }
 
     def _make_request(
-        self, 
-        endpoint: str, 
-        method: str = "GET", 
-        data: Optional[Dict[str, Any]] = None
+        self, endpoint: str, method: str = "GET", data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Make API request with retry logic and error handling."""
         url = f"{self.base_url}{endpoint}"
-        
+
         for attempt in range(self.config.retry_attempts):
             try:
                 if method.upper() == "POST":
                     response = requests.post(
-                        url, 
-                        headers=self.headers, 
-                        json=data, 
-                        timeout=self.config.request_timeout_seconds
+                        url,
+                        headers=self.headers,
+                        json=data,
+                        timeout=self.config.request_timeout_seconds,
                     )
                 else:
                     response = requests.get(
-                        url, 
-                        headers=self.headers, 
-                        timeout=self.config.request_timeout_seconds
+                        url,
+                        headers=self.headers,
+                        timeout=self.config.request_timeout_seconds,
                     )
 
                 response.raise_for_status()
@@ -99,7 +98,9 @@ class QuickBaseAPIClient:
 
             except requests.exceptions.RequestException as e:
                 if attempt == self.config.retry_attempts - 1:
-                    log.severe(f"API request failed after {self.config.retry_attempts} attempts: {e}")
+                    log.severe(
+                        f"API request failed after {self.config.retry_attempts} attempts: {e}"
+                    )
                     raise RuntimeError(f"API request failed: {e}")
                 else:
                     log.info(f"API request attempt {attempt + 1} failed, retrying: {e}")
@@ -111,7 +112,7 @@ class QuickBaseAPIClient:
         """Fetch application data from QuickBase."""
         if not self.config.app_id:
             return None
-            
+
         try:
             endpoint = f"/apps/{self.config.app_id}"
             return self._make_request(endpoint)
@@ -123,7 +124,7 @@ class QuickBaseAPIClient:
         """Fetch fields data from QuickBase table."""
         endpoint = "/fields"
         query_data = {"tableId": table_id}
-        
+
         try:
             response = self._make_request(endpoint, "POST", query_data)
             if response and "metadata" in response and "fields" in response["metadata"]:
@@ -134,15 +135,13 @@ class QuickBaseAPIClient:
             return []
 
     def get_records(
-        self, 
-        table_id: str, 
-        last_sync_time: Optional[str] = None
+        self, table_id: str, last_sync_time: Optional[str] = None
     ) -> Tuple[List[Dict[str, Any]], Dict[str, str], Dict[str, Any]]:
         """Fetch records data from QuickBase table with pagination."""
         endpoint = "/records/query"
         query_data = {
             "from": table_id,
-            "options": {"skip": 0, "top": self.config.max_records_per_page}
+            "options": {"skip": 0, "top": self.config.max_records_per_page},
         }
 
         # Add incremental sync filter if available
@@ -156,10 +155,10 @@ class QuickBaseAPIClient:
 
         while True:
             query_data["options"]["skip"] = skip
-            
+
             try:
                 response = self._make_request(endpoint, "POST", query_data)
-                
+
                 if not response or "data" not in response:
                     break
 
@@ -170,19 +169,24 @@ class QuickBaseAPIClient:
                 # Build fields mapping on first iteration
                 if not fields_map and "fields" in response:
                     fields_map = {
-                        str(field.get("id", "")): field.get("label", f"field_{field.get('id', '')}")
+                        str(field.get("id", "")): field.get(
+                            "label", f"field_{field.get('id', '')}"
+                        )
                         for field in response["fields"]
                     }
 
                 all_records.extend(records)
-                
+
                 # Check pagination
                 metadata = response.get("metadata", {})
                 final_metadata = metadata  # Store the final metadata
                 total_records = metadata.get("totalRecords", 0)
                 num_records = metadata.get("numRecords", 0)
 
-                if len(records) < self.config.max_records_per_page or skip + num_records >= total_records:
+                if (
+                    len(records) < self.config.max_records_per_page
+                    or skip + num_records >= total_records
+                ):
                     break
 
                 skip += num_records
@@ -198,7 +202,9 @@ class QuickBaseAPIClient:
         try:
             sync_date = datetime.fromisoformat(last_sync_time.replace("Z", "+00:00"))
             sync_date_str = sync_date.strftime("%Y%m%d")
-            return f"{{'{self.config.date_field_for_incremental}'.GTE.'{sync_date_str}'}}"
+            return (
+                f"{{'{self.config.date_field_for_incremental}'.GTE.'{sync_date_str}'}}"
+            )
         except Exception as e:
             log.info(f"Could not parse last_sync_time for incremental sync: {e}")
             return ""
@@ -208,11 +214,19 @@ class QuickBaseDataProcessor:
     """Data processor for transforming QuickBase API responses."""
 
     @staticmethod
-    def extract_timestamp_from_data(data: Dict[str, Any], possible_fields: List[str] = None) -> Optional[str]:
+    def extract_timestamp_from_data(
+        data: Dict[str, Any], possible_fields: Optional[List[str]] = None
+    ) -> Optional[str]:
         """Extract timestamp from API data, checking common timestamp field names."""
         if possible_fields is None:
-            possible_fields = ["updated", "lastModified", "modified", "dateModified", "created"]
-        
+            possible_fields = [
+                "updated",
+                "lastModified",
+                "modified",
+                "dateModified",
+                "created",
+            ]
+
         for field in possible_fields:
             timestamp = data.get(field)
             if timestamp:
@@ -222,9 +236,11 @@ class QuickBaseDataProcessor:
     @staticmethod
     def process_application_data(app_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process application data into standardized format."""
-        api_timestamp = QuickBaseDataProcessor.extract_timestamp_from_data(app_data, ["updated", "created"])
+        api_timestamp = QuickBaseDataProcessor.extract_timestamp_from_data(
+            app_data, ["updated", "created"]
+        )
         timestamp = api_timestamp if api_timestamp else datetime.now().isoformat()
-        
+
         return {
             "app_id": app_data.get("id", ""),
             "name": app_data.get("name", ""),
@@ -243,10 +259,16 @@ class QuickBaseDataProcessor:
         }
 
     @staticmethod
-    def process_table_data(app_id: str, table_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def process_table_data(
+        app_id: str, table_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Process table data into standardized format."""
         if table_data:
-            api_timestamp = table_data.get("lastModified") or table_data.get("modified") or table_data.get("updated")
+            api_timestamp = (
+                table_data.get("lastModified")
+                or table_data.get("modified")
+                or table_data.get("updated")
+            )
             created_time = table_data.get("created", "")
             updated_time = table_data.get("updated", "")
             name = table_data.get("name", f"Table_{app_id}")
@@ -257,9 +279,9 @@ class QuickBaseDataProcessor:
             updated_time = ""
             name = f"Table_{app_id}"
             description = "QuickBase table"
-        
+
         timestamp = api_timestamp if api_timestamp else datetime.now().isoformat()
-        
+
         return {
             "table_id": app_id,
             "app_id": app_id,
@@ -305,9 +327,7 @@ class QuickBaseDataProcessor:
 
     @staticmethod
     def process_record_data(
-        record: Dict[str, Any], 
-        table_id: str, 
-        fields_map: Dict[str, str]
+        record: Dict[str, Any], table_id: str, fields_map: Dict[str, str]
     ) -> Dict[str, Any]:
         """Process record data into standardized format."""
         api_timestamp = None
@@ -320,18 +340,29 @@ class QuickBaseDataProcessor:
         for field_id, field_data in record.items():
             field_name = fields_map.get(field_id, f"field_{field_id}")
             field_value = (
-                field_data.get("value", "") if isinstance(field_data, dict) else field_data
+                field_data.get("value", "")
+                if isinstance(field_data, dict)
+                else field_data
             )
 
             # Convert field value to string for consistency
-            record_data[field_name] = str(field_value) if field_value is not None else ""
+            record_data[field_name] = (
+                str(field_value) if field_value is not None else ""
+            )
 
             # Use field 3 (Record ID#) as the record_id if available
             if field_id == RECORD_ID_FIELD:
                 record_data["record_id"] = str(field_value) if field_value else ""
-            
+
             # Look for timestamp fields in the record data
-            if field_name.lower() in ["date_modified", "datemodified", "last_modified", "lastmodified", "updated", "modified"]:
+            if field_name.lower() in [
+                "date_modified",
+                "datemodified",
+                "last_modified",
+                "lastmodified",
+                "updated",
+                "modified",
+            ]:
                 if field_value and not api_timestamp:
                     api_timestamp = str(field_value)
 
@@ -343,15 +374,15 @@ class QuickBaseDataProcessor:
 
     @staticmethod
     def create_sync_metadata(
-        table_id: str, 
-        records_count: int, 
-        status: str = "success", 
+        table_id: str,
+        records_count: int,
+        status: str = "success",
         error_message: str = "",
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create sync metadata record."""
         timestamp = datetime.now().isoformat()
-        
+
         sync_record = {
             "table_id": table_id,
             "last_sync_time": timestamp,
@@ -360,22 +391,25 @@ class QuickBaseDataProcessor:
             "error_message": error_message,
             "timestamp": timestamp,
         }
-        
+
         # Add pagination metadata if available
         if metadata:
-            sync_record.update({
-                "total_records": metadata.get("totalRecords", 0),
-                "num_records": metadata.get("numRecords", 0),
-                "num_fields": metadata.get("numFields", 0),
-                "skip": metadata.get("skip", 0),
-                "top": metadata.get("top", 0),
-            })
-        
+            sync_record.update(
+                {
+                    "total_records": metadata.get("totalRecords", 0),
+                    "num_records": metadata.get("numRecords", 0),
+                    "num_fields": metadata.get("numFields", 0),
+                    "skip": metadata.get("skip", 0),
+                    "top": metadata.get("top", 0),
+                }
+            )
+
         return sync_record
 
 
 def parse_configuration(configuration: dict) -> QuickBaseConfig:
     """Parse and validate configuration dictionary."""
+
     def safe_int(value: Any, default: int) -> int:
         try:
             return int(str(value))
@@ -395,16 +429,32 @@ def parse_configuration(configuration: dict) -> QuickBaseConfig:
         realm_hostname=str(configuration.get("realm_hostname", "")).strip(),
         app_id=str(configuration.get("app_id", "")).strip(),
         table_ids=parse_table_ids(str(configuration.get("table_ids", ""))),
-        sync_frequency_hours=safe_int(configuration.get("sync_frequency_hours"), DEFAULT_SYNC_FREQUENCY_HOURS),
-        initial_sync_days=safe_int(configuration.get("initial_sync_days"), DEFAULT_INITIAL_SYNC_DAYS),
-        max_records_per_page=safe_int(configuration.get("max_records_per_page"), DEFAULT_MAX_RECORDS),
-        request_timeout_seconds=safe_int(configuration.get("request_timeout_seconds"), DEFAULT_TIMEOUT),
-        retry_attempts=safe_int(configuration.get("retry_attempts"), DEFAULT_RETRY_ATTEMPTS),
-        enable_incremental_sync=safe_bool(configuration.get("enable_incremental_sync"), True),
+        sync_frequency_hours=safe_int(
+            configuration.get("sync_frequency_hours"), DEFAULT_SYNC_FREQUENCY_HOURS
+        ),
+        initial_sync_days=safe_int(
+            configuration.get("initial_sync_days"), DEFAULT_INITIAL_SYNC_DAYS
+        ),
+        max_records_per_page=safe_int(
+            configuration.get("max_records_per_page"), DEFAULT_MAX_RECORDS
+        ),
+        request_timeout_seconds=safe_int(
+            configuration.get("request_timeout_seconds"), DEFAULT_TIMEOUT
+        ),
+        retry_attempts=safe_int(
+            configuration.get("retry_attempts"), DEFAULT_RETRY_ATTEMPTS
+        ),
+        enable_incremental_sync=safe_bool(
+            configuration.get("enable_incremental_sync"), True
+        ),
         enable_fields_sync=safe_bool(configuration.get("enable_fields_sync"), True),
         enable_records_sync=safe_bool(configuration.get("enable_records_sync"), True),
-        date_field_for_incremental=str(configuration.get("date_field_for_incremental", RECORD_ID_FIELD)),
-        enable_debug_logging=safe_bool(configuration.get("enable_debug_logging"), False),
+        date_field_for_incremental=str(
+            configuration.get("date_field_for_incremental", RECORD_ID_FIELD)
+        ),
+        enable_debug_logging=safe_bool(
+            configuration.get("enable_debug_logging"), False
+        ),
     )
 
 
@@ -412,19 +462,19 @@ def validate_configuration(config: QuickBaseConfig) -> None:
     """Validate the QuickBase configuration."""
     if not config.user_token:
         raise ValueError("user_token is required and cannot be empty")
-    
+
     if not config.realm_hostname:
         raise ValueError("realm_hostname is required and cannot be empty")
-    
+
     if not config.app_id:
         raise ValueError("app_id is required and cannot be empty")
 
     if not (1 <= config.sync_frequency_hours <= 24):
         raise ValueError("sync_frequency_hours must be between 1 and 24")
-    
+
     if not (1 <= config.initial_sync_days <= 365):
         raise ValueError("initial_sync_days must be between 1 and 365")
-    
+
     if not (1 <= config.max_records_per_page <= 1000):
         raise ValueError("max_records_per_page must be between 1 and 1000")
 
@@ -440,14 +490,16 @@ def determine_sync_type(state: dict, enable_incremental: bool) -> SyncType:
 def get_time_range(sync_type: SyncType, config: QuickBaseConfig) -> Dict[str, str]:
     """Generate time range for API queries based on sync type."""
     end_time = datetime.now().isoformat()
-    
+
     if sync_type == SyncType.INCREMENTAL:
         # This would be set by the caller with actual last sync time
         start_time = end_time
     else:
         # Initial sync: get data from configured days back
-        start_time = (datetime.now() - timedelta(days=config.initial_sync_days)).isoformat()
-    
+        start_time = (
+            datetime.now() - timedelta(days=config.initial_sync_days)
+        ).isoformat()
+
     return {"start": start_time, "end": end_time}
 
 
@@ -597,28 +649,37 @@ def update(configuration: dict, state: dict) -> None:
             # Sync records data
             if config.enable_records_sync:
                 table_last_sync = (
-                    state.get(f"table_{table_id}_last_sync", last_sync_time) 
-                    if sync_type == SyncType.INCREMENTAL else None
+                    state.get(f"table_{table_id}_last_sync", last_sync_time)
+                    if sync_type == SyncType.INCREMENTAL
+                    else None
                 )
-                
-                records, fields_map, api_metadata = api_client.get_records(table_id, table_last_sync)
+
+                records, fields_map, api_metadata = api_client.get_records(
+                    table_id, table_last_sync
+                )
                 records_count = 0
-                
+
                 for record in records:
-                    processed_record = processor.process_record_data(record, table_id, fields_map)
+                    processed_record = processor.process_record_data(
+                        record, table_id, fields_map
+                    )
                     op.upsert(table="records", data=processed_record)
                     records_count += 1
 
                 # Create sync metadata with API metadata
-                sync_metadata = processor.create_sync_metadata(table_id, records_count, metadata=api_metadata)
+                sync_metadata = processor.create_sync_metadata(
+                    table_id, records_count, metadata=api_metadata
+                )
                 op.upsert(table="sync_metadata", data=sync_metadata)
-                
-                log.info(f"Records synced for table {table_id}: {records_count} records")
+
+                log.info(
+                    f"Records synced for table {table_id}: {records_count} records"
+                )
 
         # Update state
         current_time = datetime.now().isoformat()
         new_state = {"last_sync_time": current_time}
-        
+
         # Add table-specific sync times
         for table_id in tables_to_sync:
             new_state[f"table_{table_id}_last_sync"] = current_time

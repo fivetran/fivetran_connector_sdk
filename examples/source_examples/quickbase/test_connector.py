@@ -4,7 +4,6 @@ Test suite for Quickbase API Connector
 Tests connector functionality, configuration validation, and API connectivity
 """
 
-import os
 import sys
 
 # Import connector functions for testing
