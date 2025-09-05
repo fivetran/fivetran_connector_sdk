@@ -1,219 +1,214 @@
 # FDA Drug API Fivetran Connector
 
-A comprehensive Fivetran Connector SDK solution for syncing data from the FDA Drug API with endpoint discovery, incremental syncing, and configurable data flattening.
+This connector dynamically discovers and syncs data from FDA Drug API endpoints with incremental sync support. It follows Fivetran Connector SDK best practices without using yield statements for easier adoption.
+
+## Overview
+
+The FDA Drug API Connector provides access to comprehensive drug-related data from the U.S. Food and Drug Administration, including:
+
+- **NDC (National Drug Code)**: Drug product information and listings
+- **Event**: Adverse event reports and safety data
+- **Label**: Drug labeling information and package inserts
+- **Enforcement**: Drug recall and enforcement actions
 
 ## Features
 
-- **Dynamic Endpoint Discovery**: Automatically discovers and syncs from all available FDA Drug API endpoints
-- **Incremental Sync**: Uses `listing_expiration_date` for efficient incremental updates
-- **Flexible Data Structure**: Supports both flattened tables and child table relationships
-- **Rate Limiting**: Built-in rate limiting with configurable delays to respect API limits
-- **Quota Management**: Configurable requests per checkpoint to avoid quota exhaustion
-- **Optional Authentication**: Works with or without API key (higher limits with key)
-- **State Management**: Robust checkpointing for reliable incremental syncs
+- **Dynamic Endpoint Discovery**: Automatically discovers available FDA Drug API endpoints
+- **Incremental Sync Support**: Uses endpoint-specific date fields for efficient incremental updates
+- **Rate Limiting**: Built-in rate limiting to respect FDA API limits
+- **Flexible Data Processing**: Options for flattening nested data or creating child tables
+- **Authentication Support**: Optional API key authentication for higher rate limits
+- **Error Handling**: Comprehensive error handling and retry mechanisms
+- **Checkpoint Management**: Regular checkpointing for reliable sync resumption
 
-## Supported Endpoints
+## Setup Instructions
 
-The connector automatically discovers and syncs from these FDA Drug API endpoints:
-- `ndc` - National Drug Code Directory
-- `event` - Adverse Event Reports
-- `label` - Drug Labeling
-- `enforcement` - Enforcement Reports
+### Prerequisites
 
-## Configuration
+- Python 3.9-3.12
+- Fivetran Connector SDK
+- FDA API key (optional but recommended)
 
-### Required Configuration (`configuration.json`)
+### Installation
 
-```json
-{
-  "api_key": "",
-  "base_url": "https://api.fda.gov/drug/",
-  "requests_per_checkpoint": "10",
-  "rate_limit_delay": "0.25",
-  "flatten_nested": "true",
-  "create_child_tables": "false",
-  "incremental_date_field": "listing_expiration_date"
-}
-```
-
-### Configuration Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `api_key` | string | `""` | Optional FDA API key for higher rate limits (120K/day vs 1K/day) |
-| `base_url` | string | `"https://api.fda.gov/drug/"` | Base URL for FDA Drug API |
-| `requests_per_checkpoint` | string | `"10"` | Number of API requests before checkpointing state |
-| `rate_limit_delay` | string | `"0.25"` | Delay in seconds between API requests |
-| `flatten_nested` | string | `"true"` | Flatten nested objects with prefixed column names |
-| `create_child_tables` | string | `"false"` | Create separate tables for nested arrays |
-| `incremental_date_field` | string | `"listing_expiration_date"` | Date field for incremental sync |
-
-## Data Structure
-
-### Flattened Mode (Default)
-- Nested objects are flattened with prefixed column names
-- Arrays are converted to JSON strings or indexed flat keys
-- Single table per endpoint: `fda_drug_ndc`, `fda_drug_event`, etc.
-
-### Child Tables Mode
-- Nested arrays become separate child tables
-- Main tables contain summary counts
-- Child tables linked via `_parent_id` and `_index` keys
-
-### Example Table Structure
-
-**Main Table: `fda_drug_ndc`**
-- `_primary_key` (product_id or product_ndc)
-- `product_ndc`
-- `generic_name`
-- `brand_name`
-- `openfda_manufacturer_name`
-- `active_ingredients_0_name`
-- `active_ingredients_0_strength`
-- ... (flattened fields)
-
-**Child Table: `fda_drug_ndc_packaging`** (if enabled)
-- `_parent_id`
-- `_index`
-- `package_ndc`
-- `description`
-- `marketing_start_date`
-
-## Installation & Setup
-
-1. **Create project directory**:
-   ```bash
-   mkdir fda_drug
-   cd fda_drug
-   ```
-
-2. **Add connector files**:
-   - `connector.py` - Main connector implementation
-   - `requirements.txt` - Python dependencies
-   - `configuration.json` - Configuration template
-
-3. **Install dependencies**:
+1. Clone or download this connector
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Configure API access** (optional):
-   - Get free API key from https://open.fda.gov/apis/authentication/
-   - Add to `configuration.json`
+### Configuration
+
+Create a `configuration.json` file with the following parameters:
+
+```json
+{
+    "api_key": "your_fda_api_key_here",
+    "base_url": "https://api.fda.gov/drug/",
+    "requests_per_checkpoint": "10",
+    "rate_limit_delay": "0.25",
+    "flatten_nested": "true",
+    "create_child_tables": "false",
+    "max_api_calls_per_endpoint": "2"
+}
+```
+
+#### Configuration Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `api_key` | String | No | "" | FDA API key for authentication (recommended for higher limits) |
+| `base_url` | String | No | "https://api.fda.gov/drug/" | Base URL for FDA Drug API |
+| `requests_per_checkpoint` | String | No | "10" | Number of requests before checkpointing |
+| `rate_limit_delay` | String | No | "0.25" | Delay between requests in seconds |
+| `flatten_nested` | String | No | "true" | Whether to flatten nested JSON structures |
+| `create_child_tables` | String | No | "false" | Whether to create separate child tables for nested data |
+| `max_api_calls_per_endpoint` | String | No | "2" | Maximum API calls per endpoint per sync |
 
 ## Testing
 
-### CLI Testing
+### Local Testing
+
+Test the connector locally using the Fivetran debug command:
+
 ```bash
 fivetran debug --configuration configuration.json
 ```
 
-### Python Testing
-```python
-python connector.py
-```
-
 ### Validation Steps
 
-1. **Check DuckDB Output**:
-   ```bash
-   sqlite3 warehouse.db ".tables"
-   sqlite3 warehouse.db "SELECT COUNT(*) FROM fda_drug_ndc;"
-   ```
+1. **Verify Schema**: Check that tables are created correctly
+2. **Check Data Quality**: Review sample data in DuckDB warehouse.db
+3. **Monitor Logs**: Review operation counts and error logs
+4. **Validate Incremental Sync**: Test cursor progression and checkpointing
 
-2. **Review Logs**:
-   - Look for endpoint discovery messages
-   - Verify checkpointing at configured intervals
-   - Check for rate limiting and quota management
+Expected log output:
+```
+Operation     | Calls
+------------- + ------------
+Upserts       | 44
+Updates       | 0
+Deletes       | 0
+Truncates     | 0
+SchemaChanges | 1
+Checkpoints   | 1
+```
 
-3. **Expected Output**:
-   ```
-   Operation     | Calls
-   ------------- + ------------
-   Upserts       | 1000+
-   Updates       | 0
-   Deletes       | 0
-   Truncates     | 0
-   SchemaChanges | 4+
-   Checkpoints   | 10+
-   ```
+## Data Schema
 
-## API Rate Limits
+### Main Tables
 
-| Authentication | Requests/Minute | Requests/Day |
-|---------------|-----------------|-------------- |
-| No API Key | 240 | 1,000 |
-| With API Key | 240 | 120,000 |
+The connector creates tables for each discovered endpoint:
 
-The connector respects these limits with:
-- Built-in rate limiting (250ms delay between requests)
-- Configurable checkpoint frequency
-- Automatic retry on rate limit errors
+- `fda_drug_ndc`: National Drug Code listings
+- `fda_drug_event`: Adverse event reports
+- `fda_drug_label`: Drug labeling information
+- `fda_drug_enforcement`: Enforcement actions and recalls
 
-## Incremental Sync Strategy
+### Child Tables (Optional)
 
-- Uses `listing_expiration_date` as cursor field
-- Stores cursor per endpoint in connector state
-- Searches for records >= last cursor value
-- Falls back to full sync on first run
+When `create_child_tables` is enabled, additional tables are created:
+
+- `fda_drug_{endpoint}_active_ingredients`
+- `fda_drug_{endpoint}_packaging`
+- `fda_drug_{endpoint}_openfda`
+- `fda_drug_{endpoint}_route`
+
+## Incremental Sync
+
+The connector supports incremental sync using endpoint-specific date fields:
+
+- **NDC**: `listing_expiration_date`
+- **Event**: `receivedate`
+- **Label**: `effective_time`
+- **Enforcement**: `report_date`
+
+Cursors are stored in the connector state and automatically managed.
+
+## API Limits
+
+### Without API Key
+- 1,000 requests per day
+- Basic rate limiting
+
+### With API Key
+- 120,000 requests per day
+- Higher rate limits
+- Better reliability
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Rate Limit Exceeded**:
-   - Increase `rate_limit_delay` value
-   - Reduce `requests_per_checkpoint`
-   - Consider getting API key
+1. **Rate Limit Errors**
+   - Increase `rate_limit_delay` in configuration
+   - Reduce `max_api_calls_per_endpoint`
+   - Consider getting an FDA API key
 
-2. **Authentication Errors**:
+2. **Authentication Errors**
    - Verify API key format
-   - Check API key is valid and active
-   - Ensure HTTPS is used
+   - Check API key permissions
+   - Ensure proper base64 encoding
 
-3. **Data Structure Issues**:
-   - Toggle `flatten_nested` setting
-   - Enable `create_child_tables` for complex data
-   - Check field mappings in logs
+3. **Data Quality Issues**
+   - Review flattened field names
+   - Check for missing primary keys
+   - Validate date field formats
 
-4. **Sync Performance**:
-   - Adjust `requests_per_checkpoint` for balance
-   - Monitor checkpoint frequency in logs
-   - Consider endpoint-specific configuration
+4. **Memory Issues**
+   - Reduce `requests_per_checkpoint`
+   - Enable `create_child_tables` for large nested data
+   - Monitor checkpoint frequency
 
-### Debug Commands
+### Debug Steps
 
-```bash
-# Check connector structure
-python -m py_compile connector.py
-
-# Test configuration
-python -c "import json; print(json.load(open('configuration.json')))"
-
-# Validate dependencies
-pip check
-```
+1. Enable detailed logging
+2. Test individual endpoints
+3. Verify API connectivity
+4. Check configuration parameters
+5. Review error messages in logs
 
 ## Best Practices
 
-1. **Start Small**: Begin with low `requests_per_checkpoint` values
-2. **Monitor Quotas**: Track daily API usage
-3. **Use API Keys**: Get higher limits for production use
-4. **Test Incrementally**: Verify cursor-based syncing works correctly
-5. **Handle Errors**: Monitor logs for API errors and timeouts
+### Performance Optimization
 
-## Production Deployment
+- Use appropriate `requests_per_checkpoint` values
+- Enable child tables for complex nested data
+- Monitor API quota usage
+- Implement proper error handling
 
-1. **Get API Key**: Register at https://open.fda.gov/apis/authentication/
-2. **Configure Limits**: Set appropriate `requests_per_checkpoint` based on data volume
-3. **Monitor Performance**: Track sync duration and data volumes
-4. **Set Alerts**: Monitor for API errors and quota exhaustion
+### Data Quality
+
+- Validate primary key generation
+- Handle missing date fields gracefully
+- Implement data type validation
+- Monitor schema evolution
+
+### Monitoring
+
+- Track API call usage
+- Monitor checkpoint frequency
+- Review error rates
+- Validate data completeness
+
+## References
+
+- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+- [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+- [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+- [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+- [FDA Drug API Documentation](https://open.fda.gov/apis/drug/)
+
+## Known Limitations
+
+- Limited to FDA Drug API endpoints
+- Rate limits apply based on authentication
+- Some endpoints may have data availability issues
+- Date field formats vary by endpoint
 
 ## Support
 
-- **FDA API Documentation**: https://open.fda.gov/apis/
-- **Fivetran Connector SDK**: https://fivetran.com/docs/connector-sdk
-
-## License
-
-This connector follows FDA API terms of service and Fivetran SDK licensing.
+For issues related to:
+- **Fivetran Connector SDK**: Refer to official documentation
+- **FDA API**: Contact FDA support
+- **This Connector**: Review troubleshooting section above
