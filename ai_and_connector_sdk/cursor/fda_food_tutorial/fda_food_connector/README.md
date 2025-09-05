@@ -2,6 +2,8 @@
 
 This connector fetches data from the FDA Food Enforcement API and upserts it into your Fivetran destination. The connector supports both API key and no API key authentication, configurable batch sizes, and incremental syncs.
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. This solution has been updated as well. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Overview
 
 The FDA Food Enforcement API provides access to food recall and enforcement data from the U.S. Food and Drug Administration. This connector implements best practices for data ingestion, including:
