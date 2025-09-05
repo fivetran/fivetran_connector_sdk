@@ -1,63 +1,206 @@
-# FDA Veterinary API Connector
+# FDA Veterinary Adverse Event Reporting System (FAERS) Connector
 
-This is a Fivetran Connector SDK implementation for the FDA Veterinary Adverse Event Reporting System (VAERS) API.
+This connector fetches veterinary adverse event data from the FDA's public API and syncs it to your Fivetran destination. It demonstrates best practices for building Fivetran connectors using the Connector SDK.
+
+## Overview
+
+The FDA Veterinary Adverse Event Reporting System (FAERS) contains reports of adverse events and medication errors submitted to the FDA. This connector provides access to this valuable dataset for analysis and monitoring purposes.
 
 ## Features
 
-- Fetches adverse event data from the FDA Veterinary API
-- Dynamically flattens nested JSON structures
-- Handles pagination and rate limiting
-- Implements checkpointing for incremental syncs
-- Follows Fivetran Connector SDK best practices
+- **Public API Access**: No authentication required for FDA's public endpoints
+- **Incremental Sync**: Supports incremental data synchronization with state management
+- **Error Handling**: Comprehensive error handling and logging
+- **Configurable Batch Size**: Adjustable batch size for optimal performance
+- **Date Filtering**: Optional date-based filtering for targeted data extraction
+- **Data Flattening**: Automatically flattens nested JSON structures for easier analysis
 
-## Prerequisites
+## Setup Instructions
 
-- Python 3.9+
+### Prerequisites
+
+- Python 3.9-3.12
 - Fivetran Connector SDK
-- requests library
+- Access to Fivetran destination
 
-## Installation
+### Installation
 
-1. Install the required dependencies:
+1. Clone or download this connector to your local environment
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. Configure the connector by editing the `configuration.json` file:
-   ```json
-   {
-       "base_url": "https://api.fda.gov/animalandveterinary/event.json",
-       "limit": "10",
-       "api_key": "your_api_key_here"
-   }
-   ```
+### Configuration
 
-## Usage
+Edit the `configuration.json` file with your desired settings:
 
-To test the connector locally:
+```json
+{
+    "batch_size": "100",
+    "start_date": ""
+}
+```
+
+#### Configuration Parameters
+
+- **batch_size** (string): Number of records to fetch per API call (default: "100")
+- **start_date** (string): Optional start date for filtering records in YYYYMMDD format (e.g., "20240101")
+
+## Testing
+
+### Local Testing
+
+Test the connector locally using the Fivetran debug command:
 
 ```bash
 fivetran debug --configuration configuration.json
 ```
 
-## Configuration
+### Expected Output
 
-| Parameter  | Type   | Required | Description                                      |
-|------------|--------|----------|--------------------------------------------------|
-| base_url   | string | Yes      | Base URL for the FDA Veterinary API              |
-| limit      | number | No       | Maximum number of records to fetch (default: 10) |
-| api_key    | string | No       | Optional API key for higher rate limits          |
+The connector will create a `warehouse.db` file containing the synced data. You can inspect the data using:
 
-## Data Model
+```bash
+sqlite3 warehouse.db "SELECT COUNT(*) FROM events;"
+sqlite3 warehouse.db "SELECT * FROM events LIMIT 5;"
+```
 
-The connector creates a single table called `events` with all fields flattened from the API response. The primary key is set to `unique_aer_id_number`.
+### Operation Summary
 
-## Rate Limiting
+After running the connector, you should see an operation summary like:
 
-Without an API key, the FDA API has the following limits:
-- 240 requests per minute per IP address
-- 1,000 requests per day per IP address
+```
+Operation     | Calls
+------------- + ------------
+Upserts       | 100
+Updates       | 0
+Deletes       | 0
+Truncates     | 0
+SchemaChanges | 1
+Checkpoints   | 1
+```
 
-With an API key, the limits increase to:
-- 240 requests per minute per key
-- 120,000 requests per day per key
+## Data Schema
+
+### Events Table
+
+The connector creates an `events` table with the following structure:
+
+- **Primary Key**: `unique_aer_id_number`
+- **Data Types**: Automatically inferred by Fivetran
+- **Content**: Flattened veterinary adverse event data from FDA API
+
+### Sample Data Fields
+
+- `unique_aer_id_number`: Unique identifier for the adverse event report
+- `receivedate`: Date the report was received by FDA
+- `patient`: Patient information (age, weight, species, etc.)
+- `drug`: Drug information (name, dosage, route, etc.)
+- `reaction`: Adverse reactions reported
+- `outcome`: Patient outcome information
+
+## Best Practices Implementation
+
+This connector follows Fivetran Connector SDK best practices:
+
+### 1. No Yield Statements
+- Uses direct operation calls (`op.upsert()`, `op.checkpoint()`)
+- Eliminates complexity of generator functions
+- Easier to understand and maintain
+
+### 2. Proper State Management
+- Implements checkpointing for incremental syncs
+- Tracks processing statistics
+- Maintains sync state across runs
+
+### 3. Error Handling
+- Comprehensive exception handling
+- Detailed logging at appropriate levels
+- Graceful failure recovery
+
+### 4. Performance Optimization
+- Configurable batch sizes
+- Efficient data processing
+- Memory-conscious implementation
+
+### 5. Documentation
+- Clear docstrings and comments
+- Comprehensive README
+- Configuration examples
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Rate Limits**
+   - Reduce `batch_size` in configuration
+   - Monitor logs for rate limit warnings
+
+2. **Memory Issues**
+   - Decrease batch size if processing large datasets
+   - Monitor memory usage during sync
+
+3. **Network Timeouts**
+   - Check internet connectivity
+   - Verify FDA API availability
+
+### Debug Steps
+
+1. Check connector logs for error messages
+2. Verify configuration.json format
+3. Test API connectivity manually
+4. Review warehouse.db for data completeness
+
+### Log Analysis
+
+Look for these log messages:
+- `INFO`: Normal operation progress
+- `WARNING`: Potential issues (rate limits, empty responses)
+- `SEVERE`: Critical errors requiring attention
+
+## API Reference
+
+### FDA Veterinary API
+- **Base URL**: `https://api.fda.gov/animalandveterinary/event.json`
+- **Documentation**: [FDA API Documentation](https://open.fda.gov/apis/drug/event/)
+- **Rate Limits**: Public API with reasonable limits
+- **Authentication**: None required for public endpoints
+
+### Fivetran Connector SDK
+- **Documentation**: [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+- **Examples**: [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+- **Best Practices**: [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+
+## Limitations and Constraints
+
+- **Public API**: Subject to FDA's API availability and rate limits
+- **Data Volume**: Large datasets may require multiple sync runs
+- **Schema Evolution**: FDA may add new fields over time
+- **Historical Data**: Limited by FDA's data retention policies
+
+## Support and Maintenance
+
+### Monitoring
+- Review logs regularly for errors
+- Monitor sync performance metrics
+- Track data quality and completeness
+
+### Updates
+- Monitor FDA API changes
+- Update connector for new data fields
+- Test thoroughly before production deployment
+
+## Contributing
+
+When modifying this connector:
+
+1. Follow Fivetran Connector SDK best practices
+2. Maintain comprehensive documentation
+3. Test thoroughly with debug command
+4. Update README for any new features
+5. Ensure backward compatibility
+
+## License
+
+This connector is provided as-is for educational and development purposes. Please review FDA's terms of service for production use.
