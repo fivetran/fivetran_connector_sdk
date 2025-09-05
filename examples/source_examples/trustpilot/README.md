@@ -1,6 +1,6 @@
 # Trustpilot API Connector
 
-*This connector provides comprehensive Trustpilot review and business data synchronization into your data warehouse for customer feedback analysis, reputation management, and business insights. It leverages Trustpilot's REST API to extract reviews, business information, categories, consumer reviews, and invitation links data for comprehensive customer experience analysis.*
+This connector provides comprehensive Trustpilot review and business data synchronization into your data warehouse for customer feedback analysis, reputation management, and business insights. It leverages Trustpilot's REST API to extract reviews, business information, categories, consumer reviews, and invitation links data for comprehensive customer experience analysis.
 
 ## Connector overview
 
@@ -20,36 +20,36 @@ The Trustpilot API Connector is a Fivetran Connector SDK implementation that ext
 
 ## Getting started
 
-### **Quick Start (Recommended)**
+### Quick Start (Recommended)
 
-1. **Fork or clone this repository**
-2. **Set up GitHub secrets and variables** (see [Deployment](#deployment) section)
-3. **Push changes to `main` branch** - deployment happens automatically!
+1. Fork or clone this repository.
+2. Set up GitHub secrets and variables (see [Deployment](#deployment) section).
+3. Push changes to `main` branch - deployment happens automatically!
 
-### **Alternative: Manual Setup**
+### Alternative: Manual Setup
 
 For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#-secondary-manual-deployment-debugging--testing) section below.
 
 ## Deployment
 
-> **🚀 PRODUCTION DEPLOYMENT RECOMMENDATION**  
+> ** PRODUCTION DEPLOYMENT RECOMMENDATION**  
 > **We recommend using GitHub Actions workflow for all production deployments.**  
 > Manual deployment is available for development, testing, and debugging purposes, but we encourage using the automated workflow for production environments.
 
 The connector is designed to work with **GitHub Actions workflow** as the **recommended production deployment mechanism**, while keeping manual deployment available for development and testing scenarios.
 
-### **🚀 Primary: Automated Deployment via GitHub Actions**
+### Primary: Automated Deployment via GitHub Actions
 
 The connector includes a GitHub Actions workflow (`.github/workflows/deploy_connector.yaml`) for automated deployment.
 
-#### **Workflow Features:**
+#### Workflow Features:
 - **Automated Triggers**: Deploys on pushes to the `main` branch
 - **Path-Based Triggers**: Only runs when changes are made to the connector directory
 - **Parameterized Configuration**: Easy to customize Python version, working directory, and other settings
 - **Environment Management**: Uses GitHub Environments for secure credential management
 - **Zero-Downtime Deployment**: Seamless updates without service interruption
 
-#### **Quick Setup:**
+#### Quick Setup:
 
 1. **Create GitHub Environment:**
    - Go to repository Settings → Environments
@@ -71,7 +71,7 @@ The connector includes a GitHub Actions workflow (`.github/workflows/deploy_conn
 
 4. **Deploy**: Simply push changes to the `main` branch - deployment happens automatically!
 
-#### **Workflow Configuration:**
+#### Workflow Configuration:
 
 The workflow uses parameterized environment variables for easy customization:
 
@@ -84,15 +84,15 @@ env:
   EXCLUDED_DEPENDENCIES: '^requests\b'
 ```
 
-#### **Deployment Process:**
+#### Deployment Process:
 
-1. **Automatic Trigger**: Push changes to `main` branch
-2. **Environment Setup**: Python 3.11, dependencies installation
-3. **Configuration Creation**: Generates `configuration.json` from GitHub secrets
-4. **Fivetran Deployment**: Executes `fivetran deploy` command
-5. **Status Reporting**: Provides deployment success/failure feedback
+1. **Automatic Trigger**: Push changes to `main` branch.
+2. **Environment Setup**: Python 3.11, dependencies installation.
+3. **Configuration Creation**: Generates `configuration.json` from GitHub secrets.
+4. **Fivetran Deployment**: Executes `fivetran deploy` command.
+5. **Status Reporting**: Provides deployment success/failure feedback.
 
-#### **Customization:**
+#### Customization:
 
 To adapt this workflow for other connectors, simply update the environment variables:
 
@@ -105,7 +105,7 @@ env:
   EXCLUDED_DEPENDENCIES: '^requests\b'
 ```
 
-### **🔧 Secondary: Manual Deployment (Debugging & Testing)**
+### Secondary: Manual Deployment (Debugging & Testing)
 
 For local development, testing, and debugging purposes:
 
@@ -141,7 +141,7 @@ For local development, testing, and debugging purposes:
 
 ## Configuration file
 
-💡 **PRODUCTION DEPLOYMENT GUIDANCE**: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
+**PRODUCTION DEPLOYMENT GUIDANCE**: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
 
 The connector requires the following configuration keys. For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
 
@@ -184,25 +184,25 @@ The connector requires the following configuration keys. For production deployme
 
 ## Production vs Development Configuration
 
-### **🚀 Production Deployment (Recommended)**
+### Production Deployment (Recommended)
 - **Method**: GitHub Actions workflow with GitHub secrets
 - **Security**: Credentials stored securely in GitHub
 - **Automation**: Push-to-deploy workflow
 - **Compliance**: Enterprise-grade security practices
 
-### **🔧 Development & Testing (Available)**
+### Development & Testing (Available)
 - **Method**: Local `configuration.json` or environment variables
 - **Security**: Credentials stored locally (never commit to repository)
 - **Use Case**: Local development, debugging, testing
 - **Guidance**: We recommend using GitHub secrets for production
 
-**💡 Security Note**: For production deployments, we recommend using **GitHub secrets**. Local configuration files are available for development but we encourage using GitHub secrets for production environments.
+**Security Note**: For production deployments, we recommend using **GitHub secrets**. Local configuration files are available for development but we encourage using GitHub secrets for production environments.
 
 **API Key Setup:**
-1. Go to your Trustpilot Business account
-2. Navigate to Settings > API Keys
-3. Create a new API key with appropriate permissions
-4. Add the API key to `configuration.json`
+1. Go to your Trustpilot Business account.
+2. Navigate to Settings > API Keys.
+3. Create a new API key with appropriate permissions.
+4. Add the API key to `configuration.json`.
 
 **Business Unit ID:**
 - Found in your Trustpilot Business dashboard
@@ -214,9 +214,9 @@ The connector requires the following configuration keys. For production deployme
 
 Note: We recommend keeping the `configuration.json` file out of version control to protect sensitive information. You can add it to your `.gitignore` file for additional security.
 
-### **Development Configuration (Local Testing)**
+### Development Configuration (Local Testing)
 
-💡 **Development Setup**: The following configuration methods are designed for local development and testing. We recommend using GitHub secrets for production deployments.
+**Development Setup**: The following configuration methods are designed for local development and testing. We recommend using GitHub secrets for production deployments.
 
 For local development and testing:
 
@@ -248,8 +248,8 @@ Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in 
 
 The connector uses Trustpilot API keys for authentication with the REST API. Authentication is provided through:
 
-1. **API Keys**: Direct Trustpilot API key in configuration
-2. **Business Unit Access**: Business unit ID for data scope definition
+1. **API Keys**: Direct Trustpilot API key in configuration.
+2. **Business Unit Access**: Business unit ID for data scope definition.
 
 **Required API Permissions:**
 - REST API access for querying business data
@@ -259,11 +259,11 @@ The connector uses Trustpilot API keys for authentication with the REST API. Aut
 We recommend reviewing these permissions with your Trustpilot account administrator to ensure proper access levels.
 
 **Steps to obtain credentials:**
-1. Go to your Trustpilot Business account
-2. Navigate to Settings > API Keys
-3. Create a new API key with appropriate permissions
-4. **For Production**: We recommend adding credentials as GitHub secrets (see [Deployment](#deployment) section)
-5. **For Development**: You can add credentials to `configuration.json` (remember not to commit this file)
+1. Go to your Trustpilot Business account.
+2. Navigate to Settings > API Keys.
+3. Create a new API key with appropriate permissions.
+4. **For Production**: We recommend adding credentials as GitHub secrets (see [Deployment](#deployment) section).
+5. **For Development**: You can add credentials to `configuration.json` (remember not to commit this file).
 
 ## Pagination
 
@@ -287,18 +287,18 @@ Refer to functions `get_reviews_data`, `get_business_data`, `get_categories_data
 
 The connector intelligently manages data fetching based on sync type:
 
-### **Initial Sync**
+### Initial Sync
 - **Time Range**: Last 90 days of data
 - **Use Case**: First-time setup or full re-sync
 - **Data Volume**: Comprehensive historical data for baseline analysis
 
-### **Incremental Sync**
+### Incremental Sync
 - **Time Range**: Data since last successful sync timestamp
 - **Use Case**: Regular scheduled syncs
 - **Data Volume**: Only new/changed data since last sync
 - **Benefits**: Faster sync times, reduced API calls, efficient resource usage
 
-### **Implementation Details**
+### Implementation Details
 - **State Management**: Uses Fivetran's checkpoint system to track last sync time
 - **Automatic Detection**: Automatically determines sync type based on state
 - **Flexible Queries**: All API calls dynamically adjust time ranges
@@ -308,11 +308,11 @@ The connector intelligently manages data fetching based on sync type:
 
 The connector processes Trustpilot data through several stages:
 
-1. **Data Extraction**: Direct REST API calls to Trustpilot endpoints
-2. **Data Transformation**: Conversion of Trustpilot API responses to structured table format
-3. **Schema Mapping**: Consistent data types and column naming across all tables
-4. **State Management**: Checkpoint-based incremental sync support
-5. **Error Handling**: Comprehensive error handling with logging and validation
+1. **Data Extraction**: Direct REST API calls to Trustpilot endpoints.
+2. **Data Transformation**: Conversion of Trustpilot API responses to structured table format.
+3. **Schema Mapping**: Consistent data types and column naming across all tables.
+4. **State Management**: Checkpoint-based incremental sync support.
+5. **Error Handling**: Comprehensive error handling with logging and validation.
 
 **Data Processing Features:**
 - **Type Conversion**: Trustpilot API responses converted to appropriate data types
@@ -354,7 +354,7 @@ Refer to functions `validate_configuration`, `execute_api_request`, and the main
 
 The connector creates the following tables for comprehensive Trustpilot data analysis:
 
-### **reviews**
+### reviews
 Primary table for customer reviews and feedback data with comprehensive review metadata.
 
 | Column Name | Type | Description |
@@ -376,7 +376,7 @@ Primary table for customer reviews and feedback data with comprehensive review m
 | `reply_created_at` | STRING | Reply creation timestamp |
 | `timestamp` | STRING | Data extraction timestamp |
 
-### **business_units**
+### business_units
 Business unit information and reputation metrics for comprehensive business analysis.
 
 | Column Name | Type | Description |
@@ -394,7 +394,7 @@ Business unit information and reputation metrics for comprehensive business anal
 | `updated_at` | STRING | Business last update timestamp |
 | `timestamp` | STRING | Data extraction timestamp |
 
-### **categories**
+### categories
 Business categories and hierarchical classification for business categorization analysis.
 
 | Column Name | Type | Description |
@@ -408,7 +408,7 @@ Business categories and hierarchical classification for business categorization 
 | `updated_at` | STRING | Category last update timestamp |
 | `timestamp` | STRING | Data extraction timestamp |
 
-### **consumer_reviews**
+### consumer_reviews
 Individual consumer review history and engagement data for customer analysis and segmentation.
 
 | Column Name | Type | Description |
@@ -437,7 +437,7 @@ Individual consumer review history and engagement data for customer analysis and
 | `location_name` | STRING | Location name |
 | `timestamp` | STRING | Data extraction timestamp |
 
-### **invitation_links**
+### invitation_links
 Review invitation management and response tracking for campaign effectiveness analysis.
 
 | Column Name | Type | Description |
