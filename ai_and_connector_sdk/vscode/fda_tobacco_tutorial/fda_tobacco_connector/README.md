@@ -2,6 +2,8 @@
 
 This Fivetran Connector SDK connector fetches data from the FDA Tobacco Problem Reports API and upserts it into your destination using the Fivetran Connector SDK.
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. This solution has been updated as well. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Overview
 
 The FDA Tobacco Problem Reports API provides public health data on tobacco product problems and health issues. This connector:
