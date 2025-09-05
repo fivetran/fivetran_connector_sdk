@@ -1,0 +1,157 @@
+name: Deploy Quickbase Connector
+
+# To use this template, create a GitHub environment and create any plaintext variables there.
+# Examples: names of your Fivetran destinations and connections
+# Then create any secrets needed to store API keys or sensitive information.
+# Examples: Fivetran API Key, Quickbase User Token, Realm Hostname, App ID
+#
+
+on:
+  push:
+    branches:
+      - main # Only run when pushing to the main branch
+    paths:
+      - 'connections/csdk/quickbase-connector/**' # Trigger only if changes are in the quickbase-connector directory
+
+jobs:
+  test-and-deploy-fivetran-connector:
+    runs-on: ubuntu-latest
+    environment: Fivetran # Use GitHub Environment variables
+    
+    # Define variables for easy configuration
+    env:
+      PYTHON_VERSION: '3.11'
+      WORKING_DIRECTORY: 'connections/csdk/quickbase-connector'
+      CONNECTOR_NAME: 'Quickbase'
+      CONFIG_FILE: 'configuration.json'
+      EXCLUDED_DEPENDENCIES: '^requests\b'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Change Directory & List Files
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Deploying from ${{ env.CONNECTOR_NAME }} connector directory"
+          ls -la  # List files in directory for debugging
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fivetran-connector-sdk black flake8 faker
+
+      - name: Install requirements.txt
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ -e requirements.txt ]; then
+            echo '{"level":"INFO", "message": "Pip installing requirements.txt", "message-origin": "connector_sdk"}'
+            pip install -r <(grep -v '${{ env.EXCLUDED_DEPENDENCIES }}' requirements.txt)
+          fi
+
+      - name: Code Quality - Black Formatting Check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Checking code formatting with Black..."
+          black --check --diff .
+          if [ $? -ne 0 ]; then
+            echo "❌ Code formatting issues found. Run 'black .' to fix."
+            exit 1
+          else
+            echo "✅ Code formatting is correct."
+          fi
+
+      - name: Code Quality - Flake8 Linting
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Running Flake8 linting..."
+          flake8 --max-line-length=88 --extend-ignore=E203,W503 .
+          if [ $? -ne 0 ]; then
+            echo "❌ Linting issues found. Please fix the issues above."
+            exit 1
+          else
+            echo "✅ No linting issues found."
+          fi
+
+      - name: Run Unit Tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Running connector unit tests..."
+          python test_connector.py
+          if [ $? -ne 0 ]; then
+            echo "❌ Unit tests failed."
+            exit 1
+          else
+            echo "✅ Unit tests passed."
+          fi
+
+      - name: Run Mock Integration Tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Running mock integration tests..."
+          cd faker_mock
+          python test_connector_with_mock.py
+          if [ $? -ne 0 ]; then
+            echo "❌ Mock integration tests failed."
+            exit 1
+          else
+            echo "✅ Mock integration tests passed."
+          fi
+
+      - name: Create Configuration File # uses secrets because they need to be stored encrypted
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "{\"user_token\": \"${{ secrets.QUICKBASE_USER_TOKEN }}\", 
+            \"realm_hostname\": \"${{ secrets.QUICKBASE_REALM_HOSTNAME }}\",
+            \"app_id\": \"${{ secrets.QUICKBASE_APP_ID }}\",
+            \"table_ids\": \"${{ vars.QUICKBASE_TABLE_IDS || '' }}\",
+            \"sync_frequency_hours\": \"${{ vars.SYNC_FREQUENCY_HOURS || '4' }}\",
+            \"initial_sync_days\": \"${{ vars.INITIAL_SYNC_DAYS || '90' }}\",
+            \"max_records_per_page\": \"${{ vars.MAX_RECORDS_PER_PAGE || '1000' }}\",
+            \"request_timeout_seconds\": \"${{ vars.REQUEST_TIMEOUT_SECONDS || '30' }}\",
+            \"retry_attempts\": \"${{ vars.RETRY_ATTEMPTS || '3' }}\",
+            \"enable_incremental_sync\": \"${{ vars.ENABLE_INCREMENTAL_SYNC || 'true' }}\",
+            \"enable_fields_sync\": \"${{ vars.ENABLE_FIELDS_SYNC || 'true' }}\",
+            \"enable_records_sync\": \"${{ vars.ENABLE_RECORDS_SYNC || 'true' }}\",
+            \"date_field_for_incremental\": \"${{ vars.DATE_FIELD_FOR_INCREMENTAL || '3' }}\",
+            \"enable_debug_logging\": \"${{ vars.ENABLE_DEBUG_LOGGING || 'false' }}\"}" > ${{ env.CONFIG_FILE }}
+
+      - name: Validate Configuration
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Validating connector configuration..."
+          python -c "
+          import json
+          from connector import validate_configuration
+          with open('${{ env.CONFIG_FILE }}', 'r') as f:
+              config = json.load(f)
+          validate_configuration(config)
+          print('✅ Configuration validation passed.')
+          "
+
+      - name: Deploy Fivetran Connector # uses environment variables because they can be plain text
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          FIVETRAN_API_KEY: ${{ secrets.FIVETRAN_API_KEY }}
+          FIVETRAN_DESTINATION: ${{ vars.FIVETRAN_DEV_DESTINATION }}
+          FIVETRAN_CONNECTION: ${{ vars.QUICKBASE_DEV }}
+        # Specify a supported Python version for the deploy command; defaults to 3.12 if not set.
+        run: |
+          echo "Deploying ${{ env.CONNECTOR_NAME }} connector"
+          fivetran deploy --api-key $FIVETRAN_API_KEY --destination $FIVETRAN_DESTINATION --connection $FIVETRAN_CONNECTION --configuration ${{ env.CONFIG_FILE }} --python-version ${{ env.PYTHON_VERSION }} --force
+          echo "Successfully deployed ${{ env.CONNECTOR_NAME }} connector"
+
+      - name: Post-Deployment Validation
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          FIVETRAN_API_KEY: ${{ secrets.FIVETRAN_API_KEY }}
+          FIVETRAN_CONNECTION: ${{ vars.QUICKBASE_DEV }}
+        run: |
+          echo "Checking connector deployment status..."
+          # You can add additional validation steps here
+          echo "✅ Deployment validation completed."

@@ -1,0 +1,16 @@
+{
+  "user_token": "YOUR_QUICKBASE_USER_TOKEN",
+  "realm_hostname": "YOUR_REALM.quickbase.com",
+  "app_id": "YOUR_APP_ID",
+  "table_ids": "",
+  "sync_frequency_hours": "4",
+  "initial_sync_days": "90",
+  "max_records_per_page": "1000",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "enable_incremental_sync": "true",
+  "enable_fields_sync": "true",
+  "enable_records_sync": "true",
+  "date_field_for_incremental": "3",
+  "enable_debug_logging": "false"
+}
