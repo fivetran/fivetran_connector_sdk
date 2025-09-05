@@ -1,0 +1,16 @@
+{
+  "api_key": "YOUR_TRUSTPILOT_API_KEY",
+  "business_unit_id": "YOUR_BUSINESS_UNIT_ID",
+  "consumer_id": "YOUR_CONSUMER_ID",
+  "sync_frequency_hours": "4",
+  "initial_sync_days": "90",
+  "max_records_per_page": "100",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "enable_incremental_sync": "true",
+  "enable_consumer_reviews": "true",
+  "enable_invitation_links": "true",
+  "enable_categories": "true",
+  "data_retention_days": "730",
+  "enable_debug_logging": "false"
+}
