@@ -1,6 +1,8 @@
 # Introduction
 This section of our example repository is designed to help you use emerging AI tools with the Connector SDK to build custom connectors. The [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md) file can be used in any IDE or AI assistant process. Simply add it as context to the prompt and let the model or agents do the rest! We have sample outputs and video demonstrations using common IDEs linked below. Follow along or enhance an existing example with AI today!
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Disclaimer
 The content and sample code in ai_and_connector_sdk—including README.md, connector.py, and requirements.txt—were generated as batched outputs from a single AI conversation. While a Fivetran employee has tested the functionality for demonstration purposes, the code has not been polished or reviewed for production use. It remains unedited AI output and should be treated as illustrative only.
 
