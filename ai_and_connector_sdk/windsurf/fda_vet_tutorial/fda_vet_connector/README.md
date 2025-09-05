@@ -2,6 +2,8 @@
 
 This connector fetches veterinary adverse event data from the FDA's public API and syncs it to your Fivetran destination. It demonstrates best practices for building Fivetran connectors using the Connector SDK.
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. This solution has been updated as well. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Overview
 
 The FDA Veterinary Adverse Event Reporting System (FAERS) contains reports of adverse events and medication errors submitted to the FDA. This connector provides access to this valuable dataset for analysis and monitoring purposes.
