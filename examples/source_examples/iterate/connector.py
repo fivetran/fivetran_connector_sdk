@@ -42,7 +42,7 @@ def parse_iso_datetime_to_unix(date_string: str) -> int:
         # Replace 'Z' with '+00:00' for proper ISO format parsing
         dt = datetime.fromisoformat(date_string.replace("Z", "+00:00"))
         return int(dt.timestamp())
-    except (ValueError, AttributeError) as e:
+    except (ValueError, AttributeError):
         raise ValueError(
             f"Invalid datetime format: {date_string}. Expected format: YYYY-MM-DDTHH:MM:SSZ (e.g., '2023-01-01T00:00:00Z')"
         )
