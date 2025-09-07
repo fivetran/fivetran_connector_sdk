@@ -218,10 +218,10 @@ def fetch_survey_responses(
             params["start_date"] = str(start_date)
 
         endpoint = f"/surveys/{survey_id}/responses"
-        log.info(
-            f"Fetching responses for survey {survey_id}"
-            + (f" from {start_date}" if start_date else "")
-        )
+        log_message = f"Fetching responses for survey {survey_id}"
+        if start_date:
+            log_message += f" from {start_date}"
+        log.info(log_message)
 
         return make_iterate_api_call(endpoint, api_token, params)
 
