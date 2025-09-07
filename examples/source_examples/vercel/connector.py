@@ -70,7 +70,7 @@ def flatten_dict(data: dict, prefix: str = "", separator: str = "_") -> dict:
             flattened.update(flatten_dict(value, new_key, separator))
         elif isinstance(value, list):
             # Convert lists to JSON strings for storage
-            flattened[new_key] = json.dumps(value) if value else None
+            flattened[new_key] = json.dumps(value)
         else:
             flattened[new_key] = value
 
@@ -154,7 +154,7 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
@@ -226,12 +226,10 @@ def sync_deployments(
     next_timestamp = None
 
     while True:
-        # Remove any previous pagination parameters to avoid conflicts
-        params.pop("until", None)
+        # Remove previous pagination parameter to avoid conflicts
         params.pop("next", None)
 
         # For pagination, use 'next' parameter with the continuation token
-        # Note: 'until' is for setting upper bounds, 'next' is for pagination continuation
         if next_timestamp:
             params["next"] = next_timestamp
 
