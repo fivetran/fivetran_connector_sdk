@@ -68,7 +68,7 @@ def make_api_request(url, headers, max_retries=__MAX_RETRIES):
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
                 if attempt < max_retries - 1:
-                    time.sleep(__RETRY_DELAY * (attempt + 1))  # Exponential backoff
+                    time.sleep(__RETRY_DELAY * (2**attempt))  # Exponential backoff
                     continue
                 else:
                     raise Exception(f"API request failed after {max_retries} attempts")
@@ -78,7 +78,7 @@ def make_api_request(url, headers, max_retries=__MAX_RETRIES):
         except requests.exceptions.RequestException as e:
             log.warning(f"Request exception on attempt {attempt + 1}: {str(e)}")
             if attempt < max_retries - 1:
-                time.sleep(__RETRY_DELAY * (attempt + 1))  # Exponential backoff
+                time.sleep(__RETRY_DELAY * (2**attempt))  # Exponential backoff
             else:
                 raise Exception(f"API request failed after {max_retries} attempts: {str(e)}")
 
@@ -175,7 +175,7 @@ def update(configuration: dict, state: dict):
             # The op.upsert method is called with two arguments:
             # 1. The table name where data should be inserted/updated
             # 2. The data record as a dictionary with column names as keys
-            op.upsert(table="uptime_tests", data=flattened_test)
+            op.upsert("uptime_tests", flattened_test)
 
             # Process related data for this uptime test
             process_uptime_test_history(test_id, headers)
@@ -274,7 +274,7 @@ def process_uptime_test_history(test_id, headers):
     for history_record in history_data:
         history_record["test_id"] = test_id  # Add test_id reference
         flattened_history = flatten_dictionary(history_record)
-        op.upsert(table="uptime_test_history", data=flattened_history)
+        op.upsert("uptime_test_history", flattened_history)
 
 
 def process_uptime_test_periods(test_id, headers):
@@ -288,7 +288,7 @@ def process_uptime_test_periods(test_id, headers):
     for period_record in periods_data:
         period_record["test_id"] = test_id  # Add test_id reference
         flattened_period = flatten_dictionary(period_record)
-        op.upsert(table="uptime_test_periods", data=flattened_period)
+        op.upsert("uptime_test_periods", flattened_period)
 
 
 def process_uptime_test_alerts(test_id, headers):
@@ -302,7 +302,7 @@ def process_uptime_test_alerts(test_id, headers):
     for alert_record in alerts_data:
         alert_record["test_id"] = test_id  # Add test_id reference
         flattened_alert = flatten_dictionary(alert_record)
-        op.upsert(table="uptime_test_alerts", data=flattened_alert)
+        op.upsert("uptime_test_alerts", flattened_alert)
 
 
 # Create the connector object using the schema and update functions
