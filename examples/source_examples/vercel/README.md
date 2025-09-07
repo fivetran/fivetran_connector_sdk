@@ -1,7 +1,7 @@
 # Vercel Connector Example
 
 ## Connector overview
-This connector demonstrates how to fetch deployments data from [Vercel](https://vercel.com/)  and upsert it into your destination using the Fivetran Connector SDK. The connector synchronizes deployment records from your personal Vercel account and implements pagination handling to efficiently process large datasets with incremental synchronization using timestamps.
+This connector demonstrates how to fetch deployment data from [Vercel](https://vercel.com/)  and upsert it into your destination using the Fivetran Connector SDK. The custom connector synchronizes deployment records from your personal Vercel account and implements pagination handling to efficiently process large datasets with incremental synchronization using timestamps.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -21,7 +21,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Comprehensive error handling with retry logic for API requests
 
 ## Configuration file
-The configuration keys required for your connector are:
+The configuration keys required for your connector are as follows:
 
 ```json
 {
@@ -30,10 +30,10 @@ The configuration keys required for your connector are:
 }
 ```
 
-### Configuration Parameters
+### Configuration parameters
 
-- **`api_token`** (required): Your Vercel Access Token for API authentication
-- **`team_id`** (optional): Team identifier to access team resources instead of personal account. If not provided, the connector will access your personal account resources.
+- `api_token` (required): Your Vercel access token for API authentication
+- `team_id` (optional): Team identifier to access team resources instead of a personal account. If not provided, the connector accesses your personal account resources.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -43,16 +43,16 @@ The connector uses the `requests` library for HTTP communication, which is pre-i
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-The connector uses Vercel Access Tokens for authentication. To obtain your API token:
+The connector uses Vercel access tokens for authentication. To obtain your API token:
 
-1. Navigate to your [Vercel account settings](https://vercel.com/account/tokens).
-2. Click "Create Token".
+1. Go to your [Vercel account settings](https://vercel.com/account/tokens).
+2. Click **Create Token**.
 3. Enter a descriptive name for the token.
 4. Choose the appropriate scope.
 5. Select an expiration date.
-6. Copy the generated token and use it as the `api_token` in your configuration.
+6. Make a note of the generated token. You will use it as the `api_token` in your connector's configuration.
 
-## Team Access
+## Team access
 By default, the connector accesses resources from your personal Vercel account. To access deployments owned by a team:
 
 1. **Find your Team ID**: Navigate to your team settings in Vercel dashboard or use the Vercel CLI.

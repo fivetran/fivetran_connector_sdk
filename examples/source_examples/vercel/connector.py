@@ -79,12 +79,12 @@ def flatten_dict(data: dict, prefix: str = "", separator: str = "_") -> dict:
 
 def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> dict:
     """
-    Make an HTTP GET request to the Vercel API with error handling and retry logic.
+    Make an HTTP GET request to the Vercel API with error handling and exponential backoff retry logic.
 
     Args:
         url: The API endpoint URL
-        headers: Request headers including authorization
-        params: Query parameters for the request
+        headers: HTTP headers for the request
+        params: Optional query parameters
 
     Returns:
         The JSON response from the API
@@ -96,30 +96,43 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
     if params is None:
         params = {}
 
+    max_retries = 5
+    backoff_base = 1  # seconds
     response = None
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.Timeout:
-        log.severe(f"Request timeout for URL: {url}")
-        raise
-    except requests.exceptions.HTTPError as e:
-        if response and response.status_code == 429:
-            log.warning(f"Rate limit exceeded for URL: {url}")
-            # Add exponential backoff for rate limiting
-            time.sleep(2)
-        if response:
-            log.severe(f"HTTP error {response.status_code} for URL: {url}: {e}")
-        else:
-            log.severe(f"HTTP error for URL: {url}: {e}")
-        raise
-    except requests.exceptions.RequestException as e:
-        log.severe(f"Request failed for URL: {url}: {e}")
-        raise
-    except ValueError as e:
-        log.severe(f"Invalid JSON response from URL: {url}: {e}")
-        raise
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout:
+            log.severe(f"Request timeout for URL: {url}")
+            raise
+        except requests.exceptions.HTTPError as e:
+            if response and response.status_code == 429:
+                log.warning(
+                    f"Rate limit exceeded for URL: {url} (attempt {attempt + 1}/{max_retries})"
+                )
+                # Exponential backoff for rate limiting
+                sleep_time = backoff_base * (2**attempt)
+                log.info(f"Sleeping for {sleep_time} seconds before retrying...")
+                time.sleep(sleep_time)
+                continue
+            if response:
+                log.severe(f"HTTP error {response.status_code} for URL: {url}: {e}")
+            else:
+                log.severe(f"HTTP error for URL: {url}: {e}")
+            raise
+        except requests.exceptions.RequestException as e:
+            log.severe(f"Request failed for URL: {url}: {e}")
+            raise
+        except ValueError as e:
+            log.severe(f"Invalid JSON response from URL: {url}: {e}")
+            raise
+    # If we exhausted retries due to rate limiting
+    log.severe(f"Exceeded maximum retries ({max_retries}) due to rate limiting for URL: {url}")
+    raise requests.exceptions.HTTPError(
+        f"Rate limit exceeded for URL: {url} after {max_retries} attempts"
+    )
 
 
 def schema(configuration: dict):
@@ -213,8 +226,14 @@ def sync_deployments(
     next_timestamp = None
 
     while True:
+        # Remove any previous pagination parameters to avoid conflicts
+        params.pop("until", None)
+        params.pop("next", None)
+
+        # For pagination, use 'next' parameter with the continuation token
+        # Note: 'until' is for setting upper bounds, 'next' is for pagination continuation
         if next_timestamp:
-            params["until"] = next_timestamp
+            params["next"] = next_timestamp
 
         try:
             response_data = make_api_request(url, headers, params)
