@@ -840,7 +840,7 @@ def update(configuration: dict, state: dict):
         # Checkpoint the state
         op.checkpoint(new_state)
 
-        log.info(f"New Relic Feature APIs connector sync completed successfully")
+        log.info("New Relic Feature APIs connector sync completed successfully")
         log.info(
             f"Total records synced: {total_records}, Data quality: {overall_quality:.3f}"
         )
