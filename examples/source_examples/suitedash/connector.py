@@ -331,19 +331,23 @@ def sync_endpoint_with_pagination(
         else:
             more_data = False
 
-        log.info(
-            f"Processed page {page} of {endpoint_name}, total processed: {records_processed}"
-            + (
-                f", relationships: {relationships_processed}"
-                if relationship_processor_func
-                else ""
+        if relationship_processor_func:
+            log.info(
+                f"Processed page {page} of {endpoint_name}, total processed: {records_processed}, relationships: {relationships_processed}"
             )
-        )
+        else:
+            log.info(
+                f"Processed page {page} of {endpoint_name}, total processed: {records_processed}"
+            )
 
-    log.info(
-        f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}"
-        + (f", relationships: {relationships_processed}" if relationship_processor_func else "")
-    )
+    if relationship_processor_func:
+        log.info(
+            f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}, relationships: {relationships_processed}"
+        )
+    else:
+        log.info(
+            f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}"
+        )
 
     return {
         "records_processed": records_processed,
