@@ -35,7 +35,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "id": "STRING",
-                "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
                 "createdAt": "UTC_DATETIME",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
