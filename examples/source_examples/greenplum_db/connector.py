@@ -33,12 +33,8 @@ def schema(configuration: dict):
             "primary_key": ["datid"],  # Primary key column(s) for the table.
             "columns": {
                 "datid": "INT",
-                "datname": "STRING",
-                "sess_id": "INT",
-                "usename": "STRING",
                 "query_start": "UTC_DATETIME",
-            },
-            # columns not defined will be inferred.
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 

@@ -41,10 +41,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "id": "INT",  # Contains a dictionary of column names and data types
-                "first_name": "STRING",
-                "last_name": "STRING",
-                "email": "STRING",
-                "department": "STRING",
                 "hire_date": "NAIVE_DATE",
             },
             # For any columns whose names are not provided here, e.g. id, their data types will be inferred

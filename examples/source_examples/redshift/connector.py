@@ -39,12 +39,9 @@ def schema(configuration: dict):
             "primary_key": ["customer_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "customer_id": "INT",  # Integer column for the customer_id.
-                "first_name": "STRING",  # String column for the first name.
-                "last_name": "STRING",  # String column for the last name.
-                "email": "STRING",  # String column for the email.
                 "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
                 # In this example we are using `updated_at` as the replication key
-            },
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 

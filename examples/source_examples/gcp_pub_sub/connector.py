@@ -40,7 +40,6 @@ def schema(configuration: dict):
             "primary_key": ["key"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "key": "STRING",
-                "data": "STRING",
                 "timestamp": "UTC_DATETIME",
             },  # For any columns whose names are not provided here, their data types will be inferred
         }

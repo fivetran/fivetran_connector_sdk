@@ -108,15 +108,13 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "profile_table",
-            "primary_key": ["id"],
-            "columns": {
+            "table": "profile_table",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
                 "id": "STRING",
-                "name": "STRING",
                 "age": "INT",
-                "city": "STRING",
                 "created_at": "UTC_DATETIME",
-            },
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 

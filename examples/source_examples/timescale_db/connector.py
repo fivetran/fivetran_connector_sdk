@@ -47,8 +47,6 @@ def schema(configuration: dict):
             "primary_key": ["sensor_id"],  # Primary key column(s) for the table.
             "columns": {
                 "sensor_id": "INT",
-                "temperature": "FLOAT",
-                "humidity": "FLOAT",
                 "time": "UTC_DATETIME",
             },
             # columns not defined will be inferred.
@@ -58,8 +56,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
-                "sensor_id": "INT",
-                "embedding_type": "STRING",
                 "vector_data": "JSON",
                 "created_at": "UTC_DATETIME",
             },

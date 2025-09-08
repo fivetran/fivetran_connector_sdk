@@ -36,10 +36,6 @@ def schema(configuration: dict):
             "columns": {
                 "id": "STRING",
                 "name": "STRING",
-                "email": "STRING",
-                "address": "STRING",
-                "company": "STRING",
-                "job": "STRING",
                 "updatedAt": "UTC_DATETIME",
                 "createdAt": "UTC_DATETIME",
             },
