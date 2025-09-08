@@ -21,6 +21,20 @@ import requests
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 
+@dataclass
+class RecordsResponse:
+    """Response from get_records method containing all fetched data."""
+
+    records: List[Dict[str, Any]]
+    fields_map: Dict[str, str]
+    metadata: Dict[str, Any]
+
+    @property
+    def records_count(self) -> int:
+        """Get number of records in this response."""
+        return len(self.records)
+
+
 # Constants
 API_BASE_URL = "https://api.quickbase.com/v1"
 DEFAULT_TIMEOUT = 30
@@ -136,7 +150,7 @@ class QuickBaseAPIClient:
 
     def get_records(
         self, table_id: str, last_sync_time: Optional[str] = None
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, str], Dict[str, Any]]:
+    ) -> RecordsResponse:
         """Fetch records data from QuickBase table with pagination."""
         endpoint = "/records/query"
         query_data = {
@@ -195,7 +209,9 @@ class QuickBaseAPIClient:
                 log.info(f"Error fetching records for table {table_id}: {e}")
                 break
 
-        return all_records, fields_map, final_metadata
+        return RecordsResponse(
+            records=all_records, fields_map=fields_map, metadata=final_metadata
+        )
 
     def _build_incremental_filter(self, last_sync_time: str) -> str:
         """Build incremental sync filter for QuickBase query."""
@@ -507,7 +523,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     """Define the schema for QuickBase connector tables."""
     return [
         {
-            "table": "applications",
+            "table": "application",
             "primary_key": ["app_id"],
             "columns": {
                 "app_id": "STRING",
@@ -527,7 +543,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
             },
         },
         {
-            "table": "tables",
+            "table": "table",
             "primary_key": ["table_id"],
             "columns": {
                 "table_id": "STRING",
@@ -544,7 +560,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
             },
         },
         {
-            "table": "fields",
+            "table": "field",
             "primary_key": ["field_id", "table_id"],
             "columns": {
                 "field_id": "STRING",
@@ -571,7 +587,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
             },
         },
         {
-            "table": "records",
+            "table": "record",
             "primary_key": ["table_id", "record_id"],
             "columns": {
                 "table_id": "STRING",
@@ -623,12 +639,12 @@ def update(configuration: dict, state: dict) -> None:
         app_data = api_client.get_application()
         if app_data:
             processed_app = processor.process_application_data(app_data)
-            op.upsert(table="applications", data=processed_app)
+            op.upsert(table="application", data=processed_app)
             log.info("Applications data synced")
 
         # Sync tables data (simplified - just create entry for app_id)
         table_data = processor.process_table_data(config.app_id)
-        op.upsert(table="tables", data=table_data)
+        op.upsert(table="table", data=table_data)
         log.info("Tables data synced")
 
         # Determine tables to sync
@@ -643,7 +659,7 @@ def update(configuration: dict, state: dict) -> None:
                 fields = api_client.get_fields(table_id)
                 for field in fields:
                     processed_field = processor.process_field_data(field, table_id)
-                    op.upsert(table="fields", data=processed_field)
+                    op.upsert(table="field", data=processed_field)
                 log.info(f"Fields synced for table {table_id}: {len(fields)} fields")
 
             # Sync records data
@@ -654,26 +670,22 @@ def update(configuration: dict, state: dict) -> None:
                     else None
                 )
 
-                records, fields_map, api_metadata = api_client.get_records(
-                    table_id, table_last_sync
-                )
-                records_count = 0
+                response = api_client.get_records(table_id, table_last_sync)
 
-                for record in records:
+                for record in response.records:
                     processed_record = processor.process_record_data(
-                        record, table_id, fields_map
+                        record, table_id, response.fields_map
                     )
-                    op.upsert(table="records", data=processed_record)
-                    records_count += 1
+                    op.upsert(table="record", data=processed_record)
 
                 # Create sync metadata with API metadata
                 sync_metadata = processor.create_sync_metadata(
-                    table_id, records_count, metadata=api_metadata
+                    table_id, response.records_count, metadata=response.metadata
                 )
                 op.upsert(table="sync_metadata", data=sync_metadata)
 
                 log.info(
-                    f"Records synced for table {table_id}: {records_count} records"
+                    f"Records synced for table {table_id}: {response.records_count} records"
                 )
 
         # Update state

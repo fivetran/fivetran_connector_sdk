@@ -1,2 +1,2 @@
-requests>=2.31.0
-faker>=19.6.0
+# Dependencies are automatically provided by Fivetran environment
+# No additional dependencies required

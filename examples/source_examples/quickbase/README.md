@@ -363,7 +363,7 @@ Refer to functions `validate_configuration`, `execute_api_request`, and the main
 
 The connector creates the following tables for comprehensive Quickbase data analysis:
 
-### applications
+### application
 Primary table for application metadata and configuration information with complete governance support.
 
 | Column Name | Type | Description |
@@ -383,7 +383,7 @@ Primary table for application metadata and configuration information with comple
 | `memory_info` | STRING | Memory usage information (JSON string with estMemory, estMemoryInclDependentApps) |
 | `timestamp` | STRING | Data extraction timestamp (preserves API timestamp when available) |
 
-### tables
+### table
 Table structure and metadata for application data organization.
 
 | Column Name | Type | Description |
@@ -400,7 +400,7 @@ Table structure and metadata for application data organization.
 | `default_sort_field_id` | STRING | Default sort field identifier |
 | `timestamp` | STRING | Data extraction timestamp |
 
-### fields
+### field
 Complete field definitions and metadata for comprehensive data schema analysis and governance.
 
 | Column Name | Type | Description |
@@ -427,7 +427,7 @@ Complete field definitions and metadata for comprehensive data schema analysis a
 | `audited` | BOOLEAN | Indicates if field is tracked in Quickbase Audit Logs |
 | `timestamp` | STRING | Data extraction timestamp (preserves API timestamp when available) |
 
-### records
+### record
 Primary data table containing all record-level information with dynamic columns based on table structure and intelligent timestamp handling.
 
 | Column Name | Type | Description |

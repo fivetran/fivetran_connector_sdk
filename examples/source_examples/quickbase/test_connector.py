@@ -117,10 +117,10 @@ def test_schema_only():
 
         # Test required tables
         expected_tables = [
-            "applications",
-            "tables",
-            "fields",
-            "records",
+            "application",
+            "table",
+            "field",
+            "record",
             "sync_metadata",
         ]
         actual_tables = [table["table"] for table in schema_result]

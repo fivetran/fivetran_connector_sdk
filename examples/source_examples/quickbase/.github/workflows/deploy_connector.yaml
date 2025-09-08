@@ -11,7 +11,7 @@ on:
     branches:
       - main # Only run when pushing to the main branch
     paths:
-      - 'connections/csdk/quickbase-connector/**' # Trigger only if changes are in the quickbase-connector directory
+      - 'examples/source_examples/quickbase/**' # Trigger only if changes are in the quickbase-connector directory
 
 jobs:
   test-and-deploy-fivetran-connector:
@@ -21,7 +21,7 @@ jobs:
     # Define variables for easy configuration
     env:
       PYTHON_VERSION: '3.11'
-      WORKING_DIRECTORY: 'connections/csdk/quickbase-connector'
+      WORKING_DIRECTORY: '$ {{ github.workspace }}'
       CONNECTOR_NAME: 'Quickbase'
       CONFIG_FILE: 'configuration.json'
       EXCLUDED_DEPENDENCIES: '^requests\b'
