@@ -4,7 +4,7 @@
 
 The [DataCamp](https://www.datacamp.com/) connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your destination. This connector syncs data from content endpoints, including courses, projects, tracks, practices, assessments, and custom tracks.
 
-The connector implements bearer token authentication and provides comprehensive data flattening with breakout tables for nested relationships, following Fivetran best practices for reliability, security, and maintainability.
+The connector implements bearer token authentication with comprehensive retry logic and provides robust data flattening with breakout tables for nested relationships, following Fivetran best practices for reliability, security, and maintainability.
 
 ## Requirements
 
@@ -22,13 +22,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 The connector supports the following features:
 
-- Multiple content types: Supports courses, projects, tracks, practices, assessments, and custom tracks
-- Bearer token authentication: Secure authentication using DataCamp API access tokens
-- Data flattening: Comprehensive flattening of nested objects and arrays into relational structures
-- Breakout tables: Separate tables for nested relationships (chapters, topics, content)
-- State management: Maintains sync state with checkpointing for reliable syncs
-- Error handling: Individual record error handling without stopping entire sync
-- Comprehensive logging: Detailed logging for troubleshooting and monitoring
+- **Multiple content types**: Supports courses, projects, tracks, practices, assessments, and custom tracks
+- **Bearer token authentication**: Secure authentication using DataCamp API access tokens
+- **Retry logic with exponential backoff**: Automatic retries for failed API requests with exponential backoff 
+- **Data flattening**: Comprehensive flattening of nested objects and arrays into relational structures
+- **Breakout tables**: Separate tables for nested relationships (chapters, topics, content)
+- **State management**: Maintains sync state with checkpointing for reliable syncs
+- **Error handling**: Individual record error handling without stopping entire sync
+- **Comprehensive logging**: Detailed logging for troubleshooting and monitoring with retry attempt tracking
 
 ## Configuration file
 
@@ -76,13 +77,12 @@ Refer to the `update` function for the sequential endpoint processing logic.
 
 ## Data handling
 
-The connector processes JSON data from the DataCamp API and transforms it into structured records using specialized functions:
+The connector processes JSON data from the DataCamp API and transforms it into structured records using a clean, generic architecture:
 
-- **Custom flattening**: Uses specialized flatten functions for each content type (`flatten_course`, `flatten_project`, `flatten_track`, `flatten_practice`, `flatten_assessment`, and `flatten_custom_track`).
-- **Nested object handling**: Flattens nested dictionaries while preserving important relationships.
-- **Array breakout**: Creates separate tables for nested arrays (chapters, topics, and content).
-- **Data preservation**: Maintains all original field names and values where possible.
-- **Primary key generation**: Uses natural keys from the API (`id` fields).
+- **Nested object handling**: Flattens nested dictionaries (like topic information) while preserving important relationships
+- **Array breakout**: Creates separate tables for nested arrays (chapters, topics, and content) using configurable breakout parameters
+- **Data preservation**: Maintains all original field names and values where possible
+- **Primary key generation**: Uses natural keys from the API (`id` fields)
 
 Data is delivered to Fivetran using upsert operations for each record, ensuring data consistency and enabling incremental updates.
 
@@ -90,30 +90,29 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 The connector implements comprehensive error handling strategies following Fivetran best practices:
 
-- **Individual record handling**: Failed records don't stop the entire sync process.
-- **API error management**: HTTP errors are caught and logged with severity levels.
-- **Timeout configuration**: Configurable timeout (30 seconds default) for API requests to prevent hanging.
-- **Detailed logging**: Uses Fivetran's logging framework (INFO, WARNING, SEVERE levels).
-- **State preservation**: Checkpoints progress after each endpoint to enable recovery.
-
-Refer to the `fetch_endpoint` function for API error handling and individual record processing loops for error isolation.
+- **Individual record handling**: Failed records don't stop the entire sync process
+- **API error management**: HTTP errors are caught and logged with severity levels
+- **Retry mechanism**: Automatic retries with exponential backoff 
+- **Request timeout**: Configurable timeout (30 seconds default) for API requests to prevent hanging
+- **Detailed logging**: Uses Fivetran's logging framework with retry attempt tracking
+- **State preservation**: Checkpoints progress after each endpoint to enable recovery
 
 ## Tables created
 
 The connector creates the following tables in your destination:
 
-| Table name              | Primary key    | Description |
-|-------------------------|----------------|-------------|
-| `COURSES`               | `id`           | Course catalog with flattened course data |
-| `COURSES_CHAPTERS`      | `id`,`course_id` | Breakout table for course chapters |
-| `PROJECTS`              | `id`           | Project catalog with flattened project data |
-| `PROJECTS_TOPICS`       | `project_id`,`name` | Breakout table for project topics |
-| `TRACKS`                | `id`           | Learning track catalog |
-| `TRACKS_CONTENT`        | `track_id`,`position` | Breakout table for track content items |
-| `PRACTICES`             | `id`           | Practice exercise catalog |
-| `ASSESSMENTS`           | `id`           | Assessment catalog |
-| `CUSTOM_TRACKS`         | `id`           | Custom learning track catalog |
-| `CUSTOM_TRACKS_CONTENT` | `custom_track_id`,`position` | Breakout table for custom track content |
+| Table name              | Primary key              | Description |
+|-------------------------|--------------------------|-------------|
+| `COURSE`                | `id`                     | Course catalog with flattened course data |
+| `COURSE_CHAPTER`        | `id`, `course_id`        | Breakout table for course chapters |
+| `PROJECT`               | `id`                     | Project catalog with flattened project data |
+| `PROJECT_TOPIC`         | `project_id`, `name`     | Breakout table for project topics |
+| `TRACK`                 | `id`                     | Learning track catalog |
+| `TRACK_CONTENT`         | `track_id`, `position`   | Breakout table for track content items |
+| `PRACTICE`              | `id`                     | Practice exercise catalog |
+| `ASSESSMENT`            | `id`                     | Assessment catalog |
+| `CUSTOM_TRACK`          | `id`                     | Custom learning track catalog |
+| `CUSTOM_TRACK_CONTENT`  | `custom_track_id`, `position` | Breakout table for custom track content |
 
 All main tables include flattened versions of complex nested objects, while breakout tables maintain relationships through foreign keys.
 

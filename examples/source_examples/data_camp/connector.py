@@ -16,57 +16,61 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import requests  # For making HTTP requests to the DataCamp API
 import json  # For JSON data handling and serialization
+import time  # For retry delays
 from typing import Dict, Any, List, Optional
 
 # Base URL for the DataCamp LMS Catalog API
 __BASE_URL_DEFAULT = "https://lms-catalog-api.datacamp.com"
 __REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests in seconds
+__MAX_RETRIES = 3  # Maximum number of retry attempts
+__RETRY_DELAY_SECONDS = 1  # Initial delay between retries in seconds
+__RETRY_BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier
 
 __ENDPOINTS = {
     "custom_tracks": {
         "url": "/v1/catalog/live-custom-tracks",
-        "table": "custom_tracks",
+        "table": "custom_track",
         "primary_key": ["id"],
     },
     "custom_tracks_content": {
-        "table": "custom_tracks_content",
+        "table": "custom_track_content",
         "primary_key": ["custom_track_id", "position"],
     },
     "courses": {
         "url": "/v1/catalog/live-courses",
-        "table": "courses",
+        "table": "course",
         "primary_key": ["id"],
     },
     "courses_chapters": {
-        "table": "courses_chapters",
+        "table": "course_chapter",
         "primary_key": ["id", "course_id"],
     },
     "projects": {
         "url": "/v1/catalog/live-projects",
-        "table": "projects",
+        "table": "project",
         "primary_key": ["id"],
     },
     "projects_topics": {
-        "table": "projects_topics",
+        "table": "project_topic",
         "primary_key": ["project_id", "name"],
     },
     "assessments": {
         "url": "/v1/catalog/live-assessments",
-        "table": "assessments",
+        "table": "assessment",
         "primary_key": ["id"],
     },
     "practices": {
         "url": "/v1/catalog/live-practices",
-        "table": "practices",
+        "table": "practice",
         "primary_key": ["id"],
     },
     "tracks": {
         "url": "/v1/catalog/live-tracks",
-        "table": "tracks",
+        "table": "track",
         "primary_key": ["id"],
     },
     "tracks_content": {
-        "table": "tracks_content",
+        "table": "track_content",
         "primary_key": ["track_id", "position"],
     },
 }
@@ -92,7 +96,7 @@ def flatten_item(
     Returns:
         A flattened dictionary.
     """
-    flat = {}
+    flattened_data = {}
     if skip_keys is None:
         skip_keys = []
 
@@ -101,115 +105,29 @@ def flatten_item(
             continue
 
         if key == "topic" and isinstance(value, dict) and flatten_topic:
-            flat["topic_name"] = value.get("name")
-            flat["topic_description"] = value.get("description")
+            flattened_data["topic_name"] = value.get("name")
+            flattened_data["topic_description"] = value.get("description")
         elif key == "imageUrl" and isinstance(value, dict):
             for img_type, url in value.items():
-                flat[f"imageUrl_{img_type}"] = url
+                flattened_data[f"imageUrl_{img_type}"] = url
         elif key == "includedInLicenses" and isinstance(value, list) and flatten_licenses:
-            flat["includedInLicenses"] = ", ".join(str(v) for v in value)
+            flattened_data["includedInLicenses"] = ", ".join(str(v) for v in value)
         elif key == "instructors" and isinstance(value, list) and flatten_instructors:
-            flat["instructors"] = ", ".join(
+            flattened_data["instructors"] = ", ".join(
                 instructor.get("fullName", "")
                 for instructor in value
                 if isinstance(instructor, dict)
             )
         else:
-            flat[key] = value
-    return flat
+            flattened_data[key] = value
+    return flattened_data
 
 
-def flatten_custom_track(track: Dict[str, Any]) -> Dict[str, Any]:
+def fetch_endpoint(
+    base_url: str, endpoint: str, bearer_token: str
+) -> None | list | list[dict | Any] | list[Any] | Any:
     """
-    Flattens a custom track object by processing its nested structures.
-
-    Args:
-        track (Dict[str, Any]): The custom track dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with topic and imageUrl processed
-        and content removed for separate processing
-    """
-    return flatten_item(track, skip_keys=["content"], flatten_topic=True)
-
-
-def flatten_track(track: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Flattens a track object by processing its nested structures.
-
-    Args:
-        track (Dict[str, Any]): The track dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with topic, imageUrl, and licenses processed
-        and content removed for separate processing
-    """
-    return flatten_item(track, skip_keys=["content"], flatten_topic=True, flatten_licenses=True)
-
-
-def flatten_practice(practice: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Flattens a practice item by processing its nested structures.
-
-    Args:
-        practice (Dict[str, Any]): The practice dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with imageUrl processed
-    """
-    return flatten_item(practice)
-
-
-def flatten_assessment(assessment: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Flattens an assessment item by processing its nested structures.
-
-    Args:
-        assessment (Dict[str, Any]): The assessment dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with imageUrl processed
-    """
-    return flatten_item(assessment)
-
-
-def flatten_project(project: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Flattens a project item by processing its nested structures.
-
-    Args:
-        project (Dict[str, Any]): The project dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with imageUrl and instructors processed
-        and topics removed for separate processing
-    """
-    return flatten_item(project, skip_keys=["topics"], flatten_instructors=True)
-
-
-def flatten_course(course: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Flattens a course item by processing its nested structures.
-
-    Args:
-        course (Dict[str, Any]): The course dictionary to flatten
-
-    Returns:
-        Dict[str, Any]: A flattened dictionary with topic, imageUrl, licenses,
-        and instructors processed, and chapters removed for separate processing
-    """
-    return flatten_item(
-        course,
-        skip_keys=["chapters"],
-        flatten_topic=True,
-        flatten_licenses=True,
-        flatten_instructors=True,
-    )
-
-
-def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict[str, Any]]:
-    """
-    Fetch data from a DataCamp API endpoint with proper error handling.
+    Fetch data from a DataCamp API endpoint with proper error handling and retry logic.
 
     Args:
         base_url (str): Base URL for the API
@@ -217,349 +135,126 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Dict
         bearer_token (str): Authentication token for API access
 
     Returns:
-        List[Dict[str, Any]]: List of records from the API endpoint
+        None | list | list[dict | Any] | list[Any] | Any: List of records from the API endpoint
 
     Raises:
-        Exception: Logs severe errors but returns empty list on failure
+        Exception: Logs severe errors but returns empty list on failure after all retries
     """
     url = base_url.rstrip("/") + endpoint
     headers = {"Accept": "application/json", "Authorization": f"Bearer {bearer_token}"}
-    try:
-        response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        data = response.json()
-        # If the response is a dict with a top-level list, extract it
-        if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
-            return data["data"]
-        elif isinstance(data, dict) and any(isinstance(value, list) for value in data.values()):
-            for value in data.values():
-                if isinstance(value, list):
-                    return value
-        elif isinstance(data, list):
-            return data
-        else:
-            return [data]
-    except Exception as e:
-        log.severe(f"Failed to fetch {endpoint}: {e}")
-        return []
+
+    for attempt in range(__MAX_RETRIES + 1):  # +1 to include the initial attempt
+        try:
+            log.info(f"Attempting to fetch {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1})")
+            response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            data = response.json()
+
+            # If the response is a dict with a top-level list, extract it
+            if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+                log.info(f"Successfully fetched {len(data['data'])} records from {endpoint}")
+                return data["data"]
+            elif isinstance(data, dict) and any(
+                isinstance(value, list) for value in data.values()
+            ):
+                for value in data.values():
+                    if isinstance(value, list):
+                        log.info(f"Successfully fetched {len(value)} records from {endpoint}")
+                        return value
+            elif isinstance(data, list):
+                log.info(f"Successfully fetched {len(data)} records from {endpoint}")
+                return data
+            else:
+                log.info(f"Successfully fetched 1 record from {endpoint}")
+                return [data]
+
+        except (requests.exceptions.RequestException, Exception) as e:
+            error_type = (
+                "Request failed"
+                if isinstance(e, requests.exceptions.RequestException)
+                else "Unexpected error"
+            )
+
+            if attempt < __MAX_RETRIES:
+                delay = __RETRY_DELAY_SECONDS * (__RETRY_BACKOFF_MULTIPLIER**attempt)
+                log.warning(
+                    f"{error_type} for {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1}): {e}. Retrying in {delay} seconds..."
+                )
+                time.sleep(delay)
+            else:
+                log.severe(f"Failed to fetch {endpoint} after {__MAX_RETRIES + 1} attempts: {e}")
+                return []
+
+    return []
 
 
-def process_custom_tracks(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
+def process_endpoint(
+    endpoint_config: Dict[str, Any],
+    bearer_token: str,
+    base_url: str,
+    flatten_params: Dict[str, Any],
+    breakout_config: Optional[Dict[str, Any]] = None,
+) -> None:
     """
-    Process custom tracks data from the DataCamp API and store in database.
+    Generic function to process any DataCamp API endpoint.
 
     Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches custom tracks from /v1/catalog/live-custom-tracks endpoint
-        - Flattens each track and stores in custom_tracks table
-        - Creates breakout records in custom_tracks_content table
-        - Checkpoints progress after processing
+        endpoint_config: Configuration containing endpoint URL, table name, and primary key info
+        bearer_token: Authentication token for API access
+        base_url: Base URL for the API
+        flatten_params: Parameters to pass to flatten_item function
+        breakout_config: Optional configuration for processing breakout tables
+                        Format: {
+                            "source_key": "content",
+                            "table_name": "custom_track_content",
+                            "foreign_key": "custom_track_id"
+                        }
     """
-    log.info("Fetching endpoint: /v1/catalog/live-custom-tracks")
-    custom_tracks = fetch_endpoint(base_url, "/v1/catalog/live-custom-tracks", bearer_token)
-    custom_tracks_upserted = 0
-    custom_tracks_content_upserted = 0
+    endpoint_url = endpoint_config["url"]
+    main_table = endpoint_config["table"]
+    endpoint_name = endpoint_url.split("/")[-1]  # Extract endpoint name from URL
 
-    for track in custom_tracks:
-        flat = flatten_custom_track(track)
+    log.info(f"Fetching endpoint: {endpoint_url}")
+    items = fetch_endpoint(base_url, endpoint_url, bearer_token)
+
+    if items is None:
+        log.warning(f"No data received from endpoint {endpoint_url}")
+        return
+
+    main_upserted = 0
+    breakout_upserted = 0
+
+    for item in items:
+        # Process main record
+        flattened_item_data = flatten_item(item=item, **flatten_params)
         try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="custom_tracks", data=flat)
-            custom_tracks_upserted += 1
+            op.upsert(table=main_table, data=flattened_item_data)
+            main_upserted += 1
         except Exception as e:
-            log.severe(f"Failed to upsert record in custom_tracks: {e}")
+            log.severe(f"Failed to upsert record in {main_table}: {e}")
 
-        # Handle content breakout
-        content = track.get("content", [])
-        for content_row in content:
-            content_row_out = dict(content_row)
-            content_row_out["custom_track_id"] = track.get("id")
-            try:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="custom_tracks_content", data=content_row_out)
-                custom_tracks_content_upserted += 1
-            except Exception as e:
-                log.severe(f"Failed to upsert content for custom_track {track.get('id')}: {e}")
+        # Process breakout table if configured
+        if breakout_config:
+            breakout_items = item.get(breakout_config["source_key"], [])
+            for breakout_item in breakout_items:
+                breakout_row = dict(breakout_item)
+                breakout_row[breakout_config["foreign_key"]] = item.get("id")
+                try:
+                    op.upsert(table=breakout_config["table_name"], data=breakout_row)
+                    breakout_upserted += 1
+                except Exception as e:
+                    log.severe(
+                        f"Failed to upsert {breakout_config['source_key']} for {main_table} {item.get('id')}: {e}"
+                    )
 
-    log.info(f"Upserted {custom_tracks_upserted} records into custom_tracks")
-    log.info(f"Upserted {custom_tracks_content_upserted} records into custom_tracks_content")
+    # Log results
+    log.info(f"Upserted {main_upserted} records into {main_table}")
+    if breakout_config:
+        log.info(f"Upserted {breakout_upserted} records into {breakout_config['table_name']}")
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "custom_tracks"})
-
-
-def process_courses(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
-    """
-    Process courses data from the DataCamp API and store in database.
-
-    Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches courses from /v1/catalog/live-courses endpoint
-        - Flattens each course and stores in courses table
-        - Creates breakout records in courses_chapters table
-        - Checkpoints progress after processing
-    """
-    log.info("Fetching endpoint: /v1/catalog/live-courses")
-    courses = fetch_endpoint(base_url, "/v1/catalog/live-courses", bearer_token)
-    courses_upserted = 0
-    courses_chapters_upserted = 0
-
-    for course in courses:
-        flat = flatten_course(course)
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="courses", data=flat)
-            courses_upserted += 1
-        except Exception as e:
-            log.severe(f"Failed to upsert record in courses: {e}")
-
-        # Handle chapters breakout
-        chapters = course.get("chapters", [])
-        for chapter in chapters:
-            chapter_row = dict(chapter)
-            chapter_row["course_id"] = course.get("id")
-            try:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="courses_chapters", data=chapter_row)
-                courses_chapters_upserted += 1
-            except Exception as e:
-                log.severe(f"Failed to upsert chapter for course {course.get('id')}: {e}")
-
-    log.info(f"Upserted {courses_upserted} records into courses")
-    log.info(f"Upserted {courses_chapters_upserted} records into courses_chapters")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "courses"})
-
-
-def process_projects(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
-    """
-    Process projects data from the DataCamp API and store in database.
-
-    Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches projects from /v1/catalog/live-projects endpoint
-        - Flattens each project and stores in projects table
-        - Creates breakout records in projects_topics table
-        - Checkpoints progress after processing
-    """
-    log.info("Fetching endpoint: /v1/catalog/live-projects")
-    projects = fetch_endpoint(base_url, "/v1/catalog/live-projects", bearer_token)
-    projects_upserted = 0
-    projects_topics_upserted = 0
-
-    for project in projects:
-        flat = flatten_project(project)
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="projects", data=flat)
-            projects_upserted += 1
-        except Exception as e:
-            log.severe(f"Failed to upsert record in projects: {e}")
-
-        # Handle topics breakout
-        topics = project.get("topics", [])
-        for topic in topics:
-            topic_row = dict(topic)
-            topic_row["project_id"] = project.get("id")
-            try:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="projects_topics", data=topic_row)
-                projects_topics_upserted += 1
-            except Exception as e:
-                log.severe(f"Failed to upsert topic for project {project.get('id')}: {e}")
-
-    log.info(f"Upserted {projects_upserted} records into projects")
-    log.info(f"Upserted {projects_topics_upserted} records into projects_topics")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "projects"})
-
-
-def process_tracks(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
-    """
-    Process tracks data from the DataCamp API and store in database.
-
-    Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches tracks from /v1/catalog/live-tracks endpoint
-        - Flattens each track and stores in tracks table
-        - Creates breakout records in tracks_content table
-        - Checkpoints progress after processing
-    """
-    log.info("Fetching endpoint: /v1/catalog/live-tracks")
-    tracks = fetch_endpoint(base_url, "/v1/catalog/live-tracks", bearer_token)
-    tracks_upserted = 0
-    tracks_content_upserted = 0
-
-    for track in tracks:
-        flat = flatten_track(track)
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="tracks", data=flat)
-            tracks_upserted += 1
-        except Exception as e:
-            log.severe(f"Failed to upsert record in tracks: {e}")
-
-        # Handle content breakout
-        content = track.get("content", [])
-        for content_row in content:
-            content_row_out = dict(content_row)
-            content_row_out["track_id"] = track.get("id")
-            try:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="tracks_content", data=content_row_out)
-                tracks_content_upserted += 1
-            except Exception as e:
-                log.severe(f"Failed to upsert content for track {track.get('id')}: {e}")
-
-    log.info(f"Upserted {tracks_upserted} records into tracks")
-    log.info(f"Upserted {tracks_content_upserted} records into tracks_content")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "tracks"})
-
-
-def process_practices(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
-    """
-    Process practices data from the DataCamp API and store in database.
-
-    Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches practices from /v1/catalog/live-practices endpoint
-        - Flattens each practice and stores in practices table
-        - Checkpoints progress after processing
-    """
-    log.info("Fetching endpoint: /v1/catalog/live-practices")
-    practices = fetch_endpoint(base_url, "/v1/catalog/live-practices", bearer_token)
-    practices_upserted = 0
-
-    for practice in practices:
-        flat = flatten_practice(practice)
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="practices", data=flat)
-            practices_upserted += 1
-        except Exception as e:
-            log.severe(f"Failed to upsert record in practices: {e}")
-
-    log.info(f"Upserted {practices_upserted} records into practices")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "practices"})
-
-
-def process_assessments(bearer_token: str, base_url: str = __BASE_URL_DEFAULT) -> None:
-    """
-    Process assessments data from the DataCamp API and store in database.
-
-    Args:
-        bearer_token (str): Authentication token for API access
-        base_url (str): Base URL for the API, defaults to __BASE_URL_DEFAULT
-
-    Returns:
-        None
-
-    Notes:
-        - Fetches assessments from /v1/catalog/live-assessments endpoint
-        - Flattens each assessment and stores in assessments table
-        - Checkpoints progress after processing
-    """
-    log.info("Fetching endpoint: /v1/catalog/live-assessments")
-    assessments = fetch_endpoint(base_url, "/v1/catalog/live-assessments", bearer_token)
-    assessments_upserted = 0
-
-    for assessment in assessments:
-        flat = flatten_assessment(assessment)
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="assessments", data=flat)
-            assessments_upserted += 1
-        except Exception as e:
-            log.severe(f"Failed to upsert record in assessments: {e}")
-
-    log.info(f"Upserted {assessments_upserted} records into assessments")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "assessments"})
+    # Checkpoint progress
+    checkpoint_key = endpoint_name.replace("live-", "").replace("-", "_")
+    op.checkpoint(state={"last_synced_endpoint": checkpoint_key})
 
 
 def schema(configuration: dict):
@@ -613,13 +308,56 @@ def update(configuration: dict, state: dict):
     bearer_token = configuration["bearer_token"]
     base_url = configuration.get("base_url", __BASE_URL_DEFAULT)
 
-    # Process each endpoint
-    process_custom_tracks(bearer_token, base_url)
-    process_courses(bearer_token, base_url)
-    process_projects(bearer_token, base_url)
-    process_tracks(bearer_token, base_url)
-    process_practices(bearer_token, base_url)
-    process_assessments(bearer_token, base_url)
+    # Process custom tracks
+    process_endpoint(
+        __ENDPOINTS["custom_tracks"],
+        bearer_token,
+        base_url,
+        {"skip_keys": ["content"], "flatten_topic": True},
+        {
+            "source_key": "content",
+            "table_name": "custom_track_content",
+            "foreign_key": "custom_track_id",
+        },
+    )
+
+    # Process courses
+    process_endpoint(
+        __ENDPOINTS["courses"],
+        bearer_token,
+        base_url,
+        {
+            "skip_keys": ["chapters"],
+            "flatten_topic": True,
+            "flatten_licenses": True,
+            "flatten_instructors": True,
+        },
+        {"source_key": "chapters", "table_name": "course_chapter", "foreign_key": "course_id"},
+    )
+
+    # Process projects
+    process_endpoint(
+        __ENDPOINTS["projects"],
+        bearer_token,
+        base_url,
+        {"skip_keys": ["topics"], "flatten_instructors": True},
+        {"source_key": "topics", "table_name": "project_topic", "foreign_key": "project_id"},
+    )
+
+    # Process tracks
+    process_endpoint(
+        __ENDPOINTS["tracks"],
+        bearer_token,
+        base_url,
+        {"skip_keys": ["content"], "flatten_topic": True, "flatten_licenses": True},
+        {"source_key": "content", "table_name": "track_content", "foreign_key": "track_id"},
+    )
+
+    # Process practices
+    process_endpoint(__ENDPOINTS["practices"], bearer_token, base_url, {})
+
+    # Process assessments
+    process_endpoint(__ENDPOINTS["assessments"], bearer_token, base_url, {})
 
 
 # Create the connector object using the schema and update functions
