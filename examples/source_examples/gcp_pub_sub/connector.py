@@ -96,7 +96,7 @@ def publish_test_messages(publisher, topic_path: str) -> None:
     for count in range(max_test_messages):
         # Create a message with incremental data and a fixed timestamp
         # Note: In a real connector, you might use dynamic timestamps and actual data
-        message = {"data": f"Message {count+1}", "timestamp": "2021-09-01T00:00:00Z"}
+        message = {"data": f"Message {count + 1}", "timestamp": "2021-09-01T00:00:00Z"}
 
         # Convert the message dictionary to JSON and encode as UTF-8 bytes
         # Pub/Sub requires message data to be in bytes format
