@@ -30,8 +30,8 @@ The configuration file defines the authentication credentials required to connec
 
 ```json
 {
-  "public_id": "<YOUR_PUBLIC_ID>",
-  "secret_key": "<YOUR_SECRET_KEY>"
+  "public_id": "<YOUR_SUITEDASH_PUBLIC_ID>",
+  "secret_key": "<YOUR_SUITEDASH_SECRET_KEY>"
 }
 ```
 

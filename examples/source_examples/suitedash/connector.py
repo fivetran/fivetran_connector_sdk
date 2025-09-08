@@ -199,7 +199,7 @@ def extract_contact_company_relationships(contact: dict, op) -> int:
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="contact_company_relationships", data=relationship)
+            op.upsert(table="contact_company_relationship", data=relationship)
             relationships_processed += 1
 
     return relationships_processed
@@ -215,15 +215,15 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "companies",  # Companies table from /companies endpoint
+            "table": "company",  # Company table from /companies endpoint
             "primary_key": ["uid"],  # Primary key is the unique company ID
         },
         {
-            "table": "contacts",  # Contacts table from /contacts endpoint
+            "table": "contact",  # Contact table from /contacts endpoint
             "primary_key": ["uid"],  # Primary key is the unique contact ID
         },
         {
-            "table": "contact_company_relationships",  # Junction table for contact-company relationships
+            "table": "contact_company_relationship",  # Junction table for contact-company relationships
             "primary_key": ["contact_uid", "company_uid"],  # Composite primary key
         },
     ]
@@ -268,84 +268,36 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
         raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
 
 
-def sync_companies(configuration: dict, state: dict):
+def sync_endpoint_with_pagination(
+    configuration: dict,
+    endpoint: str,
+    endpoint_name: str,
+    table_name: str,
+    record_processor_func,
+    relationship_processor_func=None,
+) -> dict:
     """
-    Sync companies data from SuiteDash /companies API endpoint with pagination support.
-    Processes all company records, flattens nested data, and upserts to destination.
+    Generic function to sync data from SuiteDash API endpoints with pagination support.
+    Handles pagination, processing, and upserting records.
     Args:
         configuration (dict): Configuration dictionary containing API credentials
-        state (dict): State dictionary for maintaining sync progress (unused after checkpoint removal)
+        endpoint (str): API endpoint path (e.g., "/companies", "/contacts")
+        endpoint_name (str): Human-readable endpoint name for logging
+        table_name (str): Destination table name for upserting records
+        record_processor_func (callable): Function to process individual records
+        relationship_processor_func (callable, optional): Function to process relationships (for contacts)
+    Returns:
+        dict: Summary of processing results
     """
-    log.info("Starting companies sync")
+    log.info(f"Starting {endpoint_name} sync")
     headers = get_api_headers(configuration)
     page = 1
     more_data = True
-    companies_processed = 0
-
-    while more_data:
-        url = f"{__BASE_URL}{__COMPANIES_ENDPOINT}"
-        params = {"page": page}
-
-        response_data = make_api_request(url, headers, params)
-
-        if not response_data.get("success", False):
-            log.severe(f"API returned error: {response_data.get('message', 'Unknown error')}")
-            break
-
-        companies = response_data.get("data", [])
-        if not companies:
-            log.info("No more companies to process")
-            break
-
-        # Process each company record
-        for company in companies:
-            processed_company = process_company_record(company)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="companies", data=processed_company)
-
-            companies_processed += 1
-
-        # Check pagination metadata to determine if more pages exist
-        pagination = response_data.get("meta", {}).get("pagination", {})
-        next_page_url = pagination.get("nextPage")
-
-        if next_page_url:
-            page += 1
-        else:
-            more_data = False
-
-        log.info(f"Processed page {page - 1} of companies, total processed: {companies_processed}")
-
-    log.info(f"Companies sync completed. Total companies processed: {companies_processed}")
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "companies"})
-
-
-def sync_contacts(configuration: dict, state: dict):
-    """
-    Sync contacts data from SuiteDash /contacts API endpoint with pagination support.
-    Processes contact records, extracts contact-company relationships, and upserts all data.
-    Args:
-        configuration (dict): Configuration dictionary containing API credentials
-        state (dict): State dictionary for maintaining sync progress (unused after checkpoint removal)
-    """
-    log.info("Starting contacts sync")
-    headers = get_api_headers(configuration)
-    page = 1
-    more_data = True
-    contacts_processed = 0
+    records_processed = 0
     relationships_processed = 0
 
     while more_data:
-        url = f"{__BASE_URL}{__CONTACTS_ENDPOINT}"
+        url = f"{__BASE_URL}{endpoint}"
         params = {"page": page}
 
         response_data = make_api_request(url, headers, params)
@@ -354,26 +306,21 @@ def sync_contacts(configuration: dict, state: dict):
             log.severe(f"API returned error: {response_data.get('message', 'Unknown error')}")
             break
 
-        contacts = response_data.get("data", [])
-        if not contacts:
-            log.info("No more contacts to process")
+        records = response_data.get("data", [])
+        if not records:
+            log.info(f"No more {endpoint_name} to process")
             break
 
-        # Process each contact record
-        for contact in contacts:
-            # Process main contact data
-            processed_contact = process_contact_record(contact)
+        # Process each record
+        for record in records:
+            # Process main record data
+            processed_record = record_processor_func(record)
+            op.upsert(table=table_name, data=processed_record)
+            records_processed += 1
 
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="contacts", data=processed_contact)
-
-            contacts_processed += 1
-
-            # Extract and process contact-company relationships
-            relationships_processed += extract_contact_company_relationships(contact, op)
+            # Process relationships if function provided (for contacts)
+            if relationship_processor_func:
+                relationships_processed += relationship_processor_func(record, op)
 
         # Check pagination metadata to determine if more pages exist
         pagination = response_data.get("meta", {}).get("pagination", {})
@@ -385,18 +332,23 @@ def sync_contacts(configuration: dict, state: dict):
             more_data = False
 
         log.info(
-            f"Processed page {page - 1} of contacts, total processed: {contacts_processed}, relationships: {relationships_processed}"
+            f"Processed page {page} of {endpoint_name}, total processed: {records_processed}"
+            + (
+                f", relationships: {relationships_processed}"
+                if relationship_processor_func
+                else ""
+            )
         )
 
     log.info(
-        f"Contacts sync completed. Total contacts processed: {contacts_processed}, relationships: {relationships_processed}"
+        f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}"
+        + (f", relationships: {relationships_processed}" if relationship_processor_func else "")
     )
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state={"last_synced_endpoint": "contacts"})
+    return {
+        "records_processed": records_processed,
+        "relationships_processed": relationships_processed,
+    }
 
 
 def update(configuration: dict, state: dict):
@@ -417,12 +369,29 @@ def update(configuration: dict, state: dict):
 
     try:
         # Sync companies data from /companies endpoint
-        sync_companies(configuration, state)
+        companies_result = sync_endpoint_with_pagination(
+            configuration=configuration,
+            endpoint=__COMPANIES_ENDPOINT,
+            endpoint_name="companies",
+            table_name="company",
+            record_processor_func=process_company_record,
+        )
 
         # Sync contacts data from /contacts endpoint
-        sync_contacts(configuration, state)
+        contacts_result = sync_endpoint_with_pagination(
+            configuration=configuration,
+            endpoint=__CONTACTS_ENDPOINT,
+            endpoint_name="contacts",
+            table_name="contact",
+            record_processor_func=process_contact_record,
+            relationship_processor_func=extract_contact_company_relationships,
+        )
 
-        log.info("SuiteDash sync completed successfully")
+        log.info(
+            f"SuiteDash sync completed successfully. Companies: {companies_result['records_processed']}, "
+            f"Contacts: {contacts_result['records_processed']}, "
+            f"Relationships: {contacts_result['relationships_processed']}"
+        )
 
     except Exception as e:
         # In case of an exception, raise a runtime error
