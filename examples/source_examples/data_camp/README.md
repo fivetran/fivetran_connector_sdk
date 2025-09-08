@@ -4,7 +4,7 @@
 
 The [DataCamp](https://www.datacamp.com/) connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your destination. This connector syncs data from content endpoints, including courses, projects, tracks, practices, assessments, and custom tracks.
 
-The connector implements bearer token authentication with comprehensive retry logic and provides robust data flattening with breakout tables for nested relationships, following Fivetran best practices for reliability, security, and maintainability.
+The connector implements bearer token authentication with comprehensive retry logic and provides robust data flattening with breakout tables for nested relationships. It supports both live production servers and mock/test environments through optional URL prefix configuration, following Fivetran best practices for reliability, security, and maintainability.
 
 ## Requirements
 
@@ -24,6 +24,7 @@ The connector supports the following features:
 
 - **Multiple content types**: Supports courses, projects, tracks, practices, assessments, and custom tracks
 - **Bearer token authentication**: Secure authentication using DataCamp API access tokens
+- **Flexible server configuration**: Optional base_url parameter supports live production and mock/test environments
 - **Retry logic with exponential backoff**: Automatic retries for failed API requests with exponential backoff 
 - **Data flattening**: Comprehensive flattening of nested objects and arrays into relational structures
 - **Breakout tables**: Separate tables for nested relationships (chapters, topics, content)
@@ -33,14 +34,25 @@ The connector supports the following features:
 
 ## Configuration file
 
-The connector requires bearer token authentication for the DataCamp LMS Catalog API. The base URL is configured as a constant in the connector code and defaults to the standard DataCamp API endpoint.
+The connector requires bearer token authentication for the DataCamp LMS Catalog API. The base URL  is optional and defaults to the live DataCamp API endpoint.
 
 ```json
 {
-  "base_url": "<YOUR_DATACAMP_BASE_URL>",
+  "base_url": "<OPTIONAL_DATACAMP_BASE_URL>",
   "bearer_token": "<YOUR_DATACAMP_BEARER_TOKEN>"
 }
 ```
+
+### Configuration Parameters
+
+- **`bearer_token`** (required): Your DataCamp API bearer token for authentication
+- **`base_url`** (optional): Custom base URL for the DataCamp API
+  - **Default**: `https://lms-catalog-api.datacamp.com` (live production server)
+  - **Mock/Test Server**: You can specify a different URL for testing or mock environments
+  - **Use Cases**:
+    - Omit this parameter to use the live DataCamp production API
+    - Specify a mock server URL for development/testing purposes
+    - Use a different environment URL if provided by DataCamp
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -79,10 +91,19 @@ Refer to the `update` function for the sequential endpoint processing logic.
 
 The connector processes JSON data from the DataCamp API and transforms it into structured records using a clean, generic architecture:
 
+- **Generic endpoint processing**: Uses a single `process_endpoint` function that handles all content types with configurable parameters for different processing requirements
+- **Centralized flattening**: Uses a single `flatten_item` function that handles all content types with configurable parameters for different flattening behaviors
 - **Nested object handling**: Flattens nested dictionaries (like topic information) while preserving important relationships
 - **Array breakout**: Creates separate tables for nested arrays (chapters, topics, and content) using configurable breakout parameters
 - **Data preservation**: Maintains all original field names and values where possible
 - **Primary key generation**: Uses natural keys from the API (`id` fields)
+- **Descriptive variable naming**: Uses clear variable names like `flattened_item_data` for better code readability
+- **Configuration-driven processing**: Processes each endpoint with specific configuration parameters
+
+The `update` function processes each content type with specific configuration:
+- **Endpoint configuration**: URL, table name, and primary key information from `__ENDPOINTS` constant
+- **Flatten parameters**: Content-specific flattening options (skip_keys, flatten_topic, flatten_licenses, etc.)
+- **Breakout configuration**: Optional child table specifications for nested arrays
 
 Data is delivered to Fivetran using upsert operations for each record, ensuring data consistency and enabling incremental updates.
 

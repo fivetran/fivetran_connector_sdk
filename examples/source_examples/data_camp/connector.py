@@ -228,6 +228,10 @@ def process_endpoint(
         # Process main record
         flattened_item_data = flatten_item(item=item, **flatten_params)
         try:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table=main_table, data=flattened_item_data)
             main_upserted += 1
         except Exception as e:
@@ -240,6 +244,10 @@ def process_endpoint(
                 breakout_row = dict(breakout_item)
                 breakout_row[breakout_config["foreign_key"]] = item.get("id")
                 try:
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The op.upsert method is called with two arguments:
+                    # - The first argument is the name of the table to upsert the data into.
+                    # - The second argument is a dictionary containing the data to be upserted.
                     op.upsert(table=breakout_config["table_name"], data=breakout_row)
                     breakout_upserted += 1
                 except Exception as e:
@@ -247,13 +255,17 @@ def process_endpoint(
                         f"Failed to upsert {breakout_config['source_key']} for {main_table} {item.get('id')}: {e}"
                     )
 
-    # Log results
     log.info(f"Upserted {main_upserted} records into {main_table}")
     if breakout_config:
         log.info(f"Upserted {breakout_upserted} records into {breakout_config['table_name']}")
 
     # Checkpoint progress
     checkpoint_key = endpoint_name.replace("live-", "").replace("-", "_")
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"last_synced_endpoint": checkpoint_key})
 
 
