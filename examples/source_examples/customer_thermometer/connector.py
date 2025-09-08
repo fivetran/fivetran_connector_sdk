@@ -19,11 +19,17 @@ import json  # For JSON data handling and serialization
 import xml.etree.ElementTree as et  # For parsing XML responses
 from datetime import datetime, timezone  # For handling date and time
 from typing import Dict, List, Any, Optional  # For type hinting
+import time  # For sleep delays in retry logic
 
 # Base URL for the Customer Thermometer API
 __BASE_URL = "https://app.customerthermometer.com/api.php"
 __API_TIMEOUT_SECONDS = 30  # API request timeout in seconds
 __MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
+
+# Retry configuration
+__MAX_RETRIES = 3  # Maximum number of retry attempts
+__RETRY_DELAY_IN_SECONDS = 1  # Initial delay in seconds between retries
+__RETRY_BACKOFF = 2  # Backoff multiplier for exponential backoff
 
 # Constants for metric endpoints
 __METRIC_ENDPOINTS = [
@@ -51,7 +57,7 @@ def validate_configuration(configuration: dict):
 
     # Validate API key format (basic check)
     api_key = configuration.get("api_key")
-    if len(api_key) < __MIN_API_KEY_LENGTH:
+    if not api_key or len(api_key) < __MIN_API_KEY_LENGTH:
         raise ValueError("Invalid API key format")
 
 
@@ -59,7 +65,7 @@ def make_api_request(
     endpoint: str, api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
 ) -> requests.Response:
     """
-    Make an authenticated request to the Customer Thermometer API.
+    Make an authenticated request to the Customer Thermometer API with retry logic.
     Args:
         endpoint (str): The API method to call (e.g., 'getComments', 'getThermometers')
         api_key (str): The API key for authentication
@@ -68,7 +74,7 @@ def make_api_request(
     Returns:
         requests.Response: The API response object
     Raises:
-        requests.RequestException: If the API request fails
+        requests.RequestException: If the API request fails after all retries
     """
     params = {"apiKey": api_key, "getMethod": endpoint}
 
@@ -78,13 +84,28 @@ def make_api_request(
     if to_date:
         params["endDate"] = to_date
 
-    try:
-        response = requests.get(__BASE_URL, params=params, timeout=__API_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        return response
-    except requests.RequestException as e:
-        log.severe(f"API request failed for endpoint {endpoint}: {str(e)}")
-        raise
+    for attempt in range(__MAX_RETRIES + 1):
+        try:
+            response = requests.get(__BASE_URL, params=params, timeout=__API_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            return response
+        except requests.RequestException as e:
+            if attempt == __MAX_RETRIES:
+                log.severe(
+                    f"API request failed for endpoint {endpoint} after {__MAX_RETRIES} retries: {str(e)}"
+                )
+                raise
+
+            # Calculate delay with exponential backoff
+            delay = __RETRY_DELAY_IN_SECONDS * (__RETRY_BACKOFF**attempt)
+            log.warning(
+                f"API request failed for endpoint {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1}): {str(e)}. Retrying in {delay} seconds..."
+            )
+            time.sleep(delay)
+
+    raise requests.RequestException(
+        f"Unexpected error: failed to complete API request for endpoint {endpoint}"
+    )
 
 
 def parse_xml_response(
@@ -102,6 +123,12 @@ def parse_xml_response(
         ET.ParseError: If the XML content cannot be parsed
     """
     try:
+        # Handle empty responses
+        xml_content = xml_content.strip()
+        if not xml_content:
+            log.info("Empty API response - no new data to process")
+            return []
+
         root = et.fromstring(xml_content)
         results = []
 
@@ -119,114 +146,6 @@ def parse_xml_response(
         raise
 
 
-def fetch_comments(
-    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> List[Dict[str, Any]]:
-    """
-    Fetch comments data from Customer Thermometer API.
-    Refer to getComments endpoint in the API documentation.
-    Args:
-        api_key (str): The API key for authentication
-        from_date (str, optional): Start date filter in YYYY-MM-DD format
-        to_date (str, optional): End date filter in YYYY-MM-DD format
-    Returns:
-        List[Dict[str, Any]]: List of comment records with extracted fields
-    Raises:
-        requests.RequestException: If the API request fails
-        ET.ParseError: If the XML response cannot be parsed
-    """
-    response = make_api_request("getComments", api_key, from_date, to_date)
-    return parse_xml_response(response.text, "comments", "comment")
-
-
-def fetch_blast_results(
-    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> List[Dict[str, Any]]:
-    """
-    Fetch blast results data from Customer Thermometer API.
-    Refer to getBlastResults endpoint in the API documentation.
-    Args:
-        api_key (str): The API key for authentication
-        from_date (str, optional): Start date filter in YYYY-MM-DD format
-        to_date (str, optional): End date filter in YYYY-MM-DD format
-    Returns:
-        List[Dict[str, Any]]: List of blast result records with response details
-    Raises:
-        requests.RequestException: If the API request fails
-        ET.ParseError: If the XML response cannot be parsed
-    """
-    response = make_api_request("getBlastResults", api_key, from_date, to_date)
-    return parse_xml_response(
-        response.text, "thermometer_blast_responses", "thermometer_blast_response"
-    )
-
-
-def fetch_recipient_lists(api_key: str) -> List[Dict[str, Any]]:
-    """
-    Fetch recipient lists from Customer Thermometer API.
-    Refer to getRecipientLists endpoint in the API documentation.
-    Args:
-        api_key (str): The API key for authentication
-    Returns:
-        List[Dict[str, Any]]: List of recipient list records with IDs and metadata
-    Raises:
-        requests.RequestException: If the API request fails
-        ET.ParseError: If the XML response cannot be parsed
-    """
-    response = make_api_request("getRecipientLists", api_key)
-    return parse_xml_response(response.text, "recipient_lists", "recipient_list")
-
-
-def fetch_thermometers(api_key: str) -> List[Dict[str, Any]]:
-    """
-    Fetch thermometers from Customer Thermometer API.
-    Refer to getThermometers endpoint in the API documentation.
-    Args:
-        api_key (str): The API key for authentication
-    Returns:
-        List[Dict[str, Any]]: List of thermometer records with IDs and configuration
-    Raises:
-        requests.RequestException: If the API request fails
-        ET.ParseError: If the XML response cannot be parsed
-    """
-    response = make_api_request("getThermometers", api_key)
-    return parse_xml_response(response.text, "thermometers", "thermometer")
-
-
-def fetch_metric_value(
-    api_key: str,
-    metric_endpoint: str,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Fetch single metric values from Customer Thermometer API.
-    Used for endpoints that return single values like getNumResponsesValue, getResponseRateValue, etc.
-    Args:
-        api_key (str): The API key for authentication
-        metric_endpoint (str): The specific metric endpoint to call
-        from_date (str, optional): Start date filter in YYYY-MM-DD format
-        to_date (str, optional): End date filter in YYYY-MM-DD format
-    Returns:
-        Dict[str, Any]: Dictionary containing the metric value and metadata
-    Raises:
-        requests.RequestException: If the API request fails
-    """
-    response = make_api_request(metric_endpoint, api_key, from_date, to_date)
-
-    # Create a record with the metric value and current timestamp
-    current_time = datetime.now(timezone.utc).isoformat()
-    metric_name = metric_endpoint.replace("get", "").replace("Value", "").lower()
-
-    return {
-        "metric_name": metric_name,
-        "metric_value": response.text.strip(),
-        "recorded_at": current_time,
-        "from_date": from_date,
-        "to_date": to_date,
-    }
-
-
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -237,114 +156,184 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "comments",
+            "table": "comment",
             "primary_key": ["response_id"],
+            "replication_key": "date_submitted",
         },
         {
-            "table": "blast_results",
+            "table": "blast_result",
             "primary_key": ["blast_id", "response_id", "thermometer_id"],
+            "replication_key": "date_submitted",
         },
         {
-            "table": "recipient_lists",
+            "table": "recipient_list",
             "primary_key": ["id"],
+            # No replication key - this is a relatively static table that we'll sync fully each time
         },
         {
-            "table": "thermometers",
+            "table": "thermometer",
             "primary_key": ["id"],
+            # No replication key - this is a configuration table that changes infrequently
         },
         {
-            "table": "metrics",
+            "table": "metric",
             "primary_key": ["metric_name", "recorded_at"],
+            "replication_key": "recorded_at",
         },
     ]
 
 
-def process_comments(
-    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+def get_incremental_date_range(
+    state: dict, table_name: str, config_from_date: Optional[str] = None
+) -> tuple[str, str]:
+    """
+    Determine the date range for incremental sync.
+    Args:
+        state (dict): The state dictionary from previous runs
+        table_name (str): Name of the table
+        config_from_date (str, optional): Optional from_date from configuration
+    Returns:
+        tuple[str, str]: (from_date, to_date) in YYYY-MM-DD format
+    """
+    # to_date is always current time for incremental sync
+    current_time = datetime.now(timezone.utc)
+    to_date = current_time.strftime("%Y-%m-%d")
+
+    # Determine from_date based on priority:
+    # 1. If config has from_date, use it (for backfill/override scenarios)
+    # 2. If state has last sync, use it (normal incremental)
+    # 3. Otherwise use EPOCH (initial sync)
+
+    if config_from_date:
+        from_date = config_from_date
+        log.info(f"Using configured from_date for {table_name}: {from_date}")
+    else:
+        last_sync_key = f"{table_name}_last_sync"
+        last_sync_timestamp = state.get(last_sync_key)
+
+        if last_sync_timestamp:
+            # Convert ISO timestamp to YYYY-MM-DD format for API
+            try:
+                last_sync_dt = datetime.fromisoformat(last_sync_timestamp.replace("Z", "+00:00"))
+                from_date = last_sync_dt.strftime("%Y-%m-%d")
+                log.info(f"Using incremental sync for {table_name} from {from_date}")
+            except (ValueError, AttributeError):
+                log.warning(
+                    f"Invalid last sync timestamp for {table_name}: {last_sync_timestamp}, using EPOCH"
+                )
+                from_date = "1970-01-01"
+        else:
+            from_date = "1970-01-01"
+            log.info(f"Performing initial sync for {table_name} from EPOCH")
+
+    return from_date, to_date
+
+
+def process_table_data(
+    table_name: str,
+    endpoint: str,
+    api_key: str,
+    root_element: str,
+    child_element: str,
+    state: dict,
+    config_from_date: Optional[str] = None,
+    supports_incremental: bool = True,
 ) -> None:
-    """Process comments data from Customer Thermometer API."""
-    log.info("Fetching comments data...")
-    comments = fetch_comments(api_key, from_date, to_date)
+    """
+    Generic function to process data from any Customer Thermometer API endpoint with incremental sync support.
+    Args:
+        table_name (str): Name of the destination table
+        endpoint (str): API endpoint to call
+        api_key (str): API key for authentication
+        root_element (str): Root XML element name
+        child_element (str): Child XML element name
+        state (dict): State dictionary from previous runs, updated in-place
+        config_from_date (str, optional): Optional from_date from configuration
+        supports_incremental (bool): Whether this table supports incremental sync
+    """
+    log.info(f"Fetching {table_name} data...")
 
-    for comment in comments:
+    # Determine date range for the API call
+    if supports_incremental:
+        from_date, to_date = get_incremental_date_range(state, table_name, config_from_date)
+    else:
+        # For non-incremental tables, always do full sync (no date filters)
+        from_date, to_date = None, None
+        log.info(f"Performing full sync for {table_name} (no incremental support)")
+
+    response = make_api_request(endpoint, api_key, from_date, to_date)
+    records = parse_xml_response(response.text, root_element, child_element)
+
+    for record in records:
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted
-        op.upsert(table="comments", data=comment)
+        # - The second argument is a dictionary containing the data to be upserted.
+        op.upsert(table=table_name, data=record)
 
-    log.info(f"Processed {len(comments)} comment records")
+    # Checkpoint the state after processing this table
+    current_time = datetime.now(timezone.utc).isoformat()
+    state[f"{table_name}_last_sync"] = current_time
 
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state=state)
 
-def process_blast_results(
-    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> None:
-    """Process blast results data from Customer Thermometer API."""
-    log.info("Fetching blast results data...")
-    blast_results = fetch_blast_results(api_key, from_date, to_date)
-
-    for blast_result in blast_results:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted
-        op.upsert(table="blast_results", data=blast_result)
-
-    log.info(f"Processed {len(blast_results)} blast result records")
+    log.info(f"Processed and checkpointed {len(records)} {table_name} records")
 
 
-def process_recipient_lists(api_key: str) -> None:
-    """Process recipient lists data from Customer Thermometer API."""
-    log.info("Fetching recipient lists data...")
-    recipient_lists = fetch_recipient_lists(api_key)
-
-    for recipient_list in recipient_lists:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted
-        op.upsert(table="recipient_lists", data=recipient_list)
-
-    log.info(f"Processed {len(recipient_lists)} recipient list records")
-
-
-def process_thermometers(api_key: str) -> None:
-    """Process thermometers data from Customer Thermometer API."""
-    log.info("Fetching thermometers data...")
-    thermometers = fetch_thermometers(api_key)
-
-    for thermometer in thermometers:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted
-        op.upsert(table="thermometers", data=thermometer)
-
-    log.info(f"Processed {len(thermometers)} thermometer records")
-
-
-def process_metrics(
-    api_key: str, from_date: Optional[str] = None, to_date: Optional[str] = None
-) -> None:
-    """Process metrics data from Customer Thermometer API."""
+def process_metrics(api_key: str, state: dict, config_from_date: Optional[str] = None) -> None:
+    """
+    Process metrics data from Customer Thermometer API with incremental sync support.
+    Args:
+        api_key (str): API key for authentication
+        state (dict): State dictionary from previous runs, updated in-place
+        config_from_date (str, optional): Optional from_date from configuration
+    """
     log.info("Fetching metrics data...")
     metrics_processed = 0
+    current_time = datetime.now(timezone.utc).isoformat()
+
+    # Determine date range for metrics
+    from_date, to_date = get_incremental_date_range(state, "metric", config_from_date)
 
     for endpoint in __METRIC_ENDPOINTS:
         try:
-            metric_data = fetch_metric_value(api_key, endpoint, from_date, to_date)
+            response = make_api_request(endpoint, api_key, from_date, to_date)
+
+            # Create a record with the metric value and current timestamp
+            metric_name = endpoint.replace("get", "").replace("Value", "").lower()
+            metric_data = {
+                "metric_name": metric_name,
+                "metric_value": response.text.strip(),
+                "recorded_at": current_time,
+                "from_date": from_date,
+                "to_date": to_date,
+            }
+
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted
-            op.upsert(table="metrics", data=metric_data)
+            # - The second argument is a dictionary containing the data to be upserted.
+            op.upsert(table="metric", data=metric_data)
             metrics_processed += 1
             log.info(f"Processed metric: {endpoint}")
         except Exception as e:
             log.warning(f"Failed to fetch metric {endpoint}: {str(e)}")
             continue
 
-    log.info(f"Processed {metrics_processed} metric records")
+    # Checkpoint the state after processing all metrics
+    state["metric_last_sync"] = current_time
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state=state)
+
+    log.info(f"Processed and checkpointed {metrics_processed} metric records")
 
 
 def update(configuration: dict, state: dict):
@@ -364,16 +353,49 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters (validated above, so safe to assume they exist)
     api_key: str = configuration["api_key"]
-    from_date = configuration.get("from_date")
-    to_date = configuration.get("to_date")
+    config_from_date = configuration.get("from_date")  # Optional from_date from config
 
     try:
-        # Process each endpoint
-        process_comments(api_key, from_date, to_date)
-        process_blast_results(api_key, from_date, to_date)
-        process_recipient_lists(api_key)
-        process_thermometers(api_key)
-        process_metrics(api_key, from_date, to_date)
+        # Process each endpoint and checkpoint state after each
+        process_table_data(
+            "comment",
+            "getComments",
+            api_key,
+            "comments",
+            "comment",
+            state,
+            config_from_date,
+            supports_incremental=True,
+        )
+        process_table_data(
+            "blast_result",
+            "getBlastResults",
+            api_key,
+            "thermometer_blast_responses",
+            "thermometer_blast_response",
+            state,
+            config_from_date,
+            supports_incremental=True,
+        )
+        process_table_data(
+            "recipient_list",
+            "getRecipientLists",
+            api_key,
+            "recipient_lists",
+            "recipient_list",
+            state,
+            supports_incremental=False,
+        )
+        process_table_data(
+            "thermometer",
+            "getThermometers",
+            api_key,
+            "thermometers",
+            "thermometer",
+            state,
+            supports_incremental=False,
+        )
+        process_metrics(api_key, state, config_from_date)
 
         log.info("Sync completed successfully. Processed all endpoints.")
 

@@ -22,27 +22,27 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 The connector supports the following features:
 
-- Multiple endpoints: Supports comments, blast results, recipient lists, thermometers, and metrics
+- Multiple endpoints: Supports comment, blast result, recipient list, thermometer, and metric data
 - API key authentication: Secure authentication using Customer Thermometer API keys
-- XML parsing: Converts XML API responses to structured records
-- Error handling: Individual record and API error handling without stopping entire sync
+- XML parsing: Converts XML API responses to structured records with empty response handling
+- Incremental sync: Supports incremental data synchronization using replication keys and state management
+- Retry logic: Implements exponential backoff retry mechanism for transient API failures
+- Error handling: Comprehensive error handling for individual records and API failures without stopping entire sync
 - Comprehensive logging: Uses Fivetran's logging framework for troubleshooting and monitoring
 
 ## Configuration file
 
-The connector requires API key authentication for the Customer Thermometer API. Date filters are optional.
+The connector requires API key authentication for the Customer Thermometer API. An optional from_date parameter controls the initial sync behavior.
 
 ```json
 {
   "api_key": "<YOUR_CUSTOMER_THERMOMETER_API_KEY>",
-  "from_date": "<FROM_DATE AS YYYY-MM-DD>",
-  "to_date": "<TO_DATE AS YYYY-MM-DD>"
+  "from_date": "<OPTIONAL_FROM_DATE_AS_YYYY-MM-DD>"
 }
 ```
 
 - `api_key`: (Required) Your Customer Thermometer API key
-- `from_date`: (Optional) Start date for data retrieval in YYYY-MM-DD format
-- `to_date`: (Optional) End date for data retrieval in YYYY-MM-DD format
+- `from_date`: (Optional) Start date for initial data retrieval in YYYY-MM-DD format. If not provided, incremental sync will start from EPOCH (1970-01-01) for the initial sync, then use state-based incremental sync for subsequent runs.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -56,10 +56,11 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 The connector uses API key authentication with the Customer Thermometer API. Authentication is handled in the `make_api_request` and `validate_configuration` functions:
 
-- Uses a pre-configured API key for all API requests
-- Passes the key as a parameter in each request
+- Uses a pre-configured API key for all API requests with automatic retry logic
+- Passes the key as a parameter in each request with exponential backoff on failures
 - Validates key presence and format during connector initialization
-- Handles authentication errors gracefully with detailed logging
+- Handles authentication errors gracefully with detailed logging and retry attempts (up to 3 retries)
+- Implements 30-second timeout per request to prevent hanging connections
 
 To obtain the necessary credentials:
 1. Log in to your Customer Thermometer account.
@@ -70,11 +71,13 @@ To obtain the necessary credentials:
 
 The connector processes XML data from the Customer Thermometer API and transforms it into structured records using specialized functions:
 
-- XML parsing: Uses `parse_xml_response` to convert XML to dictionaries
-- Data extraction: Uses endpoint-specific functions (`fetch_comments`, `fetch_blast_results`, etc.)
+- XML parsing: Uses `parse_xml_response` to convert XML to dictionaries with empty response handling
+- Incremental sync: Implements state-based incremental synchronization for efficient data retrieval
+- Date range management: Automatically determines sync ranges using last checkpoint timestamps
 - Data preservation: Maintains all original field names and values where possible
 - Primary key generation: Uses natural keys from the API (id fields)
-- Upsert operations: Delivers data to Fivetran using upsert operations for each record
+- Upsert operations: Delivers data to Fivetran using upsert operations with proper checkpoint management
+- State management: Accumulates state across all tables and performs single checkpoint at sync completion
 
 ## Error handling
 
@@ -82,23 +85,23 @@ The connector implements comprehensive error handling strategies in the `update`
 
 - Individual record handling: Failed records don't stop the entire sync process
 - API error management: HTTP and XML errors are caught and logged with severity levels
+- Retry mechanism: Implements exponential backoff with up to 3 retry attempts for transient failures
+- Empty response handling: Gracefully processes empty API responses without errors
 - Timeout configuration: 30-second timeout for API requests to prevent hanging
-- Detailed logging: Uses Fivetran's logging framework (INFO, WARNING, ERROR levels)
-
-
-Refer to the `update` and `make_api_request` functions for error handling and record processing logic.
+- State preservation: Ensures state is properly maintained even during partial failures
+- Detailed logging: Uses Fivetran's logging framework (INFO, WARNING, ERROR levels) with response content logging for debugging
 
 ## Tables created
 
 The connector creates the following tables in your destination:
 
-| Table name        | Primary key                                 | Description                                 |
-|-------------------|---------------------------------------------|---------------------------------------------|
-| `COMMENTS`        | `response_id`                               | Customer feedback comments                  |
-| `BLAST_RESULTS`   | `blast_id`, `response_id`, `thermometer_id` | Results from feedback collection campaigns  |
-| `RECIPIENT_LISTS` | `id`                                        | Lists of feedback recipients                |
-| `THERMOMETERS`    | `id`                                        | Configured feedback collection tools        |
-| `METRICS`         | `metric_name`,  `recorded_at`               | Aggregated feedback metrics                 |
+| Table name        | Primary key                              | Description                                 |
+|-------------------|------------------------------------------|---------------------------------------------|
+| `comment`         | `[response_id]`                          | Customer feedback comments                  |
+| `blast_result`    | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
+| `recipient_list`  | `[id]`                                   | Lists of feedback recipients                |
+| `thermometer`     | `[id]`                                   | Configured feedback collection tools        |
+| `metric`          | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
 
 All tables include flattened versions of complex nested objects where applicable.
 

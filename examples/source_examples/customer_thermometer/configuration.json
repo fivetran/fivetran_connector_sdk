@@ -1,5 +1,4 @@
 {
     "api_key": "<YOUR_CUSTOMER_THERMOMETER_API_KEY>",
-    "from_date": "<FROM_DATE AS YYYY-MM-DD>",
-    "to_date": "<TO_DATE AS YYYY-MM-DD>"
+    "from_date": "<OPTIONAL_FROM_DATE_AS_YYYY-MM-DD>"
 }
