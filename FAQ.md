@@ -22,7 +22,7 @@ pip install fivetran-connector-sdk
 For more detailed installation instructions, refer to the [installation guide](https://fivetran.com/docs/connector-sdk/setup-guide).
 
 ### What are the system requirements for Connector SDK?
-You need a supported Python runtime and a 64‑bit OS (`Windows`, `macOS`, or `Linux`) on `arm64` or `x86_64`. Refer to the [Requirements section](https://github.com/fivetran/fivetran_connector_sdk?tab=readme-ov-file#requirements) of the [README](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md) for exact version bounds and supported distributions.
+You need a supported Python runtime and a 64-bit version of Windows, or either `macOS` or `Linux` on `arm64` or `x86_64` architectures. Refer to the [Requirements section](https://github.com/fivetran/fivetran_connector_sdk?tab=readme-ov-file#requirements) of the [README](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md) for exact version bounds and supported distributions.
 
 ### How are Python version upgrades and dependencies handled for my connector?
 The responsibility for managing dependencies and version upgrades is shared between Fivetran and you, the customer.
