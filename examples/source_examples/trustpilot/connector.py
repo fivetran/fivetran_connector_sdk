@@ -13,6 +13,8 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries for API interactions
 import requests
 import json
+import time
+import random
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
@@ -122,14 +124,44 @@ def execute_api_request(
         except (ValueError, TypeError):
             retry_attempts = 3
 
-    # Implement retry logic
+    # Implement retry logic with rate limiting and exponential backoff
+    base_delay = 1
+    max_delay = 60
+
     for attempt in range(retry_attempts):
         try:
             response = requests.get(
                 url, headers=headers, params=params, timeout=timeout
             )
+
+            # Handle rate limiting (HTTP 429) specifically
+            if response.status_code == 429:
+                # Get retry-after header if available, otherwise use exponential backoff
+                retry_after = response.headers.get('Retry-After')
+                if retry_after:
+                    try:
+                        wait_time = int(retry_after)
+                    except ValueError:
+                        # If Retry-After is not a valid integer, use exponential backoff
+                        wait_time = min(base_delay * (2 ** attempt), max_delay)
+                else:
+                    # Use exponential backoff with jitter
+                    wait_time = min(base_delay * (2 ** attempt), max_delay)
+
+                # Add jitter to prevent thundering herd problem
+                jitter = random.uniform(0, min(wait_time * 0.1, 5))
+                total_wait_time = wait_time + jitter
+
+                log.info(
+                    f"Rate limited (HTTP 429) on attempt {attempt + 1}, waiting {total_wait_time:.2f} seconds before retry"
+                )
+                time.sleep(total_wait_time)
+                continue
+
+            # For other HTTP errors, raise them to be handled by the outer except block
             response.raise_for_status()
             return response.json()
+
         except requests.exceptions.RequestException as e:
             if attempt == retry_attempts - 1:  # Last attempt
                 log.severe(
@@ -139,9 +171,15 @@ def execute_api_request(
                     f"API request failed after {retry_attempts} attempts: {str(e)}"
                 )
             else:
+                # For non-rate-limit errors, use exponential backoff
+                wait_time = min(base_delay * (2 ** attempt), max_delay)
+                jitter = random.uniform(0, min(wait_time * 0.1, 2))
+                total_wait_time = wait_time + jitter
+
                 log.info(
-                    f"API request attempt {attempt + 1} failed, retrying: {str(e)}"
+                    f"API request attempt {attempt + 1} failed, retrying in {total_wait_time:.2f} seconds: {str(e)}"
                 )
+                time.sleep(total_wait_time)
                 continue
 
     # This should never be reached, but added for type safety
