@@ -1,0 +1,15 @@
+{
+  "host": "localhost",
+  "port": "5432",
+  "database": "postgres",
+  "username": "",
+  "password": "",
+  "region": "North America",
+  "max_retries": "5",
+  "retry_sleep_seconds": "5",
+  "debug": "false",
+  "table_filters": "{}",
+  "custom_batch_size": "0",
+  "custom_threads": "0",
+  "custom_queue_size": "0"
+}
