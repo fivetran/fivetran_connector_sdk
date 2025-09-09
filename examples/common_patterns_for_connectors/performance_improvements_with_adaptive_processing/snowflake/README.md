@@ -1,4 +1,4 @@
-# Snowflake connector with adaptive processing
+# Snowflake connector SDK with adaptive processing
 
 This connector provides enterprise-ready Snowflake data ingestion with comprehensive optimization techniques, error handling, and resource management. It's designed for high-volume production environments with complex data processing requirements.
 
