@@ -28,11 +28,11 @@ The Trustpilot API Connector is a Fivetran Connector SDK implementation that ext
 
 ### Alternative: Manual Setup
 
-For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#-secondary-manual-deployment-debugging--testing) section below.
+For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#manualdeployment) section below.
 
 ## Deployment
 
-> ** PRODUCTION DEPLOYMENT RECOMMENDATION**  
+> **PRODUCTION DEPLOYMENT RECOMMENDATION**  
 > **We recommend using GitHub Actions workflow for all production deployments.**  
 > Manual deployment is available for development, testing, and debugging purposes, but we encourage using the automated workflow for production environments.
 
@@ -105,7 +105,7 @@ env:
   EXCLUDED_DEPENDENCIES: '^requests\b'
 ```
 
-### Secondary: Manual Deployment (Debugging & Testing)
+### <a name="manualdeployment"></a>Secondary: Manual Deployment (Debugging & Testing)
 
 For local development, testing, and debugging purposes:
 
@@ -200,7 +200,7 @@ The connector requires the following configuration keys. For production deployme
 
 **API Key Setup:**
 1. Go to your Trustpilot Business account.
-2. Navigate to Settings > API Keys.
+2. Navigate to **Settings > API Keys**.
 3. Create a new API key with appropriate permissions.
 4. Add the API key to `configuration.json`.
 
