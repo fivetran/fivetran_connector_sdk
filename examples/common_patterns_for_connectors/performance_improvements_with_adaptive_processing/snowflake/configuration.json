@@ -1,0 +1,17 @@
+{
+  "snowflake_user": "your_username",
+  "snowflake_password": "your_password",
+  "snowflake_account": "your_account",
+  "snowflake_warehouse": "your_warehouse",
+  "snowflake_database": "your_database",
+  "snowflake_schema": "your_schema",
+  "tables": "CUSTOMERS,ORDERS,PRODUCTS",
+  "use_privatelink": "false",
+  "ssl_verify": "true",
+  "batch_delay_ms": "100",
+  "max_retries": "3",
+  "enable_resource_monitoring": "true",
+  "enable_preprocessing": "false",
+  "preprocessing_table": "",
+  "preprocessing_sql": ""
+}
