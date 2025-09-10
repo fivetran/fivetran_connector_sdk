@@ -3,7 +3,7 @@
 
 ## Connector overview
 
-This connectors in this folder demonstrate advanced Connector SDK patterns and techniques that can be applied to any data source. The connector showcases comprehensive optimization strategies, robust error handling, and intelligent resource management designed for high-volume production environments.
+The connectors in this folder demonstrate advanced Connector SDK patterns and techniques that can be applied to any data source. The connector showcases comprehensive optimization strategies, robust error handling, and intelligent resource management designed for high-volume production environments.
 
 **Key Enterprise Features Applicable to Any Connector:**
 
