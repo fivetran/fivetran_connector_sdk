@@ -112,9 +112,9 @@ class ConnectionManager:
             yield self.current_cursor
         except Exception as e:
             if self._is_deadlock_error(e):
-                raise DeadlockError(f"Snowflake deadlock: {e}")
+                raise DeadlockError(f" deadlock: {e}")
             elif self._is_timeout_error(e):
-                raise TimeoutError(f"Snowflake timeout: {e}")
+                raise TimeoutError(f" timeout: {e}")
             else:
                 raise
 ```
@@ -259,10 +259,10 @@ def custom_data_processor(row_data):
 
 ### Preprocessing System
 
-Execute SQL transformations in Snowflake before data replication, enabling complex data processing workflows.
+Execute transformations before data replication, enabling complex data processing workflows.
 
 **Key Benefits:**
-- Pre-replication data transformation in Snowflake
+- Pre-replication data transformation/orchestration
 - Dynamic SQL generation with state substitution
 - Multiple table support with individual UPDATE statements
 - State-aware preprocessing using previous sync timestamps
@@ -325,7 +325,7 @@ Multiple authentication methods with enterprise security features including JWT,
 - Password authentication fallback
 - Role-based access control
 
-**Implementation Example:**
+**Implementation Example: Snowflake**
 ```python
 def get_snowflake_connection(configuration):
     """Secure Snowflake connection with multiple auth methods"""
@@ -672,12 +672,12 @@ The connector uses a `configuration.json` file to define connection parameters a
 **Basic Configuration:**
 ```json
 {
-  "snowflake_user": "your_user",
-  "snowflake_password": "your_password",
-  "snowflake_account": "your_account",
-  "snowflake_warehouse": "your_warehouse",
-  "snowflake_database": "your_database",
-  "snowflake_schema": "your_schema",
+  "user": "your_user",
+  "password": "your_password",
+  "account": "your_account",
+  "warehouse": "your_warehouse",
+  "database": "your_database",
+  "schema": "your_schema",
   "tables": "table1,table2,table3",
   "enable_resource_monitoring": "true",
   "enable_preprocessing": "false"
@@ -687,13 +687,13 @@ The connector uses a `configuration.json` file to define connection parameters a
 **Advanced Configuration:**
 ```json
 {
-  "snowflake_user": "your_user",
+  "user": "your_user",
   "private_key": "-----BEGIN PRIVATE KEY-----\n...",
-  "snowflake_role": "your_role",
-  "snowflake_account": "your_account",
-  "snowflake_warehouse": "your_warehouse",
-  "snowflake_database": "your_database",
-  "snowflake_schema": "your_schema",
+  "role": "your_role",
+  "account": "your_account",
+  "warehouse": "your_warehouse",
+  "database": "your_database",
+  "schema": "your_schema",
   "tables": "table1,table2,table3",
   "timestamp_column": "updated_at",
   "enable_resource_monitoring": "true",
@@ -705,7 +705,7 @@ The connector uses a `configuration.json` file to define connection parameters a
 }
 ```
 
-**PrivateLink Configuration:**
+**PrivateLink Configuration: Snowflake example**
 ```json
 {
   "snowflake_user": "your_user",
@@ -739,13 +739,8 @@ NOTE: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 The connector supports multiple authentication methods:
 
-**JWT Authentication (Recommended):**
-- Provide a private key in the `private_key` field
-- Optionally specify a `private_key_password` if the key is encrypted
-- Optionally specify a `snowflake_role` for role-based access
-
 **Password Authentication:**
-- Provide `snowflake_password` for traditional username/password authentication
+- Provide `password` for traditional username/password authentication
 - Used as fallback when JWT authentication is not available
 
 **PrivateLink Support:**
@@ -759,14 +754,14 @@ The connector processes data with the following capabilities:
 - Incremental Sync: Automatically detects timestamp columns and performs incremental data replication
 - Schema Evolution: Handles dynamic schema changes and nested data structures
 - Data Transformation: Flattens nested JSON structures for database storage
-- Type Conversion: Converts Snowflake data types to Fivetran-compatible formats
+- Type Conversion: Converts data types to Fivetran-compatible formats
 - Memory Management: Processes records immediately without memory accumulation
 
 ## Error handling
 
 The connector implements comprehensive error handling strategies:
 
-- Deadlock Detection: Automatically detects and recovers from Snowflake deadlocks
+- Deadlock Detection: Automatically detects and recovers from deadlocks
 - Connection Management: Monitors connection health and automatically reconnects on failures
 - Retry Logic: Implements exponential backoff with jitter for transient failures
 - Resource Monitoring: Automatically adjusts processing parameters under resource pressure
@@ -777,7 +772,7 @@ The connector implements comprehensive error handling strategies:
 The connector replicates all tables specified in the `tables` configuration parameter. Each table is created in Fivetran with:
 
 - Surrogate keys (`_fivetran_id`) automatically generated by Fivetran
-- All original columns from the source Snowflake table
+- All original columns from the source table
 - Flattened nested structures (e.g., JSON objects become separate columns)
 - Proper data type mapping for Fivetran compatibility
 
