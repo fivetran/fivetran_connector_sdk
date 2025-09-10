@@ -16,7 +16,7 @@ The connectors in this folder demonstrate advanced Connector SDK patterns and te
 - **Incremental Sync Intelligence**: Automatic timestamp detection and incremental data replication
 - **Schema Evolution Handling**: Dynamic schema adaptation and nested data processing
 
-These patterns can be adapted for any data source, whether it's databases, APIs, file systems, or cloud services. The connector serves as a comprehensive reference implementation for building production-ready connectors that can handle enterprise-scale data volumes while maintaining reliability and performance.
+These patterns can be adapted for any data source, whether it's databases, APIs, file systems, or cloud services. These connectors can serve as a comprehensive reference implementation for building production-ready connections that can handle enterprise-scale data volumes while maintaining reliability and performance.
 
 ## Requirements
 
