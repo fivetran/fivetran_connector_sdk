@@ -87,7 +87,7 @@ def validate_configuration(configuration: dict):
 
 def make_api_request(
     url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
-) -> Dict[str, Any]:
+) -> Any | None:
     """
     Make API request to Iterate with retry logic and exponential backoff.
     Args:
@@ -114,6 +114,7 @@ def make_api_request(
                 raise RuntimeError(
                     f"Failed to make API request after {__MAX_RETRIES} attempts: {str(e)}"
                 )
+    return None
 
 
 def flatten_dict(data: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
@@ -237,11 +238,11 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "surveys",  # Name of the table in the destination, required.
+            "table": "survey",  # Name of the table in the destination, required.
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
         },
         {
-            "table": "responses",  # Name of the table for survey responses, required.
+            "table": "response",  # Name of the table for survey responses, required.
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
         },
     ]
@@ -309,7 +310,7 @@ def update(configuration: dict, state: dict):
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="surveys", data=survey)
+            op.upsert(table="survey", data=survey)
 
         log.info(f"Successfully synced {len(surveys)} surveys")
 
@@ -347,7 +348,7 @@ def update(configuration: dict, state: dict):
                     # The op.upsert method is called with two arguments:
                     # - The first argument is the name of the table to upsert the data into.
                     # - The second argument is a dictionary containing the data to be upserted,
-                    op.upsert(table="responses", data=flattened_response)
+                    op.upsert(table="response", data=flattened_response)
                     record_count += 1
 
                 log.info(f"Processed {len(response_list)} responses for survey {survey_id}")

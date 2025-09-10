@@ -129,15 +129,15 @@ All exceptions are caught at the top level and re-raised as `RuntimeError` with 
 ## Tables created
 The connector creates two main tables with flattened column structures:
 
-### surveys
+### SURVEY
 Contains survey metadata and configuration with all nested JSON properties flattened into individual columns using underscore separation.
 - **Primary key**: `id`
 - **Structure**: All survey properties from Iterate API flattened (e.g., `author.id` becomes `author_id`)
 
-### responses
+### RESPONSE
 Contains individual survey responses with relationship to parent survey and flattened response data.
 - **Primary key**: `id`
-- **Foreign key**: `survey_id` (links to surveys table)
+- **Foreign key**: `survey_id` (links to SURVEY table)
 - **Structure**: All response properties flattened, including question answers and user metadata
 
 ## Additional considerations
