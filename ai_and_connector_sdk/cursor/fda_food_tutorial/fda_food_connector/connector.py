@@ -232,9 +232,9 @@ def update(configuration: dict, state: dict):
     max_records = int(configuration.get("max_records", "10"))
     use_api_key = configuration.get("use_api_key", "false").lower() == "true"
     if len(api_key) > 2:
-    masked_api_key = api_key[:2] + "*" * (len(api_key) - 2)
-        else:
-    masked_api_key = api_key  # too short to mask
+        masked_api_key = api_key[:2] + "*" * (len(api_key) - 2)
+    else:
+        masked_api_key = api_key  # too short to mask
     log.info(masked_api_key)
     lookback_days = int(configuration.get("lookback_days", "30"))
 
