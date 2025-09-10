@@ -3,9 +3,13 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import (
+    Connector,
+)  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 
 # Add your source-specific imports here
 import json
@@ -23,6 +27,7 @@ CHECKPOINT_INTERVAL = 100  # checkpoint every 100 rows
 MAX_RETRIES = 3
 RETRY_DELAY = 1  # seconds
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -37,12 +42,13 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
-    
+
     # Validate optional parameters if provided
     if "api_key" in configuration and configuration["api_key"]:
         log.info("Using API key authentication for higher rate limits")
     else:
         log.warning("No API key provided - using limited rate limits (1,000 requests/day)")
+
 
 def schema(configuration: dict):
     """
@@ -54,47 +60,52 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "fda_tobacco_problem_reports", # Name of the table in the destination, required.
-            "primary_key": ["report_id"], # Primary key column(s) for the table, required.
+            "table": "fda_tobacco_problem_reports",  # Name of the table in the destination, required.
+            "primary_key": ["report_id"],  # Primary key column(s) for the table, required.
         },
     ]
 
-def make_api_request(url: str, params: Dict, api_key: Optional[str] = None, retry_count: int = 0) -> Dict:
+
+def make_api_request(
+    url: str, params: Dict, api_key: Optional[str] = None, retry_count: int = 0
+) -> Dict:
     """
     Make an API request to the FDA Tobacco Problem Reports API with retry logic and rate limiting.
-    
+
     Args:
         url: The API endpoint URL
         params: Query parameters for the request
         api_key: Optional API key for authentication
         retry_count: Current retry attempt number
-        
+
     Returns:
         Dictionary containing the API response
-        
+
     Raises:
         RuntimeError: If the request fails after all retry attempts
     """
     headers = {}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    
+
     try:
         response = requests.get(url, params=params, headers=headers, timeout=30)
-        
+
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 429:  # Rate limit exceeded
             if retry_count < MAX_RETRIES:
-                wait_time = (2 ** retry_count) * RETRY_DELAY
-                log.warning(f"Rate limit exceeded, waiting {wait_time} seconds before retry {retry_count + 1}")
+                wait_time = (2**retry_count) * RETRY_DELAY
+                log.warning(
+                    f"Rate limit exceeded, waiting {wait_time} seconds before retry {retry_count + 1}"
+                )
                 time.sleep(wait_time)
                 return make_api_request(url, params, api_key, retry_count + 1)
             else:
                 raise RuntimeError("Rate limit exceeded after maximum retries")
         else:
             response.raise_for_status()
-            
+
     except requests.exceptions.RequestException as e:
         if retry_count < MAX_RETRIES:
             log.warning(f"Request failed, retrying in {RETRY_DELAY} seconds: {str(e)}")
@@ -103,14 +114,15 @@ def make_api_request(url: str, params: Dict, api_key: Optional[str] = None, retr
         else:
             raise RuntimeError(f"API request failed after {MAX_RETRIES} retries: {str(e)}")
 
+
 def process_ai_data_record(record: Dict) -> Dict:
     """
     Process and clean AI/ML data from FDA tobacco reports.
     Handles schema evolution, missing values, and nested JSON structures.
-    
+
     Args:
         record: Raw record from FDA API
-        
+
     Returns:
         Processed record optimized for AI/ML ingestion
     """
@@ -125,9 +137,9 @@ def process_ai_data_record(record: Dict) -> Dict:
         "number_product_problems": record.get("number_product_problems"),
         "number_tobacco_products": record.get("number_tobacco_products"),
         "tobacco_products": json.dumps(record.get("tobacco_products", [])),
-        "sync_timestamp": datetime.now().isoformat()
+        "sync_timestamp": datetime.now().isoformat(),
     }
-    
+
     # Handle missing values for AI/ML processing
     for key, value in processed_record.items():
         if value is None:
@@ -137,16 +149,17 @@ def process_ai_data_record(record: Dict) -> Dict:
                 processed_record[key] = "[]"
             else:
                 processed_record[key] = ""
-    
+
     return processed_record
+
 
 def process_batch_for_ai(data_batch: List[Dict]) -> List[Dict]:
     """
     Batch processing for large datasets optimized for AI/ML ingestion.
-    
+
     Args:
         data_batch: List of raw records from API
-        
+
     Returns:
         List of processed records ready for AI/ML processing
     """
@@ -159,22 +172,25 @@ def process_batch_for_ai(data_batch: List[Dict]) -> List[Dict]:
         processed.append(enriched)
     return processed
 
+
 def enrich_features_for_ai(record: Dict) -> Dict:
     """
     Enrich features for AI/ML processing by adding derived fields.
-    
+
     Args:
         record: Cleaned record
-        
+
     Returns:
         Record with enriched features
     """
     # Add derived features for AI/ML analysis
-    record["total_problems"] = record.get("number_health_problems", 0) + record.get("number_product_problems", 0)
+    record["total_problems"] = record.get("number_health_problems", 0) + record.get(
+        "number_product_problems", 0
+    )
     record["has_health_problems"] = record.get("number_health_problems", 0) > 0
     record["has_product_problems"] = record.get("number_product_problems", 0) > 0
     record["has_nonuser_affected"] = record.get("nonuser_affected", False)
-    
+
     # Parse date for time-series analysis
     if record.get("date_submitted"):
         try:
@@ -188,18 +204,19 @@ def enrich_features_for_ai(record: Dict) -> Dict:
             record["year"] = None
             record["month"] = None
             record["day_of_week"] = None
-    
+
     return record
+
 
 def fetch_fda_data(configuration: dict, state: dict) -> List[Dict]:
     """
     Fetch data from the FDA Tobacco Problem Reports API with pagination and rate limiting.
     Optimized for AI/ML data ingestion patterns.
-    
+
     Args:
         configuration: Configuration dictionary containing API settings
         state: State dictionary for incremental syncs
-        
+
     Returns:
         List of processed records ready for AI/ML processing
     """
@@ -209,13 +226,13 @@ def fetch_fda_data(configuration: dict, state: dict) -> List[Dict]:
     api_key = configuration.get("api_key")
     test_mode = configuration.get("test_mode", "false").lower() == "true"
     test_limit = int(configuration.get("test_limit", "10"))
-    
+
     # Calculate delay between requests to respect rate limits
     request_delay = 60.0 / rate_limit
-    
+
     # Get last sync state for incremental syncs
     last_sync_date = state.get("last_sync_date")
-    
+
     # Build search parameters
     search_params = {}
     if last_sync_date:
@@ -227,65 +244,66 @@ def fetch_fda_data(configuration: dict, state: dict) -> List[Dict]:
         log.info(f"Performing incremental sync from {last_sync_date}")
     else:
         log.info("Performing full sync - no previous sync date found")
-    
+
     # Set page size and limit for test mode
     if test_mode:
         page_size = min(page_size, test_limit)
         log.info(f"Test mode enabled - limiting to {test_limit} records")
-    
+
     search_params["limit"] = page_size
     offset = 0
     total_processed = 0
     all_records = []
-    
+
     while True:
         # Add offset for pagination
         if offset > 0:
             search_params["skip"] = offset
-        
+
         # Make API request with rate limiting
         log.info(f"Fetching data with offset {offset}, page size {page_size}")
-        
+
         try:
             response_data = make_api_request(base_url, search_params, api_key)
-            
+
             # Extract results and metadata
             results = response_data.get("results", [])
             meta = response_data.get("meta", {})
             total_count = meta.get("results", {}).get("total", 0)
-            
+
             if not results:
                 log.info("No more data to fetch")
                 break
-            
+
             # Process batch for AI/ML optimization
             processed_batch = process_batch_for_ai(results)
             all_records.extend(processed_batch)
             total_processed += len(processed_batch)
-            
+
             log.info(f"Processed {len(processed_batch)} records in current batch")
-            
+
             # Check if we've reached the end or test limit
             if test_mode and total_processed >= test_limit:
                 log.info(f"Test mode: reached limit of {test_limit} records")
                 break
-            
+
             if len(results) < page_size:
                 log.info("Reached end of data")
                 break
-            
+
             # Move to next page
             offset += page_size
-            
+
             # Rate limiting delay
             time.sleep(request_delay)
-            
+
         except Exception as e:
             log.severe(f"Error fetching data: {str(e)}")
             raise RuntimeError(f"Failed to fetch FDA data: {str(e)}")
-    
+
     log.info(f"Total records fetched and processed: {total_processed}")
     return all_records
+
 
 def update(configuration: dict, state: dict):
     """
@@ -323,7 +341,7 @@ def update(configuration: dict, state: dict):
     # Get the state variable for the sync, if needed
     last_sync_date = state.get("last_sync_date")
     last_report_id = state.get("last_report_id")
-    
+
     if last_sync_date:
         log.info(f"Resuming from last sync date: {last_sync_date}")
     if last_report_id:
@@ -332,28 +350,28 @@ def update(configuration: dict, state: dict):
     try:
         # Fetch and process data from FDA API optimized for AI/ML
         all_records = fetch_fda_data(configuration, state)
-        
+
         # Process records in batches for optimal performance
         batch_size = int(checkpoint_interval)
         total_processed = 0
-        
+
         for i in range(0, len(all_records), batch_size):
-            batch = all_records[i:i + batch_size]
-            
+            batch = all_records[i : i + batch_size]
+
             # Upsert batch of records without yield
             for record in batch:
                 op.upsert(table="fda_tobacco_problem_reports", data=record)
                 total_processed += 1
-            
+
             # Checkpoint after each batch
             checkpoint_state = {
                 "last_sync_date": datetime.now().strftime("%Y-%m-%d"),
                 "last_report_id": batch[-1].get("report_id") if batch else None,
                 "total_processed": total_processed,
-                "offset": i + len(batch)
+                "offset": i + len(batch),
             }
             op.checkpoint(state=checkpoint_state)
-            
+
             log.info(f"Processed batch of {len(batch)} records, total: {total_processed}")
 
         # Final checkpoint with updated state
@@ -361,9 +379,9 @@ def update(configuration: dict, state: dict):
             "last_sync_date": datetime.now().strftime("%Y-%m-%d"),
             "total_processed": total_processed,
             "sync_completed": True,
-            "last_sync_timestamp": datetime.now().isoformat()
+            "last_sync_timestamp": datetime.now().isoformat(),
         }
-        
+
         log.info(f"Sync completed successfully. Total records processed: {total_processed}")
         op.checkpoint(state=final_state)
 
@@ -371,6 +389,7 @@ def update(configuration: dict, state: dict):
         # In case of an exception, raise a runtime error
         log.severe(f"Failed to sync FDA tobacco data: {str(e)}")
         raise RuntimeError(f"Failed to sync FDA tobacco data: {str(e)}")
+
 
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
@@ -381,7 +400,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Test the connector locally
