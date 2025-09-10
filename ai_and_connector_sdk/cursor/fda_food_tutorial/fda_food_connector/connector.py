@@ -105,13 +105,13 @@ def fetch_fda_food_data(configuration: dict, state: dict) -> List[Dict[str, Any]
     """
     # Extract configuration parameters
     max_records = int(configuration.get("max_records", "10"))
+    api_key = configuration.get("api_key", "")
     use_api_key = configuration.get("use_api_key", "false").lower() == "true"
     if len(api_key) > 2:
         masked_api_key = api_key[:2] + "*" * (len(api_key) - 2)
     else:
         masked_api_key = api_key  # too short to mask
     log.info(masked_api_key)
-    api_key = configuration.get("api_key", "")
     lookback_days = int(configuration.get("lookback_days", "30"))
     use_date_filter = configuration.get("use_date_filter", "false").lower() == "true"
 
