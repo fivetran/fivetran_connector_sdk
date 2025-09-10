@@ -7,9 +7,8 @@ This connector follows Fivetran Connector SDK best practices without using yield
 import json
 import requests
 import time
-from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin
 import base64
 
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
@@ -475,6 +474,7 @@ def update(configuration: dict, state: dict):
         if connector.api_key:
             remaining_daily = 120000 - total_api_calls
             log.info(f"API quota usage: {total_api_calls}/120,000 daily calls (with API key)")
+            log.info(remaining_daily)
         else:
             remaining_daily = 1000 - total_api_calls
             log.info(f"API quota usage: {total_api_calls}/1,000 daily calls (no API key)")
