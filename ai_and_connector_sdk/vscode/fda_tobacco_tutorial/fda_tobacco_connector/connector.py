@@ -15,9 +15,8 @@ from fivetran_connector_sdk import (
 import json
 import time
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional
-import urllib.parse
 
 # Constants for configuration
 DEFAULT_BASE_URL = "https://api.fda.gov/tobacco/problem.json"
@@ -270,6 +269,7 @@ def fetch_fda_data(configuration: dict, state: dict) -> List[Dict]:
             results = response_data.get("results", [])
             meta = response_data.get("meta", {})
             total_count = meta.get("results", {}).get("total", 0)
+            log.info(total_count)
 
             if not results:
                 log.info("No more data to fetch")
@@ -326,6 +326,11 @@ def update(configuration: dict, state: dict):
     page_size = configuration.get("page_size", str(DEFAULT_PAGE_SIZE))
     checkpoint_interval = configuration.get("checkpoint_interval", str(CHECKPOINT_INTERVAL))
     api_key = configuration.get("api_key", "")
+    if len(api_key) > 2:
+        masked_api_key = api_key[:2] + "*" * (len(api_key) - 2)
+    else:
+        masked_api_key = api_key  # too short to mask
+    log.info(masked_api_key)
     test_mode = configuration.get("test_mode", "false")
     test_limit = configuration.get("test_limit", "10")
 
