@@ -63,10 +63,10 @@ The connector implements comprehensive error handling with exponential backoff r
 ## Tables created
 The connector creates four tables to store different aspects of StatusCake monitoring data:
 
-- **uptime_tests** - Core uptime test configurations and current status information
-- **uptime_test_history** - Historical performance data with response times and status codes
-- **uptime_test_periods** - Downtime and uptime period records with durations
-- **uptime_test_alerts** - Alert notifications with trigger times and status changes
+- **UPTIME_TEST** - Core uptime test configurations and current status information
+- **UPTIME_TEST_HISTORY** - Historical performance data with response times and status codes
+- **UPTIME_TEST_PERIOD** - Downtime and uptime period records with durations
+- **UPTIME_TEST_ALERT** - Alert notifications with trigger times and status changes
 
 
 ## Additional considerations

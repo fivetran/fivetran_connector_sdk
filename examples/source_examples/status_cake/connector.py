@@ -71,7 +71,9 @@ def make_api_request(url, headers, max_retries=__MAX_RETRIES):
                     time.sleep(__RETRY_DELAY * (2**attempt))  # Exponential backoff
                     continue
                 else:
-                    raise Exception(f"API request failed after {max_retries} attempts")
+                    raise requests.exceptions.HTTPError(
+                        f"StatusCake API request to {url} failed after {max_retries} attempts with HTTP {response.status_code}: {response.text}"
+                    )
 
             return response.json()
 
@@ -80,7 +82,9 @@ def make_api_request(url, headers, max_retries=__MAX_RETRIES):
             if attempt < max_retries - 1:
                 time.sleep(__RETRY_DELAY * (2**attempt))  # Exponential backoff
             else:
-                raise Exception(f"API request failed after {max_retries} attempts: {str(e)}")
+                raise requests.exceptions.ConnectionError(
+                    f"StatusCake API connection to {url} failed after {max_retries} attempts: {str(e)}"
+                )
 
     return None
 
@@ -120,7 +124,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "uptime_tests",  # Table for main uptime test data
+            "table": "uptime_test",  # Table for main uptime test data
             "primary_key": ["id"],  # Primary key column(s) for the table
         },
         {
@@ -128,11 +132,11 @@ def schema(configuration: dict):
             "primary_key": ["test_id", "created_at"],  # Composite primary key
         },
         {
-            "table": "uptime_test_periods",  # Table for uptime test periods data
+            "table": "uptime_test_period",  # Table for uptime test periods data
             "primary_key": ["test_id", "created_at"],  # Composite primary key
         },
         {
-            "table": "uptime_test_alerts",  # Table for uptime test alerts data
+            "table": "uptime_test_alert",  # Table for uptime test alerts data
             "primary_key": ["test_id", "id"],  # Composite primary key
         },
     ]
@@ -175,7 +179,7 @@ def update(configuration: dict, state: dict):
             # The op.upsert method is called with two arguments:
             # 1. The table name where data should be inserted/updated
             # 2. The data record as a dictionary with column names as keys
-            op.upsert("uptime_tests", flattened_test)
+            op.upsert("uptime_test", flattened_test)
 
             # Process related data for this uptime test
             process_uptime_test_history(test_id, headers)
@@ -183,7 +187,7 @@ def update(configuration: dict, state: dict):
             process_uptime_test_alerts(test_id, headers)
 
     except Exception as e:
-        log.error(f"Error during sync: {str(e)}")
+        log.severe(f"Error during sync: {str(e)}")
         raise
 
 
@@ -288,7 +292,7 @@ def process_uptime_test_periods(test_id, headers):
     for period_record in periods_data:
         period_record["test_id"] = test_id  # Add test_id reference
         flattened_period = flatten_dictionary(period_record)
-        op.upsert("uptime_test_periods", flattened_period)
+        op.upsert("uptime_test_period", flattened_period)
 
 
 def process_uptime_test_alerts(test_id, headers):
@@ -302,7 +306,7 @@ def process_uptime_test_alerts(test_id, headers):
     for alert_record in alerts_data:
         alert_record["test_id"] = test_id  # Add test_id reference
         flattened_alert = flatten_dictionary(alert_record)
-        op.upsert("uptime_test_alerts", flattened_alert)
+        op.upsert("uptime_test_alert", flattened_alert)
 
 
 # Create the connector object using the schema and update functions
