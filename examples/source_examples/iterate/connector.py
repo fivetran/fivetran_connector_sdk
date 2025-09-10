@@ -227,6 +227,105 @@ def fetch_survey_responses(
         return make_iterate_api_call(endpoint, api_token, params)
 
 
+def determine_sync_start_date(state: dict, configuration: dict) -> str:
+    """
+    Determine the start date for this sync based on priority order.
+    Priority: 1) last_survey_sync from state, 2) config start_date, 3) EPOCH time
+    Args:
+        state: Dictionary containing state information from previous runs
+        configuration: Dictionary containing connection details
+    Returns:
+        ISO datetime string for sync start date
+    """
+    last_survey_sync = state.get("last_survey_sync")
+    config_start_date = configuration.get("start_date")
+
+    if last_survey_sync:
+        # Incremental sync: use last successful sync timestamp
+        log.info(f"Incremental sync from saved state: {last_survey_sync}")
+        return last_survey_sync
+    elif config_start_date:
+        # First sync with configured start date
+        log.info(f"Initial sync from configured start_date: {config_start_date}")
+        return config_start_date
+    else:
+        # First sync with EPOCH time (all data)
+        log.info(f"Initial sync from EPOCH time: {__EPOCH_START_DATE}")
+        return __EPOCH_START_DATE
+
+
+def convert_to_unix_timestamp(sync_start_date: str) -> int:
+    """
+    Convert ISO datetime string to unix timestamp for API filtering.
+    Args:
+        sync_start_date: ISO datetime string to convert
+    Returns:
+        Unix timestamp as integer
+    """
+    try:
+        start_date_unix = parse_iso_datetime_to_unix(sync_start_date)
+        log.info(f"Using start_date unix timestamp: {start_date_unix}")
+        return start_date_unix
+    except ValueError as e:
+        log.warning(
+            f"Invalid sync_start_date format: {sync_start_date}, using EPOCH time. Error: {e}"
+        )
+        # Fallback to EPOCH time
+        return 0
+
+
+def process_survey_responses(api_token: str, survey_id: str, start_date_unix: int) -> int:
+    """
+    Process all responses for a specific survey with pagination support.
+    Args:
+        api_token: API token for authentication
+        survey_id: ID of the survey to process responses for
+        start_date_unix: Unix timestamp for filtering responses
+    Returns:
+        Number of responses processed for this survey
+    """
+    response_count = 0
+    next_url = None
+
+    # Fetch all responses for this survey with pagination
+    while True:
+        response_data = fetch_survey_responses(api_token, survey_id, start_date_unix, next_url)
+
+        if "results" not in response_data:
+            break
+
+        results = response_data.get("results", {})
+        response_list = results.get("list", [])
+
+        if not response_list:
+            break
+
+        # Process and upsert responses
+        for response in response_list:
+            # Add survey_id to each response for foreign key relationship
+            response["survey_id"] = survey_id
+            flattened_response = flatten_dict(response)
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(table="response", data=flattened_response)
+            response_count += 1
+
+        log.info(f"Processed {len(response_list)} responses for survey {survey_id}")
+
+        # Check if there are more pages
+        links = response_data.get("links", {})
+        next_url = links.get("next")
+
+        # If no next URL, we've processed all pages for this survey
+        if not next_url:
+            break
+
+    return response_count
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -258,46 +357,18 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-
     log.warning("Example: Source Examples : Iterate NPS Survey Connector")
 
     # Validate the configuration to ensure it contains all required values.
-    validate_configuration(configuration=configuration)
+    validate_configuration(configuration)
 
-    # Extract configuration parameters as required
-    api_token = configuration.get("api_token")
-    config_start_date = configuration.get("start_date")
-
-    # Get the state variables for the sync, if needed
-    last_survey_sync = state.get("last_survey_sync")
+    api_token = configuration["api_token"]
 
     # Determine the start date for this sync
-    # Priority: 1) last_survey_sync from state, 2) config start_date, 3) EPOCH time
-    if last_survey_sync:
-        # Incremental sync: use last successful sync timestamp
-        sync_start_date = last_survey_sync
-        log.info(f"Incremental sync from saved state: {last_survey_sync}")
-    elif config_start_date:
-        # First sync with configured start date
-        sync_start_date = config_start_date
-        log.info(f"Initial sync from configured start_date: {config_start_date}")
-    else:
-        # First sync with EPOCH time (all data)
-        sync_start_date = __EPOCH_START_DATE
-        log.info(f"Initial sync from EPOCH time: {__EPOCH_START_DATE}")
+    sync_start_date = determine_sync_start_date(state, configuration)
 
     # Convert sync_start_date to unix timestamp for API filtering
-    start_date_unix = None
-    if sync_start_date:
-        try:
-            start_date_unix = parse_iso_datetime_to_unix(sync_start_date)
-            log.info(f"Using start_date unix timestamp: {start_date_unix}")
-        except ValueError as e:
-            log.warning(
-                f"Invalid sync_start_date format: {sync_start_date}, using EPOCH time. Error: {e}"
-            )
-            # Fallback to EPOCH time
-            start_date_unix = 0
+    start_date_unix = convert_to_unix_timestamp(sync_start_date)
 
     try:
         # First, fetch all surveys
@@ -315,51 +386,15 @@ def update(configuration: dict, state: dict):
         log.info(f"Successfully synced {len(surveys)} surveys")
 
         # Now fetch responses for each survey
-        record_count = 0
+        total_responses = 0
         for survey in surveys:
             survey_id = survey.get("id")
             if not survey_id:
                 continue
 
-            # Fetch all responses for this survey with pagination
-            next_url = None
-
-            while True:
-                response_data = fetch_survey_responses(
-                    api_token, survey_id, start_date_unix, next_url
-                )
-
-                if "results" not in response_data:
-                    break
-
-                results = response_data.get("results", {})
-                response_list = results.get("list", [])
-
-                if not response_list:
-                    break
-
-                # Process and upsert responses
-                for response in response_list:
-                    # Add survey_id to each response for foreign key relationship
-                    response["survey_id"] = survey_id
-                    flattened_response = flatten_dict(response)
-
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The op.upsert method is called with two arguments:
-                    # - The first argument is the name of the table to upsert the data into.
-                    # - The second argument is a dictionary containing the data to be upserted,
-                    op.upsert(table="response", data=flattened_response)
-                    record_count += 1
-
-                log.info(f"Processed {len(response_list)} responses for survey {survey_id}")
-
-                # Check if there are more pages
-                links = response_data.get("links", {})
-                next_url = links.get("next")
-
-                # If no next URL, we've processed all pages for this survey
-                if not next_url:
-                    break
+            # Process all responses for this survey
+            survey_response_count = process_survey_responses(api_token, survey_id, start_date_unix)
+            total_responses += survey_response_count
 
         # Final checkpoint with updated state
         new_state = {"last_survey_sync": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
@@ -369,7 +404,7 @@ def update(configuration: dict, state: dict):
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
-        log.info(f"Successfully completed sync. Total responses processed: {record_count}")
+        log.info(f"Successfully completed sync. Total responses processed: {total_responses}")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
