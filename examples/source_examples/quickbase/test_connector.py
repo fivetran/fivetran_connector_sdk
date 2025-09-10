@@ -139,15 +139,11 @@ def test_schema_only():
                 return False
 
             if "primary_key" not in table_schema:
-                print(
-                    f"❌ Schema missing 'primary_key' key for table {table_schema['table']}"
-                )
+                print(f"❌ Schema missing 'primary_key' key for table {table_schema['table']}")
                 return False
 
             if "columns" not in table_schema:
-                print(
-                    f"❌ Schema missing 'columns' key for table {table_schema['table']}"
-                )
+                print(f"❌ Schema missing 'columns' key for table {table_schema['table']}")
                 return False
 
             print(f"✅ Table '{table_schema['table']}' has proper structure")
@@ -332,9 +328,7 @@ def test_api_client_initialization():
         if api_client.config.realm_hostname == "test.quickbase.com":
             print("✅ API client realm_hostname set correctly")
         else:
-            print(
-                f"❌ API client realm_hostname failed: {api_client.config.realm_hostname}"
-            )
+            print(f"❌ API client realm_hostname failed: {api_client.config.realm_hostname}")
             return False
 
         if api_client.base_url == API_BASE_URL:

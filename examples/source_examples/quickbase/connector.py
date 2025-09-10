@@ -12,7 +12,7 @@ https://fivetran.com/docs/connectors/connector-sdk/best-practices
 
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -148,9 +148,7 @@ class QuickBaseAPIClient:
             log.info(f"Could not fetch fields for table {table_id}: {e}")
             return []
 
-    def get_records(
-        self, table_id: str, last_sync_time: Optional[str] = None
-    ) -> RecordsResponse:
+    def get_records(self, table_id: str, last_sync_time: Optional[str] = None) -> RecordsResponse:
         """Fetch records data from QuickBase table with pagination."""
         endpoint = "/records/query"
         query_data = {
@@ -209,18 +207,14 @@ class QuickBaseAPIClient:
                 log.info(f"Error fetching records for table {table_id}: {e}")
                 break
 
-        return RecordsResponse(
-            records=all_records, fields_map=fields_map, metadata=final_metadata
-        )
+        return RecordsResponse(records=all_records, fields_map=fields_map, metadata=final_metadata)
 
     def _build_incremental_filter(self, last_sync_time: str) -> str:
         """Build incremental sync filter for QuickBase query."""
         try:
             sync_date = datetime.fromisoformat(last_sync_time.replace("Z", "+00:00"))
             sync_date_str = sync_date.strftime("%Y%m%d")
-            return (
-                f"{{'{self.config.date_field_for_incremental}'.GTE.'{sync_date_str}'}}"
-            )
+            return f"{{'{self.config.date_field_for_incremental}'.GTE.'{sync_date_str}'}}"
         except Exception as e:
             log.info(f"Could not parse last_sync_time for incremental sync: {e}")
             return ""
@@ -356,15 +350,11 @@ class QuickBaseDataProcessor:
         for field_id, field_data in record.items():
             field_name = fields_map.get(field_id, f"field_{field_id}")
             field_value = (
-                field_data.get("value", "")
-                if isinstance(field_data, dict)
-                else field_data
+                field_data.get("value", "") if isinstance(field_data, dict) else field_data
             )
 
             # Convert field value to string for consistency
-            record_data[field_name] = (
-                str(field_value) if field_value is not None else ""
-            )
+            record_data[field_name] = str(field_value) if field_value is not None else ""
 
             # Use field 3 (Record ID#) as the record_id if available
             if field_id == RECORD_ID_FIELD:
@@ -457,20 +447,14 @@ def parse_configuration(configuration: dict) -> QuickBaseConfig:
         request_timeout_seconds=safe_int(
             configuration.get("request_timeout_seconds"), DEFAULT_TIMEOUT
         ),
-        retry_attempts=safe_int(
-            configuration.get("retry_attempts"), DEFAULT_RETRY_ATTEMPTS
-        ),
-        enable_incremental_sync=safe_bool(
-            configuration.get("enable_incremental_sync"), True
-        ),
+        retry_attempts=safe_int(configuration.get("retry_attempts"), DEFAULT_RETRY_ATTEMPTS),
+        enable_incremental_sync=safe_bool(configuration.get("enable_incremental_sync"), True),
         enable_fields_sync=safe_bool(configuration.get("enable_fields_sync"), True),
         enable_records_sync=safe_bool(configuration.get("enable_records_sync"), True),
         date_field_for_incremental=str(
             configuration.get("date_field_for_incremental", RECORD_ID_FIELD)
         ),
-        enable_debug_logging=safe_bool(
-            configuration.get("enable_debug_logging"), False
-        ),
+        enable_debug_logging=safe_bool(configuration.get("enable_debug_logging"), False),
     )
 
 
@@ -512,9 +496,7 @@ def get_time_range(sync_type: SyncType, config: QuickBaseConfig) -> Dict[str, st
         start_time = end_time
     else:
         # Initial sync: get data from configured days back
-        start_time = (
-            datetime.now() - timedelta(days=config.initial_sync_days)
-        ).isoformat()
+        start_time = (datetime.now() - timedelta(days=config.initial_sync_days)).isoformat()
 
     return {"start": start_time, "end": end_time}
 
@@ -684,9 +666,7 @@ def update(configuration: dict, state: dict) -> None:
                 )
                 op.upsert(table="sync_metadata", data=sync_metadata)
 
-                log.info(
-                    f"Records synced for table {table_id}: {response.records_count} records"
-                )
+                log.info(f"Records synced for table {table_id}: {response.records_count} records")
 
         # Update state
         current_time = datetime.now().isoformat()
