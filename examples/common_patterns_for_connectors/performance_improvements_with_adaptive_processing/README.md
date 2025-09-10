@@ -231,7 +231,9 @@ def sync_table_optimized(conn_manager, table_name, state, configuration, table_s
             # IMMEDIATE UPSERT - No memory accumulation
             op.upsert(table=table_name_clean, data=flat_data)
             
-            # Checkpoint periodically
+            # Checkpoint periodically - State is updated every checkpoint_interval records
+            # This ensures progress is saved and sync can resume if interrupted
+            checkpoint_interval = 10000
             if records_processed % checkpoint_interval == 0:
                 op.checkpoint(current_state)
 ```
