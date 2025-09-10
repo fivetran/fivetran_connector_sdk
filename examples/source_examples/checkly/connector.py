@@ -275,18 +275,11 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
     if check_type != "BROWSER":
         return
 
-    api_key = configuration.get("api_key")
-    account_id = configuration.get("account_id")
-
     # Get configuration parameters with defaults
     aggregation_interval = int(configuration.get("aggregation_interval", "60"))
     quick_range = configuration.get("quick_range", "last24Hours")
 
-    headers = {
-        "accept": "application/json",
-        "x-checkly-account": account_id,
-        "Authorization": f"Bearer {api_key}",
-    }
+    headers = build_api_headers(configuration)
 
     # Process both aggregated and non-aggregated metrics
     for metrics_type, metrics_list in [
@@ -337,6 +330,73 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
             continue
 
 
+def build_api_headers(configuration: dict) -> dict:
+    """
+    Build API headers for Checkly requests.
+    Args:
+        configuration: Configuration dictionary with API credentials
+    Returns:
+        Headers dictionary for API requests
+    """
+    api_key = configuration.get("api_key")
+    account_id = configuration.get("account_id")
+
+    return {
+        "accept": "application/json",
+        "x-checkly-account": account_id,
+        "Authorization": f"Bearer {api_key}",
+    }
+
+
+def process_single_check(check_record: dict, configuration: dict) -> None:
+    """
+    Process a single check record and handle analytics data if it's a browser check.
+    Args:
+        check_record: Individual check record from API response
+        configuration: Configuration dictionary with API credentials
+    """
+    # Flatten the nested objects as required for destination table
+    flattened_record = flatten_nested_objects(check_record)
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The op.upsert method is called with two arguments:
+    # - The first argument is the name of the table to upsert the data into.
+    # - The second argument is a dictionary containing the data to be upserted,
+    op.upsert(table="checks", data=flattened_record)
+
+    # If this is a browser check, fetch analytics data
+    check_type = check_record.get("checkType")
+    check_id = check_record.get("id")
+
+    if check_type == "BROWSER" and check_id:
+        try:
+            get_analytics_data(configuration, check_id, check_type)
+        except Exception as e:
+            log.severe(f"Failed to process analytics for check {check_id}: {str(e)}")
+            # Continue with other checks for non-critical errors
+
+
+def fetch_checks_page(page: int, headers: dict) -> list:
+    """
+    Fetch a single page of checks data from Checkly API.
+    Args:
+        page: Page number to fetch
+        headers: API request headers
+    Returns:
+        List of check records from the API response
+    """
+    # Construct URL with query parameters for pagination
+    url = f"{__BASE_URL}/checks?limit={__PAGE_SIZE}&page={page}&applyGroupSettings=false"
+
+    response_data = make_api_request(url, headers)
+
+    # Return empty list if no data or invalid response
+    if not response_data or not isinstance(response_data, list):
+        return []
+
+    return response_data
+
+
 def get_checks_data(configuration: dict):
     """
     Fetch checks data from Checkly API with pagination support.
@@ -344,70 +404,37 @@ def get_checks_data(configuration: dict):
         configuration: Configuration dictionary with API credentials
     Process check records and upsert them to destination table.
     """
-    api_key = configuration.get("api_key")
-    account_id = configuration.get("account_id")
-
-    headers = {
-        "accept": "application/json",
-        "x-checkly-account": account_id,
-        "Authorization": f"Bearer {api_key}",
-    }
+    headers = build_api_headers(configuration)
 
     page = 1
-    has_more_data = True
     total_records = 0
-    browser_checks_found = 0
 
     # Pagination loop to fetch all checks data from Checkly API
     # Each page returns up to __PAGE_SIZE records until all data is retrieved
-    while has_more_data:
-        # Construct URL with query parameters for pagination
-        url = f"{__BASE_URL}/checks?limit={__PAGE_SIZE}&page={page}&applyGroupSettings=false"
-
+    while True:
         try:
-            response_data = make_api_request(url, headers)
+            response_data = fetch_checks_page(page, headers)
 
-            if not response_data or len(response_data) == 0:
-                has_more_data = False
+            # Break if no more data
+            if not response_data:
                 break
 
+            # Process each check record in the current page
             for check_record in response_data:
-                # Flatten the nested objects as required for destination table
-                flattened_record = flatten_nested_objects(check_record)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table="checks", data=flattened_record)
+                process_single_check(check_record, configuration)
                 total_records += 1
-
-                # If this is a browser check, fetch analytics data
-                check_type = check_record.get("checkType")
-                check_id = check_record.get("id")
-
-                if check_type == "BROWSER" and check_id:
-                    browser_checks_found += 1
-                    try:
-                        get_analytics_data(configuration, check_id, check_type)
-                    except Exception as e:
-                        log.severe(f"Failed to process analytics for check {check_id}: {str(e)}")
-                        # Continue with other checks for non-critical errors
-                        continue
 
             # Check if we have more data to fetch
             if len(response_data) < __PAGE_SIZE:
-                has_more_data = False
-            else:
-                page += 1
+                break
+
+            page += 1
 
         except Exception as e:
             log.severe(f"Error fetching checks data on page {page}: {str(e)}")
             raise
 
-    log.info(
-        f"Successfully processed {total_records} check records, {browser_checks_found} with analytics"
-    )
+    log.info(f"Successfully processed {total_records} check records")
 
 
 def schema(configuration: dict):
@@ -434,7 +461,7 @@ def schema(configuration: dict):
             "table": "browser_checks_analytics_non_aggregated",  # Name of the non-aggregated analytics table in the destination, required.
             "primary_key": [
                 "check_id",
-                "timestamp",
+                "aggregation_interval",
             ],  # Primary key for non-aggregated analytics data, optional.
         },
     ]
