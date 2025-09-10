@@ -25,7 +25,7 @@ The configuration keys required for your connector are as follows:
 
 ```json
 {
-  "api_token": "YOUR_VERCEL_API_TOKEN",
+  "api_token": "<YOUR_VERCEL_API_TOKEN>",
   "team_id": "<YOUR_TEAM_ID_OPTIONAL>"
 }
 ```

@@ -27,7 +27,11 @@ from typing import Optional
 
 __BASE_URL = "https://api.vercel.com"  # Base URL for Vercel API
 __PAGINATION_LIMIT = 20  # Pagination limit - you can change this constant value
-__REQUEST_TIMEOUT = 30  # Request timeout in seconds
+__REQUEST_TIMEOUT_IN_SECONDS = 30  # Request timeout in seconds
+
+# Retry configuration constants
+__MAX_RETRIES = 5  # Maximum number of retry attempts for API requests
+__BACKOFF_BASE = 1  # Base delay in seconds for API request retries
 
 
 def validate_configuration(configuration: dict):
@@ -96,31 +100,29 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
     if params is None:
         params = {}
 
-    max_retries = 5
-    backoff_base = 1  # seconds
     response = None
-    for attempt in range(max_retries):
+    for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_IN_SECONDS
+            )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.Timeout:
             log.severe(f"Request timeout for URL: {url}")
             raise
         except requests.exceptions.HTTPError as e:
-            if response and response.status_code == 429:
+            # Only retry on rate limiting (429)
+            if response and response.status_code == 429 and attempt < __MAX_RETRIES - 1:
+                delay = __BACKOFF_BASE * (2**attempt)
                 log.warning(
-                    f"Rate limit exceeded for URL: {url} (attempt {attempt + 1}/{max_retries})"
+                    f"Rate limit exceeded for URL: {url} (attempt {attempt + 1}/{__MAX_RETRIES}). Retrying in {delay} seconds..."
                 )
-                # Exponential backoff for rate limiting
-                sleep_time = backoff_base * (2**attempt)
-                log.info(f"Sleeping for {sleep_time} seconds before retrying...")
-                time.sleep(sleep_time)
+                time.sleep(delay)
                 continue
-            if response:
-                log.severe(f"HTTP error {response.status_code} for URL: {url}: {e}")
-            else:
-                log.severe(f"HTTP error for URL: {url}: {e}")
+            # For all other HTTP errors or final attempt, log and raise
+            status_code = response.status_code if response else "unknown"
+            log.severe(f"HTTP error {status_code} for URL: {url}: {e}")
             raise
         except requests.exceptions.RequestException as e:
             log.severe(f"Request failed for URL: {url}: {e}")
@@ -128,10 +130,9 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
         except ValueError as e:
             log.severe(f"Invalid JSON response from URL: {url}: {e}")
             raise
-    # If we exhausted retries due to rate limiting
-    log.severe(f"Exceeded maximum retries ({max_retries}) due to rate limiting for URL: {url}")
+
     raise requests.exceptions.HTTPError(
-        f"Rate limit exceeded for URL: {url} after {max_retries} attempts"
+        f"Rate limit exceeded for URL: {url} after {__MAX_RETRIES} attempts"
     )
 
 
