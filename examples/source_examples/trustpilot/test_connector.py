@@ -319,9 +319,7 @@ def test_endpoint_functions():
     if time_range_with_sync["start"] == last_sync:
         print("✅ Time range function with last sync time passed")
     else:
-        print(
-            f"❌ Time range function with last sync time failed: {time_range_with_sync}"
-        )
+        print(f"❌ Time range function with last sync time failed: {time_range_with_sync}")
         return False
 
     print("✅ Endpoint function tests passed")

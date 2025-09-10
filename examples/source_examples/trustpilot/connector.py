@@ -130,23 +130,21 @@ def execute_api_request(
 
     for attempt in range(retry_attempts):
         try:
-            response = requests.get(
-                url, headers=headers, params=params, timeout=timeout
-            )
+            response = requests.get(url, headers=headers, params=params, timeout=timeout)
 
             # Handle rate limiting (HTTP 429) specifically
             if response.status_code == 429:
                 # Get retry-after header if available, otherwise use exponential backoff
-                retry_after = response.headers.get('Retry-After')
+                retry_after = response.headers.get("Retry-After")
                 if retry_after:
                     try:
                         wait_time = int(retry_after)
                     except ValueError:
                         # If Retry-After is not a valid integer, use exponential backoff
-                        wait_time = min(base_delay * (2 ** attempt), max_delay)
+                        wait_time = min(base_delay * (2**attempt), max_delay)
                 else:
                     # Use exponential backoff with jitter
-                    wait_time = min(base_delay * (2 ** attempt), max_delay)
+                    wait_time = min(base_delay * (2**attempt), max_delay)
 
                 # Add jitter to prevent thundering herd problem
                 jitter = random.uniform(0, min(wait_time * 0.1, 5))
@@ -167,12 +165,10 @@ def execute_api_request(
                 log.severe(
                     f"Failed to execute API request to {endpoint} after {retry_attempts} attempts: {str(e)}"
                 )
-                raise RuntimeError(
-                    f"API request failed after {retry_attempts} attempts: {str(e)}"
-                )
+                raise RuntimeError(f"API request failed after {retry_attempts} attempts: {str(e)}")
             else:
                 # For non-rate-limit errors, use exponential backoff
-                wait_time = min(base_delay * (2 ** attempt), max_delay)
+                wait_time = min(base_delay * (2**attempt), max_delay)
                 jitter = random.uniform(0, min(wait_time * 0.1, 2))
                 total_wait_time = wait_time + jitter
 
@@ -209,9 +205,7 @@ def get_time_range(
         initial_sync_days = 90
         if configuration:
             try:
-                initial_sync_days = int(
-                    str(configuration.get("initial_sync_days", "90"))
-                )
+                initial_sync_days = int(str(configuration.get("initial_sync_days", "90")))
             except (ValueError, TypeError):
                 initial_sync_days = 90
 
@@ -421,9 +415,7 @@ def get_consumers_data(
                     "consumer_id": consumer_id,
                     "review_id": review.get("id", ""),
                     "business_unit_id": review.get("businessUnit", {}).get("id", ""),
-                    "business_unit_name": review.get("businessUnit", {}).get(
-                        "displayName", ""
-                    ),
+                    "business_unit_name": review.get("businessUnit", {}).get("displayName", ""),
                     "stars": review.get("stars", 0),
                     "title": review.get("title", ""),
                     "text": review.get("text", ""),
@@ -434,18 +426,12 @@ def get_consumers_data(
                     "created_at": review.get("createdAt", ""),
                     "updated_at": review.get("updatedAt", ""),
                     "experienced_at": review.get("experiencedAt", ""),
-                    "review_verification_level": review.get(
-                        "reviewVerificationLevel", ""
-                    ),
-                    "counts_towards_trust_score": review.get(
-                        "countsTowardsTrustScore", False
-                    ),
+                    "review_verification_level": review.get("reviewVerificationLevel", ""),
+                    "counts_towards_trust_score": review.get("countsTowardsTrustScore", False),
                     "counts_towards_location_trust_score": review.get(
                         "countsTowardsLocationTrustScore", False
                     ),
-                    "company_reply_text": review.get("companyReply", {}).get(
-                        "text", ""
-                    ),
+                    "company_reply_text": review.get("companyReply", {}).get("text", ""),
                     "company_reply_created_at": review.get("companyReply", {}).get(
                         "createdAt", ""
                     ),
@@ -670,9 +656,7 @@ def update(configuration: dict, state: dict):
     enable_invitation_links = (
         str(configuration.get("enable_invitation_links", "true")).lower() == "true"
     )
-    enable_categories = (
-        str(configuration.get("enable_categories", "true")).lower() == "true"
-    )
+    enable_categories = str(configuration.get("enable_categories", "true")).lower() == "true"
     enable_debug_logging = (
         str(configuration.get("enable_debug_logging", "false")).lower() == "true"
     )
@@ -685,9 +669,7 @@ def update(configuration: dict, state: dict):
         log.info(f"Incremental sync: fetching data since {last_sync_time}")
     else:
         initial_days = str(configuration.get("initial_sync_days", "90"))
-        log.info(
-            f"Initial sync: fetching all available data (last {initial_days} days)"
-        )
+        log.info(f"Initial sync: fetching all available data (last {initial_days} days)")
 
     if enable_debug_logging:
         log.info(
@@ -703,9 +685,7 @@ def update(configuration: dict, state: dict):
 
         # Fetch reviews data
         log.info("Fetching reviews data...")
-        reviews_data = get_reviews_data(
-            api_key, business_unit_id, last_sync_time, configuration
-        )
+        reviews_data = get_reviews_data(api_key, business_unit_id, last_sync_time, configuration)
         for record in reviews_data:
             op.upsert(table="review", data=record)
 
