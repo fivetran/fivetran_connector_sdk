@@ -13,7 +13,7 @@ from fivetran_connector_sdk import Operations as op
 import json
 import requests
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import time
 
 
@@ -106,6 +106,7 @@ def fetch_fda_food_data(configuration: dict, state: dict) -> List[Dict[str, Any]
     # Extract configuration parameters
     max_records = int(configuration.get("max_records", "10"))
     use_api_key = configuration.get("use_api_key", "false").lower() == "true"
+    log.info(use_api_key)
     api_key = configuration.get("api_key", "")
     lookback_days = int(configuration.get("lookback_days", "30"))
     use_date_filter = configuration.get("use_date_filter", "false").lower() == "true"
