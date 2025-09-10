@@ -113,6 +113,47 @@ def flatten_dictionary(data, parent_key="", separator="_"):
     return dict(items)
 
 
+def fetch_api_data(endpoint: str, headers: dict, description: str = "") -> list:
+    """
+    Generic function to fetch data from StatusCake API endpoints.
+    Args:
+        endpoint: API endpoint path
+        headers: HTTP headers including authentication
+        description: Description for logging purposes
+    Returns:
+        List of data records from API response
+    """
+    url = f"{__BASE_URL}/{endpoint}"
+    response_data = make_api_request(url, headers)
+
+    if response_data and "data" in response_data:
+        count = len(response_data["data"])
+        log.info(f"Fetched {count} {description} records from {endpoint}")
+        return response_data["data"]
+
+    log.warning(f"No {description} data found from {endpoint}")
+    return []
+
+
+def upsert_records_with_test_id(table_name: str, records: list, test_id: str):
+    """
+    Common function to process and upsert records with test_id reference.
+    Args:
+        table_name: Name of the destination table
+        records: List of records to process
+        test_id: Test ID to add as foreign key reference
+    """
+    for record in records:
+        record["test_id"] = test_id  # Add test_id reference
+        flattened_record = flatten_dictionary(record)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table_name, flattened_record)
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -166,7 +207,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Fetch all uptime tests first - this is the primary data source
-        uptime_tests = fetch_uptime_tests(headers)
+        uptime_tests = fetch_api_data("uptime", headers, "uptime tests")
 
         # Process each uptime test and its related data
         for test in uptime_tests:
@@ -181,132 +222,27 @@ def update(configuration: dict, state: dict):
             # 2. The data record as a dictionary with column names as keys
             op.upsert("uptime_test", flattened_test)
 
-            # Process related data for this uptime test
-            process_uptime_test_history(test_id, headers)
-            process_uptime_test_periods(test_id, headers)
-            process_uptime_test_alerts(test_id, headers)
+            # Process history data for this uptime test
+            history_data = fetch_api_data(
+                f"uptime/{test_id}/history", headers, f"history records for test {test_id}"
+            )
+            upsert_records_with_test_id("uptime_test_history", history_data, test_id)
+
+            # Process periods data for this uptime test
+            periods_data = fetch_api_data(
+                f"uptime/{test_id}/periods", headers, f"period records for test {test_id}"
+            )
+            upsert_records_with_test_id("uptime_test_period", periods_data, test_id)
+
+            # Process alerts data for this uptime test
+            alerts_data = fetch_api_data(
+                f"uptime/{test_id}/alerts", headers, f"alert records for test {test_id}"
+            )
+            upsert_records_with_test_id("uptime_test_alert", alerts_data, test_id)
 
     except Exception as e:
         log.severe(f"Error during sync: {str(e)}")
         raise
-
-
-def fetch_uptime_tests(headers):
-    """
-    Fetch all uptime tests from the StatusCake API.
-    Args:
-        headers: HTTP headers including authentication
-    Returns:
-        List of uptime test dictionaries
-    """
-    url = f"{__BASE_URL}/uptime"
-    response_data = make_api_request(url, headers)
-
-    if response_data and "data" in response_data:
-        log.info(f"Fetched {len(response_data['data'])} uptime tests")
-        return response_data["data"]
-
-    log.warning("No uptime tests data found")
-    return []
-
-
-def fetch_uptime_test_history(test_id, headers):
-    """
-    Fetch history data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    Returns:
-        List of history record dictionaries
-    """
-    url = f"{__BASE_URL}/uptime/{test_id}/history"
-    response_data = make_api_request(url, headers)
-
-    if response_data and "data" in response_data:
-        log.info(f"Fetched {len(response_data['data'])} history records for test {test_id}")
-        return response_data["data"]
-
-    return []
-
-
-def fetch_uptime_test_periods(test_id, headers):
-    """
-    Fetch periods data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    Returns:
-        List of period record dictionaries
-    """
-    url = f"{__BASE_URL}/uptime/{test_id}/periods"
-    response_data = make_api_request(url, headers)
-
-    if response_data and "data" in response_data:
-        log.info(f"Fetched {len(response_data['data'])} period records for test {test_id}")
-        return response_data["data"]
-
-    return []
-
-
-def fetch_uptime_test_alerts(test_id, headers):
-    """
-    Fetch alerts data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    Returns:
-        List of alert record dictionaries
-    """
-    url = f"{__BASE_URL}/uptime/{test_id}/alerts"
-    response_data = make_api_request(url, headers)
-
-    if response_data and "data" in response_data:
-        log.info(f"Fetched {len(response_data['data'])} alert records for test {test_id}")
-        return response_data["data"]
-
-    return []
-
-
-def process_uptime_test_history(test_id, headers):
-    """
-    Process and upsert history data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    """
-    history_data = fetch_uptime_test_history(test_id, headers)
-    for history_record in history_data:
-        history_record["test_id"] = test_id  # Add test_id reference
-        flattened_history = flatten_dictionary(history_record)
-        op.upsert("uptime_test_history", flattened_history)
-
-
-def process_uptime_test_periods(test_id, headers):
-    """
-    Process and upsert periods data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    """
-    periods_data = fetch_uptime_test_periods(test_id, headers)
-    for period_record in periods_data:
-        period_record["test_id"] = test_id  # Add test_id reference
-        flattened_period = flatten_dictionary(period_record)
-        op.upsert("uptime_test_period", flattened_period)
-
-
-def process_uptime_test_alerts(test_id, headers):
-    """
-    Process and upsert alerts data for a specific uptime test.
-    Args:
-        test_id: ID of the uptime test
-        headers: HTTP headers including authentication
-    """
-    alerts_data = fetch_uptime_test_alerts(test_id, headers)
-    for alert_record in alerts_data:
-        alert_record["test_id"] = test_id  # Add test_id reference
-        flattened_alert = flatten_dictionary(alert_record)
-        op.upsert("uptime_test_alert", flattened_alert)
 
 
 # Create the connector object using the schema and update functions
