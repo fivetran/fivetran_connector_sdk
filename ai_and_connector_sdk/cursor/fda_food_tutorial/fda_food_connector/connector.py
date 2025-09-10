@@ -230,6 +230,7 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters
     max_records = int(configuration.get("max_records", "10"))
+    api_key = configuration.get("api_key", "")
     use_api_key = configuration.get("use_api_key", "false").lower() == "true"
     if len(api_key) > 2:
         masked_api_key = api_key[:2] + "*" * (len(api_key) - 2)
@@ -321,3 +322,4 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
+
