@@ -39,7 +39,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-The requirements.txt file specifies additional Python libraries required by the connector. Following Fivetran best practices, this connector doesn't require additional dependencies.
+The `requirements.txt` file specifies additional Python libraries required by the connector. Following Fivetran best practices, this connector doesn't require additional dependencies.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
@@ -47,7 +47,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector uses Bearer token authentication with StatusCake's API. You need to provide your API key in the configuration file. To obtain an API key:
 
 1. Log into your StatusCake account.
-2. Navigate to Account Settings → API Keys.
+2. Navigate to **Account Settings → API Keys**.
 3. Create a new API key or copy an existing one.
 4. Add the key to your `configuration.json` file as shown above.
 
