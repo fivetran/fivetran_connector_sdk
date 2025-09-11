@@ -1,8 +1,8 @@
 """
 ACT Web API Connector
 
-This connector fetches data from ACT Web API endpoints (contacts, companies, opportunities) 
-and loads it into Fivetran. It handles JWT authentication, pagination, rate limiting, 
+This connector fetches data from ACT Web API endpoints (contacts, companies, opportunities)
+and loads it into Fivetran. It handles JWT authentication, pagination, rate limiting,
 and flattens nested JSON structures into tabular format.
 """
 
@@ -19,17 +19,17 @@ from typing import Dict, List, Any, Generator, Optional
 # Constants
 MAX_RETRIES = 3
 RETRY_DELAY = 1
-DEFAULT_BATCH_SIZE = 100
+DEFAULT_BATCH_SIZE = 10000
 DEFAULT_RATE_LIMIT_PAUSE = 0.25
 
 # Available endpoints
 ENDPOINTS = {
-    'contacts': '/api/contacts',
-    'companies': '/api/companies',
-    'opportunities': '/api/opportunities',
-    'activities': '/api/activities',
-    'activity_types': '/api/activity-types',
-    'products': '/api/products'
+    "contacts": "/api/contacts",
+    "companies": "/api/companies",
+    "opportunities": "/api/opportunities",
+    "activities": "/api/activities",
+    "activity_types": "/api/activity-types",
+    "products": "/api/products",
 }
 
 
@@ -43,15 +43,22 @@ def validate_configuration(configuration: dict) -> None:
     Raises:
         ValueError: If any required configuration parameter is missing
     """
-    required_configs = ["protocol", "hostname", "api_path", "username", "password", "database_name"]
+    required_configs = [
+        "protocol",
+        "hostname",
+        "api_path",
+        "username",
+        "password",
+        "database_name",
+    ]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
-    
+
     # Validate protocol
-    if configuration["protocol"].lower() not in ['http', 'https']:
+    if configuration["protocol"].lower() not in ["http", "https"]:
         raise ValueError("Protocol must be 'http' or 'https'")
-    
+
     # Validate port if provided
     if "port" in configuration and configuration["port"]:
         try:
@@ -60,7 +67,7 @@ def validate_configuration(configuration: dict) -> None:
                 raise ValueError("Port must be between 1 and 65535")
         except (ValueError, TypeError):
             raise ValueError("Port must be a valid integer between 1 and 65535")
-    
+
     # Validate default_start_date format if provided
     if "default_start_date" in configuration:
         try:
@@ -83,15 +90,17 @@ def build_api_url(protocol: str, hostname: str, port: str, api_path: str) -> str
         Complete API URL
     """
     # Validate protocol
-    if protocol.lower() not in ['http', 'https']:
+    if protocol.lower() not in ["http", "https"]:
         raise ValueError("Protocol must be 'http' or 'https'")
-    
+
     # Set default ports if not specified
     if not port:
-        port = '80' if protocol.lower() == 'http' else '443'
-    
+        port = "80" if protocol.lower() == "http" else "443"
+
     # Build URL with port (only add port if it's not the default)
-    if (protocol.lower() == 'http' and port != '80') or (protocol.lower() == 'https' and port != '443'):
+    if (protocol.lower() == "http" and port != "80") or (
+        protocol.lower() == "https" and port != "443"
+    ):
         return f"{protocol.lower()}://{hostname}:{port}{api_path}"
     else:
         return f"{protocol.lower()}://{hostname}{api_path}"
@@ -122,7 +131,9 @@ def flatten_dict(d: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dic
     return dict(items)
 
 
-def authenticate_with_act(api_base_url: str, username: str, password: str, database_name: str) -> Optional[str]:
+def authenticate_with_act(
+    api_base_url: str, username: str, password: str, database_name: str
+) -> Optional[str]:
     """
     Authenticate with ACT API using Basic Auth to get JWT token.
 
@@ -139,46 +150,50 @@ def authenticate_with_act(api_base_url: str, username: str, password: str, datab
         # Create basic auth header
         credentials = f"{username}:{password}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
-        
+
         headers = {
-            'Authorization': f'Basic {encoded_credentials}',
-            'Act-Database-Name': database_name,
-            'Content-Type': 'application/json'
+            "Authorization": f"Basic {encoded_credentials}",
+            "Act-Database-Name": database_name,
+            "Content-Type": "application/json",
         }
-        
+
         # Log authentication request details
         log.fine(f"Authenticating with ACT API at: {api_base_url}/authorize")
         log.fine(f"Database name: {database_name}")
         log.fine(f"Username: {username}")
         log.fine(f"Authorization header: Basic {encoded_credentials[:10]}...")
-        
+
         # Get JWT token
-        response = requests.get(
-            f"{api_base_url}/authorize",
-            headers=headers,
-            timeout=30
-        )
-        
+        response = requests.get(f"{api_base_url}/authorize", headers=headers, timeout=30)
+
         # Log authentication response details
         log.fine(f"Authentication response status: {response.status_code}")
         log.fine(f"Authentication response headers: {dict(response.headers)}")
-        
+
         if response.status_code == 200:
             jwt_token = response.text.strip('"')  # Remove quotes from token
-            log.info(f"Successfully authenticated with ACT API")
+            log.info("Successfully authenticated with ACT API")
             log.fine(f"JWT token length: {len(jwt_token)} characters")
             log.fine(f"JWT token preview: {jwt_token[:50]}...")
             return jwt_token
         else:
             log.severe(f"Authentication failed: {response.status_code} - {response.text}")
             return None
-            
+
     except Exception as e:
         log.severe(f"Authentication error: {str(e)}")
         return None
 
 
-def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: str, api_base_url: str = None, username: str = None, password: str = None) -> Dict[str, Any]:
+def fetch_data(
+    url: str,
+    params: Dict[str, Any],
+    jwt_token: str,
+    database_name: str,
+    api_base_url: str = None,
+    username: str = None,
+    password: str = None,
+) -> Dict[str, Any]:
     """
     Fetch data from the ACT API with retry logic, rate limiting, and comprehensive error handling.
 
@@ -198,9 +213,9 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
         RuntimeError: If API request fails after retries
     """
     headers = {
-        'Authorization': f'Bearer {jwt_token}',
-        'Act-Database-Name': database_name,
-        'Content-Type': 'application/json'
+        "Authorization": f"Bearer {jwt_token}",
+        "Act-Database-Name": database_name,
+        "Content-Type": "application/json",
     }
 
     # Log request details
@@ -218,65 +233,85 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
         500: "Internal Server Error - ACT API server error.",
         502: "Bad Gateway - ACT API server error.",
         503: "Service Unavailable - ACT API service temporarily unavailable.",
-        504: "Gateway Timeout - ACT API server timeout."
+        504: "Gateway Timeout - ACT API server timeout.",
     }
 
     for attempt in range(MAX_RETRIES):
         try:
             response = requests.get(url, params=params, headers=headers, timeout=30)
-            
+
             # Log response details
             log.fine(f"Response status code: {response.status_code}")
             log.fine(f"Response headers: {dict(response.headers)}")
-            
+
             # Check for rate limiting headers
-            if 'X-RateLimit-Limit' in response.headers:
-                log.fine(f"Rate limit - Limit: {response.headers.get('X-RateLimit-Limit')}, "
-                        f"Remaining: {response.headers.get('X-RateLimit-Remaining')}, "
-                        f"Reset: {response.headers.get('X-RateLimit-Reset')}")
-            
+            if "X-RateLimit-Limit" in response.headers:
+                log.fine(
+                    f"Rate limit - Limit: {response.headers.get('X-RateLimit-Limit')}, "
+                    f"Remaining: {response.headers.get('X-RateLimit-Remaining')}, "
+                    f"Reset: {response.headers.get('X-RateLimit-Reset')}"
+                )
+
             # Handle specific HTTP status codes
             status_code = response.status_code
-            
+
             if status_code == 200:
                 # Success - parse and return data
                 response_data = response.json()
-                
+
                 # Log response structure
                 if isinstance(response_data, dict):
                     log.fine(f"Response data keys: {list(response_data.keys())}")
-                    
+
                     # Log specific data counts if available
-                    if 'value' in response_data and isinstance(response_data['value'], list):
-                        log.fine(f"Number of records in 'value' array: {len(response_data['value'])}")
+                    if "value" in response_data and isinstance(response_data["value"], list):
+                        log.fine(
+                            f"Number of records in 'value' array: {len(response_data['value'])}"
+                        )
                         # Log sample data structure (first record only)
-                        if response_data['value']:
-                            sample_record = response_data['value'][0]
-                            log.fine(f"Sample record structure: {list(sample_record.keys()) if isinstance(sample_record, dict) else 'Not a dict'}")
-                    
+                        if response_data["value"]:
+                            sample_record = response_data["value"][0]
+                            sample_keys = (
+                                list(sample_record.keys())
+                                if isinstance(sample_record, dict)
+                                else "Not a dict"
+                            )
+                            log.fine(f"Sample record structure: {sample_keys}")
+
                 elif isinstance(response_data, list):
                     log.fine(f"Number of records in response array: {len(response_data)}")
                     # Log sample data structure (first record only)
                     if response_data:
                         sample_record = response_data[0]
-                        log.fine(f"Sample record structure: {list(sample_record.keys()) if isinstance(sample_record, dict) else 'Not a dict'}")
+                        sample_keys = (
+                            list(sample_record.keys())
+                            if isinstance(sample_record, dict)
+                            else "Not a dict"
+                        )
+                        log.fine(f"Sample record structure: {sample_keys}")
                 else:
                     log.fine(f"Response data type: {type(response_data)}")
-                    log.fine(f"Response data: {str(response_data)[:500]}...")  # Truncate for logging
-                
+                    log.fine(
+                        f"Response data: {str(response_data)[:500]}..."
+                    )  # Truncate for logging
+
                 return response_data
-            
+
             elif status_code == 401:
                 # Unauthorized - JWT token expired
                 error_msg = error_messages.get(401, f"HTTP {status_code} - Unauthorized")
-                log.warning(f"JWT token expired (401 Unauthorized) on attempt {attempt + 1}: {error_msg}")
-                
+                log.warning(
+                    f"JWT token expired (401 Unauthorized) on attempt {attempt + 1}: {error_msg}"
+                )
+
                 if api_base_url and username and password:
                     log.info("Attempting to refresh JWT token...")
-                    new_jwt_token = authenticate_with_act(api_base_url, username, password, database_name)
+                    new_jwt_token = authenticate_with_act(
+                        api_base_url, username, password, database_name
+                    )
                     if new_jwt_token:
                         jwt_token = new_jwt_token
-                        headers['Authorization'] = f'Bearer {jwt_token}'
+                        headers["Authorization"] = f"Bearer {jwt_token}"
                         log.info("JWT token refreshed successfully, retrying request...")
                         continue
                     else:
@@ -285,52 +320,52 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
                 else:
                     log.severe("JWT token expired but no refresh credentials provided")
                     raise RuntimeError("JWT token expired and no refresh mechanism available")
-            
+
             elif status_code == 429:
                 # Rate limited - wait and retry
                 error_msg = error_messages.get(429, f"HTTP {status_code} - Too Many Requests")
                 log.warning(f"Rate limited on attempt {attempt + 1}: {error_msg}")
-                
+
                 # Extract retry-after header if available
-                retry_after = response.headers.get('Retry-After')
+                retry_after = response.headers.get("Retry-After")
                 if retry_after:
                     wait_time = int(retry_after)
                     log.info(f"Waiting {wait_time} seconds as specified by Retry-After header")
                     time.sleep(wait_time)
                 else:
                     # Exponential backoff for rate limiting
-                    wait_time = RETRY_DELAY * (2 ** attempt)
+                    wait_time = RETRY_DELAY * (2**attempt)
                     log.info(f"Waiting {wait_time} seconds before retry")
                     time.sleep(wait_time)
-                
+
                 continue
-            
+
             elif status_code in [500, 502, 503, 504]:
                 # Server errors - retry with exponential backoff
                 error_msg = error_messages.get(status_code, f"HTTP {status_code} - Server Error")
                 log.warning(f"Server error on attempt {attempt + 1}: {error_msg}")
-                
+
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = RETRY_DELAY * (2 ** attempt)
+                    wait_time = RETRY_DELAY * (2**attempt)
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
                 else:
                     log.severe(f"Server error after {MAX_RETRIES} attempts: {error_msg}")
                     raise RuntimeError(f"Server error after {MAX_RETRIES} attempts: {error_msg}")
-            
+
             elif status_code in [400, 403, 404]:
                 # Client errors - don't retry
                 error_msg = error_messages.get(status_code, f"HTTP {status_code} - Client Error")
                 log.severe(f"Client error: {error_msg}")
                 log.severe(f"Response body: {response.text[:500]}...")
                 raise RuntimeError(f"Client error: {error_msg}")
-            
+
             else:
                 # Other status codes
                 error_msg = f"HTTP {status_code} - Unexpected response"
                 log.warning(f"Unexpected status code on attempt {attempt + 1}: {error_msg}")
-                
+
                 if attempt < MAX_RETRIES - 1:
                     wait_time = RETRY_DELAY * (attempt + 1)
                     log.info(f"Retrying in {wait_time} seconds...")
@@ -338,8 +373,10 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
                     continue
                 else:
                     log.severe(f"Unexpected status code after {MAX_RETRIES} attempts: {error_msg}")
-                    raise RuntimeError(f"Unexpected status code after {MAX_RETRIES} attempts: {error_msg}")
-            
+                    raise RuntimeError(
+                        f"Unexpected status code after {MAX_RETRIES} attempts: {error_msg}"
+                    )
+
         except requests.exceptions.Timeout:
             log.warning(f"Request timeout on attempt {attempt + 1}")
             if attempt < MAX_RETRIES - 1:
@@ -350,7 +387,7 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
             else:
                 log.severe(f"Request timeout after {MAX_RETRIES} attempts")
                 raise RuntimeError(f"Request timeout after {MAX_RETRIES} attempts")
-        
+
         except requests.exceptions.ConnectionError:
             log.warning(f"Connection error on attempt {attempt + 1}")
             if attempt < MAX_RETRIES - 1:
@@ -361,7 +398,7 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
             else:
                 log.severe(f"Connection error after {MAX_RETRIES} attempts")
                 raise RuntimeError(f"Connection error after {MAX_RETRIES} attempts")
-        
+
         except requests.exceptions.RequestException as e:
             log.severe(f"Request exception on attempt {attempt + 1}: {str(e)}")
             if attempt < MAX_RETRIES - 1:
@@ -372,7 +409,7 @@ def fetch_data(url: str, params: Dict[str, Any], jwt_token: str, database_name: 
             else:
                 log.severe(f"Request exception after {MAX_RETRIES} attempts: {str(e)}")
                 raise RuntimeError(f"Request exception after {MAX_RETRIES} attempts: {str(e)}")
-        
+
         except Exception as e:
             log.severe(f"Unexpected error on attempt {attempt + 1}: {str(e)}")
             if attempt < MAX_RETRIES - 1:
@@ -404,7 +441,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
         {"table": "opportunities", "primary_key": ["id"]},
         {"table": "activities", "primary_key": ["id"]},
         {"table": "activity_types", "primary_key": ["id"]},
-        {"table": "products", "primary_key": ["id"]}
+        {"table": "products", "primary_key": ["id"]},
     ]
 
 
@@ -435,7 +472,7 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
     batch_size = int(configuration.get("batch_size", str(DEFAULT_BATCH_SIZE)))
     rate_limit_pause = float(configuration.get("rate_limit_pause", str(DEFAULT_RATE_LIMIT_PAUSE)))
     default_start_date = configuration.get("default_start_date", "1970-01-01T00:00:00Z")
-    
+
     # Build complete API URL from components
     complete_api_url = build_api_url(protocol, hostname, port, api_path)
     log.info(f"Using API URL: {complete_api_url}")
@@ -448,7 +485,7 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
     # Get table cursors and batch tracking from state
     table_cursors = state.get("table_cursors", {})  # Make a copy to avoid overwriting
     table_batch_tracking = state.get("table_batch_tracking", {})  # Track current batch progress
-    
+
     # Set sync start time - this will be used for all tables
     sync_start_time = datetime.now(pytz.UTC).isoformat()
     log.info(f"Sync start time: {sync_start_time}")
@@ -457,57 +494,76 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
     log.info(f"Processing {len(ENDPOINTS)} tables: {list(ENDPOINTS.keys())}")
     for table_name, endpoint in ENDPOINTS.items():
         log.info(f"Starting sync for table: {table_name} (endpoint: {endpoint})")
-        
+
         # Get cursor for this table - use current time if no cursor exists
         table_cursor = table_cursors.get(table_name)
         if not table_cursor:
             # No previous cursor, start from current time for incremental sync
             table_cursor = default_start_date
-            log.info(f"No previous cursor for {table_name}, starting from current time: {table_cursor}")
-        
+            log.info(
+                f"No previous cursor for {table_name}, starting from current time: {table_cursor}"
+            )
+
         # Get batch tracking for this table
         batch_tracking = table_batch_tracking.get(table_name, {})
         skip = batch_tracking.get("skip", 0)
         batch_count = batch_tracking.get("batch_count", 0)
-        
+
         log.info(f"Current table_cursors state before processing {table_name}: {table_cursors}")
         log.info(f"Resuming {table_name} from skip={skip}, batch_count={batch_count}")
-        
+
         try:
             # Safety mechanism to prevent infinite loops on empty responses
             max_empty_batches = 3  # Maximum number of consecutive empty batches before stopping
             empty_batch_count = 0  # Track consecutive empty batches
-            
+
             while True:
                 # Prepare query parameters
                 params = {"$top": batch_size, "$skip": skip}
 
                 # Add OData filter for incremental sync
                 # Activity Types endpoint has no OData filtering (full pull every time)
-                if table_name != 'activity_types':
+                if table_name != "activity_types":
                     # Parse cursor to get start time (table_cursor is guaranteed to exist from above logic)
                     try:
                         cursor_dt = parser.parse(table_cursor)
-                        start_time = cursor_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-                    except:
+                        start_time = cursor_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    except (ValueError, TypeError):
                         # If cursor parsing fails, use default start date from configuration
                         start_time = default_start_date
-                        log.warning(f"Failed to parse cursor for {table_name}, using default start date: {start_time}")
-                    
+                        log.warning(
+                            f"Failed to parse cursor for {table_name}, using default start date: {start_time}"
+                        )
+
                     # Use sync start time for the upper bound of the filter
                     filter_end_time = sync_start_time
-                    
+
                     # Different endpoints use different date fields
-                    if table_name == 'products':
-                        params["$filter"] = f'(editdate ge {start_time} and editdate le {filter_end_time})'
-                        params["$orderby"] = 'editdate asc'
+                    if table_name == "products":
+                        params["$filter"] = (
+                            f"(editdate ge {start_time} and editdate le {filter_end_time})"
+                        )
+                        params["$orderby"] = "editdate asc"
                     else:
-                        params["$filter"] = f'(edited ge {start_time} and edited le {filter_end_time})'
-                        params["$orderby"] = 'edited asc'
+                        params["$filter"] = (
+                            f"(edited ge {start_time} and edited le {filter_end_time})"
+                        )
+                        params["$orderby"] = "edited asc"
 
                 # Fetch data from API
-                log.info(f"Fetching batch of {batch_size} records for {table_name} starting at offset {skip}")
-                response_data = fetch_data(f"{complete_api_url}{endpoint}", params, jwt_token, database_name, complete_api_url, username, password)
+                log.info(
+                    f"Fetching batch of {batch_size} records for {table_name} "
+                    f"starting at offset {skip}"
+                )
+                response_data = fetch_data(
+                    f"{complete_api_url}{endpoint}",
+                    params,
+                    jwt_token,
+                    database_name,
+                    complete_api_url,
+                    username,
+                    password,
+                )
 
                 # Process results
                 # Handle different response formats
@@ -516,20 +572,30 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                 elif isinstance(response_data, list):
                     results = response_data
                 else:
-                    log.warning(f"Unexpected response data type for {table_name}: {type(response_data)}")
+                    log.warning(
+                        f"Unexpected response data type for {table_name}: {type(response_data)}"
+                    )
                     results = []
-                
+
                 # Check for empty results - stop on first empty but track as fail-safe
                 if not results:
 
                     empty_batch_count += 1
-                    log.info(f"Empty result {empty_batch_count}/{max_empty_batches} for {table_name}")
-                    
+                    log.info(
+                        f"Empty result {empty_batch_count}/{max_empty_batches} for {table_name}"
+                    )
+
                     # Fail-safe: if too many empty results, fail and stop
                     if empty_batch_count >= max_empty_batches:
-                        log.severe(f"FAILED: Reached maximum empty results ({max_empty_batches}) for {table_name} - stopping sync")
-                        raise RuntimeError(f"Too many empty results for {table_name}: {empty_batch_count}/{max_empty_batches}")
-                    
+                        log.severe(
+                            f"FAILED: Reached maximum empty results ({max_empty_batches}) "
+                            f"for {table_name} - stopping sync"
+                        )
+                        raise RuntimeError(
+                            f"Too many empty results for {table_name}: "
+                            f"{empty_batch_count}/{max_empty_batches}"
+                        )
+
                     # Stop on first empty result (normal behavior)
                     log.info(f"Stopping sync for {table_name} after empty result")
                     break
@@ -542,34 +608,43 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                 for i, record in enumerate(results):
                     # Log sample record processing
                     if i < 3:  # Log first 3 records for debugging
-                        log.fine(f"Processing record {i+1} for {table_name}: {list(record.keys()) if isinstance(record, dict) else 'Not a dict'}")
-                    
+                        record_keys = (
+                            list(record.keys()) if isinstance(record, dict) else "Not a dict"
+                        )
+                        log.fine(f"Processing record {i+1} for {table_name}: {record_keys}")
+
                     # Flatten the record
                     flattened_record = flatten_dict(record)
-                    
+
                     # Log flattening results for first few records
                     if i < 3:
                         log.fine(f"Flattened record {i+1} keys: {list(flattened_record.keys())}")
-                        log.fine(f"Flattened record {i+1} sample values: {dict(list(flattened_record.items())[:5])}")
+                        log.fine(
+                            f"Flattened record {i+1} sample values: {dict(list(flattened_record.items())[:5])}"
+                        )
 
                     # Ensure ID field exists
-                    if 'id' not in flattened_record:
+                    if "id" not in flattened_record:
                         # Try to find an ID field
-                        for key in ['Id', 'ID', 'contactId', 'companyId', 'opportunityId']:
+                        for key in ["Id", "ID", "contactId", "companyId", "opportunityId"]:
                             if key in flattened_record:
-                                flattened_record['id'] = flattened_record[key]
-                                log.fine(f"Found ID field '{key}' for record {i+1}: {flattened_record['id']}")
+                                flattened_record["id"] = flattened_record[key]
+                                log.fine(
+                                    f"Found ID field '{key}' for record {i+1}: {flattened_record['id']}"
+                                )
                                 break
-                        
+
                         # If no ID found, generate one
-                        if 'id' not in flattened_record:
-                            flattened_record['id'] = f"{table_name}_{skip}_{i}"
+                        if "id" not in flattened_record:
+                            flattened_record["id"] = f"{table_name}_{skip}_{i}"
                             log.warning(f"Generated ID for record {i+1}: {flattened_record['id']}")
 
                     # Convert date strings to ISO format
                     date_conversions = 0
                     for key, value in flattened_record.items():
-                        if isinstance(value, str) and key.endswith(("_date", "_time", "edited", "created", "editdate")):
+                        if isinstance(value, str) and key.endswith(
+                            ("_date", "_time", "edited", "created", "editdate")
+                        ):
                             try:
                                 dt = parser.parse(value)
                                 if dt.tzinfo is None:
@@ -578,7 +653,7 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                                 date_conversions += 1
                             except (ValueError, TypeError):
                                 pass
-                    
+
                     if date_conversions > 0 and i < 3:
                         log.fine(f"Converted {date_conversions} date fields for record {i+1}")
 
@@ -591,25 +666,29 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                 batch_count += 1
 
                 # Log batch summary
-                log.info(f"Batch {batch_count} completed for {table_name}: {len(results)} records processed")
+                log.info(
+                    f"Batch {batch_count} completed for {table_name}: {len(results)} records processed"
+                )
                 log.fine(f"Total records processed for {table_name}: {skip}")
 
                 # Update batch tracking for this table (but not the cursor yet)
-                table_batch_tracking[table_name] = {
-                    "skip": skip,
-                    "batch_count": batch_count
-                }
-                
+                table_batch_tracking[table_name] = {"skip": skip, "batch_count": batch_count}
+
                 # Checkpoint progress for this table (include batch tracking but not cursor update)
                 new_state = {
                     "table_cursors": table_cursors,  # Keep existing cursors
-                    "table_batch_tracking": table_batch_tracking  # Update batch tracking
+                    "table_batch_tracking": table_batch_tracking,  # Update batch tracking
                 }
                 yield op.checkpoint(new_state)
-                log.info(f"Checkpoint saved for {table_name} with batch progress: skip={skip}, batch_count={batch_count}")
-                
+                log.info(
+                    f"Checkpoint saved for {table_name} with batch progress: "
+                    f"skip={skip}, batch_count={batch_count}"
+                )
+
                 # Log checkpoint details
-                log.fine(f"Batch tracking updated for {table_name}: {table_batch_tracking[table_name]}")
+                log.fine(
+                    f"Batch tracking updated for {table_name}: {table_batch_tracking[table_name]}"
+                )
 
                 # Respect rate limits
                 log.fine(f"Rate limiting pause: {rate_limit_pause} seconds")
@@ -624,17 +703,22 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                     # Clear batch tracking for this table since it's complete
                     if table_name in table_batch_tracking:
                         del table_batch_tracking[table_name]
-                    log.info(f"Updated cursor for {table_name} to sync start time: {table_cursors[table_name]}")
-                    
+                    log.info(
+                        f"Updated cursor for {table_name} to sync start time: {table_cursors[table_name]}"
+                    )
+
                     # Final checkpoint with updated cursor for this table
                     final_state = {
                         "table_cursors": table_cursors,
-                        "table_batch_tracking": table_batch_tracking
+                        "table_batch_tracking": table_batch_tracking,
                     }
                     yield op.checkpoint(final_state)
-                    log.info(f"Final checkpoint saved for {table_name} with updated cursor: {table_cursors[table_name]}")
+                    log.info(
+                        f"Final checkpoint saved for {table_name} with updated cursor: "
+                        f"{table_cursors[table_name]}"
+                    )
                     break
-                
+
                 # Note: No need for max_batches check since we now track empty batches instead
 
         except Exception as e:
@@ -644,7 +728,7 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                 del table_batch_tracking[table_name]
                 log.info(f"Cleared batch tracking for {table_name} due to error")
             continue  # Continue to next table
-        
+
         log.info(f"Completed sync for table: {table_name}")
 
     # Final sync summary
