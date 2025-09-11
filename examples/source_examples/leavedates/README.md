@@ -58,7 +58,7 @@ The connector uses Bearer token authentication to access the LeaveDates API. To 
 1. Log in to your LeaveDates.com account.
 2. Navigate to the API settings in your account dashboard.
 3. Generate or copy your API token.
-4. Add the token to your configuration.json file.
+4. Add the token to your `configuration.json` file.
 5. Ensure you have the correct company ID from your LeaveDates account.
 
 
