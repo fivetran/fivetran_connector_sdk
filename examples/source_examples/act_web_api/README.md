@@ -250,7 +250,7 @@ The connector implements a fail-safe mechanism to prevent infinite loops and det
 ### Behavior Examples
 | Scenario | Empty Results | Action | Result |
 |----------|---------------|--------|---------|
-| **Normal empty** | 1-2 total | Stop table, continue others | ✅ Normal |
+| **Normal empty** | 1 total | Stop table, continue others | ✅ Normal |
 | **Multiple empty** | 3 total | **FAIL & STOP** | ❌ RuntimeError |
 | **Data found** | Any count | Reset counter, process normally | ✅ Continue |
 
