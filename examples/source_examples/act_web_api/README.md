@@ -35,13 +35,13 @@ The connector requires a `configuration.json` file with the following structure:
 ```json
 {
   "protocol": "http",
-  "hostname": "192.168.7.27",
-  "port": "",
-  "api_path": "/act.web.api",
-  "username": "your_username",
-  "password": "your_password",
-  "database_name": "your_database_name",
-  "batch_size": "100",
+  "hostname": "YOUR_ACT_SERVER_ADDRESS_LIKE='192.168.7.27'",
+  "port": "YOUR_PORT_LIKE='8080'",
+  "api_path": "YOUR_API_PATH_LIKE='/act.web.api'",
+  "username": "YOUR_USERNAME",
+  "password": "YOUR_PASSWORD",
+  "database_name": "YOUR_DATABASE_NAME",
+  "batch_size": "10000",
   "rate_limit_pause": "0.25",
   "default_start_date": "1900-01-01T00:00:00Z"
 }
@@ -58,7 +58,7 @@ The connector requires a `configuration.json` file with the following structure:
 | `username` | string | Yes | ACT API username |
 | `password` | string | Yes | ACT API password |
 | `database_name` | string | Yes | ACT Database Name |
-| `batch_size` | string | No | Batch size for API requests (default: 100) |
+| `batch_size` | string | No | Batch size for API requests (default: 10000) |
 | `rate_limit_pause` | string | No | Rate limit pause in seconds (default: 0.25) |
 | `default_start_date` | string | No | Default start date for incremental sync in ISO 8601 format (default: 1900-01-01T00:00:00Z) |
 
