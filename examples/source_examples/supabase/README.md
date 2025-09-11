@@ -73,7 +73,7 @@ The connector handles data retrieval using Supabase's built-in query capabilitie
 
 ## Data handling
 The connector fetches data from the specified Supabase table and performs the following operations:
-- Queries records where hire_date is greater than the last synced hire_date
+- Queries records where `hire_date` is greater than the last synced `hire_date`
 - Explicitly orders results by hire_date ascending to ensure consistent incremental sync
 - Processes records sequentially in chronological order for accurate checkpointing
 - Flattens any nested data structures into key-value pairs
@@ -93,8 +93,8 @@ The connector implements comprehensive error handling strategies:
 The connector creates a table in the destination based on your configuration:
 
 **Table Name** (configurable via `table_name` parameter) - Contains the data with the following structure:
-- Primary key: id (INT - maps to Supabase int8)
-- Fields: All fields from the source table (e.g., id, first_name, last_name, email, department, hire_date)
+- Primary key: `id` (INT - maps to Supabase int8)
+- Fields: All fields from the source table (e.g., `id`, `first_name`, `last_name`, `email`, `department`, `hire_date`)
 - Data types are automatically inferred by Fivetran except for the primary key
 
 
