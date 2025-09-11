@@ -84,11 +84,11 @@ graph TB
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -101,44 +101,44 @@ Before running the connector, you must set up your PostgreSQL database with the 
 1. Connect to your PostgreSQL database using your preferred client (psql, pgAdmin, etc.)
 2. Execute the `setup.sql` file to create the required schema and sample data:
 
-```sql
--- Run the setup script
-\i setup.sql
-```
+   ```sql
+   -- Run the setup script
+   \i setup.sql
+   ```
 
-The setup script creates:
-- Sample business tables (orders, customers, products, suppliers, order_items, inventory)
-- Performance indexes for optimal query performance
-- Sample data with regional distribution
-- Helper functions for data generation
-- Analysis views for business intelligence
+   The setup script creates:
+   - Sample business tables (orders, customers, products, suppliers, order_items, inventory)
+   - Performance indexes for optimal query performance
+   - Sample data with regional distribution
+   - Helper functions for data generation
+   - Analysis views for business intelligence
 
 3. Verify the setup by checking that all tables contain data:
 
-```sql
--- Verify table counts
-SELECT 'customers' as table_name, COUNT(*) as record_count FROM customers
-UNION ALL
-SELECT 'suppliers', COUNT(*) FROM suppliers
-UNION ALL
-SELECT 'products', COUNT(*) FROM products
-UNION ALL
-SELECT 'orders', COUNT(*) FROM orders
-UNION ALL
-SELECT 'order_items', COUNT(*) FROM order_items
-UNION ALL
-SELECT 'inventory', COUNT(*) FROM inventory
-ORDER BY table_name;
-```
+   ```sql
+   -- Verify table counts
+   SELECT 'customers' as table_name, COUNT(*) as record_count FROM customers
+   UNION ALL
+   SELECT 'suppliers', COUNT(*) FROM suppliers
+   UNION ALL
+   SELECT 'products', COUNT(*) FROM products
+   UNION ALL
+   SELECT 'orders', COUNT(*) FROM orders
+   UNION ALL
+   SELECT 'order_items', COUNT(*) FROM order_items
+   UNION ALL
+   SELECT 'inventory', COUNT(*) FROM inventory
+   ORDER BY table_name;
+   ```
 
 ## Features
 
-* **Resource monitoring** - Real-time monitoring of CPU, memory, and disk usage with automatic parameter adjustment
-* **Adaptive processing** - Dynamic batch size and thread count optimization based on table characteristics and system resources
-* **Intelligent table categorization** - Automatic classification of tables as small (< 1M rows), medium (1M-50M rows), or large (> 50M rows)
-* **Region-based filtering** - Support for filtering data by geographic region
-* **Comprehensive error handling** - Exponential backoff retry logic with jitter and connection lifecycle management
-* **Performance optimization** - Table size-based processing strategies and memory-efficient data processing
+- **Resource monitoring** - Real-time monitoring of CPU, memory, and disk usage with automatic parameter adjustment
+- **Adaptive processing** - Dynamic batch size and thread count optimization based on table characteristics and system resources
+- **Intelligent table categorization** - Automatic classification of tables as small (< 1M rows), medium (1M-50M rows), or large (> 50M rows)
+- **Region-based filtering** - Support for filtering data by geographic region
+- **Comprehensive error handling** - Exponential backoff retry logic with jitter and connection lifecycle management
+- **Performance optimization** - Table size-based processing strategies and memory-efficient data processing
 
 ## Configuration file
 
@@ -232,26 +232,26 @@ Refer to the retry logic in the main `update()` function (lines 784-807) and the
 
 The connector replicates the following tables from the PostgreSQL source:
 
-* **POSTGRES_TABLES** - Metadata about database tables
-* **POSTGRES_COLUMNS** - Metadata about table columns  
-* **SOURCE_FIVETRAN_CONNECTOR_ORDERS** - Order information with regional filtering
-* **SOURCE_FIVETRAN_CONNECTOR_CUSTOMERS** - Customer data across multiple regions
-* **SOURCE_FIVETRAN_CONNECTOR_PRODUCTS** - Product catalog information
-* **SOURCE_FIVETRAN_CONNECTOR_SUPPLIERS** - Supplier information with regional distribution
-* **SOURCE_FIVETRAN_CONNECTOR_ORDER_ITEMS** - Order line item details
-* **SOURCE_FIVETRAN_CONNECTOR_INVENTORY** - Inventory levels and stock information
+- **POSTGRES_TABLES** - Metadata about database tables
+- **POSTGRES_COLUMNS** - Metadata about table columns  
+- **SOURCE_FIVETRAN_CONNECTOR_ORDERS** - Order information with regional filtering
+- **SOURCE_FIVETRAN_CONNECTOR_CUSTOMERS** - Customer data across multiple regions
+- **SOURCE_FIVETRAN_CONNECTOR_PRODUCTS** - Product catalog information
+- **SOURCE_FIVETRAN_CONNECTOR_SUPPLIERS** - Supplier information with regional distribution
+- **SOURCE_FIVETRAN_CONNECTOR_ORDER_ITEMS** - Order line item details
+- **SOURCE_FIVETRAN_CONNECTOR_INVENTORY** - Inventory levels and stock information
 
 The connector also creates several analysis views in the source database:
-* **ORDER_SUMMARY_BY_REGION** - Regional order statistics
-* **CUSTOMER_ORDER_HISTORY** - Customer purchasing patterns  
-* **PRODUCT_PERFORMANCE** - Product sales and inventory metrics
+- **ORDER_SUMMARY_BY_REGION** - Regional order statistics
+- **CUSTOMER_ORDER_HISTORY** - Customer purchasing patterns  
+- **PRODUCT_PERFORMANCE** - Product sales and inventory metrics
 
 ## Additional files
 
-* **setup.sql** - Database setup script that creates required metadata tables, sample business tables, performance indexes, and helper functions for data generation
-* **connector.py** - Main connector implementation with resource monitoring and adaptive processing logic
-* **configuration.json** - Configuration file containing database connection parameters and processing options
-* **requirements.txt** - Python dependencies required for the connector to run
+- **setup.sql** - Database setup script that creates required metadata tables, sample business tables, performance indexes, and helper functions for data generation
+- **connector.py** - Main connector implementation with resource monitoring and adaptive processing logic
+- **configuration.json** - Configuration file containing database connection parameters and processing options
+- **requirements.txt** - Python dependencies required for the connector to run
 
 ## Additional considerations
 
