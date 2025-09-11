@@ -334,7 +334,7 @@ def fetch_data(
                     time.sleep(wait_time)
                 else:
                     # Exponential backoff for rate limiting
-                    wait_time = RETRY_DELAY * (2**attempt)
+                    wait_time = RETRY_DELAY * (2 ** attempt)
                     log.info(f"Waiting {wait_time} seconds before retry")
                     time.sleep(wait_time)
 
@@ -346,7 +346,7 @@ def fetch_data(
                 log.warning(f"Server error on attempt {attempt + 1}: {error_msg}")
 
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = RETRY_DELAY * (2**attempt)
+                    wait_time = RETRY_DELAY * (2 ** attempt)
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
@@ -611,16 +611,16 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                         record_keys = (
                             list(record.keys()) if isinstance(record, dict) else "Not a dict"
                         )
-                        log.fine(f"Processing record {i+1} for {table_name}: {record_keys}")
+                        log.fine(f"Processing record {i + 1} for {table_name}: {record_keys}")
 
                     # Flatten the record
                     flattened_record = flatten_dict(record)
 
                     # Log flattening results for first few records
                     if i < 3:
-                        log.fine(f"Flattened record {i+1} keys: {list(flattened_record.keys())}")
+                        log.fine(f"Flattened record {i + 1} keys: {list(flattened_record.keys())}")
                         log.fine(
-                            f"Flattened record {i+1} sample values: {dict(list(flattened_record.items())[:5])}"
+                            f"Flattened record {i + 1} sample values: {dict(list(flattened_record.items())[:5])}"
                         )
 
                     # Ensure ID field exists
@@ -630,14 +630,14 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                             if key in flattened_record:
                                 flattened_record["id"] = flattened_record[key]
                                 log.fine(
-                                    f"Found ID field '{key}' for record {i+1}: {flattened_record['id']}"
+                                    f"Found ID field '{key}' for record {i + 1}: {flattened_record['id']}"
                                 )
                                 break
 
                         # If no ID found, generate one
                         if "id" not in flattened_record:
                             flattened_record["id"] = f"{table_name}_{skip}_{i}"
-                            log.warning(f"Generated ID for record {i+1}: {flattened_record['id']}")
+                            log.warning(f"Generated ID for record {i + 1}: {flattened_record['id']}")
 
                     # Convert date strings to ISO format
                     date_conversions = 0
@@ -655,7 +655,7 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                                 pass
 
                     if date_conversions > 0 and i < 3:
-                        log.fine(f"Converted {date_conversions} date fields for record {i+1}")
+                        log.fine(f"Converted {date_conversions} date fields for record {i + 1}")
 
                     # Yield upsert operation
                     yield op.upsert(table_name, flattened_record)
