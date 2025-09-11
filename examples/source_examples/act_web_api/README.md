@@ -292,36 +292,6 @@ The connector implements comprehensive error handling with specific HTTP status 
 - **Cursor Management**: Only updates table cursors when tables are fully processed
 - **Comprehensive Logging**: Detailed error messages and debugging info
 
-## Testing
-
-### Test Suite
-
-Run the comprehensive test suite:
-
-```bash
-python test_connector.py
-```
-
-### Test Coverage
-
-The test suite includes:
-
-- Schema validation
-- Configuration loading and validation
-- Connector creation
-- Authentication function testing
-- Dictionary flattening validation
-- API endpoint accessibility
-- Response data handling
-- Table cursors persistence
-- Connector debug mode
-
-### Fivetran CLI Testing
-
-```bash
-fivetran debug --configuration configuration.json
-```
-
 ## Dependencies
 
 The `requirements.txt` file specifies the Python libraries required:
@@ -340,11 +310,7 @@ ACT/
 ├── connector.py              # Main connector implementation
 ├── configuration.json        # Connector configuration
 ├── requirements.txt          # Python dependencies
-├── test_connector.py         # Test suite
-├── README.md                 # Documentation
-├── deploy.py                 # Deployment script
-├── notes.txt                 # API documentation and examples
-└── fields.json              # Original API specification
+└── README.md                 # Documentation
 ```
 
 ## State Management
