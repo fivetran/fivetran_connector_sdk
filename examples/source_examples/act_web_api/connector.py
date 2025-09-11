@@ -334,7 +334,7 @@ def fetch_data(
                     time.sleep(wait_time)
                 else:
                     # Exponential backoff for rate limiting
-                    wait_time = RETRY_DELAY * (2 ** attempt)
+                    wait_time = RETRY_DELAY * (2**attempt)
                     log.info(f"Waiting {wait_time} seconds before retry")
                     time.sleep(wait_time)
 
@@ -346,7 +346,7 @@ def fetch_data(
                 log.warning(f"Server error on attempt {attempt + 1}: {error_msg}")
 
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = RETRY_DELAY * (2 ** attempt)
+                    wait_time = RETRY_DELAY * (2**attempt)
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
@@ -637,7 +637,9 @@ def update(configuration: dict, state: dict) -> Generator[Any, None, None]:
                         # If no ID found, generate one
                         if "id" not in flattened_record:
                             flattened_record["id"] = f"{table_name}_{skip}_{i}"
-                            log.warning(f"Generated ID for record {i + 1}: {flattened_record['id']}")
+                            log.warning(
+                                f"Generated ID for record {i + 1}: {flattened_record['id']}"
+                            )
 
                     # Convert date strings to ISO format
                     date_conversions = 0
