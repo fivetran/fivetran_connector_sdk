@@ -65,7 +65,7 @@ The connector handles pagination automatically using the Iterate API's `links` o
 **Pagination Strategy:**
 - **Within-sync pagination**: Each sync processes all paginated data completely using `fetch_survey_responses()`
 - **No cross-sync state**: Pagination state is not persisted between sync runs for cleaner state management
-- **Incremental filtering**: Uses `start_date` unix timestamp parameter to filter responses from API directly
+- **Incremental filtering**: Uses the `start_date` Unix timestamp parameter to filter responses from API directly
 - **Complete processing**: Each sync fetches all relevant data from start_date to current time
 
 The `fetch_survey_responses()` function handles both initial requests and paginated follow-ups using the appropriate API call method.
@@ -77,7 +77,7 @@ The connector processes data in two main steps with optimized incremental sync:
 - **Response Data**: For each survey, fetches individual responses using `/surveys/{id}/responses` endpoint with date-based filtering and automatic pagination
 
 **Enhanced Sync Strategy:**
-- **Initial Sync**: Uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as fallback
+- **Initial Sync**: Uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback
 - **Incremental Syncs**: Uses `last_survey_sync` timestamp from state to fetch only new responses since last successful sync
 - **UTC Consistency**: All datetime operations use UTC timezone with 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
 - **Single Checkpoint**: State is saved only after complete successful sync to prevent data gaps from partial failures
@@ -137,7 +137,7 @@ Contains survey metadata and configuration with all nested JSON properties flatt
 ### RESPONSE
 Contains individual survey responses with relationship to parent survey and flattened response data.
 - **Primary key**: `id`
-- **Foreign key**: `survey_id` (links to SURVEY table)
+- **Foreign key**: `survey_id` (links to `SURVEY` table)
 - **Structure**: All response properties flattened, including question answers and user metadata
 
 ## Additional considerations
