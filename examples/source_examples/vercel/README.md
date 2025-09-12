@@ -1,7 +1,7 @@
 # Vercel Connector Example
 
 ## Connector overview
-This connector demonstrates how to fetch deployment data from [Vercel](https://vercel.com/)  and upsert it into your destination using the Fivetran Connector SDK. The custom connector synchronizes deployment records from your personal Vercel account and implements pagination handling to efficiently process large datasets with incremental synchronization using timestamps.
+This connector demonstrates how to fetch deployment data from [Vercel](https://vercel.com/) and upsert it into your destination using the Fivetran Connector SDK. The custom connector synchronizes deployment records from your personal Vercel account and implements pagination handling to efficiently process large datasets with incremental synchronization using timestamps.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -14,7 +14,7 @@ This connector demonstrates how to fetch deployment data from [Vercel](https://v
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Synchronizes deployments from Vercel API `/v6/deployments` endpoint
+- Synchronizes deployments from Vercel's API `/v6/deployments` endpoint
 - Supports both personal account and team resource access
 - Implements pagination handling for large datasets with configurable limit 
 - Incremental synchronization using timestamp-based state management 
@@ -65,7 +65,7 @@ When `team_id` is provided, the connector will append `?teamId=[teamID]` to the 
 The connector implements Vercel's timestamp-based pagination system as described in the API documentation. It processes data in configurable batches and uses the `next` timestamp from the pagination response to fetch subsequent pages.
 
 ## Data handling
-The connector processes data from the Vercel `/v6/deployments` endpoint which contains deployment records with status, timing, and build information. All nested JSON structures are flattened to create optimal table schemas for your destination. 
+The connector processes data from the `/v6/deployments` endpoint which contains deployment records with status, timing, and build information. All nested JSON structures are flattened to create optimal table schemas for your destination. 
 
 ## Error handling
 The connector implements comprehensive error handling strategies:
