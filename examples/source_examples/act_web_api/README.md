@@ -298,7 +298,7 @@ The `requirements.txt` file specifies the Python libraries required:
 
 ```
 python_dateutil==2.8.2
-pytz==2023.3.post1
+pytz==2025.1
 ```
 
 **Note**: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment.
