@@ -10,7 +10,6 @@ from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
 # Import necessary libraries
-import datetime
 import json
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, AuthError
@@ -36,20 +35,13 @@ def schema(configuration: dict):
             "primary_key": ["username"],  # Primary key(s) of the table
             "columns": {
                 "username": "STRING",
-                "followers_count": "INT",
-                "following_count": "INT",
-                "location": "STRING",
-                "name": "STRING",
-                "profile_image_url": "STRING",
-                "url": "STRING",
                 "betweenness": "FLOAT",
             },
-        },  # Columns not defined in schema will be inferred
+        },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         {
             "table": "tweet_hashtags",
             "primary_key": ["tweet_id"],
-            "columns": {"tweet_id": "STRING", "hashtag_name": "STRING"},
-        },
+        },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
     ]
 
 
@@ -115,9 +107,9 @@ def process_users(session, state):
     # You can modify the query to suit your needs.
     cypher_query = """
     MATCH (u:User)
-    RETURN 
-        u.followers as followers_count, 
-        u.screen_name as username, 
+    RETURN
+        u.followers as followers_count,
+        u.screen_name as username,
         u.following as following_count,
         u.name as name,
         u.location as location,
@@ -163,8 +155,8 @@ def process_tweet_hashtags(session, state, batch_size=100):
         # You can modify the query to suit your needs.
         cypher_query = """
         MATCH (t:Tweet)-[r:TAGS]->(h:Hashtag)
-        RETURN 
-            t.id as tweet_id, 
+        RETURN
+            t.id as tweet_id,
             h.name as hashtag_name
         ORDER BY t.id, h.id
         SKIP $skip LIMIT $limit

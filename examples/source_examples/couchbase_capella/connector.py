@@ -109,17 +109,11 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "airline_table",
-            "primary_key": ["id"],
-            "columns": {
+            "table": "airline_table",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
                 "id": "INT",
-                "name": "STRING",
-                "country": "STRING",
-                "type": "STRING",
-                "callsign": "STRING",
-                "iata": "STRING",
-                "icao": "STRING",
-            },
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 

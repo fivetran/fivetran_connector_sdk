@@ -11,9 +11,9 @@ from fivetran_connector_sdk import Logging as log
 
 # Import modules for connection to Firebird and multi-threading
 import firebirdsql
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import threading
-from datetime import datetime, timedelta, date, timezone
+from datetime import datetime, date
 import json
 from schema import table_list
 

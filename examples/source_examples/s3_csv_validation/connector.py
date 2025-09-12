@@ -33,14 +33,12 @@ def schema(configuration: dict):
             "table": TABLE_NAME,  # Name of the table in the destination.
             "primary_key": ["int_value"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
-                "int_value": "INT",
                 "long_value": "LONG",
                 "bool_value": "BOOLEAN",
-                "string_value": "STRING",
                 "json_value": "JSON",
                 "naive_date_value": "NAIVE_DATE",
                 "naive_date_time_value": "NAIVE_DATETIME",
-            },
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
@@ -117,7 +115,7 @@ def upsert_csv_row(row):
 def validate_int_value(row, value: str):
     try:
         return int(value)
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError):
         print_error_message(row, f"Invalid integer value: '{value}'")
         return None
 
