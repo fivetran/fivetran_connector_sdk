@@ -68,7 +68,7 @@ We also have [published a blog post](https://www.fivetran.com/blog/building-a-fi
 ## Claude Code Subagents
 We created Connector SDK specific Claude Code agents that can help you build connectors. These agents are orchastrated by Claude Code when it identifies a task that is better accomplished using them.
 
-To start using these agents, please copy the `agents` folder to the `.claude` folder in your project or to the global one located at `~/.claude`. Claude Code will automatically detect them and start using them.
+To start using these agents, you will need to make sure your Claude Code is up-to-date. Subagents became available in late July with version 1.0.62. Please copy the `agents` folder to the `.claude` folder in your project or to the global one located at `~/.claude`. Claude Code will automatically detect them and start using them.
 
 After you copy the files, you can verify that Claude Code is able to find them by calling `/agents` from within Claude Code and checking that the agents are listed.
 
