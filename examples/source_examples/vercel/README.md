@@ -55,11 +55,11 @@ The connector uses Vercel access tokens for authentication. To obtain your API t
 ## Team access
 By default, the connector accesses resources from your personal Vercel account. To access deployments owned by a team:
 
-1. **Find your Team ID**: Navigate to your team settings in Vercel dashboard or use the Vercel CLI.
-2. **Add team_id to configuration**: Include the `team_id` parameter in your configuration.json file.
-3. **Team permissions**: Ensure your API token has the necessary permissions to access the team's resources.
+1. Find your Team ID by navigating to your team settings in the Vercel dashboard or use the Vercel CLI.
+2. Add the `team_id` parameter to the connector's `configuration.json` file.
+3. Ensure your API token has the necessary permissions to access the team's resources.
 
-When `team_id` is provided, the connector will append `?teamId=[teamID]` to the API endpoint URL to access team resources instead of personal account resources.
+When `team_id` is provided, the connector appends `?teamId=[teamID]` to the API endpoint URL to access team resources instead of personal account resources.
 
 ## Pagination
 The connector implements Vercel's timestamp-based pagination system as described in the API documentation. It processes data in configurable batches and uses the `next` timestamp from the pagination response to fetch subsequent pages.
