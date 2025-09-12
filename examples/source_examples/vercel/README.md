@@ -76,12 +76,6 @@ The connector implements comprehensive error handling strategies:
 - Retry logic for transient errors
 
 ## Tables created
-The connector creates one main table:
-
-### deployments
-- **Primary Key**: `uid`
-- Contains deployment records with status, timing, and build information flattened from the `/v6/deployments` endpoint
-- Includes flattened projectSettings data when available 
-
+The connector creates the `DEPLOYMENTS` table, which uses `uid` as the primary key. The table contains deployment records with status, timing, and build information flattened from the `/v6/deployments` endpoint. It includes flattened projectSettings data if available.
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
