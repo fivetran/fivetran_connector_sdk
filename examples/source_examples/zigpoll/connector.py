@@ -1,11 +1,21 @@
-"""ADD ONE LINE DESCRIPTION OF YOUR CONNECTOR HERE.
-For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library.
+"""Zigpoll Connector for Fivetran Connector SDK.
+This connector fetches survey response data from Zigpoll API and syncs it to Fivetran destinations.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For reading configuration from a JSON file
 import json
+
+# For handling HTTP requests to Zigpoll API
+import requests
+
+# For date/time operations and timestamp handling
+from datetime import datetime
+
+# For handling retry logic with exponential backoff
+import time
+import random
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -16,33 +26,14 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
-Example: import pandas, boto3, etc.
-Add comment for each import to explain its purpose for users to follow.
-"""
-
-
-"""
-GUIDELINES TO FOLLOW WHILE WRITING AN EXAMPLE CONNECTOR:
-- Import only the necessary modules and libraries to keep the code clean and efficient.
-- Use clear, consistent and descriptive names for your functions and variables.
-- For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
-- Keep constants as private by default, unless they are meant to be used outside the module (e.g. __CHECKPOINT_INTERVAL).
-- Add comments to explain the purpose of each function in the docstring.
-- Add comments to explain the purpose of complex logic within functions, wherever necessary. Ideally try to split the main logic into smaller functions to avoid too many comments.
-- Add comments to highlight where users can make changes to the code to suit their specific use case.
-- Split your code into smaller functions to improve readability and maintainability where required.
-- Use logging to provide useful information about the connector's execution. Do not log excessively.
-- Implement error handling to catch exceptions and log them appropriately. Catch specific exceptions where possible.
-- Add retry for API requests to handle transient errors. Use exponential backoff strategy for retries.
-- Define the complete data model with primary key and data types in the schema function.
-- Ensure that the connector does not load all data into memory at once. This can cause memory overflow errors. Use pagination or streaming where possible.
-- Add comments to explain pagination or streaming logic to help users understand how to handle large datasets.
-- Add comments for upsert, update and delete to explain the purpose of upsert, update and delete. This will help users understand the upsert, update and delete processes.
-- Checkpoint your state at regular intervals to ensure that the connector can resume from the last successful sync in case of interruptions.
-- Add comments for checkpointing to explain the purpose of checkpoint. This will help users understand the checkpointing process.
-- Refer to the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
-"""
+# Constants for API configuration
+__ZIGPOLL_BASE_URL = "https://v1.zigpoll.com"
+__ACCOUNTS_ENDPOINT = "/accounts"
+__RESPONSES_ENDPOINT = "/responses"
+__MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
+__BASE_DELAY = 1  # Base delay in seconds for API request retries
+# Page size for pagination
+__PAGE_LIMIT = 100
 
 
 def validate_configuration(configuration: dict):
@@ -56,10 +47,71 @@ def validate_configuration(configuration: dict):
     """
 
     # Validate required configuration parameters
-    required_configs = ["param1", "param2", "param3"]
+    required_configs = ["api_token"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+        if not configuration[key]:
+            raise ValueError(f"Configuration value '{key}' cannot be empty")
+
+
+def make_api_request(url: str, headers: dict, params=None):
+    """
+    Make an API request with retry logic and proper error handling.
+    This function handles retries with exponential backoff for transient errors and rate limiting.
+    Args:
+        url: The API endpoint URL to make the request to
+        headers: HTTP headers for the request including authorization
+        params: Optional query parameters for the request
+    Returns:
+        JSON response data from the API
+    Raises:
+        Exception: if the request fails after all retry attempts or for authentication errors
+    """
+    for attempt in range(__MAX_RETRIES):
+        try:
+            log.info(f"Making API request to {url} (attempt {attempt + 1})")
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:  # Rate limited
+                delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
+                log.warning(f"Rate limited. Retrying in {delay:.2f} seconds...")
+                time.sleep(delay)
+            elif response.status_code in [401, 403]:
+                raise PermissionError(f"Authentication failed: {response.status_code}")
+            else:
+                error_detail = f"Status: {response.status_code}, Response: {response.text[:200]}"
+                raise ValueError(f"API request failed: {error_detail}")
+
+        except requests.RequestException as e:
+            if attempt == __MAX_RETRIES - 1:
+                raise ConnectionError(f"Request failed after {__MAX_RETRIES} attempts: {e}")
+
+            delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
+            log.warning(f"Request failed: {e}. Retrying in {delay:.2f} seconds...")
+            time.sleep(delay)
+
+    raise ConnectionError("Max retries exceeded")
+
+
+def flatten_metadata(record: dict):
+    """
+    Flatten the metadata dictionary into separate columns with metadata_ prefix.
+    This function processes response records to extract nested metadata into flat columns for better database compatibility.
+    Args:
+        record: The record containing metadata to flatten
+    Returns:
+        Updated record with flattened metadata fields as separate columns
+    """
+    if "metadata" in record and isinstance(record["metadata"], dict):
+        metadata = record.pop("metadata")
+        for key, value in metadata.items():
+            # Replace hyphens with underscores for valid column names
+            column_name = f"metadata_{key.replace('-', '_')}"
+            record[column_name] = value
+    return record
 
 
 def schema(configuration: dict):
@@ -70,21 +122,133 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-
     return [
         {
-            "table": "table_name",  # Name of the table in the destination, required.
-            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "table": "response",  # Name of the table in the destination, required.
+            "primary_key": ["_id"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
-                "id": "STRING",  # Contains a dictionary of column names and data types
+                "_id": "STRING",  # Contains a dictionary of column names and data types
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
     ]
 
 
+def get_account_ids(headers: dict):
+    """
+    Fetch all account IDs from Zigpoll accounts endpoint.
+    This function retrieves the list of accounts that the API token has access to.
+    Args:
+        headers: HTTP headers for the request including authorization
+    Returns:
+        List of account IDs that can be used to fetch responses
+    """
+    url = f"{__ZIGPOLL_BASE_URL}{__ACCOUNTS_ENDPOINT}"
+    accounts_data = make_api_request(url, headers)
+
+    account_ids = []
+    if isinstance(accounts_data, list):
+        for account in accounts_data:
+            if "_id" in account:
+                account_ids.append(account["_id"])
+
+    return account_ids
+
+
+def process_responses_page(headers: dict, account_id: str, start_cursor, last_sync_timestamp):
+    """
+    Process a single page of responses for an account.
+    This function fetches one page of responses and processes them with client-side filtering.
+    Args:
+        headers: HTTP headers for the request including authorization
+        account_id: The account ID to fetch responses for
+        start_cursor: Cursor for pagination, None for first page
+        last_sync_timestamp: Timestamp to filter old responses
+    Returns:
+        Tuple of (processed_count, has_next_page, end_cursor, should_continue)
+    """
+    # Prepare API parameters
+    params = {"accountId": account_id, "limit": str(__PAGE_LIMIT)}
+    if start_cursor:
+        params["startCursor"] = start_cursor
+
+    # Make API request
+    url = f"{__ZIGPOLL_BASE_URL}{__RESPONSES_ENDPOINT}"
+    response_data = make_api_request(url, headers, params)
+
+    responses = response_data.get("data", [])
+    has_next_page = response_data.get("hasNextPage", False)
+    end_cursor = response_data.get("endCursor")
+
+    # Process and filter responses
+    processed_count = 0
+    should_continue = True
+
+    for response in responses:
+        # Check if response is too old (client-side filtering)
+        created_at = response.get("createdAt")
+        if created_at and last_sync_timestamp:
+            response_timestamp = int(
+                datetime.fromisoformat(created_at.replace("Z", "+00:00")).timestamp() * 1000
+            )
+            if response_timestamp < int(last_sync_timestamp):
+                should_continue = False
+                break
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        flattened_response = flatten_metadata(response)
+        op.upsert(table="response", data=flattened_response)
+        processed_count += 1
+
+    return processed_count, has_next_page, end_cursor, should_continue
+
+
+def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp):
+    """
+    Sync all responses for a single account with pagination.
+    This function handles the pagination loop for fetching all responses from one account.
+    Args:
+        headers: HTTP headers for the request including authorization
+        account_id: The account ID to fetch responses for
+        last_sync_timestamp: Timestamp to filter old responses
+    Returns:
+        Total number of responses processed for this account
+    """
+    log.info(f"Fetching responses for account: {account_id}")
+    start_cursor = None
+    total_processed = 0
+
+    while True:
+        processed_count, has_next_page, end_cursor, should_continue = process_responses_page(
+            headers, account_id, start_cursor, last_sync_timestamp
+        )
+
+        total_processed += processed_count
+        log.info(
+            f"Retrieved {processed_count} responses for account {account_id}, total so far: {total_processed}"
+        )
+
+        # Check stopping conditions
+        if not should_continue:
+            log.info(f"Reached old data threshold for account {account_id}, stopping pagination")
+            break
+        if not has_next_page:
+            log.info(f"No more pages for account {account_id} (hasNextPage: false)")
+            break
+        if end_cursor == start_cursor:
+            log.warning(
+                f"API bug detected: same cursor returned ({end_cursor}), stopping to prevent infinite loop"
+            )
+            break
+
+        start_cursor = end_cursor
+        log.info(f"Fetching next page with cursor: {start_cursor}")
+
+    return total_processed
+
+
 def update(configuration: dict, state: dict):
     """
-     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
@@ -93,61 +257,59 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: <TYPE_OF_EXAMPLE> : <NAME_OF_THE_EXAMPLE>")
+    log.warning("Example: Source Examples : Zigpoll Survey Responses")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
     # Extract configuration parameters as required
-    param1 = configuration.get("param1")
+    api_token = configuration.get("api_token")
+    start_date = configuration.get("start_date")
 
     # Get the state variable for the sync, if needed
-    last_sync_time = state.get("last_sync_time")
-    new_sync_time = last_sync_time
+    last_sync_timestamp = state.get("last_sync_timestamp", start_date)
+
+    log.info(f"Starting sync with timestamp: {last_sync_timestamp}")
+
+    # Prepare headers for API requests
+    headers = {"Authorization": api_token, "Accept": "application/json"}
+
     try:
-        data = get_data(last_sync_time, param1)
-        for record in data:
+        # Get all account IDs
+        account_ids = get_account_ids(headers)
+        log.info(f"Found {len(account_ids)} accounts: {account_ids}")
 
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="table_name", data=record)
+        total_responses = 0
 
-            record_time = record.get("updated_at")
-
-            # Update only if record_time is greater than current new_sync_time
-            if new_sync_time is None or (record_time and record_time > new_sync_time):
-                new_sync_time = record_time  # Assuming the API returns the data in ascending order
+        # Fetch responses for each account
+        for account_id in account_ids:
+            account_responses = sync_account_responses(headers, account_id, last_sync_timestamp)
+            total_responses += account_responses
 
         # Update state with the current sync time for the next run
-        new_state = {"last_sync_time": new_sync_time}
+        current_timestamp = int(time.time() * 1000)
+        new_state = {"last_sync_timestamp": current_timestamp}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
+        log.info(
+            f"Sync completed. Total responses: {total_responses}. Updated state timestamp: {current_timestamp}"
+        )
 
+    except PermissionError as e:
+        # Handle authentication errors specifically
+        raise RuntimeError(f"Authentication failed: {str(e)}")
+    except ValueError as e:
+        # Handle API errors specifically
+        raise RuntimeError(f"API error occurred: {str(e)}")
+    except ConnectionError as e:
+        # Handle connection errors specifically
+        raise RuntimeError(f"Connection error occurred: {str(e)}")
     except Exception as e:
-        # In case of an exception, raise a runtime error
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
-
-
-def get_data(last_sync_time, param1):
-    """
-    This function simulates fetching data from a source.
-    In a real-world scenario, this would involve making API calls or database queries.
-    Args:
-        last_sync_time: The last sync time to fetch data from.
-        param1: A configuration parameter that might be used to filter or modify the data fetching logic.
-    Returns:
-        A list of dictionaries representing the data to be upserted.
-    """
-    # Simulate data fetching logic
-    return [
-        {"id": "1", "data": "example_data_1", "updated_at": "2023-10-01T00:00:00Z"},
-        {"id": "2", "data": "example_data_2", "updated_at": "2023-10-01T01:00:00Z"},
-    ]
+        # Handle any other unexpected errors
+        raise RuntimeError(f"Unexpected error during sync: {str(e)}")
 
 
 # Create the connector object using the schema and update functions

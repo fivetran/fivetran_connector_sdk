@@ -182,6 +182,7 @@ There are several examples available under `/examples`:
 - veeva vault
   - [basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault/basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
   - [session_id_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/veeva_vault/session_id_auth) - This example shows how to authenticate to Veeva Vault using session id authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+- [zigpoll](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/zigpoll) - This is an example of how to sync Zigpoll data using Connector SDK. You need to provide your Zigpoll API key for this example to work.
 
 </details>
 
