@@ -70,7 +70,7 @@ We created Connector SDK specific Claude Code agents that can help you build con
 
 To start using these agents, please copy the `agents` folder to the `.claude` folder in your project or to the global one located at `~/.claude`. Claude Code will automatically detect them and start using them.
 
-Once you install the files, you can verify that Claude Code is able to find them by calling `/agents` from within Claude Code and checking that the subagents are listed.
+After you copy the files, you can verify that Claude Code is able to find them by calling `/agents` from within Claude Code and checking that the agents are listed.
 
 **Contents:**
 - [Fivetran Connector SDK AI System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
