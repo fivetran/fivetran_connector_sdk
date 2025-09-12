@@ -341,7 +341,7 @@ The connector provides detailed logging at multiple levels:
 
 ## Performance Considerations
 
-- **Batch Size**: Configurable batch size (default: 100 records)
+- **Batch Size**: Configurable batch size (default: 10000 records)
 - **Rate Limiting**: Configurable pause between requests (default: 0.25s)
 - **Pagination**: Efficient offset-based pagination
 - **Memory Usage**: Processes data in batches to manage memory
