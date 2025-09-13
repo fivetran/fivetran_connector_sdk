@@ -13,7 +13,7 @@ ChatGPT can be effectively used to help you leverage our Connector SDK to build 
 ## IDE & AI Assistant Support
 
 Learn about using various IDEs and AI assistants with the Fivetran Connector SDK. Each section includes a summary and links to relevant sub-guides, sample content, and a short video.
-sdefsdaf
+
 - [Cursor](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/cursor)
 - [Windsurf](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/windsurf)
 - [Visual Studio Code](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/vscode)
