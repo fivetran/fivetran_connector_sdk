@@ -74,7 +74,7 @@ The connector handles SuiteDash's pagination using the next-page-URL mechanism. 
 }
 ```
 
-The pagination logic is implemented in the `sync_companies()` function  and `sync_contacts()` function.
+The pagination logic is implemented in the `sync_endpoint_with_pagination()` function.
 
 
 ## Data handling
@@ -104,7 +104,7 @@ Error handling is implemented throughout the connector:
 The connector creates three tables in your destination:
 
 ### COMPANIES
-Contains flattened company data from the `/companies` endpoint.`uid` is the primary key (company unique identifier).
+Contains flattened company data from the `/companies` endpoint. `uid` is the primary key (company unique identifier).
 
 ### CONTACTS
 Contains flattened contact data from the `/contacts` endpoint. `uid` is the primary key (contact unique identifier).
