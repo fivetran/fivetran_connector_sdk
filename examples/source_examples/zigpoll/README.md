@@ -29,7 +29,7 @@ The connector requires an API token to authenticate with Zigpoll's API and optio
 ```
 {
   "api_token": "<YOUR_ZIGPOLL_API_TOKEN>",
-  "start_date": "<OPTIONAL_START_DATE>"
+  "start_date": "<YOUR_OPTIONAL_START_DATE>"
 }
 ```
 

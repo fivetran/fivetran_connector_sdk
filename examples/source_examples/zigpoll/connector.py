@@ -32,8 +32,7 @@ __ACCOUNTS_ENDPOINT = "/accounts"
 __RESPONSES_ENDPOINT = "/responses"
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
-# Page size for pagination
-__PAGE_LIMIT = 100
+__PAGE_LIMIT = 100  # Page size for pagination
 
 
 def validate_configuration(configuration: dict):
@@ -114,6 +113,37 @@ def flatten_metadata(record: dict):
     return record
 
 
+def parse_iso_timestamp(iso_string: str):
+    """
+    Parse an ISO format timestamp string into a Unix timestamp in milliseconds.
+    Handles various ISO format variations including timezone suffixes.
+    Args:
+        iso_string: ISO format datetime string (e.g., "2023-12-01T10:30:00Z", "2023-12-01T10:30:00+01:00")
+    Returns:
+        Unix timestamp in milliseconds, or None if parsing fails
+    """
+    if not iso_string:
+        return None
+
+    try:
+        # Handle various ISO format strings more robustly
+        if iso_string.endswith("Z"):
+            # Replace 'Z' with '+00:00' for UTC timezone
+            normalized_string = iso_string.replace("Z", "+00:00")
+        elif "+" in iso_string or "-" in iso_string[-6:]:
+            # Already has timezone info (e.g., +01:00 or -05:00), use as-is
+            normalized_string = iso_string
+        else:
+            # No timezone info, assume UTC
+            normalized_string = iso_string + "+00:00"
+
+        return int(datetime.fromisoformat(normalized_string).timestamp() * 1000)
+
+    except (ValueError, AttributeError) as e:
+        log.warning(f"Failed to parse ISO timestamp '{iso_string}': {e}")
+        return None
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -187,10 +217,9 @@ def process_responses_page(headers: dict, account_id: str, start_cursor, last_sy
         # Check if response is too old (client-side filtering)
         created_at = response.get("createdAt")
         if created_at and last_sync_timestamp:
-            response_timestamp = int(
-                datetime.fromisoformat(created_at.replace("Z", "+00:00")).timestamp() * 1000
-            )
-            if response_timestamp < int(last_sync_timestamp):
+            response_timestamp = parse_iso_timestamp(created_at)
+
+            if response_timestamp and response_timestamp < int(last_sync_timestamp):
                 should_continue = False
                 break
 
@@ -234,7 +263,7 @@ def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp):
         if not has_next_page:
             log.info(f"No more pages for account {account_id} (hasNextPage: false)")
             break
-        if end_cursor == start_cursor:
+        if end_cursor is not None and end_cursor == start_cursor:
             log.warning(
                 f"API bug detected: same cursor returned ({end_cursor}), stopping to prevent infinite loop"
             )
