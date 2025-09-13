@@ -103,7 +103,7 @@ jobs:
                 while (currentPath && currentPath !== '.') {
                 // Only add if this directory doesn't exist in the base branch
                   // and is not in our ignore list
-                  if (!directoryExistsInBase(currentPath) && !ignoredDirectories.some(ignored => currentPath === ignored || currentPath.startsWith(ignored + '/')) {
+                  if (!directoryExistsInBase(currentPath) && !ignoredDirectories.some(ignored => currentPath === ignored || currentPath.startsWith(ignored + '/'))) {
                     addedDirs.add(currentPath);
                   }
                   currentPath = path.dirname(currentPath);
