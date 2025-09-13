@@ -33,8 +33,8 @@ The connector requires the following configuration parameters in the configurati
 {
   "api_key": "<YOUR_CHECKLY_API_KEY>",
   "account_id": "<YOUR_CHECKLY_ACCOUNT_ID>",
-  "aggregation_interval": "<AGGREGATION_INTERVAL_IN_MINUTES>",
-  "quick_range": "<QUICK_RANGE_OPTION>"
+  "aggregation_interval": "<YOUR_AGGREGATION_INTERVAL_IN_MINUTES>",
+  "quick_range": "<YOUR_QUICK_RANGE_OPTION>"
 }
 ```
 
@@ -45,7 +45,7 @@ The connector requires the following configuration parameters in the configurati
 **Optional Parameters:**
 - `aggregation_interval`: Time interval for aggregating analytics data in minutes (default: 60). Must be a positive integer between 1 and 43200
 - `quick_range`: Time range for analytics data collection (default: `last24Hours`)
-    - Available options: `last24Hours`, `last7Days`, `last30Days`, `thisWeek`,`thisMonth`, `lastWeek`, `lastMonth`
+    - Available options: `last24Hours`, `last7Days`, `last30Days`, `thisWeek`, `thisMonth`, `lastWeek`, `lastMonth`
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -113,14 +113,14 @@ The connector creates three main tables in your data warehouse as defined in the
 
 ### 2. **browser_checks_analytics_aggregated**
 - **Purpose**: Contains aggregated analytics metrics for browser checks over specified time periods
-- **Primary Key**: `check_id`
+- **Primary Key**: `_fivetran_id` (hash of all the column values)
 - **Content**: Statistical aggregations including averages, percentiles (p50, p90, p95, p99), min/max values, standard deviations for performance metrics
 - **Metrics**: Response times, Core Web Vitals (FCP, LCP, CLS, TBT), TTFB, error counts (console, network, user script, document errors) with full statistical breakdowns
 - **Data Source**: `/v1/analytics/browser-checks/{check_id}` endpoint using `AGGREGATED_METRICS` constants
 
 ### 3. **browser_checks_analytics_non_aggregated**
 - **Purpose**: Contains raw analytics metrics for browser checks as individual data points
-- **Primary Key**: `check_id`
+- **Primary Key**: `_fivetran_id` (hash of all the column values)
 - **Content**: Individual measurement data points for each check execution
 - **Metrics**: Raw response times, Core Web Vitals measurements, TTFB values, error counts per execution
 - **Data Source**: `/v1/analytics/browser-checks/{check_id}` endpoint using `NON_AGGREGATED_METRICS` constants

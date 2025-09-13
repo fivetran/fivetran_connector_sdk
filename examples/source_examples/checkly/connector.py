@@ -452,17 +452,9 @@ def schema(configuration: dict):
         },
         {
             "table": "browser_checks_analytics_aggregated",  # Name of the aggregated analytics table in the destination, required.
-            "primary_key": [
-                "check_id",
-                "aggregation_interval",
-            ],  # Primary key for aggregated analytics data, optional.
         },
         {
             "table": "browser_checks_analytics_non_aggregated",  # Name of the non-aggregated analytics table in the destination, required.
-            "primary_key": [
-                "check_id",
-                "aggregation_interval",
-            ],  # Primary key for non-aggregated analytics data, optional.
         },
     ]
 
