@@ -32,6 +32,14 @@ The configuration requires your Supabase project URL and API key to establish a 
 - `schema_name` (optional) - Database schema name (defaults to `public` if not specified otherwise).
 - `table_name` (optional) - Table name to sync (defaults to `employee` if not specified otherwise).
 
+```
+{
+"supabase_url": "<YOUR_SUPABASE_PROJECT_URL>",
+"supabase_key": "<YOUR_SUPABASE_ANON_KEY>",
+"schema_name": "<YOUR_SCHEMA_NAME>",
+"table_name": "<YOUR_TABLE_NAME>"
+}
+```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -55,7 +63,7 @@ To obtain these credentials:
 1. Log in to your Supabase dashboard.
 2. Navigate to your project.
 3. Go to **Settings > API**.
-4. Copy the Project URL and anon public key.
+4. Make a note of the Project URL and anon public key. You will need it later to set up your Connector SDK connector.
 
 
 ## Pagination
