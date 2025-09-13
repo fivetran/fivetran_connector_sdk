@@ -102,8 +102,13 @@ jobs:
                 let currentPath = dirPath;
                 while (currentPath && currentPath !== '.') {
                 // Only add if this directory doesn't exist in the base branch
-                  // and is not in our ignore list
-                  if (!directoryExistsInBase(currentPath) && !ignoredDirectories.some(ignored => currentPath === ignored || currentPath.startsWith(ignored + '/'))) {
+                  // and is not in our ignore list (including subdirectories)
+                  if (
+                    !directoryExistsInBase(currentPath) &&
+                    !ignoredDirectories.some(
+                      ignored => currentPath === ignored || currentPath.startsWith(ignored + '/')
+                    )
+                  ) {
                     addedDirs.add(currentPath);
                   }
                   currentPath = path.dirname(currentPath);
