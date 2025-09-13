@@ -120,7 +120,7 @@ def parse_xml_response(
     Returns:
         List[Dict[str, Any]]: List of dictionaries with flattened XML data
     Raises:
-        ET.ParseError: If the XML content cannot be parsed
+        et.ParseError: If the XML content cannot be parsed
     """
     try:
         # Handle empty responses
