@@ -25,22 +25,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 
 ## Configuration file
-The configuration requires your Supabase project URL and API key to establish a connection to your Supabase database. Optionally, you can also specify the schema name and table name.
+The configuration requires your Supabase project URL and API key to establish a connection to your Supabase database. Optionally, you can also specify the schema name and table name. Below is a breakdown of the available configuration parameters:
 
-```
-{
-  "supabase_url": "<YOUR_SUPABASE_PROJECT_URL>",
-  "supabase_key": "<YOUR_SUPABASE_ANON_KEY>",
-  "schema_name": "<YOUR_SCHEMA_NAME>",
-  "table_name": "<YOUR_TABLE_NAME>"
-}
-```
+- `supabase_url` (required) - Your Supabase project URL.
+- `supabase_key` (required) - Your Supabase anon/public API key.
+- `schema_name` (optional) - Database schema name (defaults to `public` if not specified otherwise).
+- `table_name` (optional) - Table name to sync (defaults to `employee` if not specified otherwise).
 
-**Configuration Parameters:**
-- `supabase_url` (required): Your Supabase project URL
-- `supabase_key` (required): Your Supabase anon/public API key
-- `schema_name` (optional): Database schema name (defaults to "public")
-- `table_name` (optional): Table name to sync (defaults to "employee")
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
