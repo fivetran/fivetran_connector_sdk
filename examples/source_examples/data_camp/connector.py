@@ -143,7 +143,7 @@ def fetch_endpoint(
     url = base_url.rstrip("/") + endpoint
     headers = {"Accept": "application/json", "Authorization": f"Bearer {bearer_token}"}
 
-    for attempt in range(__MAX_RETRIES + 1):  # +1 to include the initial attempt
+    for attempt in range(1, __MAX_RETRIES + 1):
         try:
             log.info(f"Attempting to fetch {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1})")
             response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SECONDS)

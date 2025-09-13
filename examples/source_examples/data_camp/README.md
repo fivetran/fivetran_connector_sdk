@@ -38,8 +38,8 @@ The connector requires bearer token authentication for the DataCamp LMS Catalog 
 
 ```json
 {
-  "base_url": "<OPTIONAL_DATACAMP_BASE_URL>",
-  "bearer_token": "<YOUR_DATACAMP_BEARER_TOKEN>"
+  "bearer_token": "<YOUR_DATACAMP_BEARER_TOKEN>",
+  "base_url": "<YOUR_OPTIONAL_DATACAMP_BASE_URL>"
 }
 ```
 
