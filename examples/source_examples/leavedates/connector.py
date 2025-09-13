@@ -38,6 +38,44 @@ __DEFAULT_START_DATE = (
 __REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
 
 
+def validate_datetime_format(date_string: str, field_name: str = "date"):
+    """
+    Validate that a date string is in proper ISO format with timezone information.
+    This function requires the datetime to include both time and timezone components.
+    Args:
+        date_string: The date string to validate.
+        field_name: The name of the field being validated (for error messages).
+    Raises:
+        ValueError: If the date string is not in a valid ISO format with timezone.
+    """
+    if not date_string or not date_string.strip():
+        raise ValueError(f"{field_name} cannot be empty")
+
+    # Check for required components
+    if "T" not in date_string:
+        raise ValueError(
+            f"Invalid {field_name} format: '{date_string}'. Expected ISO format with time component (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z')"
+        )
+
+    # Check for timezone information (either Z or +/-offset)
+    has_timezone = date_string.endswith("Z") or (
+        "+" in date_string or "-" in date_string.split("T")[1]
+    )
+    if not has_timezone:
+        raise ValueError(
+            f"Invalid {field_name} format: '{date_string}'. Expected ISO format with timezone (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z')"
+        )
+
+    try:
+        # Handle 'Z' timezone suffix by converting to '+00:00'
+        normalized_date = date_string.replace("Z", "+00:00")
+        datetime.fromisoformat(normalized_date)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid {field_name} format: '{date_string}'. Expected ISO format (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z'): {str(e)}"
+        )
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -61,6 +99,12 @@ def validate_configuration(configuration: dict):
     # Validate that company_id is not empty
     if not configuration.get("company_id", "").strip():
         raise ValueError("company_id cannot be empty")
+
+    # Validate start_date format if provided
+    if "start_date" in configuration:
+        start_date = configuration.get("start_date")
+        if start_date and start_date.strip():
+            validate_datetime_format(start_date, "start_date")
 
 
 def schema(configuration: dict):
@@ -107,19 +151,12 @@ def update(configuration: dict, state: dict):
     current_time = datetime.now(timezone.utc).isoformat()
 
     try:
-        # Fetch leave reports data from the API
-        leave_reports = fetch_leave_reports(api_token, company_id, last_sync_time, current_time)
+        # Process leave reports data page by page to avoid memory issues
+        total_records_processed = fetch_and_process_leave_reports(
+            api_token, company_id, last_sync_time, current_time
+        )
 
-        # Process each leave report record
-        for record in leave_reports:
-            # Flatten the record to handle nested data structures
-            flattened_record = flatten_record(record)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="leave_reports", data=flattened_record)
+        log.info(f"Successfully processed {total_records_processed} leave reports in total")
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_time": current_time}
@@ -134,19 +171,21 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync leave reports data: {str(e)}")
 
 
-def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_date: str) -> list:
+def fetch_and_process_leave_reports(
+    api_token: str, company_id: str, start_date: str, end_date: str
+) -> int:
     """
-    Fetch leave reports data from the LeaveDates API with pagination support.
-    This function handles API requests with retry logic and exponential backoff.
+    Fetch leave reports data from the LeaveDates API with pagination and process each page immediately.
+    This function processes data page by page to avoid memory issues with large datasets.
     Args:
         api_token: The API token for authentication.
         company_id: The company ID to fetch reports for.
         start_date: The start date for fetching reports.
         end_date: The end date for fetching reports.
     Returns:
-        A list of leave report records.
+        The total number of records processed.
     """
-    all_reports = []
+    total_records_processed = 0
     page = 1
 
     # Construct the date range parameter for the API
@@ -155,7 +194,11 @@ def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_da
     while True:
         # Make API request with retry logic
         url = f"{__BASE_URL}/reports/leave"
-        headers = {"accept": "application/json", "Authorization": f"Bearer {api_token}"}
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {api_token}",
+            "X-CSRF-TOKEN": "",
+        }
         params = {
             "company": company_id,
             "page": page,
@@ -163,7 +206,6 @@ def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_da
             "report_type": "detail-report",
         }
 
-        log.info(f"Fetching leave reports page {page}")
         response_data = make_api_request_with_retry(url, headers, params)
 
         # Extract data from response
@@ -171,21 +213,49 @@ def fetch_leave_reports(api_token: str, company_id: str, start_date: str, end_da
         if not reports:
             break
 
-        all_reports.extend(reports)
+        # Process each record from this page immediately
+        page_records_processed = 0
+        for record in reports:
+            try:
+                # Flatten the record to handle nested data structures
+                flattened_record = flatten_record(record)
+
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
+                op.upsert(table="leave_reports", data=flattened_record)
+                page_records_processed += 1
+
+            except Exception as e:
+                log.warning(f"Failed to process record: {str(e)}. Skipping record and continuing.")
+                continue
+
+        total_records_processed += page_records_processed
+        log.info(f"Processed {page_records_processed} records from page {page}")
 
         # Check if there are more pages
         current_page = response_data.get("current_page", 1)
-        total_pages = (
-            response_data.get("total", 0) + response_data.get("per_page", 1) - 1
-        ) // response_data.get("per_page", 1)
+        per_page = response_data.get("per_page", 1)
+        total_records = response_data.get("total", 0)
+
+        # Ensure per_page is valid to avoid division by zero
+        if per_page <= 0:
+            log.warning(
+                f"API returned invalid per_page value: {per_page}. Using default value of 1."
+            )
+            per_page = 1
+
+        # Calculate total pages safely
+        total_pages = (total_records + per_page - 1) // per_page if total_records > 0 else 0
 
         if current_page >= total_pages:
+            log.info(f"Reached last page ({current_page}/{total_pages})")
             break
 
         page += 1
 
-    log.info(f"Fetched {len(all_reports)} leave reports in total")
-    return all_reports
+    return total_records_processed
 
 
 def make_api_request_with_retry(url: str, headers: dict, params: dict) -> Any | None:
