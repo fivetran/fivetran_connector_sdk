@@ -29,7 +29,7 @@ The configuration requires your Iterate API access token and optionally a start 
 ```
 {
   "api_token": "<YOUR_ITERATE_API_TOKEN>",
-  "start_date": "<OPTIONAL_START_DATE>"
+  "start_date": "<YOUR_OPTIONAL_START_DATE>"
 }
 ```
 

@@ -87,7 +87,7 @@ def validate_configuration(configuration: dict):
 
 def make_api_request(
     url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
-) -> Any | None:
+) -> Dict[str, Any]:
     """
     Make API request to Iterate with retry logic and exponential backoff.
     Args:
@@ -114,7 +114,8 @@ def make_api_request(
                 raise RuntimeError(
                     f"Failed to make API request after {__MAX_RETRIES} attempts: {str(e)}"
                 )
-    return None
+
+    raise RuntimeError(f"Failed to make API request after {__MAX_RETRIES} attempts")
 
 
 def flatten_dict(data: Dict[str, Any], parent_key: str = "", sep: str = "_") -> Dict[str, Any]:
@@ -168,13 +169,15 @@ def make_iterate_api_call(
     return make_api_request(url, headers, params)
 
 
-def fetch_surveys(api_token: str) -> List[Dict[str, Any]]:
+def process_surveys_and_responses(api_token: str, start_date_unix: int) -> int:
     """
-    Fetch all surveys from the Iterate API.
+    Fetch surveys and process their responses immediately without accumulating survey IDs in memory.
+    This approach processes each survey and its responses on-the-fly to minimize memory usage.
     Args:
         api_token: API token for authentication
+        start_date_unix: Unix timestamp for filtering responses
     Returns:
-        List of survey dictionaries
+        Total number of responses processed across all surveys
     """
     log.info("Fetching surveys from Iterate API")
     response_data = make_iterate_api_call("/surveys", api_token)
@@ -182,13 +185,29 @@ def fetch_surveys(api_token: str) -> List[Dict[str, Any]]:
     surveys = response_data.get("results", [])
     log.info(f"Retrieved {len(surveys)} surveys")
 
-    # Flatten each survey dictionary
-    flattened_surveys = []
+    total_responses = 0
+
+    # Process each survey immediately without accumulating in memory
     for survey in surveys:
         flattened_survey = flatten_dict(survey)
-        flattened_surveys.append(flattened_survey)
 
-    return flattened_surveys
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table="survey", data=flattened_survey)
+
+        # Process responses for this survey immediately
+        survey_id = survey.get("id")
+
+        if survey_id:
+            survey_response_count = process_survey_responses(api_token, survey_id, start_date_unix)
+            total_responses += survey_response_count
+
+    log.info(
+        f"Successfully processed {len(surveys)} surveys with {total_responses} total responses"
+    )
+    return total_responses
 
 
 def fetch_survey_responses(
@@ -371,33 +390,13 @@ def update(configuration: dict, state: dict):
     start_date_unix = convert_to_unix_timestamp(sync_start_date)
 
     try:
-        # First, fetch all surveys
-        log.info("Starting survey data sync")
-        surveys = fetch_surveys(api_token)
-
-        # Upsert surveys data
-        for survey in surveys:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="survey", data=survey)
-
-        log.info(f"Successfully synced {len(surveys)} surveys")
-
-        # Now fetch responses for each survey
-        total_responses = 0
-        for survey in surveys:
-            survey_id = survey.get("id")
-            if not survey_id:
-                continue
-
-            # Process all responses for this survey
-            survey_response_count = process_survey_responses(api_token, survey_id, start_date_unix)
-            total_responses += survey_response_count
+        # Process surveys and their responses in a streaming fashion (most memory-efficient approach)
+        log.info("Starting survey and response data sync")
+        total_responses = process_surveys_and_responses(api_token, start_date_unix)
 
         # Final checkpoint with updated state
         new_state = {"last_survey_sync": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
