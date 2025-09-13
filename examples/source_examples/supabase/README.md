@@ -1,7 +1,7 @@
 # Supabase Connector Example 
 
 ## Connector overview
-This connector demonstrates how to fetch employee data from a [Supabase](https://supabase.com/) database and sync it to Fivetran using the Fivetran Connector SDK. The connector retrieves employee records from a Supabase table and performs incremental synchronization based on the hire_date field. It connects to Supabase using the Python Supabase client library and handles data extraction, transformation, and loading into the destination.
+This connector demonstrates how to fetch employee data from a [Supabase](https://supabase.com/) database and sync it to Fivetran using the Fivetran Connector SDK. The connector retrieves employee records from a Supabase table and performs incremental syncs based on the `hire_date` field. It connects to Supabase using the Python Supabase client library and handles data extraction, transformation, and loading into the destination.
 
 
 ## Requirements
@@ -17,15 +17,15 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Configurable schema and table names for flexibility
-- Incremental sync based on `hire_date` field
-- Automatic data type inference for all columns except primary key
+- Incremental syncs based on the `hire_date` field
+- Automatic data type inference for all columns except for the primary key
 - Checkpointing for large datasets to ensure resumable syncs
 - Error handling and logging for debugging
 - Connection to Supabase using official Python SDK with ClientOptions
 
 
 ## Configuration file
-The configuration requires your Supabase project URL and API key to establish a connection to your Supabase database. You can also optionally specify the schema name and table name.
+The configuration requires your Supabase project URL and API key to establish a connection to your Supabase database. Optionally, you can also specify the schema name and table name.
 
 ```
 {
@@ -56,29 +56,31 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector uses API key authentication to access Supabase. You need to provide:
-- **Supabase Project URL** - Found in your Supabase project dashboard
-- **Supabase API Key** - Use the anon/public key for read-only access to your database
+This connector uses API key authentication to access Supabase. To authenticate, you need to provide the following:
+- Your Supabase project URL - Found in your Supabase project dashboard
+- Supabase API key - Use the anon/public key for read-only access to your database
 
 To obtain these credentials:
 1. Log in to your Supabase dashboard.
 2. Navigate to your project.
-3. Go to Settings > API.
+3. Go to **Settings > API**.
 4. Copy the Project URL and anon public key.
 
 
 ## Pagination
-The connector handles data retrieval using Supabase's built-in query capabilities with explicit ordering by hire_date. The data is fetched in chronological order (ascending by `hire_date`) to ensure proper incremental sync behavior. For large datasets, the connector implements checkpointing every 1000 rows to ensure the sync can resume from the correct position if interrupted. The explicit sorting ensures that checkpoints always capture the correct state for resuming syncs.
+The connector handles data retrieval using Supabase's built-in query capabilities with explicit ordering by `hire_date`. The connector fetches data in chronological order (ascending by `hire_date`) to ensure proper incremental sync behavior. 
+
+For large datasets, the connector implements checkpointing every 1000 rows to ensure the sync can resume from the correct position if interrupted. The explicit sorting ensures that checkpoints always capture the correct state for resuming syncs.
 
 
 ## Data handling
 The connector fetches data from the specified Supabase table and performs the following operations:
 - Queries records where `hire_date` is greater than the last synced `hire_date`
-- Explicitly orders results by hire_date ascending to ensure consistent incremental sync
+- Explicitly orders results by `hire_date` ascending to ensure consistent incremental syncs
 - Processes records sequentially in chronological order for accurate checkpointing
 - Flattens any nested data structures into key-value pairs
 - Upserts each record to the destination table (using configurable table name)
-- Updates state with the latest hire_date for subsequent syncs
+- Updates state with the latest `hire_date` for subsequent syncs
 
 
 ## Error handling
@@ -92,10 +94,11 @@ The connector implements comprehensive error handling strategies:
 ## Tables created
 The connector creates a table in the destination based on your configuration:
 
-**Table Name** (configurable via `table_name` parameter) - Contains the data with the following structure:
-- Primary key: `id` (INT - maps to Supabase int8)
-- Fields: All fields from the source table (e.g., `id`, `first_name`, `last_name`, `email`, `department`, `hire_date`)
-- Data types are automatically inferred by Fivetran except for the primary key
+- Table name - Configurable via `table_name` parameter
+- Primary key - `id` (INT - maps to Supabase int8)
+- Fields - All fields from the source table (e.g., `id`, `first_name`, `last_name`, `email`, `department`, `hire_date`)
+
+Note: Data types are automatically inferred by Fivetran except for the primary key.
 
 
 ## Additional considerations
