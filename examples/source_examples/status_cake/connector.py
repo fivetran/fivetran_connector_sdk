@@ -106,8 +106,8 @@ def flatten_dictionary(data, parent_key="", separator="_"):
             if isinstance(v, dict):
                 items.extend(flatten_dictionary(v, new_key, separator=separator).items())
             elif isinstance(v, list):
-                # Convert lists to comma-separated strings for easier handling
-                items.append((new_key, ",".join(map(str, v)) if v else ""))
+                # Serialize lists as JSON strings for safer handling
+                items.append((new_key, json.dumps(v) if v else "[]"))
             else:
                 items.append((new_key, v))
     return dict(items)
@@ -151,7 +151,7 @@ def upsert_records_with_test_id(table_name: str, records: list, test_id: str):
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted,
-        op.upsert(table_name, flattened_record)
+        op.upsert(table=table_name, data=flattened_record)
 
 
 def schema(configuration: dict):
@@ -220,7 +220,7 @@ def update(configuration: dict, state: dict):
             # The op.upsert method is called with two arguments:
             # 1. The table name where data should be inserted/updated
             # 2. The data record as a dictionary with column names as keys
-            op.upsert("uptime_test", flattened_test)
+            op.upsert(table="uptime_test", data=flattened_test)
 
             # Process history data for this uptime test
             history_data = fetch_api_data(
