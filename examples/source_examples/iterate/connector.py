@@ -17,7 +17,7 @@ import requests  # For making HTTP requests to the Iterate API
 import json  # For reading configuration from a JSON file
 import time  # For handling retries and delays
 from datetime import datetime, timezone  # For handling date and time operations
-from typing import Dict, List, Optional, Any  # For type hinting
+from typing import Dict, Optional, Any  # For type hinting
 
 
 __BASE_URL = "https://iteratehq.com/api/v1"  # Base URL for Iterate API
@@ -368,7 +368,7 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
