@@ -69,7 +69,7 @@ The connector processes data from the `/v6/deployments` endpoint which contains 
 
 ## Error handling
 The connector implements comprehensive error handling strategies:
-- HTTP timeout handling with configurable timeout values (30 seconds)
+- HTTP timeout handling (30 seconds)
 - Rate limiting detection with exponential backoff
 - Specific exception handling for different request failures
 - Graceful error logging without exposing sensitive information

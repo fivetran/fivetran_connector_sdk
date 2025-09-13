@@ -101,6 +101,8 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
         params = {}
 
     response = None
+    last_exception = None
+
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(
@@ -112,6 +114,7 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
             log.severe(f"Request timeout for URL: {url}")
             raise
         except requests.exceptions.HTTPError as e:
+            last_exception = e
             # Only retry on rate limiting (429)
             if response and response.status_code == 429 and attempt < __MAX_RETRIES - 1:
                 delay = __BACKOFF_BASE * (2**attempt)
@@ -131,9 +134,14 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
             log.severe(f"Invalid JSON response from URL: {url}: {e}")
             raise
 
-    raise requests.exceptions.HTTPError(
-        f"Rate limit exceeded for URL: {url} after {__MAX_RETRIES} attempts"
-    )
+    if response and response.status_code == 429:
+        raise requests.exceptions.HTTPError(
+            f"Rate limit exceeded for URL: {url} after {__MAX_RETRIES} attempts"
+        )
+    else:
+        raise last_exception or requests.exceptions.RequestException(
+            f"Request failed for URL: {url} after {__MAX_RETRIES} attempts"
+        )
 
 
 def schema(configuration: dict):
@@ -227,12 +235,11 @@ def sync_deployments(
     next_timestamp = None
 
     while True:
-        # Remove previous pagination parameter to avoid conflicts
-        params.pop("next", None)
-
         # For pagination, use 'next' parameter with the continuation token
         if next_timestamp:
             params["next"] = next_timestamp
+        elif "next" in params:
+            params.pop("next")
 
         try:
             response_data = make_api_request(url, headers, params)
