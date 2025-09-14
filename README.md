@@ -208,7 +208,7 @@ There are several examples available under `/examples`:
 </details>
 
 ## AI and Connector SDK
- - [Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/README.md) - This is an introduction to using AI tools to leverage Connector SDK
+ - [AI_Readme](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/AI_README.md) - This is an introduction to using AI tools to leverage Connector SDK
  - [claude_20250228](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude_20250228/) - This example contains the code produced by Claude AI to build a custom connector using our Connector SDK. See our [blog article](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) for details.
 
 > Note: As of Connector SDK version 2.0.0, `yield` is no longer required for Connector SDK operations. This folder contains examples that still use `yield`, but we recommend using the latest version of Connector SDK and avoiding `yield` in your connector code. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
