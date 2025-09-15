@@ -22,7 +22,7 @@ This connector fetches data from ACT Web API endpoints and loads it into Fivetra
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Fivetran Connector SDK environment
 
-## Getting Started
+## Getting started
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
