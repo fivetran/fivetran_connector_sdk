@@ -42,7 +42,7 @@ def validate_configuration(configuration: dict):
     # Validate optional configuration parameters (convert from strings)
     try:
         sync_frequency = int(configuration.get("sync_frequency_minutes", "15"))
-        if sync_frequency < 1 or sync_frequency > 1440:
+        if not (1 <= sync_frequency <= 1440):
             raise ValueError(
                 "sync_frequency_minutes must be an integer between 1 and 1440"
             )
@@ -53,14 +53,14 @@ def validate_configuration(configuration: dict):
 
     try:
         initial_sync_days = int(configuration.get("initial_sync_days", "90"))
-        if initial_sync_days < 1 or initial_sync_days > 365:
+        if not (1 <= initial_sync_days <= 365):
             raise ValueError("initial_sync_days must be an integer between 1 and 365")
     except (ValueError, TypeError):
         raise ValueError("initial_sync_days must be a valid integer between 1 and 365")
 
     try:
         max_records = int(configuration.get("max_records_per_query", "1000"))
-        if max_records < 1 or max_records > 10000:
+        if not (1 <= max_records <= 10000):
             raise ValueError(
                 "max_records_per_query must be an integer between 1 and 10000"
             )
@@ -71,14 +71,14 @@ def validate_configuration(configuration: dict):
 
     try:
         timeout = int(configuration.get("timeout_seconds", "30"))
-        if timeout < 5 or timeout > 300:
+        if not (5 <= timeout <= 300):
             raise ValueError("timeout_seconds must be an integer between 5 and 300")
     except (ValueError, TypeError):
         raise ValueError("timeout_seconds must be a valid integer between 5 and 300")
 
     try:
         retry_attempts = int(configuration.get("retry_attempts", "3"))
-        if retry_attempts < 0 or retry_attempts > 10:
+        if not (0 <= retry_attempts <= 10):
             raise ValueError("retry_attempts must be an integer between 0 and 10")
     except (ValueError, TypeError):
         raise ValueError("retry_attempts must be a valid integer between 0 and 10")
@@ -87,8 +87,9 @@ def validate_configuration(configuration: dict):
         data_quality_threshold = float(
             configuration.get("data_quality_threshold", "0.95")
         )
-        if data_quality_threshold < 0 or data_quality_threshold > 1:
+        if not (0 <= data_quality_threshold <= 1):
             raise ValueError("data_quality_threshold must be a number between 0 and 1")
+
     except (ValueError, TypeError):
         raise ValueError(
             "data_quality_threshold must be a valid number between 0 and 1"
