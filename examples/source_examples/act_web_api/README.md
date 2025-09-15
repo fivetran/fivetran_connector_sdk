@@ -19,7 +19,11 @@ This connector fetches data from ACT Web API endpoints and loads it into Fivetra
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- [Supported version of Python](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Ubuntu 20.04+ / Debian 10+ / Amazon Linux 2+ (arm64 or x86_64)
 
 ## Getting started
 
