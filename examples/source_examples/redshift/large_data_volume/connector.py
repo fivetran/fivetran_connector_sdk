@@ -1,5 +1,5 @@
 """
-This connector demonstrates how to fetch data from Redsgift source and upsert it into destination using redshift_connector library.
+This connector demonstrates how to fetch data from Redshift source and upsert it into destination using redshift_connector library.
 It supports both FULL and INCREMENTAL replication strategies, with automatic schema detection and column typing.
 This example also ensures that large datasets are handled efficiently by batching fetches and checkpointing progress periodically.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
@@ -86,13 +86,14 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Source Examples - Redshift - Large Data Volume")
 
-    # Get max parallel workers from configuration
-    # Ensure that you do not set this to a high value. Recommended value is between 2 and 4.
-    # Setting a high value may degrade the performance instead of improving it
-    max_parallel_workers = int(configuration.get("max_parallel_workers"))
-
     # Build table plans from configuration and Redshift metadata
     plans = get_table_plans(configuration=configuration)
+
+    # Get max parallel workers from configuration
+    # If the value is greater than the number of tables to sync, it will be capped at the number of tables to sync
+    # Ensure that you do not set this to a high value. Recommended value is between 2 and 4.
+    # Setting a high value may degrade the performance instead of improving it
+    max_parallel_workers = min(int(configuration.get("max_parallel_workers")), len(plans))
 
     if not plans:
         log.warning(
