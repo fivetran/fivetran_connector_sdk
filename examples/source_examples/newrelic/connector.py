@@ -1,9 +1,9 @@
-# New Relic Feature APIs Connector
 """This connector demonstrates how to fetch data from New Relic feature APIs and upsert it into destination using the Fivetran Connector SDK.
 Supports querying data from APM, Infrastructure, Browser monitoring, Mobile monitoring, and Synthetic monitoring APIs.
+
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -13,8 +13,67 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries for API interactions
 import requests
 import json
+import time
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
+from string import Template
+
+
+def _validate_required_configs(configuration: dict):
+    """Validate required configuration parameters."""
+    required_configs = ["api_key", "account_id", "region"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
+def _validate_api_key(api_key: str):
+    """Validate API key format."""
+    if not api_key.startswith("NRAK-"):
+        raise ValueError("API key should start with 'NRAK-'")
+
+
+def _validate_region(region: str):
+    """Validate region parameter."""
+    valid_regions = ["US", "EU"]
+    if region not in valid_regions:
+        raise ValueError(f"Region must be one of: {valid_regions}")
+
+
+def _validate_integer_range(
+    configuration: dict, key: str, default: str, min_val: int, max_val: int, name: str
+):
+    """Validate integer configuration parameter within range."""
+    try:
+        int_val = int(configuration.get(key, default))
+        if not (min_val <= int_val <= max_val):
+            raise ValueError(f"{name} must be an integer between {min_val} and {max_val}")
+    except (ValueError, TypeError):
+        raise ValueError(f"{name} must be a valid integer between {min_val} and {max_val}")
+
+
+def _validate_float_range(
+    configuration: dict,
+    key: str,
+    default: str,
+    min_val: float,
+    max_val: float,
+    name: str,
+):
+    """Validate float configuration parameter within range."""
+    try:
+        float_val = float(configuration.get(key, default))
+        if not (min_val <= float_val <= max_val):
+            raise ValueError(f"{name} must be a number between {min_val} and {max_val}")
+    except (ValueError, TypeError):
+        raise ValueError(f"{name} must be a valid number between {min_val} and {max_val}")
+
+
+def _validate_log_level(log_level: str):
+    """Validate log level parameter."""
+    valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "SEVERE"]
+    if log_level not in valid_log_levels:
+        raise ValueError(f"log_level must be one of: {valid_log_levels}")
 
 
 def validate_configuration(configuration: dict):
@@ -25,80 +84,29 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing or invalid.
     """
-    required_configs = ["api_key", "account_id", "region"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    _validate_required_configs(configuration)
+    _validate_api_key(configuration.get("api_key", ""))
+    _validate_region(configuration.get("region"))
 
-    # Validate API key format
-    if not configuration.get("api_key", "").startswith("NRAK-"):
-        raise ValueError("API key should start with 'NRAK-'")
-
-    # Validate region
-    valid_regions = ["US", "EU"]
-    if configuration.get("region") not in valid_regions:
-        raise ValueError(f"Region must be one of: {valid_regions}")
-
-    # Validate optional configuration parameters (convert from strings)
-    try:
-        sync_frequency = int(configuration.get("sync_frequency_minutes", "15"))
-        if not (1 <= sync_frequency <= 1440):
-            raise ValueError(
-                "sync_frequency_minutes must be an integer between 1 and 1440"
-            )
-    except (ValueError, TypeError):
-        raise ValueError(
-            "sync_frequency_minutes must be a valid integer between 1 and 1440"
-        )
-
-    try:
-        initial_sync_days = int(configuration.get("initial_sync_days", "90"))
-        if not (1 <= initial_sync_days <= 365):
-            raise ValueError("initial_sync_days must be an integer between 1 and 365")
-    except (ValueError, TypeError):
-        raise ValueError("initial_sync_days must be a valid integer between 1 and 365")
-
-    try:
-        max_records = int(configuration.get("max_records_per_query", "1000"))
-        if not (1 <= max_records <= 10000):
-            raise ValueError(
-                "max_records_per_query must be an integer between 1 and 10000"
-            )
-    except (ValueError, TypeError):
-        raise ValueError(
-            "max_records_per_query must be a valid integer between 1 and 10000"
-        )
-
-    try:
-        timeout = int(configuration.get("timeout_seconds", "30"))
-        if not (5 <= timeout <= 300):
-            raise ValueError("timeout_seconds must be an integer between 5 and 300")
-    except (ValueError, TypeError):
-        raise ValueError("timeout_seconds must be a valid integer between 5 and 300")
-
-    try:
-        retry_attempts = int(configuration.get("retry_attempts", "3"))
-        if not (0 <= retry_attempts <= 10):
-            raise ValueError("retry_attempts must be an integer between 0 and 10")
-    except (ValueError, TypeError):
-        raise ValueError("retry_attempts must be a valid integer between 0 and 10")
-
-    try:
-        data_quality_threshold = float(
-            configuration.get("data_quality_threshold", "0.95")
-        )
-        if not (0 <= data_quality_threshold <= 1):
-            raise ValueError("data_quality_threshold must be a number between 0 and 1")
-
-    except (ValueError, TypeError):
-        raise ValueError(
-            "data_quality_threshold must be a valid number between 0 and 1"
-        )
-
-    log_level = configuration.get("log_level", "INFO")
-    valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "SEVERE"]
-    if log_level not in valid_log_levels:
-        raise ValueError(f"log_level must be one of: {valid_log_levels}")
+    # Validate numeric parameters
+    _validate_integer_range(
+        configuration, "sync_frequency_minutes", "15", 1, 1440, "sync_frequency_minutes"
+    )
+    _validate_integer_range(configuration, "initial_sync_days", "90", 1, 365, "initial_sync_days")
+    _validate_integer_range(
+        configuration,
+        "max_records_per_query",
+        "1000",
+        1,
+        10000,
+        "max_records_per_query",
+    )
+    _validate_integer_range(configuration, "timeout_seconds", "30", 5, 300, "timeout_seconds")
+    _validate_integer_range(configuration, "retry_attempts", "3", 0, 10, "retry_attempts")
+    _validate_float_range(
+        configuration, "data_quality_threshold", "0.95", 0, 1, "data_quality_threshold"
+    )
+    _validate_log_level(configuration.get("log_level", "INFO"))
 
 
 def get_newrelic_endpoint(region: str) -> str:
@@ -140,23 +148,16 @@ def execute_nerdgraph_query(
     headers = {"API-Key": api_key, "Content-Type": "application/json"}
     payload = {"query": query}
 
-    last_exception = None
-
     for attempt in range(retry_attempts + 1):
         try:
-            response = requests.post(
-                url, json=payload, headers=headers, timeout=timeout_seconds
-            )
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout_seconds)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            last_exception = e
             if attempt < retry_attempts:
                 log.warning(
                     f"API request failed (attempt {attempt + 1}/{retry_attempts + 1}): {str(e)}"
                 )
-                import time
-
                 time.sleep(retry_delay_seconds * (2**attempt))  # Exponential backoff
             else:
                 log.severe(
@@ -166,13 +167,8 @@ def execute_nerdgraph_query(
                     f"API request failed after {retry_attempts + 1} attempts: {str(e)}"
                 )
 
-    # This should never be reached, but just in case
-    raise RuntimeError(f"API request failed: {str(last_exception)}")
 
-
-def get_time_range(
-    last_sync_time: Optional[str] = None, initial_sync_days: int = 90
-) -> str:
+def get_time_range(last_sync_time: Optional[str] = None, initial_sync_days: int = 90) -> str:
     """
     Generate dynamic time range for NRQL queries.
     Args:
@@ -187,6 +183,73 @@ def get_time_range(
     else:
         # Initial sync: get all available data for specified days
         return f"SINCE {initial_sync_days} days ago"
+
+
+def _extract_configuration_params(configuration: dict) -> dict:
+    """
+    Extract and convert configuration parameters.
+    Args:
+        configuration: Raw configuration dictionary
+    Returns:
+        Processed configuration parameters
+    """
+    return {
+        "api_key": configuration.get("api_key", ""),
+        "account_id": configuration.get("account_id", ""),
+        "region": configuration.get("region", "US"),
+        "initial_sync_days": int(configuration.get("initial_sync_days", "90")),
+        "max_records": int(configuration.get("max_records_per_query", "1000")),
+        "timeout_seconds": int(configuration.get("timeout_seconds", "30")),
+        "retry_attempts": int(configuration.get("retry_attempts", "3")),
+        "retry_delay_seconds": int(configuration.get("retry_delay_seconds", "5")),
+        "data_quality_threshold": float(configuration.get("data_quality_threshold", "0.95")),
+    }
+
+
+def _get_data_source_flags(configuration: dict) -> dict:
+    """
+    Extract data source enablement flags.
+    Args:
+        configuration: Raw configuration dictionary
+    Returns:
+        Data source flags
+    """
+    return {
+        "enable_apm": configuration.get("enable_apm_data", "true").lower() == "true",
+        "enable_infrastructure": configuration.get("enable_infrastructure_data", "true").lower(),
+        "enable_browser": configuration.get("enable_browser_data", "true").lower() == "true",
+        "enable_mobile": configuration.get("enable_mobile_data", "true").lower() == "true",
+        "enable_synthetic": configuration.get("enable_synthetic_data", "true").lower() == "true",
+    }
+
+
+def _calculate_simple_data_quality(record_count: int) -> float:
+    """
+    Calculate a simple data quality score based on record count.
+    For streaming data, we use a simplified quality metric.
+    Args:
+        record_count: Number of records processed
+    Returns:
+        Quality score between 0 and 1
+    """
+    # Simple quality metric: if we got records, quality is good
+    return 1.0 if record_count > 0 else 0.0
+
+
+def _handle_data_quality_check(overall_quality: float, threshold: float, alert_on_errors: bool):
+    """
+    Handle data quality threshold checking and alerting.
+    Args:
+        overall_quality: Calculated overall quality score
+        threshold: Quality threshold to check against
+        alert_on_errors: Whether to send severe alerts
+    """
+    if overall_quality < threshold:
+        log.warning(f"Data quality score {overall_quality:.3f} below threshold {threshold}")
+        if alert_on_errors:
+            log.severe(
+                f"Data quality alert: score {overall_quality:.3f} below threshold {threshold}"
+            )
 
 
 def get_timestamp_from_data(result: Dict[str, Any], fallback_timestamp: str) -> str:
@@ -237,9 +300,9 @@ def get_apm_data(
     timeout_seconds: int = 30,
     retry_attempts: int = 3,
     retry_delay_seconds: int = 5,
-) -> List[Dict[str, Any]]:
+):
     """
-    Fetch APM data from New Relic.
+    Fetch APM data from New Relic and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -251,49 +314,48 @@ def get_apm_data(
         retry_attempts: Number of retry attempts on failure
         retry_delay_seconds: Delay between retry attempts
     Returns:
-        List of APM data
+        Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query = f"""
-    {{
-      actor {{
-        account(id: {account_id}) {{
-          nrql(query: "SELECT * FROM Transaction {time_range} LIMIT {max_records}") {{
+    query_template = Template(
+        """
+    {
+      actor {
+        account(id: $account_id) {
+          nrql(query: "SELECT * FROM Transaction $time_range LIMIT $max_records") {
             results
-          }}
-        }}
-      }}
-    }}
+          }
+        }
+      }
+    }
     """
+    )
+    query = query_template.substitute(
+        account_id=account_id, time_range=time_range, max_records=max_records
+    )
 
     response = execute_nerdgraph_query(
         query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
     )
 
-    apm_data = []
-    if (
-        response.get("data", {})
-        .get("actor", {})
-        .get("account", {})
-        .get("nrql", {})
-        .get("results")
-    ):
+    record_count = 0
+    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
         current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
-            apm_data.append(
-                {
-                    "account_id": account_id,
-                    "timestamp": get_timestamp_from_data(result, current_time),
-                    "transaction_name": result.get("transactionName", ""),
-                    "duration": result.get("duration", 0),
-                    "error_rate": result.get("errorRate", 0),
-                    "throughput": result.get("throughput", 0),
-                    "apdex_score": result.get("apdexScore", 0),
-                }
-            )
+            record = {
+                "account_id": account_id,
+                "timestamp": get_timestamp_from_data(result, current_time),
+                "transaction_name": result.get("transactionName", ""),
+                "duration": result.get("duration", 0),
+                "error_rate": result.get("errorRate", 0),
+                "throughput": result.get("throughput", 0),
+                "apdex_score": result.get("apdexScore", 0),
+            }
+            op.upsert(table="apm_data", data=record)
+            record_count += 1
 
-    return apm_data
+    return record_count
 
 
 def get_infrastructure_data(
@@ -303,9 +365,9 @@ def get_infrastructure_data(
     timeout_seconds: int = 30,
     retry_attempts: int = 3,
     retry_delay_seconds: int = 5,
-) -> List[Dict[str, Any]]:
+):
     """
-    Fetch Infrastructure monitoring data from New Relic.
+    Fetch Infrastructure monitoring data from New Relic and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -314,36 +376,39 @@ def get_infrastructure_data(
         retry_attempts: Number of retry attempts on failure
         retry_delay_seconds: Delay between retry attempts
     Returns:
-        List of infrastructure host data
+        Number of records processed
     """
-    query = f"""
-    {{
-      actor {{
-        entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = {account_id}") {{
+    query_template = Template(
+        """
+    {
+      actor {
+        entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = $account_id") {
           count
-          results {{
-            entities {{
+          results {
+            entities {
               name
               accountId
               domain
               type
               reporting
-              tags {{
+              tags {
                 key
                 values
-              }}
-            }}
-          }}
-        }}
-      }}
-    }}
+              }
+            }
+          }
+        }
+      }
+    }
     """
+    )
+    query = query_template.substitute(account_id=account_id)
 
     response = execute_nerdgraph_query(
         query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
     )
 
-    infra_data = []
+    record_count = 0
     if (
         response.get("data", {})
         .get("actor", {})
@@ -354,19 +419,19 @@ def get_infrastructure_data(
         entities = response["data"]["actor"]["entitySearch"]["results"]["entities"]
         current_time = datetime.now(timezone.utc).isoformat()
         for entity in entities:
-            infra_data.append(
-                {
-                    "account_id": account_id,
-                    "timestamp": get_timestamp_from_data(entity, current_time),
-                    "host_name": entity.get("name", ""),
-                    "domain": entity.get("domain", ""),
-                    "type": entity.get("type", ""),
-                    "reporting": entity.get("reporting", False),
-                    "tags": json.dumps(entity.get("tags", [])),
-                }
-            )
+            record = {
+                "account_id": account_id,
+                "timestamp": get_timestamp_from_data(entity, current_time),
+                "host_name": entity.get("name", ""),
+                "domain": entity.get("domain", ""),
+                "type": entity.get("type", ""),
+                "reporting": entity.get("reporting", False),
+                "tags": json.dumps(entity.get("tags", [])),
+            }
+            op.upsert(table="infrastructure_data", data=record)
+            record_count += 1
 
-    return infra_data
+    return record_count
 
 
 def get_browser_data(
@@ -379,9 +444,9 @@ def get_browser_data(
     timeout_seconds: int = 30,
     retry_attempts: int = 3,
     retry_delay_seconds: int = 5,
-) -> List[Dict[str, Any]]:
+):
     """
-    Fetch Browser monitoring data from New Relic.
+    Fetch Browser monitoring data from New Relic and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -393,50 +458,49 @@ def get_browser_data(
         retry_attempts: Number of retry attempts on failure
         retry_delay_seconds: Delay between retry attempts
     Returns:
-        List of browser monitoring data
+        Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query = f"""
-    {{
-      actor {{
-        account(id: {account_id}) {{
-          nrql(query: "SELECT * FROM PageView {time_range} LIMIT {max_records}") {{
+    query_template = Template(
+        """
+    {
+      actor {
+        account(id: $account_id) {
+          nrql(query: "SELECT * FROM PageView $time_range LIMIT $max_records") {
             results
-          }}
-        }}
-      }}
-    }}
+          }
+        }
+      }
+    }
     """
+    )
+    query = query_template.substitute(
+        account_id=account_id, time_range=time_range, max_records=max_records
+    )
 
     response = execute_nerdgraph_query(
         query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
     )
 
-    browser_data = []
-    if (
-        response.get("data", {})
-        .get("actor", {})
-        .get("account", {})
-        .get("nrql", {})
-        .get("results")
-    ):
+    record_count = 0
+    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
         current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
-            browser_data.append(
-                {
-                    "account_id": account_id,
-                    "timestamp": get_timestamp_from_data(result, current_time),
-                    "page_url": result.get("pageUrl", ""),
-                    "browser_name": result.get("browserName", ""),
-                    "browser_version": result.get("browserVersion", ""),
-                    "device_type": result.get("deviceType", ""),
-                    "load_time": result.get("loadTime", 0),
-                    "dom_content_loaded": result.get("domContentLoaded", 0),
-                }
-            )
+            record = {
+                "account_id": account_id,
+                "timestamp": get_timestamp_from_data(result, current_time),
+                "page_url": result.get("pageUrl", ""),
+                "browser_name": result.get("browserName", ""),
+                "browser_version": result.get("browserVersion", ""),
+                "device_type": result.get("deviceType", ""),
+                "load_time": result.get("loadTime", 0),
+                "dom_content_loaded": result.get("domContentLoaded", 0),
+            }
+            op.upsert(table="browser_data", data=record)
+            record_count += 1
 
-    return browser_data
+    return record_count
 
 
 def get_mobile_data(
@@ -449,9 +513,9 @@ def get_mobile_data(
     timeout_seconds: int = 30,
     retry_attempts: int = 3,
     retry_delay_seconds: int = 5,
-) -> List[Dict[str, Any]]:
+):
     """
-    Fetch Mobile monitoring data from New Relic.
+    Fetch Mobile monitoring data from New Relic and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -463,50 +527,49 @@ def get_mobile_data(
         retry_attempts: Number of retry attempts on failure
         retry_delay_seconds: Delay between retry attempts
     Returns:
-        List of mobile monitoring data
+        Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query = f"""
-    {{
-      actor {{
-        account(id: {account_id}) {{
-          nrql(query: "SELECT * FROM Mobile WHERE appName IS NOT NULL {time_range} LIMIT {max_records}") {{
+    query_template = Template(
+        """
+    {
+      actor {
+        account(id: $account_id) {
+          nrql(query: "SELECT * FROM Mobile WHERE appName IS NOT NULL $time_range LIMIT $max_records") {
             results
-          }}
-        }}
-      }}
-    }}
+          }
+        }
+      }
+    }
     """
+    )
+    query = query_template.substitute(
+        account_id=account_id, time_range=time_range, max_records=max_records
+    )
 
     response = execute_nerdgraph_query(
         query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
     )
 
-    mobile_data = []
-    if (
-        response.get("data", {})
-        .get("actor", {})
-        .get("account", {})
-        .get("nrql", {})
-        .get("results")
-    ):
+    record_count = 0
+    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
         current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
-            mobile_data.append(
-                {
-                    "account_id": account_id,
-                    "timestamp": get_timestamp_from_data(result, current_time),
-                    "app_name": result.get("appName", ""),
-                    "platform": result.get("platform", ""),
-                    "version": result.get("version", ""),
-                    "device_model": result.get("deviceModel", ""),
-                    "os_version": result.get("osVersion", ""),
-                    "crash_count": result.get("crashCount", 0),
-                }
-            )
+            record = {
+                "account_id": account_id,
+                "timestamp": get_timestamp_from_data(result, current_time),
+                "app_name": result.get("appName", ""),
+                "platform": result.get("platform", ""),
+                "version": result.get("version", ""),
+                "device_model": result.get("deviceModel", ""),
+                "os_version": result.get("osVersion", ""),
+                "crash_count": result.get("crashCount", 0),
+            }
+            op.upsert(table="mobile_data", data=record)
+            record_count += 1
 
-    return mobile_data
+    return record_count
 
 
 def get_synthetic_data(
@@ -519,9 +582,9 @@ def get_synthetic_data(
     timeout_seconds: int = 30,
     retry_attempts: int = 3,
     retry_delay_seconds: int = 5,
-) -> List[Dict[str, Any]]:
+):
     """
-    Fetch Synthetic monitoring data from New Relic.
+    Fetch Synthetic monitoring data from New Relic and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -533,50 +596,49 @@ def get_synthetic_data(
         retry_attempts: Number of retry attempts on failure
         retry_delay_seconds: Delay between retry attempts
     Returns:
-        List of synthetic monitoring data
+        Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query = f"""
-    {{
-      actor {{
-        account(id: {account_id}) {{
-          nrql(query: "SELECT * FROM SyntheticCheck {time_range} LIMIT {max_records}") {{
+    query_template = Template(
+        """
+    {
+      actor {
+        account(id: $account_id) {
+          nrql(query: "SELECT * FROM SyntheticCheck $time_range LIMIT $max_records") {
             results
-          }}
-        }}
-      }}
-    }}
+          }
+        }
+      }
+    }
     """
+    )
+    query = query_template.substitute(
+        account_id=account_id, time_range=time_range, max_records=max_records
+    )
 
     response = execute_nerdgraph_query(
         query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
     )
 
-    synthetic_data = []
-    if (
-        response.get("data", {})
-        .get("actor", {})
-        .get("account", {})
-        .get("nrql", {})
-        .get("results")
-    ):
+    record_count = 0
+    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
         results = response["data"]["actor"]["account"]["nrql"]["results"]
         current_time = datetime.now(timezone.utc).isoformat()
         for result in results:
-            synthetic_data.append(
-                {
-                    "account_id": account_id,
-                    "timestamp": get_timestamp_from_data(result, current_time),
-                    "monitor_name": result.get("monitorName", ""),
-                    "monitor_type": result.get("monitorType", ""),
-                    "status": result.get("status", ""),
-                    "response_time": result.get("responseTime", 0),
-                    "location": result.get("location", ""),
-                    "error_message": result.get("errorMessage", ""),
-                }
-            )
+            record = {
+                "account_id": account_id,
+                "timestamp": get_timestamp_from_data(result, current_time),
+                "monitor_name": result.get("monitorName", ""),
+                "monitor_type": result.get("monitorType", ""),
+                "status": result.get("status", ""),
+                "response_time": result.get("responseTime", 0),
+                "location": result.get("location", ""),
+                "error_message": result.get("errorMessage", ""),
+            }
+            op.upsert(table="synthetic_data", data=record)
+            record_count += 1
 
-    return synthetic_data
+    return record_count
 
 
 def schema(configuration: dict):
@@ -589,70 +651,22 @@ def schema(configuration: dict):
         {
             "table": "apm_data",
             "primary_key": ["account_id", "timestamp", "transaction_name"],
-            "columns": {
-                "account_id": "STRING",
-                "timestamp": "STRING",
-                "transaction_name": "STRING",
-                "duration": "FLOAT",
-                "error_rate": "FLOAT",
-                "throughput": "FLOAT",
-                "apdex_score": "FLOAT",
-            },
         },
         {
             "table": "infrastructure_data",
             "primary_key": ["account_id", "timestamp", "host_name"],
-            "columns": {
-                "account_id": "STRING",
-                "timestamp": "STRING",
-                "host_name": "STRING",
-                "domain": "STRING",
-                "type": "STRING",
-                "reporting": "BOOLEAN",
-                "tags": "STRING",
-            },
         },
         {
             "table": "browser_data",
             "primary_key": ["account_id", "timestamp", "page_url"],
-            "columns": {
-                "account_id": "STRING",
-                "timestamp": "STRING",
-                "page_url": "STRING",
-                "browser_name": "STRING",
-                "browser_version": "STRING",
-                "device_type": "STRING",
-                "load_time": "FLOAT",
-                "dom_content_loaded": "FLOAT",
-            },
         },
         {
             "table": "mobile_data",
             "primary_key": ["account_id", "timestamp", "app_name"],
-            "columns": {
-                "account_id": "STRING",
-                "timestamp": "STRING",
-                "app_name": "STRING",
-                "platform": "STRING",
-                "version": "STRING",
-                "device_model": "STRING",
-                "os_version": "STRING",
-                "crash_count": "INT",
-            },
         },
         {
             "table": "synthetic_data",
             "primary_key": ["account_id", "timestamp", "monitor_name"],
-            "columns": {
-                "account_id": "STRING",
-                "timestamp": "STRING",
-                "monitor_name": "STRING",
-                "monitor_type": "STRING",
-                "status": "STRING",
-                "response_time": "FLOAT",
-                "location": "STRING",
-                "error_message": "STRING",
-            },
         },
     ]
 
@@ -670,30 +684,8 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration=configuration)
 
     # Extract configuration parameters
-    api_key = configuration.get("api_key", "")
-    account_id = configuration.get("account_id", "")
-    region = configuration.get("region", "US")
-
-    # Extract optional configuration parameters with defaults and convert from strings
-    initial_sync_days = int(configuration.get("initial_sync_days", "90"))
-    max_records = int(configuration.get("max_records_per_query", "1000"))
-    timeout_seconds = int(configuration.get("timeout_seconds", "30"))
-    retry_attempts = int(configuration.get("retry_attempts", "3"))
-    retry_delay_seconds = int(configuration.get("retry_delay_seconds", "5"))
-    data_quality_threshold = float(configuration.get("data_quality_threshold", "0.95"))
-
-    # Data source enablement flags (convert string "true"/"false" to boolean)
-    enable_apm = configuration.get("enable_apm_data", "true").lower() == "true"
-    enable_infrastructure = (
-        configuration.get("enable_infrastructure_data", "true").lower() == "true"
-    )
-    enable_browser = configuration.get("enable_browser_data", "true").lower() == "true"
-    enable_mobile = configuration.get("enable_mobile_data", "true").lower() == "true"
-    enable_synthetic = (
-        configuration.get("enable_synthetic_data", "true").lower() == "true"
-    )
-
-    # Get the state variable for the sync
+    config_params = _extract_configuration_params(configuration)
+    data_source_flags = _get_data_source_flags(configuration)
     last_sync_time = state.get("last_sync_time")
 
     # Log sync type and configuration
@@ -701,134 +693,81 @@ def update(configuration: dict, state: dict):
         log.info(f"Incremental sync: fetching data since {last_sync_time}")
     else:
         log.info(
-            f"Initial sync: fetching all available data (last {initial_sync_days} days)"
+            f"Initial sync: fetching all available data (last {config_params['initial_sync_days']} days)"
         )
 
     log.info(
-        f"Configuration: max_records={max_records}, timeout={timeout_seconds}s, retry_attempts={retry_attempts}"
+        f"Configuration: max_records={config_params['max_records']}, timeout={config_params['timeout_seconds']}s, retry_attempts={config_params['retry_attempts']}"
     )
 
     try:
         total_records = 0
         data_quality_scores = []
 
-        # Fetch APM data
-        if enable_apm:
-            log.info("Fetching APM data...")
-            apm_data = get_apm_data(
-                api_key,
-                region,
-                account_id,
-                last_sync_time,
-                initial_sync_days,
-                max_records,
-                timeout_seconds,
-                retry_attempts,
-                retry_delay_seconds,
-            )
-            for record in apm_data:
-                op.upsert(table="apm_data", data=record)
-            total_records += len(apm_data)
-            data_quality_scores.append(
-                len(apm_data) / max(len(apm_data), 1)
-            )  # Simple quality metric
-            log.info(f"APM data: {len(apm_data)} records")
+        # Define data sources with their fetch functions
+        data_sources = [
+            ("apm", data_source_flags["enable_apm"], get_apm_data, True),
+            (
+                "infrastructure",
+                data_source_flags["enable_infrastructure"],
+                get_infrastructure_data,
+                False,
+            ),
+            ("browser", data_source_flags["enable_browser"], get_browser_data, True),
+            ("mobile", data_source_flags["enable_mobile"], get_mobile_data, True),
+            (
+                "synthetic",
+                data_source_flags["enable_synthetic"],
+                get_synthetic_data,
+                True,
+            ),
+        ]
 
-        # Fetch Infrastructure data
-        if enable_infrastructure:
-            log.info("Fetching Infrastructure data...")
-            infra_data = get_infrastructure_data(
-                api_key,
-                region,
-                account_id,
-                timeout_seconds,
-                retry_attempts,
-                retry_delay_seconds,
-            )
-            for record in infra_data:
-                op.upsert(table="infrastructure_data", data=record)
-            total_records += len(infra_data)
-            data_quality_scores.append(len(infra_data) / max(len(infra_data), 1))
-            log.info(f"Infrastructure data: {len(infra_data)} records")
+        # Process each enabled data source
+        for source_name, enabled, fetch_func, uses_time_range in data_sources:
+            if enabled:
+                log.info(f"Fetching {source_name.title()} data...")
 
-        # Fetch Browser monitoring data
-        if enable_browser:
-            log.info("Fetching Browser monitoring data...")
-            browser_data = get_browser_data(
-                api_key,
-                region,
-                account_id,
-                last_sync_time,
-                initial_sync_days,
-                max_records,
-                timeout_seconds,
-                retry_attempts,
-                retry_delay_seconds,
-            )
-            for record in browser_data:
-                op.upsert(table="browser_data", data=record)
-            total_records += len(browser_data)
-            data_quality_scores.append(len(browser_data) / max(len(browser_data), 1))
-            log.info(f"Browser data: {len(browser_data)} records")
+                # Prepare arguments based on function signature
+                if uses_time_range:
+                    data = fetch_func(
+                        config_params["api_key"],
+                        config_params["region"],
+                        config_params["account_id"],
+                        last_sync_time,
+                        config_params["initial_sync_days"],
+                        config_params["max_records"],
+                        config_params["timeout_seconds"],
+                        config_params["retry_attempts"],
+                        config_params["retry_delay_seconds"],
+                    )
+                else:
+                    data = fetch_func(
+                        config_params["api_key"],
+                        config_params["region"],
+                        config_params["account_id"],
+                        config_params["timeout_seconds"],
+                        config_params["retry_attempts"],
+                        config_params["retry_delay_seconds"],
+                    )
 
-        # Fetch Mobile monitoring data
-        if enable_mobile:
-            log.info("Fetching Mobile monitoring data...")
-            mobile_data = get_mobile_data(
-                api_key,
-                region,
-                account_id,
-                last_sync_time,
-                initial_sync_days,
-                max_records,
-                timeout_seconds,
-                retry_attempts,
-                retry_delay_seconds,
-            )
-            for record in mobile_data:
-                op.upsert(table="mobile_data", data=record)
-            total_records += len(mobile_data)
-            data_quality_scores.append(len(mobile_data) / max(len(mobile_data), 1))
-            log.info(f"Mobile data: {len(mobile_data)} records")
-
-        # Fetch Synthetic monitoring data
-        if enable_synthetic:
-            log.info("Fetching Synthetic monitoring data...")
-            synthetic_data = get_synthetic_data(
-                api_key,
-                region,
-                account_id,
-                last_sync_time,
-                initial_sync_days,
-                max_records,
-                timeout_seconds,
-                retry_attempts,
-                retry_delay_seconds,
-            )
-            for record in synthetic_data:
-                op.upsert(table="synthetic_data", data=record)
-            total_records += len(synthetic_data)
-            data_quality_scores.append(
-                len(synthetic_data) / max(len(synthetic_data), 1)
-            )
-            log.info(f"Synthetic data: {len(synthetic_data)} records")
+                # Get record count from fetch function (data is already synced)
+                record_count = data
+                quality_score = _calculate_simple_data_quality(record_count)
+                total_records += record_count
+                data_quality_scores.append(quality_score)
+                log.info(f"{source_name.title()} data: {record_count} records")
 
         # Calculate overall data quality score
         overall_quality = (
-            sum(data_quality_scores) / len(data_quality_scores)
-            if data_quality_scores
-            else 1.0
+            sum(data_quality_scores) / len(data_quality_scores) if data_quality_scores else 1.0
         )
 
-        # Check data quality threshold
-        if overall_quality < data_quality_threshold:
-            log.warning(
-                f"Data quality score {overall_quality:.3f} below threshold {data_quality_threshold}"
-            )
-            if configuration.get("alert_on_errors", True):
-                log.severe(
-                    f"Data quality alert: score {overall_quality:.3f} below threshold {data_quality_threshold}"
-                )
+        # Handle data quality checking
+        alert_on_errors = configuration.get("alert_on_errors", "true").lower() == "true"
+        _handle_data_quality_check(
+            overall_quality, config_params["data_quality_threshold"], alert_on_errors
+        )
 
         # Update state with the current sync time
         new_state = {
@@ -838,13 +777,14 @@ def update(configuration: dict, state: dict):
             "sync_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Checkpoint the state
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
         log.info("New Relic Feature APIs connector sync completed successfully")
-        log.info(
-            f"Total records synced: {total_records}, Data quality: {overall_quality:.3f}"
-        )
+        log.info(f"Total records synced: {total_records}, Data quality: {overall_quality:.3f}")
 
     except Exception as e:
         log.severe(f"Failed to sync New Relic data: {str(e)}")
@@ -854,7 +794,10 @@ def update(configuration: dict, state: dict):
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
