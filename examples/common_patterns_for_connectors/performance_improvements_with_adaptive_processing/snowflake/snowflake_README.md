@@ -365,7 +365,7 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 - **Timeout Issues** - Increase timeout values for large tables or slow networks
 - **Deadlock Issues** - The connector automatically handles deadlocks with retry logic
 
-### Enterprise Deployment
+### Enterprise deployment
 
 This connector is designed for enterprise environments and includes:
 - Comprehensive error handling and recovery
