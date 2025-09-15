@@ -1,6 +1,6 @@
 # ACT Web API Connector
 
-## Overview
+## Connector overview
 
 This connector fetches data from ACT Web API endpoints and loads it into Fivetran. It handles JWT authentication, pagination, rate limiting, and flattens nested JSON structures into tabular format. The connector is designed to work with ACT Web API and is ideal for users who need to sync CRM data from ACT! into their Fivetran destination.
 
