@@ -1,7 +1,7 @@
 # Redshift Large Data Volume Example Connector
 
 ## Connector overview
-This example connector demonstrates how to extract large tables from Amazon Redshift efficiently using the Connector SDK. It is designed to illustrate best practices for high-volume ingestion scenarios using Connector SDK. The connector implements optimized data extraction techniques, including parallel processing and incremental loading, to handle large datasets effectively.
+This example connector demonstrates how to sync large tables from Amazon Redshift efficiently by using the Connector SDK. The connector follows best practices for high-volume ingestion scenarios using Connector SDK. It implements optimized data extraction techniques, including parallel processing and incremental loading, to handle large datasets effectively.
 
 
 ## Requirements
