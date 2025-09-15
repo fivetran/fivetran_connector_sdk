@@ -106,6 +106,7 @@ This connector replicates the `sales` table which contains sales information wit
 This connector includes the following additional files (Do check with Support team to enable access to Custom Drivers):
 
 - `drivers/installation.sh` : This script installs the `FreeTDS` driver required for connecting to Sybase ASE database.
+> IMPORTANT: The feature to use external drivers is in private prieview. Please connect with our professional services to get more information about them and enable it for your connector.
 
 ## Additional considerations
 
