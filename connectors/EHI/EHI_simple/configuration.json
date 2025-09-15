@@ -1,0 +1,7 @@
+{
+"MSSQL_SERVER": "your-mssql-server.com",
+"MSSQL_DATABASE": "your-database-name",
+"MSSQL_USER": "your-username",
+"MSSQL_PASSWORD": "your-password",
+"MSSQL_PORT": "1433"
+}
