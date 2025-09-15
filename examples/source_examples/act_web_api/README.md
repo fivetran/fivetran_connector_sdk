@@ -48,7 +48,7 @@ The connector requires a `configuration.json` file with the following structure:
 }
 ```
 
-### Configuration Options
+### Configuration options
 
 | Setting | Type | Required | Description |
 |---------|------|----------|-------------|
