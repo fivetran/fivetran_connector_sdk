@@ -17,7 +17,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Incremental sync via `replication_key` with ordered SQL queries.
-- Automatic schema detetction from the source schema.
+- Automatic schema detection from the source schema.
 - Automatic replication key inference based on column semantic types.
 - Periodic checkpointing every `CHECKPOINT_EVERY_ROWS`
 - Parallel execution governed by `max_parallel_workers`
