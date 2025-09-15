@@ -25,9 +25,7 @@ This connector fetches data from ACT Web API endpoints and loads it into Fivetra
 
 Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## Configuration
-
-### Configuration File
+## Configuration file
 
 The connector requires a `configuration.json` file with the following structure:
 
