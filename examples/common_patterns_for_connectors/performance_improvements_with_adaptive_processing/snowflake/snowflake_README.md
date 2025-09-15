@@ -174,9 +174,9 @@ This connector is specifically optimized for:
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -184,15 +184,15 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 ## Features
 
-* **Adaptive processing** - Automatically adjusts batch sizes, thread counts, and processing strategies based on table size and system resources
-* **Memory optimization** - Processes records immediately without accumulating them in memory to prevent overflow
-* **Advanced error handling** - Automatic recovery from deadlocks, timeouts, and connection issues with exponential backoff
-* **Resource monitoring** - Real-time CPU and memory monitoring with automatic parameter adjustment
-* **Incremental sync** - Intelligent timestamp detection for efficient incremental data replication
-* **Preprocessing capabilities** - Data transformation and cleaning before replication
-* **Enterprise security** - JWT authentication, PrivateLink support, and SSL/TLS configuration
-* **Thread-safe operations** - Concurrent processing support for high-performance environments
-* **Checkpointing** - Progress saving for recovery and resumption of large sync operations
+- **Adaptive processing** - Automatically adjusts batch sizes, thread counts, and processing strategies based on table size and system resources
+- **Memory optimization** - Processes records immediately without accumulating them in memory to prevent overflow
+- **Advanced error handling** - Automatic recovery from deadlocks, timeouts, and connection issues with exponential backoff
+- **Resource monitoring** - Real-time CPU and memory monitoring with automatic parameter adjustment
+- **Incremental sync** - Intelligent timestamp detection for efficient incremental data replication
+- **Preprocessing capabilities** - Data transformation and cleaning before replication
+- **Enterprise security** - JWT authentication, PrivateLink support, and SSL/TLS configuration
+- **Thread-safe operations** - Concurrent processing support for high-performance environments
+- **Checkpointing** - Progress saving for recovery and resumption of large sync operations
 
 ## Configuration file
 
@@ -240,7 +240,7 @@ The connector uses a `configuration.json` file to define connection parameters a
 - `preprocessing_table` - Comma-separated list of tables that need preprocessing
 - `preprocessing_sql` - SQL statements to execute before replication
 
-#### JWT Authentication parameters
+#### JWT authentication parameters
 - `private_key` - Private key for JWT authentication
 - `private_key_password` - Password for private key (optional)
 - `snowflake_role` - Snowflake role for JWT authentication (optional)
@@ -263,44 +263,44 @@ NOTE: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 The connector supports two authentication methods:
 
-### Password Authentication
+### Password authentication
 Use your Snowflake username and password for standard authentication. This is the default method when no private key is provided.
 
-### JWT Authentication
+### JWT authentication
 For enhanced security, you can use JWT authentication with a private key:
 
-1. Generate a private key in Snowflake
-2. Configure the private key in your `configuration.json`
-3. Optionally set a `snowflake_role` for role-based access
+1. Generate a private key in Snowflake.
+2. Configure the private key in your `configuration.json`.
+3. Optionally set a `snowflake_role` for role-based access.
 
-### PrivateLink Support
+### PrivateLink support
 For enterprise networks, you can use PrivateLink connections:
 
-1. Set `use_privatelink` to "true"
-2. Provide the `privatelink_host` (e.g., "xz32.east-us-2.privatelink.snowflakecomputing.com")
-3. The connector will automatically use PrivateLink for secure connectivity
+1. Set `use_privatelink` to "true".
+2. Provide the `privatelink_host` (e.g., "xz32.east-us-2.privatelink.snowflakecomputing.com").
+3. The connector will automatically use PrivateLink for secure connectivity.
 
 ## Data handling
 
 The connector processes data through several stages:
 
-### Schema Discovery
+### Schema discovery
 - Automatically detects table schemas and column types
 - Handles schema evolution and dynamic column changes
 - Supports both uppercase and lowercase column names
 
-### Adaptive Processing
+### Adaptive processing
 - **Small tables** (<1M rows): Maximum parallelism with large batches
 - **Medium tables** (1M-10M rows): Balanced processing with medium batches  
 - **Large tables** (10M+ rows): Conservative processing with smaller batches
 
-### Data Transformation
+### Data transformation
 - Flattens nested JSON structures for AI/ML data
 - Converts data types to Fivetran-compatible formats
 - Handles timestamp detection and incremental sync
 - Processes records immediately to prevent memory overflow
 
-### Memory Management
+### Memory management
 - Uses `cursor.fetchmany()` for batch processing
 - Processes each record individually with `op.upsert()`
 - No memory accumulation patterns
@@ -310,24 +310,24 @@ The connector processes data through several stages:
 
 The connector implements comprehensive error handling strategies:
 
-### Connection Management
+### Connection management
 - **Deadlock Detection** - Refer to `class DeadlockError` and `_is_deadlock_error()` method
 - **Timeout Handling** - Refer to `class TimeoutError` and `_is_timeout_error()` method
 - **Automatic Reconnection** - Refer to `ConnectionManager.get_cursor()` context manager
 - **Exponential Backoff** - Refer to `retry_with_backoff()` function
 
-### Resource Monitoring
+### Resource monitoring
 - **Memory Pressure** - Refer to `should_reduce_batch_size()` function
 - **CPU Pressure** - Refer to `should_reduce_threads()` function
 - **System Monitoring** - Refer to `monitor_resources()` function
 
-### Recovery Strategies
+### Recovery strategies
 - Automatic retry with exponential backoff
 - Connection renewal for transient issues
 - Graceful degradation under resource pressure
 - Checkpointing for progress recovery
 
-## Tables Created
+## Tables created
 
 The connector creates tables based on your configuration. Each table includes:
 
@@ -336,7 +336,7 @@ The connector creates tables based on your configuration. Each table includes:
 - All original columns from your Snowflake tables
 - Flattened nested data structures (if applicable)
 
-### Example Schema
+### Example schema
 ```
 CUSTOMERS
 ├── _fivetran_id (STRING)
@@ -351,7 +351,7 @@ CUSTOMERS
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
-### Performance Optimization Tips
+### Performance optimization tips
 
 - **Table Ordering** - The connector processes small tables first, then medium, then large for optimal performance
 - **Resource Monitoring** - Enable resource monitoring for automatic parameter adjustment
