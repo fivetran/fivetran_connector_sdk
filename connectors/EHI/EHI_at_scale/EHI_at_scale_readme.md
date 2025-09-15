@@ -338,7 +338,7 @@ MEDIUM TABLES (50 tables, 1M-50M rows each):
 LARGE TABLES (15 tables, 50M+ rows each):
 --------------------------------------------------
    1. `FLOWSHEETVALUE`                        1,644,444,333 rows
-   2. `USERALOGACTIVITY`               912,123,436 rows
+   2. `USERLOGACTIVITY`               912,123,436 rows
    3. `PATIENTACTION`                600,541,489 rows
    ... and 15 more large tables
 
@@ -432,8 +432,8 @@ When `psutil` is available, the connector logs:
 
 ### Handles massive tables
 - **`FLOWSHEETVALUE`**: >1.9 billion rows processed safely
-- **`USERACTIONLOGACTIVITYHOUR`**: >900 million rows with optimized partitioning
-- **`PATIENTAPPLICATIONACTION`**: >800 million rows with adaptive batching
+- **`USERACTIONLOG`**: >900 million rows with optimized partitioning
+- **`PATIENTACTION`**: >800 million rows with adaptive batching
 
 ### Prevents timeouts and hangs
 - **Adaptive Timeouts**: 3 hours for small tables, 12 hours for large tables
