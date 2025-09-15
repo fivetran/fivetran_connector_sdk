@@ -129,7 +129,7 @@ There are several examples available under `/examples`:
 <details class="details-heading" open="open">
 <summary><h3>Source examples</h3></summary>
 
-- [act_web_api] (https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/act_web_api) - This is an example of how we can connect to an Act! Premium for Web API instance and pull 6 endpoints (contacts, companies, opportunities, activities, activity_types, products).
+- [act_web_api] (https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/act_web_api) - This is an example of how to connect to an Act! Premium for Web API instance and sync data from 6 endpoints, contacts, companies, opportunities, activities, activity_types, and products.
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
