@@ -72,7 +72,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 *Explain the error-handling strategies implemented in the connector.*
 
-## Tables Created
+## Tables created
 
 *Summary of Tables replicated.*
 
