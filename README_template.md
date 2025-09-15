@@ -64,9 +64,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Data handling
 
 *Outline how data is processed, transformed, and delivered to Fivetran, including information on schema mapping and data types.*
-*(Optional) If the ERD is available, add the ERD file to the same folder as the example's README.md and add the ERD link at beginning of this section using the below example as a template.* 
-*Example: "The entity-relationship diagram (ERD) below shows how tables are linked in the <source-name> schema."*
-*![<source-name>-ERD](<source-name-ERD>.png)*
 
 ## Error handling
 
@@ -74,9 +71,12 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Tables created
 
+*(Optional) If the ERD is available, add the ERD file to the same folder as the example's README.md and add the ERD link at beginning of this section using the below example as a template.* 
+*Example: "The entity-relationship diagram (ERD) below shows how tables are linked in the <source-name> schema."*
+*![<source-name>-ERD](<source-name-ERD>.png)*
 *Summary of Tables replicated.*
 
-*Screenshot of the schema objects generated*
+*(Optional) Screenshot of the schema objects generated*
 
 ## Additional files
 
