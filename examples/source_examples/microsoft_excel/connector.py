@@ -207,39 +207,24 @@ def schema(configuration: dict):
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            },
-            # Columns not defined in schema will be inferred
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "excel_data_calamine",  # Name of the table
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            },
-            # Columns not defined in schema will be inferred
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "excel_data_openpyxl",  # Name of the table
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
                 "timestamp": "UTC_DATETIME",
-            },
-            # Columns not defined in schema will be inferred
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
     ]
 

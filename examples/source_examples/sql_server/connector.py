@@ -39,10 +39,7 @@ def schema(configuration: dict):
             "primary_key": ["employee_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
                 "employee_id": "INT",  # Integer column for the employee_id.
-                "first_name": "STRING",  # String column for the first name.
-                "last_name": "STRING",  # String column for the last name.
                 "hire_date": "NAIVE_DATE",  # NAIVE_DATE column for the hire_date.
-                "salary": "LONG",  # Integer column for the salary.
                 "updated_time": "NAIVE_DATETIME",  # Datetime of row update
             },
         }
@@ -90,7 +87,7 @@ def setup_db(configuration):
 
     insert_data_sql = """
         INSERT INTO employee_details (first_name, last_name, hire_date, salary)
-        VALUES 
+        VALUES
             ('John', 'Doe', '2020-05-15', 55000, '2020-05-15T20:10:00'),
             ('Jane', 'Smith', '2018-03-22', 62000, '2020-05-16T20:10:00'),
             ('Alice', 'Johnson', '2019-07-30', 58000, '2020-05-17T20:10:00'),
