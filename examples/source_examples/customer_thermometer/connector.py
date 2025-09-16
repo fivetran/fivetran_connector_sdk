@@ -30,6 +30,8 @@ __MIN_API_KEY_LENGTH = 10  # Minimum length for a valid API key
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_IN_SECONDS = 1  # Initial delay in seconds between retries
 __RETRY_BACKOFF = 2  # Backoff multiplier for exponential backoff
+__DEFAULT_START_DATE = "1970-01-01"  # Default start date for initial sync
+
 
 # Constants for metric endpoints
 __METRIC_ENDPOINTS = [
@@ -202,7 +204,7 @@ def get_incremental_date_range(
     # Determine from_date based on priority:
     # 1. If config has from_date, use it (for backfill/override scenarios)
     # 2. If state has last sync, use it (normal incremental)
-    # 3. Otherwise use EPOCH (initial sync)
+    # 3. Otherwise, use EPOCH (initial sync)
 
     if config_from_date:
         from_date = config_from_date
@@ -221,9 +223,9 @@ def get_incremental_date_range(
                 log.warning(
                     f"Invalid last sync timestamp for {table_name}: {last_sync_timestamp}, using EPOCH"
                 )
-                from_date = "1970-01-01"
+                from_date = __DEFAULT_START_DATE
         else:
-            from_date = "1970-01-01"
+            from_date = __DEFAULT_START_DATE
             log.info(f"Performing initial sync for {table_name} from EPOCH")
 
     return from_date, to_date

@@ -37,7 +37,7 @@ The connector requires API key authentication for the Customer Thermometer API. 
 ```json
 {
   "api_key": "<YOUR_CUSTOMER_THERMOMETER_API_KEY>",
-  "from_date": "<OPTIONAL_FROM_DATE_AS_YYYY-MM-DD>"
+  "from_date": "<YOUR_OPTIONAL_FROM_DATE_AS_YYYY-MM-DD>"
 }
 ```
 
@@ -95,13 +95,13 @@ The connector implements comprehensive error handling strategies in the `update`
 
 The connector creates the following tables in your destination:
 
-| Table name        | Primary key                              | Description                                 |
-|-------------------|------------------------------------------|---------------------------------------------|
-| `comment`         | `[response_id]`                          | Customer feedback comments                  |
-| `blast_result`    | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
-| `recipient_list`  | `[id]`                                   | Lists of feedback recipients                |
-| `thermometer`     | `[id]`                                   | Configured feedback collection tools        |
-| `metric`          | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
+| Table name       | Primary key                              | Description                                 |
+|------------------|------------------------------------------|---------------------------------------------|
+| `COMMENT`        | `[response_id]`                          | Customer feedback comments                  |
+| `BLAST_RESULT`   | `[blast_id, response_id, thermometer_id]`| Results from feedback collection campaigns  |
+| `RECIPIENT_LIST` | `[id]`                                   | Lists of feedback recipients                |
+| `THERMOMETER`    | `[id]`                                   | Configured feedback collection tools        |
+| `METRIC`         | `[metric_name, recorded_at]`             | Aggregated feedback metrics                 |
 
 All tables include flattened versions of complex nested objects where applicable.
 
