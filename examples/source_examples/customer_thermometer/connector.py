@@ -110,17 +110,20 @@ def make_api_request(
     )
 
 
-def parse_xml_response(
-    xml_content: str, root_element: str, child_element: str
-) -> List[Dict[str, Any]]:
+def parse_xml_response_and_upsert(
+    xml_content: str, root_element: str, child_element: str, table_name: str
+) -> int:
     """
-    Parse XML response from Customer Thermometer API into list of dictionaries.
+    Parse XML response from Customer Thermometer API and directly upsert records to avoid memory buffering.
+    This approach is more memory efficient as it processes and upserts records one at a time instead of
+    loading all records into memory first.
     Args:
         xml_content (str): The XML response content as string
         root_element (str): The root XML element name to search within
         child_element (str): The child XML element name to extract data from
+        table_name (str): The name of the table to upsert data into
     Returns:
-        List[Dict[str, Any]]: List of dictionaries with flattened XML data
+        int: Number of records processed
     Raises:
         et.ParseError: If the XML content cannot be parsed
     """
@@ -129,10 +132,10 @@ def parse_xml_response(
         xml_content = xml_content.strip()
         if not xml_content:
             log.info("Empty API response - no new data to process")
-            return []
+            return 0
 
         root = et.fromstring(xml_content)
-        results = []
+        records_processed = 0
 
         for item in root.findall(child_element):
             record = {}
@@ -140,9 +143,15 @@ def parse_xml_response(
                 # Convert XML element to dictionary, handling empty values
                 value = child.text if child.text is not None else ""
                 record[child.tag] = value
-            results.append(record)
 
-        return results
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
+            op.upsert(table=table_name, data=record)
+            records_processed += 1
+
+        return records_processed
     except et.ParseError as e:
         log.severe(f"Failed to parse XML response: {str(e)}")
         raise
@@ -264,14 +273,9 @@ def process_table_data(
         log.info(f"Performing full sync for {table_name} (no incremental support)")
 
     response = make_api_request(endpoint, api_key, from_date, to_date)
-    records = parse_xml_response(response.text, root_element, child_element)
-
-    for record in records:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted.
-        op.upsert(table=table_name, data=record)
+    records_count = parse_xml_response_and_upsert(
+        response.text, root_element, child_element, table_name
+    )
 
     # Checkpoint the state after processing this table
     current_time = datetime.now(timezone.utc).isoformat()
@@ -283,7 +287,7 @@ def process_table_data(
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state=state)
 
-    log.info(f"Processed and checkpointed {len(records)} {table_name} records")
+    log.info(f"Processed and checkpointed {records_count} {table_name} records")
 
 
 def process_metrics(api_key: str, state: dict, config_from_date: Optional[str] = None) -> None:
