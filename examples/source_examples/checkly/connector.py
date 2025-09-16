@@ -13,12 +13,10 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # Import required libraries
 import json  # For JSON data handling and serialization
 import requests  # For making HTTP requests to the Checkly API
 import time  # For handling time-related functions like sleep for rate limiting
-
 
 __BASE_URL = "https://api.checklyhq.com/v1"
 __PAGE_SIZE = 100
@@ -168,13 +166,46 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
-    # Validate required configuration parameters
+
     required_configs = ["api_key", "account_id"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate optional analytics parameters with defaults
+    validate_quick_range(configuration)
+
+    validate_aggregation_interval(configuration)
+
+
+def validate_aggregation_interval(configuration: dict):
+    """
+    Validates the 'aggregation_interval' value in the configuration dictionary.
+    Checks if the 'aggregation_interval' key in the provided configuration is set to a valid integer
+    between 1 and 43200. If not present, defaults to '60'. Raises a ValueError if the value is invalid.
+    Args:
+        configuration (dict): The configuration dictionary containing the 'aggregation_interval' key.
+    Raises:
+        ValueError: If 'aggregation_interval' is not a valid integer between 1 and 43200.
+    """
+    aggregation_interval = configuration.get("aggregation_interval", "60")
+    try:
+        interval = int(aggregation_interval)
+        if interval < 1 or interval > 43200:
+            raise ValueError("aggregation_interval must be a positive integer between 1 and 43200")
+    except ValueError:
+        raise ValueError("aggregation_interval must be a valid integer between 1 and 43200")
+
+
+def validate_quick_range(configuration: dict):
+    """
+    Checks if the 'quick_range' key in the provided configuration is set to a valid value.
+    If not present, defaults to 'last24Hours'. Raises a ValueError if the value is not one of the allowed options.
+    Args:
+        configuration (dict): The configuration dictionary containing the 'quick_range' key.
+    Raises:
+        ValueError: If 'quick_range' is not one of the valid options.
+    """
+
     quick_range = configuration.get("quick_range", "last24Hours")
     valid_quick_ranges = [
         "last24Hours",
@@ -187,15 +218,6 @@ def validate_configuration(configuration: dict):
     ]
     if quick_range not in valid_quick_ranges:
         raise ValueError(f"quick_range must be one of: {', '.join(valid_quick_ranges)}")
-
-    # Validate aggregation_interval if provided
-    aggregation_interval = configuration.get("aggregation_interval", "60")
-    try:
-        interval = int(aggregation_interval)
-        if interval < 1 or interval > 43200:
-            raise ValueError("aggregation_interval must be a positive integer between 1 and 43200")
-    except ValueError:
-        raise ValueError("aggregation_interval must be a valid integer between 1 and 43200")
 
 
 def flatten_nested_objects(data: dict, parent_key: str = "", separator: str = "_") -> dict:
@@ -451,10 +473,12 @@ def schema(configuration: dict):
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
         },
         {
-            "table": "browser_checks_analytics_aggregated",  # Name of the aggregated analytics table in the destination, required.
+            "table": "browser_checks_analytics_aggregated",
+            # Name of the aggregated analytics table in the destination, required.
         },
         {
-            "table": "browser_checks_analytics_non_aggregated",  # Name of the non-aggregated analytics table in the destination, required.
+            "table": "browser_checks_analytics_non_aggregated",
+            # Name of the non-aggregated analytics table in the destination, required.
         },
     ]
 
