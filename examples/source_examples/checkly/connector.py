@@ -284,7 +284,7 @@ def make_api_request(url: str, headers: dict):
     return None
 
 
-def get_analytics_data(configuration: dict, check_id: str, check_type: str):
+def get_analytics_data(configuration: dict, check_id: str, check_type: str, state: dict):
     """
     Fetch analytics data for browser checks from Checkly API.
     Args:
@@ -346,6 +346,12 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str):
                     # - The second argument is a dictionary containing the data to be upserted,
                     op.upsert(table=table_name, data=flattened_record)
 
+                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                    # from the correct position in case of next sync or interruptions.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                    op.checkpoint(state)
+
         except Exception as e:
             log.warning(f"Error fetching {metrics_type} analytics for check {check_id}: {str(e)}")
             # Continue with next metrics type instead of failing completely
@@ -370,7 +376,7 @@ def build_api_headers(configuration: dict) -> dict:
     }
 
 
-def process_single_check(check_record: dict, configuration: dict) -> None:
+def process_single_check(check_record: dict, configuration: dict, state: dict) -> None:
     """
     Process a single check record and handle analytics data if it's a browser check.
     Args:
@@ -392,10 +398,16 @@ def process_single_check(check_record: dict, configuration: dict) -> None:
 
     if check_type == "BROWSER" and check_id:
         try:
-            get_analytics_data(configuration, check_id, check_type)
+            get_analytics_data(configuration, check_id, check_type, state)
         except Exception as e:
             log.severe(f"Failed to process analytics for check {check_id}: {str(e)}")
             # Continue with other checks for non-critical errors
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
 
 def fetch_checks_page(page: int, headers: dict) -> list:
@@ -419,7 +431,7 @@ def fetch_checks_page(page: int, headers: dict) -> list:
     return response_data
 
 
-def get_checks_data(configuration: dict):
+def get_checks_data(configuration: dict, state: dict):
     """
     Fetch checks data from Checkly API with pagination support.
     Args:
@@ -443,7 +455,7 @@ def get_checks_data(configuration: dict):
 
             # Process each check record in the current page
             for check_record in response_data:
-                process_single_check(check_record, configuration)
+                process_single_check(check_record, configuration, state)
                 total_records += 1
 
             # Check if we have more data to fetch
@@ -500,7 +512,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Fetch and process checks data with pagination
-        get_checks_data(configuration)
+        get_checks_data(configuration, state)
 
         log.info("Checkly sync completed successfully")
 
