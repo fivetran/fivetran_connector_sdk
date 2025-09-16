@@ -155,7 +155,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "deployments",  # Table for Vercel deployments
+            "table": "deployment",  # Table for Vercel deployments
             "primary_key": ["uid"],  # Deployment UID as primary key
         },
     ]
@@ -253,7 +253,7 @@ def sync_deployments(
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted
-                op.upsert(table="deployments", data=flattened_deployment)
+                op.upsert(table="deployment", data=flattened_deployment)
                 deployments_synced += 1
 
             # Check pagination - if there's a next timestamp, continue
