@@ -194,6 +194,7 @@ def update(configuration: dict, state: dict):
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_timestamp": current_sync_timestamp}
+
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
