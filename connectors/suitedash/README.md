@@ -101,16 +101,14 @@ Error handling is implemented throughout the connector:
 
 
 ## Tables created
-The connector creates three tables in your destination:
 
-### COMPANIES
-Contains flattened company data from the `/companies` endpoint. `uid` is the primary key (company unique identifier).
+The connector creates the following tables in your destination:
 
-### CONTACTS
-Contains flattened contact data from the `/contacts` endpoint. `uid` is the primary key (contact unique identifier).
-
-### CONTACT_COMPANY_RELATIONSHIPS
-Junction table mapping contacts to their associated companies. `contact_uid` and `company_uid` serve as a composite primary key.
+| Table name                      | Primary key                  | Description |
+|---------------------------------|------------------------------|-------------|
+| `COMPANIES`                     | `uid`                        | Contains flattened company data from the `/companies` endpoint |
+| `CONTACTS`                      | `uid`                        | Contains flattened contact data from the `/contacts` endpoint |
+| `CONTACT_COMPANY_RELATIONSHIPS` | `contact_uid`, `company_uid` | Junction table mapping contacts to their associated companies |
 
 
 ## Additional considerations
