@@ -58,14 +58,10 @@ def __get_config_int(configuration, key, default, min_val=None, max_val=None):
     try:
         value = int(configuration.get(key, default))
         if min_val is not None and value < min_val:
-            log.warning(
-                f"Config {key} value {value} below minimum {min_val}, using minimum"
-            )
+            log.warning(f"Config {key} value {value} below minimum {min_val}, using minimum")
             return min_val
         if max_val is not None and value > max_val:
-            log.warning(
-                f"Config {key} value {value} above maximum {max_val}, using maximum"
-            )
+            log.warning(f"Config {key} value {value} above maximum {max_val}, using maximum")
             return max_val
         return value
     except (ValueError, TypeError) as e:
@@ -147,9 +143,7 @@ def __handle_rate_limit(attempt, response):
         response: the response from the API.
     """
     wait_time = __calculate_wait_time(attempt, response.headers)
-    log.warning(
-        f"Rate limit hit, waiting {wait_time:.2f} seconds before retry {attempt + 1}"
-    )
+    log.warning(f"Rate limit hit, waiting {wait_time:.2f} seconds before retry {attempt + 1}")
     time.sleep(wait_time)
 
 
@@ -168,9 +162,7 @@ def __handle_request_error(attempt, retry_attempts, error, endpoint):
         )
         time.sleep(wait_time)
     else:
-        log.severe(
-            f"Request to {endpoint} failed after {retry_attempts} attempts: {error}"
-        )
+        log.severe(f"Request to {endpoint} failed after {retry_attempts} attempts: {error}")
         raise
 
 
@@ -185,18 +177,12 @@ def execute_api_request(endpoint, api_key, params=None, configuration=None):
     url = f"{__API_BASE_URL}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    timeout = __get_config_int(
-        configuration, "request_timeout_seconds", __DEFAULT_TIMEOUT
-    )
-    retry_attempts = __get_config_int(
-        configuration, "retry_attempts", __MAX_RETRY_ATTEMPTS
-    )
+    timeout = __get_config_int(configuration, "request_timeout_seconds", __DEFAULT_TIMEOUT)
+    retry_attempts = __get_config_int(configuration, "retry_attempts", __MAX_RETRY_ATTEMPTS)
 
     for attempt in range(retry_attempts):
         try:
-            response = requests.get(
-                url, headers=headers, params=params, timeout=timeout
-            )
+            response = requests.get(url, headers=headers, params=params, timeout=timeout)
 
             if response.status_code == 429:
                 __handle_rate_limit(attempt, response)
@@ -226,9 +212,7 @@ def get_time_range(last_sync_time=None, configuration=None):
         start_time = last_sync_time
     else:
         initial_sync_days = __get_config_int(configuration, "initial_sync_days", 90)
-        start_time = (
-            datetime.now(timezone.utc) - timedelta(days=initial_sync_days)
-        ).isoformat()
+        start_time = (datetime.now(timezone.utc) - timedelta(days=initial_sync_days)).isoformat()
 
     return {"start": start_time, "end": end_time}
 
@@ -268,9 +252,7 @@ def get_campaigns(api_key, client_id, last_sync_time=None, configuration=None):
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = "/buyer/campaigns"
-    max_records = __get_config_int(
-        configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE
-    )
+    max_records = __get_config_int(configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE)
 
     params = {
         "limit": max_records,
@@ -333,9 +315,7 @@ def update(configuration: dict, state: dict):
         campaign_count = 0
         new_processed_campaigns = []
 
-        for campaign in get_campaigns(
-            api_key, client_id, last_sync_time, configuration
-        ):
+        for campaign in get_campaigns(api_key, client_id, last_sync_time, configuration):
             op.upsert(table="campaign", data=campaign)
             campaign_count += 1
             campaign_id = campaign["id"]
