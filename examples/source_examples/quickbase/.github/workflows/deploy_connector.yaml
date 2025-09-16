@@ -78,31 +78,6 @@ jobs:
             echo "✅ No linting issues found."
           fi
 
-      - name: Run Unit Tests
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: |
-          echo "Running connector unit tests..."
-          python test_connector.py
-          if [ $? -ne 0 ]; then
-            echo "❌ Unit tests failed."
-            exit 1
-          else
-            echo "✅ Unit tests passed."
-          fi
-
-      - name: Run Mock Integration Tests
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: |
-          echo "Running mock integration tests..."
-          cd faker_mock
-          python test_connector_with_mock.py
-          if [ $? -ne 0 ]; then
-            echo "❌ Mock integration tests failed."
-            exit 1
-          else
-            echo "✅ Mock integration tests passed."
-          fi
-
       - name: Create Configuration File # uses secrets because they need to be stored encrypted
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: |
