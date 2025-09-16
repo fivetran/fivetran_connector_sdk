@@ -1,14 +1,14 @@
 """
 FDA Drug API Fivetran Connector
 Dynamically discovers and syncs data from FDA Drug API endpoints with incremental sync support.
+This connector follows Fivetran Connector SDK best practices without using yield statements.
 """
 
 import json
 import requests
 import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Generator, Tuple
-from urllib.parse import urljoin, urlencode
+from typing import Dict, List, Any, Optional, Tuple
+from urllib.parse import urljoin
 import base64
 
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
@@ -185,7 +185,7 @@ class FDADrugConnector:
 
         return main_record, child_tables
 
-    def sync_endpoint(self, endpoint: str, state: Dict[str, Any]) -> Generator:
+    def sync_endpoint(self, endpoint: str, state: Dict[str, Any]) -> Dict[str, Any]:
         """Sync data from a specific endpoint with incremental support."""
         table_name = f"fda_drug_{endpoint}"
         endpoint_state_key = f"{endpoint}_cursor"
@@ -208,6 +208,7 @@ class FDADrugConnector:
         total_records = 0
         checkpoint_counter = 0
         api_call_count = 0  # Track API calls per endpoint
+        latest_date = cursor
 
         log.info(f"Processing up to {self.max_api_calls_per_endpoint} API calls for {endpoint}")
 
@@ -245,7 +246,6 @@ class FDADrugConnector:
 
             # Process records
             child_table_data = {}
-            latest_date = cursor
 
             for record in results:
                 # Determine primary key based on endpoint
@@ -303,14 +303,18 @@ class FDADrugConnector:
                                 latest_date = record_date
                             break
 
-                yield op.upsert(table_name, processed_record)
+                # Direct operation call without yield - easier to adopt
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
+                op.upsert(table=table_name, data=processed_record)
                 total_records += 1
 
             # Upsert child table data if enabled
             if self.create_child_tables:
                 for child_table, child_records in child_table_data.items():
                     for child_record in child_records:
-                        yield op.upsert(child_table, child_record)
+                        op.upsert(table=child_table, data=child_record)
 
             checkpoint_counter += 1
 
@@ -322,7 +326,12 @@ class FDADrugConnector:
                     log.info(f"Checkpointed {endpoint} at cursor: {latest_date}")
                 else:
                     log.info(f"Checkpointed {endpoint} - no date progression")
-                yield op.checkpoint(state=state)
+
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state=state)
                 checkpoint_counter = 0
                 log.info(
                     f"Checkpoint complete for {endpoint}, total records: {total_records}, API calls: {api_call_count}"
@@ -345,7 +354,7 @@ class FDADrugConnector:
         # Final checkpoint - only update cursor if we found valid dates
         if latest_date and latest_date != cursor:
             state[endpoint_state_key] = latest_date
-            yield op.checkpoint(state=state)
+            op.checkpoint(state=state)
             log.info(f"Final checkpoint for {endpoint} at cursor: {latest_date}")
         else:
             log.info(f"No cursor update for {endpoint} - no valid dates found")
@@ -354,9 +363,33 @@ class FDADrugConnector:
             f"Completed sync for {endpoint}: {total_records} records processed, {api_call_count} API calls used"
         )
 
+        return state
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    # Validate required configuration parameters
+    required_configs = ["api_key", "base_url", "requests_per_checkpoint", "rate_limit_delay"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
-    """Define schema with dynamic table discovery."""
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     log.info("Generating schema for FDA Drug API")
 
     # Initialize connector to discover endpoints
@@ -387,9 +420,20 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     return tables
 
 
-def update(configuration: dict, state: dict) -> Generator:
-    """Main update function for syncing FDA Drug API data."""
+def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.info("Starting FDA Drug API sync")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
 
     connector = FDADrugConnector(configuration)
     endpoints = connector.discover_endpoints()
@@ -406,44 +450,58 @@ def update(configuration: dict, state: dict) -> Generator:
     )
     log.info(f"Total estimated API calls: {len(endpoints) * max_calls_per_endpoint}")
 
-    for endpoint in endpoints:
-        log.info(
-            f"Starting sync for endpoint: {endpoint} (max {max_calls_per_endpoint} API calls)"
-        )
-
-        try:
-            endpoint_start_calls = connector.request_count
-            yield from connector.sync_endpoint(endpoint, state)
-            endpoint_calls = connector.request_count - endpoint_start_calls
-            total_api_calls += endpoint_calls
-
-            log.info(f"Completed {endpoint}: {endpoint_calls} API calls used")
-
-        except Exception as e:
-            log.severe(f"Error syncing endpoint {endpoint}: {str(e)}")
-            continue
-
-    log.info(f"FDA Drug API sync completed - Total API calls used: {total_api_calls}")
-
-    # Log quota usage summary
-    if connector.api_key:
-        remaining_daily = 120000 - total_api_calls
-        log.info(f"API quota usage: {total_api_calls}/120,000 daily calls (with API key)")
-    else:
-        remaining_daily = 1000 - total_api_calls
-        log.info(f"API quota usage: {total_api_calls}/1,000 daily calls (no API key)")
-        if total_api_calls > 500:
-            log.warning(
-                "Approaching daily API limit - consider getting an API key for higher limits"
+    try:
+        for endpoint in endpoints:
+            log.info(
+                f"Starting sync for endpoint: {endpoint} (max {max_calls_per_endpoint} API calls)"
             )
 
+            try:
+                endpoint_start_calls = connector.request_count
+                state = connector.sync_endpoint(endpoint, state)
+                endpoint_calls = connector.request_count - endpoint_start_calls
+                total_api_calls += endpoint_calls
 
-# Initialize the connector
+                log.info(f"Completed {endpoint}: {endpoint_calls} API calls used")
+
+            except Exception as e:
+                log.severe(f"Error syncing endpoint {endpoint}: {str(e)}")
+                continue
+
+        log.info(f"FDA Drug API sync completed - Total API calls used: {total_api_calls}")
+
+        # Log quota usage summary
+        if connector.api_key:
+            remaining_daily = 120000 - total_api_calls
+            log.info(f"API quota usage: {total_api_calls}/120,000 daily calls (with API key)")
+            log.info(remaining_daily)
+        else:
+            remaining_daily = 1000 - total_api_calls
+            log.info(f"API quota usage: {total_api_calls}/1,000 daily calls (no API key)")
+            if total_api_calls > 500:
+                log.warning(
+                    "Approaching daily API limit - consider getting an API key for higher limits"
+                )
+
+    except Exception as e:
+        # In case of an exception, raise a runtime error
+        raise RuntimeError(f"Failed to sync FDA Drug API data: {str(e)}")
+
+
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Debug mode
-    with open("/configuration.json", "r") as f:
+    # Open the configuration.json file and load its contents
+    with open(
+        "/Users/elijah.davis/Documents/code/sdk/customer/ai_customer/FDA_drug_claude_no_yield/configuration.json",
+        "r",
+    ) as f:
         configuration = json.load(f)
 
+    # Test the connector locally
     connector.debug(configuration=configuration)
