@@ -12,6 +12,8 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
 
 **Perfect for**: Data engineers, analysts, and developers who want to try out creating connectors with AI.
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. This solution DOES NOT follow that new logic and you will see yield used in this tutorial. Learn more about migrating to the new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Prerequisites
 
 ### Technical Requirements

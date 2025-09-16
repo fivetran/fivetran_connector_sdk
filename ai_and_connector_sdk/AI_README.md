@@ -1,6 +1,8 @@
 # Introduction
 This section of our example repository is designed to help you use emerging AI tools with the Connector SDK to build custom connectors. The [Fivetran Connector SDK System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md) file can be used in any IDE or AI assistant process. Simply add it as context to the prompt and let the model or agents do the rest! We have sample outputs and video demonstrations using common IDEs linked below. Follow along or enhance an existing example with AI today!
 
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
+
 ## Disclaimer
 The content and sample code in ai_and_connector_sdk—including README.md, connector.py, and requirements.txt—were generated as batched outputs from a single AI conversation. While a Fivetran employee has tested the functionality for demonstration purposes, the code has not been polished or reviewed for production use. It remains unedited AI output and should be treated as illustrative only.
 
@@ -64,6 +66,13 @@ Claude is an AI assistant by Anthropic, capable of generating and editing Python
 Claude Code has proved to be capable of successfully generating a connector capable of populating a multi-table schema during its initial run. The [Claude md File](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/CLAUDE.md) in this folder contains instructions for Claude to be able to successfully build and debug connectors using Fivetran's Connector SDK. Start Claude Code in this folder so that it can pick up the CLAUDE.md content when generating responses. You can swap in the contents from agents.md into CLAUDE.md to see how the model behaves with different contexts, iterate and improve as you develop solutions!
 
 We also have [published a blog post](https://www.fivetran.com/blog/building-a-fivetran-connector-in-1-hour-with-anthropics-claude-ai) about our experiences and included the code as Claude generated it in the folder claude/pokeapi_tutorial with the output of our exploration with Claude. The [warehouse.db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/pokeapi_tutorial/pokeapi_connector/files/warehouse.db) and [state.json](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/claude/pokeapi_tutorial/pokeapi_connector/files/state.json) files are included here so you can easily review the output of the first sync. Note that these files are not required for Connector SDK - they are only temporary files created during testing.
+
+## Claude Code Subagents
+We created Connector SDK specific Claude Code agents that can help you build connectors. These agents are orchastrated by Claude Code when it identifies a task that is better accomplished using them.
+
+To start using these agents, you will need to make sure your Claude Code is up-to-date. Subagents became available in late July with version 1.0.62. Please copy the `agents` folder to the `.claude` folder in your project or to the global one located at `~/.claude`. Claude Code will automatically detect them and start using them.
+
+After you copy the files, you can verify that Claude Code is able to find them by calling `/agents` from within Claude Code and checking that the agents are listed.
 
 **Contents:**
 - [Fivetran Connector SDK AI System Instructions](https://github.com/fivetran/fivetran_connector_sdk/tree/main/ai_and_connector_sdk/agents.md)
