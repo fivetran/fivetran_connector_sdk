@@ -64,14 +64,41 @@ def parse_xml_weather_data(xml_content: str) -> Dict[str, Any]:
 
     # Direct text elements
     text_elements = [
-        'credit', 'credit_URL', 'image', 'suggested_pickup', 'suggested_pickup_period',
-        'location', 'station_id', 'latitude', 'longitude', 'observation_time',
-        'observation_time_rfc822', 'weather', 'temperature_string', 'temp_f',
-        'temp_c', 'relative_humidity', 'wind_string', 'wind_dir', 'wind_degrees',
-        'wind_mph', 'wind_kt', 'pressure_string', 'pressure_mb', 'pressure_in',
-        'dewpoint_string', 'dewpoint_f', 'dewpoint_c', 'visibility_mi',
-        'icon_url_base', 'two_day_history_url', 'icon_url_name', 'ob_url',
-        'disclaimer_url', 'copyright_url', 'privacy_policy_url'
+        "credit",
+        "credit_URL",
+        "image",
+        "suggested_pickup",
+        "suggested_pickup_period",
+        "location",
+        "station_id",
+        "latitude",
+        "longitude",
+        "observation_time",
+        "observation_time_rfc822",
+        "weather",
+        "temperature_string",
+        "temp_f",
+        "temp_c",
+        "relative_humidity",
+        "wind_string",
+        "wind_dir",
+        "wind_degrees",
+        "wind_mph",
+        "wind_kt",
+        "pressure_string",
+        "pressure_mb",
+        "pressure_in",
+        "dewpoint_string",
+        "dewpoint_f",
+        "dewpoint_c",
+        "visibility_mi",
+        "icon_url_base",
+        "two_day_history_url",
+        "icon_url_name",
+        "ob_url",
+        "disclaimer_url",
+        "copyright_url",
+        "privacy_policy_url",
     ]
 
     for element_name in text_elements:
@@ -81,10 +108,19 @@ def parse_xml_weather_data(xml_content: str) -> Dict[str, Any]:
 
     # Convert numeric fields to appropriate types
     numeric_fields = {
-        'latitude': float, 'longitude': float, 'temp_f': float, 'temp_c': float,
-        'relative_humidity': int, 'wind_degrees': int, 'wind_mph': float,
-        'wind_kt': float, 'pressure_mb': float, 'pressure_in': float,
-        'dewpoint_f': float, 'dewpoint_c': float, 'visibility_mi': float
+        "latitude": float,
+        "longitude": float,
+        "temp_f": float,
+        "temp_c": float,
+        "relative_humidity": int,
+        "wind_degrees": int,
+        "wind_mph": float,
+        "wind_kt": float,
+        "pressure_mb": float,
+        "pressure_in": float,
+        "dewpoint_f": float,
+        "dewpoint_c": float,
+        "visibility_mi": float,
     }
 
     for field, field_type in numeric_fields.items():
@@ -92,7 +128,9 @@ def parse_xml_weather_data(xml_content: str) -> Dict[str, Any]:
             try:
                 weather_data[field] = field_type(weather_data[field])
             except (ValueError, TypeError):
-                log.warning(f"Could not convert {field} to {field_type.__name__}: {weather_data[field]}")
+                log.warning(
+                    f"Could not convert {field} to {field_type.__name__}: {weather_data[field]}"
+                )
 
     return weather_data
 
@@ -110,9 +148,7 @@ def get_weather_data(station_code: str) -> Dict[str, Any]:
     url = f"https://forecast.weather.gov/xml/current_obs/{station_code}.xml"
     log.info(f"Requesting weather data for station {station_code}")
 
-    headers = {
-        "User-Agent": "Fivetran NOAA Weather Connector (contact: developers@fivetran.com)"
-    }
+    headers = {"User-Agent": "Fivetran NOAA Weather Connector (contact: developers@fivetran.com)"}
 
     response = rq.get(url, headers=headers)
     response.raise_for_status()
@@ -122,8 +158,10 @@ def get_weather_data(station_code: str) -> Dict[str, Any]:
     # Parse the XML response
     weather_data = parse_xml_weather_data(response.text)
 
-    log.info(f"Parsed weather data for {station_code}: {weather_data.get('weather', 'Unknown')}, "
-             f"Temp: {weather_data.get('temp_f', 'N/A')}°F")
+    log.info(
+        f"Parsed weather data for {station_code}: {weather_data.get('weather', 'Unknown')}, "
+        f"Temp: {weather_data.get('temp_f', 'N/A')}°F"
+    )
 
     return weather_data
 
