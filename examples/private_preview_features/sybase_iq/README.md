@@ -108,6 +108,7 @@ This connector replicates the `customer` table which contains customer informati
 This connector includes the following additional files:
 
 - `drivers/installation.sh` : This script installs the `FreeTDS` driver required for connecting to Sybase IQ database.
+> IMPORTANT: The feature to use external drivers is in private preview. Please connect with our professional services to get more information about them and enable it for your connector.
 
 ## Additional considerations
 
