@@ -1,14 +1,8 @@
-# EHI at scale - Electronic Health Information
+# EHI at Scale - Electronic Health Information
 
-This enhanced connector is specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies.
+## Connector overview
 
-## Overview
-
-### Problem it solves
-- **Massive Tables**: Handles 1+ billion row tables without timeouts or hangs
-- **Memory Issues**: Prevents memory overflow on large datasets
-- **Connection Problems**: Automatic deadlock detection and timeout recovery
-- **Progress Visibility**: Clear visibility into sync progress and status
+This enhanced connector is specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. It can handle 1+ billion row tables without timeouts or hangs, prevents memory overflow on large datasets, has automati deadlock detection and timeout recovery, and provides visibility into your syncs' progress and status.
 
 ### How it works
 - **Smart Categorization**: Automatically groups tables by size (small/medium/large)
@@ -49,101 +43,101 @@ This enhanced connector is specifically designed to handle massive healthcare da
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           FIVETRAN CONNECTOR SDK                               │
+│                           FIVETRAN CONNECTOR SDK                                │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CONNECTOR INTERFACE                                  │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   Schema()      │  │   Update()      │  │   Configuration Validation      │ │
-│  │   Discovery     │  │   Processing    │  │   & String Conversion           │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                           CONNECTOR INTERFACE                                   │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   Schema()      │  │   Update()      │  │   Configuration Validation      │  │
+│  │   Discovery     │  │   Processing    │  │   & String Conversion           │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        TABLE SIZE ANALYSIS ENGINE                              │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   get_table_    │  │   categorize_   │  │   display_processing_plan()     │ │
-│  │   sizes()       │  │   and_sort_     │  │   - Shows detailed breakdown    │ │
-│  │   - Single      │  │   tables()      │  │   - Groups by size category     │ │
-│  │   efficient     │  │   - Small       │  │   - Displays processing order   │ │
-│  │   query         │  │   - Medium      │  │   - Summary statistics          │ │
-│  │                 │  │   - Large       │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        TABLE SIZE ANALYSIS ENGINE                               │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   get_table_    │  │   categorize_   │  │   display_processing_plan()     │  │
+│  │   sizes()       │  │   and_sort_     │  │   - Shows detailed breakdown    │  │
+│  │   - Single      │  │   tables()      │  │   - Groups by size category     │  │
+│  │   efficient     │  │   - Small       │  │   - Displays processing order   │  │
+│  │   query         │  │   - Medium      │  │   - Summary statistics          │  │
+│  │                 │  │   - Large       │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        ADAPTIVE PARAMETER ENGINE                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │ │
-│  │   partition_    │  │   batch_size()  │  │   threads()                     │ │
-│  │   size()        │  │   - 5K/2.5K/1K  │  │   - 4/2/1 threads             │ │
-│  │   - 50K/25K/5K  │  │   based on size │  │   based on size                │ │
-│  │   based on size │  │                 │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │ │
-│  │   queue_size()  │  │   timeout()     │  │   checkpoint_interval()         │ │
-│  │   - 10K/5K/1K   │  │   - 3/6/12     │  │   - 1M/500K/100K records      │ │
-│  │   based on size │  │   hours         │  │   based on size                 │ │
-│  │                 │  │                 │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        ADAPTIVE PARAMETER ENGINE                                │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │  │
+│  │   partition_    │  │   batch_size()  │  │   threads()                     │  │
+│  │   size()        │  │   - 5K/2.5K/1K  │  │   - 4/2/1 threads               │  │
+│  │   - 50K/25K/5K  │  │   based on size │  │   based on size                 │  │
+│  │   based on size │  │                 │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │  │
+│  │   queue_size()  │  │   timeout()     │  │   checkpoint_interval()         │  │
+│  │   - 10K/5K/1K   │  │   - 3/6/12      │  │   - 1M/500K/100K records        │  │
+│  │   based on size │  │   hours         │  │   based on size                 │  │
+│  │                 │  │                 │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        CONNECTION MANAGEMENT                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   Connection    │  │   Automatic     │  │   Error Detection               │ │
-│  │   Manager       │  │   Reconnection  │  │   - Deadlock patterns          │ │
-│  │   - Context     │  │   - Timeout     │  │   - Timeout patterns           │ │
-│  │   manager       │  │   based         │  │   - Custom exceptions          │ │
-│  │   - Thread-safe │  │   - Adaptive    │  │                                 │ │
-│  │   - Connection  │  │   timeouts      │  │                                 │ │
-│  │   pooling       │  │                 │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        CONNECTION MANAGEMENT                                    │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   Connection    │  │   Automatic     │  │   Error Detection               │  │
+│  │   Manager       │  │   Reconnection  │  │   - Deadlock patterns           │  │
+│  │   - Context     │  │   - Timeout     │  │   - Timeout patterns            │  │
+│  │   manager       │  │   based         │  │   - Custom exceptions           │  │
+│  │   - Thread-safe │  │   - Adaptive    │  │                                 │  │
+│  │   - Connection  │  │   timeouts      │  │                                 │  │
+│  │   pooling       │  │                 │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        PROCESSING STRATEGIES                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   Small Tables  │  │   Medium Tables │  │   Large Tables                  │ │
-│  │   (<1M rows)    │  │   (1M-50M rows) │  │   (50M+ rows)                  │ │
-│  │   - 4 threads   │  │   - 2 threads   │  │   - 1 thread                   │ │
-│  │   - 5K batches  │  │   - 2.5K batches│  │   - 1K batches                 │ │
-│  │   - 50K parts   │  │   - 25K parts   │  │   - 5K parts                   │ │
-│  │   - Quick wins  │  │   - Balanced    │  │   - Safe processing            │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        PROCESSING STRATEGIES                                    │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   Small Tables  │  │   Medium Tables │  │   Large Tables                  │  │
+│  │   (<1M rows)    │  │   (1M-50M rows) │  │   (50M+ rows)                   │  │
+│  │   - 4 threads   │  │   - 2 threads   │  │   - 1 thread                    │  │
+│  │   - 5K batches  │  │   - 2.5K batches│  │   - 1K batches                  │  │
+│  │   - 50K parts   │  │   - 25K parts   │  │   - 5K parts                    │  │
+│  │   - Quick wins  │  │   - Balanced    │  │   - Safe processing             │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        DATA PROCESSING PIPELINE                                │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   Full Load     │  │   Incremental   │  │   Error Handling                │ │
-│  │   - Partitioned │  │   Sync          │  │   - Retry with backoff          │ │
-│  │   - Threaded    │  │   - Change      │  │   - State persistence           │ │
-│  │   - Queue-based │  │   detection     │  │   - Checkpointing               │ │
-│  │   - Batch proc  │  │   - Upsert/     │  │   - Progress tracking           │ │
-│  │                 │  │   Delete        │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        DATA PROCESSING PIPELINE                                 │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   Full Load     │  │   Incremental   │  │   Error Handling                │  │
+│  │   - Partitioned │  │   Sync          │  │   - Retry with backoff          │  │
+│  │   - Threaded    │  │   - Change      │  │   - State persistence           │  │
+│  │   - Queue-based │  │   detection     │  │   - Checkpointing               │  │
+│  │   - Batch proc  │  │   - Upsert/     │  │   - Progress tracking           │  │
+│  │                 │  │   Delete        │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        OUTPUT & VALIDATION                                     │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │
-│  │   Fivetran      │  │   Validation    │  │   Progress Logging              │ │
-│  │   Operations    │  │   Records       │  │   - Real-time updates          │ │
-│  │   - Upsert      │  │   - Count       │  │   - Processing status          │ │
-│  │   - Delete      │  │   validation    │  │   - Error reporting            │ │
-│  │   - Checkpoint  │  │   - Record      │  │   - Performance metrics        │ │
-│  │                 │  │   tracking      │  │                                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │
+│                        OUTPUT & VALIDATION                                      │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │   Fivetran      │  │   Validation    │  │   Progress Logging              │  │
+│  │   Operations    │  │   Records       │  │   - Real-time updates           │  │
+│  │   - Upsert      │  │   - Count       │  │   - Processing status           │  │
+│  │   - Delete      │  │   validation    │  │   - Error reporting             │  │
+│  │   - Checkpoint  │  │   - Record      │  │   - Performance metrics         │  │
+│  │                 │  │   tracking      │  │                                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -155,58 +149,58 @@ START
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    SCHEMA DISCOVERY                             │
-│  • Get table list from database                                │
-│  • Discover columns and primary keys                           │
-│  • Validate configuration                                      │
+│  • Get table list from database                                 │
+│  • Discover columns and primary keys                            │
+│  • Validate configuration                                       │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TABLE SIZE ANALYSIS                         │
-│  • Single efficient query for all table sizes                 │
-│  • Categorize: Small (<1M), Medium (1M-50M), Large (50M+)    │
-│  • Sort by category and size for optimal processing order     │
+│                    TABLE SIZE ANALYSIS                          │
+│  • Single efficient query for all table sizes                   │
+│  • Categorize: Small (<1M), Medium (1M-50M), Large (50M+)       │
+│  • Sort by category and size for optimal processing order       │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    PROCESSING PLAN DISPLAY                     │
-│  • Show detailed breakdown by category                        │
-│  • Display row counts and processing order                    │
-│  • Summary statistics and estimated processing time           │
+│                    PROCESSING PLAN DISPLAY                      │
+│  • Show detailed breakdown by category                          │
+│  • Display row counts and processing order                      │
+│  • Summary statistics and estimated processing time             │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SEQUENTIAL PROCESSING                       │
-│  • Process Small Tables First (Quick Wins)                    │
-│  • Then Medium Tables (Balanced Approach)                     │
-│  • Finally Large Tables (Safe Processing)                     │
+│                    SEQUENTIAL PROCESSING                        │
+│  • Process Small Tables First (Quick Wins)                      │
+│  • Then Medium Tables (Balanced Approach)                       │
+│  • Finally Large Tables (Safe Processing)                       │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    ADAPTIVE PROCESSING                         │
-│  • Small: 4 threads, 5K batches, 50K partitions              │
-│  • Medium: 2 threads, 2.5K batches, 25K partitions           │
-│  • Large: 1 thread, 1K batches, 5K partitions                │
+│                    ADAPTIVE PROCESSING                          │
+│  • Small: 4 threads, 5K batches, 50K partitions                 │
+│  • Medium: 2 threads, 2.5K batches, 25K partitions              │
+│  • Large: 1 thread, 1K batches, 5K partitions                   │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    ERROR HANDLING & RECOVERY                   │
-│  • Deadlock detection and retry                               │
-│  • Connection timeout handling                                 │
-│  • Exponential backoff with jitter                            │
-│  • State persistence and checkpointing                        │
+│                    ERROR HANDLING & RECOVERY                    │
+│  • Deadlock detection and retry                                 │
+│  • Connection timeout handling                                  │
+│  • Exponential backoff with jitter                              │
+│  • State persistence and checkpointing                          │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    VALIDATION & OUTPUT                         │
-│  • Record count validation                                    │
-│  • Progress tracking and logging                               │
-│  • Fivetran operations (upsert, delete, checkpoint)           │
+│                    VALIDATION & OUTPUT                          │
+│  • Record count validation                                      │
+│  • Progress tracking and logging                                │
+│  • Fivetran operations (upsert, delete, checkpoint)             │
 └─────────────────────────────────────────────────────────────────┘
   │
   ▼
