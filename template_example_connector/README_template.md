@@ -77,6 +77,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 *(Optional) If the ERD is available, add the ERD file to the same folder as the example's README.md and add the ERD link at beginning of this section using the below example as a template.* 
 *Example: "The entity-relationship diagram (ERD) below shows how tables are linked in the <source-name> schema."*
+*
 *![<source-name>-ERD](<source-name-ERD>.png)*
 
 *Summary of tables replicated.*
