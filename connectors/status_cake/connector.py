@@ -135,13 +135,14 @@ def fetch_api_data(endpoint: str, headers: dict, description: str = "") -> list:
     return []
 
 
-def upsert_records_with_test_id(table_name: str, records: list, test_id: str):
+def upsert_records_with_test_id(table_name: str, records: list, test_id: str, state: dict):
     """
     Common function to process and upsert records with test_id reference.
     Args:
         table_name: Name of the destination table
         records: List of records to process
         test_id: Test ID to add as foreign key reference
+        state: A dictionary containing state information from previous runs
     """
     for record in records:
         record["test_id"] = test_id  # Add test_id reference
@@ -152,6 +153,12 @@ def upsert_records_with_test_id(table_name: str, records: list, test_id: str):
         # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table=table_name, data=flattened_record)
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
 
 def schema(configuration: dict):
@@ -226,19 +233,19 @@ def update(configuration: dict, state: dict):
             history_data = fetch_api_data(
                 f"uptime/{test_id}/history", headers, f"history records for test {test_id}"
             )
-            upsert_records_with_test_id("uptime_test_history", history_data, test_id)
+            upsert_records_with_test_id("uptime_test_history", history_data, test_id, state)
 
             # Process periods data for this uptime test
             periods_data = fetch_api_data(
                 f"uptime/{test_id}/periods", headers, f"period records for test {test_id}"
             )
-            upsert_records_with_test_id("uptime_test_period", periods_data, test_id)
+            upsert_records_with_test_id("uptime_test_period", periods_data, test_id, state)
 
             # Process alerts data for this uptime test
             alerts_data = fetch_api_data(
                 f"uptime/{test_id}/alerts", headers, f"alert records for test {test_id}"
             )
-            upsert_records_with_test_id("uptime_test_alert", alerts_data, test_id)
+            upsert_records_with_test_id("uptime_test_alert", alerts_data, test_id, state)
 
     except Exception as e:
         log.severe(f"Error during sync: {str(e)}")
