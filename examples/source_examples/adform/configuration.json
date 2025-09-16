@@ -1,0 +1,12 @@
+{
+  "api_key": "YOUR_ADFORM_API_KEY",
+  "client_id": "YOUR_ADFORM_CLIENT_ID",
+  "base_url": "https://api.adform.com/v1",
+  "sync_frequency_hours": "4",
+  "initial_sync_days": "90",
+  "max_records_per_page": "100",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "enable_incremental_sync": "true",
+  "enable_debug_logging": "false"
+}
