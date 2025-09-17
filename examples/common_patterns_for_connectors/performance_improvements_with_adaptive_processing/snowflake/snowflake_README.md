@@ -200,21 +200,21 @@ The connector uses a `configuration.json` file to define connection parameters a
 
 ```json
 {
-  "snowflake_user": "your_username",
-  "snowflake_password": "your_password",
-  "snowflake_account": "your_account",
-  "snowflake_warehouse": "your_warehouse",
-  "snowflake_database": "your_database",
-  "snowflake_schema": "your_schema",
-  "tables": "CUSTOMERS,ORDERS,PRODUCTS",
-  "use_privatelink": "false",
-  "ssl_verify": "true",
-  "batch_delay_ms": "100",
-  "max_retries": "3",
-  "enable_resource_monitoring": "true",
-  "enable_preprocessing": "false",
-  "preprocessing_table": "",
-  "preprocessing_sql": ""
+  "snowflake_user": "<YOUR_VALUE_1>",
+  "snowflake_password": "<YOUR_VALUE_2>",
+  "snowflake_account": "<YOUR_VALUE_3>",
+  "snowflake_warehouse": "<YOUR_VALUE_4>",
+  "snowflake_database": "<YOUR_VALUE_5>",
+  "snowflake_schema": "<YOUR_VALUE_6>",
+  "tables": "<YOUR_VALUE_7>,<YOUR_VALUE_8>,<YOUR_VALUE_9>",
+  "use_privatelink": "<YOUR_VALUE_10>",
+  "ssl_verify": "<YOUR_VALUE_11>",
+  "batch_delay_ms": "<YOUR_VALUE_12>",
+  "max_retries": "<YOUR_VALUE_13>",
+  "enable_resource_monitoring": "<YOUR_VALUE_14>",
+  "enable_preprocessing": "<YOUR_VALUE_15>",
+  "preprocessing_table": "<YOUR_VALUE_16>",
+  "preprocessing_sql": "<YOUR_VALUE_17>"
 }
 ```
 
