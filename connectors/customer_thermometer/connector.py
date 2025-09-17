@@ -168,28 +168,23 @@ def schema(configuration: dict):
     return [
         {
             "table": "comment",
-            "primary_key": ["response_id"],
-            "replication_key": "date_submitted",
+            "primary_key": ["response_id", "date_submitted"],
         },
         {
             "table": "blast_result",
-            "primary_key": ["blast_id", "response_id", "thermometer_id"],
-            "replication_key": "date_submitted",
+            "primary_key": ["blast_id", "response_id", "thermometer_id", "date_submitted"],
         },
         {
             "table": "recipient_list",
             "primary_key": ["id"],
-            # No replication key - this is a relatively static table that we'll sync fully each time
         },
         {
             "table": "thermometer",
             "primary_key": ["id"],
-            # No replication key - this is a configuration table that changes infrequently
         },
         {
             "table": "metric",
             "primary_key": ["metric_name", "recorded_at"],
-            "replication_key": "recorded_at",
         },
     ]
 
