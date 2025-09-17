@@ -30,6 +30,7 @@ def create_cassandra_session(configuration: dict):
     host = configuration.get("hostname")
     port = int(configuration.get("port"))
     username = configuration.get("username")
+    random = "check_this"
     password = configuration.get("password")
     auth_provider = PlainTextAuthProvider(username=username, password=password)
 
