@@ -224,7 +224,7 @@ Refer to `log_processing_metrics()` for custom logging of processing metrics.
 
 ## Configuration file
 
-The connector uses a `configuration.json` file to define connection parameters and processing options. This pattern can be adapted for any data source by defining appropriate configuration parameters for authentication, data selection, and processing options. Upload this file to Fivetran when setting up your connector.
+The connector uses a `configuration.json` file to define connection parameters and processing options. This pattern can be adapted for any data source by defining appropriate configuration parameters for authentication, data selection, and processing options. The key-pair configuration values from this file are passed to Fivetran during deployment.
 
 **Basic configuration:**
 ```json
@@ -335,6 +335,6 @@ The connector replicates all tables specified in the `tables` configuration para
 
 ## Additional considerations
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+The examples provided are intended to help you effectively use the Fivetran Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
 This comprehensive features guide provides developers with the knowledge and examples needed to implement, customize, and optimize enterprise-grade connectors for any data source. The patterns and techniques demonstrated here can be adapted for databases, APIs, file systems, cloud services, and other data sources to build production-ready connectors that handle enterprise-scale data volumes while maintaining reliability and performance.
