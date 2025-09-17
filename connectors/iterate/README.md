@@ -71,7 +71,7 @@ The connector processes data in two main steps with optimized incremental sync:
 **Enhanced Sync Strategy:**
 - Initial sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback
 - Incremental syncs use `last_survey_sync` timestamp from state to fetch only new responses since last successful sync
-- UTC consistency for all datetime operations with 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
+- Consistent timezone handling throughout the connector with format (`YYYY-MM-DDTHH:MM:SSZ`)
 - Single checkpoint saves state only after complete successful sync to prevent data gaps from partial failures
 
 **Data Transformation:**
@@ -93,7 +93,6 @@ The connector implements comprehensive error handling with multiple layers of pr
 
 **Configuration Validation (`validate_configuration()`):**
 - Validates required `api_token` field exists and is not empty
-- Enforces strict UTC datetime format for optional `start_date` (`YYYY-MM-DDTHH:MM:SSZ`)
 - Provides clear error messages for configuration issues with format examples
 
 **API Request Resilience (`make_api_request()`):**
@@ -110,11 +109,6 @@ The connector implements comprehensive error handling with multiple layers of pr
 - Graceful handling of missing or malformed API response structures
 - Safe dictionary access patterns to prevent KeyError exceptions
 - Proper exception propagation with descriptive RuntimeError messages
-
-**Datetime Handling:**
-- Strict UTC format parsing with clear validation messages
-- Fallback to EPOCH time for invalid datetime configurations
-- Consistent timezone handling throughout the connector
 
 All exceptions are caught at the top level and re-raised as `RuntimeError` with descriptive messages, making troubleshooting easier for users and Fivetran support.
 
