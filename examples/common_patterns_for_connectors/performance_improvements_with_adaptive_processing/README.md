@@ -165,8 +165,6 @@ The connector supports different configuration profiles for various environments
 - **Production environment** - Balanced thresholds for production workloads
 - **High-volume environment** - Higher thresholds for enterprise-scale data
 
-Refer to `DEV_CONFIG`, `PROD_CONFIG`, and `HIGH_VOLUME_CONFIG` for environment-specific settings.
-
 ### Custom processing strategies
 
 The connector supports custom processing strategies for different use cases:
