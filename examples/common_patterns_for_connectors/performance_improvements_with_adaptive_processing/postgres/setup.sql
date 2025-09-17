@@ -19,7 +19,7 @@ SET search_path TO fivetran_connector, public;
 -- ============================================================================
 
 -- Sample orders table with region filtering
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE IF NOT EXISTS "order" (
     id SERIAL PRIMARY KEY,
     order_id VARCHAR(50) NOT NULL,
     customer_id INTEGER NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- Sample customers table
-CREATE TABLE IF NOT EXISTS customers (
+CREATE TABLE IF NOT EXISTS customer (
     id SERIAL PRIMARY KEY,
     customer_id INTEGER NOT NULL UNIQUE,
     first_name VARCHAR(100) NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS customers (
 );
 
 -- Sample products table
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS product (
     id SERIAL PRIMARY KEY,
     product_id VARCHAR(50) NOT NULL UNIQUE,
     product_name VARCHAR(255) NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 -- Sample order_items table
-CREATE TABLE IF NOT EXISTS order_items (
+CREATE TABLE IF NOT EXISTS order_item (
     id SERIAL PRIMARY KEY,
     order_id VARCHAR(50) NOT NULL,
     product_id VARCHAR(50) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- Sample suppliers table
-CREATE TABLE IF NOT EXISTS suppliers (
+CREATE TABLE IF NOT EXISTS supplier (
     id SERIAL PRIMARY KEY,
     supplier_id INTEGER NOT NULL UNIQUE,
     supplier_name VARCHAR(255) NOT NULL,
@@ -111,30 +111,30 @@ CREATE TABLE IF NOT EXISTS inventory (
 -- INDEXES FOR PERFORMANCE
 -- ============================================================================
 
--- Indexes for orders table
-CREATE INDEX IF NOT EXISTS idx_orders_region ON orders(region);
-CREATE INDEX IF NOT EXISTS idx_orders_order_date ON orders(order_date);
-CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+-- Indexes for order table
+CREATE INDEX IF NOT EXISTS idx_orders_region ON order(region);
+CREATE INDEX IF NOT EXISTS idx_orders_order_date ON order(order_date);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON order(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON order(status);
 
--- Indexes for customers table
-CREATE INDEX IF NOT EXISTS idx_customers_region ON customers(region);
-CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
-CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
+-- Indexes for customer table
+CREATE INDEX IF NOT EXISTS idx_customers_region ON customer(region);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customer(email);
+CREATE INDEX IF NOT EXISTS idx_customers_city ON customer(city);
 
--- Indexes for products table
-CREATE INDEX IF NOT EXISTS idx_products_region ON products(region);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
-CREATE INDEX IF NOT EXISTS idx_products_supplier_id ON products(supplier_id);
+-- Indexes for product table
+CREATE INDEX IF NOT EXISTS idx_products_region ON product(region);
+CREATE INDEX IF NOT EXISTS idx_products_category ON product(category);
+CREATE INDEX IF NOT EXISTS idx_products_supplier_id ON product(supplier_id);
 
--- Indexes for order_items table
-CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_region ON order_items(region);
+-- Indexes for order_item table
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_item(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_item(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_region ON order_item(region);
 
--- Indexes for suppliers table
-CREATE INDEX IF NOT EXISTS idx_suppliers_region ON suppliers(region);
-CREATE INDEX IF NOT EXISTS idx_suppliers_country ON suppliers(country);
+-- Indexes for supplier table
+CREATE INDEX IF NOT EXISTS idx_suppliers_region ON supplier(region);
+CREATE INDEX IF NOT EXISTS idx_suppliers_country ON supplier(country);
 
 -- Indexes for inventory table
 CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id);
@@ -146,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_inventory_region ON inventory(region);
 -- ============================================================================
 
 -- Insert sample customers
-INSERT INTO customers (customer_id, first_name, last_name, email, phone, address, city, state, country, postal_code, region) VALUES
+INSERT INTO customer (customer_id, first_name, last_name, email, phone, address, city, state, country, postal_code, region) VALUES
 (1001, 'John', 'Smith', 'john.smith@email.com', '+1-555-0101', '123 Main St', 'New York', 'NY', 'USA', '10001', 'North America'),
 (1002, 'Jane', 'Doe', 'jane.doe@email.com', '+1-555-0102', '456 Oak Ave', 'Los Angeles', 'CA', 'USA', '90210', 'North America'),
 (1003, 'Bob', 'Johnson', 'bob.johnson@email.com', '+1-555-0103', '789 Pine Rd', 'Chicago', 'IL', 'USA', '60601', 'North America'),
@@ -156,15 +156,15 @@ INSERT INTO customers (customer_id, first_name, last_name, email, phone, address
 (1007, 'Maria', 'Silva', 'maria.silva@email.com', '+55-11-1234-5678', 'Rua das Flores 456', 'São Paulo', 'SP', 'Brazil', '01234-567', 'Latin America'),
 (1008, 'David', 'Wilson', 'david.wilson@email.com', '+61-2-1234-5678', '123 George St', 'Sydney', 'NSW', 'Australia', '2000', 'Asia Pacific');
 
--- Insert sample suppliers
-INSERT INTO suppliers (supplier_id, supplier_name, contact_name, email, phone, address, city, state, country, region) VALUES
+-- Insert sample supplier
+INSERT INTO supplier (supplier_id, supplier_name, contact_name, email, phone, address, city, state, country, region) VALUES
 (2001, 'Global Electronics', 'Mike Cn', 'mike.cn@globalelectronics.com', '+1-555-0201', '100 Tech Blvd', 'San Jose', 'CA', 'USA', 'North America'),
 (2002, 'European Parts Co', 'Hans Muelr', 'hans.muelr@europeanparts.com', '+49-30-1234-5678', 'Berliner Str 123', 'Berlin', 'Berlin', 'Germany', 'Europe'),
 (2003, 'Asia Pacific Supply', 'Kenji Yamoto', 'kenji.yamoto@apsupply.com', '+81-3-9876-5432', 'Ginza 5-1-1', 'Tokyo', 'Tokyo', 'Japan', 'Asia Pacific'),
 (2004, 'Latin American Goods', 'Carlos Rodri', 'carlos.rodri@lagoods.com', '+52-55-1234-5678', 'Reforma 123', 'Mexico City', 'DF', 'Mexico', 'Latin America');
 
 -- Insert sample products
-INSERT INTO products (product_id, product_name, category, price, cost, supplier_id, region) VALUES
+INSERT INTO product (product_id, product_name, category, price, cost, supplier_id, region) VALUES
 ('PROD-001', 'Laptop Computer', 'Electronics', 999.99, 650.00, 2001, 'North America'),
 ('PROD-002', 'Wireless Mouse', 'Electronics', 29.99, 15.00, 2001, 'North America'),
 ('PROD-003', 'Office Chair', 'Furniture', 199.99, 120.00, 2002, 'Europe'),
@@ -175,7 +175,7 @@ INSERT INTO products (product_id, product_name, category, price, cost, supplier_
 ('PROD-008', 'Blender', 'Appliances', 59.99, 35.00, 2004, 'Latin America');
 
 -- Insert sample orders
-INSERT INTO orders (order_id, customer_id, order_date, total_amount, region, status) VALUES
+INSERT INTO "order" (order_id, customer_id, order_date, total_amount, region, status) VALUES
 ('ORD-2024-001', 1001, '2024-01-15 10:30:00', 1029.98, 'North America', 'completed'),
 ('ORD-2024-002', 1002, '2024-01-16 14:20:00', 699.99, 'North America', 'completed'),
 ('ORD-2024-003', 1004, '2024-01-17 09:15:00', 249.98, 'Europe', 'completed'),
@@ -186,7 +186,7 @@ INSERT INTO orders (order_id, customer_id, order_date, total_amount, region, sta
 ('ORD-2024-008', 1003, '2024-01-22 15:10:00', 129.98, 'North America', 'completed');
 
 -- Insert sample order items
-INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price, region) VALUES
+INSERT INTO order_item (order_id, product_id, quantity, unit_price, total_price, region) VALUES
 ('ORD-2024-001', 'PROD-001', 1, 999.99, 999.99, 'North America'),
 ('ORD-2024-001', 'PROD-002', 1, 29.99, 29.99, 'North America'),
 ('ORD-2024-002', 'PROD-005', 1, 699.99, 699.99, 'North America'),
@@ -226,7 +226,7 @@ SELECT
     AVG(total_amount) as avg_order_value,
     COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
     COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders
-FROM orders
+FROM "order"
 GROUP BY region
 ORDER BY total_revenue DESC;
 
@@ -241,7 +241,7 @@ SELECT
     SUM(o.total_amount) as total_spent,
     AVG(o.total_amount) as avg_order_value,
     MAX(o.order_date) as last_order_date
-FROM customers c
+FROM customer c
 LEFT JOIN orders o ON c.customer_id = o.customer_id
 GROUP BY c.customer_id, c.first_name, c.last_name, c.region
 ORDER BY total_spent DESC;
@@ -258,7 +258,7 @@ SELECT
     SUM(oi.total_price) as total_revenue,
     AVG(oi.unit_price) as avg_unit_price,
     i.quantity_on_hand as current_stock
-FROM products p
+FROM product p
 LEFT JOIN order_items oi ON p.product_id = oi.product_id
 LEFT JOIN inventory i ON p.product_id = i.product_id
 GROUP BY p.product_id, p.product_name, p.category, p.region, i.quantity_on_hand
@@ -282,13 +282,13 @@ BEGIN
     FOR i IN 1..num_orders LOOP
         -- Select random customer
         SELECT customer_id INTO random_customer_id 
-        FROM customers 
+        FROM customer 
         ORDER BY RANDOM() 
         LIMIT 1;
         
         -- Select random product
         SELECT product_id INTO random_product_id 
-        FROM products 
+        FROM product 
         ORDER BY RANDOM() 
         LIMIT 1;
         
@@ -305,7 +305,7 @@ BEGIN
         total_amount := 50 + (RANDOM() * 950);
         
         -- Insert order
-        INSERT INTO orders (order_id, customer_id, order_date, total_amount, region, status)
+        INSERT INTO "order" (order_id, customer_id, order_date, total_amount, region, status)
         VALUES (
             'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-' || LPAD(i::TEXT, 3, '0'),
             random_customer_id,
@@ -316,7 +316,7 @@ BEGIN
         );
         
         -- Insert order item
-        INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price, region)
+        INSERT INTO order_item (order_id, product_id, quantity, unit_price, total_price, region)
         VALUES (
             'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-' || LPAD(i::TEXT, 3, '0'),
             random_product_id,
@@ -355,15 +355,15 @@ $$ LANGUAGE plpgsql;
 
 -- Apply trigger to tables with updated_at column
 CREATE TRIGGER update_customers_updated_at 
-    BEFORE UPDATE ON customers 
+    BEFORE UPDATE ON customer 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_products_updated_at 
-    BEFORE UPDATE ON products 
+    BEFORE UPDATE ON product 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_suppliers_updated_at 
-    BEFORE UPDATE ON suppliers 
+    BEFORE UPDATE ON supplier 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
@@ -383,25 +383,25 @@ CREATE TRIGGER update_suppliers_updated_at
 SELECT 'Setup verification completed successfully' as status;
 
 -- Count records in each table
-SELECT 'customers' as table_name, COUNT(*) as record_count FROM customers
+SELECT 'customers' as table_name, COUNT(*) as record_count FROM customer
 UNION ALL
-SELECT 'suppliers', COUNT(*) FROM suppliers
+SELECT 'suppliers', COUNT(*) FROM supplier
 UNION ALL
-SELECT 'products', COUNT(*) FROM products
+SELECT 'products', COUNT(*) FROM product
 UNION ALL
-SELECT 'orders', COUNT(*) FROM orders
+SELECT 'orders', COUNT(*) FROM "order"
 UNION ALL
-SELECT 'order_items', COUNT(*) FROM order_items
+SELECT 'order_items', COUNT(*) FROM order_item
 UNION ALL
 SELECT 'inventory', COUNT(*) FROM inventory
 ORDER BY table_name;
 
 -- Show sample data from each table
 SELECT 'Sample customers:' as info;
-SELECT customer_id, first_name, last_name, region FROM customers LIMIT 3;
+SELECT customer_id, first_name, last_name, region FROM customer LIMIT 3;
 
 SELECT 'Sample orders:' as info;
-SELECT order_id, customer_id, total_amount, region, status FROM orders LIMIT 3;
+SELECT order_id, customer_id, total_amount, region, status FROM order LIMIT 3;
 
 SELECT 'Sample products:' as info;
-SELECT product_id, product_name, category, price, region FROM products LIMIT 3;
+SELECT product_id, product_name, category, price, region FROM product LIMIT 3;
