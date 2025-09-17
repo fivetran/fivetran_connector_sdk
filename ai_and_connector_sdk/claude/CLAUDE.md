@@ -27,7 +27,7 @@ fivetran --help
 
 ## Code Structure Requirements
 - **Required Imports**: `from fivetran_connector_sdk import Connector, Operations as op, Logging as log`
-- **Required Methods**: `update(configuration: dict, state: dict)` must yield operations
+- **Required Methods**: `update(configuration: dict, state: dict)`
 - **Optional Methods**: `schema(configuration: dict)` returns JSON structure with tables, columns, primary keys
 - **Connector Object**: Must declare `connector = Connector(update=update, schema=schema)`
 - **Entry Point**: Include `if __name__ == "__main__": connector.debug()` for local testing
