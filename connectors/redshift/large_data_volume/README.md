@@ -92,7 +92,9 @@ The connector includes robust error handling mechanisms to manage potential issu
 
 
 ## Tables created
-The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector automatically detects the schema of each table and creates corresponding tables in the destination with appropriate data types. If automatic schema detection is disabled, the connector uses the schema defined in the `table_spec.py` file.
+The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>.<table_name>`.
+
+The connector automatically detects the schema of each table and creates corresponding tables in the destination with appropriate data types. If automatic schema detection is disabled, the connector uses the schema defined in the `table_spec.py` file.
 
 
 ## Additional files
