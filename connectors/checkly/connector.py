@@ -346,11 +346,11 @@ def get_analytics_data(configuration: dict, check_id: str, check_type: str, stat
                     # - The second argument is a dictionary containing the data to be upserted,
                     op.upsert(table=table_name, data=flattened_record)
 
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(state)
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
 
         except Exception as e:
             log.warning(f"Error fetching {metrics_type} analytics for check {check_id}: {str(e)}")
@@ -403,12 +403,6 @@ def process_single_check(check_record: dict, configuration: dict, state: dict) -
             log.severe(f"Failed to process analytics for check {check_id}: {str(e)}")
             # Continue with other checks for non-critical errors
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
-
 
 def fetch_checks_page(page: int, headers: dict) -> list:
     """
@@ -457,6 +451,12 @@ def get_checks_data(configuration: dict, state: dict):
             for check_record in response_data:
                 process_single_check(check_record, configuration, state)
                 total_records += 1
+
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
             # Check if we have more data to fetch
             if len(response_data) < __PAGE_SIZE:
