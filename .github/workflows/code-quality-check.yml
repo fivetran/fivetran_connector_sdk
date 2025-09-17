@@ -127,6 +127,7 @@ jobs:
           fi
 
       - name: Find existing comment
+        if: env.CAN_COMMENT == 'true'
         uses: peter-evans/find-comment@v3
         id: find
         with:
@@ -135,7 +136,7 @@ jobs:
           body-includes: "### 🧹 Python Code Quality Check"
 
       - name: Create or update PR comment
-        if: env.SKIP == 'false'
+        if: env.SKIP == 'false' && env.CAN_COMMENT == 'true'
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.find.outputs.comment-id }}
