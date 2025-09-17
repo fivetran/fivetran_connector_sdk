@@ -96,7 +96,7 @@ Contains weather observation data including:
 - Wind speed and direction
 - Visibility and dewpoint
 
-### weather_stations
+### WEATHER_STATIONS
 Primary key: `station_id`
 Contains station metadata including:
 - Location name
