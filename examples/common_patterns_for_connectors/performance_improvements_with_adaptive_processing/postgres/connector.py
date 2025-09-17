@@ -465,11 +465,11 @@ def schema(configuration: dict):
 
     schema_entries = [
         {
-            "table": "postgres_tables",
+            "table": "postgres_table",
             "primary_key": ["table_name", "timestamp"]
         },
         {
-            "table": "postgres_columns",
+            "table": "postgres_column",
             "primary_key": ["table_name", "column_name", "timestamp"]
         }
     ]
