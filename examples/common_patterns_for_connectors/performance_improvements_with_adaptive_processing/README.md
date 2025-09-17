@@ -38,7 +38,7 @@ This section demonstrates enterprise-grade patterns that can be implemented in a
 The adaptive processing engine automatically adjusts processing parameters based on data volume and system resources, ensuring optimal performance across varying workloads. This pattern can be adapted for any data source by analyzing data characteristics and system capacity.
 
 **Key benefits:**
-- 90%+ performance improvement for large datasets
+- Performance improvement for large datasets
 - Automatic resource optimization based on data volume
 - Memory overflow prevention for high-volume scenarios
 - Intelligent processing order (small → medium → large datasets)
@@ -52,7 +52,7 @@ The adaptive processing engine automatically adjusts processing parameters based
 Comprehensive error handling with automatic recovery from various failure scenarios including deadlocks, timeouts, and connection issues. This pattern can be adapted for any data source by identifying common error patterns and implementing appropriate recovery strategies.
 
 **Key benefits:**
-- 90%+ reduction in connection-related failures
+- Reduction in connection-related failures
 - Automatic deadlock detection and recovery
 - Exponential backoff with jitter for retries
 - Connection health monitoring and renewal
