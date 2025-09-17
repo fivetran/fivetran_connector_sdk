@@ -5,8 +5,8 @@
 This connector fetches current weather observations from NOAA's National Weather Service XML API for specified weather station codes. It demonstrates how to work with XML API responses in the Fivetran Connector SDK.
 
 The connector maintains two tables:
-- `WEATHER_OBSERVATIONS`: Current weather data including temperature, humidity, wind, pressure, and visibility
-- `WEATHER_STATIONS`: Station metadata including location, coordinates, and data source information
+- `WEATHER_OBSERVATIONS`: Current weather data including temperature, humidity, wind, pressure, and visibility.
+- `WEATHER_STATIONS`: Station metadata including location, coordinates, and data source information.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ The connector maintains two tables:
 
 ## Getting started
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -56,7 +56,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses NOAA's public XML API that does not require authentication. The API endpoint follows the pattern:
+This custom connector uses NOAA's public XML API that does not require authentication. The API endpoint follows the pattern:
 `https://forecast.weather.gov/xml/current_obs/{station_code}.xml`
 
 The connector includes appropriate User-Agent headers as recommended by NOAA's usage guidelines.
@@ -64,12 +64,12 @@ The connector includes appropriate User-Agent headers as recommended by NOAA's u
 ## Data handling
 
 The connector processes data in the following way:
-1. Fetches XML weather observations from NOAA's API for each configured station
-2. Parses XML responses using Python's `xml.etree.ElementTree` library
-3. Converts string values to appropriate data types (float, int) where applicable
-4. Transforms the data into two tables:
-   - `WEATHER_OBSERVATIONS`: Contains current weather observation data
-   - `WEATHER_STATIONS`: Contains station metadata including location and coordinates
+- Fetches XML weather observations from NOAA's API for each configured station.
+- Parses XML responses using Python's `xml.etree.ElementTree` library.
+- Converts string values to appropriate data types (FLOAT, INT) where applicable.
+- Transforms the data into two tables:
+   - `WEATHER_OBSERVATIONS`: Contains current weather observation data.
+   - `WEATHER_STATIONS`: Contains station metadata including location and coordinates.
 
 The connector uses incremental sync based on the `observation_time_rfc822` field to avoid duplicate data.
 
@@ -83,7 +83,7 @@ The connector implements error handling for:
 
 All errors are logged using the Fivetran logging system for debugging and monitoring.
 
-## Tables Created
+## Tables created
 
 The connector creates two tables:
 
