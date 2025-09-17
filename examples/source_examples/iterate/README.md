@@ -1,7 +1,7 @@
 # Iterate NPS Survey Connector Example
 
 ## Connector overview
-This connector extracts NPS survey data from [Iterate](https://iteratehq.com/) REST API and loads it into your Fivetran destination. The connector fetches NPS surveys and their individual responses, providing complete survey analytics data for downstream analysis.
+This custom Fivetran connector extracts NPS survey data from the [Iterate](https://iteratehq.com/) REST API and loads it into your destination. The connector fetches NPS surveys and their individual responses, providing complete survey analytics data for downstream analysis.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -14,17 +14,17 @@ This connector extracts NPS survey data from [Iterate](https://iteratehq.com/) R
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Extracts survey metadata from `/surveys` endpoint
-- Extracts individual survey responses from `/surveys/{id}/responses` endpoint
-- **Incremental sync support**: Uses `start_date` parameter with strict UTC format validation
-- **Automatic pagination handling**: Processes all paginated data using links object within single sync
-- **Retry logic**: Implements exponential backoff for API reliability (3 retries with progressive delays)
-- **Data transformation**: Flattens nested JSON structures into table columns automatically
-- **State management**: Simple checkpointing only at successful sync completion
-- **UTC datetime enforcement**: Strict format validation eliminates timezone ambiguity
+- Extracts survey metadata from the `/surveys` endpoint
+- Extracts individual survey responses from the `/surveys/{id}/responses` endpoint
+- Uses the`start_date` parameter with strict UTC format validation for incremental syncs
+- Processes all paginated data automatically using links object within a single sync
+- Implements exponential backoff for API reliability (3 retries with progressive delays)
+- Flattens nested JSON structures into table columns automatically
+- Simple checkpointing only upon the successful completion of a sync
+- UTC date/time enforcement eliminates timezone ambiguity
 
 ## Configuration file
-The configuration requires your Iterate API access token and optionally a start date for initial sync.
+The configuration requires your Iterate API access token and optionally a start date for the initial sync.
 
 ```
 {
@@ -33,7 +33,7 @@ The configuration requires your Iterate API access token and optionally a start 
 }
 ```
 
-**Configuration Parameters:**
+Configuration parameters:
 - `api_token` (required): Your Iterate API access token from your settings page
 - `start_date` (optional): UTC datetime in ISO 8601 format with 'Z' suffix (e.g., "2023-01-01T00:00:00Z"). If not provided, sync starts from EPOCH time (1970-01-01T00:00:00Z) to capture all historical data
 
@@ -47,20 +47,20 @@ The configuration requires your Iterate API access token and optionally a start 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-The requirements.txt file specifies additional Python libraries required by the connector. Following Fivetran best practices, this connector doesn't require additional dependencies.
+The `requirements.txt` file specifies additional Python libraries required by the connector. Following Fivetran best practices, this connector doesn't require additional dependencies.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-The connector uses API Key authentication via the `x-api-key` header. To obtain your API access token:
+The connector uses API key authentication via the `x-api-key` header. To obtain your API access token:
 
 1. Log into your Iterate account.
-2. Navigate to your account settings page.
-3. Find and copy your API access token.
+2. Go to **Account settings**.
+3. Find and make a note of your API access token.
 4. Add the token to your `configuration.json` file as shown above.
 
 ## Pagination
-The connector handles pagination automatically using the Iterate API's `links` object structure. When the API returns a `links.next` URL, the connector continues fetching additional pages until all data is retrieved within a single sync operation.
+The connector handles pagination automatically using Iterate API's `links` object structure. When the API returns a `links.next` URL, the connector continues fetching additional pages until all data is retrieved within a single sync operation.
 
 **Pagination Strategy:**
 - **Within-sync pagination**: Each sync processes all paginated data completely using `fetch_survey_responses()`
