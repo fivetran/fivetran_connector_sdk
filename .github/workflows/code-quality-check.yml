@@ -101,6 +101,7 @@ jobs:
           # Export environment variable
           with open(os.environ["GITHUB_ENV"], "a") as envf:
               envf.write(f"FLAKE8_ISSUE_PRESENT={'true' if issue_present else 'false'}\n")
+              envf.write(f"RUN_URL={run_url}\n")
           EOF
 
       - name: Upload full report
@@ -135,6 +136,7 @@ jobs:
           echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
           echo "./.github/scripts/fix-python-formatting.sh"
           echo "We also detected Linting Issues in Python files. Please fix them before merging."
+          echo "Download the full report from here: $RUN_URL"
           exit 1
 
       - name: Fail if only black failed
@@ -149,4 +151,5 @@ jobs:
         if: steps.black_check.outputs.black_failed != 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
         run: |
           echo "❌  Issues detected in Python files. Please fix them before merging."
+          echo "Download the full report from here: $RUN_URL"
           exit 1
