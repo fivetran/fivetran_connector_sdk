@@ -1,109 +1,214 @@
-# FDA Food Enforcement Connector
+# FDA Food Enforcement API Connector
 
-## Connector overview
+This connector fetches data from the FDA Food Enforcement API and upserts it into your Fivetran destination. The connector supports both API key and no API key authentication, configurable batch sizes, and incremental syncs.
 
-This connector fetches food enforcement data (recalls, enforcement actions, etc.) from the FDA's openFDA API (https://api.fda.gov/food/enforcement.json). It supports incremental syncs (using a `last_sync_time` state) and flattens nested JSON into a single table (`fda_food_enforcement`) for easy replication into your Fivetran destination. The connector is designed to work with or without an API key (with different rate limits) and is ideal for users who need to monitor FDA food recalls and enforcement actions.
+## Note: The agents.md file has been updated to reflect the recent [release](https://fivetran.com/docs/connector-sdk/changelog#august2025) where Yield is no longer required. This solution has been updated as well. Learn more about migrating to this new logic by going to the [Fivetran documentation](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage).
 
-## Requirements
+## Overview
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+The FDA Food Enforcement API provides access to food recall and enforcement data from the U.S. Food and Drug Administration. This connector implements best practices for data ingestion, including:
 
-## Getting started
-
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+- Direct operation calls (no yield statements) for easier adoption
+- Proper state management and checkpointing
+- Rate limiting and error handling
+- Support for both full and incremental syncs
+- AI/ML data optimization patterns
 
 ## Features
 
-* Fetches food enforcement data (recalls, enforcement actions) from the FDA's openFDA API
-* Supports incremental syncs (via `last_sync_time` state)
-* Flattens nested JSON (using the `flatten_dict` function) so that the data is delivered as a single table (`fda_food_enforcement`)
-* Configurable batch size (default 100) and rate limit pause (default 0.25s with an API key, 0.5s without)
-* (Optional) `MAX_BATCHES` variable (default 10) to limit the number of batches (requests) processed in a single sync (for testing or demonstration). To process the full dataset, set `MAX_BATCHES` to `None`.
-* Robust error handling (retry logic, logging, and graceful exit)
+- **Flexible Authentication**: Supports both API key and no API key authentication
+- **Configurable Data Volume**: Set maximum records per sync
+- **Date Filtering**: Optional date range filtering for incremental syncs
+- **Rate Limiting**: Built-in rate limiting for FDA API compliance
+- **Error Handling**: Comprehensive error handling and logging
+- **State Management**: Proper checkpointing for resumable syncs
+- **Data Flattening**: Handles nested JSON structures automatically
 
-## Configuration file
+## Setup Instructions
 
-Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the configuration file (e.g., `config.json`).
+### Prerequisites
+
+- Python 3.9-3.12
+- Fivetran Connector SDK
+- Valid FDA API key (optional but recommended)
+
+### Installation
+
+1. Clone or download this connector
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Configuration
+
+Edit the `configuration.json` file with your settings:
 
 ```json
 {
-  "api_key": "YOUR_API_KEY (or omit for no API key – note that rate limits differ)",
-  "base_url": "https://api.fda.gov/food/enforcement.json",
-  "batch_size": 100, // optional, default 100
-  "rate_limit_pause": 0.25 // optional, default 0.25 (with API key) or 0.5 (without API key)
+    "max_records": "100",
+    "use_api_key": "false",
+    "api_key": "",
+    "lookback_days": "30",
+    "use_date_filter": "false"
 }
 ```
 
-Note: Ensure that the configuration file is not checked into version control to protect sensitive information.
+#### Configuration Parameters
 
-## Requirements file
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `max_records` | string | Yes | Maximum number of records to fetch per sync (default: "100") |
+| `use_api_key` | string | Yes | Whether to use API key authentication ("true" or "false") |
+| `api_key` | string | No | FDA API key (required if use_api_key is "true") |
+| `lookback_days` | string | No | Number of days to look back for date filtering (default: "30") |
+| `use_date_filter` | string | No | Whether to use date filtering ("true" or "false") |
 
-The `requirements.txt` file specifies the Python libraries required by the connector.
+## Testing
 
-Example content of `requirements.txt`:
+### Local Testing
 
-```
-python_dateutil==2.8.2
-pytz
-```
+Test the connector locally using the Fivetran debug command:
 
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. Do not declare them in your `requirements.txt`.
-
-## Authentication
-
-* The connector supports two modes:
-  * With an API key (passed via `api_key` in the configuration file):
-    * Adds an `Authorization` header and `api_key` query parameter
-    * Higher rate limits (see openFDA docs)
-  * Without an API key (omit `api_key` or set `api_key` to `string`):
-    * No `Authorization` header or `api_key` query parameter
-    * Lower rate limits and a longer `rate_limit_pause` (0.5s)
-* To obtain an API key, visit the FDA's openFDA API documentation
-
-## Pagination
-
-* The connector uses offset-based pagination via the `skip` and `limit` query parameters to fetch batches (e.g., 100 records per request)
-* See the `update` function (lines ~100–220) for details
-* The `MAX_BATCHES` variable (default 10) limits the number of batches processed in a single sync for testing. To process the full dataset, set `MAX_BATCHES` to `None`.
-
-## Data handling
-
-* The `update` function fetches batches (using `fetch_data`) and flattens each record (using `flatten_dict`) so that nested JSON (e.g., `openfda` fields) is converted into a flat structure
-* Date strings (ending in `_date` or `_time`) are converted to ISO-formatted strings
-* The `schema` function defines the primary keys (`recall_number` and `event_id`) for the `fda_food_enforcement` table. Other column types are inferred by Fivetran
-* See `update` and `flatten_dict` for details
-
-## Error handling
-
-* The `fetch_data` function implements a retry loop (with `MAX_RETRIES` and `RETRY_DELAY`) so that transient errors (e.g., 500 Internal Server Error) are caught and retried
-* If the FDA API returns a 500 error (e.g., due to an empty `report_date` filter), the connector logs a SEVERE error and exits. In production, you may choose to treat such errors as empty results or reset the state for a full sync
-* See `fetch_data` (lines ~70–100) for details
-
-## Tables Created
-
-* One table is created and replicated by the connector:
-  * `fda_food_enforcement` (primary keys: `recall_number` and `event_id`)
-* To inspect the table, run `duckdb files/warehouse.db` or use the Fivetran dashboard
-
-## Prompt used
-```
-"I need a Fivetran Connector SDK solution for @https://api.fda.gov/food/enforcement.json?. I have some notes and example queries in @notes.txt  and the fields documented in @fields.yaml . 
-
-Have it dynamically create tables based on the endpoints available. Flatten the dictionaries and upsert the key:value pairs as the columns for the tables. Only define the PK for the schema objects, let Fivetran infer the rest.
-
-Create a Fivetran Connector SDK solution follows Fivetran best practice outlined in @connector_sdk_agent  & @template_connector. I have the files prepared in @/FDA_food"
+```bash
+fivetran debug --configuration configuration.json
 ```
 
-## Additional files
+### Expected Output
 
-* `connector.py` – Contains the main connector logic (fetching, flattening, and yielding upsert and checkpoint operations)
-* `config.json` (or `configuration.json`) – Contains the connector's configuration
-* `requirements.txt` – Lists the Python libraries required by the connector
+The connector will create a `warehouse.db` file with the following table:
 
-## Additional considerations
+- `fda_food_enforcement_reports`: Contains FDA food enforcement data
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
+### Sample Log Output
+
+```
+Operation     | Calls
+------------- + ------------
+Upserts       | 100
+Updates       | 0
+Deletes       | 0
+Truncates     | 0
+SchemaChanges | 1
+Checkpoints   | 1
+```
+
+## Data Schema
+
+### fda_food_enforcement_reports
+
+Primary Key: `event_id`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `event_id` | STRING | Unique identifier for the enforcement event |
+| `recall_number` | STRING | FDA recall number |
+| `product_description` | STRING | Description of the recalled product |
+| `reason_for_recall` | STRING | Reason for the recall |
+| `recall_initiation_date` | STRING | Date when recall was initiated |
+| `recall_status` | STRING | Current status of the recall |
+| `distribution_pattern` | STRING | Geographic distribution pattern |
+| `product_quantity` | STRING | Quantity of product recalled |
+| `code_info` | STRING | Product codes and identifiers |
+| `voluntary_mandated` | STRING | Whether recall was voluntary or mandated |
+| `initial_firm_notification` | STRING | Initial notification details |
+| `event_id_original` | STRING | Original event ID |
+| `more_code_info` | STRING | Additional code information |
+| `recall_classification` | STRING | Classification of the recall |
+| `product_type` | STRING | Type of product |
+| `report_date` | STRING | Date the report was filed |
+| `openfda` | STRING | OpenFDA data (JSON string) |
+| `classification` | STRING | Classification details |
+| `recalling_firm` | STRING | Name of the recalling firm |
+| `recall_date` | STRING | Date of the recall |
+| `city` | STRING | City where recall occurred |
+| `state` | STRING | State where recall occurred |
+| `country` | STRING | Country where recall occurred |
+| `_fivetran_synced` | STRING | Fivetran sync timestamp |
+| `_fivetran_batch_id` | STRING | Fivetran batch identifier |
+| `_data_source` | STRING | Data source identifier |
+
+## Best Practices Implementation
+
+This connector follows Fivetran Connector SDK best practices:
+
+### Direct Operations
+- Uses `op.upsert()` directly without yield statements
+- Implements proper checkpointing with `op.checkpoint()`
+- Handles state management for incremental syncs
+
+### Error Handling
+- Comprehensive exception handling
+- Proper logging at appropriate levels
+- Graceful failure handling
+
+### Performance Optimization
+- Batch processing for large datasets
+- Rate limiting for API compliance
+- Efficient data flattening
+- Memory-conscious data handling
+
+### State Management
+- Checkpointing after each batch
+- Resumable syncs from last checkpoint
+- State persistence across runs
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Rate Limiting**
+   - Without API key: 240 requests/minute, 1000 requests/day
+   - With API key: Higher limits available
+   - Solution: Enable API key authentication
+
+2. **Configuration Errors**
+   - Ensure all required parameters are provided
+   - Validate parameter types (strings only)
+   - Check API key format if using authentication
+
+3. **Data Quality Issues**
+   - Nested JSON fields are automatically flattened
+   - Empty arrays and objects are handled gracefully
+   - Missing fields are populated with empty strings
+
+### Debug Steps
+
+1. Check configuration.json format
+2. Verify API key validity (if using)
+3. Review connector logs for errors
+4. Test with smaller max_records value
+5. Check network connectivity to FDA API
+
+### Log Analysis
+
+- `INFO`: Status updates, progress, cursors
+- `WARNING`: Rate limits, potential issues
+- `SEVERE`: Errors, failures, critical issues
+
+## API Reference
+
+- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+- [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+- [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+- [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+- [FDA Food Enforcement API](https://open.fda.gov/apis/food-enforcement/)
+
+## Limitations
+
+- FDA API has rate limits (240 requests/minute without API key)
+- Maximum 1000 records per API request
+- Date filtering may not work in all cases
+- Some fields may contain nested JSON structures
+
+## Support
+
+For issues related to:
+- **Fivetran Connector SDK**: Refer to official documentation
+- **FDA API**: Check FDA API documentation and status
+- **This Connector**: Review logs and troubleshooting section
+
+## Version History
+
+- **v1.0**: Initial release with yield-based implementation
+- **v2.0**: Refactored to use direct operations (no yield) following best practices
