@@ -64,10 +64,6 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate API token is not empty
-    if not configuration.get("api_token", "").strip():
-        raise ValueError("API token cannot be empty")
-
     # Validate start_date format if provided (must be in UTC format with 'Z' suffix)
     start_date = configuration.get("start_date")
     if start_date:

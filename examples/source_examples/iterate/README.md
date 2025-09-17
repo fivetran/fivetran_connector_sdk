@@ -6,9 +6,9 @@ This custom Fivetran connector extracts NPS survey data from the [Iterate](https
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
@@ -37,13 +37,6 @@ Configuration parameters:
 - `api_token` (required): Your Iterate API access token from your settings page
 - `start_date` (optional): UTC datetime in ISO 8601 format with 'Z' suffix (e.g., "2023-01-01T00:00:00Z"). If not provided, sync starts from EPOCH time (1970-01-01T00:00:00Z) to capture all historical data
 
-**Sync Behavior:**
-- **First Sync**: Uses `start_date` if provided, otherwise starts from EPOCH time (captures all historical data)
-- **Subsequent Syncs**: Always incremental from the last successful sync timestamp stored in state
-- **State Management**: Contains only `last_survey_sync` timestamp for clean, reliable state tracking
-- **Checkpointing**: Only occurs at successful completion to prevent data gaps from partial syncs
-- **UTC Consistency**: All timestamps use consistent UTC format with 'Z' suffix throughout
-
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
@@ -62,11 +55,10 @@ The connector uses API key authentication via the `x-api-key` header. To obtain 
 ## Pagination
 The connector handles pagination automatically using Iterate API's `links` object structure. When the API returns a `links.next` URL, the connector continues fetching additional pages until all data is retrieved within a single sync operation.
 
-**Pagination Strategy:**
-- **Within-sync pagination**: Each sync processes all paginated data completely using `fetch_survey_responses()`
-- **No cross-sync state**: Pagination state is not persisted between sync runs for cleaner state management
-- **Incremental filtering**: Uses the `start_date` Unix timestamp parameter to filter responses from API directly
-- **Complete processing**: Each sync fetches all relevant data from start_date to current time
+- Each sync processes all paginated data completely using `fetch_survey_responses()`
+- Pagination state is not persisted between sync runs for cleaner state management
+- Uses the `start_date` Unix timestamp parameter to filter responses from API directly
+- Each sync fetches all relevant data from start_date to current time
 
 The `fetch_survey_responses()` function handles both initial requests and paginated follow-ups using the appropriate API call method.
 
@@ -77,16 +69,16 @@ The connector processes data in two main steps with optimized incremental sync:
 - **Response Data**: For each survey, fetches individual responses using `/surveys/{id}/responses` endpoint with date-based filtering and automatic pagination
 
 **Enhanced Sync Strategy:**
-- **Initial Sync**: Uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback
-- **Incremental Syncs**: Uses `last_survey_sync` timestamp from state to fetch only new responses since last successful sync
-- **UTC Consistency**: All datetime operations use UTC timezone with 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
-- **Single Checkpoint**: State is saved only after complete successful sync to prevent data gaps from partial failures
+- Initial sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback
+- Incremental syncs use `last_survey_sync` timestamp from state to fetch only new responses since last successful sync
+- UTC consistency for all datetime operations with 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
+- Single checkpoint saves state only after complete successful sync to prevent data gaps from partial failures
 
 **Data Transformation:**
-- **JSON Flattening**: Nested dictionaries become underscore-separated columns (e.g., `author.id` → `author_id`)
-- **List Handling**: Arrays are converted to JSON strings for storage
-- **Foreign Keys**: Each response includes `survey_id` field to maintain survey relationship
-- **Type Safety**: Configuration validation ensures required fields exist before processing
+- JSON flattening converts nested dictionaries to underscore-separated columns (e.g., `author.id` → `author_id`)
+- List handling converts arrays to JSON strings for storage
+- Foreign keys maintain relationships with `survey_id` field included in each response
+- Type safety through configuration validation ensuring required fields exist before processing
 
 **Key Functions:**
 - `parse_iso_datetime_to_unix()`: Handles strict UTC datetime parsing with validation
@@ -127,18 +119,15 @@ The connector implements comprehensive error handling with multiple layers of pr
 All exceptions are caught at the top level and re-raised as `RuntimeError` with descriptive messages, making troubleshooting easier for users and Fivetran support.
 
 ## Tables created
-The connector creates two main tables with flattened column structures:
 
-### SURVEY
-Contains survey metadata and configuration with all nested JSON properties flattened into individual columns using underscore separation.
-- **Primary key**: `id`
-- **Structure**: All survey properties from Iterate API flattened (e.g., `author.id` becomes `author_id`)
+The connector creates the following tables in your destination:
 
-### RESPONSE
-Contains individual survey responses with relationship to parent survey and flattened response data.
-- **Primary key**: `id`
-- **Foreign key**: `survey_id` (links to `SURVEY` table)
-- **Structure**: All response properties flattened, including question answers and user metadata
+| Table name | Primary key | Description |
+|------------|-------------|-------------|
+| `SURVEY`   | `id`        | Survey metadata and configuration with flattened JSON properties |
+| `RESPONSE` | `id`        | Individual survey responses with relationship to parent survey (includes `survey_id` foreign key) |
+
+All tables include flattened versions of complex nested objects, with nested properties converted to underscore-separated columns (e.g., `author.id` becomes `author_id`).
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
