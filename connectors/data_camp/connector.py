@@ -123,9 +123,7 @@ def flatten_item(
     return flattened_data
 
 
-def fetch_endpoint(
-    base_url: str, endpoint: str, bearer_token: str
-) -> None | list | list[dict | Any] | list[Any] | Any:
+def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]:
     """
     Fetch data from a DataCamp API endpoint with proper error handling and retry logic.
 
