@@ -101,6 +101,7 @@ jobs:
           # Export environment variable
           with open(os.environ["GITHUB_ENV"], "a") as envf:
               envf.write(f"FLAKE8_ISSUE_PRESENT={'true' if issue_present else 'false'}\n")
+              envf.write(f"RUN_URL={run_url}\n")
           EOF
 
       - name: Upload full report
