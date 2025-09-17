@@ -18,7 +18,7 @@ import requests  # For making HTTP requests to the Customer Thermometer API
 import json  # For JSON data handling and serialization
 import xml.etree.ElementTree as et  # For parsing XML responses
 from datetime import datetime, timezone  # For handling date and time
-from typing import Dict, List, Any, Optional  # For type hinting
+from typing import Optional  # For type hinting
 import time  # For sleep delays in retry logic
 
 # Base URL for the Customer Thermometer API
