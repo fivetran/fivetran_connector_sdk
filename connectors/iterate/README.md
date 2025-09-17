@@ -34,8 +34,8 @@ The configuration requires your Iterate API access token and optionally a start 
 ```
 
 Configuration parameters:
-- `api_token` (required): Your Iterate API access token from your settings page
-- `start_date` (optional): UTC datetime in ISO 8601 format with 'Z' suffix (e.g., "2023-01-01T00:00:00Z"). If not provided, sync starts from EPOCH time (1970-01-01T00:00:00Z) to capture all historical data
+- `api_token` (required): Your Iterate API access token.
+- `start_date` (optional): UTC datetime in ISO 8601 format with 'Z' suffix (e.g., "2023-01-01T00:00:00Z"). If not provided, sync starts from EPOCH time (1970-01-01T00:00:00Z) to capture all historical data.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -55,63 +55,63 @@ The connector uses API key authentication via the `x-api-key` header. To obtain 
 ## Pagination
 The connector handles pagination automatically using Iterate API's `links` object structure. When the API returns a `links.next` URL, the connector continues fetching additional pages until all data is retrieved within a single sync operation.
 
-- Each sync processes all paginated data completely using `fetch_survey_responses()`
-- Pagination state is not persisted between sync runs for cleaner state management
-- Uses the `start_date` Unix timestamp parameter to filter responses from API directly
-- Each sync fetches all relevant data from start_date to current time
+- Each sync processes all paginated data completely using `fetch_survey_responses()`.
+- Pagination state is not persisted between sync runs for cleaner state management.
+- Uses the `start_date` Unix timestamp parameter to filter responses from API directly.
+- Each sync fetches all relevant data from start_date to current time.
 
 The `fetch_survey_responses()` function handles both initial requests and paginated follow-ups using the appropriate API call method.
 
 ## Data handling
-The connector processes data in two main steps with optimized incremental sync:
+The connector processes survey and response data with an optimized incremental sync strategy:
 
-- **Survey Data**: Fetches all surveys using `/surveys` endpoint and flattens nested JSON structures into columns
-- **Response Data**: For each survey, fetches individual responses using `/surveys/{id}/responses` endpoint with date-based filtering and automatic pagination
+- **Survey data**: Fetches all surveys using `/surveys` endpoint and flattens nested JSON structures into columns.
+- **Response data**: For each survey, fetches individual responses using `/surveys/{id}/responses` endpoint with date-based filtering and automatic pagination.
 
-**Enhanced Sync Strategy:**
-- Initial sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback
-- Incremental syncs use `last_survey_sync` timestamp from state to fetch only new responses since last successful sync
-- UTC consistency for all datetime operations with 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
-- Single checkpoint saves state only after complete successful sync to prevent data gaps from partial failures
+### Enhanced sync strategy
+- Initial sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as a fallback solution
+- Incremental syncs use `last_survey_sync` timestamp from state to fetch only new responses since the last successful sync
+- UTC consistency for all datetime operations with the 'Z' suffix format (`YYYY-MM-DDTHH:MM:SSZ`)
+- Single checkpoint saves the state only after a complete successful sync to prevent data gaps from partial failures
 
-**Data Transformation:**
-- JSON flattening converts nested dictionaries to underscore-separated columns (e.g., `author.id` → `author_id`)
+### Data transformation
+- JSON flattening converts nested dictionaries to underscore-separated columns (e.g., `author.id` -> `author_id`)
 - List handling converts arrays to JSON strings for storage
 - Foreign keys maintain relationships with `survey_id` field included in each response
 - Type safety through configuration validation ensuring required fields exist before processing
 
-**Key Functions:**
+### Key functions
 - `parse_iso_datetime_to_unix()`: Handles strict UTC datetime parsing with validation
 - `make_iterate_api_call()`: Centralized API calling with common headers and error handling
 - `flatten_dict()`: Recursive JSON structure flattening for table columns
 - `validate_configuration()`: Comprehensive config validation with datetime format checking
 
-The connector maintains clean state with only `last_survey_sync` timestamp, automatically advancing after each successful sync to ensure reliable incremental processing without data duplication or gaps.
+The connector maintains a clean state with only the `last_survey_sync` timestamp, automatically advancing after each successful sync to ensure reliable incremental syncs without data duplication or gaps.
 
 ## Error handling
 The connector implements comprehensive error handling with multiple layers of protection:
 
-**Configuration Validation (`validate_configuration()`):**
+### Configuration validation (`validate_configuration()`)
 - Validates required `api_token` field exists and is not empty
 - Enforces strict UTC datetime format for optional `start_date` (`YYYY-MM-DDTHH:MM:SSZ`)
 - Provides clear error messages for configuration issues with format examples
 
-**API Request Resilience (`make_api_request()`):**
+### API request resilience (`make_api_request()`)
 - Implements retry logic with exponential backoff (3 attempts with progressive delays)
 - Handles HTTP errors, timeouts, and network issues gracefully
 - Detailed logging for debugging API connectivity problems
 
-**Centralized API Logic (`make_iterate_api_call()`):**
+### Centralized API logic (`make_iterate_api_call()`)
 - Consistent header management and authentication for all API calls
 - Automatic API version parameter inclusion
 - Unified error handling across all endpoints
 
-**Data Processing Safeguards:**
+### Data processing safeguards
 - Graceful handling of missing or malformed API response structures
 - Safe dictionary access patterns to prevent KeyError exceptions
 - Proper exception propagation with descriptive RuntimeError messages
 
-**Datetime Handling:**
+### Datetime handling
 - Strict UTC format parsing with clear validation messages
 - Fallback to EPOCH time for invalid datetime configurations
 - Consistent timezone handling throughout the connector
