@@ -43,11 +43,11 @@ The connector requires minimal configuration with only essential connection para
 
 ```json
 {
-  "MSSQL_SERVER": "your-mssql-server.com",
-  "MSSQL_DATABASE": "your-database-name",
-  "MSSQL_USER": "your-username",
-  "MSSQL_PASSWORD": "your-password",
-  "MSSQL_PORT": "1433"
+"MSSQL_SERVER": "<YOUR_VALUE_1>",
+"MSSQL_DATABASE": "<YOUR_VALUE_2>",
+"MSSQL_USER": "<YOUR_VALUE_3>",
+"MSSQL_PASSWORD": "<YOUR_VALUE_4>",
+"MSSQL_PORT": "<YOUR_VALUE_5>"
 }
 ```
 
