@@ -1,15 +1,15 @@
 {
-  "host": "localhost",
-  "port": "5432",
-  "database": "postgres",
-  "username": "",
-  "password": "",
-  "region": "North America",
-  "max_retries": "5",
-  "retry_sleep_seconds": "5",
-  "debug": "false",
-  "table_filters": "{}",
-  "custom_batch_size": "0",
-  "custom_threads": "0",
-  "custom_queue_size": "0"
+  "host": "<YOUR_VALUE_1>",
+  "port": "<YOUR_VALUE_2>",
+  "database": "<YOUR_VALUE_3>",
+  "username": "<YOUR_VALUE_4>",
+  "password": "<YOUR_VALUE_5>",
+  "region": "<YOUR_VALUE_6>",
+  "max_retries": "<YOUR_VALUE_7>",
+  "retry_sleep_seconds": "<YOUR_VALUE_8>",
+  "debug": "<YOUR_VALUE_9>",
+  "table_filters": "<YOUR_VALUE_10>",
+  "custom_batch_size": "<YOUR_VALUE_11>",
+  "custom_threads": "<YOUR_VALUE_12>",
+  "custom_queue_size": "<YOUR_VALUE_13>"
 }
