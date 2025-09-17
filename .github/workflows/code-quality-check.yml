@@ -1,8 +1,7 @@
 name: Python
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  pull_request:
 
 jobs:
   code-quality-check:
