@@ -133,7 +133,7 @@ Intelligent timestamp detection and incremental sync capabilities to minimize da
 
 **Key benefits:**
 - Automatic timestamp detection from common column patterns
-- Incremental sync reduces data transfer by 80%+
+- Incremental sync reduces data transfer time
 - Fallback to full sync when timestamps unavailable
 - State persistence across sync runs
 
