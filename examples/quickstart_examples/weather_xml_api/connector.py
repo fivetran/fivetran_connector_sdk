@@ -1,20 +1,25 @@
-# This is an example for how to work with the fivetran_connector_sdk module with XML APIs.
-# This connector fetches current weather observations from NOAA's National Weather Service XML API
-# for specified weather station codes (like KOAK for Oakland, KJFK for JFK Airport, etc.).
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This is an example for how to work with the fivetran_connector_sdk module with XML APIs.
+This connector fetches current weather observations from NOAA's National Weather Service XML API
+for specified weather station codes (like KOAK for Oakland, KJFK for JFK Airport, etc.).
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
+# For reading configuration from a JSON file
 import json
-import xml.etree.ElementTree as ET
-from datetime import datetime
-from typing import Dict, Any
-
-import requests as rq
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+import xml.etree.ElementTree as ET  # For parsing XML responses
+from typing import Dict, Any  # For type hinting
+import requests as rq  # For making HTTP requests
 
 
 def schema(configuration: dict):
@@ -209,7 +214,10 @@ def update(configuration: dict, state: dict):
             # Remove None values
             station_data = {k: v for k, v in station_data.items() if v is not None}
 
-            # Upsert station data
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert(table="weather_stations", data=station_data)
             log.fine(f"Upserted station data for {station_code}")
 
@@ -232,6 +240,10 @@ def update(configuration: dict, state: dict):
 
     # Update state with the latest observation time
     new_state = {"last_observation_time": latest_observation_time}
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state=new_state)
 
     log.info(f"Completed sync. New cursor: {latest_observation_time}")
@@ -241,6 +253,9 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     try:
         # Try loading the configuration from the file
