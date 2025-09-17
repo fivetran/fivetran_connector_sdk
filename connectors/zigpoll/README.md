@@ -28,13 +28,13 @@ The connector requires an API token to authenticate with Zigpoll's API and optio
 ```
 {
   "api_token": "<YOUR_ZIGPOLL_API_TOKEN>",
-  "start_date": "<YOUR_OPTIONAL_START_DATE>"
+  "start_date": "<YOUR_OPTIONAL_START_DATE_AS_YYYY-MM-DD>"
 }
 ```
 
 **Configuration Parameters:**
 - `api_token` (required): Your Zigpoll API authentication token
-- `start_date` (optional): JavaScript timestamp in milliseconds as a string to start syncing data from (e.g., `"1672531200000"` for Jan 1, 2023). If not provided, sync will start from EPOCH time (0)
+- `start_date` (optional): Date in YYYY-MM-DD format to start syncing data from (e.g., `"2023-01-01"`). If not provided, sync will start from EPOCH time
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
