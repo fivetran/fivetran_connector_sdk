@@ -117,15 +117,15 @@ Before running the connector, you must set up your PostgreSQL database with the 
 
    ```sql
    -- Verify table counts
-   SELECT 'customers' as table_name, COUNT(*) as record_count FROM customers
+   SELECT 'customer' as table_name, COUNT(*) as record_count FROM customer
    UNION ALL
-   SELECT 'suppliers', COUNT(*) FROM suppliers
+   SELECT 'supplier', COUNT(*) FROM supplier
    UNION ALL
-   SELECT 'products', COUNT(*) FROM products
+   SELECT 'product', COUNT(*) FROM product
    UNION ALL
-   SELECT 'orders', COUNT(*) FROM orders
+   SELECT 'order', COUNT(*) FROM order
    UNION ALL
-   SELECT 'order_items', COUNT(*) FROM order_items
+   SELECT 'order_item', COUNT(*) FROM order_item
    UNION ALL
    SELECT 'inventory', COUNT(*) FROM inventory
    ORDER BY table_name;
@@ -146,19 +146,19 @@ The connector uses the following configuration keys defined in the `configuratio
 
 ```json
 {
-  "host": "localhost",
-  "port": "5432",
-  "database": "postgres",
-  "username": "",
-  "password": "",
-  "region": "North America",
-  "max_retries": "5",
-  "retry_sleep_seconds": "5",
-  "debug": "false",
-  "table_filters": "{}",
-  "custom_batch_size": "0",
-  "custom_threads": "0",
-  "custom_queue_size": "0"
+  "host": "<YOUR_VALUE_1>",
+  "port": "<YOUR_VALUE_2>",
+  "database": "<YOUR_VALUE_3>",
+  "username": "<YOUR_VALUE_4>",
+  "password": "<YOUR_VALUE_5>",
+  "region": "<YOUR_VALUE_6>",
+  "max_retries": "<YOUR_VALUE_7>",
+  "retry_sleep_seconds": "<YOUR_VALUE_8>",
+  "debug": "<YOUR_VALUE_9>",
+  "table_filters": "<YOUR_VALUE_10>",
+  "custom_batch_size": "<YOUR_VALUE_11>",
+  "custom_threads": "<YOUR_VALUE_12>",
+  "custom_queue_size": "<YOUR_VALUE_13>"
 }
 ```
 
@@ -232,13 +232,13 @@ Refer to the retry logic in the main `update()` function (lines 784-807) and the
 
 The connector replicates the following tables from the PostgreSQL source:
 
-- **POSTGRES_TABLES** - Metadata about database tables
-- **POSTGRES_COLUMNS** - Metadata about table columns  
-- **SOURCE_FIVETRAN_CONNECTOR_ORDERS** - Order information with regional filtering
-- **SOURCE_FIVETRAN_CONNECTOR_CUSTOMERS** - Customer data across multiple regions
-- **SOURCE_FIVETRAN_CONNECTOR_PRODUCTS** - Product catalog information
-- **SOURCE_FIVETRAN_CONNECTOR_SUPPLIERS** - Supplier information with regional distribution
-- **SOURCE_FIVETRAN_CONNECTOR_ORDER_ITEMS** - Order line item details
+- **POSTGRES_TABLE** - Metadata about database tables
+- **POSTGRES_COLUMN** - Metadata about table columns  
+- **SOURCE_FIVETRAN_CONNECTOR_ORDER** - Order information with regional filtering
+- **SOURCE_FIVETRAN_CONNECTOR_CUSTOMER** - Customer data across multiple regions
+- **SOURCE_FIVETRAN_CONNECTOR_PRODUCT** - Product catalog information
+- **SOURCE_FIVETRAN_CONNECTOR_SUPPLIER** - Supplier information with regional distribution
+- **SOURCE_FIVETRAN_CONNECTOR_ORDER_ITEM** - Order line item details
 - **SOURCE_FIVETRAN_CONNECTOR_INVENTORY** - Inventory levels and stock information
 
 The connector also creates several analysis views in the source database:
