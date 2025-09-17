@@ -35,6 +35,31 @@ __BASE_DELAY = 1  # Base delay in seconds for API request retries
 __PAGE_LIMIT = 100  # Page size for pagination
 
 
+def parse_user_date_to_epoch(date_input):
+    """
+    Parse user-provided date input in YYYY-MM-DD format and convert to epoch milliseconds.
+
+    Args:
+        date_input: Date string in YYYY-MM-DD format (e.g., "2023-01-01")
+    Returns:
+        Unix timestamp in milliseconds
+    Raises:
+        ValueError: if the date format is not YYYY-MM-DD or invalid
+    """
+    if not date_input:
+        return None
+
+    try:
+        # Parse date in YYYY-MM-DD format and assume UTC timezone
+        parsed_date = datetime.strptime(date_input, "%Y-%m-%d")
+        return int(parsed_date.timestamp() * 1000)
+
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid date format '{date_input}'. Please use YYYY-MM-DD format (e.g., '2023-01-01'). Error: {e}"
+        )
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -42,16 +67,19 @@ def validate_configuration(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
 
     # Validate required configuration parameters
-    required_configs = ["api_token"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-        if not configuration[key]:
-            raise ValueError(f"Configuration value '{key}' cannot be empty")
+    if "api_token" not in configuration:
+        raise ValueError("Missing required configuration value: api_token")
+
+    # Validate start_date format if provided
+    if "start_date" in configuration:
+        try:
+            parse_user_date_to_epoch(configuration["start_date"])
+        except ValueError as e:
+            raise ValueError(f"Invalid start_date: {e}")
 
 
 def make_api_request(url: str, headers: dict, params=None):
@@ -184,7 +212,9 @@ def get_account_ids(headers: dict):
     return account_ids
 
 
-def process_responses_page(headers: dict, account_id: str, start_cursor, last_sync_timestamp):
+def process_responses_page(
+    headers: dict, account_id: str, start_cursor, last_sync_timestamp, state: dict
+):
     """
     Process a single page of responses for an account.
     This function fetches one page of responses and processes them with client-side filtering.
@@ -223,15 +253,25 @@ def process_responses_page(headers: dict, account_id: str, start_cursor, last_sy
                 should_continue = False
                 break
 
-        # The 'upsert' operation is used to insert or update data in the destination table.
         flattened_response = flatten_metadata(response)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted.
         op.upsert(table="response", data=flattened_response)
         processed_count += 1
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state=state)
 
     return processed_count, has_next_page, end_cursor, should_continue
 
 
-def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp):
+def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp, state: dict):
     """
     Sync all responses for a single account with pagination.
     This function handles the pagination loop for fetching all responses from one account.
@@ -248,7 +288,7 @@ def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp):
 
     while True:
         processed_count, has_next_page, end_cursor, should_continue = process_responses_page(
-            headers, account_id, start_cursor, last_sync_timestamp
+            headers, account_id, start_cursor, last_sync_timestamp, state
         )
 
         total_processed += processed_count
@@ -293,10 +333,15 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters as required
     api_token = configuration.get("api_token")
-    start_date = configuration.get("start_date")
+    start_date_input = configuration.get("start_date")
+
+    # Convert start_date to epoch milliseconds if provided
+    start_date_epoch = None
+    if start_date_input:
+        start_date_epoch = parse_user_date_to_epoch(start_date_input)
 
     # Get the state variable for the sync, if needed
-    last_sync_timestamp = state.get("last_sync_timestamp", start_date)
+    last_sync_timestamp = state.get("last_sync_timestamp", start_date_epoch)
 
     log.info(f"Starting sync with timestamp: {last_sync_timestamp}")
 
@@ -312,7 +357,9 @@ def update(configuration: dict, state: dict):
 
         # Fetch responses for each account
         for account_id in account_ids:
-            account_responses = sync_account_responses(headers, account_id, last_sync_timestamp)
+            account_responses = sync_account_responses(
+                headers, account_id, last_sync_timestamp, state
+            )
             total_responses += account_responses
 
         # Update state with the current sync time for the next run
