@@ -75,19 +75,23 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
 ## Section Compliance
 
 * **Connector overview** → Must explain purpose, data source, and use cases.
-* **Requirements** → Must list OS and Python versions. Use provided bullet format. It is a fixed content, verbatim (no edits or omissions):
+* **Requirements** → Must list OS and Python versions. Use provided bullet format. It is a fixed content, verbatim (no edits or omissions), as provided below:
+  ```markdown
   ## Requirements
   - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
   - Operating system:
     - Windows: 10 or later (64-bit only)
     - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
     - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-
-* **Getting started** → Must include link to Connector SDK Setup Guide. It is a fixed content, verbatim (no edits or omissions):
+  ```   
+* **Getting started** → Must include link to Connector SDK Setup Guide. It is a fixed content, verbatim (no edits or omissions), as provided below:
+  ```markdown
   ## Getting started
   Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+  ```
 * **Features** → Must list concrete features (not left blank or italicized template text).
-* **Configuration file** → Must include a JSON code block showing keys. Must mention that `configuration.json` should not be versioned, for example:
+* **Configuration file** → Must include a JSON code block showing keys. Must mention that `configuration.json` should not be versioned, for example, as provided below:
+  ```markdown
   ## Configuration file
 
   The connector requires the following configuration parameters:
@@ -103,9 +107,10 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
   ```
 
   Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+  ```
   
-* **Requirements file** → Must explain role of `requirements.txt` and remind that `fivetran_connector_sdk` and `requests` are excluded, for example:
-
+* **Requirements file** → Must explain role of `requirements.txt` and remind that `fivetran_connector_sdk` and `requests` are excluded, for example, as provided below:
+  ```markdown
   ## Requirements file
   The connector requires the `redshift_connector` package to connect to Redshift databases.
 
@@ -114,8 +119,9 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
   ```
 
   Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
-* **Authentication** → Must specify auth method (API key, OAuth2, etc). For example:
+  ```
+* **Authentication** → Must specify auth method (API key, OAuth2, etc). For example, as provided below:
+  ```markdown
   ## Authentication
 
   This connector uses username and password authentication to connect to Redshift. The credentials are specified in the configuration file and passed to the `redshift_connector.connect()` function (refer to the `connect_to_redshift()` function).
@@ -125,9 +131,11 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
   1. Create a Redshift user with appropriate permissions to access the required tables.
   2. Provide the username and password in the `configuration.json` file.
   3. Ensure the user has `SELECT` permissions on the tables that need to be synced.
+  ```
 
 * **Pagination / Data handling / Error handling** → Must either provide explanation + code reference (function name or line range in `connector.py`) or remove section entirely.
-* **Tables created** → If ERD is present, must link to it with correct Markdown syntax and add summary of replicated tables. The table schemas should be presented as JSON or as a Markdown table, for example:
+* **Tables created** → If ERD is present, must link to it with correct Markdown syntax and add summary of replicated tables. The table schemas should be presented as JSON or as a Markdown table, for example, as provided below:
+  ```markdown
   ## Tables Created
 
   The connector creates a single table named `customers` with the following schema (refer to the `schema()` function):
@@ -144,17 +152,22 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
       "updated_at": "UTC_DATETIME"
     }
   }
+  ```
   ``` 
-* **Additional files** → Must list additional Python files and explain purpose, for example:
+* **Additional files** → Must list additional Python files and explain purpose, for example, as provided below:
+  ```markdown
   ## Additional files
   The connector uses the following additional files:
   - mock_api.py – A simulated API for testing data retrieval  
   - users_sync.py – Handles user data synchronization logic  
   - api_threading_utils.py – Manages API request threading for performance optimization 
   - constants.py – Stores constant values used throughout the connector
+  ```
 * **Additional considerations** → Must include Fivetran disclaimer about example code. It is a fixed content, verbatim (no edits or omissions):
+  ```markdown
   ## Additional considerations
   The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+  ```
 
 
 ---
