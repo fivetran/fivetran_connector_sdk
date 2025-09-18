@@ -1,5 +1,5 @@
 ---
-applyTo: "fivetran_connector/sdk/examples/source_examples/**/*README*.md,fivetran_connector/sdk/connectors/**/*README*.md"
+applyTo: "fivetran_connector_sdk/examples/source_examples/**/*README*.md,fivetran_connector_sdk/connectors/**/*README*.md"
 ---
 
 # Copilot Review Instructions for Fivetran Documentation
@@ -12,9 +12,9 @@ These rules override generic Copilot comments. Review all Markdown files that ha
 - Bold text to stress important information
 Example of wrong format and style:
 "- **API example**
-   - This example shows gow to sync data using an API key and secret."
+   - This example shows how to sync data using an API key and secret."
 The correct format and style would be as follows:
-""- API example - This example shows gow to sync data using an API key and secret."
+""- API example - This example shows how to sync data using an API key and secret."
 
 ## Headings:
 
