@@ -11,6 +11,7 @@ These rules override generic Copilot comments. Review all Markdown files that ha
 - Nested bulleted lists where a simple list would be sufficient
 - Bold text to stress important information
 Example of wrong format and style:
+
 "- **API example**
    - This example shows how to sync data using an API key and secret."
 The correct format and style would be as follows:
@@ -19,7 +20,7 @@ The correct format and style would be as follows:
 ## Headings:
 
 - There should be only one H1 heading in the file, and it should use Title Case, for example: # Connector SDK Somecompany API Connector Example
-- All other heading should use Sentence case, for example: ## Requirements file
+- All other headings should use Sentence case, for example: ## Requirements file
 
 ## Lists:
 
@@ -56,17 +57,17 @@ Apply these rules to every `README.md` file inside Connector SDK **example folde
 
   1. Connector overview
   2. Requirements
-  4. Getting started
-  5. Features
-  6. Configuration file
-  7. Requirements file
-  8. Authentication
-  9. Pagination
-  10. Data handling
-  11. Error handling
-  12. Tables created (optional)
-  13. Additional files (optional)
-  14. Additional considerations
+  3. Getting started
+  4. Features
+  5. Configuration file
+  6. Requirements file
+  7. Authentication
+  8. Pagination
+  9. Data handling
+  10. Error handling
+  11. Tables created (optional)
+  12. Additional files (optional)
+  13. Additional considerations
 
 If a section is irrelevant (e.g. no error handling), **delete the heading entirely**. Do not leave empty stubs.
 
