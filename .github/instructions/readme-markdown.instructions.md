@@ -21,7 +21,7 @@ The correct format and style would be as follows:
 - There should be only one H1 heading in the file, and it should use Title Case, for example: # Connector SDK Somecompany API Connector Example
 - All other heading should use Sentence case, for example: ## Requirements file
 
-Lists:
+## Lists:
 
 Use bulleted lists when just listing items in no particular order or when listing the alternatives, for example:
 "The management actions are as follows:
@@ -35,7 +35,9 @@ Use numbered list for actions that need to be taken in a particular order, for e
 2. Go to **Settings > API Key**.
 3. Make a note the API key and secret. You will need to add it to `configuration.json` file later."
 
+## Comment and suggestions
 
+The comments and suggestion you make should deduplicated, for example - if you made a suggestion for one issue for lines 15 - 18, and then you want to post a suggestion for another issue for line 17, you should combine them in one suggestion.
 
 Always analyse the connector example README.md files for compliance in terms of the structure, format, and style with the following template README:
 
