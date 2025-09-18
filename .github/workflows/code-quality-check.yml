@@ -3,6 +3,12 @@ name: Python
 on:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  actions: read
+
 jobs:
   code-quality-check:
     name: Check Code Quality
