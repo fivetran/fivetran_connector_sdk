@@ -6,7 +6,7 @@ import math
 import threading
 import queue
 import concurrent.futures
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional, Tuple
 from contextlib import contextmanager
 
@@ -101,7 +101,7 @@ def monitor_resources() -> Dict[str, Any]:
             'memory_critical': memory_critical,
             'cpu_pressure': cpu_pressure,
             'cpu_critical': cpu_critical,
-            'timestamp': datetime.now(UTC)
+            'timestamp': datetime.now(timezone.utc)
         }
         
     except ImportError:
@@ -297,7 +297,7 @@ class ConnectionManager:
         """Check if current connection has exceeded timeout limit."""
         if not self.connection_start_time:
             return True
-        elapsed = datetime.now(UTC) - self.connection_start_time
+        elapsed = datetime.now(timezone.utc) - self.connection_start_time
         return elapsed.total_seconds() > (self.timeout_hours * 3600)
     
     def _create_connection(self):
@@ -314,7 +314,7 @@ class ConnectionManager:
             conn = pyodbc.connect(conn_str)
             self.current_connection = conn
             self.current_cursor = conn.cursor()
-            self.connection_start_time = datetime.now(UTC)
+            self.connection_start_time = datetime.now(timezone.utc)
             log.info(f"New database connection established at {self.connection_start_time}")
             return conn, self.current_cursor
         except Exception as e:
@@ -514,7 +514,7 @@ def schema(configuration: dict):
 def process_table_with_adaptive_parameters(table_name: str, schema_name: str, configuration: dict, 
                                          conn_manager: ConnectionManager, state: dict):
     """Process a single table using adaptive parameters based on size and resource monitoring."""
-    start_time = datetime.now(UTC)
+    start_time = datetime.now(timezone.utc)
     records_processed = 0
     
     try:
@@ -602,7 +602,7 @@ def process_table_with_adaptive_parameters(table_name: str, schema_name: str, co
                     log.info(f"Checkpointing {table_name} after {records_processed} records")
                     yield op.checkpoint(state)
         
-        processing_time = (datetime.now(UTC) - start_time).total_seconds()
+        processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         log.info(f"Completed processing {schema_name}.{table_name}: {records_processed} records in {processing_time:.2f}s")
         
     except Exception as e:
@@ -672,7 +672,7 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
 
 def update(configuration: dict, state: dict):
     """Main update function with enhanced resource monitoring and adaptive processing."""
-    start_time = datetime.now(UTC)
+    start_time = datetime.now(timezone.utc)
     
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
@@ -722,7 +722,7 @@ def update(configuration: dict, state: dict):
     
     # Initialize state for tables
     if "last_updated_at" not in state:
-        state["last_updated_at"] = datetime.now(UTC).isoformat()
+        state["last_updated_at"] = datetime.now(timezone.utc).isoformat()
     
     timestamp = time.time()
     
@@ -807,7 +807,7 @@ def update(configuration: dict, state: dict):
                 continue
         
         # Update state and checkpoint after table completion
-        state[table_name] = datetime.now(UTC).isoformat()
+        state[table_name] = datetime.now(timezone.utc).isoformat()
         yield op.checkpoint(state)
         
         # Progress update
@@ -828,7 +828,7 @@ def update(configuration: dict, state: dict):
         log.info(f"Resource Monitor: Final system status - Memory {final_status['memory_usage']:.1f}%, "
                 f"CPU {final_status['cpu_percent']:.1f}%, Disk {final_status['disk_usage']:.1f}%")
     
-    total_time = (datetime.now(UTC) - start_time).total_seconds()
+    total_time = (datetime.now(timezone.utc) - start_time).total_seconds()
     log.info(f'Data extraction completed successfully in {total_time:.2f} seconds.')
 
 # ============================================================================
