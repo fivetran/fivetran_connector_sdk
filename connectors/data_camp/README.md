@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-The [DataCamp](https://www.datacamp.com/) connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your destination. This connector syncs data from content endpoints, including courses, projects, tracks, practices, assessments, and custom tracks.
+The [DataCamp](https://www.datacamp.com/) custom connector for Fivetran fetches course catalog data from the DataCamp LMS Catalog API and syncs it to your destination. This connector syncs data from content endpoints, including courses, projects, tracks, practices, assessments, and custom tracks.
 
 The connector implements bearer token authentication with comprehensive retry logic and provides robust data flattening with breakout tables for nested relationships. It supports both live production servers and mock/test environments through optional URL prefix configuration, following Fivetran best practices for reliability, security, and maintainability.
 
@@ -34,7 +34,7 @@ The connector supports the following features:
 
 ## Configuration file
 
-The connector requires bearer token authentication for the DataCamp LMS Catalog API. The base URL  is optional and defaults to the live DataCamp API endpoint.
+The connector requires bearer token authentication for the DataCamp LMS Catalog API. The base URL is optional and defaults to the live DataCamp API endpoint.
 
 ```json
 {
@@ -43,16 +43,12 @@ The connector requires bearer token authentication for the DataCamp LMS Catalog 
 }
 ```
 
-### Configuration Parameters
+### Configuration parameters
 
-- **`bearer_token`** (required): Your DataCamp API bearer token for authentication
-- **`base_url`** (optional): Custom base URL for the DataCamp API
-  - **Default**: `https://lms-catalog-api.datacamp.com` (live production server)
-  - **Mock/Test Server**: You can specify a different URL for testing or mock environments
-  - **Use Cases**:
-    - Omit this parameter to use the live DataCamp production API
-    - Specify a mock server URL for development/testing purposes
-    - Use a different environment URL if provided by DataCamp
+- `bearer_token` (required): Your DataCamp API bearer token for authentication.
+- `base_url` (optional): Custom base URL for the DataCamp API. This parameter is optional and you have two options:
+  - Leave blank to use the default DataCamp production server: `https://lms-catalog-api.datacamp.com`
+  - You can specify a URL for testing or mock environments.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -66,10 +62,10 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 The connector uses bearer token authentication with the DataCamp LMS Catalog API. The authentication is handled in the `update` function through the following process:
 
-- Using a pre-configured bearer token for all API requests
-- Adding the token to the authorization header as `Bearer {token}`
-- Validating token presence during connector initialization
-- Handling authentication errors gracefully with detailed logging
+- Using a pre-configured bearer token for all API requests.
+- Adding the token to the authorization header as `Bearer {token}`.
+- Validating token presence during connector initialization.
+- Handling authentication errors gracefully with detailed logging.
 
 To obtain the necessary credentials:
 1. Contact your DataCamp account representative to set up API access.
@@ -80,10 +76,10 @@ To obtain the necessary credentials:
 
 The DataCamp LMS Catalog API does not support traditional pagination. The connector processes each endpoint as a complete dataset:
 
-- **Full sync approach**: Each endpoint returns the complete current catalog
-- **Endpoint-based processing**: Processes one endpoint type at a time
-- **State management**: Uses checkpointing to track progress through endpoints
-- **Resume capability**: Can resume from the last successfully processed endpoint
+- Each endpoint returns the complete current catalog
+- Processes one endpoint type at a time
+- Uses checkpointing to track progress through endpoints
+- The connector can resume from the last successfully processed endpoint
 
 Refer to the `update` function for the sequential endpoint processing logic.
 
@@ -111,12 +107,12 @@ Data is delivered to Fivetran using upsert operations for each record, ensuring 
 
 The connector implements comprehensive error handling strategies following Fivetran best practices:
 
-- **Individual record handling**: Failed records don't stop the entire sync process
-- **API error management**: HTTP errors are caught and logged with severity levels
-- **Retry mechanism**: Automatic retries with exponential backoff 
-- **Request timeout**: Configurable timeout (30 seconds default) for API requests to prevent hanging
-- **Detailed logging**: Uses Fivetran's logging framework with retry attempt tracking
-- **State preservation**: Checkpoints progress after each endpoint to enable recovery
+- Failed records don't stop the entire sync process
+- HTTP errors are caught and logged with severity levels
+- Automatic retries with exponential backoff 
+- Configurable timeout (30 seconds default) for API requests to prevent hanging
+- Uses Fivetran's logging framework with retry attempt tracking
+- Checkpoints progress after each endpoint to enable recovery
 
 ## Tables created
 
