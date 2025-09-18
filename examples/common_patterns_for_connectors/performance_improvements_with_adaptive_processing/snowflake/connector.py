@@ -112,7 +112,7 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import json
 import snowflake.connector
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Optional
 import socket
 import time
@@ -262,7 +262,7 @@ class ConnectionManager:
         """Check if current connection has exceeded timeout limit."""
         if not self.connection_start_time:
             return True
-        elapsed = datetime.utcnow() - self.connection_start_time
+        elapsed = datetime.now(timezone.utc) - self.connection_start_time
         return elapsed.total_seconds() > (self.timeout_hours * 3600)
     
     def _is_deadlock_error(self, error: Exception) -> bool:
@@ -281,7 +281,7 @@ class ConnectionManager:
             conn = get_snowflake_connection(self.configuration)
             self.current_connection = conn
             self.current_cursor = conn.cursor()
-            self.connection_start_time = datetime.utcnow()
+            self.connection_start_time = datetime.now(timezone.utc)
             log.info(f"New Snowflake connection established at {self.connection_start_time}")
             return conn, self.current_cursor
         except Exception as e:
@@ -800,7 +800,7 @@ def monitor_resources() -> Dict[str, Any]:
             'memory_critical': memory_critical,
             'cpu_pressure': cpu_pressure,
             'cpu_critical': cpu_critical,
-            'timestamp': datetime.utcnow()
+            'timestamp': datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -1978,7 +1978,7 @@ def update(configuration: dict, state: dict):
             
             # Checkpoint preprocessing results in state
             preprocessing_state_key = "preprocessing_status"
-            preprocessing_timestamp = datetime.utcnow().isoformat()
+            preprocessing_timestamp = datetime.now(timezone.utc).isoformat()
             
             if preprocessing_success:
                 current_state[preprocessing_state_key] = f"completed_success_{preprocessing_timestamp}"
@@ -2032,7 +2032,7 @@ def update(configuration: dict, state: dict):
     
     for table, category, row_count in categorized_tables:
         processed_tables += 1
-        start_date = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         log.info(f"Processing table {processed_tables}/{total_tables}: {table} "
                 f"({category}, {row_count:,} rows)")
