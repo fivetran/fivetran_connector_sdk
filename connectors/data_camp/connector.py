@@ -143,7 +143,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]
 
     for attempt in range(1, __MAX_RETRIES + 1):
         try:
-            log.info(f"Attempting to fetch {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1})")
+            log.info(f"Attempting to fetch {endpoint} (attempt {attempt}/{__MAX_RETRIES})")
             response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()
             data = response.json()
@@ -176,11 +176,11 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]
             if attempt < __MAX_RETRIES:
                 delay = __RETRY_DELAY_SECONDS * (__RETRY_BACKOFF_MULTIPLIER**attempt)
                 log.warning(
-                    f"{error_type} for {endpoint} (attempt {attempt + 1}/{__MAX_RETRIES + 1}): {e}. Retrying in {delay} seconds..."
+                    f"{error_type} for {endpoint} (attempt {attempt}/{__MAX_RETRIES}): {e}. Retrying in {delay} seconds..."
                 )
                 time.sleep(delay)
             else:
-                log.severe(f"Failed to fetch {endpoint} after {__MAX_RETRIES + 1} attempts: {e}")
+                log.severe(f"Failed to fetch {endpoint} after {__MAX_RETRIES} attempts: {e}")
                 return []
 
     return []
