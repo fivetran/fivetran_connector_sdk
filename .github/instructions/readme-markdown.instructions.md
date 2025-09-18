@@ -9,7 +9,7 @@ These rules override generic Copilot comments. Review all Markdown files that ha
 ## Never use:
 
 - Nested bulleted lists where a simple list would be sufficient
-- Bold text to stress important information
+- Bold text to stress important information. If you see bold text, you should flag this and request to change it to plain text unless this is a UI element name.
 Example of wrong format and style:
 
 "- **API example**
@@ -72,7 +72,7 @@ Apply these rules to every `README.md` file inside Connector SDK **example folde
 If a section is irrelevant (e.g. no error handling), **delete the heading entirely**. Do not leave empty stubs.
 
 ---
-
+<!---
 ## Section Compliance
 
 * **Connector overview** → Must explain purpose, data source, and use cases.
@@ -169,7 +169,7 @@ If a section is irrelevant (e.g. no error handling), **delete the heading entire
   ## Additional considerations
   The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
   ```
-
+--->
 
 ---
 
