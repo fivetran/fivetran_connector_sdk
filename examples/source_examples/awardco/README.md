@@ -20,7 +20,7 @@ Related code
   - Linux: Ubuntu 20.04+ / Debian 10+ / Amazon Linux 2+ (arm64 or x86_64)
 
 ## Getting started
-Refer to the Connector SDK Setup Guide: https://fivetran.com/docs/connectors/connector-sdk/setup-guide.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide).
 
 Quick start
 1) Copy and edit `awardco-users-connector/configuration.json`.
