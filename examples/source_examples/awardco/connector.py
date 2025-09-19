@@ -1,15 +1,22 @@
-"""This connector fetches user data from the AwardCo API and upserts it into the destination using the Fivetran Connector SDK.
+"""Awardco Connector Example
+This connector fetches user data from the AwardCo API and upserts it into the destination using the Fivetran Connector SDK.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+# For reading configuration from a JSON file
 import json
-from pathlib import Path
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
-import requests
 
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+import requests
 
 def validate_configuration(configuration: dict):
     """
@@ -35,60 +42,65 @@ def schema(configuration: dict):
         {
             "table": "user",
             "primary_key": ["employeeId"],
-            "columns": {
-                "employeeId": "STRING",
-                "firstName": "STRING",
-                "lastName": "STRING",
-                "email": "STRING",
-                "balance": "FLOAT",
-                "currencyCode": "STRING",
-            },
         },
     ]
 
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is called by Fivetran during each sync.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
     log.warning("Starting data sync from AwardCo API")
 
     validate_configuration(configuration=configuration)
 
     api_key = configuration.get("api_key")
     base_url = configuration.get("base_url")
-    use_mock = str(configuration.get("use_mock", "false")).strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "y",
-    }
     last_sync_time = state.get("last_sync_time")
     new_sync_time = last_sync_time
 
     try:
-        if use_mock:
-            log.info("Using local mock data from files/mock_users.json")
-            mock_path = Path(__file__).parent / "files" / "mock_users.json"
-            with mock_path.open("r", encoding="utf-8") as f:
-                payload = json.load(f)
-            data = payload.get("users", [])
-        else:
-            response = requests.get(f"{base_url}/api/users", headers={"apiKey": api_key})
+        # Use pagination to fetch all users. We request pages until no users are returned
+        # or the returned page has fewer items than `per_page`.
+        page = 1
+        per_page = 100
+
+        while True:
+            params = {"page": page, "per_page": per_page}
+            response = requests.get(f"{base_url}/api/users", headers={"apiKey": api_key}, params=params)
             response.raise_for_status()
-            data = response.json().get("users", [])
+            users = response.json().get("users", [])
 
-        for record in data:
-            op.upsert(table="user", data=record)
-            record_time = record.get("updated_at")
+            # Stop when there are no users on this page
+            if not users:
+                break
 
-            if new_sync_time is None or (record_time and record_time > new_sync_time):
-                new_sync_time = record_time
+            for record in users:
+                # Upsert each record into the destination table
+                op.upsert(table="user", data=record)
+                record_time = record.get("updated_at")
+
+                if new_sync_time is None or (record_time and record_time > new_sync_time):
+                    new_sync_time = record_time
+
+            # If fewer records than requested were returned, we've reached the last page
+            if len(users) < per_page:
+                break
+
+            page += 1
 
         new_state = {"last_sync_time": new_sync_time}
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
     except Exception as e:
