@@ -1,0 +1,12 @@
+# Adform Connector Dependencies
+# All dependencies are provided by the Fivetran Connector SDK
+
+# Standard library modules used:
+# - datetime (built-in)
+# - typing (built-in)
+# - requests (provided by SDK)
+# - time (built-in)
+# - random (built-in)
+
+# The Fivetran Connector SDK provides all necessary dependencies
+# No additional packages required for this connector
