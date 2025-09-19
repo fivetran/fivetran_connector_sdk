@@ -18,6 +18,7 @@ from fivetran_connector_sdk import Operations as op
 
 import requests
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -63,7 +64,7 @@ def update(configuration: dict, state: dict):
 
     api_key = configuration.get("api_key")
     base_url = configuration.get("base_url")
-    last_sync_time = state.get("last_sync_time","1990-01-01T00:00:00")
+    last_sync_time = state.get("last_sync_time", "1990-01-01T00:00:00")
     new_sync_time = last_sync_time
 
     try:
@@ -74,7 +75,9 @@ def update(configuration: dict, state: dict):
 
         while True:
             params = {"page": page, "per_page": per_page}
-            response = requests.get(f"{base_url}/api/users", headers={"apiKey": api_key}, params=params)
+            response = requests.get(
+                f"{base_url}/api/users", headers={"apiKey": api_key}, params=params
+            )
             response.raise_for_status()
             users = response.json().get("users", [])
 
