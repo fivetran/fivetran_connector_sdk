@@ -25,6 +25,7 @@ from supabase.client import ClientOptions
 
 # Constants for the connector
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
+__BATCH_SIZE = 1000  # Batch size for range queries, default Supabase's limit
 
 
 def validate_configuration(configuration: dict):
@@ -97,40 +98,88 @@ def create_supabase_client(configuration: dict):
         raise RuntimeError(f"Failed to create Supabase client: {str(e)}")
 
 
-def fetch_employee_data(supabase_client: Client, table_name: str, last_hire_date: str):
+def fetch_employee_data_batch(
+    supabase_client: Client,
+    table_name: str,
+    last_hire_date: str,
+    offset: int = 0,
+    limit: int = __BATCH_SIZE,
+):
     """
-    Fetch employee data from Supabase table where hire_date is greater than the last sync time.
+    Fetch a batch of employee data from Supabase table where hire_date is greater than the last sync time.
+    Uses range() method for pagination to handle Supabase's record limits efficiently.
     Data is explicitly ordered by hire_date to ensure consistent incremental sync.
     Args:
         supabase_client: The Supabase client instance.
         table_name: The name of the table to fetch data from.
         last_hire_date: The last hire date from the previous sync.
+        offset: Starting position for the batch (0-based index).
+        limit: Number of records to fetch in this batch.
     Returns:
-        A list of employee records sorted by hire_date.
+        A tuple containing (list of employee records sorted by hire_date, has_more_data boolean).
     """
     try:
-        # Query employees with hire_date greater than last_hire_date, explicitly ordered by hire_date ASC
+        # Calculate end position for range (Supabase range is inclusive)
+        end_position = offset + limit - 1
+
+        # Query employees with hire_date greater than last_hire_date using range for pagination
         # This ensures we process records in chronological order for proper checkpointing
         response = (
             supabase_client.table(table_name)
             .select("*")
             .gt("hire_date", last_hire_date)
             .order("hire_date", desc=False)  # Explicitly sort by hire_date ascending
+            .range(offset, end_position)  # Use range for batch processing
             .execute()
         )
 
         if response.data:
             log.info(
-                f"Fetched {len(response.data)} records from table: {table_name}, sorted by hire_date"
+                f"Fetched batch: {len(response.data)} records from table: {table_name}, "
+                f"offset: {offset}, range: [{offset}, {end_position}], sorted by hire_date"
             )
-            return response.data
+
+            # Check if there might be more data
+            # If we got exactly the limit, there might be more data
+            has_more_data = len(response.data) == limit
+
+            return response.data, has_more_data
         else:
-            log.info(f"No new records found in table: {table_name}")
-            return []
+            log.info(f"No new records found in table: {table_name} at offset: {offset}")
+            return [], False
 
     except Exception as e:
-        log.severe(f"Failed to fetch data from table {table_name}: {e}")
-        raise RuntimeError(f"Failed to fetch data from table {table_name}: {str(e)}")
+        log.severe(f"Failed to fetch batch from table {table_name} at offset {offset}: {e}")
+        raise RuntimeError(
+            f"Failed to fetch batch from table {table_name} at offset {offset}: {str(e)}"
+        )
+
+
+def get_total_new_records_count(supabase_client: Client, table_name: str, last_hire_date: str):
+    """
+    Get the total count of new records to be synced for better progress tracking.
+    Args:
+        supabase_client: The Supabase client instance.
+        table_name: The name of the table to fetch data from.
+        last_hire_date: The last hire date from the previous sync.
+    Returns:
+        Total count of new records.
+    """
+    try:
+        response = (
+            supabase_client.table(table_name)
+            .select("*", count="exact")
+            .gt("hire_date", last_hire_date)
+            .execute()
+        )
+
+        total_count = response.count if response.count is not None else 0
+        log.info(f"Total new records to sync: {total_count}")
+        return total_count
+
+    except Exception as e:
+        log.warning(f"Could not get total count: {e}. Proceeding with batch processing.")
+        return None
 
 
 def update(configuration: dict, state: dict):
@@ -154,39 +203,70 @@ def update(configuration: dict, state: dict):
 
     # Get configuration parameters
     table_name = configuration.get("table_name", "employee")
+    batch_size = int(configuration.get("batch_size", __BATCH_SIZE))
 
     # Get the state variable for the sync, if needed
     last_hire_date = state.get("last_hire_date", "1990-01-01")
     new_hire_date = last_hire_date
 
     try:
-        # Fetch employee data from Supabase
-        employee_data = fetch_employee_data(supabase_client, table_name, last_hire_date)
+        # Get total count for progress tracking (optional, helps with monitoring)
+        get_total_new_records_count(supabase_client, table_name, last_hire_date)
 
         row_count = 0
-        for record in employee_data:
+        batch_count = 0
+        offset = 0
+        has_more_data = True
 
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table=table_name, data=record)
-            row_count += 1
+        log.info(f"Starting batch processing with batch size: {batch_size}")
 
-            record_hire_date = record.get("hire_date")
+        # Process data in batches using range-based pagination
+        while has_more_data:
+            batch_count += 1
+            log.info(f"Processing batch {batch_count}, offset: {offset}")
 
-            # Update new_hire_date with the current record's hire_date since data is sorted
-            # This ensures we always have the latest processed hire_date for checkpointing
-            if record_hire_date:
-                new_hire_date = record_hire_date
+            # Fetch employee data batch from Supabase
+            employee_batch, has_more_data = fetch_employee_data_batch(
+                supabase_client, table_name, last_hire_date, offset, batch_size
+            )
 
-            # Checkpoint every __CHECKPOINT_INTERVAL rows to ensure resumable syncs
+            if not employee_batch:
+                log.info("No more records to process")
+                break
+
+            # Process each record in the current batch
+            batch_row_count = 0
+            for record in employee_batch:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
+                op.upsert(table=table_name, data=record)
+                row_count += 1
+                batch_row_count += 1
+
+                record_hire_date = record.get("hire_date")
+
+                # Update new_hire_date with the current record's hire_date since data is sorted
+                # This ensures we always have the latest processed hire_date for checkpointing
+                if record_hire_date:
+                    new_hire_date = record_hire_date
+
             if row_count % __CHECKPOINT_INTERVAL == 0:
                 save_state(new_hire_date)
 
+            log.info(
+                f"Completed batch {batch_count}: processed {batch_row_count} records, "
+                f"total processed: {row_count}, last hire_date: {new_hire_date}"
+            )
+
+            # Update offset for next batch - increment by batch size for range-based pagination
+            offset += batch_size
+
+        # Final checkpoint
         save_state(new_hire_date)
 
-        log.info(f"Successfully synced {row_count} employee records")
+        log.info(f"Successfully synced {row_count} employee records across {batch_count} batches")
 
     except Exception as e:
         # In case of an exception, raise a runtime error

@@ -1,7 +1,7 @@
 # Supabase Connector Example 
 
 ## Connector overview
-This connector demonstrates how to fetch employee data from a [Supabase](https://supabase.com/) database and sync it to Fivetran using the Fivetran Connector SDK. The connector retrieves employee records from a Supabase table and performs incremental syncs based on the `hire_date` field. It connects to Supabase using the Python Supabase client library and handles data extraction, transformation, and loading into the destination.
+This connector demonstrates how to fetch employee data from a Supabase database and sync it to Fivetran using the Fivetran Connector SDK with advanced batch processing capabilities. The connector retrieves employee records from a Supabase table using efficient batch processing with `.range(start, end)` method and performs incremental synchronization based on the hire_date field. It handles Supabase's 1000 record limit by using configurable batch sizes and processes each batch completely before requesting the next one. The connector connects to Supabase using the Python Supabase client library and handles data extraction, transformation, and loading into the destination with proper checkpointing strategies.
 
 
 ## Requirements
@@ -16,6 +16,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 
 ## Features
+- Batch processing using Supabase's `.range(start, end)` method for efficient data retrieval
+- Handles Supabase's record limit by using configurable batch sizes (default: 1000 records per batch)
+- Processes each batch completely before requesting the next batch for optimal performance
+- Smart checkpointing strategy that checkpoints every 1000 records to minimize overhead
+- Progress tracking with total record count and batch-by-batch logging for monitoring large syncs
 - Configurable schema and table names for flexibility
 - Incremental syncs based on the `hire_date` field
 - Automatic data type inference for all columns except for the primary key
@@ -31,13 +36,15 @@ The configuration requires your Supabase project URL and API key to establish a 
 - `supabase_key` (required) - Your Supabase anon/public API key.
 - `schema_name` (optional) - Database schema name (defaults to `public` if not specified otherwise).
 - `table_name` (optional) - Table name to sync (defaults to `employee` if not specified otherwise).
+- `batch_size` (optional): Number of records to fetch per batch (defaults to `1000`)
 
 ```
 {
 "supabase_url": "<YOUR_SUPABASE_PROJECT_URL>",
 "supabase_key": "<YOUR_SUPABASE_ANON_KEY>",
 "schema_name": "<YOUR_SCHEMA_NAME>",
-"table_name": "<YOUR_TABLE_NAME>"
+"table_name": "<YOUR_TABLE_NAME>",
+"batch_size": "<YOUR_OPTIONAL_BATCH_SIZE>"
 }
 ```
 
