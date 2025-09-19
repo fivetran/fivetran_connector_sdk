@@ -32,7 +32,7 @@ The connector requires an API token to authenticate with Zigpoll's API and optio
 }
 ```
 
-**Configuration Parameters:**
+Configuration Parameters:
 - `api_token` (required): Your Zigpoll API authentication token
 - `start_date` (optional): Date in YYYY-MM-DD format to start syncing data from (e.g., `"2023-01-01"`). If not provided, sync will start from EPOCH time
 

@@ -102,7 +102,7 @@ def make_api_request(url: str, headers: dict, params=None):
 
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code == 429:  # Rate limited
+            elif response.status_code == 429:
                 delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
                 log.warning(f"Rate limited. Retrying in {delay:.2f} seconds...")
                 time.sleep(delay)
