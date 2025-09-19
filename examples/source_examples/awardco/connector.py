@@ -66,7 +66,7 @@ def update(configuration: dict, state: dict):
         "yes",
         "y",
     }
-    last_sync_time = state.get("last_sync_time")
+    last_sync_time = state.get("last_sync_time","1990-01-01T00:00:00")
     new_sync_time = last_sync_time
 
     try:
