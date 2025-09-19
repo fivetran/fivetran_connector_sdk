@@ -1,4 +1,4 @@
-# AwardCo Users Connector
+# AwardCo Users Connector Example
 AwardCo is an employee recognition platform. The AwardCo API typically exposes RESTful JSON endpoints to manage resources such as users and recognition-related entities. Authentication is performed via an API key supplied in request headers. Common behaviors include paginated responses, timestamp fields for change tracking, and conventional HTTP status codes. 
 
 Refer to [AwardCo documentation](https://www.awardco.com/) for additional details and production configurations.
@@ -13,7 +13,7 @@ Related code
 
 
 ## Requirements
-- Python 3.9–3.12
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -78,9 +78,9 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API.
 
 Steps
-- Obtain an API key from your AwardCo administrator or developer portal.
-- Set `api_key` in `configuration.json`.
-- Set `base_url` (for example, `https://api.awardco.com`).
+1. Obtain an API key from your AwardCo administrator or developer portal.
+2. Set `api_key` in `configuration.json`.
+3. Set `base_url` (for example, `https://api.awardco.com`).
 
 Reference — `awardco-users-connector/connector.py:58` and `awardco-users-connector/connector.py:72`
 

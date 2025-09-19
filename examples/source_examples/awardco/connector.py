@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
 
     api_key = configuration.get("api_key")
     base_url = configuration.get("base_url")
-    last_sync_time = state.get("last_sync_time")
+    last_sync_time = state.get("last_sync_time","1990-01-01T00:00:00")
     new_sync_time = last_sync_time
 
     try:
