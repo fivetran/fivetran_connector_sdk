@@ -43,6 +43,37 @@ __METRIC_ENDPOINTS = [
     "getSendQuota",
 ]
 
+__TABLE_CONFIGS = [
+    {
+        "table_name": "comment",
+        "endpoint": "getComments",
+        "root_element": "comments",
+        "child_element": "comment",
+        "supports_incremental": True,
+    },
+    {
+        "table_name": "blast_result",
+        "endpoint": "getBlastResults",
+        "root_element": "thermometer_blast_responses",
+        "child_element": "thermometer_blast_response",
+        "supports_incremental": True,
+    },
+    {
+        "table_name": "recipient_list",
+        "endpoint": "getRecipientLists",
+        "root_element": "recipient_lists",
+        "child_element": "recipient_list",
+        "supports_incremental": False,
+    },
+    {
+        "table_name": "thermometer",
+        "endpoint": "getThermometers",
+        "root_element": "thermometers",
+        "child_element": "thermometer",
+        "supports_incremental": False,
+    },
+]
+
 
 def validate_configuration(configuration: dict):
     """
@@ -358,44 +389,18 @@ def update(configuration: dict, state: dict):
 
     try:
         # Process each endpoint and checkpoint state after each
-        process_table_data(
-            "comment",
-            "getComments",
-            api_key,
-            "comments",
-            "comment",
-            state,
-            config_from_date,
-            supports_incremental=True,
-        )
-        process_table_data(
-            "blast_result",
-            "getBlastResults",
-            api_key,
-            "thermometer_blast_responses",
-            "thermometer_blast_response",
-            state,
-            config_from_date,
-            supports_incremental=True,
-        )
-        process_table_data(
-            "recipient_list",
-            "getRecipientLists",
-            api_key,
-            "recipient_lists",
-            "recipient_list",
-            state,
-            supports_incremental=False,
-        )
-        process_table_data(
-            "thermometer",
-            "getThermometers",
-            api_key,
-            "thermometers",
-            "thermometer",
-            state,
-            supports_incremental=False,
-        )
+        for config in __TABLE_CONFIGS:
+            process_table_data(
+                config["table_name"],
+                config["endpoint"],
+                api_key,
+                config["root_element"],
+                config["child_element"],
+                state,
+                config_from_date,
+                config["supports_incremental"],
+            )
+
         process_metrics(api_key, state, config_from_date)
 
         log.info("Sync completed successfully. Processed all endpoints.")
