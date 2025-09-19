@@ -43,13 +43,6 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate optional parameters with defaults
-    schema_name = configuration.get("schema_name", "public")
-    table_name = configuration.get("table_name", "employee")
-
-    # Log the configuration being used
-    log.info(f"Using schema: {schema_name}, table: {table_name}")
-
 
 def schema(configuration: dict):
     """
@@ -88,7 +81,7 @@ def create_supabase_client(configuration: dict):
 
     try:
         # Create Supabase client with schema configuration
-        supabase: Client = create_client(
+        supabase_client: Client = create_client(
             supabase_url,
             supabase_key,
             options=ClientOptions(
@@ -98,18 +91,18 @@ def create_supabase_client(configuration: dict):
             ),
         )
         log.info(f"Successfully created Supabase client for schema: {schema_name}")
-        return supabase
+        return supabase_client
     except Exception as e:
         log.severe(f"Failed to create Supabase client: {e}")
         raise RuntimeError(f"Failed to create Supabase client: {str(e)}")
 
 
-def fetch_employee_data(supabase: Client, table_name: str, last_hire_date: str):
+def fetch_employee_data(supabase_client: Client, table_name: str, last_hire_date: str):
     """
     Fetch employee data from Supabase table where hire_date is greater than the last sync time.
     Data is explicitly ordered by hire_date to ensure consistent incremental sync.
     Args:
-        supabase: The Supabase client instance.
+        supabase_client: The Supabase client instance.
         table_name: The name of the table to fetch data from.
         last_hire_date: The last hire date from the previous sync.
     Returns:
@@ -119,7 +112,7 @@ def fetch_employee_data(supabase: Client, table_name: str, last_hire_date: str):
         # Query employees with hire_date greater than last_hire_date, explicitly ordered by hire_date ASC
         # This ensures we process records in chronological order for proper checkpointing
         response = (
-            supabase.table(table_name)
+            supabase_client.table(table_name)
             .select("*")
             .gt("hire_date", last_hire_date)
             .order("hire_date", desc=False)  # Explicitly sort by hire_date ascending
@@ -157,7 +150,7 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration=configuration)
 
     # Create Supabase client
-    supabase = create_supabase_client(configuration)
+    supabase_client = create_supabase_client(configuration)
 
     # Get configuration parameters
     table_name = configuration.get("table_name", "employee")
@@ -168,7 +161,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Fetch employee data from Supabase
-        employee_data = fetch_employee_data(supabase, table_name, last_hire_date)
+        employee_data = fetch_employee_data(supabase_client, table_name, last_hire_date)
 
         row_count = 0
         for record in employee_data:
@@ -189,27 +182,24 @@ def update(configuration: dict, state: dict):
 
             # Checkpoint every __CHECKPOINT_INTERVAL rows to ensure resumable syncs
             if row_count % __CHECKPOINT_INTERVAL == 0:
-                checkpoint_state = {"last_hire_date": new_hire_date}
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(checkpoint_state)
-                log.info(f"Checkpointed at row {row_count} with hire_date: {new_hire_date}")
+                save_state(new_hire_date)
 
-        # Update state with the current sync time for the next run
-        new_state = {"last_hire_date": new_hire_date}
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(new_state)
+        save_state(new_hire_date)
 
         log.info(f"Successfully synced {row_count} employee records")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync data: {str(e)}")
+
+
+def save_state(new_hire_date):
+    new_state = {"last_hire_date": new_hire_date}
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(new_state)
 
 
 # Create the connector object using the schema and update functions
