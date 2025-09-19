@@ -1,4 +1,4 @@
-# AwardCo Users Connector
+# AwardCo Users Connector Example
 AwardCo is an employee recognition platform. The AwardCo API typically exposes RESTful JSON endpoints to manage resources such as users and recognition-related entities. Authentication is performed via an API key supplied in request headers. Common behaviors include paginated responses, timestamp fields for change tracking, and conventional HTTP status codes. 
 
 Refer to [AwardCo documentation](https://www.awardco.com/) for additional details and production configurations.
