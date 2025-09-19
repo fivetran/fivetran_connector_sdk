@@ -80,7 +80,7 @@ This connector uses an API key. The request includes the key in the `apiKey` hea
 Steps
 1. Obtain an API key from your AwardCo administrator or developer portal.
 2. Set `api_key` in `configuration.json`.
-- Set `base_url` (for example, `https://api.awardco.com`).
+3. Set `base_url` (for example, `https://api.awardco.com`).
 
 Reference — `awardco-users-connector/connector.py:58` and `awardco-users-connector/connector.py:72`
 
