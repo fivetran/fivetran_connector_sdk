@@ -4,7 +4,7 @@ AwardCo is an employee recognition platform. The AwardCo API typically exposes R
 Refer to [AwardCo documentation](https://www.awardco.com/) for additional details and production configurations.
 
 ## Connector overview
-This example connector uses the Fivetran Connector SDK to sync AwardCo user data into your destination. It performs incremental syncs based on a timestamp cursor, upserts user rows into a single `user` table, and emits checkpoints for reliable resumption. A local mock mode is provided for offline development and testing.
+This example connector uses the Fivetran Connector SDK to sync AwardCo user data into your destination. It performs incremental syncs based on a timestamp cursor, upserts user rows into a single `USER` table, and emits checkpoints for reliable resumption. There is also a local mock mode for offline development and testing.
 
 Related code
 - Configuration validation — `awardco-users-connector/connector.py:13`
