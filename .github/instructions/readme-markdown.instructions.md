@@ -7,7 +7,7 @@ applyTo: "fivetran_connector_sdk/examples/source_examples/**/*README*.md,fivetra
 These rules override generic Copilot comments. Review all Markdown files that have "README" in their name against the following:
 
 ## Never use:
-
+- Title Case in subheadings
 - Nested bulleted lists where a simple list would be sufficient
 - Bold text to stress important information. If you see bold text, you should flag this and request to change it to plain text unless this is a UI element name.
 Example of wrong format and style:
