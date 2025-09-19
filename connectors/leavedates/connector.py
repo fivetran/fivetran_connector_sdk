@@ -92,14 +92,6 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate that api_token is not empty
-    if not configuration.get("api_token", "").strip():
-        raise ValueError("api_token cannot be empty")
-
-    # Validate that company_id is not empty
-    if not configuration.get("company_id", "").strip():
-        raise ValueError("company_id cannot be empty")
-
     # Validate start_date format if provided
     if "start_date" in configuration:
         start_date = configuration.get("start_date")
@@ -118,7 +110,7 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "leave_reports",  # Name of the table in the destination, required.
+            "table": "leave_report",  # Name of the table in the destination, required.
             "primary_key": ["id"],  # Primary key column(s) for the table, optional.
             # Columns will be inferred from the data structure by Fivetran
         },
@@ -160,6 +152,7 @@ def update(configuration: dict, state: dict):
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_time": current_time}
+
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -224,7 +217,7 @@ def fetch_and_process_leave_reports(
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table="leave_reports", data=flattened_record)
+                op.upsert(table="leave_report", data=flattened_record)
                 page_records_processed += 1
 
             except Exception as e:
