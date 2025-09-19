@@ -83,13 +83,14 @@ jobs:
 
           print("### 🧹 Python Code Quality Check\n")
 
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          
           if not lines:
               print("✅ No issues found in Python Files.")
               issue_present = False
           else:
               issue_present = True
               print("⚠️ **Flake8 has detected issues, please fix the issues before merging:**")
-              run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
               print(f"\n📎 [Download full report from workflow artifacts]({run_url}).")  
               print()
               print("📌 _Only Python files changed in this PR were checked._")
