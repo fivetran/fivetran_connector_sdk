@@ -97,13 +97,10 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
         requests.exceptions.RequestException: For HTTP errors
         ValueError: For invalid JSON responses
     """
-    if params is None:
-        params = {}
-
-    response = None
-    last_exception = None
+    params = params or {}
 
     for attempt in range(__MAX_RETRIES):
+        response = None
         try:
             response = requests.get(
                 url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_IN_SECONDS
@@ -114,34 +111,20 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
             log.severe(f"Request timeout for URL: {url}")
             raise
         except requests.exceptions.HTTPError as e:
-            last_exception = e
-            # Only retry on rate limiting (429)
             if response and response.status_code == 429 and attempt < __MAX_RETRIES - 1:
                 delay = __BACKOFF_BASE * (2**attempt)
-                log.warning(
-                    f"Rate limit exceeded for URL: {url} (attempt {attempt + 1}/{__MAX_RETRIES}). Retrying in {delay} seconds..."
-                )
+                log.warning(f"Rate limit exceeded for URL: {url}. Retrying in {delay} seconds...")
                 time.sleep(delay)
                 continue
-            # For all other HTTP errors or final attempt, log and raise
-            status_code = response.status_code if response else "unknown"
-            log.severe(f"HTTP error {status_code} for URL: {url}: {e}")
+            log.severe(f"HTTP error for URL: {url}: {e}")
             raise
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, ValueError) as e:
             log.severe(f"Request failed for URL: {url}: {e}")
             raise
-        except ValueError as e:
-            log.severe(f"Invalid JSON response from URL: {url}: {e}")
-            raise
 
-    if response and response.status_code == 429:
-        raise requests.exceptions.HTTPError(
-            f"Rate limit exceeded for URL: {url} after {__MAX_RETRIES} attempts"
-        )
-    else:
-        raise last_exception or requests.exceptions.RequestException(
-            f"Request failed for URL: {url} after {__MAX_RETRIES} attempts"
-        )
+    raise requests.exceptions.RequestException(
+        f"Request failed for URL: {url} after {__MAX_RETRIES} attempts"
+    )
 
 
 def schema(configuration: dict):
