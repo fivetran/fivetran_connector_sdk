@@ -269,6 +269,7 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
 
 
 def sync_endpoint_with_pagination(
+    state: dict,
     configuration: dict,
     endpoint: str,
     endpoint_name: str,
@@ -340,6 +341,12 @@ def sync_endpoint_with_pagination(
                 f"Processed page {page} of {endpoint_name}, total processed: {records_processed}"
             )
 
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
+
     if relationship_processor_func:
         log.info(
             f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}, relationships: {relationships_processed}"
@@ -374,6 +381,7 @@ def update(configuration: dict, state: dict):
     try:
         # Sync companies data from /companies endpoint
         companies_result = sync_endpoint_with_pagination(
+            state=state,
             configuration=configuration,
             endpoint=__COMPANIES_ENDPOINT,
             endpoint_name="companies",
@@ -383,6 +391,7 @@ def update(configuration: dict, state: dict):
 
         # Sync contacts data from /contacts endpoint
         contacts_result = sync_endpoint_with_pagination(
+            state=state,
             configuration=configuration,
             endpoint=__CONTACTS_ENDPOINT,
             endpoint_name="contacts",

@@ -104,11 +104,11 @@ Error handling is implemented throughout the connector:
 
 The connector creates the following tables in your destination:
 
-| Table name                      | Primary key                  | Description |
-|---------------------------------|------------------------------|-------------|
-| `COMPANIES`                     | `uid`                        | Contains flattened company data from the `/companies` endpoint |
-| `CONTACTS`                      | `uid`                        | Contains flattened contact data from the `/contacts` endpoint |
-| `CONTACT_COMPANY_RELATIONSHIPS` | `contact_uid`, `company_uid` | Junction table mapping contacts to their associated companies |
+| Table name                     | Primary key                  | Description |
+|--------------------------------|------------------------------|-------------|
+| `COMPANY`                      | `uid`                        | Contains flattened company data from the `/companies` endpoint |
+| `CONTACT`                      | `uid`                        | Contains flattened contact data from the `/contacts` endpoint |
+| `CONTACT_COMPANY_RELATIONSHIP` | `contact_uid`, `company_uid` | Junction table mapping contacts to their associated companies |
 
 
 ## Additional considerations
