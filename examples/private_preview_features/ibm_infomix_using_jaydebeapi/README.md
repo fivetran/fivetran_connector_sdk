@@ -79,7 +79,7 @@ The connector uses `jaydebeapi` to connect to the database and retrieve data. Th
   - Downloads the Informix JDBC driver from [here](https://dbschema.com/jdbc-driver/informix.html?srsltid=AfmBOor07R-wVy7YwCUWZW170KfIj4ggd7VeR_4F7sr2yZHtbodR33NO)
   - Extracts and installs the driver to /opt/informix directory
 
-> IMPORTANT: The feature to use external drivers is in private prieview. Please connect with our professional services to get more information about them and enable it for your connector.
+> IMPORTANT: The feature to use external drivers is in private preview. Please connect with our professional services to get more information about them and enable it for your connector.
 
 ## **Additional Considerations**
 
