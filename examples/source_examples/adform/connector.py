@@ -7,7 +7,11 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for API interactions
