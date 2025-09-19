@@ -53,7 +53,7 @@ Apply these rules to every `README.md` file inside Connector SDK **example folde
 
 * Every README must begin with **one H1 (`#`) heading** in Title Case.
 * All other headings must be **sentence case**.
-* Required H2-level sections (in order):
+* The required H2-level sections (in order) must be present:
 
   1. Connector overview
   2. Requirements
