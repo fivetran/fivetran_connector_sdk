@@ -20,16 +20,16 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- **Multi-Guild Support**: Automatically discovers and processes all guilds the bot has access to (Refer to `fetch_user_guilds` function, lines 140-150)
-- **Guild Filtering**: Configure which guilds to sync with include/exclude lists (Refer to `filter_guilds` function, lines 153-198)
-- **Guild Data**: Complete server information including settings, features, and metadata
-- **Channel Management**: All channel types (text, voice, category, etc.) with permissions and settings
-- **Member Analytics**: User profiles, roles, join dates, and activity status
-- **Message History**: Comprehensive message data with attachments, embeds, and reactions
-- **Incremental Sync**: Efficient updates using message timestamps and state management (Refer to `process_single_guild` function, lines 463-588)
-- **Rate Limit Handling**: Intelligent retry logic with exponential backoff
-- **Error Recovery**: Robust error handling with detailed logging
-- **AI/ML Optimized**: Structured data perfect for community analysis and sentiment tracking
+- **Multi-guild support**: Automatically discovers and processes all guilds the bot has access to (Refer to `fetch_user_guilds` function, lines 140-150)
+- **Guild filtering**: Configure which guilds to sync with include/exclude lists (Refer to `filter_guilds` function, lines 153-198)
+- **Guild data**: Complete server information including settings, features, and metadata
+- **Channel management**: All channel types (text, voice, category, etc.) with permissions and settings
+- **Member analytics**: User profiles, roles, join dates, and activity status
+- **Message history**: Comprehensive message data with attachments, embeds, and reactions
+- **Incremental sync**: Efficient updates using message timestamps and state management (Refer to `process_single_guild` function, lines 463-588)
+- **Rate limit handling**: Intelligent retry logic with exponential backoff
+- **Error recovery**: Robust error handling with detailed logging
+- **AI/ML optimized**: Structured data perfect for community analysis and sentiment tracking
 
 ## Configuration file
 
@@ -41,19 +41,14 @@ The connector requires the following configuration parameters in `configuration.
 }
 ```
 
-### Configuration Parameters
+### Configuration parameters
 
-- **bot_token** (required): Your Discord bot token (with or without "Bot " prefix - will be added automatically if missing)
-
-### Optional Parameters
-
-The connector automatically sets these defaults, but you can override them if needed:
-
-- **sync_all_guilds** (optional): Whether to sync all guilds the bot has access to (default: "true")
-- **guild_ids** (optional): Comma-separated list of specific guild IDs to sync (default: "" - sync all)
-- **exclude_guild_ids** (optional): Comma-separated list of guild IDs to exclude (default: "" - exclude none)
-- **sync_messages** (optional): Whether to sync message data (default: "true")
-- **message_limit** (optional): Maximum messages per channel to sync (default: "1000")
+- `bot_token` (required): Your Discord bot token (with or without the "bot" prefix - the connector ads it automatically if missing)
+- `sync_all_guilds` (optional): Specifies whether to sync all guilds the bot has access to (default: "true")
+- `guild_ids` (optional): Comma-separated list of specific guild IDs to sync (default: "" - sync all)
+- `exclude_guild_ids` (optional): Comma-separated list of guild IDs to exclude (default: "" - exclude none)
+- `sync_messages` (optional): Specifies whether to sync message data (default: "true")
+- `message_limit` (optional): Maximum messages per channel to sync (default: "1000")
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -73,32 +68,25 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses Discord Bot Token authentication (Refer to `validate_configuration` function, lines 41-73, and `get_discord_headers` function, lines 76-84). To set up authentication:
+This connector uses Discord bot token authentication (Refer to `validate_configuration` function, lines 41-73, and `get_discord_headers` function, lines 76-84). To set up authentication:
 
-1. **Create a Discord Application**:
-   - Go to [Discord Developer Portal](https://discord.com/developers/applications)
-   - Click "New Application" and give it a name
-   - Navigate to the "Bot" section in the left sidebar
-
-2. **Create a Bot**:
-   - Click "Add Bot" if no bot exists
-   - Copy the bot token (keep this secure!)
-   - Add the "Bot " prefix to your token: `Bot YOUR_TOKEN_HERE`
-
-3. **Set Bot Permissions**:
-   - In the Bot section, scroll down to "Privileged Gateway Intents"
-   - Enable "Server Members Intent" (required for member data)
-   - Enable "Message Content Intent" (required for message content)
-
-4. **Invite Bot to Server**:
-   - Go to OAuth2 > URL Generator
-   - Select "bot" scope
-   - Select required permissions:
-     - Read Messages
-     - Read Message History  
-     - View Channels
-     - Read Server Members
-   - Use the generated URL to invite the bot to your server
+1. Create a Discord application:
+   - Go to [Discord Developer Portal](https://discord.com/developers/applications).
+   - Click **New Application** and give it a name.
+   - Navigate to the **Bot** section in the left sidebar.
+2. Create a bot:
+   - Click **Add Bot** if no bot exists.
+   - Make a note of the bot token. 
+   - Add the "Bot" prefix to your token: `Bot YOUR_TOKEN_HERE`
+3. Set bot permissions:
+   - In the Bot section, scroll down to **Privileged Gateway Intents**.
+   - Enable **Server Members Intent** (required for member data).
+   - Enable **Message Content Intent** (required for message content).
+4. Invite bot to server:
+   - Go to **OAuth2** > **URL Generator**.
+   - Select **bot** scope.
+   - Select the **Read Messages**, **Read Message History**, **View Channels**, and **Read Server Members** permissions:
+   - Use the generated URL to invite the bot to your server.
 
 ## Pagination
 
@@ -150,19 +138,19 @@ The connector implements comprehensive error handling strategies (Refer to `make
 
 The connector creates four main tables with the following structure:
 
-### guild
+### GUILD
 Primary key: `id`
 Contains complete Discord server information including settings, features, member counts, and metadata.
 
-### channel  
+### CHANNEL  
 Primary key: `id`
 All channel types (text, voice, category, etc.) with permissions, settings, and configuration.
 
-### member
-Primary key: `user_id`, `guild_id` (composite)
+### MEMBER
+Primary key: `user_id` and `guild_id` (composite primary key)
 User profiles with roles, join dates, activity status, and server-specific information.
 
-### message
+### MESSAGE
 Primary key: `id`
 Complete message data including content, attachments, embeds, reactions, and metadata.
 
