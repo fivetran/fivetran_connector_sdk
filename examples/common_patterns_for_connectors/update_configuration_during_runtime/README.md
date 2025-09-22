@@ -1,9 +1,9 @@
-# Updating Configuration during Runtime Connector Example
+# Updating Configuration During Runtime Connector Example
 
 ## Connector overview
-This example demonstrates how to update the configuration values using Fivetran REST API during a sync. It simulates a login flow where credentials are exchanged for a temporary session token, which is then used to authorize subsequent API requests. This temporary session token is updated in the configuration using Fivetran REST API during the sync. The connector retrieves user records and upserts them into a destination table named `USER`.
+This example demonstrates how to update the configuration values using Fivetran REST API during a sync. It simulates a login flow where credentials are exchanged for a temporary session token, which is then used to authorize subsequent API requests. This temporary session token is updated in the configuration using the Fivetran REST API during the sync. The connector retrieves user records and upserts them into a destination table named `USER`.
 
-This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
+This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock API responses locally. It is not meant for production use.
 
 
 ## Requirements
@@ -53,7 +53,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Authentication is done via a two-step session process:
 - The connector calls a login endpoint `(/login)` with username and password.
 - The response includes a session token, which is used in the `Authorization` header for subsequent data API calls.
-
     Example:
     `Authorization: Token <SESSION_TOKEN>`
 - The session token expires after a set duration (`__TOKEN_EXPIRY_TIME`). The connector refreshes the token as needed and updates the configuration using Fivetran REST API.
