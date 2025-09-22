@@ -1,0 +1,7 @@
+{
+    "host": "your-rds-endpoint.rds.amazonaws.com",
+    "port": "1521",
+    "service_name": "ORCL",
+    "user": "your-db-username",
+    "password": "your-db-password"
+}
