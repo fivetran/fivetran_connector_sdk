@@ -5,10 +5,11 @@
 This enhanced connector is specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. It can handle 1+ billion row tables without timeouts or hangs, prevents memory overflow on large datasets, has automati deadlock detection and timeout recovery, and provides visibility into your syncs' progress and status.
 
 ### How it works
-- **Smart Categorization**: Automatically groups tables by size (small/medium/large)
-- **Adaptive Processing**: Uses different strategies for each table size category
-- **Optimal Order**: Processes small tables first for quick wins, large tables last for safety
-- **Thread Management**: Never exceeds 4 threads, adapts based on table size
+The connector uses the following strategies to sync large datasets efficiently:
+- Automatically groups tables by size (small/medium/large). 
+- Uses different strategies for each table size category.
+- Processes small tables first for quick wins, and large tables last for safety.
+- Never exceeds 4 threads and adapts based on table size.
 
 ### Processing strategy
 | Table Size | Threads | Batch Size | Timeout | Checkpoint |
@@ -20,22 +21,22 @@ This enhanced connector is specifically designed to handle massive healthcare da
 ## Features
 
 ### Adaptive processing
-- **Table Size Optimization**: Automatically adjusts processing parameters based on table size
-- **Resource Monitoring**: Real-time system resource monitoring with automatic parameter adjustment (disabled)
-- **Processing Order**: Optimized table processing order (small → medium → large tables)
+- Table Size Optimization: Automatically adjusts processing parameters based on table size
+- Resource Monitoring: Real-time system resource monitoring with automatic parameter adjustment (disabled)
+- Processing Order: Optimized table processing order (small → medium → large tables)
 
 ### Advanced capabilities
-- **Incremental Sync**: Efficient incremental synchronization with proper state management
-- **Deadlock Handling**: Automatic deadlock detection and recovery
-- **Connection Management**: Robust connection handling with automatic reconnection
-- **Parallel Processing**: Multi-threaded processing for large tables
-- **Memory Management**: Intelligent memory usage optimization
+- Incremental Sync: Efficient incremental synchronization with proper state management
+- Deadlock Handling: Automatic deadlock detection and recovery
+- Connection Management: Robust connection handling with automatic reconnection
+- Parallel Processing: Multi-threaded processing for large tables
+- Memory Management: Intelligent memory usage optimization
 
 ### AI/ML optimizations
-- **Schema Evolution**: Handles dynamic schema changes common in AI/ML data
-- **High-Volume Processing**: Optimized for large datasets typical in ML pipelines
-- **Feature Engineering**: Efficient handling of wide tables with many features
-- **Time-Series Data**: Optimized processing for time-series data patterns
+- Schema Evolution: Handles dynamic schema changes common in AI/ML data
+- High-Volume Processing: Optimized for large datasets typical in ML pipelines
+- Feature Engineering: Efficient handling of wide tables with many features
+- Time-Series Data: Optimized processing for time-series data patterns
 
 ## Architecture overview
 
@@ -262,17 +263,17 @@ END
 
 The connector uses adaptive processing based on table size thresholds:
 
-- **SMALL_TABLE_THRESHOLD** (1M rows): Tables smaller than this use maximum parallelism
-- **LARGE_TABLE_THRESHOLD** (50M rows): Tables larger than this use minimal parallelism
+- SMALL_TABLE_THRESHOLD (1M rows): Tables smaller than this use maximum parallelism
+- LARGE_TABLE_THRESHOLD (50M rows): Tables larger than this use minimal parallelism
 
 ### AI/ML data adjustments
 
 For AI/ML data pipelines, consider these threshold adjustments:
 
-- **Wide Tables** (many features): Reduce `SMALL_TABLE_THRESHOLD` by 25%
-- **High Cardinality Data**: Increase `LARGE_TABLE_THRESHOLD` by 50%
-- **Sparse Data**: Reduce both thresholds by 50%
-- **Time-Series Data**: Use default thresholds (work well as-is)
+- Wide Tables (many features): Reduce `SMALL_TABLE_THRESHOLD` by 25%
+- High Cardinality Data: Increase `LARGE_TABLE_THRESHOLD` by 50%
+- Sparse Data: Reduce both thresholds by 50%
+- Time-Series Data: Use default thresholds (work well as-is)
 
 ### Resource monitoring thresholds
 
@@ -312,12 +313,6 @@ if __name__ == "__main__":
         configuration = json.load(f)
     connector.debug(configuration=configuration)
 ```
-
-### Production deployment
-
-1. Package the connector with dependencies
-2. Deploy to Fivetran's connector infrastructure
-3. Configure sync schedules in Fivetran dashboard
 
 ## What to expect
 
@@ -446,62 +441,62 @@ When `psutil` is available, the connector logs:
 ## Key benefits for healthcare data
 
 ### Handles massive tables
-- **`FLOWSHEETVALUE`**: >1.9 billion rows processed safely
-- **`USERACTIONLOG`**: >900 million rows with optimized partitioning
-- **`PATIENTACTION`**: >800 million rows with adaptive batching
+- `FLOWSHEETVALUE`: >1.9 billion rows processed safely
+- `USERACTIONLOG`: >900 million rows with optimized partitioning
+- `PATIENTACTION`: >800 million rows with adaptive batching
 
 ### Prevents timeouts and hangs
-- **Adaptive Timeouts**: 3 hours for small tables, 12 hours for large tables
-- **Connection Management**: Automatic reconnection and deadlock detection
-- **Memory Management**: Smaller batches and queues for large tables
+- Adaptive Timeouts: 3 hours for small tables, 12 hours for large tables
+- Connection Management: Automatic reconnection and deadlock detection
+- Memory Management: Smaller batches and queues for large tables
 
 ### Optimized performance
-- **Small Tables**: Process quickly with 4 threads and large batches
-- **Medium Tables**: Balanced approach with 2 threads and moderate batches
-- **Large Tables**: Single-threaded to avoid overwhelming the database
+- Small Tables: Process quickly with 4 threads and large batches
+- Medium Tables: Balanced approach with 2 threads and moderate batches
+- Large Tables: Single-threaded to avoid overwhelming the database
 
 ## Advanced features
 
 ### Automatic error recovery
-- **Deadlock Detection**: Pattern matching for deadlock errors
-- **Timeout Handling**: Connection timeout detection and recovery
-- **Exponential Backoff**: Intelligent retry with jitter
-- **State Persistence**: Resume from last successful checkpoint
+- Deadlock Detection: Pattern matching for deadlock errors
+- Timeout Handling: Connection timeout detection and recovery
+- Exponential Backoff: Intelligent retry with jitter
+- State Persistence: Resume from last successful checkpoint
 
 ### Memory and resource management
-- **Adaptive Queue Sizes**: Prevents memory overflow on large tables
-- **Connection Pooling**: Efficient database connection management
-- **Batch Processing**: Optimized record processing based on table size
-- **Checkpointing**: Frequent state saves to prevent data loss
-- **System Resource Monitoring**: Adaptive batches for every table
+- Adaptive Queue Sizes: Prevents memory overflow on large tables
+- Connection Pooling: Efficient database connection management
+- Batch Processing: Optimized record processing based on table size
+- Checkpointing: Frequent state saves to prevent data loss
+- System Resource Monitoring: Adaptive batches for every table
 
 ### Monitoring and validation
-- **Progress Tracking**: Real-time updates on processing status
-- **Record Validation**: Counts processed vs. expected records
-- **Performance Metrics**: Processing time and throughput tracking
-- **Error Logging**: Comprehensive error tracking and reporting
+- Progress Tracking: Real-time updates on processing status
+- Record Validation: Counts processed vs. expected records
+- Performance Metrics: Processing time and throughput tracking
+- Error Logging: Comprehensive error tracking and reporting
 
 ## Best practices
 
 ### Performance optimization
 
-1. **Monitor Resource Usage**: Enable `psutil` for automatic optimization
-2. **Adjust Thresholds**: Fine-tune thresholds based on your data characteristics
-3. **Use Debug Mode**: Test with debug mode to understand processing behavior
-4. **Monitor Logs**: Review logs for optimization opportunities
+1. Monitor Resource Usage: Enable `psutil` for automatic optimization
+2. Adjust Thresholds: Fine-tune thresholds based on your data characteristics
+3. Use Debug Mode: Test with debug mode to understand processing behavior
+4. Monitor Logs: Review logs for optimization opportunities
 
 ### AI/ML data considerations
 
-1. **Schema Evolution**: The connector handles schema changes automatically
-2. **Feature Engineering**: Optimize for wide tables with many features
-3. **Time-Series Optimization**: Leverage built-in time-series optimizations
-4. **Batch Processing**: Use appropriate batch sizes for your data volume
+1. Schema Evolution: The connector handles schema changes automatically
+2. Feature Engineering: Optimize for wide tables with many features
+3. Time-Series Optimization: Leverage built-in time-series optimizations
+4. Batch Processing: Use appropriate batch sizes for your data volume
 
 ### Security
 
-1. **SSL Certificates**: Proper SSL certificate configuration
-2. **Connection Security**: Secure database connections
-3. **Credential Management**: Secure credential storage and handling
+1. SSL Certificates: Proper SSL certificate configuration
+2. Connection Security: Secure database connections
+3. Credential Management: Secure credential storage and handling
 
 ## Troubleshooting
 
