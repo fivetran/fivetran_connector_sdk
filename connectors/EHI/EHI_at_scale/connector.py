@@ -4,11 +4,11 @@ Fivetran Connector for SQL Server Database with Adaptive Processing
 This connector demonstrates how to efficiently sync data from SQL Server databases with 
 adaptive processing based on table sizes and system resources. It includes:
 
-- Adaptive batch sizes and thread counts based on table size
-- Resource monitoring and automatic parameter adjustment
+- Resource monitoring and automatic parameter adjustment (if psutil is installed)
 - Deadlock and timeout handling with automatic reconnection
 - Incremental sync support with proper state management
 - Optimized processing order (small tables first, then medium, then large)
+Note: Resource monitoring and automatic parameter adjustment require the 'psutil' library. If 'psutil' is not installed, these features will be disabled and the connector will operate with static parameters.
 
 For AI/ML data pipelines, this connector is optimized for:
 - High-volume data processing with memory management
