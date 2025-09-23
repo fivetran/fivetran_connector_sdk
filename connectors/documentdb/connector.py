@@ -14,11 +14,12 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
-# Import the required libraries
+# Required to load configuration in debug
 import json
+
+# Required for data transformations before upsert
 from datetime import timezone, datetime
 from dateutil import parser
-import ssl
 
 # Import the MongoDB driver for DocumentDB (DocumentDB is MongoDB-compatible)
 from pymongo import MongoClient
@@ -40,24 +41,16 @@ def create_documentdb_connection(configuration: dict):
     password = configuration.get("password")
     database = configuration.get("database")
 
-    # DocumentDB connection string
-    connection_string = f"mongodb://{username}:{password}@{host}:{port}/{database}?ssl=true&ssl_cert_reqs=CERT_NONE&retryWrites=false"
+    # DocumentDB connection string with proper SSL configuration
+    connection_string = f"mongodb://{username}:{password}@{host}:{port}/?tls=true&retryWrites=false&DirectConnection=true"
 
     try:
-        # Create SSL context for DocumentDB
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-
-        # Create MongoDB client with SSL configuration
+        # Create MongoDB client without SSL configuration
         client = MongoClient(
             connection_string,
-            ssl=True,
-            ssl_cert_reqs=ssl.CERT_NONE,
-            ssl_context=ssl_context,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
+            tls=True,
+            tlsAllowInvalidCertificates=True,
+            tlsAllowInvalidHostnames=True,
         )
 
         # Test the connection
@@ -147,10 +140,8 @@ def upsert_documents_from_collection(
             "name": document.get("name"),
             "email": document.get("email"),
             "status": document.get("status"),
-            "created_at": (
-                document.get("created_at").isoformat() if document.get("created_at") else None
-            ),
-            "updated_at": doc_updated_at.isoformat() if doc_updated_at else None,
+            "created_at": document.get("created_at").replace(tzinfo=timezone.utc),
+            "updated_at": doc_updated_at.replace(tzinfo=timezone.utc),
             "metadata": document.get("metadata", {}),
         }
 
