@@ -32,14 +32,26 @@ This simple connector can be enhanced* with the following optimizations from {Gi
 """
 
 # Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import source-specific modules
+# For JSON data serialization and configuration parsing
 import json
+
+# Microsoft SQL Server database driver for TDS protocol connections
 import pytds
-from datetime import datetime
+
+# For timestamp handling and timezone-aware operations
+from datetime import datetime, timezone
+
+# For type annotations in function signatures
 from typing import Dict, List, Any
 
 # Configuration constants
@@ -437,7 +449,7 @@ def update(configuration: dict, state: dict):
             # - Monitor table processing performance metrics
             
             # Update state with current sync time
-            current_time = datetime.utcnow().isoformat() + "Z"
+            current_time = datetime.now(timezone.utc).isoformat()
             state[table_name] = current_time
             
             # Checkpoint after processing each table
@@ -447,7 +459,7 @@ def update(configuration: dict, state: dict):
         
         # Final validation record
         op.upsert(table="SYNC_VALIDATION", data={
-            "sync_timestamp": datetime.utcnow().isoformat() + "Z",
+            "sync_timestamp": datetime.now(timezone.utc).isoformat(),
             "total_tables": len(tables),
             "total_records": total_records,
             "tables_processed": ", ".join(tables)
