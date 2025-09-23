@@ -6,6 +6,8 @@ This connector integrates AWS DocumentDB with Fivetran, syncing data from Docume
 
 **Note**: Fivetran already provides a native Java-based DocumentDB connector that supports SaaS deployment models. This Python-based connector is specifically intended for Hybrid Deployment (HD) scenarios, as the native connector does not support Hybrid Deployment. For SaaS deployments, we recommend using the native DocumentDB connector available at https://fivetran.com/docs/connectors/databases/documentdb.
 
+**Important Network Consideration**: DocumentDB clusters are typically deployed in private subnets and do not allow direct connections from outside the VPC. If you need to connect from outside the VPC (such as from your local development environment), you can set up an EC2 instance in the same VPC as your DocumentDB cluster using the [AWS automatic connectivity guide](https://docs.aws.amazon.com/documentdb/latest/developerguide/connect-ec2-auto.html#auto-connect-ec2.process). Once the EC2 instance is set up, you can create a TCP tunnel using socat: `socat TCP-LISTEN:27017,fork TCP:<documentDBHost>:27017` to forward traffic from your local machine to the DocumentDB cluster through the EC2 instance.
+
 The connector is designed to handle large datasets efficiently through streaming and pagination techniques, making it suitable for production environments with significant data volumes. It supports MongoDB-compatible operations since DocumentDB is MongoDB-compatible.
 
 ## Requirements
