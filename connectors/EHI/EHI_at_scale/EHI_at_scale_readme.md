@@ -512,7 +512,7 @@ Enable debug mode for detailed logging:
 }
 ```
 
-## Important notes
+## Notes
 
 1. **Large Tables Take Time**: Tables with 50M+ rows will process for hours, not minutes
 2. **Memory Usage**: Large tables use smaller batches to prevent memory issues
