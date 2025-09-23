@@ -18,7 +18,7 @@ from fivetran_connector_sdk import Logging as log
 import json
 
 # Required for data transformations before upsert
-from datetime import timezone, datetime
+from datetime import timezone
 from dateutil import parser
 
 # Import the MongoDB driver for DocumentDB (DocumentDB is MongoDB-compatible)
@@ -39,7 +39,6 @@ def create_documentdb_connection(configuration: dict):
     port = int(configuration.get("port", 27017))
     username = configuration.get("username")
     password = configuration.get("password")
-    database = configuration.get("database")
 
     # DocumentDB connection string with proper SSL configuration
     connection_string = f"mongodb://{username}:{password}@{host}:{port}/?tls=true&retryWrites=false&DirectConnection=true"
