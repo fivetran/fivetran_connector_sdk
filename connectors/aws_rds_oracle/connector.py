@@ -72,10 +72,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     Returns:
         List of table schemas for Fivetran.
     """
-    return [
-        {"table": table_def["table"], "primary_key": table_def["pk"]}
-        for table_def in TABLES
-    ]
+    return [{"table": table_def["table"], "primary_key": table_def["pk"]} for table_def in TABLES]
 
 
 def update(configuration: dict, state: dict) -> None:
