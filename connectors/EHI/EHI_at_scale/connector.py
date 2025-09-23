@@ -20,36 +20,82 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+# Standard library imports for core functionality
+# For file system operations and path handling
 import os
+
+# For JSON data serialization and configuration parsing
 import json
+
+# For regular expressions used in certificate parsing
 import re
-import requests
-import concurrent.futures
-from datetime import datetime, timedelta
+
+# For mathematical operations like ceiling calculations for partition sizing
 import math
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+
+# For detecting operating system (Darwin for macOS)
 import platform
+
+# For creating temporary files for SSL certificate storage
 import tempfile
+
+# For executing OpenSSL commands to generate certificate chains
 import subprocess
-from contextlib import contextmanager
-import queue
+
+# For sleep operations in retry logic and timing
 import time
+
+# For adding jitter to exponential backoff retry delays
 import random
+
+# For thread-safe operations and connection management
 import threading
-from typing import Dict, List, Any, Optional, Tuple
+
+# For thread-safe queue operations in multi-threaded data processing
+import queue
+
+# For creating context managers for database connections
+from contextlib import contextmanager
+
+# For timestamp handling and timezone-aware operations
+from datetime import datetime, timedelta, timezone
+
+# Third-party imports for advanced functionality
+# For ThreadPoolExecutor to enable parallel processing of table partitions
+import concurrent.futures
+
+# For HTTP requests to fetch SSL certificate chains from DigiCert
+import requests
+
+# Microsoft SQL Server database driver for TDS protocol connections
 import pytds
 
-# Try to import psutil for resource monitoring, fallback gracefully if not available
+# Type hints for better code documentation and IDE support
+# For type annotations in function signatures
+from typing import Dict, List, Any, Optional, Tuple
+
+# Optional resource monitoring import with graceful fallback
+# psutil provides system resource monitoring (CPU, memory, disk usage) for adaptive processing
+# This allows the connector to automatically adjust batch sizes and thread counts based on system load
 try:
+    # For monitoring system resources (CPU, memory, disk) to optimize processing parameters
     import psutil
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
     log.warning("psutil not available - resource monitoring will be disabled")
 
-# =============================================================================
 # CONFIGURATION CONSTANTS - ADAPTIVE PROCESSING THRESHOLDS
-# =============================================================================
 # 
 # THRESHOLD OPTIMIZATION GUIDE:
 # These thresholds control how the connector adapts its processing strategy based on table size.
@@ -82,10 +128,6 @@ MEMORY_THRESHOLD_CRITICAL = 90  # 90% memory usage triggers aggressive reduction
 CPU_THRESHOLD_HIGH = 85  # 85% CPU usage triggers thread reduction
 CPU_THRESHOLD_CRITICAL = 95  # 95% CPU usage triggers aggressive reduction
 
-# =============================================================================
-# HARDCODED SQL QUERIES FROM CONFIG.JSON
-# =============================================================================
-# 
 # These queries are optimized for SQL Server and include Fivetran-specific fields.
 # Modify these queries to match your specific database schema and requirements.
 
@@ -157,9 +199,7 @@ SELECT threadgroup, min_ord1pk AS lowerbound, max_ord1pk AS upperbound, splitsiz
 FROM minmax ORDER BY threadgroup
 """
 
-# =============================================================================
 # ERROR HANDLING PATTERNS
-# =============================================================================
 
 # Deadlock detection patterns
 DEADLOCK_PATTERNS = [
@@ -185,9 +225,7 @@ TIMEOUT_PATTERNS = [
     'timeout expired'
 ]
 
-# =============================================================================
 # CONNECTION MANAGEMENT
-# =============================================================================
 
 class ConnectionManager:
     """
@@ -213,7 +251,7 @@ class ConnectionManager:
         """Check if current connection has exceeded timeout limit."""
         if not self.connection_start_time:
             return True
-        elapsed = datetime.utcnow() - self.connection_start_time
+        elapsed = datetime.now(timezone.utc) - self.connection_start_time
         return elapsed.total_seconds() > (self.timeout_hours * 3600)
     
     def _is_deadlock_error(self, error: Exception) -> bool:
@@ -232,7 +270,7 @@ class ConnectionManager:
             conn = connect_to_mssql(self.configuration)
             self.current_connection = conn
             self.current_cursor = conn.cursor()
-            self.connection_start_time = datetime.utcnow()
+            self.connection_start_time = datetime.now(timezone.utc)
             log.info(f"New database connection established at {self.connection_start_time}")
             return conn, self.current_cursor
         except Exception as e:
@@ -287,11 +325,9 @@ class TimeoutError(Exception):
     """Custom exception for timeout errors."""
     pass
 
-# =============================================================================
 # UTILITY FUNCTIONS
-# =============================================================================
 
-def safe_get_column_value(row, column_name: str, column_index: int = 0):
+def safe_get_column_value(row, column_name: str, column_index: int = 0) -> Any:
     """
     Safely extract a column value from a cursor row, handling both dict and tuple formats.
     
@@ -324,7 +360,7 @@ def safe_get_column_names(cursor) -> List[str]:
         log.warning(f"Error extracting column names: {e}")
         return []
 
-def safe_get_table_name(row, table_name_column: str = 'TABLE_NAME', table_name_index: int = 0) -> str:
+def safe_get_table_name(row, table_name_column: str = 'TABLE_NAME', table_name_index: int = 0) -> Optional[str]:
     """Safely extract table name from a cursor row."""
     try:
         value = safe_get_column_value(row, table_name_column, table_name_index)
@@ -336,7 +372,7 @@ def safe_get_table_name(row, table_name_column: str = 'TABLE_NAME', table_name_i
         log.warning(f"Error extracting table name: {e}")
         return None
 
-def safe_get_column_name(row, column_name_column: str = 'COLUMN_NAME', column_name_index: int = 0) -> str:
+def safe_get_column_name(row, column_name_column: str = 'COLUMN_NAME', column_name_index: int = 0) -> Optional[str]:
     """Safely extract column name from a cursor row."""
     try:
         value = safe_get_column_value(row, column_name_column, column_name_index)
@@ -459,9 +495,7 @@ def connect_to_mssql(configuration: dict):
     )
     return conn
 
-# =============================================================================
 # CONFIGURATION VALIDATION
-# =============================================================================
 
 def validate_configuration(configuration: dict) -> None:
     """
@@ -501,9 +535,7 @@ def ensure_string_configuration(configuration: dict) -> dict:
     
     return string_config
 
-# =============================================================================
 # ADAPTIVE PROCESSING FUNCTIONS
-# =============================================================================
 
 def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, base_batch_size: int) -> Dict[str, Any]:
     """
@@ -668,9 +700,7 @@ def get_adaptive_checkpoint_interval(table_size: int) -> int:
     else:
         return CHECKPOINT_INTERVAL // 10  # 100K for large tables
 
-# =============================================================================
 # RESOURCE MONITORING FUNCTIONS
-# =============================================================================
 
 def monitor_resources() -> Dict[str, Any]:
     """
@@ -729,7 +759,7 @@ def monitor_resources() -> Dict[str, Any]:
             'memory_critical': memory_critical,
             'cpu_pressure': cpu_pressure,
             'cpu_critical': cpu_critical,
-            'timestamp': datetime.utcnow()
+            'timestamp': datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -796,9 +826,7 @@ def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[boo
     
     return False, current_threads
 
-# =============================================================================
 # DATA PROCESSING FUNCTIONS
-# =============================================================================
 
 def get_table_sizes(configuration: dict, conn_manager, tables: List[str]) -> Dict[str, int]:
     """
@@ -945,9 +973,7 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
     log.info("Starting sync process...")
     log.info("=" * 80)
 
-# =============================================================================
 # SCHEMA DISCOVERY AND PROCESSING
-# =============================================================================
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
@@ -1022,7 +1048,7 @@ def process_incremental_sync(table: str, configuration: dict, state: dict,
     Returns:
         Number of records processed
     """
-    start_date = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    start_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     records_processed = 0
     
     # Get table size for adaptive parameters
@@ -1341,7 +1367,7 @@ def update(configuration: dict, state: dict):
     
     for table, category, row_count in categorized_tables:
         processed_tables += 1
-        start_date = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         records_processed = 0
         
         log.info(f"Processing table {processed_tables}/{total_tables}: {table} "
@@ -1400,7 +1426,7 @@ def update(configuration: dict, state: dict):
                     count = 0
             
             op.upsert(table="VALIDATION", data={
-                "datetime": datetime.utcnow().isoformat() + "Z",
+                "datetime": datetime.now(timezone.utc).isoformat(),
                 "tablename": table,
                 "count": count,
                 "records_processed": records_processed,
@@ -1423,9 +1449,7 @@ def update(configuration: dict, state: dict):
                 log.info(f"Resource Monitor: Current status - Memory {current_status['memory_usage']:.1f}%, "
                         f"CPU {current_status['cpu_percent']:.1f}%, Disk {current_status['disk_usage']:.1f}%")
 
-# =============================================================================
 # CONNECTOR INITIALIZATION
-# =============================================================================
 
 # Initialize the connector with the defined update and schema functions
 connector = Connector(update=update, schema=schema)
@@ -1435,4 +1459,4 @@ if __name__ == "__main__":
     config_path = os.path.join(current_dir, "config.json")
     with open(config_path, "r") as f:
         cfg = json.load(f)
-    connector.debug(configuration=cfg) 
+    connector.debug(configuration=cfg)
