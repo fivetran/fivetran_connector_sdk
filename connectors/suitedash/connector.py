@@ -268,6 +268,49 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
         raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
 
 
+def process_and_upsert_records(
+    records: list,
+    table_name: str,
+    record_processor_func,
+    relationship_processor_func=None,
+) -> tuple[int, int]:
+    """
+    Processes and upserts a batch of records from a single API page.
+
+    This helper function iterates through a list of records, applies the necessary
+    transformations, upserts the main record, and optionally processes any
+    defined relationships.
+
+    Args:
+        records (list): A list of record dictionaries to be processed.
+        table_name (str): The destination table name for the upsert operation.
+        record_processor_func (callable): Function to process an individual record.
+        relationship_processor_func (callable, optional): Function to process relationships.
+
+    Returns:
+        tuple[int, int]: A tuple containing the count of processed records and
+                         the count of processed relationships for the given batch.
+    """
+    records_in_page = 0
+    relationships_in_page = 0
+    for record in records:
+        # Process main record data
+        processed_record = record_processor_func(record)
+
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table=table_name, data=processed_record)
+
+        records_in_page += 1
+
+        # Process relationships if function provided
+        if relationship_processor_func:
+            relationships_in_page += relationship_processor_func(record, op)
+
+    return records_in_page, relationships_in_page
+
+
 def sync_endpoint_with_pagination(
     state: dict,
     configuration: dict,
@@ -281,6 +324,7 @@ def sync_endpoint_with_pagination(
     Generic function to sync data from SuiteDash API endpoints with pagination support.
     Handles pagination, processing, and upserting records.
     Args:
+        state (dict): State dictionary to manage sync progress
         configuration (dict): Configuration dictionary containing API credentials
         endpoint (str): API endpoint path (e.g., "/companies", "/contacts")
         endpoint_name (str): Human-readable endpoint name for logging
@@ -294,8 +338,8 @@ def sync_endpoint_with_pagination(
     headers = get_api_headers(configuration)
     page = 1
     more_data = True
-    records_processed = 0
-    relationships_processed = 0
+    total_records_processed = 0
+    total_relationships_processed = 0
 
     while more_data:
         url = f"{__BASE_URL}{endpoint}"
@@ -312,16 +356,16 @@ def sync_endpoint_with_pagination(
             log.info(f"No more {endpoint_name} to process")
             break
 
-        # Process each record
-        for record in records:
-            # Process main record data
-            processed_record = record_processor_func(record)
-            op.upsert(table=table_name, data=processed_record)
-            records_processed += 1
+        # Process the batch of records from the current page
+        page_records, page_relationships = process_and_upsert_records(
+            records,
+            table_name,
+            record_processor_func,
+            relationship_processor_func,
+        )
 
-            # Process relationships if function provided (for contacts)
-            if relationship_processor_func:
-                relationships_processed += relationship_processor_func(record, op)
+        total_records_processed += page_records
+        total_relationships_processed += page_relationships
 
         # Check pagination metadata to determine if more pages exist
         pagination = response_data.get("meta", {}).get("pagination", {})
@@ -332,14 +376,14 @@ def sync_endpoint_with_pagination(
         else:
             more_data = False
 
+        log_message = (
+            f"Processed page {page} of {endpoint_name}, total processed: {total_records_processed}"
+        )
+
         if relationship_processor_func:
-            log.info(
-                f"Processed page {page} of {endpoint_name}, total processed: {records_processed}, relationships: {relationships_processed}"
-            )
-        else:
-            log.info(
-                f"Processed page {page} of {endpoint_name}, total processed: {records_processed}"
-            )
+            log_message += f", relationships: {total_relationships_processed}"
+
+        log.info(log_message)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -347,18 +391,17 @@ def sync_endpoint_with_pagination(
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
+    # Build and write final summary log
+    summary_message = f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {total_records_processed}"
+
     if relationship_processor_func:
-        log.info(
-            f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}, relationships: {relationships_processed}"
-        )
-    else:
-        log.info(
-            f"{endpoint_name.capitalize()} sync completed. Total {endpoint_name} processed: {records_processed}"
-        )
+        summary_message += f", relationships: {total_relationships_processed}"
+
+    log.info(summary_message)
 
     return {
-        "records_processed": records_processed,
-        "relationships_processed": relationships_processed,
+        "records_processed": total_records_processed,
+        "relationships_processed": total_relationships_processed,
     }
 
 
