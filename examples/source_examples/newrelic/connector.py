@@ -352,6 +352,10 @@ def get_apm_data(
                 "throughput": result.get("throughput", 0),
                 "apdex_score": result.get("apdexScore", 0),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="apm_data", data=record)
             record_count += 1
 
@@ -428,6 +432,10 @@ def get_infrastructure_data(
                 "reporting": entity.get("reporting", False),
                 "tags": json.dumps(entity.get("tags", [])),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="infrastructure_data", data=record)
             record_count += 1
 
@@ -497,6 +505,10 @@ def get_browser_data(
                 "load_time": result.get("loadTime", 0),
                 "dom_content_loaded": result.get("domContentLoaded", 0),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="browser_data", data=record)
             record_count += 1
 
@@ -566,6 +578,10 @@ def get_mobile_data(
                 "os_version": result.get("osVersion", ""),
                 "crash_count": result.get("crashCount", 0),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="mobile_data", data=record)
             record_count += 1
 
@@ -635,6 +651,10 @@ def get_synthetic_data(
                 "location": result.get("location", ""),
                 "error_message": result.get("errorMessage", ""),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="synthetic_data", data=record)
             record_count += 1
 
