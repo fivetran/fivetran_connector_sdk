@@ -209,7 +209,27 @@ END
 
 ## Configuration
 
-### Required Parameters
+### Available parameters
+
+```json
+{
+    "MSSQL_SERVER": "<YOUR_VALUE_1>",
+    "MSSQL_CERT_SERVER": "<YOUR_VALUE_2>",
+    "MSSQL_PORT": "<YOUR_VALUE_3>",
+    "MSSQL_DATABASE": "<YOUR_VALUE_4>",
+    "MSSQL_USER": "<YOUR_VALUE_5>",
+    "MSSQL_PASSWORD": "<YOUR_VALUE_6>",
+    "CERT": "<YOUR_VALUE_7>",
+    "THREADS": "<YOUR_VALUE_8>",
+    "MAX_QUEUE_SIZE": "<YOUR_VALUE_9>",
+    "MAX_RETRIES": "<YOUR_VALUE_10>",
+    "RETRY_SLEEP_SECONDS": "<YOUR_VALUE_11>",
+    "DEBUG": "<YOUR_VALUE_12>"
+
+}
+```
+
+### Required parameters
 
 ```json
 {
@@ -223,29 +243,29 @@ END
 }
 ```
 
-### Optional Parameters
+### Optional parameters
 
 ```json
 {
-    "cert": "<YOUR_VALUE_7>",
-    "threads": "<YOUR_VALUE_8>",
-    "max_queue_size": "<YOUR_VALUE_9>",
-    "max_retries": "<YOUR_VALUE_10>",
-    "retry_sleep_seconds": "<YOUR_VALUE_11>",
-    "debug": "<YOUR_VALUE_12>"
+    "CERT": "<YOUR_VALUE_7>",
+    "THREADS": "<YOUR_VALUE_8>",
+    "MAX_QUEUE_SIZE": "<YOUR_VALUE_9>",
+    "MAX_RETRIES": "<YOUR_VALUE_10>",
+    "RETRY_SLEEP_SECONDS": "<YOUR_VALUE_11>",
+    "DEBUG": "<YOUR_VALUE_12>"
 }
 ```
 
-## Threshold Optimization Guide
+## Threshold optimization guide
 
-### Table Size Thresholds
+### Table size thresholds
 
 The connector uses adaptive processing based on table size thresholds:
 
 - **SMALL_TABLE_THRESHOLD** (1M rows): Tables smaller than this use maximum parallelism
 - **LARGE_TABLE_THRESHOLD** (50M rows): Tables larger than this use minimal parallelism
 
-### AI/ML Data Adjustments
+### AI/ML data adjustments
 
 For AI/ML data pipelines, consider these threshold adjustments:
 
@@ -254,14 +274,14 @@ For AI/ML data pipelines, consider these threshold adjustments:
 - **Sparse Data**: Reduce both thresholds by 50%
 - **Time-Series Data**: Use default thresholds (work well as-is)
 
-### Resource Monitoring Thresholds
+### Resource monitoring thresholds
 
 When `psutil` is available, the connector monitors:
 
-- **Memory Usage**: 
+- **Memory usage**: 
   - High: 80% (triggers batch size reduction)
   - Critical: 90% (triggers aggressive reduction)
-- **CPU Usage**:
+- **CPU usage**:
   - High: 85% (triggers thread reduction)
   - Critical: 95% (triggers aggressive reduction)
 
@@ -281,7 +301,7 @@ fivetran debug --configuration config.json
 
 ## Usage
 
-### Basic Usage
+### Basic usage
 
 ```python
 from connector import connector
@@ -293,7 +313,7 @@ if __name__ == "__main__":
     connector.debug(configuration=configuration)
 ```
 
-### Production Deployment
+### Production deployment
 
 1. Package the connector with dependencies
 2. Deploy to Fivetran's connector infrastructure
@@ -514,28 +534,12 @@ Enable debug mode for detailed logging:
 
 ## Notes
 
-1. **Large Tables Take Time**: Tables with 50M+ rows will process for hours, not minutes
-2. **Memory Usage**: Large tables use smaller batches to prevent memory issues
-3. **Single Threading**: Large tables use single-threading to avoid overwhelming the database
-4. **Frequent Checkpoints**: Large tables checkpoint every 100K records for safety
-5. **Connection Timeouts**: Large tables get longer connection timeouts (12 hours)
-6. **Resource Monitoring**: Disabled, but adaptive processing based on table size is fully functional
-
-## Expected results
-
-- **No More Timeouts**: Adaptive timeouts prevent connection drops
-- **Faster Overall Sync**: Small tables process quickly while large tables process safely
-- **Better Memory Usage**: Adaptive parameters prevent memory overflow
-- **Progress Visibility**: Clear visibility into what's happening and what's next
-- **Resilient Processing**: Automatic recovery from deadlocks and timeouts
-
-## Future enhancements
-
-When resource monitoring is re-enabled, the connector provides:
-- **Real-time System Monitoring**: CPU, memory, and disk usage tracking
-- **Dynamic Parameter Adjustment**: Automatic optimization based on system pressure
-- **Predictive Scaling**: Proactive parameter adjustment before resource exhaustion
-- **Performance Analytics**: Detailed performance metrics and optimization recommendations
+- Large Tables Take Time: Tables with 50M+ rows will process for hours, not minutes
+- Memory Usage: Large tables use smaller batches to prevent memory issues
+- Single Threading: Large tables use single-threading to avoid overwhelming the database
+- Frequent Checkpoints: Large tables checkpoint every 100K records for safety
+- Connection Timeouts: Large tables get longer connection timeouts (12 hours)
+- Resource Monitoring: Disabled, but adaptive processing based on table size is fully functional
 
 ## Support
 
@@ -544,7 +548,3 @@ For issues and questions:
 1. Review the [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
 2. Check the [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 3. Review connector logs for detailed error information
-
-## License
-
-This connector follows Fivetran's connector development guidelines and best practices.
