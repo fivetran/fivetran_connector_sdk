@@ -36,13 +36,13 @@ class RecordsResponse:
 
 
 # Constants
-API_BASE_URL = "https://api.quickbase.com/v1"
-DEFAULT_TIMEOUT = 30
-DEFAULT_RETRY_ATTEMPTS = 3
-DEFAULT_MAX_RECORDS = 1000
-DEFAULT_SYNC_FREQUENCY_HOURS = 4
-DEFAULT_INITIAL_SYNC_DAYS = 90
-RECORD_ID_FIELD = "3"  # QuickBase standard Record ID field
+_API_BASE_URL = "https://api.quickbase.com/v1"
+_DEFAULT_TIMEOUT = 30
+_DEFAULT_RETRY_ATTEMPTS = 3
+_DEFAULT_MAX_RECORDS = 1000
+_DEFAULT_SYNC_FREQUENCY_HOURS = 4
+_DEFAULT_INITIAL_SYNC_DAYS = 90
+_RECORD_ID_FIELD = "3"  # QuickBase standard Record ID field
 
 
 class SyncType(Enum):
@@ -60,15 +60,15 @@ class QuickBaseConfig:
     realm_hostname: str
     app_id: str
     table_ids: List[str]
-    sync_frequency_hours: int = DEFAULT_SYNC_FREQUENCY_HOURS
-    initial_sync_days: int = DEFAULT_INITIAL_SYNC_DAYS
-    max_records_per_page: int = DEFAULT_MAX_RECORDS
-    request_timeout_seconds: int = DEFAULT_TIMEOUT
-    retry_attempts: int = DEFAULT_RETRY_ATTEMPTS
+    sync_frequency_hours: int = _DEFAULT_SYNC_FREQUENCY_HOURS
+    initial_sync_days: int = _DEFAULT_INITIAL_SYNC_DAYS
+    max_records_per_page: int = _DEFAULT_MAX_RECORDS
+    request_timeout_seconds: int = _DEFAULT_TIMEOUT
+    retry_attempts: int = _DEFAULT_RETRY_ATTEMPTS
     enable_incremental_sync: bool = True
     enable_fields_sync: bool = True
     enable_records_sync: bool = True
-    date_field_for_incremental: str = RECORD_ID_FIELD
+    date_field_for_incremental: str = _RECORD_ID_FIELD
     enable_debug_logging: bool = False
 
 
@@ -77,7 +77,7 @@ class QuickBaseAPIClient:
 
     def __init__(self, config: QuickBaseConfig):
         self.config = config
-        self.base_url = API_BASE_URL
+        self.base_url = _API_BASE_URL
         self.headers = {
             "Authorization": f"QB-USER-TOKEN {config.user_token}",
             "QB-Realm-Hostname": config.realm_hostname,
@@ -357,7 +357,7 @@ class QuickBaseDataProcessor:
             record_data[field_name] = str(field_value) if field_value is not None else ""
 
             # Use field 3 (Record ID#) as the record_id if available
-            if field_id == RECORD_ID_FIELD:
+            if field_id == _RECORD_ID_FIELD:
                 record_data["record_id"] = str(field_value) if field_value else ""
 
             # Look for timestamp fields in the record data
@@ -436,23 +436,23 @@ def parse_configuration(configuration: dict) -> QuickBaseConfig:
         app_id=str(configuration.get("app_id", "")).strip(),
         table_ids=parse_table_ids(str(configuration.get("table_ids", ""))),
         sync_frequency_hours=safe_int(
-            configuration.get("sync_frequency_hours"), DEFAULT_SYNC_FREQUENCY_HOURS
+            configuration.get("sync_frequency_hours"), _DEFAULT_SYNC_FREQUENCY_HOURS
         ),
         initial_sync_days=safe_int(
-            configuration.get("initial_sync_days"), DEFAULT_INITIAL_SYNC_DAYS
+            configuration.get("initial_sync_days"), _DEFAULT_INITIAL_SYNC_DAYS
         ),
         max_records_per_page=safe_int(
-            configuration.get("max_records_per_page"), DEFAULT_MAX_RECORDS
+            configuration.get("max_records_per_page"), _DEFAULT_MAX_RECORDS
         ),
         request_timeout_seconds=safe_int(
-            configuration.get("request_timeout_seconds"), DEFAULT_TIMEOUT
+            configuration.get("request_timeout_seconds"), _DEFAULT_TIMEOUT
         ),
-        retry_attempts=safe_int(configuration.get("retry_attempts"), DEFAULT_RETRY_ATTEMPTS),
+        retry_attempts=safe_int(configuration.get("retry_attempts"), _DEFAULT_RETRY_ATTEMPTS),
         enable_incremental_sync=safe_bool(configuration.get("enable_incremental_sync"), True),
         enable_fields_sync=safe_bool(configuration.get("enable_fields_sync"), True),
         enable_records_sync=safe_bool(configuration.get("enable_records_sync"), True),
         date_field_for_incremental=str(
-            configuration.get("date_field_for_incremental", RECORD_ID_FIELD)
+            configuration.get("date_field_for_incremental", _RECORD_ID_FIELD)
         ),
         enable_debug_logging=safe_bool(configuration.get("enable_debug_logging"), False),
     )
@@ -507,92 +507,22 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
         {
             "table": "application",
             "primary_key": ["app_id"],
-            "columns": {
-                "app_id": "STRING",
-                "name": "STRING",
-                "description": "STRING",
-                "created": "STRING",
-                "updated": "STRING",
-                "date_format": "STRING",
-                "time_zone": "STRING",
-                "ancestor_id": "STRING",
-                "has_everyone_on_internet": "BOOLEAN",
-                "data_classification": "STRING",
-                "variables": "STRING",
-                "security_properties": "STRING",
-                "memory_info": "STRING",
-                "timestamp": "STRING",
-            },
         },
         {
             "table": "table",
             "primary_key": ["table_id"],
-            "columns": {
-                "table_id": "STRING",
-                "app_id": "STRING",
-                "name": "STRING",
-                "description": "STRING",
-                "created": "STRING",
-                "updated": "STRING",
-                "key_field_id": "STRING",
-                "next_field_id": "STRING",
-                "next_record_id": "STRING",
-                "default_sort_field_id": "STRING",
-                "timestamp": "STRING",
-            },
         },
         {
             "table": "field",
             "primary_key": ["field_id", "table_id"],
-            "columns": {
-                "field_id": "STRING",
-                "table_id": "STRING",
-                "name": "STRING",
-                "field_type": "STRING",
-                "mode": "STRING",
-                "no_wrap": "BOOLEAN",
-                "bold": "BOOLEAN",
-                "required": "BOOLEAN",
-                "appears_by_default": "BOOLEAN",
-                "find_enabled": "BOOLEAN",
-                "unique": "BOOLEAN",
-                "does_total": "BOOLEAN",
-                "does_average": "BOOLEAN",
-                "does_max": "BOOLEAN",
-                "does_min": "BOOLEAN",
-                "does_stddev": "BOOLEAN",
-                "does_count": "BOOLEAN",
-                "does_data_copy": "BOOLEAN",
-                "field_help": "STRING",
-                "audited": "BOOLEAN",
-                "timestamp": "STRING",
-            },
         },
         {
             "table": "record",
             "primary_key": ["table_id", "record_id"],
-            "columns": {
-                "table_id": "STRING",
-                "record_id": "STRING",
-                "timestamp": "STRING",
-            },
         },
         {
             "table": "sync_metadata",
             "primary_key": ["table_id"],
-            "columns": {
-                "table_id": "STRING",
-                "last_sync_time": "STRING",
-                "total_records_synced": "INT",
-                "sync_status": "STRING",
-                "error_message": "STRING",
-                "total_records": "INT",
-                "num_records": "INT",
-                "num_fields": "INT",
-                "skip": "INT",
-                "top": "INT",
-                "timestamp": "STRING",
-            },
         },
     ]
 
@@ -621,11 +551,19 @@ def update(configuration: dict, state: dict) -> None:
         app_data = api_client.get_application()
         if app_data:
             processed_app = processor.process_application_data(app_data)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="application", data=processed_app)
             log.info("Applications data synced")
 
         # Sync tables data (simplified - just create entry for app_id)
         table_data = processor.process_table_data(config.app_id)
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="table", data=table_data)
         log.info("Tables data synced")
 
@@ -641,6 +579,10 @@ def update(configuration: dict, state: dict) -> None:
                 fields = api_client.get_fields(table_id)
                 for field in fields:
                     processed_field = processor.process_field_data(field, table_id)
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The op.upsert method is called with two arguments:
+                    # - The first argument is the name of the table to upsert the data into.
+                    # - The second argument is a dictionary containing the data to be upserted,
                     op.upsert(table="field", data=processed_field)
                 log.info(f"Fields synced for table {table_id}: {len(fields)} fields")
 
@@ -658,12 +600,20 @@ def update(configuration: dict, state: dict) -> None:
                     processed_record = processor.process_record_data(
                         record, table_id, response.fields_map
                     )
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The op.upsert method is called with two arguments:
+                    # - The first argument is the name of the table to upsert the data into.
+                    # - The second argument is a dictionary containing the data to be upserted,
                     op.upsert(table="record", data=processed_record)
 
                 # Create sync metadata with API metadata
                 sync_metadata = processor.create_sync_metadata(
                     table_id, response.records_count, metadata=response.metadata
                 )
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="sync_metadata", data=sync_metadata)
 
                 log.info(f"Records synced for table {table_id}: {response.records_count} records")
@@ -676,6 +626,11 @@ def update(configuration: dict, state: dict) -> None:
         for table_id in tables_to_sync:
             new_state[f"table_{table_id}_last_sync"] = current_time
 
+        # Update state with the current sync time for the next run
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
         log.info("QuickBase connector sync completed successfully")
 
