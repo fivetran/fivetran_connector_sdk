@@ -155,33 +155,6 @@ def fetch_employee_data_batch(
         )
 
 
-def get_total_new_records_count(supabase_client: Client, table_name: str, last_hire_date: str):
-    """
-    Get the total count of new records to be synced for better progress tracking.
-    Args:
-        supabase_client: The Supabase client instance.
-        table_name: The name of the table to fetch data from.
-        last_hire_date: The last hire date from the previous sync.
-    Returns:
-        Total count of new records.
-    """
-    try:
-        response = (
-            supabase_client.table(table_name)
-            .select("*", count="exact")
-            .gt("hire_date", last_hire_date)
-            .execute()
-        )
-
-        total_count = response.count if response.count is not None else 0
-        log.info(f"Total new records to sync: {total_count}")
-        return total_count
-
-    except Exception as e:
-        log.warning(f"Could not get total count: {e}. Proceeding with batch processing.")
-        return None
-
-
 def update(configuration: dict, state: dict):
     """
      Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -210,8 +183,6 @@ def update(configuration: dict, state: dict):
     new_hire_date = last_hire_date
 
     try:
-        # Get total count for progress tracking (optional, helps with monitoring)
-        get_total_new_records_count(supabase_client, table_name, last_hire_date)
 
         row_count = 0
         batch_count = 0
