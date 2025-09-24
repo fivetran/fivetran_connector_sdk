@@ -10,7 +10,7 @@ It establishes a connection to an Oracle instance and incrementally extracts tab
 ## Requirements
 
 **Supported Python versions:**  
-- Python 3.8 or later
+- Python 3.9–3.12
 
 **Operating system:**  
 - Windows: 10 or later (64-bit only)  
