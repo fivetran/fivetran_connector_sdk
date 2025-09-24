@@ -26,6 +26,7 @@ from typing import Optional
 
 
 __BASE_URL = "https://api.vercel.com"  # Base URL for Vercel API
+__DEPLOYMENTS_ENDPOINT = "/v6/deployments"  # Endpoint path for deployments API
 __PAGINATION_LIMIT = 20  # Pagination limit - you can change this constant value
 __REQUEST_TIMEOUT_IN_SECONDS = 30  # Request timeout in seconds
 
@@ -204,7 +205,7 @@ def sync_deployments(
     log.info("Starting deployments sync")
 
     # Build the URL and query parameters
-    url = f"{__BASE_URL}/v6/deployments"
+    url = f"{__BASE_URL}{__DEPLOYMENTS_ENDPOINT}"
     params: dict = {"limit": __PAGINATION_LIMIT}
 
     # Add team ID if provided to access team resources
