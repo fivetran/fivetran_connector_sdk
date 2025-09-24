@@ -25,7 +25,7 @@ claude_code/
 ### 1. Initialize Claude Code
 Start Claude Code in this folder:
 ```bash
-cd AI_agents/claude_code
+cd all_things_ai/ai_agents/claude_code
 claude-code
 ```
 

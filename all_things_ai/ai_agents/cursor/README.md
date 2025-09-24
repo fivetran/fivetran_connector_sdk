@@ -25,7 +25,7 @@ cursor/
 ```bash
 # Install Cursor from cursor.sh
 # Open this folder in Cursor
-cd AI_agents/cursor
+cd all_things_ai/ai_agents/cursor
 cursor .
 ```
 

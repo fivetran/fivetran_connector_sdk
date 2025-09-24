@@ -54,7 +54,7 @@ import json
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    with open("/configuration.json", 'r') as f:
+    with open("configuration.json", 'r') as f:
         configuration = json.load(f)
     connector.debug(configuration=configuration)
 ```

@@ -13,8 +13,8 @@ This directory provides specialized AI agent setups for different development to
 
 **Get Started:**
 ```bash
-cd AI_agents/claude_code
-claude-code
+cd all_things_ai/ai_agents/claude_code
+claude
 ```
 
 ### [Cursor](./cursor/)
@@ -85,9 +85,9 @@ Each agent generates:
 ## Quick Start Guide
 
 1. **Choose your preferred AI agent** from the options above
-2. **Navigate to the agent folder** (e.g., `cd AI_agents/claude_code`)
+2. **Navigate to the agent folder** (e.g., `cd all_things_ai/ai_agents/claude_code`)
 3. **Follow the README.md** in that folder for setup instructions
-4. **Start building!** Reference ../examples/ for connector patterns
+4. **Start building!** Reference ../../examples/ for connector patterns
 
 ## Common Workflow
 
@@ -95,7 +95,7 @@ Regardless of which agent you choose, the workflow is similar:
 
 1. **Setup**: Follow agent-specific setup instructions
 2. **Context**: Start the agents in the right folder so that they automatically load the AGENTS.md (or .claude/agents/*) content for AI assistance
-3. **Examples**: Browse the ../examples/ folder for connector patterns
+3. **Examples**: Browse the ../../examples/ folder for connector patterns
 4. **Build**: Create your connector with AI assistance
 5. **Test**: Use `fivetran debug --configuration config.json`
 6. **Deploy**: Follow Fivetran's deployment guidelines
@@ -110,12 +110,12 @@ Regardless of which agent you choose, the workflow is similar:
 ### Examples and Resources
 Each agent folder contains:
 - **Agent-specific guides**: Tailored instructions for each development environment
-- **Examples**: Located at ../examples/ with comprehensive connector patterns
+- **Examples**: Located at ../../examples/ with comprehensive connector patterns
 - **Documentation**: Links to official Fivetran SDK resources
 
 ### Getting Help
 1. Check the agent-specific README for setup
-2. Browse ../examples/ for similar connector patterns
+2. Browse ../../examples/ for similar connector patterns
 3. Use the AI assistant with provided context for debugging
 4. Refer to official Fivetran documentation for SDK details
 
