@@ -59,7 +59,7 @@ def validate_configuration(configuration: dict):
     """
 
     # Validate required configuration parameters
-    required_configs = ["username", "password"]
+    required_configs = ["username", "password", "fivetran_api_key"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -124,8 +124,7 @@ def update_configuration(config, new_token):
     # Making a PATCH request to the Fivetran API to update the configuration
     response = rq.request("PATCH", url, json=payload, headers=headers)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
-
-    log.info("Configuration updated successfully with new token")
+    log.info(f"Configuration updated successfully with new token: {response.json()}")
 
 
 def refresh_session_token(base_url, config):
