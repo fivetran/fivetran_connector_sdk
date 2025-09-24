@@ -19,10 +19,17 @@ import requests
 # Import json for configuration file handling
 import json
 
+# Import time for implementing retry delays
+import time
+
+# Import Any for type hinting
+from typing import Any
 
 __BASE_URL = "https://app.suitedash.com/secure-api"  # Base URL for SuiteDash API
 __COMPANIES_ENDPOINT = "/companies"  # Endpoint for fetching companies
 __CONTACTS_ENDPOINT = "/contacts"  # Endpoint for fetching contacts
+__MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
+__RETRY_DELAY = 1  # Base retry delay in seconds
 
 
 def validate_configuration(configuration: dict):
@@ -245,10 +252,10 @@ def get_api_headers(configuration: dict) -> dict:
     }
 
 
-def make_api_request(url: str, headers: dict, params=None) -> dict:
+def make_api_request(url: str, headers: dict, params=None) -> Any:
     """
-    Make an authenticated HTTP GET request to the SuiteDash API with error handling.
-    Handles HTTP errors and provides meaningful error messages for API failures.
+    Make an authenticated HTTP GET request to the SuiteDash API with retry logic and error handling.
+    Handles HTTP errors, rate limiting, and transient failures with exponential backoff.
     Args:
         url (str): The API endpoint URL to request
         headers (dict): Authentication headers for the request
@@ -256,16 +263,28 @@ def make_api_request(url: str, headers: dict, params=None) -> dict:
     Returns:
         dict: JSON response parsed as dictionary
     Raises:
-        RuntimeError: If the API request fails or returns an error status
+        RuntimeError: If the API request fails after all retry attempts
     """
-    try:
-        log.info(f"Making API call to: {url} with params: {params}")
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        log.severe(f"API request failed: {str(e)}")
-        raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
+    for attempt in range(__MAX_RETRIES):
+        try:
+            log.info(f"Making API call to: {url} with params: {params}")
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            if attempt == __MAX_RETRIES - 1:  # Last attempt
+                log.severe(f"API request failed after {__MAX_RETRIES} attempts: {str(e)}")
+                raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
+
+            # Calculate delay with exponential backoff
+            delay = __RETRY_DELAY * (2**attempt)
+            log.warning(
+                f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}), retrying in {delay}s: {str(e)}"
+            )
+            time.sleep(delay)
+
+    return None
 
 
 def process_and_upsert_records(
@@ -367,15 +386,6 @@ def sync_endpoint_with_pagination(
         total_records_processed += page_records
         total_relationships_processed += page_relationships
 
-        # Check pagination metadata to determine if more pages exist
-        pagination = response_data.get("meta", {}).get("pagination", {})
-        next_page_url = pagination.get("nextPage")
-
-        if next_page_url:
-            page += 1
-        else:
-            more_data = False
-
         log_message = (
             f"Processed page {page} of {endpoint_name}, total processed: {total_records_processed}"
         )
@@ -384,6 +394,15 @@ def sync_endpoint_with_pagination(
             log_message += f", relationships: {total_relationships_processed}"
 
         log.info(log_message)
+
+        # Check pagination metadata to determine if more pages exist
+        pagination = response_data.get("meta", {}).get("pagination", {})
+        next_page_url = pagination.get("nextPage")
+
+        if next_page_url:
+            page += 1
+        else:
+            more_data = False
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
