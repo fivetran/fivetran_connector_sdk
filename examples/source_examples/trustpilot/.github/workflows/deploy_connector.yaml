@@ -21,7 +21,7 @@ jobs:
     # Define variables for easy configuration
     env:
       PYTHON_VERSION: '3.11'
-      WORKING_DIRECTORY: '${{ github.workspace }}'
+      WORKING_DIRECTORY: 'examples/source_examples/trustpilot'
       CONNECTOR_NAME: 'Trustpilot'
       CONFIG_FILE: 'configuration.json'
       EXCLUDED_DEPENDENCIES: '^requests\b'
@@ -59,14 +59,14 @@ jobs:
         run: |
           echo "{\"api_key\": \"${{ secrets.TRUSTPILOT_API_KEY }}\", 
             \"business_unit_id\": \"${{ secrets.TRUSTPILOT_BUSINESS_UNIT_ID }}\",
-            \"consumer_id\": \"${{ secrets.TRUSTPILOT_CONSUMER_ID }}\",
+            \"consumer_id\": \"${{ secrets.TRUSTPILOT_CONSUMER_ID || '' }}\",
             \"sync_frequency_hours\": \"${{ vars.SYNC_FREQUENCY_HOURS || '4' }}\",
             \"initial_sync_days\": \"${{ vars.INITIAL_SYNC_DAYS || '90' }}\",
             \"max_records_per_page\": \"${{ vars.MAX_RECORDS_PER_PAGE || '100' }}\",
             \"request_timeout_seconds\": \"${{ vars.REQUEST_TIMEOUT_SECONDS || '30' }}\",
             \"retry_attempts\": \"${{ vars.RETRY_ATTEMPTS || '3' }}\",
             \"enable_incremental_sync\": \"${{ vars.ENABLE_INCREMENTAL_SYNC || 'true' }}\",
-            \"enable_consumer_reviews\": \"${{ vars.ENABLE_CONSUMER_REVIEWS || 'true' }}\",
+            \"enable_consumer_reviews\": \"${{ vars.ENABLE_CONSUMER_REVIEWS || 'false' }}\",
             \"enable_invitation_links\": \"${{ vars.ENABLE_INVITATION_LINKS || 'true' }}\",
             \"enable_categories\": \"${{ vars.ENABLE_CATEGORIES || 'true' }}\",
             \"data_retention_days\": \"${{ vars.DATA_RETENTION_DAYS || '730' }}\",

@@ -72,12 +72,29 @@ def __validate_required_fields(configuration: dict) -> None:
     required_fields = {
         "api_key": "API key cannot be empty",
         "business_unit_id": "Business unit ID cannot be empty",
-        "consumer_id": "Consumer ID cannot be empty",
     }
 
     for field, error_msg in required_fields.items():
         if field not in configuration or not str(configuration.get(field, "")).strip():
             raise ValueError(error_msg)
+
+
+def __validate_consumer_fields(configuration: dict) -> None:
+    """
+    Validate consumer-specific configuration fields when consumer reviews are enabled.
+    Args:
+        configuration: Configuration dictionary
+    Raises:
+        ValueError: If consumer fields are missing when consumer reviews are enabled
+    """
+    enable_consumer_reviews = (
+        str(configuration.get("enable_consumer_reviews", "true")).lower() == "true"
+    )
+
+    if enable_consumer_reviews:
+        consumer_id = configuration.get("consumer_id", "")
+        if not str(consumer_id).strip():
+            raise ValueError("Consumer ID is required when consumer reviews are enabled")
 
 
 def __validate_numeric_ranges(configuration: dict) -> None:
@@ -132,6 +149,7 @@ def validate_configuration(configuration: dict):
         ValueError: if any required configuration parameter is missing.
     """
     __validate_required_fields(configuration)
+    __validate_consumer_fields(configuration)
     __validate_numeric_ranges(configuration)
 
 
@@ -593,7 +611,7 @@ def update(configuration: dict, state: dict):
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
     """
-    log.info("Starting Trustpilot API connector sync")
+    log.warning("Starting Trustpilot API connector sync")
 
     # Validate the configuration
     validate_configuration(configuration=configuration)
@@ -601,7 +619,9 @@ def update(configuration: dict, state: dict):
     # Extract configuration parameters
     api_key = str(configuration.get("api_key", ""))
     business_unit_id = str(configuration.get("business_unit_id", ""))
-    consumer_id = str(configuration.get("consumer_id", ""))
+    consumer_id = (
+        str(configuration.get("consumer_id", "")) if configuration.get("consumer_id") else ""
+    )
 
     # Get feature flags from configuration
     enable_consumer_reviews = (
@@ -661,8 +681,8 @@ def update(configuration: dict, state: dict):
         else:
             log.info("Categories data fetching disabled")
 
-        # Fetch consumer reviews data (if enabled)
-        if enable_consumer_reviews:
+        # Fetch consumer reviews data (if enabled and consumer_id is provided)
+        if enable_consumer_reviews and consumer_id:
             log.info("Fetching consumer reviews data...")
             for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
                 # The 'upsert' operation is used to insert or update data in the destination table.
@@ -670,6 +690,8 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="consumer_review", data=record)
+        elif enable_consumer_reviews and not consumer_id:
+            log.info("Consumer reviews data fetching disabled - no consumer_id provided")
         else:
             log.info("Consumer reviews data fetching disabled")
 

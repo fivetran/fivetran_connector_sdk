@@ -167,16 +167,16 @@ The connector requires the following configuration keys. For production deployme
 Required configuration keys:
 - `api_key`: Trustpilot API key for REST API access
 - `business_unit_id`: Trustpilot business unit ID for data extraction
-- `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews
 
 Optional configuration keys:
+- `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews (required only when `enable_consumer_reviews` is true)
 - `sync_frequency_hours`: Sync frequency in hours (1-24, default: 4)
 - `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
 - `max_records_per_page`: Maximum records per API page (1-100, default: 100)
 - `request_timeout_seconds`: API request timeout in seconds (default: 30)
 - `retry_attempts`: Number of retry attempts for failed requests (default: 3)
 - `enable_incremental_sync`: Enable incremental sync (true/false, default: true)
-- `enable_consumer_reviews`: Enable consumer reviews data fetching (true/false, default: true)
+- `enable_consumer_reviews`: Enable consumer reviews data fetching (true/false, default: false)
 - `enable_invitation_links`: Enable invitation links data fetching (true/false, default: true)
 - `enable_categories`: Enable categories data fetching (true/false, default: true)
 - `data_retention_days`: Data retention period in days (default: 730)
