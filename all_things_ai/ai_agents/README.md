@@ -55,7 +55,7 @@ agent_name/
 └── .claude/           # Claude Code specific sub-agents (claude_code only)
     └── agents/
 
-# Examples are located at: ../examples/
+# Examples are located at: ../../examples/
 ```
 
 ### Recommendations:

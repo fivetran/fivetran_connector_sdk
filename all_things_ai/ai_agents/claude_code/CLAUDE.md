@@ -31,7 +31,7 @@ When receiving a request:
 - Identify appropriate connector pattern
 - Determine if new connector or modification
 - Check technical limitations
-- Reference relevant examples from ../../examples/ directory
+- Reference relevant examples from ../../../examples/ directory
 - Assess AI/ML data characteristics
 
 2. IMPLEMENTATION GUIDANCE

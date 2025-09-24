@@ -145,7 +145,7 @@ log.severe(f"Error details: {error_details}")
   - **NEVER** use `Generator` return type annotations
   - **ALWAYS** use simple `dict` and `list` built-in types like the SDK examples
 5. **Docstrings**: Include detailed docstrings for all functions
-6. **Examples**: Use the extensive examples in the ../examples/ directory as reference patterns:
+6. **Examples**: Use the extensive examples in the ../../../../examples/ directory as reference patterns:
   - **quickstart_examples/**: Basic patterns like hello world, configuration, large datasets
   - **common_patterns_for_connectors/**: Authentication methods, pagination, cursors, error handling
   - **source_examples/**: Real-world connectors for various data sources (databases, APIs)
@@ -207,7 +207,7 @@ log.severe(f"Error details: {error_details}")
 
 ## Real-time Progress Updates:
 - 🔍 Analyzing project requirements and API documentation...
-- 📚 Studying relevant examples from ../examples/ directory...
+- 📚 Studying relevant examples from ../../../../examples/ directory...
 - 🎯 Identified patterns: [authentication method, data patterns, source type]
 - ⚙️ Generating connector.py following [specific example] structure...  
 - 📝 Creating configuration.json with authentication fields...
