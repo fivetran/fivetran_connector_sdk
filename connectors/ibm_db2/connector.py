@@ -20,7 +20,6 @@ from fivetran_connector_sdk import Operations as op
 #   ibm_db_dbi: Python driver for IBM Db2 for LUW that complies to the DB-API 2.0 specification.
 import ibm_db
 import json
-import datetime
 
 # Set the checkpoint interval to 1000 rows
 CHECKPOINT_INTERVAL = 1000
@@ -143,9 +142,6 @@ def standardize_row_data(row):
             row_data[key] = float(value)
         elif isinstance(value, str):
             row_data[key] = value
-        elif isinstance(value, (datetime.date, datetime.datetime)):
-            # Convert datetime to ISO format string
-            row_data[key] = value.isoformat()
         elif value is None:
             row_data[key] = None
         else:
@@ -195,8 +191,8 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
         row_count += 1
 
         # Update the latest hire date if the current row's hire date is more recent
-        if "hire_date" in row_data and row_data["hire_date"] > latest_hire:
-            latest_hire = row_data["hire_date"]
+        if "hire_date" in row_data and row_data["hire_date"].isoformat() > latest_hire:
+            latest_hire = row_data["hire_date"].isoformat()
 
         if row_count % CHECKPOINT_INTERVAL == 0:
             # Checkpoint operation every CHECKPOINT_INTERVAL rows

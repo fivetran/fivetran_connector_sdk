@@ -71,7 +71,6 @@ Refer to the `create_influx_client` function in the `connector.py` file for impl
 The connector processes data as follows:  
 - Executes a SQL query against the specified InfluxDB measurement
 - Processes the returned data in chunks using Apache Arrow RecordBatch
-- Converts timestamps to UTC ISO format for standardization
 - Maintains state to track progress and support incremental syncs
 
 Refer to the `execute_query_and_upsert` and `upsert_record_batch` functions in the `connector.py` file for implementation details.

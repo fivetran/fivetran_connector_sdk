@@ -51,8 +51,7 @@ def create_influx_client(configuration: dict):
 
 def handle_timestamp(value):
     """
-    This function handles the conversion of timestamp values to UTC ISO format.
-    It ensures that the timestamp is in a strict ISO 8601 format with 'Z' for UTC.
+    This function handles the conversion of timestamp values to UTC datetime object.
     If the value is not a datetime object, it returns the value as is.
     """
     if isinstance(value, datetime):
@@ -61,9 +60,6 @@ def handle_timestamp(value):
             value = value.replace(tzinfo=timezone.utc)
         else:
             value = value.astimezone(timezone.utc)
-        # Convert to ISO format and replace "+00:00" with "Z" to match strict ISO 8601 UTC format.
-        value = value.isoformat().replace("+00:00", "Z")
-
     return value
 
 
@@ -92,8 +88,9 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
             row_dict[col] = value
 
         # Update the latest upserted timestamp if the current row's timestamp is greater.
-        if "time" in row_dict and row_dict["time"] > latest_upserted_timestamp:
-            latest_upserted_timestamp = row_dict["time"]
+        fetched_time = row_dict.get("time").isoformat().replace("+00:00", "Z")
+        if "time" in row_dict and fetched_time > latest_upserted_timestamp:
+            latest_upserted_timestamp = fetched_time
 
         # The 'upsert' operation is used to insert or update the data in the destination table.
         # The op.upsert method is called with two arguments:

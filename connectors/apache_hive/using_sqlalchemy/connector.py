@@ -60,10 +60,8 @@ def process_row(columns, row):
     """
     row_data = {}
     for col_name, value in zip(columns, row):
-        if isinstance(value, datetime):
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            value = value.isoformat()
+        if isinstance(value, datetime) and value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
         row_data[col_name] = value
     return row_data
 
@@ -104,8 +102,8 @@ def fetch_and_upsert_data(session, table_name: str, state: dict):
 
         # Update the last_created state with the maximum created_at value.
         # This is used to track the last created record for incremental sync.
-        if row_data.get("created_at") and row_data["created_at"] > last_created:
-            last_created = row_data["created_at"]
+        if row_data.get("created_at") and row_data["created_at"].isoformat() > last_created:
+            last_created = row_data["created_at"].isoformat()
 
         # Checkpointing the state every CHECKPOINT_INTERVAL rows
         # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
