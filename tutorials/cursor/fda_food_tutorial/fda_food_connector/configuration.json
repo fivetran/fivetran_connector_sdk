@@ -1,0 +1,7 @@
+{
+    "max_records": "100",
+    "use_api_key": "false",
+    "api_key": "",
+    "lookback_days": "30",
+    "use_date_filter": "false"
+}

@@ -1,0 +1,9 @@
+{
+    "api_key": "",
+    "base_url": "https://api.fda.gov/drug/",
+    "requests_per_checkpoint": "10",
+    "rate_limit_delay": "0.25",
+    "flatten_nested": "true",
+    "create_child_tables": "false",
+    "max_api_calls_per_endpoint": "2"
+}
