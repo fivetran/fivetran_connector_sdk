@@ -51,7 +51,12 @@ def connect_oracle(configuration: dict) -> "oracledb.Connection":
     user, and password.
     """
     host = get_config_value(configuration, "host")
-    port = int(get_config_value(configuration, "port", "1521"))
+    port_str = get_config_value(configuration, "port", "1521")
+    try:
+        port = int(port_str)
+    except (ValueError, TypeError):
+        log.error(f"Invalid port value in configuration: '{port_str}'. Port must be an integer.")
+        raise ValueError(f"Invalid port value in configuration: '{port_str}'. Port must be an integer.")
     service = get_config_value(configuration, "service_name")
     user = get_config_value(configuration, "user")
     password = get_config_value(configuration, "password")
