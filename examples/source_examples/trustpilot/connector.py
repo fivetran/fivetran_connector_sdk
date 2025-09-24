@@ -1,22 +1,29 @@
-# Trustpilot API Connector
-"""This connector demonstrates how to fetch data from Trustpilot API and upsert it into destination using the Fivetran Connector SDK.
-Supports querying data from Reviews, Businesses, Categories, and Consumer APIs.
-"""
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""Trustpilot API Connector for Fivetran Connector SDK.
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+This connector demonstrates how to fetch data from Trustpilot API and upsert it into destination using the Fivetran Connector SDK.
+Supports querying data from Reviews, Businesses, Categories, and Consumer APIs.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import required libraries for API interactions
 import requests
-import json
 import time
 import random
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
+
+# For reading configuration from a JSON file
+import json
+
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 __INVALID_LITERAL_ERROR = "invalid literal"
 __TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
@@ -627,17 +634,29 @@ def update(configuration: dict, state: dict):
         # Fetch business unit data
         log.info("Fetching business unit data...")
         for record in get_business_data(api_key, business_unit_id, configuration):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="business_unit", data=record)
 
         # Fetch reviews data
         log.info("Fetching reviews data...")
         for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="review", data=record)
 
         # Fetch categories data (if enabled)
         if enable_categories:
             log.info("Fetching categories data...")
             for record in get_categories_data(api_key, configuration):
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="category", data=record)
         else:
             log.info("Categories data fetching disabled")
@@ -646,6 +665,10 @@ def update(configuration: dict, state: dict):
         if enable_consumer_reviews:
             log.info("Fetching consumer reviews data...")
             for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="consumer_review", data=record)
         else:
             log.info("Consumer reviews data fetching disabled")
@@ -656,6 +679,10 @@ def update(configuration: dict, state: dict):
             for record in get_invitations_data(
                 api_key, business_unit_id, last_sync_time, configuration
             ):
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="invitation_link", data=record)
         else:
             log.info("Invitation links data fetching disabled")
@@ -679,7 +706,10 @@ def update(configuration: dict, state: dict):
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
