@@ -48,23 +48,21 @@ def validate_datetime_format(date_string: str, field_name: str = "date"):
     Raises:
         ValueError: If the date string is not in a valid ISO format with timezone.
     """
+    expected_format = "Expected ISO format with timezone (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z')"
+
     if not date_string or not date_string.strip():
         raise ValueError(f"{field_name} cannot be empty")
 
     # Check for required components
     if "T" not in date_string:
-        raise ValueError(
-            f"Invalid {field_name} format: '{date_string}'. Expected ISO format with time component (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z')"
-        )
+        raise ValueError(f"Invalid {field_name} format: '{date_string}'. {expected_format}")
 
     # Check for timezone information (either Z or +/-offset)
     has_timezone = date_string.endswith("Z") or (
         "+" in date_string or "-" in date_string.split("T")[1]
     )
     if not has_timezone:
-        raise ValueError(
-            f"Invalid {field_name} format: '{date_string}'. Expected ISO format with timezone (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z')"
-        )
+        raise ValueError(f"Invalid {field_name} format: '{date_string}'. {expected_format}")
 
     try:
         # Handle 'Z' timezone suffix by converting to '+00:00'
@@ -72,7 +70,7 @@ def validate_datetime_format(date_string: str, field_name: str = "date"):
         datetime.fromisoformat(normalized_date)
     except ValueError as e:
         raise ValueError(
-            f"Invalid {field_name} format: '{date_string}'. Expected ISO format (e.g., '2023-01-01T00:00:00+00:00' or '2023-01-01T00:00:00Z'): {str(e)}"
+            f"Invalid {field_name} format: '{date_string}'. {expected_format}: {str(e)}"
         )
 
 
