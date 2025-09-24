@@ -5,6 +5,9 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+# For reading configuration from a JSON file
+import json
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -16,7 +19,6 @@ from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for API interactions
 import requests
-import json
 import time
 import random
 from datetime import datetime, timedelta, timezone
@@ -301,7 +303,7 @@ def update(configuration: dict, state: dict):
         configuration: the configuration for the connector.
         state: the state for the connector.
     """
-    log.info("Starting Adform connector sync")
+    log.warning("Starting Adform connector sync")
 
     # Validate configuration
     validate_configuration(configuration)
@@ -320,6 +322,10 @@ def update(configuration: dict, state: dict):
         new_processed_campaigns = []
 
         for campaign in get_campaigns(api_key, client_id, last_sync_time, configuration):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="campaign", data=campaign)
             campaign_count += 1
             campaign_id = campaign["id"]
