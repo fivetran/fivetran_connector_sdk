@@ -58,28 +58,13 @@ agent_name/
 # Examples are located at: ../examples/
 ```
 
-## Which Agent Should You Choose?
-
-| Feature | Claude Code | Cursor | VS Code | Windsurf |
-|---------|-------------|---------|----------|----------|
-| **AI Intelligence** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **SDK Specialization** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **Code Generation** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Debugging** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Collaboration** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Local Development** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ |
-| **Cloud Development** | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Learning Curve** | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-
 ### Recommendations:
 - **New to Fivetran SDK**: Start with **Claude Code** for maximum AI assistance
-- **Experienced developers**: Use **VS Code** for familiar environment with Copilot
-- **Team collaboration**: Choose **Windsurf** for cloud-based development
-- **Real-time coding**: Try **Cursor** for advanced AI-powered editing
+- **Experienced developers**: Use for Cursor or Windsurf familiar IDE environment with Agents
 
 ## Key Features Across All Agents
 
-### 🔧 Modern SDK Patterns
+### Connector SDK Patterns
 - **No Yield Required**: All agents use the latest SDK patterns without yield statements
 - **Direct Operations**: Simple `op.upsert()`, `op.checkpoint()` calls
 - **Enterprise Quality**: Production-ready code generation
@@ -96,12 +81,6 @@ Each agent generates:
 - Authentication and security patterns
 - State management and checkpointing
 - Rate limiting and pagination handling
-
-### 🚀 AI/ML Data Optimization
-- Optimized for AI and ML data sources
-- Handling of high-volume, high-velocity data
-- Schema evolution support
-- Batch processing patterns
 
 ## Quick Start Guide
 
