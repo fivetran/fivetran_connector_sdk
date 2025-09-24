@@ -123,7 +123,7 @@ def update(configuration: dict, state: dict) -> None:
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to
                 # upsert the data into,
-                # in this case, "customers".
+                # in this case, the table specified by `table_name`.
                 # - The second argument is a dictionary containing
                 # the data to be upserted,
                 op.upsert(table=table_name, data=record)
