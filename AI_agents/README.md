@@ -17,8 +17,8 @@ cd AI_agents/claude_code
 claude-code
 ```
 
-### 🖱️ [Cursor](./cursor/)
-**Best for: AI-enhanced IDE with real-time code completion**
+### [Cursor](./cursor/)
+**Best for: AI-enhanced IDE with Agents**
 - AI-powered code editor with smart completion
 - Real-time collaboration features
 - Integrated terminal and debugging
@@ -26,8 +26,8 @@ claude-code
 
 **Get Started:** Download from [cursor.sh](https://cursor.sh) and open the `cursor/` folder
 
-### 📝 [VS Code with GitHub Copilot](./vscode_with_github_copilot/)
-**Best for: GitHub Copilot integration and traditional IDE experience**
+### [VS Code with GitHub Copilot](./vscode_with_github_copilot/)
+**Best for: AI-enhanced IDE with Github Co-Pilot**
 - GitHub Copilot integration
 - Rich extension ecosystem
 - Debugging and testing capabilities
@@ -35,9 +35,9 @@ claude-code
 
 **Get Started:** Install VS Code and recommended extensions, then open the `vscode_with_github_copilot/` folder
 
-### ☁️ [Windsurf](./windsurf/)
-**Best for: Cloud-based collaborative development**
-- Browser-based development environment
+### [Windsurf](./windsurf/)
+**Best for: AI-enhanced IDE with Agents**
+- IDE-based development environment
 - Real-time team collaboration
 - Built-in AI assistance
 - No local setup required
