@@ -35,7 +35,7 @@ The connector requires the following configuration parameters:
 {
   "username": "<YOUR_USERNAME>",
   "password": "<YOUR_PASSWORD>",
-  "fivetran_api_key": "<YOUR_BASE64_ENCODED_FIVETRAN_API_KEY>",
+  "fivetran_api_key": "<YOUR_BASE64_ENCODED_FIVETRAN_API_KEY>"
 }
 ```
 
