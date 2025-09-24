@@ -194,8 +194,8 @@ def update(configuration, state):
     # The query is ordered by timestamp to ensure the data is processed in chronological order. This is important for data consistency.
     # You can modify this query to suit your needs
     dolphin_query = f"""
-    select symbol, timestamp, price, volume 
-    from loadTable('dfs://{database_name}', '{table_name}') 
+    select symbol, timestamp, price, volume
+    from loadTable('dfs://{database_name}', '{table_name}')
     where timestamp > nanotimestamp("{last_timestamp.replace("-", ".")}")
     order by timestamp
     """

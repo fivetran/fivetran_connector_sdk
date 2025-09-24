@@ -85,7 +85,7 @@ def setup_db(configuration):
 
     insert_data_sql = """
         INSERT INTO employee_details (first_name, last_name, hire_date, salary)
-        VALUES 
+        VALUES
             ('John', 'Doe', '2020-05-15', 55000, '2020-05-15T20:10:00'),
             ('Jane', 'Smith', '2018-03-22', 62000, '2020-05-16T20:10:00'),
             ('Alice', 'Johnson', '2019-07-30', 58000, '2020-05-17T20:10:00'),
