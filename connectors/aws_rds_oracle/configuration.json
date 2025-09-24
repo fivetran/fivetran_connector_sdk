@@ -1,7 +1,7 @@
 {
-    "host": "your-rds-endpoint.rds.amazonaws.com",
-    "port": "1521",
-    "service_name": "ORCL",
-    "user": "your-db-username",
-    "password": "your-db-password"
+    "host": "<YOUR_AWS_RDS_ORACLE_HOST>",
+    "port": "<YOUR_AWS_RDS_ORACLE_PORT>",
+    "service_name": "<YOUR_AWS_RDS_ORACLE_SERVICE_NAME>",
+    "user": "<YOUR_AWS_RDS_ORACLE_USER>",
+    "password": "<YOUR_AWS_RDS_ORACLE_PASSWORD>"
 }
