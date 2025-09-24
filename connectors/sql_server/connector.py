@@ -70,11 +70,6 @@ def connect_to_database(configuration):
         return None
 
 
-# Converting Date to String
-def dt2str(incoming: datetime) -> str:
-    return incoming.strftime(TIMESTAMP_FORMAT)
-
-
 # Add mock data to your database, for illustration purposes
 def setup_db(configuration):
     create_table_sql = """
@@ -186,9 +181,9 @@ def update(configuration: dict, state: dict):
                         "employee_id": row[0],  # Employee Id.
                         "first_name": row[1],  # First Name.
                         "last_name": row[2],  # Last Name.
-                        "hire_date": dt2str(row[3]),  # Hire Date.
+                        "hire_date": row[3],  # Hire Date.
                         "salary": row[4],  # Salary.
-                        "updated_time": row[5].isoformat(),  # Salary.
+                        "updated_time": row[5],  # Updated time.
                     },
                 )
                 if row[5] > last_query_dt:

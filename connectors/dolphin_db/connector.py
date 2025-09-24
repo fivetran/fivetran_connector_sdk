@@ -14,7 +14,6 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import the required libraries
-import datetime
 import json
 import pydolphindb  # This is used to connect to DolphinDB
 import pandas as pd
@@ -38,20 +37,16 @@ def validate_configuration(configuration: dict):
 def serialize_row_data(row: dict):
     """
     Serialize the row data to ensure it is in the correct format for upserting.
-    This function converts datetime objects to ISO strings.
+    This function converts pandas timestamp objects to python datetime objects.
     You can modify this function to handle other data types as needed.
     Args:
         row: a dictionary representing a single row of data.
     Returns:
-        A serialized dictionary with datetime objects converted to strings.
+        A serialized dictionary with datetime objects.
     """
     for key, value in row.items():
-        if isinstance(value, datetime.datetime):
-            row[key] = value.isoformat()  # Convert datetime to ISO format string
-        elif isinstance(value, pd.Timestamp):
-            row[key] = (
-                value.to_pydatetime().isoformat()
-            )  # Convert pandas Timestamp to ISO format string
+        if isinstance(value, pd.Timestamp):
+            row[key] = value.to_pydatetime()  # Convert pandas Timestamp to python datetime object
     return row
 
 
@@ -122,9 +117,9 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
             # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table=table_name, data=upsert_row)
 
-            if upsert_row["timestamp"] > last_timestamp:
+            if upsert_row["timestamp"].isoformat() > last_timestamp:
                 # Update the last_timestamp if the current row's timestamp is greater
-                last_timestamp = upsert_row["timestamp"]
+                last_timestamp = upsert_row["timestamp"].isoformat()
 
         state["last_timestamp"] = last_timestamp
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

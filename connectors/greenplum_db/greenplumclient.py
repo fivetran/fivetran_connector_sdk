@@ -1,6 +1,5 @@
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
 
 # Import required classes from fivetran_connector_sdk.
 # For enabling Logs in your connector code
@@ -82,8 +81,6 @@ class GreenplumClient:
         for row in self.cursor:
             # Converting the row to a dictionary
             upsert_row = dict(row)
-            # Converting datetime objects to ISO format.
-            upsert_row = GreenplumClient.convert_datetime_to_iso(upsert_row)
             # The 'upsert' operation is used to insert or update the data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
@@ -91,8 +88,8 @@ class GreenplumClient:
             op.upsert(table=table_name, data=upsert_row)
 
             # update the last_query_timestamp variable if the current row's query_start is greater than the last_query_timestamp
-            if upsert_row["query_start"] > last_query_timestamp:
-                last_query_timestamp = upsert_row["query_start"]
+            if upsert_row["query_start"].isoformat() > last_query_timestamp:
+                last_query_timestamp = upsert_row["query_start"].isoformat()
 
         state = {"last_query_timestamp": last_query_timestamp}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -100,12 +97,3 @@ class GreenplumClient:
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
-
-    @staticmethod
-    def convert_datetime_to_iso(data):
-        # This method converts datetime objects in the data dictionary to ISO format.
-        # This is a helper method to ensure that datetime values are serialized correctly.
-        for key, value in data.items():
-            if isinstance(value, datetime):
-                data[key] = value.isoformat()
-        return data

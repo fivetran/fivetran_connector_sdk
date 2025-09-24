@@ -16,7 +16,6 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
-import datetime
 
 
 def validate_configuration(configuration: dict):
@@ -133,10 +132,6 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-            # Ensure created_date is in ISO format if it exists
-            if row_data["date"] and isinstance(row_data["date"], datetime.date):
-                row_data["date"] = row_data["date"].isoformat()
-
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
@@ -144,8 +139,8 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
             op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
-            if row_data["date"] and row_data["date"] > last_created:
-                last_created = row_data["date"]
+            if row_data["date"] and row_data["date"].isoformat() > last_created:
+                last_created = row_data["date"].isoformat()
 
         # Update the state with the last_created timestamp after processing each batch
         state["last_created"] = last_created
