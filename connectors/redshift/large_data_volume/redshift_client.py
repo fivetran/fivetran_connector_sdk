@@ -22,7 +22,7 @@ from table_specs import (
     TIMESTAMP_TYPE_NAMES,
     CHECKPOINT_EVERY_ROWS,
 )  # Table specifications and constants
-
+import time
 
 # Global variable to hold the list of table plans used during the sync
 __TABLE_PLAN_LIST = None
@@ -111,13 +111,18 @@ def get_table_plans(configuration):
     """
     global __TABLE_PLAN_LIST
 
+    if __TABLE_PLAN_LIST is not None:
+        # Return the cached list of table plans if already built
+        return __TABLE_PLAN_LIST
+
     connection = connect_redshift(configuration=configuration)
     try:
-        if __TABLE_PLAN_LIST is None:
-            # Build the table plans only once per connector run
-            __TABLE_PLAN_LIST = build_table_plans(
-                connection=connection, configuration=configuration
-            )
+        t_build = time.perf_counter()
+        # Build the table plans only once per connector run
+        __TABLE_PLAN_LIST = build_table_plans(connection=connection, configuration=configuration)
+        build_time = time.perf_counter() - t_build
+        log.info(f"get_table_plans: build_table_plans time {build_time:.3f}s")
+
         # Return the list of table plans
         return __TABLE_PLAN_LIST
     finally:
@@ -133,6 +138,7 @@ def connect_redshift(configuration: dict):
     Returns:
         A Redshift connection object.
     """
+    t0 = time.perf_counter()
     connection = redshift_connector.connect(
         host=configuration.get("redshift_host"),
         port=int(configuration.get("redshift_port", "5439")),
@@ -142,6 +148,7 @@ def connect_redshift(configuration: dict):
         ssl=True,
     )
     log.info("Connected to Amazon Redshift Database successfully")
+    log.info(f"Connected to Amazon Redshift in {time.perf_counter() - t0:.3f}s")
     return connection
 
 
@@ -272,10 +279,11 @@ def build_select(redshift_schema, table, columns, replication_key, bookmark):
         A tuple of (sql_query, params) where sql_query is the parameterized SQL string
         and params is a list of parameters to bind to the query.
     """
-    if replication_key and replication_key not in columns:
-        columns.append(replication_key)
+    table_columns = list(columns)
+    if replication_key and replication_key not in table_columns:
+        table_columns.append(replication_key)
 
-    cols_sql = ", ".join(f'"{column}"' for column in columns)
+    cols_sql = ", ".join(f'"{column}"' for column in table_columns)
     sql = f'SELECT {cols_sql} FROM "{redshift_schema}"."{table}"'
 
     params = []
@@ -340,12 +348,14 @@ def fetch_metadata(connection, table_tuples):
     WHERE {where_clause}
     ORDER BY c.table_schema, c.table_name, c.ordinal_position;
     """
-
-    metadata = {}
+    t_exec = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall()
+    exec_time = time.perf_counter() - t_exec
 
+    t_proc = time.perf_counter()
+    metadata = {}
     for schema_name, table_name, column, datatype, _, is_primary_key in rows:
         key = (schema_name, table_name)
         if key not in metadata:
@@ -353,7 +363,10 @@ def fetch_metadata(connection, table_tuples):
         metadata[key]["columns"].append((column, datatype))
         if is_primary_key:
             metadata[key]["primary_keys"].append(column)
-
+    proc_time = time.perf_counter() - t_proc
+    log.info(
+        f"fetch_metadata: tables={len(table_tuples)}, execution time for metadata query ={exec_time:.3f}s, processing time for metadata query result={proc_time:.3f}s"
+    )
     return metadata
 
 
@@ -376,12 +389,14 @@ def fetch_schema_auto(connection, redshift_schema: str):
         WHERE table_schema = %s AND table_type = 'BASE TABLE'
         ORDER BY 1,2;
     """
-
+    t_list = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute(sql_tables, (redshift_schema,))
         # Build a list of (schema, table) tuples fetched from redshift information_schema
         # This is used when auto schema detection is enabled
         table_tuples = [(data[0], data[1]) for data in cursor.fetchall()]
+    list_time = time.perf_counter() - t_list
+    log.info(f"fetch_schema_auto: discovered {len(table_tuples)} table(s) in {list_time:.3f}s")
 
     # Fetch the metadata for the discovered tables from Redshift
     metadata = fetch_metadata(connection=connection, table_tuples=table_tuples)
@@ -456,7 +471,7 @@ def _select_columns_for_spec(spec, cols_with_types):
     return apply_projection(cols_with_types=cols_with_types, include=include, exclude=exclude)
 
 
-def _determine_strategy_and_replication_key(spec, cols_with_types):
+def _determine_strategy_and_replication_key(spec, cols_with_types, enable_complete_resync):
     """
     Determine the replication strategy and replication key for a table spec.
     If the strategy is INCREMENTAL but no replication key is specified, attempt to infer one
@@ -464,24 +479,44 @@ def _determine_strategy_and_replication_key(spec, cols_with_types):
     Args:
         spec: dict with optional 'strategy' and 'replication_key'
         cols_with_types: list of (column_name, data_type) tuples
+        enable_complete_resync: bool, if True, forces FULL resync for all tables
     Returns:
         A tuple of (strategy, replication_key) where strategy is either 'FULL' or 'INCREMENTAL',
         and replication_key is the name of the replication key column or None.
     """
-    # If replication key is not specified, attempt to infer from available columns
-    replication_key = spec.get("replication_key") or infer_replication_key(cols_with_types)
-    # Determine desired strategy, defaulting to INCREMENTAL if replication key exists, else FULL
-    desired_strategy = spec.get("strategy") or ("INCREMENTAL" if replication_key else "FULL")
-    strategy = desired_strategy.upper()
-    if strategy == "INCREMENTAL" and not replication_key:
-        log.warning(f"{spec.get('name')}: no replication key found; falling back to FULL resync.")
-        strategy = "FULL"
-    if strategy != "INCREMENTAL":
-        replication_key = None
-    return strategy, replication_key
+    strategy_raw = spec.get("strategy")
+    strategy = strategy_raw.upper() if strategy_raw else None
+    provided_replication_key = spec.get("replication_key")
+    table_name = spec.get("name")
+
+    # Explicit FULL: never infer, ignore any provided replication key
+    if strategy == "FULL" or enable_complete_resync:
+        return "FULL", None
+
+    # Explicit INCREMENTAL: require a replication key (provided or inferred)
+    if strategy == "INCREMENTAL":
+        replication_key = provided_replication_key or infer_replication_key(cols_with_types)
+        if not replication_key:
+            log.warning(f"{table_name}: no replication key found; falling back to FULL resync.")
+            return "FULL", None
+        return "INCREMENTAL", replication_key
+
+    # Strategy not specified: infer behavior based on key presence/inference
+    replication_key = provided_replication_key or infer_replication_key(cols_with_types)
+    if replication_key:
+        return "INCREMENTAL", replication_key
+    return "FULL", None
 
 
-def _build_plan(spec, table_schema, table, stream, table_metadata, selected_cols_with_types):
+def _build_plan(
+    spec,
+    table_schema,
+    table,
+    stream,
+    table_metadata,
+    selected_cols_with_types,
+    enable_complete_resync,
+):
     """
     Build a TablePlan dataclass instance for a given table specification.
     Args:
@@ -491,6 +526,7 @@ def _build_plan(spec, table_schema, table, stream, table_metadata, selected_cols
         stream: str, full stream name (schema.table)
         table_metadata: dict with metadata including primary keys
         selected_cols_with_types: list of (column_name, data_type) tuples for selected columns
+        enable_complete_resync: bool, if True, forces FULL resync for all tables
     Returns:
         A TablePlan dataclass instance with all relevant details for syncing the table.
     """
@@ -498,7 +534,9 @@ def _build_plan(spec, table_schema, table, stream, table_metadata, selected_cols
     primary_keys = spec.get("primary_keys") or table_metadata.get("primary_keys") or []
     # Determine replication strategy and replication key
     strategy, replication_key = _determine_strategy_and_replication_key(
-        spec=spec, cols_with_types=selected_cols_with_types
+        spec=spec,
+        cols_with_types=selected_cols_with_types,
+        enable_complete_resync=enable_complete_resync,
     )
     # Detect columns that require explicit typing based on their data types
     explicit_cols = detect_typed_columns(selected_cols_with_types=selected_cols_with_types)
@@ -531,17 +569,25 @@ def build_table_plans(connection, configuration):
     Returns:
         List of TablePlan dataclass instances for each table to be synced
     """
+    t_total = time.perf_counter()
     # Extract configuration parameters
     redshift_schema = configuration["redshift_schema"]
     auto_schema_detection = configuration.get("auto_schema_detection", "").lower() == "true"
     log.info(f"Auto schema detection is {'enabled' if auto_schema_detection else 'disabled'}.")
 
+    # If enabled, there will be no incremental sync for any table. All the tables will be fully synced everytime.
+    enable_complete_resync = configuration.get("enable_complete_resync", "").lower() == "true"
+    log.info(f"Complete resync is {'enabled' if enable_complete_resync else 'disabled'}.")
+
+    t_load = time.perf_counter()
     # Load base table specifications and fetch metadata from Redshift
     base_specs, metadata = _load_base_specs_and_metadata(
         connection=connection,
         redshift_schema=redshift_schema,
         auto_schema_detection=auto_schema_detection,
     )
+    load_time = time.perf_counter() - t_load
+    log.info(f"build_table_plans: base load time {load_time:.3f}s, specs={len(base_specs)}")
 
     # Build table plans for each table specified in the base_specs
     plans = []
@@ -561,13 +607,16 @@ def build_table_plans(connection, configuration):
             log.warning(f"{stream}: no columns discovered; skipping.")
             continue
 
+        t_proj = time.perf_counter()
         selected_cols_with_types = _select_columns_for_spec(
             spec=spec, cols_with_types=cols_with_types
         )
+        proj_time = time.perf_counter() - t_proj
         if not selected_cols_with_types:
             log.warning(f"{stream}: no columns selected after projection; skipping.")
             continue
 
+        t_plan = time.perf_counter()
         # Build the plan and add to the list of plans
         plan = _build_plan(
             spec=spec,
@@ -576,10 +625,17 @@ def build_table_plans(connection, configuration):
             stream=stream,
             table_metadata=table_metadata,
             selected_cols_with_types=selected_cols_with_types,
+            enable_complete_resync=enable_complete_resync,
+        )
+        plan_time = time.perf_counter() - t_plan
+        log.info(
+            f"{stream}: plan built in {plan_time:.3f}s (projection {proj_time:.3f}s), cols_selected={len(plan.selected_columns)}, strategy={plan.strategy}, repl_key={'yes' if plan.replication_key else 'no'}"
         )
         plans.append(plan)
 
     log.info(f"Built table plans for {len(plans)} tables.")
+    total_time = time.perf_counter() - t_total
+    log.info(f"build_table_plans: built {len(plans)} plan(s) in {total_time:.3f}s")
     return plans
 
 
@@ -593,6 +649,7 @@ def _checkpoint(state, stream, replication_key, bookmark):
         replication_key: name of the replication key column
         bookmark: latest value of the replication key
     """
+    t0 = time.perf_counter()
     if replication_key and bookmark is not None:
         # Format the bookmark value appropriately for JSON serialization
         bookmark = (
@@ -605,6 +662,7 @@ def _checkpoint(state, stream, replication_key, bookmark):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state=state)
+    return time.perf_counter() - t0
 
 
 def upsert_record(
@@ -626,13 +684,26 @@ def upsert_record(
     Returns:
         Updated state dictionary, last bookmark value, and total rows seen
     """
+    metrics = {
+        "db_fetch_time": 0.0,
+        "upsert_time": 0.0,
+        "checkpoint_time": 0.0,
+        "batches": 0,
+        "rows": 0,
+    }
     while True:
+        t_fetch = time.perf_counter()
         # Fetch rows in batches to handle large datasets efficiently
         rows = cursor.fetchmany(batch_size)
+        fetch_time = time.perf_counter() - t_fetch
+        metrics["db_fetch_time"] += fetch_time
         if not rows:
             # No more rows to fetch; exit the loop
             break
+        metrics["batches"] += 1
+
         for row in rows:
+            t_upsert = time.perf_counter()
             # Form a record dictionary mapping column names to their corresponding values
             record = dict(zip(column_names, row))
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -648,11 +719,15 @@ def upsert_record(
                 if replication_key_val is not None:
                     last_bookmark = replication_key_val
 
+            metrics["upsert_time"] += time.perf_counter() - t_upsert
+
             if seen % CHECKPOINT_EVERY_ROWS == 0:
                 # Periodically checkpoint the state to save progress
-                _checkpoint(state, plan.stream, replication_key, last_bookmark)
+                metrics["checkpoint_time"] += _checkpoint(
+                    state, plan.stream, replication_key, last_bookmark
+                )
 
-    return state, last_bookmark, seen
+    return state, last_bookmark, seen, metrics
 
 
 def sync_table(connection, configuration, plan, state):
@@ -666,6 +741,7 @@ def sync_table(connection, configuration, plan, state):
         plan: TablePlan dataclass instance with sync details
         state: current state dictionary
     """
+    plan_start = time.perf_counter()
     replication_key = plan.replication_key
     prev_state = state.get(plan.stream) or {}
     bookmark = prev_state.get("bookmark") if replication_key else None
@@ -687,13 +763,16 @@ def sync_table(connection, configuration, plan, state):
     # Initialize last_bookmark to the current bookmark value
     last_bookmark = bookmark
 
+    t_exec = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute(sql_query, params)
+        exec_time = time.perf_counter() - t_exec
+
         # Extract column names from cursor description
         column_names = [data[0] for data in cursor.description]
 
         # Upsert records in batches and update state with bookmarks
-        state, last_bookmark, seen = upsert_record(
+        state, last_bookmark, seen, metrics = upsert_record(
             cursor=cursor,
             column_names=column_names,
             plan=plan,
@@ -705,7 +784,15 @@ def sync_table(connection, configuration, plan, state):
         )
 
     # Final checkpoint after completing the sync for the table
-    _checkpoint(state, plan.stream, replication_key, last_bookmark)
+    metrics["checkpoint_time"] += _checkpoint(state, plan.stream, replication_key, last_bookmark)
+    total_time = time.perf_counter() - plan_start
+    log.info(
+        f"{plan.stream}: rows={seen}, batches={metrics['batches']}, "
+        f"Total query execution time={exec_time:.3f}s, Total time to get batches from cursor={metrics['db_fetch_time']:.3f}s, "
+        f"Total upsert time={metrics['upsert_time']:.3f}s, Total checkpoint time={metrics['checkpoint_time']:.3f}s, "
+        f"total time={total_time:.3f}s, strategy={plan.strategy}, "
+        f"repl_key={'yes' if replication_key else 'no'}, batch_size={batch_size}"
+    )
     log.info(f"{plan.stream}: sync complete, {seen} row(s) processed.")
 
 

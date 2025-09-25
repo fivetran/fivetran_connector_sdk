@@ -48,59 +48,60 @@ CHECKPOINT_EVERY_ROWS = 10000
 # - exclude: List of columns to exclude from the sync (empty list means no exclusions)
 TABLE_SPECS = [
     {
-        "name": "public.customers",  # Name of the table from the Redshift database
+        "name": "tickit.users",  # Name of the table from the Redshift database
         "primary_keys": [
-            "customer_id"
+            "userid"
         ],  # Primary key column(s) for the table. If None, the connector will fetch the primary key(s) from the source database.
-        "strategy": "INCREMENTAL",  # Replication strategy: FULL or INCREMENTAL
-        "replication_key": "updated_at",  # Column used for incremental replication. If None, the connector will attempt to infer it for INCREMENTAL sync strategy.
+        "strategy": "FULL",  # Replication strategy: FULL or INCREMENTAL
+        "replication_key": None,  # Column used for incremental replication. If None, the connector will attempt to infer it for INCREMENTAL sync strategy.
         "include": [],  # List of columns to include in the sync. An empty list means all columns are included.
         "exclude": [],  # List of columns to exclude from the sync. An empty list means no columns are excluded.
     },
     {
-        "name": "public.orders",
-        "primary_keys": ["order_id"],
-        "strategy": "INCREMENTAL",
-        "include": ["order_id", "customer_id", "amount_usd", "currency", "placed_at"],
+        "name": "tickit.category",
+        "primary_keys": ["catid"],
+        "strategy": "FULL",
+        "include": [],
         "exclude": [],
     },  # No replication_key specified. The replication key will be inferred as the sync strategy is INCREMENTAL
     {
-        "name": "public.products",
-        "strategy": "INCREMENTAL",
-        "replication_key": "last_updated",
-        "include": ["product_id", "sku", "title", "price_usd", "last_updated"],
+        "name": "tickit.date",
+        "primary_keys": ["dateid"],
+        "strategy": "FULL",
+        "replication_key": None,
+        "include": [],
         "exclude": [],
     },  # No primary_keys specified. The primary key(s) will be fetched from source database
     {
-        "name": "public.events",
-        "primary_keys": ["event_id"],
+        "name": "tickit.event",
+        "primary_keys": ["eventid", "venueid"],
         "strategy": "FULL",
         "replication_key": None,  # replication_key is set to None for FULL sync strategy. You can also omit this field for FULL sync strategy
-        "include": ["event_id", "event_name", "severity", "event_time"],
+        "include": [],
         "exclude": [],
     },
     {
-        "name": "public.shifts",
-        "primary_keys": ["shift_id"],
+        "name": "tickit.listing",
+        "primary_keys": ["sellerid", "listid", "eventid"],
         "strategy": "FULL",
         "replication_key": None,
-        "include": ["shift_id", "worker_name", "role", "shift_time"],
+        "include": [],
         "exclude": [],
     },
     {
-        "name": "public.page_views",
-        "primary_keys": ["view_id"],
-        "strategy": "INCREMENTAL",
-        "replication_key": "viewed_at",
-        "include": ["view_id", "user_id", "page_path", "session_id", "viewed_at"],
+        "name": "tickit.sales",
+        "primary_keys": ["buyerid", "sellerid", "salesid", "listid"],
+        "strategy": "FULL",
+        "replication_key": None,
+        "include": [],
         "exclude": [],
     },
     {
-        "name": "public.devices",
-        "primary_keys": ["device_id"],
-        "strategy": "INCREMENTAL",
-        "replication_key": "activated_at",
-        "include": ["device_id", "serial", "model", "attrs", "activated_at"],
+        "name": "tickit.venue",
+        "primary_keys": ["venueid"],
+        "strategy": "FULL",
+        "replication_key": None,
+        "include": [],
         "exclude": [],
     },
 ]
