@@ -119,11 +119,11 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
             log.severe(f"Request timeout for URL: {url}")
             raise
         except requests.exceptions.HTTPError as e:
-            if (
-                response
-                and (response.status_code == 429 or response.status_code >= 500)
-                and attempt < __MAX_RETRIES - 1
-            ):
+            is_retryable_error = response and (
+                response.status_code == 429 or response.status_code >= 500
+            )
+            should_retry = is_retryable_error and attempt < __MAX_RETRIES - 1
+            if should_retry:
                 delay = __BACKOFF_BASE * (2**attempt)
                 log.warning(
                     f"Rate limit or server error for URL: {url}. Retrying in {delay} seconds..."
