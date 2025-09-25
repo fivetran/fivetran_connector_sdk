@@ -2,6 +2,8 @@
 
 *Instructions: Every example added to the repository should have a comprehensive README.md to make it easy for users landing directly on the README to understand what the example does, how to configure it for their own use, and how to find more information about working with Connector SDK.*
 
+*For source examples, the heading must be in the  following format: "# <source-name> Connector Example" (e.g. "# GitHub Connector Example").*
+
 *To use the template, replace the italicized text with your own description. Non-italicized text is common to all READMEs and can be left as is.*
 
 *If a particular section is not relevant to your example (e.g. Error Handling \- your example doesn’t have any special error handling, Additional Files \- your example doesn’t have any additional files), delete that heading from the README.*
