@@ -85,18 +85,18 @@ Refer to the `update` function for the sequential endpoint processing logic.
 
 ## Data handling
 
-The connector processes JSON data from the DataCamp API and transforms it into structured records using a clean, generic architecture:
+The connector processes JSON data from the DataCamp API and transforms it into structured records using a clean, generic architecture. To achieve that the connector:
 
-- **Generic endpoint processing**: Uses a single `process_endpoint` function that handles all content types with configurable parameters for different processing requirements
-- **Centralized flattening**: Uses a single `flatten_item` function that handles all content types with configurable parameters for different flattening behaviors
-- **Nested object handling**: Flattens nested dictionaries (like topic information) while preserving important relationships
-- **Array breakout**: Creates separate tables for nested arrays (chapters, topics, and content) using configurable breakout parameters
-- **Data preservation**: Maintains all original field names and values where possible
-- **Primary key generation**: Uses natural keys from the API (`id` fields)
-- **Descriptive variable naming**: Uses clear variable names like `flattened_item_data` for better code readability
-- **Configuration-driven processing**: Processes each endpoint with specific configuration parameters
+- Uses a single `process_endpoint` function that handles all content types with configurable parameters for different processing requirements
+- Uses a single `flatten_item` function that handles all content types with configurable parameters for different flattening behaviors
+- Flattens nested dictionaries (like topic information) while preserving important relationships
+- Creates separate tables for nested arrays (chapters, topics, and content) using configurable breakout parameters
+- Maintains all original field names and values where possible
+- Uses natural keys from the API (`id` fields)
+- Uses clear variable names like `flattened_item_data` for better code readability
+- Processes each endpoint with specific configuration parameters
 
-The `update` function processes each content type with specific configuration:
+The `update` function processes each content type with a specific configuration:
 - **Endpoint configuration**: URL, table name, and primary key information from `__ENDPOINTS` constant
 - **Flatten parameters**: Content-specific flattening options (skip_keys, flatten_topic, flatten_licenses, etc.)
 - **Breakout configuration**: Optional child table specifications for nested arrays
