@@ -77,7 +77,7 @@ The connector implements comprehensive error handling through multiple layers:
 - Runtime error wrapping for sync failures to provide clear error messages
 
 ## Tables created
-**RESPONSE** - Contains all survey response data from Zigpoll accounts
+This connector creates a single table, `RESPONSE`, which contains all survey response data from Zigpoll accounts.
 
 | Column        | Type                 | Description                             |
 |---------------|----------------------|-----------------------------------------|
