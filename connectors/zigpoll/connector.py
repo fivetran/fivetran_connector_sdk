@@ -17,6 +17,9 @@ from datetime import datetime
 import time
 import random
 
+# For type hints
+from typing import Optional
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -82,7 +85,7 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Invalid start_date: {e}")
 
 
-def make_api_request(url: str, headers: dict, params=None):
+def make_api_request(url: str, headers: dict, params: Optional[dict] = None):
     """
     Make an API request with retry logic and proper error handling.
     This function handles retries with exponential backoff for transient errors and rate limiting.
@@ -213,7 +216,11 @@ def get_account_ids(headers: dict):
 
 
 def process_responses_page(
-    headers: dict, account_id: str, start_cursor, last_sync_timestamp, state: dict
+    headers: dict,
+    account_id: str,
+    start_cursor: Optional[str],
+    last_sync_timestamp: Optional[int],
+    state: dict,
 ):
     """
     Process a single page of responses for an account.
@@ -223,6 +230,7 @@ def process_responses_page(
         account_id: The account ID to fetch responses for
         start_cursor: Cursor for pagination, None for first page
         last_sync_timestamp: Timestamp to filter old responses
+        state: State dictionary to checkpoint progress
     Returns:
         Tuple of (processed_count, has_next_page, end_cursor, should_continue)
     """
@@ -271,7 +279,9 @@ def process_responses_page(
     return processed_count, has_next_page, end_cursor, should_continue
 
 
-def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp, state: dict):
+def sync_account_responses(
+    headers: dict, account_id: str, last_sync_timestamp: Optional[int], state: dict
+):
     """
     Sync all responses for a single account with pagination.
     This function handles the pagination loop for fetching all responses from one account.
@@ -279,6 +289,7 @@ def sync_account_responses(headers: dict, account_id: str, last_sync_timestamp, 
         headers: HTTP headers for the request including authorization
         account_id: The account ID to fetch responses for
         last_sync_timestamp: Timestamp to filter old responses
+        state: State dictionary to checkpoint progress
     Returns:
         Total number of responses processed for this account
     """

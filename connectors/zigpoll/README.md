@@ -79,18 +79,18 @@ The connector implements comprehensive error handling through multiple layers:
 ## Tables created
 **RESPONSE** - Contains all survey response data from Zigpoll accounts
 
-| Column | Type | Description |
-|--------|------|-------------|
-| _id | STRING (Primary Key) | Unique identifier for each response |
-| createdAt | STRING | Timestamp when response was created |
-| accountId | STRING | Account identifier |
-| pollId | STRING | Survey/poll identifier |
-| slideId | STRING | Specific question/slide identifier |
-| participantId | STRING | Participant identifier |
-| response | STRING | The actual response content |
-| userAgent | STRING | Browser/device information |
-| valueType | STRING | Type of response (vote, response, etc.) |
-| metadata_* | STRING | Flattened metadata fields with prefix |
+| Column        | Type                 | Description                             |
+|---------------|----------------------|-----------------------------------------|
+| _id           | STRING (Primary Key) | Unique identifier for each response     |
+| createdAt     | STRING               | Timestamp when response was created     |
+| accountId     | STRING               | Account identifier                      |
+| pollId        | STRING               | Survey/poll identifier                  |
+| slideId       | STRING               | Specific question/slide identifier      |
+| participantId | STRING               | Participant identifier                  |
+| response      | STRING               | The actual response content             |
+| userAgent     | STRING               | Browser/device information              |
+| valueType     | STRING               | Type of response (vote, response, etc.) |
+| metadata_*    | STRING               | Flattened metadata fields with prefix   |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
