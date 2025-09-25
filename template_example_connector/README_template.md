@@ -19,7 +19,7 @@
 *Do create additional sections decribing example-specific areas if the sections present in this template do not cover them.*
 *Use hyphen (-) in bulleted lists instead of asterisk (*).*
 *Enclose file names in backticks, for example, `configuration.json`, `requirements.txt`, `connector.py`, `mock\_api`.*
-*Do not use emojis*
+*Do not use emojis.*
 
 
 
