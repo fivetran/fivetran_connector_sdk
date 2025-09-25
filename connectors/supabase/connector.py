@@ -166,7 +166,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: Database Examples: Supabase Employee Sync")
+    log.warning("Example: Source Examples: Supabase Employee Sync")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -223,8 +223,8 @@ def update(configuration: dict, state: dict):
                 if record_hire_date:
                     new_hire_date = record_hire_date
 
-            if row_count % __CHECKPOINT_INTERVAL == 0:
-                save_state(new_hire_date)
+                if row_count % __CHECKPOINT_INTERVAL == 0:
+                    save_state(new_hire_date)
 
             log.info(
                 f"Completed batch {batch_count}: processed {batch_row_count} records, "
