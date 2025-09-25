@@ -97,33 +97,83 @@ def flatten_item(
         A flattened dictionary.
     """
     flattened_data = {}
-    if skip_keys is None:
-        skip_keys = []
+    skip_keys = skip_keys or []
 
     for key, value in item.items():
         if key in skip_keys:
             continue
 
-        if key == "topic" and isinstance(value, dict) and flatten_topic:
+        if key == "topic" and flatten_topic and isinstance(value, dict):
             flattened_data["topic_name"] = value.get("name")
             flattened_data["topic_description"] = value.get("description")
         elif key == "imageUrl" and isinstance(value, dict):
-            for img_type, url in value.items():
-                flattened_data[f"imageUrl_{img_type}"] = url
-        elif key == "includedInLicenses" and isinstance(value, list) and flatten_licenses:
+            flattened_data.update({f"imageUrl_{k}": v for k, v in value.items()})
+        elif key == "includedInLicenses" and flatten_licenses and isinstance(value, list):
             flattened_data["includedInLicenses"] = ", ".join(str(v) for v in value)
-        elif key == "instructors" and isinstance(value, list) and flatten_instructors:
-            flattened_data["instructors"] = ", ".join(
-                instructor.get("fullName", "")
-                for instructor in value
-                if isinstance(instructor, dict)
-            )
+        elif key == "instructors" and flatten_instructors and isinstance(value, list):
+            names = [inst.get("fullName", "") for inst in value if isinstance(inst, dict)]
+            flattened_data["instructors"] = ", ".join(names)
         else:
             flattened_data[key] = value
+
     return flattened_data
 
 
-def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]:
+def extract_data_from_response(data: Any) -> List[Any]:
+    """
+    Extract list data from API response in various formats.
+
+    Args:
+        data: The API response data, which can be a dict, list, or other type.
+
+    Returns:
+        List[Any]: The extracted list of data items.
+    """
+    if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+        return data["data"]
+
+    if isinstance(data, dict):
+        for value in data.values():
+            if isinstance(value, list):
+                return value
+
+    if isinstance(data, list):
+        return data
+
+    return [data]
+
+
+def handle_request_error(e: Exception, endpoint: str, attempt: int) -> bool:
+    """
+    Handle request errors and determine if retry should continue.
+
+    Args:
+        e: The exception that occurred during the request.
+        endpoint: The API endpoint that was being accessed.
+        attempt: The current attempt number.
+
+    Returns:
+        bool: True if retry should continue, False otherwise.
+    """
+    error_type = (
+        "Request failed"
+        if isinstance(e, requests.exceptions.RequestException)
+        else "Unexpected error"
+    )
+
+    if attempt < __MAX_RETRIES:
+        delay = __RETRY_DELAY_SECONDS * (__RETRY_BACKOFF_MULTIPLIER ** (attempt - 1))
+        log.warning(
+            f"{error_type} for {endpoint} (attempt {attempt}/{__MAX_RETRIES}): {e}. Retrying in {delay} seconds..."
+        )
+        time.sleep(delay)
+        return True
+
+    log.severe(f"Failed to fetch {endpoint} after {__MAX_RETRIES} attempts: {e}")
+    return False
+
+
+def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Any]:
     """
     Fetch data from a DataCamp API endpoint with proper error handling and retry logic.
 
@@ -133,7 +183,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]
         bearer_token (str): Authentication token for API access
 
     Returns:
-        None | list | list[dict | Any] | list[Any] | Any: List of records from the API endpoint
+        List[Any]: List of records from the API endpoint
 
     Raises:
         Exception: Logs severe errors but returns empty list on failure after all retries
@@ -148,39 +198,13 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> list[Any]
             response.raise_for_status()
             data = response.json()
 
-            # If the response is a dict with a top-level list, extract it
-            if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
-                log.info(f"Successfully fetched {len(data['data'])} records from {endpoint}")
-                return data["data"]
-            elif isinstance(data, dict) and any(
-                isinstance(value, list) for value in data.values()
-            ):
-                for value in data.values():
-                    if isinstance(value, list):
-                        log.info(f"Successfully fetched {len(value)} records from {endpoint}")
-                        return value
-            elif isinstance(data, list):
-                log.info(f"Successfully fetched {len(data)} records from {endpoint}")
-                return data
-            else:
-                log.info(f"Successfully fetched 1 record from {endpoint}")
-                return [data]
+            extracted_data = extract_data_from_response(data)
+            log.info(f"Successfully fetched {len(extracted_data)} records from {endpoint}")
+            return extracted_data
 
         except (requests.exceptions.RequestException, Exception) as e:
-            error_type = (
-                "Request failed"
-                if isinstance(e, requests.exceptions.RequestException)
-                else "Unexpected error"
-            )
-
-            if attempt < __MAX_RETRIES:
-                delay = __RETRY_DELAY_SECONDS * (__RETRY_BACKOFF_MULTIPLIER**attempt)
-                log.warning(
-                    f"{error_type} for {endpoint} (attempt {attempt}/{__MAX_RETRIES}): {e}. Retrying in {delay} seconds..."
-                )
-                time.sleep(delay)
-            else:
-                log.severe(f"Failed to fetch {endpoint} after {__MAX_RETRIES} attempts: {e}")
+            should_continue = handle_request_error(e, endpoint, attempt)
+            if not should_continue:
                 return []
 
     return []
@@ -197,16 +221,16 @@ def process_endpoint(
     Generic function to process any DataCamp API endpoint.
 
     Args:
-        endpoint_config: Configuration containing endpoint URL, table name, and primary key info
-        bearer_token: Authentication token for API access
-        base_url: Base URL for the API
-        flatten_params: Parameters to pass to flatten_item function
-        breakout_config: Optional configuration for processing breakout tables
-                        Format: {
-                            "source_key": "content",
-                            "table_name": "custom_track_content",
-                            "foreign_key": "custom_track_id"
-                        }
+        endpoint_config: Configuration containing endpoint URL, table name, and primary key info.
+        bearer_token: Authentication token for API access.
+        base_url: Base URL for the API.
+        flatten_params: Parameters to pass to flatten_item function.
+        breakout_config: Optional configuration for processing breakout tables.
+            Format: {
+                "source_key": "content",
+                "table_name": "custom_track_content",
+                "foreign_key": "custom_track_id"
+            }
     """
     endpoint_url = endpoint_config["url"]
     main_table = endpoint_config["table"]
