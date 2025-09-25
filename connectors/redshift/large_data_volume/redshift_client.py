@@ -666,7 +666,15 @@ def _checkpoint(state, stream, replication_key, bookmark):
 
 
 def upsert_record(
-    cursor, column_names, plan, state, replication_key, last_bookmark, batch_size, seen
+    cursor,
+    column_names,
+    plan,
+    state,
+    replication_key,
+    last_bookmark,
+    batch_size,
+    seen,
+    table_cursor,
 ):
     """
     Upsert records from the cursor into the destination table based on the provided TablePlan.
@@ -681,6 +689,7 @@ def upsert_record(
         last_bookmark: last synced value of the replication key, or None
         batch_size: number of rows to fetch per batch
         seen: count of rows processed so far
+        table_cursor: name of the declared cursor in the database
     Returns:
         Updated state dictionary, last bookmark value, and total rows seen
     """
@@ -694,7 +703,10 @@ def upsert_record(
     while True:
         t_fetch = time.perf_counter()
         # Fetch rows in batches to handle large datasets efficiently
-        rows = cursor.fetchmany(batch_size)
+
+        cursor.execute(f"FETCH {batch_size} FROM {table_cursor}")
+        rows = cursor.fetchall()
+
         fetch_time = time.perf_counter() - t_fetch
         metrics["db_fetch_time"] += fetch_time
         if not rows:
@@ -727,6 +739,7 @@ def upsert_record(
                     state, plan.stream, replication_key, last_bookmark
                 )
 
+    cursor.execute(f"CLOSE {table_cursor}")
     return state, last_bookmark, seen, metrics
 
 
@@ -765,10 +778,17 @@ def sync_table(connection, configuration, plan, state):
 
     t_exec = time.perf_counter()
     with connection.cursor() as cursor:
-        cursor.execute(sql_query, params)
+
+        table_cursor = f"{plan.table}_cursor"
+        cursor.execute("BEGIN")
+        cursor.execute(f"DECLARE {table_cursor} NO SCROLL CURSOR FOR {sql_query}")
+        log.warning(f"Successfully declared cursor {table_cursor}")
+
+        # cursor.execute(sql_query, params)
         exec_time = time.perf_counter() - t_exec
 
         # Extract column names from cursor description
+        cursor.execute(sql_query + " LIMIT 0")
         column_names = [data[0] for data in cursor.description]
 
         # Upsert records in batches and update state with bookmarks
@@ -781,6 +801,7 @@ def sync_table(connection, configuration, plan, state):
             last_bookmark=last_bookmark,
             batch_size=batch_size,
             seen=seen,
+            table_cursor=table_cursor,
         )
 
     # Final checkpoint after completing the sync for the table

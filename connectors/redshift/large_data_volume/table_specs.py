@@ -34,7 +34,7 @@ TIMESTAMP_TYPE_NAMES = {
 # Number of rows after which to checkpoint progress
 # This ensures that the connector can resume from the last successful sync in case of interruptions
 # Adjust this value based on your data volume and performance considerations
-CHECKPOINT_EVERY_ROWS = 10000
+CHECKPOINT_EVERY_ROWS = 100000
 
 # List of table specifications for the Redshift connector
 # Each dictionary in the list defines a table and its sync configuration
