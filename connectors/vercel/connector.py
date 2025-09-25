@@ -27,8 +27,10 @@ from typing import Optional
 
 __BASE_URL = "https://api.vercel.com"  # Base URL for Vercel API
 __DEPLOYMENTS_ENDPOINT = "/v6/deployments"  # Endpoint path for deployments API
-__PAGINATION_LIMIT = 20  # Pagination limit - you can change this constant value
-__REQUEST_TIMEOUT_IN_SECONDS = 30  # Request timeout in seconds
+__PAGINATION_LIMIT = (
+    20  # Pagination limit - higher values reduce API calls but increase memory usage
+)
+__REQUEST_TIMEOUT_IN_SECONDS = 30
 
 # Retry configuration constants
 __MAX_RETRIES = 5  # Maximum number of retry attempts for API requests
@@ -109,12 +111,23 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
             response.raise_for_status()
             return response.json()
         except requests.exceptions.Timeout:
+            if attempt < __MAX_RETRIES - 1:
+                delay = __BACKOFF_BASE * (2**attempt)
+                log.warning(f"Request timeout for URL: {url}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                continue
             log.severe(f"Request timeout for URL: {url}")
             raise
         except requests.exceptions.HTTPError as e:
-            if response and response.status_code == 429 and attempt < __MAX_RETRIES - 1:
+            if (
+                response
+                and (response.status_code == 429 or response.status_code >= 500)
+                and attempt < __MAX_RETRIES - 1
+            ):
                 delay = __BACKOFF_BASE * (2**attempt)
-                log.warning(f"Rate limit exceeded for URL: {url}. Retrying in {delay} seconds...")
+                log.warning(
+                    f"Rate limit or server error for URL: {url}. Retrying in {delay} seconds..."
+                )
                 time.sleep(delay)
                 continue
             log.severe(f"HTTP error for URL: {url}: {e}")
@@ -223,8 +236,6 @@ def sync_deployments(
         # For pagination, use 'next' parameter with the continuation token
         if next_timestamp:
             params["next"] = next_timestamp
-        elif "next" in params:
-            params.pop("next")
 
         try:
             response_data = make_api_request(url, headers, params)
