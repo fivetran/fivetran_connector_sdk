@@ -13,7 +13,7 @@
 *Do not use nested bulleted lists for descriptions - write the description inline, for example, "- `mock\_api.py` – A simulated API for testing data retrieval."*
 *Use "Note:" format for notes.*
 *Use numbered lists only where the order is important, for example, for a sequence of user actions. Every item in numbered lists should end with full stop.*
-*Complex sequences of user actions should use numbers for parent items and Roman notation for child 
+*Complex sequences of user actions should use numbers for parent items and Roman notation for child items, with blank lines between the lines with Roman numerals.*
 *Use bulleted lists where the items are listed without any particular order or where alternatives are presented.*
 *Do not duplicate the content in several sections. For example, do not add a Schema Definition section since the Tables Created section should include schema-related information.*
 *Do create additional sections decribing example-specific areas if the sections present in this template do not cover them.*
