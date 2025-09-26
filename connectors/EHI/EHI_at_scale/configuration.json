@@ -1,0 +1,14 @@
+{
+    "MSSQL_SERVER": "<YOUR_VALUE_1>",
+    "MSSQL_CERT_SERVER": "<YOUR_VALUE_2>",
+    "MSSQL_PORT": "<YOUR_VALUE_3>",
+    "MSSQL_DATABASE": "<YOUR_VALUE_4>",
+    "MSSQL_USER": "<YOUR_VALUE_5>",
+    "MSSQL_PASSWORD": "<YOUR_VALUE_6>",
+    "cert": "<YOUR_VALUE_7>",
+    "threads": "<YOUR_VALUE_8>",
+    "max_queue_size": "<YOUR_VALUE_9>",
+    "max_retries": "<YOUR_VALUE_10>",
+    "retry_sleep_seconds": "<YOUR_VALUE_11>",
+    "debug": "<YOUR_VALUE_12>"
+}
