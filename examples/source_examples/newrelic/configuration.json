@@ -1,0 +1,19 @@
+{
+  "api_key": "YOUR_NEWRELIC_API_KEY",
+  "account_id": "YOUR_NEWRELIC_ACCOUNT_ID",
+  "region": "US",
+  "sync_frequency_minutes": "15",
+  "initial_sync_days": "90",
+  "max_records_per_query": "1000",
+  "enable_apm_data": "true",
+  "enable_infrastructure_data": "true",
+  "enable_browser_data": "true",
+  "enable_mobile_data": "true",
+  "enable_synthetic_data": "true",
+  "timeout_seconds": "30",
+  "retry_attempts": "3",
+  "retry_delay_seconds": "5",
+  "data_quality_threshold": "0.95",
+  "alert_on_errors": "true",
+  "log_level": "INFO"
+}
