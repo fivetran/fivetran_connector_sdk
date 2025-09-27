@@ -48,7 +48,7 @@ fivetran --help
 - **IMPORTANT**: configuration.json can only contain string values (convert numbers/booleans to strings)
 - **Type Hints**: Use Python type hints (Dict, List, Any) for clarity
 - **Docstrings**: Include detailed docstrings for all functions
-- **Examples**: Many connector implementation examples are available in the ../examples/ directory. Reference them as needed.
+- **Examples**: Many connector implementation examples are available in the ../../examples/ directory. Reference them as needed.
 - **Datetime datatypes**: Always use UTC timestamps and format them as strings in this format before sending the data: '%Y-%m-%dT%H:%M:%SZ'
 - **Warehouse.db**: This file is a duckdb database, use appropriate client to read this file
 - **Folder Structure** Create any new connectors requested by the user in its own folder
