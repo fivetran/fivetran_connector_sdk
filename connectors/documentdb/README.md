@@ -32,33 +32,6 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - Detailed logging for monitoring and troubleshooting
 - MongoDB-compatible operations for DocumentDB
 
-## Tables created
-
-This connector creates the following tables in your destination:
-
-### Users table
-- **Primary Key**: `_id`
-- **Columns**: 
-  - `_id` (STRING): Document unique identifier
-  - `name` (STRING): User name
-  - `email` (STRING): User email address
-  - `status` (STRING): User status (e.g., active, inactive)
-  - `created_at` (UTC_DATETIME): Document creation timestamp
-  - `updated_at` (UTC_DATETIME): Document last update timestamp
-  - `metadata` (JSON): Additional user metadata as JSON object
-
-### Orders table
-- **Primary Key**: `_id`
-- **Columns**:
-  - `_id` (STRING): Document unique identifier
-  - `user_id` (STRING): Reference to user who placed the order
-  - `order_number` (STRING): Order identifier/number
-  - `total_amount` (FLOAT): Order total amount
-  - `status` (STRING): Order status (e.g., pending, completed, cancelled)
-  - `created_at` (UTC_DATETIME): Order creation timestamp
-  - `updated_at` (UTC_DATETIME): Order last update timestamp
-  - `items` (JSON): Order items as JSON array
-
 ## Configuration file
 
 The connector requires the following configuration parameters:
@@ -127,20 +100,6 @@ The connector processes data with the following approach:
   - updated_at (datetime → UTC_DATETIME)
   - metadata (object → JSON)
 
-## Schema configuration
-
-The connector defines two sample tables:
-
-### Users table
-- Primary key: `_id`
-- Columns: `_id`, `name`, `email`, `status`, `created_at`, `updated_at`, `metadata`
-
-### Orders table
-- Primary key: `_id`
-- Columns: `_id`, `user_id`, `order_number`, `total_amount`, `status`, `created_at`, `updated_at`, `items`
-
-You can modify the schema function to match your specific DocumentDB collections and fields.
-
 ## Error handling
 
 The connector implements the following error handling strategies:  
@@ -151,6 +110,34 @@ The connector implements the following error handling strategies:
 - Gracefully handles pagination issues that may occur with large datasets
 - Implements regular checkpointing to minimize data loss in case of failures
 - Handles SSL connection issues specific to DocumentDB
+
+## Tables created
+
+This connector creates the following tables in your destination:
+
+### USERS
+- **Primary Key**: `_id`
+- **Columns**: 
+  - `_id` (STRING): Document unique identifier
+  - `name` (STRING): User name
+  - `email` (STRING): User email address
+  - `status` (STRING): User status (e.g., active, inactive)
+  - `created_at` (UTC_DATETIME): Document creation timestamp
+  - `updated_at` (UTC_DATETIME): Document last update timestamp
+  - `metadata` (JSON): Additional user metadata as JSON object
+
+### ORDERS
+- **Primary Key**: `_id`
+- **Columns**:
+  - `_id` (STRING): Document unique identifier
+  - `user_id` (STRING): Reference to user who placed the order
+  - `order_number` (STRING): Order identifier/number
+  - `total_amount` (FLOAT): Order total amount
+  - `status` (STRING): Order status (e.g., pending, completed, cancelled)
+  - `created_at` (UTC_DATETIME): Order creation timestamp
+  - `updated_at` (UTC_DATETIME): Order last update timestamp
+  - `items` (JSON): Order items as JSON array
+
 
 ## Prerequisites
 

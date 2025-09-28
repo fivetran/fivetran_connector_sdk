@@ -1,21 +1,25 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# This example demonstrates how to connect to AWS DocumentDB and upsert data queried from DocumentDB collections.
-#
-# NOTE: Fivetran already provides a native Java-based DocumentDB connector that supports SaaS deployment models.
-# This Python-based connector is specifically intended for Hybrid Deployment (HD) scenarios, as the native connector
-# does not support Hybrid Deployment. For SaaS deployments, we recommend using the native DocumentDB connector
-# available at https://fivetran.com/docs/connectors/databases/documentdb.
-#
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This is an example for how to work with the fivetran_connector_sdk module.
+This example demonstrates how to connect to AWS DocumentDB and upsert data queried from DocumentDB collections.
+NOTE: Fivetran already provides a native Java-based DocumentDB connector that supports SaaS deployment models.
+This Python-based connector is specifically intended for Hybrid Deployment (HD) scenarios, as the native connector
+does not support Hybrid Deployment. For SaaS deployments, we recommend using the native DocumentDB connector
+available at https://fivetran.com/docs/connectors/databases/documentdb.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
-# Import the required classes from the connector SDK
+# For reading configuration from a JSON file
+import json
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# Required to load configuration in debug
-import json
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Required for data transformations before upsert
 from datetime import timezone
@@ -24,6 +28,9 @@ from dateutil import parser
 # Import the MongoDB driver for DocumentDB (DocumentDB is MongoDB-compatible)
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+
+# Checkpoint every 1000 records. You can modify this number based on your requirements
+CHECKPOINT_INTERVAL = 1000
 
 
 def create_documentdb_connection(configuration: dict):
@@ -128,9 +135,7 @@ def upsert_documents_from_collection(
     # This is done in a paginated manner to avoid loading all documents into memory at once
     for document in fetch_documents_with_pagination(collection, last_sync):
         # Ensure updated_at has timezone info before comparison
-        doc_updated_at = document.get("updated_at")
-        if doc_updated_at and doc_updated_at.tzinfo is None:
-            doc_updated_at = doc_updated_at.replace(tzinfo=timezone.utc)
+        doc_updated_at = add_timezone_helper(document.get("updated_at"))
 
         # Prepare the record for upsert
         # Convert MongoDB ObjectId to string and handle other data transformations
@@ -139,12 +144,12 @@ def upsert_documents_from_collection(
             "name": document.get("name"),
             "email": document.get("email"),
             "status": document.get("status"),
-            "created_at": document.get("created_at").replace(tzinfo=timezone.utc),
-            "updated_at": doc_updated_at.replace(tzinfo=timezone.utc),
+            "created_at": add_timezone_helper(document.get("created_at")),
+            "updated_at": doc_updated_at,
             "metadata": document.get("metadata", {}),
         }
 
-        # Upsert the record into destination and increment the record count
+        # The 'upsert' operation is used to insert or update data in the destination table.
         op.upsert(table=collection_name, data=record)
         record_count += 1
 
@@ -152,10 +157,9 @@ def upsert_documents_from_collection(
         # as the current document's doc_updated_at is always greater than the last, due to sorting by updated_at
         max_updated_at = doc_updated_at
 
-        # Checkpoint every 1000 records
         # This is useful for large datasets to avoid losing progress in case of failure
-        # You can modify this number based on your requirements
-        if record_count % 1000 == 0:
+        # Checkpoint every 1000 records. You can modify this number based on your requirements
+        if record_count % CHECKPOINT_INTERVAL == 0:
             state["last_updated_at"] = max_updated_at.isoformat()
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
@@ -169,6 +173,12 @@ def upsert_documents_from_collection(
     # Checkpoint the last updated_at timestamp
     state["last_updated_at"] = max_updated_at.isoformat()
     op.checkpoint(state)
+
+
+def add_timezone_helper(doc_updated_at):
+    if doc_updated_at and doc_updated_at.tzinfo is None:
+        doc_updated_at = doc_updated_at.replace(tzinfo=timezone.utc)
+    return doc_updated_at
 
 
 def schema(configuration: dict):
@@ -229,36 +239,36 @@ def update(configuration, state):
     # Create a DocumentDB connection
     client = create_documentdb_connection(configuration)
     database_name = configuration.get("database")
+    validate_configuration(configuration)
 
+    # IMPORTANT: This connector requires that the following prerequisites exist in your DocumentDB instance:
+    # 1. A database named as specified in your configuration
+    # 2. Collections named 'users' and 'orders' with documents containing the following fields:
+    #    For users collection:
+    #    - _id (ObjectId): Primary key
+    #    - name (string): User name
+    #    - email (string): User email
+    #    - status (string): User status
+    #    - created_at (datetime): Document creation timestamp
+    #    - updated_at (datetime): Document update timestamp
+    #    - metadata (object): Additional user metadata
+    #
+    #    For orders collection:
+    #    - _id (ObjectId): Primary key
+    #    - user_id (string): Reference to user
+    #    - order_number (string): Order identifier
+    #    - total_amount (number): Order total
+    #    - status (string): Order status
+    #    - created_at (datetime): Order creation timestamp
+    #    - updated_at (datetime): Order update timestamp
+    #    - items (array): Order items
+    #
+    # Example documents:
+    # Users: {"_id": ObjectId(), "name": "John Doe", "email": "john@example.com", "status": "active", "created_at": ISODate(), "updated_at": ISODate(), "metadata": {"source": "web"}}
+    # Orders: {"_id": ObjectId(), "user_id": "user123", "order_number": "ORD-001", "total_amount": 99.99, "status": "completed", "created_at": ISODate(), "updated_at": ISODate(), "items": [{"product": "Widget", "quantity": 2}]}
+    #
+    # If these prerequisites are not met, the connector will not function correctly.
     try:
-        # IMPORTANT: This connector requires that the following prerequisites exist in your DocumentDB instance:
-        # 1. A database named as specified in your configuration
-        # 2. Collections named 'users' and 'orders' with documents containing the following fields:
-        #    For users collection:
-        #    - _id (ObjectId): Primary key
-        #    - name (string): User name
-        #    - email (string): User email
-        #    - status (string): User status
-        #    - created_at (datetime): Document creation timestamp
-        #    - updated_at (datetime): Document update timestamp
-        #    - metadata (object): Additional user metadata
-        #
-        #    For orders collection:
-        #    - _id (ObjectId): Primary key
-        #    - user_id (string): Reference to user
-        #    - order_number (string): Order identifier
-        #    - total_amount (number): Order total
-        #    - status (string): Order status
-        #    - created_at (datetime): Order creation timestamp
-        #    - updated_at (datetime): Order update timestamp
-        #    - items (array): Order items
-        #
-        # Example documents:
-        # Users: {"_id": ObjectId(), "name": "John Doe", "email": "john@example.com", "status": "active", "created_at": ISODate(), "updated_at": ISODate(), "metadata": {"source": "web"}}
-        # Orders: {"_id": ObjectId(), "user_id": "user123", "order_number": "ORD-001", "total_amount": 99.99, "status": "completed", "created_at": ISODate(), "updated_at": ISODate(), "items": [{"product": "Widget", "quantity": 2}]}
-        #
-        # If these prerequisites are not met, the connector will not function correctly.
-
         # Sync users collection
         log.info("Starting sync of users collection")
         upsert_documents_from_collection(
@@ -270,19 +280,36 @@ def update(configuration, state):
         upsert_documents_from_collection(
             client=client, database_name=database_name, collection_name="orders", state=state
         )
-
     finally:
         # Close the client connection
         client.close()
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary for required fields.
+    Args:
+        configuration (dict): A dictionary containing the connection parameters.
+    Raises:
+        ValueError: If any required field is missing or invalid.
+    """
+    required_fields = ["host", "port", "username", "password", "database"]
+    for field in required_fields:
+        if field not in configuration or not configuration[field]:
+            raise ValueError(f"Missing required configuration field: {field}")
+    log.info("Configuration validation passed.")
+
+
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-
     # Test the connector locally
     connector.debug(configuration=configuration)
