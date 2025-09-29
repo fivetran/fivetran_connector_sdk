@@ -105,22 +105,22 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 """
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+from fivetran_connector_sdk import Connector  # Connector entrypoint for schema/update
+from fivetran_connector_sdk import Logging as log  # Structured logging utilities
+from fivetran_connector_sdk import Operations as op  # Data operations (upsert, checkpoint)
 
-# Import required libraries
-import json
-import snowflake.connector
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Tuple, Optional
-import socket
-import time
-import random
-import threading
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from contextlib import contextmanager
+# Import required libraries (keep minimal and documented)
+import json  # Read configuration and encode nested values
+import snowflake.connector  # Snowflake DB connection client
+from datetime import datetime, timezone  # Timestamp handling for state/checkpoints
+from typing import List, Dict, Any, Tuple  # Type hints for readability
+import socket  # Network connectivity checks (PrivateLink validation)
+import time  # Sleep for backoff and rate limiting
+import random  # Jitter for retry backoff
+import threading  # Thread-safety for connection manager
+from cryptography.hazmat.backends import default_backend  # Crypto backend for PEM keys
+from cryptography.hazmat.primitives import serialization  # Load/parse private keys
+from contextlib import contextmanager  # Safe cursor context management
 
 # Try to import psutil for resource monitoring, fallback gracefully if not available
 try:
@@ -130,10 +130,8 @@ except ImportError:
     PSUTIL_AVAILABLE = False
     log.warning("psutil not available - resource monitoring will be disabled")
 
-# =============================================================================
 # CONFIGURATION CONSTANTS - ADAPTIVE PROCESSING THRESHOLDS
-# =============================================================================
-# 
+
 # THRESHOLD OPTIMIZATION GUIDE:
 # These thresholds control how the connector adapts its processing strategy based on table size.
 # Adjust these values based on your specific environment and data characteristics:
@@ -183,9 +181,7 @@ TIMESTAMP_COLUMNS = [
     'last_updated', 'LAST_UPDATED'
 ]
 
-# =============================================================================
 # ERROR HANDLING PATTERNS
-# =============================================================================
 
 # Deadlock detection patterns
 DEADLOCK_PATTERNS = [
@@ -211,9 +207,7 @@ TIMEOUT_PATTERNS = [
     'timeout expired'
 ]
 
-# =============================================================================
 # CONNECTION MANAGEMENT
-# =============================================================================
 
 class ConnectionManager:
     """
@@ -372,9 +366,7 @@ class TimeoutError(Exception):
     """
     pass
 
-# =============================================================================
 # UTILITY FUNCTIONS
-# =============================================================================
 
 def safe_get_column_value(row, column_name: str, column_index: int = 0):
     """
@@ -558,9 +550,7 @@ def validate_privatelink_host(host: str) -> bool:
     
     return True
 
-# =============================================================================
 # ADAPTIVE PROCESSING FUNCTIONS
-# =============================================================================
 
 def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, base_batch_size: int) -> Dict[str, Any]:
     """
@@ -739,9 +729,7 @@ def get_adaptive_rate_limit(table_size: int) -> int:
     else:
         return 100  # 100ms for large tables - still fast but respectful
 
-# =============================================================================
 # RESOURCE MONITORING FUNCTIONS
-# =============================================================================
 
 def monitor_resources() -> Dict[str, Any]:
     """
@@ -867,9 +855,7 @@ def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[boo
     
     return False, current_threads
 
-# =============================================================================
 # DATA PROCESSING FUNCTIONS
-# =============================================================================
 
 def preprocess_table_data(conn_manager: ConnectionManager, table_name: str, configuration: dict, state: dict) -> bool:
     """
@@ -1278,9 +1264,7 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
     log.info("Starting Snowflake sync process...")
     log.info("=" * 80)
 
-# =============================================================================
 # CONFIGURATION VALIDATION AND SNOWFLAKE CONNECTION
-# =============================================================================
 
 def get_config_value(configuration: dict, key: str, default: str = "", as_bool: bool = False) -> str:
     """
@@ -1839,9 +1823,7 @@ def sync_table_optimized(conn_manager: ConnectionManager, table_name: str, state
     max_retries = int(get_config_value(configuration, "max_retries", str(DEFAULT_MAX_RETRIES)))
     return retry_with_backoff(_sync_table_internal, max_retries)
 
-# =============================================================================
 # SCHEMA AND UPDATE FUNCTIONS
-# =============================================================================
 
 def schema(configuration: dict):
     """
@@ -1929,9 +1911,7 @@ def update(configuration: dict, state: dict):
     else:
         log.info("Resource Monitor: System monitoring disabled")
     
-    # =============================================================================
     # PHASE 1: PREPROCESSING - Run preprocessing for all tables before data replication
-    # =============================================================================
     
     log.info("=" * 80)
     log.info("PHASE 1: PREPROCESSING")
@@ -2007,10 +1987,8 @@ def update(configuration: dict, state: dict):
     log.info("=" * 80)
     log.info("PHASE 1 COMPLETE: PREPROCESSING")
     log.info("=" * 80)
-    
-    # =============================================================================
+
     # PHASE 2: DATA REPLICATION - Process tables by category after preprocessing
-    # =============================================================================
     
     log.info("=" * 80)
     log.info("PHASE 2: DATA REPLICATION")
@@ -2102,10 +2080,8 @@ def update(configuration: dict, state: dict):
         op.checkpoint(current_state)
         log.info(f"Final checkpoint with state: {current_state}")
     
-    # =============================================================================
     # FINAL SUMMARY
-    # =============================================================================
-    
+        
     log.info("=" * 80)
     log.info("SYNC COMPLETION SUMMARY")
     log.info("=" * 80)
@@ -2138,9 +2114,7 @@ def update(configuration: dict, state: dict):
     log.info("SNOWFLAKE SYNC COMPLETED")
     log.info("=" * 80)
 
-# =============================================================================
 # CONNECTOR INITIALIZATION
-# =============================================================================
 
 # Initialize the connector with the defined update and schema functions
 connector = Connector(update=update, schema=schema)
