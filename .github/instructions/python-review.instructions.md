@@ -10,25 +10,22 @@ The following issues are automatic blockers for PR approval:
 - Loads unbounded datasets into memory (no paging or batching or streaming). This is very important for large datasets.
 - Missing required methods or comments, especially `schema()`, `update()` docs/comments, and operation comments matching the [template](https://github.com/fivetran/fivetran_connector_sdk/blob/main/template_example_connector/connector.py).  
 - No retries and backoff for network and API calls, or exceptions are swallowed.  
-- Logs secrets or Sensitive information.
 - No checkpointing in long-running syncs (large datasets, multiple pages).
-- No exception handling around network calls (HTTP, JSON, timeouts).
-- No `validate_configuration()` when a `configuration.json` is present.  
 - Flake8 violations that indicate real problems
 - Methods with cyclomatic or cognitive complexity > 15 without refactor.
 
 # Review guidelines for Python files
-When reviewing, ensure the following best practices are followed. If not, comment changes with a clear checklist.
+When reviewing, ensure the following best practices are followed. If not, comment changes:
 - The update() method should always be present in one of the python files.
-- The code should follow PEP 8 guidelines and be flake8 clean.
 - Never materialize unbounded results in memory; use pagination, streaming, or chunked batches with comments explaining the approach (especially for “large dataset” scenarios).
+- Avoid per-row network calls; prefer vectorized or bulk endpoints where possible.
 - State and cursor accuracy: advance state only after durable writes for the last processed item or page.
 - Pagination: correct exit conditions; no infinite loops; handles empty and last pages.
 - Keep cognitive complexity less than 15 per function; otherwise split into helpers. Add brief comments at split boundaries.
 - Catch specific exceptions (HTTP, JSON, timeouts) and rethrow or fail fast where appropriate; never blanket-swallow errors.
-- Avoid per-row network calls; prefer vectorized or bulk endpoints where possible.
 - Checkpoint at regular, documented intervals (use __CHECKPOINT_INTERVAL or equivalent constant).
 - Keep dependency set minimal; remove unused requirements.
+- No `validate_configuration()` when a `configuration.json` is present.
 - Every column should not be eagerly defined in the schema method; Declare columns and data types only as necessary.
 - Primary keys should be defined wherever applicable in schema method.
 

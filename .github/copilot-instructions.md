@@ -21,7 +21,7 @@ When a PR changes or adds a connector/example/template, perform these checks:
   - README (following the template present at `template_example_connector/README_template.md`).
 - The `requirements.txt` should not include `fivetran_connector_sdk` or `requests`.
 - Data operations use `op.upsert(...)`, `op.update(...)`, `op.delete(...)`, `op.checkpoint(...)` without `yield`.
-- `flake8` clean; follow PEP 8; clear docstrings on public helpers.
+- `flake8` clean; follow PEP 8 coding guidelines; clear docstrings on public helpers.
 - Minimal, necessary dependencies; avoid heavyweight libraries for trivial tasks.
 
 # When to search vs. trust this guide
