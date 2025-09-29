@@ -19,109 +19,7 @@ Use cases: Application performance monitoring, infrastructure health tracking, u
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-
-### Quick start (Recommended)
-
-1. Fork or clone this repository.
-2. Set up GitHub secrets and variables (see [Deployment](#deployment) section).
-3. Push changes to `main` branch - deployment happens automatically!
-
-### Alternative: Manual setup
-
-For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#manualdeployment) section below.
-
-## Deployment
-
-> PRODUCTION DEPLOYMENT RECOMMENDATION
-> We recommend using GitHub Actions workflow for all production deployments.
-> Manual deployment is available for development, testing, and debugging purposes, but we encourage using the automated workflow for production environments.
-
-The connector is designed to work with **GitHub Actions workflow** as the recommended production deployment mechanism, while keeping manual deployment available for development and testing scenarios.
-
-### Primary: Automated deployment via GitHub Actions
-
-The connector includes a GitHub Actions workflow (`.github/workflows/deploy_connector.yaml`) for automated deployment.
-
-#### Workflow features:
-- Automated Triggers: Deploys on pushes to the `main` branch
-- Path-Based Triggers: Only runs when changes are made to the connector directory
-- Parameterized Configuration: Easy to customize Python version, working directory, and other settings
-- Environment Management: Uses GitHub Environments for secure credential management
-- Zero-Downtime Deployment: Seamless updates without service interruption
-
-#### Quick setup:
-
-1. Create GitHub environment:
-   - i. Go to repository **Settings → Environments**
-   - ii. Create environment named `Fivetran`
-
-2. Add repository secrets (**Settings → Secrets** and **Variables → Actions**):
-   ```
-   NEWRELIC_API_KEY          # Your New Relic API key (NRAK-xxxxx)
-   NEWRELIC_ACCOUNT_ID       # Your New Relic account ID
-   NEWRELIC_REGION           # Your New Relic region (US or EU)
-   FIVETRAN_API_KEY          # Your Fivetran API key
-   ```
-
-3. Add repository variables (**Settings → Secrets** and **Variables → Actions**):
-   ```
-   FIVETRAN_DEV_DESTINATION  # Your Fivetran destination ID
-   NEWRELIC_DEV              # Your Fivetran connection name
-   ```
-
-4. Deploy: Simply push changes to the `main` branch - deployment happens automatically!
-
-#### Workflow configuration:
-
-The workflow uses parameterized environment variables for easy customization:
-
-```yaml
-env:
-  PYTHON_VERSION: '3.11'
-  WORKING_DIRECTORY: '.'
-  CONNECTOR_NAME: 'New Relic'
-  CONFIG_FILE: 'configuration.json'
-  EXCLUDED_DEPENDENCIES: '^requests\b'
-```
-
-#### Deployment process:
-
-1. Automatic trigger: Push changes to `main` branch.
-2. Environment setup: Python 3.11, dependencies installation.
-3. Configuration creation: Generates `configuration.json` from GitHub secrets.
-4. Fivetran deployment: Executes `fivetran deploy` command.
-5. Status reporting: Provides deployment success/failure feedback.
-
-#### Customization:
-
-To adapt this workflow for other connectors, simply update the environment variables:
-
-```yaml
-env:
-  PYTHON_VERSION: '3.11'
-  WORKING_DIRECTORY: 'connections/csdk/other-connector'
-  CONNECTOR_NAME: 'Other'
-  CONFIG_FILE: 'configuration.json'
-  EXCLUDED_DEPENDENCIES: '^requests\b'
-```
-
-### <a name="manualdeployment"></a>Secondary: Manual Deployment (Debugging & Testing)
-
-For local development, testing, and debugging purposes:
-
-1. Install dependencies:
-   ```bash
-   pip install fivetran-connector-sdk
-   ```
-
-2. Configure credentials:
-   - Update `configuration.json` with your New Relic API credentials
-   - Ensure the file is not committed to version control
-
-3. Deploy to Fivetran:
-   ```bash
-   fivetran deploy --api-key YOUR_FIVETRAN_API_KEY --destination YOUR_DESTINATION_ID --connection YOUR_CONNECTION_NAME --configuration configuration.json --python-version 3.11
-   ```
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -234,24 +132,6 @@ Steps to obtain credentials:
 3. Create a new API key with appropriate permissions.
 4. For production: We recommend adding credentials as **GitHub Secrets** (see [Deployment](#deployment) section).
 5. For development: You can add credentials to `configuration.json` (remember not to commit this file).
-
-### Development configuration (Local Testing)
-
-Development setup: The following configuration methods are designed for local development and testing. We recommend using GitHub secrets for production deployments.
-
-For local development and testing:
-
-```bash
-# Option 1: Set environment variables locally
-export NEWRELIC_API_KEY="your_api_key"
-export NEWRELIC_ACCOUNT_ID="your_account_id"
-export NEWRELIC_REGION="US"
-
-# Option 2: Use configuration.json file (never commit this file)
-# Update configuration.json with your test credentials
-```
-
-Production deployment: We recommend using the GitHub Actions workflow with GitHub secrets (see [Deployment](#deployment) section above).
 
 ## Pagination
 
@@ -454,11 +334,3 @@ GitHub actions workflow management:
 - Regularly review and update workflow permissions and access controls
 - Consider using branch protection rules to prevent unauthorized deployments
 - Manual deployment: Available for development, testing, and debugging, but we encourage using GitHub Actions for production
-
-## References
-
-- [New Relic API Documentation](https://docs.newrelic.com/docs/apis/intro-apis/introduction-new-relic-apis)
-- [NerdGraph API](https://docs.newrelic.com/docs/apis/nerdgraph/get-started/introduction-new-relic-nerdgraph/)
-- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-- [Fivetran Connector SDK Best Practices](https://fivetran.com/docs/connectors/connector-sdk/best-practices)
-- [Fivetran Connector SDK v2.0.0+ Migration Guide](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage)

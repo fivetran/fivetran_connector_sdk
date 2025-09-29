@@ -12,7 +12,7 @@ on:
     branches:
       - main
     paths:
-      - '**'
+      - 'examples/source_examples/newrelic/**' # Trigger only if changes are in the newrelic-connector directory
 
 jobs:
   deploy-fivetran-connector:
