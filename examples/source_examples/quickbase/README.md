@@ -19,112 +19,7 @@ Use cases: Business process analysis, application data management, operational a
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-
-### Quick start (Recommended)
-
-1. Fork or clone this repository.
-2. Set up GitHub secrets and variables (see [Deployment](#deployment) section).
-3. Push changes to `main` branch - deployment happens automatically!
-
-### Alternative: Manual setup
-
-For local development and testing, refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) and the [Manual Deployment](#-secondary-manual-deployment-debugging--testing) section below.
-
-## Deployment
-
-> PRODUCTION DEPLOYMENT RECOMMENDATION
-> We recommend using GitHub Actions workflow for all production deployments.
-> Manual deployment is available for development, testing, and debugging purposes, but we encourage using the automated workflow for production environments.
-
-The connector is designed to work with **GitHub Actions workflow** as the recommended production deployment mechanism, while keeping manual deployment available for development and testing scenarios.
-
-### Primary: Automated deployment via GitHub Actions
-
-The connector includes a GitHub Actions workflow (`.github/workflows/deploy_connector.yaml`) for automated deployment.
-
-#### Workflow features:
-- Automated triggers: Deploys on pushes to the `main` branch
-- Path-Based triggers: Only runs when changes are made to the connector directory
-- Parameterized configuration: Easy to customize Python version, working directory, and other settings
-- Environment management: Uses GitHub Environments for secure credential management
-- Code quality checks: Black formatting, Flake8 linting, unit tests, and mock integration tests
-- Zero-Downtime deployment: Seamless updates without service interruption
-
-#### Quick setup:
-
-1. Create GitHub environment:
-   - i. Go to repository **Settings → Environments**
-   - ii. Create environment named `Fivetran`
-
-2. Add repository secrets (**Settings → Secrets** and **Variables → Actions**):
-   ```
-   QUICKBASE_USER_TOKEN        # Your Quickbase user token
-   QUICKBASE_REALM_HOSTNAME    # Your Quickbase realm hostname
-   QUICKBASE_APP_ID            # Your Quickbase application ID
-   FIVETRAN_API_KEY            # Your Fivetran API key
-   ```
-
-3. Add repository variables (**Settings → Secrets** and **Variables → Actions**):
-   ```
-   FIVETRAN_DEV_DESTINATION    # Your Fivetran destination ID
-   QUICKBASE_DEV               # Your Fivetran connection name
-   QUICKBASE_TABLE_IDS         # Comma-separated table IDs (optional)
-   ```
-
-4. Deploy: Simply push changes to the `main` branch - deployment happens automatically!
-
-#### Workflow configuration:
-
-The workflow uses parameterized environment variables for easy customization:
-
-```yaml
-env:
-  PYTHON_VERSION: '3.11'
-  WORKING_DIRECTORY: 'connections/csdk/quickbase-connector'
-  CONNECTOR_NAME: 'Quickbase'
-  CONFIG_FILE: 'configuration.json'
-  EXCLUDED_DEPENDENCIES: '^requests\b'
-```
-
-#### Deployment process:
-
-1. Automatic trigger: Push changes to `main` branch.
-2. Code quality: Black formatting, Flake8 linting, unit tests, mock integration tests.
-3. Environment setup: Python 3.11, dependencies installation.
-4. Configuration creation: Generates `configuration.json` from GitHub secrets.
-5. Fivetran deployment: Executes `fivetran deploy` command.
-6. Status reporting: Provides deployment success/failure feedback.
-
-#### Customization:
-
-To adapt this workflow for other connectors, simply update the environment variables:
-
-```yaml
-env:
-  PYTHON_VERSION: '3.11'
-  WORKING_DIRECTORY: 'connections/csdk/other-connector'
-  CONNECTOR_NAME: 'Other'
-  CONFIG_FILE: 'configuration.json'
-  EXCLUDED_DEPENDENCIES: '^requests\b'
-```
-
-### <a name="manualdeployment"></a>Secondary: Manual Deployment (Debugging & Testing)
-
-For local development, testing, and debugging purposes:
-
-1. Install dependencies:
-   ```bash
-   pip install fivetran-connector-sdk faker requests
-   ```
-
-2. Configure credentials:
-   - Update `configuration.json` with your Quickbase API credentials
-   - Ensure the file is not committed to version control
-
-3. Deploy to Fivetran:
-   ```bash
-   fivetran deploy --api-key YOUR_FIVETRAN_API_KEY --destination YOUR_DESTINATION_ID --connection YOUR_CONNECTION_NAME --configuration configuration.json --python-version 3.11
-   ```
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -187,56 +82,6 @@ Optional configuration keys:
 - `enable_records_sync`: Enable record data sync (true/false, default: true)
 - `date_field_for_incremental`: Field ID for incremental sync filtering (default: 3)
 - `enable_debug_logging`: Enable debug logging (true/false, default: false)
-
-## Production vs Development Configuration
-
-### Production deployment (Recommended)
-- Method: GitHub Actions workflow with GitHub secrets
-- Security: Credentials stored securely in GitHub
-- Automation: Push-to-deploy workflow
-- Compliance: Enterprise-grade security practices
-
-### Development & Testing (Available)
-- Method: Local `configuration.json` or environment variables
-- Security: Credentials stored locally (never commit to repository)
-- Use case: Local development, debugging, testing
-- Guidance: We recommend using GitHub secrets for production
-
-Security note: For production deployments, we recommend using **GitHub secrets**. Local configuration files are available for development but we encourage using GitHub secrets for production environments.
-
-User token setup:
-1. Go to your Quickbase application.
-2. Navigate to **Settings > App properties > Advanced settings.**
-3. Generate a user token with appropriate permissions.
-4. Add the token to `configuration.json` with QB-USER-TOKEN prefix.
-
-Realm hostname:
-- Found in your Quickbase URL (e.g., company.quickbase.com)
-- Used to connect to your specific Quickbase realm
-
-Application ID:
-- Found in the Quickbase application URL
-- Used to scope data extraction to specific applications
-
-Note: We recommend keeping the `configuration.json` file out of version control to protect sensitive information. You can add it to your `.gitignore` file for additional security.
-
-### Development configuration (Local Testing)
-
-Development setup: The following configuration methods are designed for local development and testing. We recommend using GitHub secrets for production deployments.
-
-For local development and testing:
-
-```bash
-# Option 1: Set environment variables locally
-export QUICKBASE_USER_TOKEN="QB-USER-TOKEN your_token"
-export QUICKBASE_REALM_HOSTNAME="company.quickbase.com"
-export QUICKBASE_APP_ID="your_app_id"
-
-# Option 2: Use configuration.json file (never commit this file)
-# Update configuration.json with your test credentials
-```
-
-Production deployment: We recommend using the GitHub Actions workflow with GitHub secrets (see [Deployment](#deployment) section above).
 
 ## Requirements file
 
@@ -323,12 +168,12 @@ The connector processes Quickbase data through several stages:
 5. Error handling: Comprehensive error handling with logging and validation.
 
 Data Processing Features:
-- **Type conversion**: Quickbase API responses converted to appropriate data types
-- **Default values**: Missing dimensions populated with appropriate defaults
-- **Timestamp handling**: ISO format timestamp conversion and period-based grouping
-- **Data aggregation**: Multiple field types and record structures
-- **Filtering**: Application and table-based filtering based on configuration
-- **Dynamic time ranges**: Intelligent time range selection for initial vs incremental syncs
+- Type conversion: Quickbase API responses converted to appropriate data types
+- Default values: Missing dimensions populated with appropriate defaults
+- Timestamp handling: ISO format timestamp conversion and period-based grouping
+- Data aggregation: Multiple field types and record structures
+- Filtering: Application and table-based filtering based on configuration
+- Dynamic time ranges: Intelligent time range selection for initial vs incremental syncs
 
 Data Flow:
 Quickbase REST API → Requests Client → Dynamic Time Range Processing → Data Processing Functions → Fivetran Operations → Data Warehouse Tables
@@ -340,22 +185,22 @@ Refer to functions `get_time_range`, `execute_api_request`, `get_applications_da
 The connector implements comprehensive error handling strategies to ensure robust operation:
 
 Configuration validation errors:
-- **ValueError**: Missing required configuration values (`user_token`, `realm_hostname`)
-- **ValueError**: Empty user token or realm hostname values
-- **ValueError**: Invalid numeric parameters (sync frequency, initial sync days, max records)
+- ValueError: Missing required configuration values (`user_token`, `realm_hostname`)
+- ValueError: Empty user token or realm hostname values
+- ValueError: Invalid numeric parameters (sync frequency, initial sync days, max records)
 
 API request errors:
-- **RequestException**: Handles network timeouts, connection errors, and HTTP failures
-- **RuntimeError**: Manages API request failures and query execution errors
+- RequestException: Handles network timeouts, connection errors, and HTTP failures
+- RuntimeError: Manages API request failures and query execution errors
 
 Sync operation errors:
-- **RuntimeError**: Handles general sync failures with detailed error messages
-- **Logging**: Uses Fivetran's logging system with info and severe levels for comprehensive reporting
+- RuntimeError: Handles general sync failures with detailed error messages
+- Logging: Uses Fivetran's logging system with info and severe levels for comprehensive reporting
 
 Error handling implementation:
-- **Early validation**: Configuration parameters validated before API calls
-- **Exception propagation**: Errors are logged and re-raised for Fivetran to handle
-- **State preservation**: Checkpoint system maintains sync state across failures
+- Early validation: Configuration parameters validated before API calls
+- Exception propagation: Errors are logged and re-raised for Fivetran to handle
+- State preservation: Checkpoint system maintains sync state across failures
 
 Refer to functions `validate_configuration`, `execute_api_request`, and the main `update` function in `connector.py` for error handling implementation.
 
@@ -488,11 +333,3 @@ GitHub actions workflow management:
 - Regularly review and update workflow permissions and access controls
 - Consider using branch protection rules to prevent unauthorized deployments
 - Manual deployment: Available for development, testing, and debugging, but we encourage using GitHub Actions for production
-
-## References
-
-- [Quickbase API Documentation](https://developer.quickbase.com/)
-- [Quickbase REST API Reference](https://developer.quickbase.com/operation/runQuery)
-- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-- [Fivetran Connector SDK Best Practices](https://fivetran.com/docs/connectors/connector-sdk/best-practices)
-- [Fivetran Connector SDK v2.0.0+ Migration Guide](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage)
