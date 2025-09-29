@@ -227,51 +227,51 @@ The connector uses a `configuration.json` file to define connection parameters a
 **Basic configuration:**
 ```json
 {
-  "user": "your_user",
-  "password": "your_password",
-  "account": "your_account",
-  "warehouse": "your_warehouse",
-  "database": "your_database",
-  "schema": "your_schema",
-  "tables": "table1,table2,table3",
-  "enable_resource_monitoring": "true",
-  "enable_preprocessing": "false"
+  "user": "YOUR_SNOWFLAKE_DATABASE_USER",
+  "password": "YOUR_DATABASE_PASSWORD",
+  "account": "YOUR_SNOWFLAKE_ACCOUNT",
+  "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
+  "database": "YOUR_SNOWFLAKE_DATABASE",
+  "schema": "YOUR_SNOWFLAKE_DATABASE_SCHEMA",
+  "tables": "YOUR_COMMA_SEPARATED_TABLE_LIST",
+  "enable_resource_monitoring": "YOUR_RESOURCE_MONITORING_FLAG",
+  "enable_preprocessing": "YOUR_PREPROCESSING_FLAG"
 }
 ```
 
 **Advanced configuration:**
 ```json
 {
-  "user": "your_user",
+  "user": "YOUR_SNOWFLAKE_DATABSE_USER",
   "private_key": "-----BEGIN PRIVATE KEY-----\n...",
-  "role": "your_role",
-  "account": "your_account",
-  "warehouse": "your_warehouse",
-  "database": "your_database",
-  "schema": "your_schema",
-  "tables": "table1,table2,table3",
-  "timestamp_column": "updated_at",
-  "enable_resource_monitoring": "true",
-  "enable_preprocessing": "true",
-  "preprocessing_table": "table1,table2",
-  "preprocessing_sql": "UPDATE {table_list} SET status = 'PROCESSED' WHERE id > 0",
-  "batch_delay_ms": "50",
-  "max_retries": "5"
+  "role": "YOUR_SNOWFLAKE_ROLER\",
+  "account": "YOUR_SNOWFLAKE_ACCOUNT",
+  "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
+  "database": "YOUR_SNOWFLAKE_DATABASE",
+  "schema": "YOUR_SNOWFLAKE_DATABASE_SCHEMA",
+  "tables": "YOUR_COMMA_SEPARATED_TABLE_LIST",
+  "timestamp_column": "YOUR_TIMESTAMP_COLUMN",
+  "enable_resource_monitoring": "YOUR_RESOURCE_MONITORING_FLAG",
+  "enable_preprocessing": "YOUR_PREPROCESSING_FLAG"
+  "preprocessing_table": "YOUR_COMMA_SEPARATED_TABLE_LIST_FOR_PREPROCESSING",
+  "preprocessing_sql": "YOUR_PREPROCESSING_FLAG (EXAMPLE: UPDATE {table_list} SET status = 'PROCESSED' WHERE id > 0"),
+  "batch_delay_ms": "YOUR_BATCH_DELAY_IN_MILLISECONDS",
+  "max_retries": "YOUR_MAX_RETRIES"
 }
 ```
 
 **PrivateLink configuration (Snowflake example):**
 ```json
 {
-  "snowflake_user": "your_user",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...",
+  "user": "YOUR_SNOWFLAKE_DATABSE_USER",
+  "private_key": "YOUR_PRIVATE_KEY (EXAMPLE: -----BEGIN PRIVATE KEY-----\n...)",
   "use_privatelink": "true",
-  "privatelink_host": "account.region.privatelink.snowflakecomputing.com",
-  "snowflake_warehouse": "your_warehouse",
-  "snowflake_database": "your_database",
-  "snowflake_schema": "your_schema",
-  "tables": "table1,table2,table3",
-  "ssl_verify": "true"
+  "privatelink_host": "YOUR_PRIVATE_LINK_HOST (EXAMPLE: account.region.privatelink.snowflakecomputing.com",
+  "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
+  "database": "YOUR_SNOWFLAKE_DATABASE",
+  "schema": "YOUR_SNOWFLAKE_DATABASE_SCHEMA",
+  "tables": "YOUR_COMMA_SEPARATED_TABLE_LIST",
+  "ssl_verify": "YOUR_SSL_VERIFY_FLAG"
 }
 ```
 
