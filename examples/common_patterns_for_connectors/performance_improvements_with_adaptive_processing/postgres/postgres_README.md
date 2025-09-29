@@ -146,19 +146,19 @@ The connector uses the following configuration keys defined in the `configuratio
 
 ```json
 {
-  "host": "<YOUR_VALUE_1>",
-  "port": "<YOUR_VALUE_2>",
-  "database": "<YOUR_VALUE_3>",
-  "username": "<YOUR_VALUE_4>",
-  "password": "<YOUR_VALUE_5>",
-  "region": "<YOUR_VALUE_6>",
-  "max_retries": "<YOUR_VALUE_7>",
-  "retry_sleep_seconds": "<YOUR_VALUE_8>",
-  "debug": "<YOUR_VALUE_9>",
-  "table_filters": "<YOUR_VALUE_10>",
-  "custom_batch_size": "<YOUR_VALUE_11>",
-  "custom_threads": "<YOUR_VALUE_12>",
-  "custom_queue_size": "<YOUR_VALUE_13>"
+  "host": "<YOUR_POSTGRES_HOST>",
+  "port": "<YOUR_POSTGRES_PORT>",
+  "database": "<YOUR_POSTGRES_DATABASE_NAME>",
+  "username": "<YOUR_POSTGRES_USERNAME>",
+  "password": "<YOUR_POSTGRES_USERNAME_PASSWORD>",
+  "region": "<YOUR_TRANSFORMATION_VALUE>",
+  "max_retries": "<YOUR_MAX_RETRIES>",
+  "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
+  "debug": "<YOUR_DEBUG_FLAG>",
+  "table_filters": "<YOUR_TABLE_FILTERS>",
+  "custom_batch_size": "<YOUR_CUSTOM_BATCH_SIZE>",
+  "custom_threads": "<YOUR_CUSTOM_THREADS>",
+  "custom_queue_size": "<YOUR_CUSTOM_QUEUE_SIZE>"
 }
 ```
 
