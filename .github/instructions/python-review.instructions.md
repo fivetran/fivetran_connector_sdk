@@ -101,7 +101,7 @@ from fivetran_connector_sdk import Operations as op  # For supporting Data opera
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     ```
 
-- At the end of connector, The main entry point must follow this format:
+- At the end of connector, The exact format should be followed:
     ```
     # Create the connector object using the schema and update functions
     connector = Connector(update=update, schema=schema)
