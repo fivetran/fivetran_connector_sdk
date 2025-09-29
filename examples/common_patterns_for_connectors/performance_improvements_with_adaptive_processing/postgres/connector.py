@@ -1,18 +1,16 @@
-import os
-import json
-import time
-import random
-import threading
-from datetime import datetime, timezone
-from typing import Dict, List, Any, Tuple
-from contextlib import contextmanager
+import os  # Paths for loading configuration
+import json  # Configuration and JSON encoding
+import time  # Sleep for retries and timestamps
+import random  # Jitter for retry backoff
+import threading  # Thread-safety for connection manager
+from datetime import datetime, timezone  # Timestamp handling
+from typing import Dict, List, Any, Tuple  # Type hints for readability
+from contextlib import contextmanager  # Safe cursor context management
 
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
-import pyodbc
+from fivetran_connector_sdk import Connector, Logging as log, Operations as op  # Connector API, logging, operations
+import pyodbc  # ODBC driver for PostgreSQL
 
 # RESOURCE MONITORING & ADAPTIVE PROCESSING CONFIGURATION
-
-# performance_optimization_adaptive_processing
 
 # Configuration constants for adaptive processing
 BATCH_SIZE = 5000
