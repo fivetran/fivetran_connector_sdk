@@ -66,58 +66,58 @@ from fivetran_connector_sdk import Operations as op  # For supporting Data opera
   ```
   
 - If applicable for the connector, a schema function must be defined with the following docstring:
-    ```
-    Define the schema function which lets you configure the schema your connector delivers.
-    See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    ```
+  ```
+  Define the schema function which lets you configure the schema your connector delivers.
+  See the technical reference documentation for more details on the schema function:
+  https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+  Args:
+    configuration: a dictionary that holds the configuration settings for the connector.
+  ```
 
 - The update docstring must be present and follow this format:
-    ```
-    Define the update function which lets you configure how your connector fetches data.
-    See the technical reference documentation for more details on the update function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-    Args:
-        state: a dictionary that holds the state of the connector.
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Returns:
-        state: a dictionary that holds the updated state of the connector.
-    ```
+  ```
+  Define the update function which lets you configure how your connector fetches data.
+  See the technical reference documentation for more details on the update function:
+  https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+  Args:
+    state: a dictionary that holds the state of the connector.
+    configuration: a dictionary that holds the configuration settings for the connector.
+  Returns:
+    state: a dictionary that holds the updated state of the connector.
+  ```
 
 - Before every op.upsert(), The following comment must be present:
-    ```
-    # The 'upsert' operation is used to insert or update data in the destination table.
-    # The first argument is the name of the destination table.
-    # The third argument is a list of dictionaries containing the records to be upserted.
-    ```
+  ```py
+  # The 'upsert' operation is used to insert or update data in the destination table.
+  # The first argument is the name of the destination table.
+  # The third argument is a list of dictionaries containing the records to be upserted.
+  ```
   
 - Before every op.checkpoint(), The following comment must be present:
-    ```
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    ```
+  ```py
+  # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+  # from the correct position in case of next sync or interruptions.
+  # Learn more about how and where to checkpoint by reading our best practices documentation
+  # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+  ```
 
 - At the end of connector, The exact format should be followed:
-    ```
-    # Create the connector object using the schema and update functions
-    connector = Connector(update=update, schema=schema)
+  ```py
+  # Create the connector object using the schema and update functions
+  connector = Connector(update=update, schema=schema)
 
-    # Check if the script is being run as the main module.
-    # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-    # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-    # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-    if __name__ == "__main__":
-        # Open the configuration.json file and load its contents
-        with open("configuration.json", "r") as f:
-            configuration = json.load(f)
+  # Check if the script is being run as the main module.
+  # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+  # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+  # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+  if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+      configuration = json.load(f)
 
     # Test the connector locally
     connector.debug(configuration=configuration)
-    ```
+  ```
 
 # When to search vs. trust this guide
 Default to this checklist. Only search the repo/docs if:
