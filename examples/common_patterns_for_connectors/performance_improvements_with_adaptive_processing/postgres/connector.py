@@ -179,7 +179,8 @@ def update(configuration: dict, state: dict):
             # Fetch table comment
             with initial_conn_manager.get_cursor() as cursor:
                 comment = get_table_comment(cursor, table_name, schema_name)
-                yield op.upsert("postgres_tables", {
+                # Direct operation call without yield - easier to adopt
+                op.upsert(table="postgres_tables", data={
                     "table_name": table_name,
                     "schema_name": schema_name,
                     "table_type": "BASE TABLE",
@@ -202,7 +203,8 @@ def update(configuration: dict, state: dict):
                     char_max_length = column[4] if len(column) > 4 else None
                     
                     if column_name and data_type:  # Only process if we have essential data
-                        yield op.upsert("postgres_columns", {
+                        # Direct operation call without yield
+                        op.upsert(table="postgres_columns", data={
                             "table_name": table_name,
                             "column_name": column_name,
                             "data_type": data_type,
@@ -231,11 +233,11 @@ def update(configuration: dict, state: dict):
         # Retry loop for error handling
         for attempt in range(max_retries):
             try:
-                # Process table with adaptive parameters
-                for operation in process_table_with_adaptive_parameters(
+                # Process table with adaptive parameters using direct operation calls
+                # No yield required - function calls op.upsert() directly
+                process_table_with_adaptive_parameters(
                     table_name, schema_name, configuration, conn_manager, state
-                ):
-                    yield operation
+                )
                 
                 # Successful completion, exit retry loop
                 log.info(f"Successfully processed table {table_name}")
@@ -261,8 +263,10 @@ def update(configuration: dict, state: dict):
                 continue
         
         # Update state and checkpoint after table completion
+        # Save progress to enable recovery in case of interruptions
         state[table_name] = datetime.now(timezone.utc).isoformat()
-        yield op.checkpoint(state)
+        # Direct checkpoint call - no yield required
+        op.checkpoint(state=state)
         
         # Progress update
         next_table = (
