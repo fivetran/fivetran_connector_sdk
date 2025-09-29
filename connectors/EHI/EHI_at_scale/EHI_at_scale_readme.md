@@ -214,18 +214,18 @@ END
 
 ```json
 {
-    "MSSQL_SERVER": "<YOUR_VALUE_1>",
-    "MSSQL_CERT_SERVER": "<YOUR_VALUE_2>",
-    "MSSQL_PORT": "<YOUR_VALUE_3>",
-    "MSSQL_DATABASE": "<YOUR_VALUE_4>",
-    "MSSQL_USER": "<YOUR_VALUE_5>",
-    "MSSQL_PASSWORD": "<YOUR_VALUE_6>",
-    "CERT": "<YOUR_VALUE_7>",
-    "THREADS": "<YOUR_VALUE_8>",
-    "MAX_QUEUE_SIZE": "<YOUR_VALUE_9>",
-    "MAX_RETRIES": "<YOUR_VALUE_10>",
-    "RETRY_SLEEP_SECONDS": "<YOUR_VALUE_11>",
-    "DEBUG": "<YOUR_VALUE_12>"
+    "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
+    "mssql_cert_server": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
+    "mssql_post": "<YOUR_SQL_SERVER_PORT>",
+    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
+    "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
+    "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>",
+    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
+    "threads": "<YOUR_THREAD_COUNT>",
+    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
+    "max_retries": "<YOUR_MAX_RETRIES>",
+    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
+    "debug": "<YOUR_DEBUG_FLAG>"
 
 }
 ```
@@ -234,12 +234,12 @@ END
 
 ```json
 {
-    "MSSQL_SERVER": "<YOUR_VALUE_1>",
-    "MSSQL_CERT_SERVER": "<YOUR_VALUE_2>",
-    "MSSQL_PORT": "<YOUR_VALUE_3>",
-    "MSSQL_DATABASE": "<YOUR_VALUE_4>",
-    "MSSQL_USER": "<YOUR_VALUE_5>",
-    "MSSQL_PASSWORD": "<YOUR_VALUE_6>",
+    "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
+    "mssql_cert_server": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
+    "mssql_post": "<YOUR_SQL_SERVER_PORT>",
+    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
+    "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
+    "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>"
 
 }
 ```
@@ -248,12 +248,12 @@ END
 
 ```json
 {
-    "CERT": "<YOUR_VALUE_7>",
-    "THREADS": "<YOUR_VALUE_8>",
-    "MAX_QUEUE_SIZE": "<YOUR_VALUE_9>",
-    "MAX_RETRIES": "<YOUR_VALUE_10>",
-    "RETRY_SLEEP_SECONDS": "<YOUR_VALUE_11>",
-    "DEBUG": "<YOUR_VALUE_12>"
+    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
+    "threads": "<YOUR_THREAD_COUNT>",
+    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
+    "max_retries": "<YOUR_MAX_RETRIES>",
+    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
+    "debug": "<YOUR_DEBUG_FLAG>"
 }
 ```
 
