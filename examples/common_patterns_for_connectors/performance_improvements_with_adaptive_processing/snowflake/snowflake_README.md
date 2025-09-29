@@ -200,21 +200,21 @@ The connector uses a `configuration.json` file to define connection parameters a
 
 ```json
 {
-  "snowflake_user": "<YOUR_VALUE_1>",
-  "snowflake_password": "<YOUR_VALUE_2>",
-  "snowflake_account": "<YOUR_VALUE_3>",
-  "snowflake_warehouse": "<YOUR_VALUE_4>",
-  "snowflake_database": "<YOUR_VALUE_5>",
-  "snowflake_schema": "<YOUR_VALUE_6>",
-  "tables": "<YOUR_VALUE_7>,<YOUR_VALUE_8>,<YOUR_VALUE_9>",
-  "use_privatelink": "<YOUR_VALUE_10>",
-  "ssl_verify": "<YOUR_VALUE_11>",
-  "batch_delay_ms": "<YOUR_VALUE_12>",
-  "max_retries": "<YOUR_VALUE_13>",
-  "enable_resource_monitoring": "<YOUR_VALUE_14>",
-  "enable_preprocessing": "<YOUR_VALUE_15>",
-  "preprocessing_table": "<YOUR_VALUE_16>",
-  "preprocessing_sql": "<YOUR_VALUE_17>"
+  "snowflake_user": "YOUR_SNOWFLAKE_DATABASE_USER",
+  "snowflake_password": "YOUR_DATABASE_PASSWORD",
+  "snowflake_account": "YOUR_SNOWFLAKE_ACCOUNT",
+  "snowflake_warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
+  "snowflake_database": "YOUR_SNOWFLAKE_DATABASE",
+  "snowflake_schema": "YOUR_SNOWFLAKE_DATABASE_SCHEMA",
+  "tables": "YOUR_COMMA_SEPARATED_TABLE_LIST",
+  "use_privatelink": "YOUR_PRIVATE_LINK_FLAG",
+  "ssl_verify": "YOUR_SSL_VERIFY_FLAG"
+  "batch_delay_ms": "YOUR_BATCH_DELAY_IN_MILLISECONDS",
+  "max_retries": "YOUR_MAX_RETRIES"
+  "enable_resource_monitoring": "YOUR_RESOURCE_MONITORING_FLAG",
+  "enable_preprocessing": "YOUR_PREPROCESSING_FLAG"
+  "preprocessing_table": "YOUR_COMMA_SEPARATED_TABLE_LIST_FOR_PREPROCESSING",
+  "preprocessing_sql": "YOUR_PREPROCESSING_FLAG (EXAMPLE: UPDATE {table_list} SET status = 'PROCESSED' WHERE id > 0")
 }
 ```
 
