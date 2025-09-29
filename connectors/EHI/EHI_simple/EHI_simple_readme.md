@@ -43,11 +43,11 @@ The connector requires minimal configuration with only essential connection para
 
 ```json
 {
-"MSSQL_SERVER": "<YOUR_VALUE_1>",
-"MSSQL_DATABASE": "<YOUR_VALUE_2>",
-"MSSQL_USER": "<YOUR_VALUE_3>",
-"MSSQL_PASSWORD": "<YOUR_VALUE_4>",
-"MSSQL_PORT": "<YOUR_VALUE_5>"
+"mssql_server": "<YOUR_VALUE_1>",
+"mssql_database": "<YOUR_VALUE_2>",
+"mssql_user": "<YOUR_VALUE_3>",
+"mssql_password": "<YOUR_VALUE_4>",
+"mssql_port": "<YOUR_VALUE_5>"
 }
 ```
 
@@ -55,11 +55,11 @@ The connector requires minimal configuration with only essential connection para
 
 | Parameter | Description | Required | Example |
 |-----------|-------------|----------|---------|
-| `MSSQL_SERVER` | SQL Server hostname or IP address | Yes | `server.company.com` |
-| `MSSQL_DATABASE` | Database name to connect to | Yes | `SalesDB` |
-| `MSSQL_USER` | Database username | Yes | `fivetran_user` |
-| `MSSQL_PASSWORD` | Database password | Yes | `secure_password` |
-| `MSSQL_PORT` | SQL Server port (default: 1433) | Yes | `1433` |
+| `mssql_server` | SQL Server hostname or IP address | Yes | `server.company.com` |
+| `mssql_database` | Database name to connect to | Yes | `SalesDB` |
+| `mssql_user` | Database username | Yes | `fivetran_user` |
+| `mssql_password` | Database password | Yes | `secure_password` |
+| `mssql_port` | SQL Server port (default: 1433) | Yes | `1433` |
 
 NOTE: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
