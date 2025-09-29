@@ -47,7 +47,7 @@ def create_documentdb_connection(configuration: dict):
     username = configuration.get("username")
     password = configuration.get("password")
 
-    # DocumentDB connection string with proper SSL configuration
+    # DocumentDB connection string
     connection_string = f"mongodb://{username}:{password}@{host}:{port}/?tls=true&retryWrites=false&DirectConnection=true"
 
     try:
@@ -108,37 +108,93 @@ def fetch_documents_with_pagination(collection, last_updated_at: str, batch_size
         raise RuntimeError(f"Error fetching documents from DocumentDB: {e}")
 
 
-def upsert_documents_from_collection(
-    client, database_name: str, collection_name: str, state: dict
-):
+def upsert_documents_from_orders(client, database_name: str, state: dict):
     """
-    Fetches documents from DocumentDB collection, upserts them, and updates state.
+    Fetches documents from DocumentDB orders collection, upserts them, and updates state.
     Args:
         client: MongoDB client object
         database_name: Name of the DocumentDB database
-        collection_name: Name of the collection to sync
         state: A dictionary containing state information from previous runs
     """
+    collection_name = "orders"
     # Get the database and collection
     db = client[database_name]
     collection = db[collection_name]
 
-    # Get the last sync time from the state
-    last_sync = state.get("last_updated_at", "1990-01-01T00:00:00Z")
+    # Get the last sync time from the state for orders
+    state_key = f"{collection_name}_last_updated_at"
+    last_sync = state.get(state_key, "1990-01-01T00:00:00Z")
     max_updated_at = parser.parse(last_sync)
     if max_updated_at.tzinfo is None:
         max_updated_at = max_updated_at.replace(tzinfo=timezone.utc)
 
     record_count = 0
 
-    # Fetch documents from DocumentDB, prepare them and upsert them
-    # This is done in a paginated manner to avoid loading all documents into memory at once
+    # Fetch documents from DocumentDB orders collection
     for document in fetch_documents_with_pagination(collection, last_sync):
         # Ensure updated_at has timezone info before comparison
         doc_updated_at = add_timezone_helper(document.get("updated_at"))
 
-        # Prepare the record for upsert
-        # Convert MongoDB ObjectId to string and handle other data transformations
+        # Prepare the record for upsert - Orders specific fields
+        record = {
+            "_id": str(document.get("_id")),
+            "user_id": document.get("user_id"),
+            "order_number": document.get("order_number"),
+            "total_amount": document.get("total_amount"),
+            "status": document.get("status"),
+            "created_at": add_timezone_helper(document.get("created_at")),
+            "updated_at": doc_updated_at,
+            "items": document.get("items", []),
+        }
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        op.upsert(table=collection_name, data=record)
+        record_count += 1
+
+        # Update the max_updated_at with doc_updated_at
+        max_updated_at = doc_updated_at
+
+        # Checkpoint every 1000 records
+        if record_count % CHECKPOINT_INTERVAL == 0:
+            state[state_key] = max_updated_at.isoformat()
+            op.checkpoint(state)
+            log.info(f"{record_count} orders processed")
+
+    log.info(f"Total orders processed: {record_count}")
+
+    # Checkpoint the last updated_at timestamp for orders
+    state[state_key] = max_updated_at.isoformat()
+    op.checkpoint(state)
+
+
+def upsert_documents_from_users(client, database_name: str, state: dict):
+    """
+    Fetches documents from DocumentDB users collection, upserts them, and updates state.
+    Args:
+        client: MongoDB client object
+        database_name: Name of the DocumentDB database
+        state: A dictionary containing state information from previous runs
+    """
+    collection_name = "users"
+    # Get the database and collection
+    db = client[database_name]
+    collection = db[collection_name]
+
+    # Get the last sync time from the state for users
+    state_key = f"{collection_name}_last_updated_at"
+    last_sync = state.get(state_key, "1990-01-01T00:00:00Z")
+    max_updated_at = parser.parse(last_sync)
+    if max_updated_at.tzinfo is None:
+        max_updated_at = max_updated_at.replace(tzinfo=timezone.utc)
+
+    record_count = 0
+
+    # Fetch documents from DocumentDB users collection
+    for document in fetch_documents_with_pagination(collection, last_sync):
+        # Ensure updated_at has timezone info before comparison
+        doc_updated_at = add_timezone_helper(document.get("updated_at"))
+
+        # Prepare the record for upsert - Users specific fields
         record = {
             "_id": str(document.get("_id")),
             "name": document.get("name"),
@@ -153,25 +209,19 @@ def upsert_documents_from_collection(
         op.upsert(table=collection_name, data=record)
         record_count += 1
 
-        # Update the max_updated_at with doc_updated_at,
-        # as the current document's doc_updated_at is always greater than the last, due to sorting by updated_at
+        # Update the max_updated_at with doc_updated_at
         max_updated_at = doc_updated_at
 
-        # This is useful for large datasets to avoid losing progress in case of failure
-        # Checkpoint every 1000 records. You can modify this number based on your requirements
+        # Checkpoint every 1000 records
         if record_count % CHECKPOINT_INTERVAL == 0:
-            state["last_updated_at"] = max_updated_at.isoformat()
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            state[state_key] = max_updated_at.isoformat()
             op.checkpoint(state)
-            log.info(f"{record_count} records processed")
+            log.info(f"{record_count} users processed")
 
-    log.info(f"Total records processed: {record_count}")
+    log.info(f"Total users processed: {record_count}")
 
-    # Checkpoint the last updated_at timestamp
-    state["last_updated_at"] = max_updated_at.isoformat()
+    # Checkpoint the last updated_at timestamp for users
+    state[state_key] = max_updated_at.isoformat()
     op.checkpoint(state)
 
 
@@ -191,9 +241,7 @@ def schema(configuration: dict):
     """
 
     # Check if required configuration values are present in configuration
-    for key in ["hostname", "username", "password", "database", "port"]:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    validate_configuration(configuration)
 
     return [
         {
@@ -271,15 +319,11 @@ def update(configuration, state):
     try:
         # Sync users collection
         log.info("Starting sync of users collection")
-        upsert_documents_from_collection(
-            client=client, database_name=database_name, collection_name="users", state=state
-        )
+        upsert_documents_from_users(client=client, database_name=database_name, state=state)
 
         # Sync orders collection
         log.info("Starting sync of orders collection")
-        upsert_documents_from_collection(
-            client=client, database_name=database_name, collection_name="orders", state=state
-        )
+        upsert_documents_from_orders(client=client, database_name=database_name, state=state)
     finally:
         # Close the client connection
         client.close()
@@ -293,7 +337,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: If any required field is missing or invalid.
     """
-    required_fields = ["host", "port", "username", "password", "database"]
+    required_fields = ["hostname", "port", "username", "password", "database"]
     for field in required_fields:
         if field not in configuration or not configuration[field]:
             raise ValueError(f"Missing required configuration field: {field}")
