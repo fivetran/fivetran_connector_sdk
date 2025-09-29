@@ -27,6 +27,7 @@ def process_table_with_adaptive_parameters(
     
     This function handles the complete data extraction process for a single table,
     including adaptive batch sizing, resource monitoring, error handling, and checkpointing.
+    Uses direct operation calls (no yield) following Fivetran SDK best practices.
     
     Args:
         table_name: Name of the table to process
@@ -35,20 +36,16 @@ def process_table_with_adaptive_parameters(
         conn_manager: ConnectionManager instance for database access
         state: State dictionary for checkpointing
     
-    Yields:
-        Fivetran operations (upserts) for each processed row
-    
     Returns:
         Number of records processed
     
     Example:
         >>> conn_mgr = ConnectionManager(config, table_size=1000000)
         >>> state = {}
-        >>> for operation in process_table_with_adaptive_parameters(
+        >>> records = process_table_with_adaptive_parameters(
         ...     'orders', 'public', config, conn_mgr, state
-        ... ):
-        ...     # Each operation is an upsert that Fivetran will execute
-        ...     pass
+        ... )
+        >>> # Records are directly upserted without yield
     """
     start_time = datetime.now(timezone.utc)
     records_processed = 0
@@ -127,17 +124,20 @@ def process_table_with_adaptive_parameters(
                             # Filter based on the transformed region value
                             # This is an example of business logic filtering
                             if 'region' in row_dict and row_dict['region'] == configuration.get('region'):
-                                # Upsert to destination table based on region value in config
-                                yield op.upsert(
-                                    f"source_{schema_name}_{table_name}",
-                                    row_dict
+                                # Direct operation call without yield - easier to adopt
+                                # The op.upsert method is called with two arguments:
+                                # - table: The name of the destination table
+                                # - data: A dictionary containing the data to be upserted
+                                op.upsert(
+                                    table=f"source_{schema_name}_{table_name}",
+                                    data=row_dict
                                 )
                                 records_processed += 1
                             elif table_name.lower() != 'orders':
-                                # For non-orders tables, upsert all records
-                                yield op.upsert(
-                                    f"source_{schema_name}_{table_name}",
-                                    row_dict
+                                # For non-orders tables, upsert all records directly
+                                op.upsert(
+                                    table=f"source_{schema_name}_{table_name}",
+                                    data=row_dict
                                 )
                                 records_processed += 1
                                 
@@ -147,6 +147,15 @@ def process_table_with_adaptive_parameters(
                                 f"{schema_name}.{table_name}: {row_error}"
                             )
                             continue
+                    
+                    # Checkpoint every adaptive interval for large tables
+                    # Save progress to enable recovery in case of interruptions
+                    if records_processed > 0 and records_processed % checkpoint_interval == 0:
+                        log.info(
+                            f"Checkpointing {table_name} after {records_processed} records"
+                        )
+                        # Direct checkpoint call - saves state for incremental syncs
+                        op.checkpoint(state=state)
                             
             except Exception as query_error:
                 log.severe(
@@ -154,15 +163,6 @@ def process_table_with_adaptive_parameters(
                     f"{schema_name}.{table_name}: {query_error}"
                 )
                 raise
-                
-            # Checkpoint every adaptive interval
-            # Note: This code is currently unreachable due to the exception handling above
-            # Move inside the while loop if you want periodic checkpointing during table processing
-            if records_processed % checkpoint_interval == 0:
-                log.info(
-                    f"Checkpointing {table_name} after {records_processed} records"
-                )
-                yield op.checkpoint(state)
         
         processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         log.info(
