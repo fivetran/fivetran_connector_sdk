@@ -16,7 +16,8 @@ from fivetran_connector_sdk import Operations as op
 # Import the required libraries
 import json
 import pydolphindb  # This is used to connect to DolphinDB
-import pandas as pd
+import pandas as pd  # This is used for data manipulation
+from datetime import datetime, timezone  # This is used for handling timestamps
 
 # Define the batch size for fetching data from DolphinDB in batches
 BATCH_SIZE = 1000
@@ -48,6 +49,28 @@ def serialize_row_data(row: dict):
         if isinstance(value, pd.Timestamp):
             row[key] = value.to_pydatetime()  # Convert pandas Timestamp to python datetime object
     return row
+
+
+def parse_state_timestamp(state):
+    """
+    Parse the last_timestamp from the state dictionary.
+    If the timestamp is not present or invalid, return a default datetime.
+    Args:
+        state: a dictionary containing state information from previous runs
+    Returns:
+        A datetime object representing the last processed timestamp.
+    """
+    timestamp_str = state.get("last_timestamp")
+    if not timestamp_str:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
+    try:
+        # Handle possible 'Z'
+        timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        if timestamp_str.tzinfo is None:
+            timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+        return timestamp_str
+    except ValueError:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def create_dolphin_client(configuration: dict):
@@ -86,7 +109,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         batch_size: the number of rows to fetch in each batch
     """
     # Initialize the last_timestamp from the state or set a default value
-    last_timestamp = state.get("last_timestamp", "1990-01-01T00:00:00")
+    last_timestamp = parse_state_timestamp(state=state)
 
     # Execute the query to fetch data from the DolphinDB table
     cursor.execute(query)
@@ -117,11 +140,11 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
             # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table=table_name, data=upsert_row)
 
-            if upsert_row["timestamp"].isoformat() > last_timestamp:
+            if upsert_row["timestamp"] > last_timestamp:
                 # Update the last_timestamp if the current row's timestamp is greater
-                last_timestamp = upsert_row["timestamp"].isoformat()
+                last_timestamp = upsert_row["timestamp"]
 
-        state["last_timestamp"] = last_timestamp
+        state["last_timestamp"] = last_timestamp.isoformat()
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -129,7 +152,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         op.checkpoint(state)
 
     # After processing all rows, update the state with the last processed timestamp and checkpoint it
-    state["last_timestamp"] = last_timestamp
+    state["last_timestamp"] = last_timestamp.isoformat()
     op.checkpoint(state)
 
 

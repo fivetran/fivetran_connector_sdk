@@ -20,6 +20,8 @@ from fivetran_connector_sdk import Operations as op
 #   ibm_db_dbi: Python driver for IBM Db2 for LUW that complies to the DB-API 2.0 specification.
 import ibm_db
 import json
+from datetime import datetime, timezone  # This is used for handling timestamps
+
 
 # Set the checkpoint interval to 1000 rows
 CHECKPOINT_INTERVAL = 1000
@@ -172,6 +174,7 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
         raise RuntimeError(f"Failed to execute query: {select_sql}")
 
     row_count = 0
+    latest_hire = parse_state_timestamp(timestamp_str=latest_hire)
     while True:
         # Fetch the record from the result set
         # The ibm_db.fetch_assoc method fetches the next row from the result set as a dictionary
@@ -191,12 +194,12 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
         row_count += 1
 
         # Update the latest hire date if the current row's hire date is more recent
-        if "hire_date" in row_data and row_data["hire_date"].isoformat() > latest_hire:
-            latest_hire = row_data["hire_date"].isoformat()
+        if "hire_date" in row_data and row_data["hire_date"] > latest_hire:
+            latest_hire = row_data["hire_date"]
 
         if row_count % CHECKPOINT_INTERVAL == 0:
             # Checkpoint operation every CHECKPOINT_INTERVAL rows
-            new_state = {"last_hire_date": latest_hire}
+            new_state = {"last_hire_date": latest_hire.isoformat()}
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -206,8 +209,29 @@ def fetch_and_upsert_data(conn, schema_name, table_name, last_hired):
     log.info(f"Upserted {row_count} rows from {schema_name}.{table_name}.")
 
     # After processing all rows, a final checkpoint with the latest hire date
-    new_state = {"last_hire_date": latest_hire}
+    new_state = {"last_hire_date": latest_hire.isoformat()}
     op.checkpoint(new_state)
+
+
+def parse_state_timestamp(timestamp_str):
+    """
+    Parse the last_timestamp from the state dictionary.
+    If the timestamp is not present or invalid, return a default datetime.
+    Args:
+        timestamp_str: A string representing the timestamp from the state dictionary.
+    Returns:
+        A datetime object representing the last processed timestamp.
+    """
+    if not timestamp_str:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
+    try:
+        # Handle possible 'Z'
+        timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        if timestamp_str.tzinfo is None:
+            timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+        return timestamp_str
+    except ValueError:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def update(configuration: dict, state: dict):
