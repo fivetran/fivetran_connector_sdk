@@ -1,14 +1,14 @@
 {
-    "MSSQL_SERVER": "<YOUR_VALUE_1>",
-    "MSSQL_CERT_SERVER": "<YOUR_VALUE_2>",
-    "MSSQL_PORT": "<YOUR_VALUE_3>",
-    "MSSQL_DATABASE": "<YOUR_VALUE_4>",
-    "MSSQL_USER": "<YOUR_VALUE_5>",
-    "MSSQL_PASSWORD": "<YOUR_VALUE_6>",
-    "cert": "<YOUR_VALUE_7>",
-    "threads": "<YOUR_VALUE_8>",
-    "max_queue_size": "<YOUR_VALUE_9>",
-    "max_retries": "<YOUR_VALUE_10>",
-    "retry_sleep_seconds": "<YOUR_VALUE_11>",
-    "debug": "<YOUR_VALUE_12>"
+    "MSSQL_SERVER": "<YOUR_SQL_SERVER_HOST_NAME>",
+    "MSSQL_CERT_SERVER": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
+    "MSSQL_PORT": "<YOUR_SQL_SERVER_PORT>",
+    "MSSQL_DATABASE": "<YOUR_SQL_SERVER_DATABASE>",
+    "MSSQL_USER": "<YOUR_SQL_SERVER_DATABASE_USER>",
+    "MSSQL_PASSWORD": "<YOUR_SQL_SERVER_USER_PASSWORD>",
+    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
+    "threads": "<YOUR_THREAD_COUNT>",
+    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
+    "max_retries": "<YOUR_MAX_RETRIES>",
+    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
+    "debug": "<YOUR_DEBUG_FLAG>"
 }
