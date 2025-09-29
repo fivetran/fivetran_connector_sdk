@@ -2,20 +2,15 @@ import os
 import json
 import time
 import random
-import math
 import threading
-import queue
-import concurrent.futures
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Dict, List, Any, Tuple
 from contextlib import contextmanager
 
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 import pyodbc
 
-# ============================================================================
 # RESOURCE MONITORING & ADAPTIVE PROCESSING CONFIGURATION
-# ============================================================================
 
 # performance_optimization_adaptive_processing
 
@@ -48,9 +43,7 @@ resource_state = {
     'monitoring_interval': 5  # Check every 1 hour (3600)
 }
 
-# ============================================================================
 # RESOURCE MONITORING FUNCTIONS
-# ============================================================================
 
 def monitor_resources() -> Dict[str, Any]:
     """Monitor system resources and return current status."""
@@ -141,9 +134,7 @@ def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[boo
     
     return False, current_threads
 
-# ============================================================================
 # ADAPTIVE PROCESSING FUNCTIONS
-# ============================================================================
 
 def get_adaptive_partition_size(table_size: int) -> int:
     """Get optimal partition size based on table size."""
@@ -235,9 +226,7 @@ def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, 
         'resource_status': resource_status
     }
 
-# ============================================================================
 # TABLE SIZE ANALYSIS & CATEGORIZATION
-# ============================================================================
 
 def get_table_sizes(cursor, tables: List[str]) -> Dict[str, int]:
     """Get row counts for all tables efficiently."""
@@ -277,9 +266,7 @@ def categorize_and_sort_tables(tables: List[str], table_sizes: Dict[str, int]) -
     
     return categorized
 
-# ============================================================================
 # CONNECTION MANAGEMENT
-# ============================================================================
 
 class ConnectionManager:
     """Manages database connections with timeout and resource monitoring."""
@@ -352,9 +339,7 @@ class ConnectionManager:
                 self._close_connection()
                 raise
 
-# ============================================================================
 # CONFIGURATION VALIDATION
-# ============================================================================
 
 def validate_configuration(configuration: dict):
     """
@@ -375,9 +360,7 @@ def validate_configuration(configuration: dict):
         if not isinstance(configuration[key], str):
             raise ValueError(f"Configuration value for {key} must be a string, got {type(configuration[key])}")
 
-# ============================================================================
 # SCHEMA FUNCTIONS
-# ============================================================================
 
 def get_primary_keys(cursor, table_name, schema_name):
     """Get primary key columns for a table"""
@@ -507,9 +490,7 @@ def schema(configuration: dict):
         if 'conn' in locals():
             conn.close()
 
-# ============================================================================
 # DATA PROCESSING FUNCTIONS
-# ============================================================================
 
 def process_table_with_adaptive_parameters(table_name: str, schema_name: str, configuration: dict, 
                                          conn_manager: ConnectionManager, state: dict):
@@ -666,9 +647,7 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
     log.info("Starting sync process...")
     log.info("=" * 80)
 
-# ============================================================================
 # MAIN UPDATE FUNCTION
-# ============================================================================
 
 def update(configuration: dict, state: dict):
     """Main update function with enhanced resource monitoring and adaptive processing."""
@@ -831,11 +810,8 @@ def update(configuration: dict, state: dict):
     total_time = (datetime.now(timezone.utc) - start_time).total_seconds()
     log.info(f'Data extraction completed successfully in {total_time:.2f} seconds.')
 
-# ============================================================================
 # CONNECTOR INITIALIZATION
-# ============================================================================
 
-# Create connector instance with enhanced functions
 connector = Connector(update=update, schema=schema)
 
 # Main execution
