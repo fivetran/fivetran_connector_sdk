@@ -244,7 +244,7 @@ The connector uses a `configuration.json` file to define connection parameters a
 {
   "user": "YOUR_SNOWFLAKE_DATABSE_USER",
   "private_key": "-----BEGIN PRIVATE KEY-----\n...",
-  "role": "YOUR_SNOWFLAKE_ROLER\",
+  "role": "YOUR_SNOWFLAKE_ROLER",
   "account": "YOUR_SNOWFLAKE_ACCOUNT",
   "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
   "database": "YOUR_SNOWFLAKE_DATABASE",
@@ -265,7 +265,7 @@ The connector uses a `configuration.json` file to define connection parameters a
 {
   "user": "YOUR_SNOWFLAKE_DATABSE_USER",
   "private_key": "YOUR_PRIVATE_KEY (EXAMPLE: -----BEGIN PRIVATE KEY-----\n...)",
-  "use_privatelink": "true",
+  "use_privatelink": "YOUR_PRIVATE_LINK_FLAG",
   "privatelink_host": "YOUR_PRIVATE_LINK_HOST (EXAMPLE: account.region.privatelink.snowflakecomputing.com",
   "warehouse": "YOUR_SNOWFLAKE_WAREHOUSE",
   "database": "YOUR_SNOWFLAKE_DATABASE",
