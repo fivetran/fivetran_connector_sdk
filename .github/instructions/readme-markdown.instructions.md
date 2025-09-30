@@ -45,31 +45,31 @@ The comments and suggestion you make should be deduplicated, for example - if yo
 
 # Copilot Review Instructions: Connector SDK Example README.md
 
-Apply these rules to every `README.md` file inside Connector SDK **example folders**.
+Apply these rules to every `README.md` file inside Connector SDK connector example folders.
 
 ---
 
 ## Structure
 
-* Every README must begin with **one H1 (`#`) heading** in Title Case.
-* All other headings must be **sentence case**.
-* The required H2-level sections (in order) must be present:
+- Every README must begin with one H1 (`#`) heading in Title Case.
+- All other headings must be sentence case.
+- The order of the optional and required H2-level sections is as follows:
 
-  1. Connector overview
-  2. Requirements
-  3. Getting started
-  4. Features
-  5. Configuration file
-  6. Requirements file
-  7. Authentication
-  8. Pagination
-  9. Data handling
-  10. Error handling
-  11. Tables created (optional)
-  12. Additional files (optional)
-  13. Additional considerations
+  1. Connector overview - this section is required.
+  2. Requirements - this section is required.
+  3. Getting started - this section is required.
+  4. Features - this section is required.
+  5. Configuration file - this section is optional and must be present if the `configuration.json` file is used by the connector. If this section is present, it must contain the JSON outlining the configuration parameters and that `configuration.json` should be not checked into version control to protect sensitive information.
+  6. Requirements file - this section is optional and must be present if the `reqirements.txt` file is used by the connector. If this section is present, it must contain the list of imported packages that the connector requires. 
+  7. Authentication - this section is optional and must be present if the connector requires authentication. If this section is present, it must mention the authentication method used, the required credentials and how to obtain the credentials as a numbered list of user actions. 
+  8. Pagination - this section is optional and must be present if the connector uses pagination.
+  9. Data handling - this section is required.
+  10. Error handling - this section is required.
+  11. Tables created - this sections is required. It needs to list all tables created in the destination, along with the list of columns and primary key for each table.
+  12. Additional files - this section is optional and must be present if the connector requires additional Python files besides `connector.py`. If this section is present, it must list the additional files and their functions.
+  13. Additional considerations - this section is required.
 
-If a section is irrelevant (e.g. no error handling), **delete the heading entirely**. Do not leave empty stubs.
+If a section is irrelevant (e.g., no error handling), the empty stub should be not present.
 
 ---
 <!---
