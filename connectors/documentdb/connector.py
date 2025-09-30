@@ -9,6 +9,8 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+import datetime
+
 # For reading configuration from a JSON file
 import json
 
@@ -30,7 +32,8 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 # Checkpoint every 1000 records. You can modify this number based on your requirements
-CHECKPOINT_INTERVAL = 1000
+__CHECKPOINT_INTERVAL = 1000
+__DEFAULT_START_DATE = "1990-01-01T00:00:00Z"
 
 
 def create_documentdb_connection(configuration: dict):
@@ -123,7 +126,7 @@ def upsert_documents_from_orders(client, database_name: str, state: dict):
 
     # Get the last sync time from the state for orders
     state_key = f"{collection_name}_last_updated_at"
-    last_sync = state.get(state_key, "1990-01-01T00:00:00Z")
+    last_sync = state.get(state_key, __DEFAULT_START_DATE)
     max_updated_at = parser.parse(last_sync)
     if max_updated_at.tzinfo is None:
         max_updated_at = max_updated_at.replace(tzinfo=timezone.utc)
@@ -136,26 +139,20 @@ def upsert_documents_from_orders(client, database_name: str, state: dict):
         doc_updated_at = add_timezone_helper(document.get("updated_at"))
 
         # Prepare the record for upsert - Orders specific fields
-        record = {
-            "_id": str(document.get("_id")),
-            "user_id": document.get("user_id"),
-            "order_number": document.get("order_number"),
-            "total_amount": document.get("total_amount"),
-            "status": document.get("status"),
-            "created_at": add_timezone_helper(document.get("created_at")),
-            "updated_at": doc_updated_at,
-            "items": document.get("items", []),
-        }
+        document["_id"] = str(document.get("_id"))
+        document["created_at"] = add_timezone_helper(document.get("created_at"))
+        document["updated_at"] = doc_updated_at
+        document["metadata"] = document.get("items", [])
 
         # The 'upsert' operation is used to insert or update data in the destination table.
-        op.upsert(table=collection_name, data=record)
+        op.upsert(table=collection_name, data=document)
         record_count += 1
 
         # Update the max_updated_at with doc_updated_at
         max_updated_at = doc_updated_at
 
         # Checkpoint every 1000 records
-        if record_count % CHECKPOINT_INTERVAL == 0:
+        if record_count % __CHECKPOINT_INTERVAL == 0:
             state[state_key] = max_updated_at.isoformat()
             op.checkpoint(state)
             log.info(f"{record_count} orders processed")
@@ -182,7 +179,7 @@ def upsert_documents_from_users(client, database_name: str, state: dict):
 
     # Get the last sync time from the state for users
     state_key = f"{collection_name}_last_updated_at"
-    last_sync = state.get(state_key, "1990-01-01T00:00:00Z")
+    last_sync = state.get(state_key, __DEFAULT_START_DATE)
     max_updated_at = parser.parse(last_sync)
     if max_updated_at.tzinfo is None:
         max_updated_at = max_updated_at.replace(tzinfo=timezone.utc)
@@ -195,25 +192,20 @@ def upsert_documents_from_users(client, database_name: str, state: dict):
         doc_updated_at = add_timezone_helper(document.get("updated_at"))
 
         # Prepare the record for upsert - Users specific fields
-        record = {
-            "_id": str(document.get("_id")),
-            "name": document.get("name"),
-            "email": document.get("email"),
-            "status": document.get("status"),
-            "created_at": add_timezone_helper(document.get("created_at")),
-            "updated_at": doc_updated_at,
-            "metadata": document.get("metadata", {}),
-        }
+        document["_id"] = str(document.get("_id"))
+        document["created_at"] = add_timezone_helper(document.get("created_at"))
+        document["updated_at"] = doc_updated_at
+        document["metadata"] = document.get("metadata", {})
 
         # The 'upsert' operation is used to insert or update data in the destination table.
-        op.upsert(table=collection_name, data=record)
+        op.upsert(table=collection_name, data=document)
         record_count += 1
 
         # Update the max_updated_at with doc_updated_at
         max_updated_at = doc_updated_at
 
         # Checkpoint every 1000 records
-        if record_count % CHECKPOINT_INTERVAL == 0:
+        if record_count % __CHECKPOINT_INTERVAL == 0:
             state[state_key] = max_updated_at.isoformat()
             op.checkpoint(state)
             log.info(f"{record_count} users processed")
@@ -225,7 +217,12 @@ def upsert_documents_from_users(client, database_name: str, state: dict):
     op.checkpoint(state)
 
 
-def add_timezone_helper(doc_updated_at):
+def add_timezone_helper(doc_updated_at: datetime.datetime):
+    """
+    Converts datetime object to utc timezone if timezone is not present.
+    Args:
+        doc_updated_at a datetime object with or without timezone info
+    """
     if doc_updated_at and doc_updated_at.tzinfo is None:
         doc_updated_at = doc_updated_at.replace(tzinfo=timezone.utc)
     return doc_updated_at
@@ -239,9 +236,6 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-
-    # Check if required configuration values are present in configuration
-    validate_configuration(configuration)
 
     return [
         {
@@ -316,6 +310,7 @@ def update(configuration, state):
     # Orders: {"_id": ObjectId(), "user_id": "user123", "order_number": "ORD-001", "total_amount": 99.99, "status": "completed", "created_at": ISODate(), "updated_at": ISODate(), "items": [{"product": "Widget", "quantity": 2}]}
     #
     # If these prerequisites are not met, the connector will not function correctly.
+    log.warning("Example: Source Examples - DocumentDB")
     try:
         # Sync users collection
         log.info("Starting sync of users collection")
