@@ -1,13 +1,17 @@
 from datetime import datetime, timezone
 
 
-# This class allows you to parse timestamp strings in two specific formats and then convert them into a standardized ISO 8601 format,
-# which is widely recommended, including by Fivetran. Also, this class assumes that the incoming timestamps are in UTC timezone.
 class TimestampSerializer:
+    """
+    This class allows you to parse timestamp strings in two specific formats
+    This class also converts them into a standardized ISO 8601 format which is widely recommended, including by Fivetran
+    This class assumes that the incoming timestamps are in UTC timezone.
+    """
+
     # Define the acceptable formats for the timestamp
     TIMESTAMP_FORMATS = [
         "%Y/%m/%d %H:%M:%S",  # yyyy/MM/dd HH:mm:ss
-        "%Y-%m-%d %H:%M:%S"  # yyyy-MM-dd HH:mm:ss
+        "%Y-%m-%d %H:%M:%S",  # yyyy-MM-dd HH:mm:ss
     ]
 
     @classmethod

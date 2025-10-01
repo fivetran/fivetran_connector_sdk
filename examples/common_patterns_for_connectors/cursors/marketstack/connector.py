@@ -7,9 +7,15 @@
 # Please get your API key from here: https://marketstack.com/
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 # Import the requests module for making HTTP requests, aliased as rq.
 import requests as rq
 import json
@@ -17,34 +23,51 @@ from datetime import date, timedelta
 import traceback
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    """This is a function to get schema
-    Returns:
-        json: schema
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
             "table": "tickers_price",
-            "primary_key": ['symbol', 'date'],
+            "primary_key": ["symbol", "date"],
             # Columns and data types will be inferred by Fivetran
         }
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary containing any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary containing the state checkpointed during the prior sync.
-#   The state dictionary is empty for the first sync or for any full re-sync.
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    # Validate required configuration parameters
+    if "apiKey" not in configuration:
+        raise ValueError("Missing required configuration value: 'apiKey'")
+
+
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Common Patterns For Connectors - Cursors - Marketstack")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
 
     try:
         # Initialize state
@@ -55,13 +78,13 @@ def update(configuration: dict, state: dict):
         (updated_state, insert) = api_response(updated_state, configuration)
 
         for ticker_price in insert["tickers_price"]:
-            yield op.upsert("tickers_price", ticker_price)
+            op.upsert("tickers_price", ticker_price)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=updated_state)
+        op.checkpoint(state=updated_state)
 
     except Exception as e:
         # Return error response
@@ -80,42 +103,39 @@ def api_response(state, configuration):
     insert_tickers = get_tickers()
     log.info(f"Fetching data for the following tickers: {insert_tickers}")
 
-    if not configuration.get("apiKey"):
-      raise ValueError("ERROR: Missing API key. Ensure you pass in the configuration file eg --configuration configuration.json ")
-
     # Fetch the records of prices of tickers.
     # After price for a ticker is fetched we increment ticker offset by 1
     insert_ticker_price = []
     for ticker in insert_tickers:
         log.info(f"Fetching data for: {ticker}")
         temp_list = get_ticker_price(
-            configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor)
+            configuration["apiKey"], ticker, ticker_start_cursor, ticker_end_cursor
+        )
         ticker_offset += 1
         if temp_list:
             insert_ticker_price += temp_list
 
     state, insert = {}, {}
 
-    insert['tickers_price'] = insert_ticker_price
+    insert["tickers_price"] = insert_ticker_price
     log_data_summary(insert)
 
     # Update the state
-    state['ticker_offset'] = ticker_offset
-    state['ticker_start_cursor'] = ticker_start_cursor
-    state['ticker_end_cursor'] = ticker_end_cursor
+    state["ticker_offset"] = ticker_offset
+    state["ticker_start_cursor"] = ticker_start_cursor
+    state["ticker_end_cursor"] = ticker_end_cursor
     log.info(f"State: {state}")
 
     return state, insert
 
 
 def get_tickers():
-    """This is a function to list all the tickers for which information is needed
+    """
+    This is a function to list all the tickers for which information is needed
+    If you need to fetch the list of tickers from the API,
+    please refer to the documentation at https://marketstack.com/documentation for more information.
     Returns:
         list: tickers
-    """
-    """
-    If you need to fetch the list of tickers from the API, 
-    please refer to the documentation at https://marketstack.com/documentation for more information.
     """
     return ["AAPL", "MSFT", "GOOG", "INTC"]
 
@@ -136,16 +156,15 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
     insert_ticker_price_records = []
     while True:
         params = {
-            'access_key': api_key,
-            'symbols': symbols,
-            'limit': 1000,
-            'offset': ticker_price_offset,
-            'date_from': ticker_start_cursor,
-            'date_to': ticker_end_cursor
+            "access_key": api_key,
+            "symbols": symbols,
+            "limit": 1000,
+            "offset": ticker_price_offset,
+            "date_from": ticker_start_cursor,
+            "date_to": ticker_end_cursor,
         }
         try:
-            api_result = rq.get(
-                'http://api.marketstack.com/v1/eod', params)
+            api_result = rq.get("http://api.marketstack.com/v1/eod", params)
             api_response = api_result.json()
             insert_ticker_price_records_temp = api_response["data"]
             if insert_ticker_price_records_temp:
@@ -160,8 +179,7 @@ def get_ticker_price(api_key, symbols, ticker_start_cursor, ticker_end_cursor):
         except KeyError as e:
             raise RuntimeError(f"Missing expected key in response: {str(e)}")
         except Exception as e:
-            raise RuntimeError(
-                "Failed Fetching ticker prices, Error: " + str(e))
+            raise RuntimeError("Failed Fetching ticker prices, Error: " + str(e))
 
     return insert_ticker_price_records
 
@@ -184,26 +202,29 @@ def initialize_state(state: dict):
         state["ticker_end_cursor"] = str(date.today())
     return state
 
+
 def log_data_summary(data):
     """
     This function logs the summary of the insert data object
     """
     # Get the list of tickers
-    tickers = list(set(item['symbol'] for item in data['tickers_price']))
-    
+    tickers = list(set(item["symbol"] for item in data["tickers_price"]))
+
     # Get date range
-    if not data['tickers_price']:
+    if not data["tickers_price"]:
         log.warning("No data available in 'tickers_price'.")
         return
 
-    dates = sorted(item['date'] for item in data['tickers_price'])
+    dates = sorted(item["date"] for item in data["tickers_price"])
     start_date = dates[0]
     end_date = dates[-1]
-    
+
     # Count records per ticker
-    records_per_ticker = {ticker: len([item for item in data['tickers_price'] if item['symbol'] == ticker]) 
-                         for ticker in tickers}
-    
+    records_per_ticker = {
+        ticker: len([item for item in data["tickers_price"] if item["symbol"] == ticker])
+        for ticker in tickers
+    }
+
     # Log the summary
     log.info("Data Summary:")
     log.info(f"Total records: {len(data['tickers_price'])}")
@@ -212,11 +233,12 @@ def log_data_summary(data):
     log.info("Records per ticker:")
     for ticker, count in records_per_ticker.items():
         log.info(f"  {ticker}: {count} records")
-    
+
     # Show a complete sample record
     log.info("Sample record (complete):")
-    sample = data['tickers_price'][0]
+    sample = data["tickers_price"][0]
     log.info(f"  {sample}")
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
@@ -227,42 +249,41 @@ connector = Connector(update=update, schema=schema)
 # Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
 
-"""
-Resulting table:
-Table tickers_price
-┌─────────┬──────────────────────┬──────────────┬────────────┬──────────┬───┬───────────┬──────────┬────────┬─────────┬─────────┐
-│ symbol  │         date         │ split_factor │   volume   │   high   │ … │ adj_close │ exchange │ close  │  open   │ adj_low │
-│ varchar │       varchar        │    float     │   float    │  float   │   │   float   │ varchar  │ float  │  float  │  float  │
-├─────────┼──────────────────────┼──────────────┼────────────┼──────────┼───┼───────────┼──────────┼────────┼─────────┼─────────┤
-│ AAPL    │ 2024-10-14T00:00:0…  │          1.0 │ 32607920.0 │ 231.7278 │ … │     231.3 │ XNAS     │  231.3 │   228.7 │   228.6 │
-│ AAPL    │ 2024-10-11T00:00:0…  │          1.0 │ 31668000.0 │   229.41 │ … │    227.55 │ XNAS     │ 227.55 │   229.3 │  227.34 │
-│ AAPL    │ 2024-10-10T00:00:0…  │          1.0 │ 27959432.0 │    229.5 │ … │    229.04 │ XNAS     │ 229.04 │  227.78 │  227.17 │
-│ AAPL    │ 2024-10-09T00:00:0…  │          1.0 │ 32108384.0 │   229.75 │ … │    229.54 │ XNAS     │ 229.54 │  225.17 │  224.83 │
-├─────────┴──────────────────────┴──────────────┴────────────┴──────────┴───┴───────────┴──────────┴────────┴─────────┴─────────┤
+
+# Resulting table:
+# Table tickers_price
+# ┌─────────┬──────────────────────┬──────────────┬────────────┬──────────┬───┬───────────┬──────────┬────────┬─────────┬─────────┐
+# │ symbol  │         date         │ split_factor │   volume   │   high   │ … │ adj_close │ exchange │ close  │  open   │ adj_low │
+# │ varchar │       varchar        │    float     │   float    │  float   │   │   float   │ varchar  │ float  │  float  │  float  │
+# ├─────────┼──────────────────────┼──────────────┼────────────┼──────────┼───┼───────────┼──────────┼────────┼─────────┼─────────┤
+# │ AAPL    │ 2024-10-14T00:00:0…  │          1.0 │ 32607920.0 │ 231.7278 │ … │     231.3 │ XNAS     │  231.3 │   228.7 │   228.6 │
+# │ AAPL    │ 2024-10-11T00:00:0…  │          1.0 │ 31668000.0 │   229.41 │ … │    227.55 │ XNAS     │ 227.55 │   229.3 │  227.34 │
+# │ AAPL    │ 2024-10-10T00:00:0…  │          1.0 │ 27959432.0 │    229.5 │ … │    229.04 │ XNAS     │ 229.04 │  227.78 │  227.17 │
+# │ AAPL    │ 2024-10-09T00:00:0…  │          1.0 │ 32108384.0 │   229.75 │ … │    229.54 │ XNAS     │ 229.54 │  225.17 │  224.83 │
+# ├─────────┴──────────────────────┴──────────────┴────────────┴──────────┴───┴───────────┴──────────┴────────┴─────────┴─────────┤
 
 # List of columns present:
-┌──────────────┐
-│ column_name  │
-├──────────────┤
-│ symbol       │
-│ date         │
-│ split_factor │
-│ volume       │
-│ high         │
-│ adj_open     │
-│ adj_volume   │
-│ adj_high     │
-│ low          │
-│ dividend     │
-│ adj_close    │
-│ exchange     │
-│ close        │
-│ open         │
-│ adj_low      │
-├──────────────┤
-"""
+# ┌──────────────┐
+# │ column_name  │
+# ├──────────────┤
+# │ symbol       │
+# │ date         │
+# │ split_factor │
+# │ volume       │
+# │ high         │
+# │ adj_open     │
+# │ adj_volume   │
+# │ adj_high     │
+# │ low          │
+# │ dividend     │
+# │ adj_close    │
+# │ exchange     │
+# │ close        │
+# │ open         │
+# │ adj_low      │
+# ├──────────────┤

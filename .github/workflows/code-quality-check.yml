@@ -1,0 +1,155 @@
+name: Python
+
+on:
+  pull_request:
+
+jobs:
+  code-quality-check:
+    name: Check Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install flake8 black
+
+      - name: Run black and generate diff
+        id: black_check
+        run: |
+          echo "Running black in check mode with diff output..."
+          black --check --diff --line-length 99 . > formatting.diff || true
+
+          if [ -s formatting.diff ]; then
+            echo "Formatting issues detected:"
+            cat formatting.diff
+            echo "black_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No formatting issues found."
+          fi
+
+      - name: Upload formatting.diff
+        if: steps.black_check.outputs.black_failed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-formatting-diff
+          path: formatting.diff
+
+      - name: Detect changed Python files
+        id: detect_changes
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            | jq -r '.[] | .filename' > all_files.txt
+
+          grep '\.py$' all_files.txt > changed_files.txt || true
+
+          if [[ ! -s changed_files.txt ]]; then
+            echo "No Python files changed."
+            echo "SKIP=true" >> $GITHUB_ENV
+          else
+            echo "SKIP=false" >> $GITHUB_ENV
+            echo "CHANGED=$(cat changed_files.txt | xargs)" >> $GITHUB_ENV
+          fi
+
+      - name: Run Flake8 on changed files
+        if: env.SKIP == 'false'
+        run: |
+          echo "Running flake8 on: $CHANGED"
+          flake8 $CHANGED > flake8_output.txt || true
+
+      - name: Format Flake8 results as PR comment
+        if: env.SKIP == 'false'
+        run: |
+          python3 <<'EOF' > flake8_summary.md
+          import os
+
+          try:
+              with open("flake8_output.txt") as f:
+                lines = f.read().splitlines()
+              
+          except FileNotFoundError:
+              lines = []
+
+          print("### 🧹 Python Code Quality Check\n")
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+
+          if not lines:
+              print("✅ No issues found in Python Files.")
+              issue_present = False
+          else:
+              issue_present = True
+              print("⚠️ **Flake8 has detected issues, please fix the issues before merging:**")
+              print(f"\n📎 [Download full report from workflow artifacts]({run_url}).")  
+              print()
+              print("📌 _Only Python files changed in this PR were checked._")
+              
+          slab_doc = f"https://fivetran.slab.com/posts/connector-sdk-examples-pr-policy-and-python-coding-standards-yzr9ggss#hb2vk-linting"
+          print(f"\n🔍 [See how this check works]({slab_doc})")
+          print("\n_This comment is auto-updated with every commit._")
+
+          # Export environment variable
+          with open(os.environ["GITHUB_ENV"], "a") as envf:
+              envf.write(f"FLAKE8_ISSUE_PRESENT={'true' if issue_present else 'false'}\n")
+              envf.write(f"RUN_URL={run_url}\n")
+          EOF
+
+      - name: Upload full report
+        if: env.FLAKE8_ISSUE_PRESENT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-code-quality-report
+          path: flake8_output.txt
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: "### 🧹 Python Code Quality Check"
+
+      - name: Create or update PR comment
+        if: env.SKIP == 'false'
+        continue-on-error: true
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: flake8_summary.md
+          edit-mode: replace
+
+      - name: Fail if both black and flake8 failed
+        if: steps.black_check.outputs.black_failed == 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
+        run: |
+          echo "Python formatting check failed. See formatting.diff artifact for details."
+          echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
+          echo "./.github/scripts/fix-python-formatting.sh"
+          echo "We also detected Linting Issues in Python files. Please fix them before merging."
+          echo "Download the full report from here: $RUN_URL"
+          exit 1
+
+      - name: Fail if only black failed
+        if: steps.black_check.outputs.black_failed == 'true' && env.FLAKE8_ISSUE_PRESENT != 'true'
+        run: |
+          echo "Python formatting check failed. See formatting.diff artifact for details."
+          echo "To fix the error(s) run the command below from the root of the repo and commit the changes:"
+          echo "./.github/scripts/fix-python-formatting.sh"
+          exit 1
+
+      - name: Fail if only flake8 failed
+        if: steps.black_check.outputs.black_failed != 'true' && env.FLAKE8_ISSUE_PRESENT == 'true'
+        run: |
+          echo "❌  Issues detected in Python files. Please fix them before merging."
+          echo "Download the full report from here: $RUN_URL"
+          exit 1

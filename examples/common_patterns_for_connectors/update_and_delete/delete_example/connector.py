@@ -8,9 +8,17 @@ from typing import Dict, List, Any
 import psycopg2
 import psycopg2.extras
 
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD", "PORT"]
 
 
 # Define the PostgresClient class to handle database operations.
@@ -21,7 +29,9 @@ class PostgresClient:
         self.database = config.get("DATABASE")
         self.user = config.get("USERNAME")
         self.password = config.get("PASSWORD")
-        self.connection = self.connect() # Connect to the database and return the connection object.
+        self.connection = (
+            self.connect()
+        )  # Connect to the database and return the connection object.
 
     def connect(self):
         try:
@@ -71,19 +81,33 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     # Check if the credentials for connecting to database is present in the configuration.
-    cred = ["HOST", "DATABASE", "USERNAME", "PASSWORD","PORT"]
     for key in cred:
         if key not in configuration:
             raise ValueError(f"Missing required configuration: {key}")
-
     return [
         {
             "table": "sample_table",  # Name of the table in the destination.
-            "primary_key": ["id","department_id"],  # Primary key column(s) for the table.
+            "primary_key": ["id", "department_id"],  # Primary key column(s) for the table.
             # The primary key is a composite key consisting of two columns: id and department_id.
             # No columns are defined, meaning the types will be inferred.
         }
     ]
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    for key in cred:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def update(configuration: dict, state: dict):
@@ -96,7 +120,10 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Delete Example with composite primary key")
+    log.warning("Example: Common Patterns For Connectors - Delete Operation")
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
 
     conn = PostgresClient(configuration)
     log.info("Connected to PostgreSQL database.")
@@ -125,12 +152,12 @@ def update(configuration: dict, state: dict):
 
         # upsert each record into the destination table
         for record in records:
-            yield op.upsert(table="sample_table", data=record)
-        yield op.checkpoint(state)
+            op.upsert(table="sample_table", data=record)
+        op.checkpoint(state)
 
         # CASE 1: Deleting single record with id=3 and department_id=1
         log.info("Deleting record with id=3 and department_id=1")
-        yield op.delete(table="sample_table", keys={"id": 3, "department_id": 1})
+        op.delete(table="sample_table", keys={"id": 3, "department_id": 1})
 
         # CASE 2: Deleting all records with department_id=1
         log.info("Deleting all records with department_id=1")
@@ -141,14 +168,14 @@ def update(configuration: dict, state: dict):
         # The fetched records contain: {'id': 1, 'department_id': 1} and {'id': 1, 'department_id': 2}
         for record in records:
             # It is important to provide all the primary key defined in schema to delete the record.
-            yield op.delete(table="sample_table", keys=record)
+            op.delete(table="sample_table", keys=record)
 
         # Deleting the records with incomplete primary keys will raise an error.
         # Below are the examples of such cases:
-        # yield op.delete(table="sample_table", keys={"id": 1})
-        # yield op.delete(table="sample_table", keys={"department_id": 3})
+        # op.delete(table="sample_table", keys={"id": 1})
+        # op.delete(table="sample_table", keys={"department_id": 3})
 
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     except Exception as e:
         raise ValueError(f"Error deleting records: {e}")
@@ -166,7 +193,7 @@ connector = Connector(update=update, schema=schema)
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)

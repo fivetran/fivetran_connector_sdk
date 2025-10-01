@@ -1,4 +1,4 @@
-name: Enforce README Update for New Examples
+name: README
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 jobs:
   check-readme-update:
     runs-on: ubuntu-latest
-    name: Check README Update for New Examples
+    name: Check Updates for New Examples
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -65,12 +65,15 @@ jobs:
           function checkReadmeUpdate() {
             // Define directories to ignore (infrastructure directories)
             const ignoredDirectories = [
+              'ai_and_connector_sdk',
+              'git_hooks',
               '.github',
               '.github/workflows',
               '.circleci',
               '.devops',
               'ci',
-              '.ci'
+              '.ci',
+              'scripts'
             ];
             
             // Get all files changed in this PR
@@ -99,8 +102,13 @@ jobs:
                 let currentPath = dirPath;
                 while (currentPath && currentPath !== '.') {
                 // Only add if this directory doesn't exist in the base branch
-                  // and is not in our ignore list
-                  if (!directoryExistsInBase(currentPath) && !ignoredDirectories.includes(currentPath)) {
+                  // and is not in our ignore list (including subdirectories)
+                  if (
+                    !directoryExistsInBase(currentPath) &&
+                    !ignoredDirectories.some(
+                      ignored => currentPath === ignored || currentPath.startsWith(ignored + '/')
+                    )
+                  ) {
                     addedDirs.add(currentPath);
                   }
                   currentPath = path.dirname(currentPath);

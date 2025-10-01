@@ -4,14 +4,18 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
-import pyodbc # For connecting to Sybase IQ using FreeTDS
+import pyodbc  # For connecting to Sybase IQ using FreeTDS
 import json
-import datetime
 
 
 def validate_configuration(configuration: dict):
@@ -39,12 +43,12 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "customers", # Name of the table in the destination, required.
-            "primary_key": ["customer_id"], # Primary key column(s) for the table, optional.
-            "columns":{ # Definition of columns and their types, optional.
-                "customer_id": "INT",# Contains a dictionary of column names and data types
-                "created_date": "NAIVE_DATE"
-            }  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+            "table": "customers",  # Name of the table in the destination, required.
+            "primary_key": ["customer_id"],  # Primary key column(s) for the table, optional.
+            "columns": {  # Definition of columns and their types, optional.
+                "customer_id": "INT",  # Contains a dictionary of column names and data types
+                "created_date": "NAIVE_DATE",
+            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
     ]
 
@@ -127,20 +131,15 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-            # Ensure created_date is in ISO format if it exists
-            if row_data['created_date'] and isinstance(row_data['created_date'], datetime.date):
-                row_data['created_date'] = row_data['created_date'].isoformat()
-
-            # The yield statement yields a value from generator object.
-            # This generator will yield an upsert operation to the Fivetran connector.
+            # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            yield op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
 
             # Update the last_created timestamp if the current row's created_date is more recent
-            if row_data['created_date'] and row_data['created_date'] > last_created:
-                last_created = row_data['created_date']
+            if row_data["created_date"] and row_data["created_date"].isoformat() > last_created:
+                last_created = row_data["created_date"].isoformat()
 
         # Update the state with the last_created timestamp after processing each batch
         state["last_created"] = last_created
@@ -148,12 +147,12 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, batch_size: in
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state)
+        op.checkpoint(state)
 
     # After processing all rows, update the state with the last_created timestamp and checkpoint it.
     # this ensures that the next run will start from the correct position
     state["last_created"] = last_created
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 def update(configuration: dict, state: dict):
@@ -179,7 +178,9 @@ def update(configuration: dict, state: dict):
     # SQL query to fetch data from the Sybase IQ database
     # Adjust the query to match your table structure and requirements
     # The order by clause ensures that the data is processed in the order of creation. This is important for incremental updates.
-    query = f"SELECT * FROM {table_name} WHERE created_date > '{last_created}' ORDER BY created_date"
+    query = (
+        f"SELECT * FROM {table_name} WHERE created_date > '{last_created}' ORDER BY created_date"
+    )
 
     # Create a connection to the Sybase IQ database using the provided configuration
     connection = create_sybase_connection(configuration=configuration)
@@ -187,12 +188,8 @@ def update(configuration: dict, state: dict):
     cursor = connection.cursor()
 
     # Fetch data from the Sybase IQ database and upsert it into the destination table
-    yield from fetch_and_upsert(
-        cursor=cursor,
-        query=query,
-        table_name=table_name,
-        state=state,
-        batch_size=1000
+    fetch_and_upsert(
+        cursor=cursor, query=query, table_name=table_name, state=state, batch_size=1000
     )
 
     # Close the cursor and connection to the Sybase IQ database
@@ -209,7 +206,7 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     try:
         # Open the configuration.json file and load its contents
-        with open("configuration.json", 'r') as f:
+        with open("configuration.json", "r") as f:
             configuration = json.load(f)
     except FileNotFoundError:
         log.info("Using empty configuration!")

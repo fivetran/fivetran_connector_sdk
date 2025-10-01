@@ -4,8 +4,13 @@
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import Azure libraries
@@ -33,9 +38,7 @@ def fetch_secrets_from_vault(configuration: dict):
 
     # Set up the client credentials
     credential = ClientSecretCredential(
-        tenant_id=tenant_id,
-        client_id=client_id,
-        client_secret=client_secret
+        tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
     )
 
     # Create a SecretClient
@@ -44,11 +47,11 @@ def fetch_secrets_from_vault(configuration: dict):
     # Fetch the secrets
     db_config = {}
     try:
-        db_config['database'] = secret_client.get_secret("postgresDatabase").value
-        db_config['host'] = secret_client.get_secret("postgresHost").value
-        db_config['user'] = secret_client.get_secret("postgresUser").value
-        db_config['password'] = secret_client.get_secret("postgresPassword").value
-        db_config['port'] = secret_client.get_secret("postgresPort").value
+        db_config["database"] = secret_client.get_secret("postgresDatabase").value
+        db_config["host"] = secret_client.get_secret("postgresHost").value
+        db_config["user"] = secret_client.get_secret("postgresUser").value
+        db_config["password"] = secret_client.get_secret("postgresPassword").value
+        db_config["port"] = secret_client.get_secret("postgresPort").value
     except Exception as e:
         raise RuntimeError(f"Failed to retrieve secrets from Azure Key Vault: {str(e)}")
 
@@ -66,11 +69,11 @@ def connect_to_database(db_config: dict):
     """
     try:
         conn = psycopg2.connect(
-            host=db_config['host'],
-            port=db_config.get('port', 5439),
-            dbname=db_config['database'],
-            user=db_config['user'],
-            password=db_config['password']
+            host=db_config["host"],
+            port=db_config.get("port", 5439),
+            dbname=db_config["database"],
+            user=db_config["user"],
+            password=db_config["password"],
         )
         log.info("Successfully connected to database")
         return conn
@@ -104,6 +107,23 @@ def get_data_from_database(conn):
         raise RuntimeError(f"Failed to fetch data from database: {str(e)}")
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["tenant_id", "client_id", "client_secret", "vault_url"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -112,23 +132,16 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Check if the required fields are present in the configuration
-    # These fields are necessary for connecting to the Azure Key Vault
-    required_fields = ["tenant_id", "client_id", "client_secret", "vault_url"]
-    for field in required_fields:
-        if field not in configuration:
-            raise ValueError(f"Missing required configuration: {field}")
-
     return [
         {
-            "table": "employees", # Name of the table
-            "primary_key": ["id"], # Primary key(s) of the table
-            "columns":{
-                "id" : "INT",
-                "name" : "STRING",
-                "department_id" : "INT",
-                "employee_metadata": "JSON"
-            }
+            "table": "employees",  # Name of the table
+            "primary_key": ["id"],  # Primary key(s) of the table
+            "columns": {
+                "id": "INT",
+                "name": "STRING",
+                "department_id": "INT",
+                "employee_metadata": "JSON",
+            },
             # Columns not defined in schema will be inferred
         }
     ]
@@ -146,6 +159,9 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Azure Key Vault For Secret Management")
 
+    # Check if the required fields are present in the configuration
+    validate_configuration(configuration=configuration)
+
     # Fetch database credentials from vault
     db_config = fetch_secrets_from_vault(configuration)
 
@@ -162,31 +178,30 @@ def update(configuration: dict, state: dict):
         # This is required to create a dictionary with the column names as keys and the record values as values.
         upsert_data = dict(zip(columns, record))
 
-        # The yield statement returns a generator object.
-        # This generator will yield an upsert operation to the Fivetran connector.
+        # The 'upsert' operation inserts the data into the destination.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "employees".
         # - The second argument is a dictionary containing the data to be upserted.
-        yield op.upsert("employees", upsert_data)
+        op.upsert("employees", upsert_data)
 
     log.fine(f"Upserted {len(records)} records to table 'employees'")
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
 
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Check if the script is being run as the main module.
-    # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-    # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-    # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-    with open("configuration.json", 'r') as f:
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:

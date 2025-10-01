@@ -8,21 +8,29 @@
 
 # Import requests to make HTTP calls to API.
 import requests as rq
+
 # Import base64 for API Auth Param Encoding
 import base64
+
 # Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector # For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Logging as log # For enabling Logs in your connector code
-from fivetran_connector_sdk import Operations as op  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import (
+    Connector,
+)  # For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Logging as log  # For enabling Logs in your connector code
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 import json
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "user",
@@ -41,37 +49,62 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector.
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync.
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
+    # Validate required configuration parameters
+    required_configs = ["username", "password"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     log.warning("Example: Common Patterns For Connectors - Authentication - HTTP BASIC")
 
-    print("RECOMMENDATION: Please ensure the base url is properly set, you can also use "
-          "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine.")
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
+
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
     base_url = "http://127.0.0.1:5001/auth/http_basic"
 
-    yield from sync_items(base_url, {}, state, configuration)
+    sync_items(base_url, {}, state, configuration)
 
 
-# Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
-# The function takes one parameter:
-# - config: dictionary contains any secrets or payloads you configure when deploying the connector.
 def get_auth_headers(config):
-    username = config.get('username')
-    password = config.get('password')
-
-    if username is None or password is None:
-        raise ValueError("Username or password is missing in the configuration.")
+    """
+    Define the get_auth_headers function, which is your custom function to generate auth headers for making API calls.
+    Args:
+        config: A dictionary containing connection details
+    Returns:
+        headers: A dictionary containing the Authorization header with Basic Auth credentials.
+    """
+    username = config.get("username")
+    password = config.get("password")
 
     # Create the auth string
     auth_string = f"{username}:{password}"
     # Encode the string in Base64
-    auth_base64 = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+    auth_base64 = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
     headers = {
         "Authorization": f"Basic {auth_base64}",
         "Content-Type": "application/json",  # Optional: specify content type
@@ -79,19 +112,19 @@ def get_auth_headers(config):
     return headers
 
 
-
-# The sync_items function handles the retrieval of API data.
-# It performs the following tasks:
-# 1. Sends an API request to the specified URL with the provided parameters.
-# 2. Processes the items returned in the API response by yielding upsert operations to Fivetran.
-# 3. Saves the state periodically to ensure the sync can resume from the correct point.
-#
-# The function takes three parameters:
-# - base_url: The URL to the API endpoint.
-# - params: A dictionary of query parameters to be sent with the API request.
-# - state: A dictionary representing the current state of the sync, including the last retrieved key.
-# - configuration: A dictionary contains any secrets or payloads you configure when deploying the connector.
 def sync_items(base_url, params, state, configuration):
+    """
+    The sync_items function handles the retrieval of API data.
+    It performs the following tasks:
+        1. Sends an API request to the specified URL with the provided parameters.
+        2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
+        3. Saves the state periodically to ensure the sync can resume from the correct point.
+    Args:
+        base_url: The URL to the API endpoint.
+        params: A dictionary of query parameters to be sent with the API request.
+        state: A dictionary representing the current state of the sync, including the last retrieved key.
+        configuration: A dictionary contains any secrets or payloads you configure when deploying the connector.
+    """
     response_page = get_api_response(base_url, params, get_auth_headers(configuration))
 
     # Process the items.
@@ -99,30 +132,32 @@ def sync_items(base_url, params, state, configuration):
     if not items:
         return
 
-    # Iterate over each user in the 'items' list and yield an upsert operation.
+    # Iterate over each user in the 'items' list and perform an upsert operation.
     # The 'upsert' operation inserts the data into the destination.
     for user in items:
-        yield op.upsert(table="user", data=user)
+        op.upsert(table="user", data=user)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    yield op.checkpoint(state)
+    op.checkpoint(state)
 
-# The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
-# It performs the following tasks:
-# 1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
-# 2. Makes the API request using the 'requests' library, passing the URL and parameters.
-# 3. Parses the JSON response from the API and returns it as a dictionary.
-#
-# The function takes two parameters:
-# - base_url: The URL to which the API request is made.
-# - params: A dictionary of query parameters to be included in the API request.
-#
-# Returns:
-# - response_page: A dictionary containing the parsed JSON response from the API.
+
 def get_api_response(base_url, params, headers):
+    """
+    The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
+    It performs the following tasks:
+        1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
+        2. Makes the API request using the 'requests' library, passing the URL and parameters.
+        3. Parses the JSON response from the API and returns it as a dictionary.
+    Args:
+        base_url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+        headers: A dictionary containing headers for the API request, such as authentication tokens.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    """
     log.info(f"Making API call to url: {base_url} with params: {params} and headers: {headers}")
     response = rq.get(base_url, params=params, headers=headers)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
@@ -139,7 +174,7 @@ connector = Connector(update=update, schema=schema)
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)
