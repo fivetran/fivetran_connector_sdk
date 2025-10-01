@@ -238,11 +238,11 @@ This repository is open source and intended specifically for Connector SDK examp
 
 ### How to contribute
 
-1. **Fork the repository** - Click the "Fork" button on the GitHub repository page to create your own copy
-2. **Create a new branch** - Make your changes in a new branch: `git checkout -b feature/your-example-name`
-3. **Make your changes** - Add new connectors, fix bugs, improve documentation, or enhance existing features
-4. **Test your changes** - Ensure your code works correctly and follows our coding standards
-5. **Submit a pull request** - Open a PR with a clear description of your changes
+1. Click **Fork** on the GitHub repository page to create your own copy of the repo.
+2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
+3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
+4. Ensure your code works correctly and follows our coding standards.
+5. Open a pull request with a clear description of your changes.
 
 ### What we're looking for
 
