@@ -232,8 +232,9 @@ Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connecto
 
 ## Contributing
 
-We welcome contributions to the Fivetran Connector SDK Examples!
-This repository is open source and intended specifically for examples. We encourage the community to contribute improvements, bug fixes, new examples, and additional use cases that expand and strengthen the collection.
+We welcome contributions to the Fivetran Connector SDK repo.
+
+This repository is open source and intended specifically for Connector SDK examples. We encourage the community to contribute by suggesting improvements, bug fixes, new examples, and additional use cases that expand and strengthen the collection.
 
 ### How to contribute
 
