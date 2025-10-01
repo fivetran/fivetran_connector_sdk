@@ -260,7 +260,7 @@ Before contributing, please:
 - Follow the existing code style and conventions
 - Test your connector thoroughly before submitting
 
-We appreciate all contributions, whether they're small bug fixes or major new features!
+We appreciate all contributions, whether they're small bug fixes or major new features.
 
 ## Additional considerations
 
