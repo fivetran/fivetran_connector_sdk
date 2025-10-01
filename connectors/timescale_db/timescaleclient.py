@@ -2,7 +2,6 @@
 # As TimescaleDB is a PostgreSQL extension, we can use psycopg2 to connect to the database.
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
 import ast  # For converting string representation of lists to actual lists
 
 # Import required classes from fivetran_connector_sdk.
@@ -136,7 +135,7 @@ class TimescaleClient:
             for row in rows:
                 # Convert the row to a dictionary
                 upsert_row = dict(row)
-                # Converting datetime objects to ISO format and vector data to list for JSON serialization.
+                # Converting vector data to list for JSON serialization.
                 upsert_row = TimescaleClient.serialize_upsert_row(upsert_row)
                 # The 'upsert' operation is used to insert or update data in a table.
                 # The op.upsert method is called with two arguments:
@@ -145,8 +144,8 @@ class TimescaleClient:
                 op.upsert(table=table_name, data=upsert_row)
 
                 # Update the last timestamp if needed
-                if upsert_row["created_at"] > last_vector_timestamp:
-                    last_vector_timestamp = upsert_row["created_at"]
+                if upsert_row["created_at"].isoformat() > last_vector_timestamp:
+                    last_vector_timestamp = upsert_row["created_at"].isoformat()
 
             # Update state and checkpoint after each batch
             state["last_vector_timestamp"] = last_vector_timestamp
@@ -162,13 +161,9 @@ class TimescaleClient:
 
     @staticmethod
     def serialize_upsert_row(data):
-        # This method converts datetime objects in the data dictionary to ISO format.
-        # This method also converts any iterable objects (like vectors) to lists for JSON serialization.
+        # This method converts any iterable objects (like vectors) to lists for JSON serialization.
         # This is a helper method to ensure that values are serialized correctly.
         for key, value in data.items():
-            if isinstance(value, datetime):
-                data[key] = value.isoformat()
-            # The vector_data field is a string representation of a list, so we need to convert it to a list for JSON serialization .
-            elif key == "vector_data" and isinstance(value, str):
+            if key == "vector_data" and isinstance(value, str):
                 data[key] = ast.literal_eval(value)
         return data
