@@ -17,7 +17,6 @@ from fivetran_connector_sdk import Operations as op
 
 # Import to connect to Snowflake
 import snowflake.connector
-import datetime
 import json
 
 
@@ -217,32 +216,6 @@ def get_table_name_from_configuration(configuration):
     return table_list
 
 
-def process_row(row, columns):
-    """
-    This function processes a row fetched from the database and prepares it for upsert operation.
-    It converts any datetime objects in the row to ISO format strings
-    You can modify this function to handle any additional processing required for the row data.
-    Args:
-        row: A tuple representing a row fetched from the database.
-        columns: A list of column names corresponding to the row data.
-    Returns:
-        A dictionary mapping column names to their corresponding values in the row
-    """
-    row = list(row)  # Convert the tuple to a list for easier manipulation
-    for index, data in enumerate(row):
-        # Check if the data is a datetime object.
-        # It needs to be converted to a string in ISO format
-        if isinstance(data, datetime.datetime) or isinstance(data, datetime.date):
-            # Convert datetime to string in ISO format
-            row[index] = data.isoformat()
-
-    # This is needed to map the column names to the data returned by the query
-    # The zip function pairs each column name with its corresponding value in the row tuple
-    # The dict function creates a dictionary from these pairs
-    upsert_data = dict(zip(columns, row))
-    return upsert_data
-
-
 def fetch_and_upsert_data(cursor, columns, table, state, last_created):
     """
     This function fetches data from the database in batches and yields upsert operations for each row.
@@ -264,19 +237,18 @@ def fetch_and_upsert_data(cursor, columns, table, state, last_created):
             break
 
         for row in data:
-            # process the row to prepare it for upsert operation
-            upsert_data = process_row(row, columns)
+            # This is needed to map the column names to the data returned by the query
+            # The zip function pairs each column name with its corresponding value in the row tuple
+            # The dict function creates a dictionary from these pairs
+            upsert_data = dict(zip(columns, row))
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table=table, data=upsert_data)
 
             # Update the last created date in the state dictionary
-            last_created = (
-                upsert_data["created_at"]
-                if upsert_data["created_at"] > last_created
-                else last_created
-            )
+            created_at = upsert_data.get("created_at").isoformat()
+            last_created = created_at if created_at > last_created else last_created
 
         # Update the state dictionary with the last created date after processing the batch
         # This ensures that the next sync will only fetch records created after this date

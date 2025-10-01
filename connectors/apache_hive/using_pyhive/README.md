@@ -65,7 +65,6 @@ Authentication is handled in the `create_hive_connection` function.
 The connector performs the following data handling operations:  
 - Fetching: Data is retrieved from Apache Hive using SQL queries with timestamp-based filtering.
 - Processing: The `process_row` function converts raw Hive data into dictionary format suitable for Fivetran.
-  - Datetime objects are converted to ISO format with UTC timezone.
   - Column names are extracted and mapped to their values.
 - Batching: Data is processed in configurable batches (1000 rows by default) to prevent memory overflow. 
 - State management: The connector tracks the latest created timestamp to enable incremental syncs.
