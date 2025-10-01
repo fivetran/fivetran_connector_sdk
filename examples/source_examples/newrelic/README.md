@@ -1,14 +1,17 @@
-# New Relic Feature APIs Connector
-
-This connector provides comprehensive New Relic monitoring data synchronization into your data warehouse for advanced performance analytics, infrastructure monitoring, and application insights. It leverages New Relic's NerdGraph API to extract APM, Infrastructure, Browser, Mobile, and Synthetic monitoring data for comprehensive observability analysis.
+# New Relic Feature APIs Connector Example
 
 ## Connector overview
 
-The New Relic Feature APIs Connector is a Fivetran Connector SDK implementation that extracts comprehensive monitoring and performance data from New Relic's various feature APIs. It provides detailed insights into application performance, infrastructure health, user experience, and system reliability across multiple New Relic services.
+The New Relic Feature APIs custom connector extracts comprehensive monitoring and performance data. It leverages New Relic's NerdGraph API to extract APM, infrastructure, browser, mobile, and synthetic monitoring data for comprehensive observability analysis.
 
-Data source: New Relic NerdGraph API (GraphQL queries for APM, Infrastructure, Browser, Mobile, and Synthetic monitoring data)
+The connector serves the following use cases:
 
-Use cases: Application performance monitoring, infrastructure health tracking, user experience optimization, mobile app quality assurance, synthetic monitoring, and comprehensive observability analysis.
+- Application performance monitoring
+- Infrastructure health tracking
+- User experience optimization
+- Mobile app quality assurance
+- Synthetic monitoring
+- Comprehensive observability analysis
 
 ## Requirements
 
@@ -23,19 +26,19 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-* Comprehensive APM data: Transaction performance metrics, error rates, throughput analysis, and Apdex scores for application monitoring
-* Infrastructure health tracking: Host status monitoring, domain analysis, infrastructure entity tracking, and health reporting
-* Browser performance analytics: Page load time analysis, browser compatibility insights, device performance comparison, and user experience metrics
-* Mobile app quality assurance: Crash analysis, platform performance tracking, device utilization insights, and app stability monitoring
-* Synthetic monitoring: Uptime monitoring, response time analysis, failure detection, and location-based performance insights
-* Cross-Service correlation: Integrated analysis across all monitoring services for comprehensive observability
-* Dynamic time ranges: Intelligent data fetching based on sync type (initial vs incremental)
-* Incremental syncs: Efficient data updates with checkpoint-based state management
-* Configurable filtering: Service and account-level filtering for focused monitoring analysis
-* Error handling: Robust error handling with comprehensive logging and validation
-* CI/CD integration: Automated deployment via GitHub Actions with parameterized configuration
-* Environment management: Secure credential management using GitHub Environments
-* Zero-Downtime deployment: Seamless updates without service interruption
+- Transaction performance metrics, error rates, throughput analysis, and Apdex scores for application monitoring
+- Host status monitoring, domain analysis, infrastructure entity tracking, and health reporting
+- Page load time analysis, browser compatibility insights, device performance comparison, and user experience metrics
+- Crash analysis, platform performance tracking, device utilization insights, and app stability monitoring
+- Uptime monitoring, response time analysis, failure detection, and location-based performance insights
+- Integrated analysis across all monitoring services for comprehensive observability
+- Intelligent data fetching based on sync type (initial vs incremental)
+- Efficient data updates with checkpoint-based state management
+- Service and account-level filtering for focused monitoring analysis
+- Robust error handling with comprehensive logging and validation
+- Automated deployment via GitHub Actions with parameterized configuration
+- Secure credential management using GitHub Environments
+- Seamless updates without service interruption
 
 ## Configuration file
 
@@ -117,21 +120,16 @@ Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in 
 
 ## Authentication
 
-The connector uses New Relic API keys for authentication with the NerdGraph API. Authentication is provided through:
+The connector uses New Relic API keys to authenticate the connector with the NerdGraph API.
 
-1. API keys: Direct New Relic API key in configuration (NRAK- format).
-2. Account access: Account ID for data scope definition.
+To obtain API credentials:
+1. Log in to your New Relic account.
+2. Go to **API Keys**.
+3. Create a new API key with the following permissions:
+  - NerdGraph API access for querying monitoring data.
+  - Account-level access for the specified account ID.
 
-Required API Permissions:
-- NerdGraph API access for querying monitoring data
-- Account-level access for the specified account ID
-
-Steps to obtain credentials:
-1. Go to your New Relic account.
-2. Navigate to API Keys section.
-3. Create a new API key with appropriate permissions.
-4. For production: We recommend adding credentials as **GitHub Secrets** (see [Deployment](#deployment) section).
-5. For development: You can add credentials to `configuration.json` (remember not to commit this file).
+Note: For production connectors, we recommend adding credentials as GitHub Secrets (see [Deployment](#deployment) section). For test connectors, you can add credentials to `configuration.json`.
 
 ## Pagination
 
