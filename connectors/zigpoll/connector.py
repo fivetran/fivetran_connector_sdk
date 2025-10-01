@@ -254,10 +254,10 @@ def process_responses_page(
     for response in responses:
         # Check if response is too old (client-side filtering)
         created_at = response.get("createdAt")
-        if created_at and last_sync_timestamp:
+        if created_at and last_sync_timestamp is not None:
             response_timestamp = parse_iso_timestamp(created_at)
 
-            if response_timestamp and response_timestamp < int(last_sync_timestamp):
+            if response_timestamp is not None and response_timestamp < last_sync_timestamp:
                 should_continue = False
                 break
 
@@ -296,6 +296,7 @@ def sync_account_responses(
     log.info(f"Fetching responses for account: {account_id}")
     start_cursor = None
     total_processed = 0
+    previous_cursor = None
 
     while True:
         processed_count, has_next_page, end_cursor, should_continue = process_responses_page(
@@ -314,12 +315,13 @@ def sync_account_responses(
         if not has_next_page:
             log.info(f"No more pages for account {account_id} (hasNextPage: false)")
             break
-        if end_cursor is not None and end_cursor == start_cursor:
+        if end_cursor is not None and end_cursor == previous_cursor:
             log.warning(
                 f"API bug detected: same cursor returned ({end_cursor}), stopping to prevent infinite loop"
             )
             break
 
+        previous_cursor = start_cursor
         start_cursor = end_cursor
         log.info(f"Fetching next page with cursor: {start_cursor}")
 
