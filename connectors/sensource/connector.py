@@ -179,13 +179,16 @@ def fetch_data(
     response = make_request_with_retry("get", url, headers=headers, params=params)
     data = response.json()
     results = data.get("results", []) if isinstance(data, dict) else data
-    
+
     # Calculate the actual data end date (end_date - 1 day since API end_date is non-inclusive)
-    actual_end_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    actual_end_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=1)).strftime(
+        "%Y-%m-%d"
+    )
     log.info(
         f"Successfully fetched {len(results)} records from {endpoint} endpoint for {start_date} to {actual_end_date}"
     )
     return results
+
 
 def generate_date_ranges(start_date: str = None) -> List[tuple]:
     """
@@ -229,9 +232,7 @@ def generate_date_ranges(start_date: str = None) -> List[tuple]:
         range_end = min(current_start + timedelta(days=__DAYS_PER_CHUNK), end_date)
         api_end_date = range_end + timedelta(days=1)
 
-        ranges.append(
-            (current_start.strftime("%Y-%m-%d"), api_end_date.strftime("%Y-%m-%d"))
-        )
+        ranges.append((current_start.strftime("%Y-%m-%d"), api_end_date.strftime("%Y-%m-%d")))
 
         current_start = range_end + timedelta(days=1)
 
@@ -287,12 +288,8 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     occupancy_metrics = configuration.get(
         "occupancy_metrics", "occupancy(max),occupancy(min),occupancy(avg)"
     )
-    static_endpoints_str = configuration.get(
-        "static_endpoints", "location,site,zone,space"
-    )
-    static_endpoints = [
-        endpoint.strip() for endpoint in static_endpoints_str.split(",")
-    ]
+    static_endpoints_str = configuration.get("static_endpoints", "location,site,zone,space")
+    static_endpoints = [endpoint.strip() for endpoint in static_endpoints_str.split(",")]
     start_date = configuration.get("start_date", "2022-01-01")
     last_sync_date = state.get("last_sync_date")
 
@@ -335,9 +332,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         """
         for start_date, end_date in date_ranges:
             if last_sync_date and end_date < last_sync_date:
-                log.fine(
-                    f"Skipping already processed range: {start_date} to {end_date}"
-                )
+                log.fine(f"Skipping already processed range: {start_date} to {end_date}")
                 continue
 
             log.fine(f"Processing date range: {start_date} to {end_date}")
@@ -373,7 +368,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             Save the actual last date that was synced (end_date - 1 day since API end_date is non-inclusive).
             """
             new_state = state.copy()
-            actual_end_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+            actual_end_date = (
+                datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=1)
+            ).strftime("%Y-%m-%d")
             new_state["last_sync_date"] = actual_end_date
             op.checkpoint(state=new_state)
 
@@ -423,9 +420,7 @@ def make_request_with_retry(method, url, **kwargs):
                 time.sleep(delay)
                 continue
             else:
-                log.severe(
-                    f"Request failed with status {response.status_code}: {response.text}"
-                )
+                log.severe(f"Request failed with status {response.status_code}: {response.text}")
                 raise Exception(f"Request failed with status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
