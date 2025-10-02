@@ -31,20 +31,20 @@ API Configuration:
 
 Retry Configuration:
 Users can adjust these values based on their needs:
-- MAX_RETRY_ATTEMPTS: Maximum number of retry attempts for failed requests
-- RETRY_BASE_DELAY: Base delay in seconds for exponential backoff
+- __MAX_RETRY_ATTEMPTS: Maximum number of retry attempts for failed requests
+- __RETRY_BASE_DELAY: Base delay in seconds for exponential backoff
 
 Date Processing Configuration:
 Users can modify the chunk size for different data volumes:
 - DAYS_PER_CHUNK: Number of days per chunk (creates 30-day ranges with 29 + 1 day overlap)
 """
-AUTH_URL = "https://auth.sensourceinc.com/oauth/token"
-BASE_URL = "https://vea.sensourceinc.com"
+__AUTH_URL = "https://auth.sensourceinc.com/oauth/token"
+__BASE_URL = "https://vea.sensourceinc.com"
 
-MAX_RETRY_ATTEMPTS = 3
-RETRY_BASE_DELAY = 2
+____MAX_RETRY_ATTEMPTS = 3
+____RETRY_BASE_DELAY = 2
 
-DAYS_PER_CHUNK = 29
+__DAYS_PER_CHUNK = 29
 
 
 def validate_configuration(configuration: dict):
@@ -88,7 +88,7 @@ def get_access_token(client_id: str, client_secret: str) -> str:
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
     try:
-        response = requests.post(AUTH_URL, data=payload, headers=headers)
+        response = requests.post(__AUTH_URL, data=payload, headers=headers)
 
         if response.status_code != 200:
             log.severe(
@@ -127,7 +127,7 @@ def fetch_static_data(endpoint: str, access_token: str) -> List[Dict[str, Any]]:
     Raises:
         Exception: If the API request fails
     """
-    url = f"{BASE_URL}/api/{endpoint}"
+    url = f"{__BASE_URL}/api/{endpoint}"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -168,7 +168,7 @@ def fetch_data(
     Raises:
         Exception: If the API request fails
     """
-    url = f"{BASE_URL}/api/data/{endpoint}"
+    url = f"{__BASE_URL}/api/data/{endpoint}"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -235,7 +235,7 @@ def generate_date_ranges(start_date: str = None) -> List[tuple]:
         Create chunks of DAYS_PER_CHUNK days to process data efficiently.
         Add one day to make it inclusive for the API (since API treats end_date as non-inclusive).
         """
-        range_end = min(current_start + timedelta(days=DAYS_PER_CHUNK), end_date)
+        range_end = min(current_start + timedelta(days=__DAYS_PER_CHUNK), end_date)
         api_end_date = range_end + timedelta(days=1)
 
         ranges.append(
@@ -404,7 +404,7 @@ def make_request_with_retry(method, url, **kwargs):
     """
     Make HTTP request with retry logic for improved reliability.
     This function implements exponential backoff for 5xx errors and network failures.
-    Users can modify MAX_RETRY_ATTEMPTS and RETRY_BASE_DELAY constants to adjust retry behavior.
+    Users can modify __MAX_RETRY_ATTEMPTS and __RETRY_BASE_DELAY constants to adjust retry behavior.
 
     Args:
         method: HTTP method (get, post, etc.)
@@ -417,17 +417,17 @@ def make_request_with_retry(method, url, **kwargs):
     Raises:
         Exception: If request fails after all retry attempts
     """
-    for attempt in range(MAX_RETRY_ATTEMPTS):
+    for attempt in range(____MAX_RETRY_ATTEMPTS):
         try:
             response = requests.request(method, url, **kwargs)
 
             if response.status_code == 200:
                 return response
-            elif 500 <= response.status_code < 600 and attempt < MAX_RETRY_ATTEMPTS - 1:
+            elif 500 <= response.status_code < 600 and attempt < ____MAX_RETRY_ATTEMPTS - 1:
                 # 5xx error, retry with exponential backoff
-                delay = RETRY_BASE_DELAY**attempt
+                delay = __RETRY_BASE_DELAY**attempt
                 log.warning(
-                    f"5xx error (status {response.status_code}) on attempt {attempt + 1}/{MAX_RETRY_ATTEMPTS}. Retrying in {delay} seconds..."
+                    f"5xx error (status {response.status_code}) on attempt {attempt + 1}/{__MAX_RETRY_ATTEMPTS}. Retrying in {delay} seconds..."
                 )
                 time.sleep(delay)
                 continue
@@ -438,10 +438,10 @@ def make_request_with_retry(method, url, **kwargs):
                 raise Exception(f"Request failed with status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
-            if attempt < MAX_RETRY_ATTEMPTS - 1:
-                delay = RETRY_BASE_DELAY**attempt
+            if attempt < __MAX_RETRY_ATTEMPTS - 1:
+                delay = __RETRY_BASE_DELAY**attempt
                 log.warning(
-                    f"Request failed on attempt {attempt + 1}/{MAX_RETRY_ATTEMPTS}. Retrying in {delay} seconds..."
+                    f"Request failed on attempt {attempt + 1}/{__MAX_RETRY_ATTEMPTS}. Retrying in {delay} seconds..."
                 )
                 time.sleep(delay)
                 continue
