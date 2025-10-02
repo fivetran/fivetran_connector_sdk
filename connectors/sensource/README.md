@@ -1,15 +1,15 @@
-# Sensource Connector Example
+# SenSource Connector Example
 
 ## Connector overview
 
-The Sensource connector fetches data from the Sensource API, which provides traffic and occupancy metrics for physical spaces. This connector demonstrates how to implement OAuth2 authentication, incremental syncing with date-based cursors, and efficient processing of large historical datasets.
+The SenSource custom connector fetches data from the SenSource API, which provides traffic and occupancy metrics for physical spaces. This connector demonstrates how to implement OAuth2 authentication, incremental syncing with date-based cursors, and efficient processing of large historical datasets.
 
 The connector supports:
-- **Static reference data**: Locations, sites, zones, spaces, and sensors
-- **Traffic metrics**: Entry and exit counts by zone with hourly granularity
-- **Occupancy metrics**: Maximum, minimum, and average occupancy by space with hourly granularity
-- **Incremental syncing**: Date-based cursor tracking for efficient data replication
-- **OAuth2 authentication**: Secure API access using client credentials flow
+- Static reference data: Locations, sites, zones, spaces, and sensors
+- Traffic metrics: Entry and exit counts by zone with hourly granularity
+- Occupancy metrics: Maximum, minimum, and average occupancy by space with hourly granularity
+- Incremental syncing: Date-based cursor tracking for efficient data replication
+- OAuth2 authentication: Secure API access using client credentials flow
 
 The connector processes data in 30-day chunks to handle large historical datasets efficiently and uses checkpointing to ensure reliable resumption after interruptions.
 
@@ -24,17 +24,17 @@ The connector processes data in 30-day chunks to handle large historical dataset
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- **OAuth2 Authentication**: Secure API access using client credentials flow
-- **Static Data Sync**: Reference data for locations, sites, zones, spaces, and sensors
-- **Traffic Metrics**: Entry and exit counts with hourly granularity
-- **Occupancy Metrics**: Maximum, minimum, and average occupancy with hourly granularity
-- **Incremental Syncing**: Date-based cursor tracking for efficient data replication
-- **Retry Logic**: Automatic retry with exponential backoff for 5xx errors
-- **Configurable Metrics**: Customizable traffic and occupancy metrics via configuration
-- **Configurable Start Date**: Support for specific start dates in YYYY-MM-DD format
+- OAuth2 Authentication: Secure API access using client credentials flow
+- Static Data Sync: Reference data for locations, sites, zones, spaces, and sensors
+- Traffic Metrics: Entry and exit counts with hourly granularity
+- Occupancy Metrics: Maximum, minimum, and average occupancy with hourly granularity
+- Incremental Syncing: Date-based cursor tracking for efficient data replication
+- Retry Logic: Automatic retry with exponential backoff for 5xx errors
+- Configurable Metrics: Customizable traffic and occupancy metrics via configuration
+- Configurable Start Date: Support for specific start dates in YYYY-MM-DD format
 
 ## Configuration file
-The configuration file contains the following keys for Sensource API access:
+The configuration file contains the following keys for SenSource API access:
 
 ```json
 {
@@ -47,34 +47,35 @@ The configuration file contains the following keys for Sensource API access:
 }
 ```
 
-**Configuration Parameters:**
-- `client_id` (required): OAuth2 client ID from Sensource
-- `client_secret` (required): OAuth2 client secret from Sensource
-- `traffic_metrics` (optional): Comma-separated list of traffic metrics (default: "ins,outs")
-- `occupancy_metrics` (optional): Comma-separated list of occupancy metrics (default: "occupancy(max),occupancy(min),occupancy(avg)")
-- `static_endpoints` (optional): Comma-separated list of static endpoints to sync (default: "location,site,zone,space")
+Configuration paramaters:
+
+- `client_id` (required): OAuth2 client ID from SenSource.
+- `client_secret` (required): OAuth2 client secret from SenSource.
+- `traffic_metrics` (optional): Comma-separated list of traffic metrics (default: "ins,outs").
+- `occupancy_metrics` (optional): Comma-separated list of occupancy metrics (default: "occupancy(max),occupancy(min),occupancy(avg)").
+- `static_endpoints` (optional): Comma-separated list of static endpoints to sync (default: "location,site,zone,space").
 - `start_date` (optional): Start date for historical data collection in YYYY-MM-DD format (default: "2022-01-01"). 
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-The `requirements.txt` file specifies the Python libraries required by the connector. For the Sensource connector, no additional dependencies are needed as it only uses the pre-installed `fivetran_connector_sdk` and `requests` packages.
+The `requirements.txt` file specifies the Python libraries required by the connector. For the SenSource connector, no additional dependencies are needed as it only uses the pre-installed `fivetran_connector_sdk` and `requests` packages.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-The connector uses OAuth2 client credentials flow for authentication with the Sensource API. To obtain credentials:
+The connector uses an OAuth2 client credentials flow for authentication with the SenSource API. To obtain credentials:
 
-1. Contact Sensource to get your OAuth2 client ID and client secret
-2. Add these credentials to your `configuration.json` file
-3. The connector will automatically obtain and refresh access tokens as needed
+1. Contact SenSource to get your OAuth2 client ID and client secret.
+2. Add these credentials to your `configuration.json` file.
+3. The connector automatically obtains and refreshes access tokens as needed.
 
-For detailed authentication examples and API reference, see the [Sensource API Documentation](https://vea.sensourceinc.com/api-docs/).
+For detailed authentication examples and API reference, see [SenSource's API documentation](https://vea.sensourceinc.com/api-docs/).
 
 **Authentication Flow** - Refer to `get_access_token()` function
 
 ## Pagination
-The Sensource API returns all data for a given date range in a single response, so no traditional pagination is required. However, the connector implements date-based chunking to handle large historical datasets efficiently.
+The SenSource API returns all data for a given date range in a single response, so no traditional pagination is required. However, the connector implements date-based chunking to handle large historical datasets efficiently.
 
 **Date Range Processing** - Refer to `generate_date_ranges()` function and the main update loop in `update()` function
 
@@ -105,13 +106,13 @@ The connector creates the following tables:
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| `traffic` | `zone_id`, `record_date_hour_1` | Hourly traffic metrics by zone |
-| `occupancy` | `space_id`, `record_date_hour_1` | Hourly occupancy metrics by space |
-| `location` | `location_id` | Location reference data |
-| `site` | `site_id` | Site reference data |
-| `zone` | `zone_id` | Zone reference data |
-| `space` | `space_id` | Space reference data |
-| `sensor` | `sensor_id` | Sensor reference data |
+| `TRAFFIC` | `zone_id`, `record_date_hour_1` | Hourly traffic metrics by zone |
+| `OCCUPANCY` | `space_id`, `record_date_hour_1` | Hourly occupancy metrics by space |
+| `LOCATION` | `location_id` | Location reference data |
+| `SITE` | `site_id` | Site reference data |
+| `ZONE` | `zone_id` | Zone reference data |
+| `SPACE` | `space_id` | Space reference data |
+| `SENSOR` | `sensor_id` | Sensor reference data |
 
 **Schema Definition** - Refer to `schema()` function
 
