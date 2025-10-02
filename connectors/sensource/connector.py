@@ -1,17 +1,3 @@
-"""
-Sensource API Connector for Fivetran
-This connector fetches traffic and occupancy data from Sensource API with OAuth2 authentication.
-Sensource API documentation: https://vea.sensourceinc.com/api-docs/
-"""
-
-"""
-Import required classes from fivetran_connector_sdk.
-
-This module imports the core components needed for Fivetran connector development:
-- Connector: Main class for supporting operations like Update() and Schema()
-- Logging: For enabling comprehensive logging in connector code
-- Operations: For supporting data operations like Upsert(), Update(), Delete() and checkpoint()
-"""
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
@@ -21,6 +7,12 @@ from typing import Dict, List, Any
 import requests
 import json
 import time
+
+"""
+Sensource API Connector for Fivetran
+This connector fetches traffic and occupancy data from Sensource API with OAuth2 authentication.
+Sensource API documentation: https://vea.sensourceinc.com/api-docs/
+"""
 
 """
 Configuration constants for the Sensource connector.
@@ -41,8 +33,8 @@ Users can modify the chunk size for different data volumes:
 __AUTH_URL = "https://auth.sensourceinc.com/oauth/token"
 __BASE_URL = "https://vea.sensourceinc.com"
 
-____MAX_RETRY_ATTEMPTS = 3
-____RETRY_BASE_DELAY = 2
+__MAX_RETRY_ATTEMPTS = 3
+__RETRY_BASE_DELAY = 2
 
 __DAYS_PER_CHUNK = 29
 
@@ -195,13 +187,12 @@ def fetch_data(
     )
     return results
 
-
 def generate_date_ranges(start_date: str = None) -> List[tuple]:
     """
     Generate date ranges for processing large historical datasets.
     This function creates 30-day chunks to process data efficiently and avoid memory issues.
     Users can modify the DAYS_PER_CHUNK constant to adjust the chunk size based on their data volume.
-    
+
     Note: Since the API treats end dates as non-inclusive, we adjust the end date
     to be one day later to ensure we get the complete intended range.
 
@@ -353,7 +344,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
             """
             Fetch and process traffic and occupancy data.
-            
+
             Traffic data (entity_type = zone): Entry and exit counts by zone
             Occupancy data (entity_type = space): Maximum, minimum, and average occupancy by space
             Upsert operations ensure we have the latest metrics.
@@ -417,13 +408,13 @@ def make_request_with_retry(method, url, **kwargs):
     Raises:
         Exception: If request fails after all retry attempts
     """
-    for attempt in range(____MAX_RETRY_ATTEMPTS):
+    for attempt in range(__MAX_RETRY_ATTEMPTS):
         try:
             response = requests.request(method, url, **kwargs)
 
             if response.status_code == 200:
                 return response
-            elif 500 <= response.status_code < 600 and attempt < ____MAX_RETRY_ATTEMPTS - 1:
+            elif 500 <= response.status_code < 600 and attempt < __MAX_RETRY_ATTEMPTS - 1:
                 # 5xx error, retry with exponential backoff
                 delay = __RETRY_BASE_DELAY**attempt
                 log.warning(
