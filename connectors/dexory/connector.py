@@ -3,7 +3,7 @@ Fivetran Connector for Dexory Inventory API
 Fetches inventory scan data from a single site
 """
 
-# For reading configuration from a JSON file
+# For JSON serialization
 import json
 
 # Import required classes from fivetran_connector_sdk
@@ -20,9 +20,6 @@ from typing import Dict, List, Any
 
 # For making HTTP requests
 import requests
-
-# For reading configuration from a JSON file
-import json
 
 # For handling time delays
 import time
