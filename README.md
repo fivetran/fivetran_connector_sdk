@@ -230,6 +230,38 @@ Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connecto
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
 
+## Contributing
+
+We welcome contributions to the Fivetran Connector SDK repo.
+
+This repository is open source and intended specifically for Connector SDK examples. We encourage the community to contribute by suggesting improvements, bug fixes, new examples, and additional use cases that expand and strengthen the collection.
+
+### How to contribute
+
+1. Click **Fork** on the GitHub repository page to create your own copy of the repo.
+2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
+3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
+4. Ensure your code works correctly and follows our coding standards.
+5. Open a pull request with a clear description of your changes.
+
+### What we're looking for
+
+- New connector examples for popular APIs and databases
+- Bug fixes and performance improvements
+- Documentation enhancements
+- Code quality improvements
+- New common patterns and utilities
+
+### Getting started
+
+Before contributing, please:
+- Read through existing examples to understand our coding patterns
+- Run the setup script: `.github/scripts/setup-hooks.sh`
+- Follow the existing code style and conventions
+- Test your connector thoroughly before submitting
+
+We appreciate all contributions, whether they're small bug fixes or major new features.
+
 ## Additional considerations
 
 We provide examples to help you effectively use Fivetran's Connector SDK. While we've tested the code provided in these examples, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.
