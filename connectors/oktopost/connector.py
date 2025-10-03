@@ -32,6 +32,9 @@ from urllib.parse import urlparse
 # For making HTTP requests
 import requests
 
+# For reading configuration from a JSON file
+import json
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
