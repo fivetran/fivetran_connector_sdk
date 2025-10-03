@@ -1,21 +1,45 @@
-import csv
-import io
-import re
-import time
-import zipfile
-from datetime import datetime
-from typing import Dict, List, Any
-from urllib.parse import urlparse
-
-import requests
-from fivetran_connector_sdk import Connector, Operations as op, Logging as log
-
 """
 Oktopost BI Export Fivetran Connector
 
 This connector fetches export metadata from Oktopost BI Export API and downloads
 the associated CSV files for data synchronization.
 """
+
+# For reading CSV files
+import csv
+
+# For reading and writing files
+import io
+
+# For handling regular expressions
+import re
+
+# For handling time delays
+import time
+
+# For handling ZIP files
+import zipfile
+
+# For handling date and time operations
+from datetime import datetime, timezone
+
+# For type hints
+from typing import Dict, List, Any
+
+# For handling URLs
+from urllib.parse import urlparse
+
+# For making HTTP requests
+import requests
+
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Configuration constants
 __BASE_URL = "https://api.oktopost.com/v2"
@@ -60,21 +84,57 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Invalid base_url format: {base_url}. {str(e)}")
 
 
+def _should_retry_status_code(status_code: int) -> bool:
+    """Check if a status code should trigger a retry."""
+    return status_code == 429 or 500 <= status_code < 600
+
+
+def _is_client_error(status_code: int) -> bool:
+    """Check if a status code represents a client error that shouldn't be retried."""
+    return 400 <= status_code < 500 and status_code != 429
+
+
+def _handle_retry_delay(attempt: int) -> None:
+    """Handle retry delay with exponential backoff."""
+    if attempt > 0:
+        delay = __RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
+        log.info(f"Retrying after {delay:.1f}s (attempt {attempt + 1})")
+        time.sleep(delay)
+
+
+def _handle_retryable_error(attempt: int, error: Exception) -> None:
+    """Handle retryable errors (timeout, connection)."""
+    if attempt < __MAX_RETRIES:
+        log.warning(f"{type(error).__name__} on attempt {attempt + 1}, retrying")
+    else:
+        raise RuntimeError(f"{type(error).__name__} after {__MAX_RETRIES + 1} attempts")
+
+
+def _handle_http_error(attempt: int, error: requests.exceptions.HTTPError) -> None:
+    """Handle HTTP errors with appropriate retry logic."""
+    status_code = error.response.status_code
+
+    if _is_client_error(status_code):
+        raise RuntimeError(f"Client error {status_code}: {error.response.text}")
+
+    if attempt < __MAX_RETRIES:
+        log.warning(f"HTTP {status_code} on attempt {attempt + 1}, retrying")
+    else:
+        raise RuntimeError(f"HTTP {status_code} after {__MAX_RETRIES + 1} attempts")
+
+
 def make_api_request_with_retry(
     url: str, headers: Dict[str, str], auth: tuple = None
 ) -> requests.Response:
     """Make API request with exponential backoff retry logic."""
     for attempt in range(__MAX_RETRIES + 1):
         try:
-            if attempt > 0:
-                delay = __RETRY_DELAY_SECONDS * (2 ** (attempt - 1))
-                log.info(f"Retrying {url} (attempt {attempt + 1}) after {delay:.1f}s")
-                time.sleep(delay)
+            _handle_retry_delay(attempt)
 
             response = requests.get(url, headers=headers, auth=auth, timeout=__API_TIMEOUT_SECONDS)
 
-            # Retry on rate limiting or server errors
-            if response.status_code in [429] or 500 <= response.status_code < 600:
+            # Check if we should retry based on status code
+            if _should_retry_status_code(response.status_code):
                 if attempt < __MAX_RETRIES:
                     log.warning(f"HTTP {response.status_code} on attempt {attempt + 1}, retrying")
                     continue
@@ -87,22 +147,12 @@ def make_api_request_with_retry(
             return response
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            if attempt < __MAX_RETRIES:
-                log.warning(f"{type(e).__name__} on attempt {attempt + 1}, retrying")
-                continue
-            else:
-                raise RuntimeError(f"{type(e).__name__} after {__MAX_RETRIES + 1} attempts")
+            _handle_retryable_error(attempt, e)
+            continue
 
         except requests.exceptions.HTTPError as e:
-            if 400 <= e.response.status_code < 500 and e.response.status_code != 429:
-                raise RuntimeError(f"Client error {e.response.status_code}: {e.response.text}")
-            elif attempt < __MAX_RETRIES:
-                log.warning(f"HTTP {e.response.status_code} on attempt {attempt + 1}, retrying")
-                continue
-            else:
-                raise RuntimeError(
-                    f"HTTP {e.response.status_code} after {__MAX_RETRIES + 1} attempts"
-                )
+            _handle_http_error(attempt, e)
+            continue
 
     raise RuntimeError(f"Request failed after {__MAX_RETRIES + 1} attempts")
 
@@ -133,9 +183,7 @@ def normalize_table_name(filename: str) -> str:
     )
 
 
-def process_csv_data(
-    csv_content: str, filename: str, export_id: str, current_sync: str
-) -> List[Dict[str, Any]]:
+def process_csv_data(csv_content: str, filename: str, export_id: str) -> List[Dict[str, Any]]:
     """Process CSV content and return rows for upserting."""
     try:
         return [
@@ -157,132 +205,172 @@ def process_csv_data(
         raise
 
 
+def _get_exports_to_process(
+    configuration: Dict[str, str],
+    base_url: str,
+    auth: tuple,
+    headers: Dict[str, str],
+    current_sync: str,
+) -> List[Dict[str, Any]]:
+    """Get the list of exports to process, either from test mode or API."""
+    test_export_id = configuration.get("test_export_id")
+
+    if test_export_id:
+        log.info(f"Testing with specific export ID: {test_export_id}")
+        return [{"Id": test_export_id}]
+
+    # Fetch exports from API
+    response = make_api_request_with_retry(f"{base_url}/bi-export", headers, auth)
+    exports_data = response.json()
+
+    if not exports_data.get("Result"):
+        log.warning("API returned Result=false for export list")
+        return []
+
+    exports = exports_data.get("Exports", [])
+    log.info(f"Found {len(exports)} total exports")
+
+    # Store export list metadata
+    for export in exports:
+        op.upsert(table="export_list_metadata", data={**export, "sync_timestamp": current_sync})
+
+    active_exports = [export for export in exports if export.get("Status") == "active"]
+    log.info(f"Found {len(active_exports)} active exports")
+    return active_exports
+
+
+def _process_export_metadata(
+    export: Dict[str, Any], base_url: str, headers: Dict[str, str], auth: tuple, current_sync: str
+) -> Dict[str, Any]:
+    """Process export metadata and return export details."""
+    export_id = export.get("Id")
+    if not export_id:
+        log.warning("Export missing ID, skipping")
+        return None
+
+    log.info(f"Processing export {export_id}")
+
+    # Fetch detailed export information
+    detail_url = f"{base_url}/bi-export/{export_id}"
+    try:
+        detail_response = make_api_request_with_retry(detail_url, headers, auth)
+        detail_data = detail_response.json()
+    except Exception as e:
+        log.warning(f"Failed to fetch details for export {export_id}: {str(e)}, skipping")
+        return None
+
+    if not detail_data.get("Result"):
+        log.warning(f"API returned Result=false for export {export_id}")
+        return None
+
+    export_detail = detail_data.get("Export", {})
+
+    # Store export metadata
+    file_url = export_detail.get("LastRunFile")
+    source_filename = urlparse(file_url).path.split("/")[-1] if file_url else None
+    op.upsert(
+        table="active_export_metadata",
+        data={
+            **export_detail,
+            "sync_timestamp": current_sync,
+            "source_filename": source_filename,
+        },
+    )
+
+    return {"export_id": export_id, "file_url": file_url, "source_filename": source_filename}
+
+
+def _process_zip_file(file_response: requests.Response, export_id: str, current_sync: str) -> None:
+    """Process a ZIP file by extracting and processing CSV files."""
+    original_filename = urlparse(file_response.url).path.split("/")[-1]
+
+    log.info(f"File {original_filename} is a ZIP archive, extracting CSV files")
+    csv_files = extract_csv_from_zip(file_response.content)
+
+    if not csv_files:
+        log.warning(f"No CSV files found in ZIP archive {original_filename}")
+        return
+
+    for csv_file in csv_files:
+        table_name = normalize_table_name(original_filename)
+        log.info(f"Processing CSV data from {csv_file['filename']} into table: {table_name}")
+
+        rows = process_csv_data(csv_file["content"], original_filename, export_id)
+
+        for row in rows:
+            op.upsert(table=table_name, data=row)
+        log.info(f"Processed {len(rows)} rows for table {table_name} from {csv_file['filename']}")
+
+
+def _process_csv_file(file_response: requests.Response, export_id: str, current_sync: str) -> None:
+    """Process a single CSV file."""
+    original_filename = urlparse(file_response.url).path.split("/")[-1]
+    table_name = normalize_table_name(original_filename)
+    log.info(f"Processing CSV data into table: {table_name}")
+
+    rows = process_csv_data(file_response.text, original_filename, export_id)
+
+    for row in rows:
+        op.upsert(table=table_name, data=row)
+    log.info(f"Processed {len(rows)} rows for table {table_name}")
+
+
+def _process_export_file(export_info: Dict[str, Any], current_sync: str) -> None:
+    """Process the file associated with an export."""
+    export_id = export_info["export_id"]
+    file_url = export_info["file_url"]
+
+    if not file_url:
+        return
+
+    log.info(f"Downloading file for export {export_id}")
+
+    try:
+        file_response = make_api_request_with_retry(file_url, {}, None)
+        original_filename = urlparse(file_url).path.split("/")[-1]
+
+        if original_filename.lower().endswith(".zip"):
+            _process_zip_file(file_response, export_id, current_sync)
+        else:
+            _process_csv_file(file_response, export_id, current_sync)
+
+    except Exception as e:
+        log.severe(f"Error processing file for export {export_id}: {str(e)}")
+
+
 def update(configuration: Dict[str, str], state: Dict[str, Any]):
     """Main update function that fetches export metadata and CSV data from Oktopost BI Export API."""
     try:
         # Validate configuration first
         validate_configuration(configuration=configuration)
 
+        # Setup configuration and authentication
         account_id = configuration.get("account_id")
         api_key = configuration.get("api_key")
         base_url = configuration.get("base_url", __BASE_URL)
-        test_export_id = configuration.get("test_export_id")
-
         auth = (account_id, api_key)
         headers = {"Content-Type": "application/json"}
-        current_sync = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        current_sync = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         log.info(f"Starting sync. Current sync: {current_sync}")
 
-        if test_export_id:
-            log.info(f"Testing with specific export ID: {test_export_id}")
-            exports_to_process = [{"Id": test_export_id}]
-        else:
-            response = make_api_request_with_retry(f"{base_url}/bi-export", headers, auth)
-            exports_data = response.json()
+        # Get exports to process
+        exports_to_process = _get_exports_to_process(
+            configuration, base_url, auth, headers, current_sync
+        )
 
-            if not exports_data.get("Result"):
-                log.warning("API returned Result=false for export list")
-                return
-
-            exports = exports_data.get("Exports", [])
-            log.info(f"Found {len(exports)} total exports")
-
-            # Store export list metadata
-            for export in exports:
-                op.upsert(
-                    table="export_list_metadata", data={**export, "sync_timestamp": current_sync}
-                )
-
-            exports_to_process = [export for export in exports if export.get("Status") == "active"]
-            log.info(f"Found {len(exports_to_process)} active exports")
+        if not exports_to_process:
+            log.info("No exports to process")
+            return
 
         # Process each export
         for export in exports_to_process:
-            export_id = export.get("Id")
-            if not export_id:
-                log.warning("Export missing ID, skipping")
-                continue
+            export_info = _process_export_metadata(export, base_url, headers, auth, current_sync)
 
-            log.info(f"Processing export {export_id}")
-
-            # Fetch detailed export information
-            detail_url = f"{base_url}/bi-export/{export_id}"
-            try:
-                detail_response = make_api_request_with_retry(detail_url, headers, auth)
-                detail_data = detail_response.json()
-            except Exception as e:
-                log.warning(f"Failed to fetch details for export {export_id}: {str(e)}, skipping")
-                continue
-
-            if not detail_data.get("Result"):
-                log.warning(f"API returned Result=false for export {export_id}")
-                continue
-
-            export_detail = detail_data.get("Export", {})
-
-            # Store export metadata
-            file_url = export_detail.get("LastRunFile")
-            source_filename = urlparse(file_url).path.split("/")[-1] if file_url else None
-            op.upsert(
-                table="active_export_metadata",
-                data={
-                    **export_detail,
-                    "sync_timestamp": current_sync,
-                    "source_filename": source_filename,
-                },
-            )
-
-            if file_url:
-                log.info(f"Downloading file for export {export_id}")
-
-                try:
-                    file_response = make_api_request_with_retry(file_url, {}, None)
-                    original_filename = urlparse(file_url).path.split("/")[-1]
-
-                    if original_filename.lower().endswith(".zip"):
-                        log.info(
-                            f"File {original_filename} is a ZIP archive, extracting CSV files"
-                        )
-                        csv_files = extract_csv_from_zip(file_response.content)
-
-                        if not csv_files:
-                            log.warning(f"No CSV files found in ZIP archive {original_filename}")
-                            continue
-
-                        for csv_file in csv_files:
-                            table_name = normalize_table_name(original_filename)
-                            log.info(
-                                f"Processing CSV data from {csv_file['filename']} into table: {table_name}"
-                            )
-
-                            rows = process_csv_data(
-                                csv_file["content"], original_filename, export_id, current_sync
-                            )
-
-                            for row in rows:
-                                op.upsert(table=table_name, data=row)
-                            log.info(
-                                f"Processed {len(rows)} rows for table {table_name} from {csv_file['filename']}"
-                            )
-
-                    else:
-                        table_name = normalize_table_name(original_filename)
-                        log.info(f"Processing CSV data into table: {table_name}")
-
-                        rows = process_csv_data(
-                            file_response.text, original_filename, export_id, current_sync
-                        )
-                        for row in rows:
-                            op.upsert(table=table_name, data=row)
-                        log.info(f"Processed {len(rows)} rows for table {table_name}")
-
-                except Exception as e:
-                    log.severe(f"Error processing file for export {export_id}: {str(e)}")
-                    continue
+            if export_info:
+                _process_export_file(export_info, current_sync)
 
         op.checkpoint(state={"last_sync_timestamp": current_sync})
-
         log.info("Sync completed successfully")
 
     except Exception as e:
@@ -299,4 +387,9 @@ def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
 connector = Connector(update=update, schema=schema)
 
 if __name__ == "__main__":
-    connector.debug()
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
+    connector.debug(configuration=configuration)
