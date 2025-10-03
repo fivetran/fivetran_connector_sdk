@@ -445,7 +445,7 @@ def make_request_with_retry(method, url, **kwargs):
             else:
                 log.severe(f"Request failed: {str(e)}")
                 raise ConnectionError(f"Request failed: {str(e)}")
-    
+
     # This should never be reached, but ensures all code paths return or raise
     raise ConnectionError(f"Request failed after {__MAX_RETRY_ATTEMPTS} attempts")
 
