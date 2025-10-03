@@ -1,18 +1,32 @@
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
-
-from datetime import datetime, timedelta
-from typing import Dict, List, Any
-import requests
-import json
-import time
-
 """
 Sensource API Connector for Fivetran
 This connector fetches traffic and occupancy data from Sensource API with OAuth2 authentication.
 Sensource API documentation: https://vea.sensourceinc.com/api-docs/
 """
+
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+# For date and time operations
+from datetime import datetime, timedelta
+
+# For type hints
+from typing import Dict, List, Any
+
+# For making HTTP requests
+import requests
+
+# For reading configuration from a JSON file
+import json
+
+# For handling time delays
+import time
 
 """
 Configuration constants for the Sensource connector.
@@ -59,6 +73,7 @@ def get_access_token(client_id: str, client_secret: str) -> str:
     """
     Obtain OAuth2 access token from Sensource auth endpoint.
     This function handles the OAuth2 client credentials flow to authenticate with the Sensource API.
+    Uses retry logic for improved reliability with network issues and temporary server errors.
 
     Args:
         client_id: OAuth2 client ID from Sensource
@@ -68,7 +83,8 @@ def get_access_token(client_id: str, client_secret: str) -> str:
         Access token string for API requests
 
     Raises:
-        Exception: If authentication fails due to invalid credentials or network issues
+        ValueError: If no access token is received from the API
+        ConnectionError: If authentication request fails due to network issues
     """
 
     payload = {
@@ -80,27 +96,22 @@ def get_access_token(client_id: str, client_secret: str) -> str:
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
     try:
-        response = requests.post(__AUTH_URL, data=payload, headers=headers)
-
-        if response.status_code != 200:
-            log.severe(
-                f"Authentication failed with status {response.status_code}: {response.text}"
-            )
-            raise Exception(f"Authentication failed with status {response.status_code}")
+        # Use make_request_with_retry for consistent retry behavior
+        response = make_request_with_retry("post", __AUTH_URL, data=payload, headers=headers)
 
         token_data = response.json()
         access_token = token_data.get("access_token")
 
         if not access_token:
             log.severe("No access token received from authentication endpoint")
-            raise Exception("No access token received from authentication endpoint")
+            raise ValueError("No access token received from authentication endpoint")
 
         log.fine("Successfully obtained access token")
         return access_token
 
     except requests.exceptions.RequestException as e:
         log.severe(f"Authentication request failed: {str(e)}")
-        raise Exception(f"Failed to authenticate with Sensource API: {str(e)}")
+        raise ConnectionError(f"Failed to authenticate with Sensource API: {str(e)}")
 
 
 def fetch_static_data(endpoint: str, access_token: str) -> List[Dict[str, Any]]:
@@ -117,7 +128,7 @@ def fetch_static_data(endpoint: str, access_token: str) -> List[Dict[str, Any]]:
         List of data records from the API endpoint
 
     Raises:
-        Exception: If the API request fails
+        ConnectionError: If the API request fails
     """
     url = f"{__BASE_URL}/api/{endpoint}"
 
@@ -158,7 +169,7 @@ def fetch_data(
         List of data records from the API endpoint
 
     Raises:
-        Exception: If the API request fails
+        ConnectionError: If the API request fails
     """
     url = f"{__BASE_URL}/api/data/{endpoint}"
 
@@ -403,7 +414,7 @@ def make_request_with_retry(method, url, **kwargs):
         Response object from successful request
 
     Raises:
-        Exception: If request fails after all retry attempts
+        ConnectionError: If request fails after all retry attempts
     """
     for attempt in range(__MAX_RETRY_ATTEMPTS):
         try:
@@ -421,7 +432,7 @@ def make_request_with_retry(method, url, **kwargs):
                 continue
             else:
                 log.severe(f"Request failed with status {response.status_code}: {response.text}")
-                raise Exception(f"Request failed with status {response.status_code}")
+                raise ConnectionError(f"Request failed with status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRY_ATTEMPTS - 1:
@@ -433,7 +444,10 @@ def make_request_with_retry(method, url, **kwargs):
                 continue
             else:
                 log.severe(f"Request failed: {str(e)}")
-                raise Exception(f"Request failed: {str(e)}")
+                raise ConnectionError(f"Request failed: {str(e)}")
+    
+    # This should never be reached, but ensures all code paths return or raise
+    raise ConnectionError(f"Request failed after {__MAX_RETRY_ATTEMPTS} attempts")
 
 
 # Create the connector object using the schema and update functions

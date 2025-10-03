@@ -117,12 +117,7 @@ The connector creates the following tables:
 **Schema Definition** - Refer to `schema()` function
 
 ## Additional files
-This connector uses the standard file structure with no additional modular files. All functionality is contained within the main `connector.py` file:
-
-- **connector.py** – Main connector implementation with all functions and logic
-- **configuration.json** – Configuration file with API credentials and settings
-- **requirements.txt** – Dependencies specification (no additional packages required)
-- **README.md** – This documentation file
+This connector uses the standard file structure with no additional modular files. All functionality is contained within the main `connector.py` file.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team. 
