@@ -2,6 +2,7 @@
 Fivetran Connector for Dexory Inventory API
 Fetches inventory scan data from a single site
 """
+
 # For reading configuration from a JSON file
 import json
 
@@ -28,7 +29,6 @@ import time
 
 # For handling date and time operations
 from datetime import datetime, timezone
-
 
 
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
@@ -69,7 +69,9 @@ def convert_lists_to_strings(data: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def _build_locations_url(site: str, api_key: str, page_size: int, base_url: str, next_url: str = None) -> str:
+def _build_locations_url(
+    site: str, api_key: str, page_size: int, base_url: str, next_url: str = None
+) -> str:
     """Build the URL for fetching locations"""
     if next_url:
         return next_url
@@ -80,35 +82,45 @@ def _should_retry_exception(exception: Exception, attempt: int, max_retries: int
     """Determine if an exception should trigger a retry"""
     if attempt >= max_retries:
         return False
-    
+
     if isinstance(exception, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
         return True
-    
+
     if isinstance(exception, requests.exceptions.HTTPError):
         # Retry on rate limiting or server errors
         return exception.response.status_code == 429 or exception.response.status_code >= 500
-    
+
     if isinstance(exception, requests.exceptions.RequestException):
         return True
-    
+
     return False
 
 
-def _handle_retry_exception(exception: Exception, attempt: int, max_retries: int, base_retry_delay: int) -> None:
+def _handle_retry_exception(
+    exception: Exception, attempt: int, max_retries: int, base_retry_delay: int
+) -> None:
     """Handle retry logic for different exception types"""
     if isinstance(exception, requests.exceptions.HTTPError):
         if exception.response.status_code == 429:
-            log.warning(f"Rate limited, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})")
+            log.warning(
+                f"Rate limited, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})"
+            )
         elif 400 <= exception.response.status_code < 500:
             log.severe(f"Client error {exception.response.status_code}: {exception}")
             raise
         else:
-            log.warning(f"Server error {exception.response.status_code}, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})")
+            log.warning(
+                f"Server error {exception.response.status_code}, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})"
+            )
     else:
-        log.warning(f"{type(exception).__name__}, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})")
+        log.warning(
+            f"{type(exception).__name__}, retrying in {base_retry_delay * (2**attempt)}s (attempt {attempt + 1}/{max_retries + 1})"
+        )
 
 
-def _make_api_request_with_retry(url: str, max_retries: int, base_retry_delay: int) -> Dict[str, Any]:
+def _make_api_request_with_retry(
+    url: str, max_retries: int, base_retry_delay: int
+) -> Dict[str, Any]:
     """Make API request with retry logic"""
     for attempt in range(max_retries + 1):
         try:
@@ -124,7 +136,7 @@ def _make_api_request_with_retry(url: str, max_retries: int, base_retry_delay: i
             else:
                 log.severe(f"API request failed after {max_retries + 1} attempts: {e}")
                 raise
-    
+
     raise requests.exceptions.RequestException("Max retries exceeded")
 
 
@@ -146,26 +158,28 @@ def _process_location_data(location: Dict[str, Any]) -> None:
     """Process a single location and its expected inventory objects"""
     # Convert lists to strings
     processed_location = convert_lists_to_strings(location)
-    
+
     # Get expected_objects once to avoid repeated dict lookups
     expected_objects = location.get("expected_inventory_objects", [])
-    
+
     # Upsert the location
     op.upsert(table="location", data=processed_location)
-    
+
     # Process expected inventory objects if they exist
     if expected_objects and isinstance(expected_objects, list):
         _process_expected_inventory_objects(location, expected_objects)
 
 
-def _process_expected_inventory_objects(location: Dict[str, Any], expected_objects: List[Dict[str, Any]]) -> None:
+def _process_expected_inventory_objects(
+    location: Dict[str, Any], expected_objects: List[Dict[str, Any]]
+) -> None:
     """Process expected inventory objects for a location"""
     # Pre-calculate common FK values to avoid repeated lookups
     location_name = location.get("name")
     location_type = location.get("location_type")
     location_aisle = location.get("aisle")
     location_scan_date = location.get("scan_date")
-    
+
     for obj in expected_objects:
         if isinstance(obj, dict):
             # Add foreign key fields to the existing object
@@ -173,7 +187,7 @@ def _process_expected_inventory_objects(location: Dict[str, Any], expected_objec
             obj["location_type"] = location_type
             obj["aisle"] = location_aisle
             obj["scan_date"] = location_scan_date
-            
+
             op.upsert(table="expected_inventory_object", data=obj)
 
 
@@ -182,57 +196,65 @@ def _process_locations_page(locations: List[Dict[str, Any]], page_count: int) ->
     if not locations:
         log.fine(f"No locations found on page {page_count}")
         return 0
-    
+
     location_count = 0
     for location in locations:
         _process_location_data(location)
         location_count += 1
-    
+
     return location_count
 
 
-def _should_continue_pagination(next_url: str, base_url: str, page_count: int, max_pages: int) -> bool:
+def _should_continue_pagination(
+    next_url: str, base_url: str, page_count: int, max_pages: int
+) -> bool:
     """Determine if pagination should continue"""
     if page_count > max_pages:
         log.warning(f"Reached maximum page limit ({max_pages})")
         return False
-    
+
     if not next_url or not next_url.startswith(base_url):
         return False
-    
+
     return True
 
 
-def _sync_locations_pages(site_name: str, api_key: str, page_size: int, base_url: str, 
-                         max_pages: int, base_retry_delay: int) -> tuple[int, int]:
+def _sync_locations_pages(
+    site_name: str,
+    api_key: str,
+    page_size: int,
+    base_url: str,
+    max_pages: int,
+    base_retry_delay: int,
+) -> tuple[int, int]:
     """Sync all pages of locations and return page count and location count"""
     next_url = None
     page_count = 0
     location_count = 0
-    
+
     while True:
         page_count += 1
-        
+
         if not _should_continue_pagination(next_url, base_url, page_count, max_pages):
             break
-        
+
         response_data = fetch_locations_with_retry(
             site_name, api_key, page_size, base_url, next_url, __MAX_RETRIES, base_retry_delay
         )
-        
+
         # Process locations from current page
         locations = response_data.get("data", [])
         page_location_count = _process_locations_page(locations, page_count)
         location_count += page_location_count
-        
+
         # Log progress every 10 pages
         if page_count % 10 == 0:
             log.info(f"Processed {page_count} pages")
-        
+
         # Check for next page
         links = response_data.get("links", {})
         next_url = links.get("next")
-    
+
     return page_count, location_count
 
 
@@ -272,7 +294,7 @@ def update(configuration: dict, state: dict) -> None:
         page_count, location_count = _sync_locations_pages(
             site_name, api_key, page_size, base_url, max_pages, base_retry_delay
         )
-        
+
         log.info(f"Completed: {page_count} pages, {location_count} locations")
 
         # Add checkpoint
