@@ -1,0 +1,8 @@
+{
+    "site_name": "<YOUR_SITE_NAME>",
+    "site_api_key": "<YOUR_SITE_API_KEY>",
+    "base_url": "https://api.service.dexoryview.com",
+    "max_pages": "1000",
+    "page_size": "1000",
+    "base_retry_delay_seconds": "2"
+}
