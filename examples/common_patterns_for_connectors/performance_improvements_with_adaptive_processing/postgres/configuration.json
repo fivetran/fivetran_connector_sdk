@@ -1,0 +1,15 @@
+{
+  "host": "YOUR_POSTGRES_HOST",
+  "port": "<YOUR_POSTGRES_HOST>",
+  "database": "<YOUR_DATABASE_NAME>",
+  "username": "<YOUR_DATABASE_USERNAME>",
+  "password": "<YOUR_DATABASE_PASSWORD>",
+  "region": "<YOUR_TRANSFORMATION_PARAMETER_VALUE>",
+  "max_retries": "<YOUR_RETRY_COUNT>",
+  "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_DURATION_IN_SECONDS>",
+  "debug": "<YOUR_DEBUG_FLAG>",
+  "table_filters": "<YOUR_TABLE_FILTERS>",
+  "custom_batch_size": "<YOUR_CUSTOM_BATCH_SIZE>",
+  "custom_threads": "<YOUR_CUSTOM_THREAD_FLAG>",
+  "custom_queue_size": "<YOUR_CUSTOM_QUEUE_SIZE>"
+}
