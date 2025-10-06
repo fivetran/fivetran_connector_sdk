@@ -283,7 +283,7 @@ def _process_export_metadata(
     return {"export_id": export_id, "file_url": file_url, "source_filename": source_filename}
 
 
-def _process_zip_file(file_response: requests.Response, export_id: str, current_sync: str) -> None:
+def _process_zip_file(file_response: requests.Response, export_id: str) -> None:
     """Process a ZIP file by extracting and processing CSV files."""
     original_filename = urlparse(file_response.url).path.split("/")[-1]
 
@@ -305,7 +305,7 @@ def _process_zip_file(file_response: requests.Response, export_id: str, current_
         log.info(f"Processed {len(rows)} rows for table {table_name} from {csv_file['filename']}")
 
 
-def _process_csv_file(file_response: requests.Response, export_id: str, current_sync: str) -> None:
+def _process_csv_file(file_response: requests.Response, export_id: str) -> None:
     """Process a single CSV file."""
     original_filename = urlparse(file_response.url).path.split("/")[-1]
     table_name = normalize_table_name(original_filename)
@@ -318,7 +318,7 @@ def _process_csv_file(file_response: requests.Response, export_id: str, current_
     log.info(f"Processed {len(rows)} rows for table {table_name}")
 
 
-def _process_export_file(export_info: Dict[str, Any], current_sync: str) -> None:
+def _process_export_file(export_info: Dict[str, Any]) -> None:
     """Process the file associated with an export."""
     export_id = export_info["export_id"]
     file_url = export_info["file_url"]
@@ -333,9 +333,9 @@ def _process_export_file(export_info: Dict[str, Any], current_sync: str) -> None
         original_filename = urlparse(file_url).path.split("/")[-1]
 
         if original_filename.lower().endswith(".zip"):
-            _process_zip_file(file_response, export_id, current_sync)
+            _process_zip_file(file_response, export_id)
         else:
-            _process_csv_file(file_response, export_id, current_sync)
+            _process_csv_file(file_response, export_id)
 
     except Exception as e:
         log.severe(f"Error processing file for export {export_id}: {str(e)}")
@@ -371,7 +371,7 @@ def update(configuration: Dict[str, str], state: Dict[str, Any]):
             export_info = _process_export_metadata(export, base_url, headers, auth, current_sync)
 
             if export_info:
-                _process_export_file(export_info, current_sync)
+                _process_export_file(export_info)
 
         op.checkpoint(state={"last_sync_timestamp": current_sync})
         log.info("Sync completed successfully")
