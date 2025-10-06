@@ -276,12 +276,10 @@ def update(configuration: dict, state: dict) -> None:
     api_key = configuration.get("site_api_key")
     base_url = configuration.get("base_url", __DEFAULT_BASE_URL)
 
-    # Get max pages limit from config (default to __DEFAULT_MAX_PAGES)
-    max_pages = int(configuration.get("max_pages", __DEFAULT_MAX_PAGES))
-    page_size = int(configuration.get("page_size", __DEFAULT_PAGE_SIZE))
-    base_retry_delay = int(
-        configuration.get("base_retry_delay_seconds", __BASE_RETRY_DELAY_SECONDS)
-    )
+    # Use built-in defaults; no longer read these from configuration
+    max_pages = __DEFAULT_MAX_PAGES
+    page_size = __DEFAULT_PAGE_SIZE
+    base_retry_delay = __BASE_RETRY_DELAY_SECONDS
     log.info(
         f"Max pages: {max_pages}, Page size: {page_size}, Base retry delay: {base_retry_delay}s"
     )
