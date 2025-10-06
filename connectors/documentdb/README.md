@@ -1,4 +1,4 @@
-# AWS DocumentDB Example
+# AWS DocumentDB Connector Example
 
 ## Connector overview
 
