@@ -4,9 +4,9 @@
 
 This connector integrates AWS DocumentDB with Fivetran, syncing data from DocumentDB collections to your destination. It connects to a DocumentDB cluster, efficiently retrieves data using pagination, and handles incremental updates based on the `updated_at` timestamp field. 
 
-**Note**: Fivetran already provides a native Java-based DocumentDB connector that supports SaaS deployment models. This Python-based connector is specifically intended for Hybrid Deployment (HD) scenarios, as the native connector does not support Hybrid Deployment. For SaaS deployments, we recommend using the native DocumentDB connector available at https://fivetran.com/docs/connectors/databases/documentdb.
+Note: Fivetran already provides a native Java-based DocumentDB connector that supports SaaS deployment models. This Python-based connector is specifically intended for Hybrid Deployment (HD) scenarios, as the native connector does not support Hybrid Deployment. For SaaS deployments, we recommend using the native DocumentDB connector available at https://fivetran.com/docs/connectors/databases/documentdb.
 
-**Important Network Consideration**: DocumentDB clusters are typically deployed in private subnets and do not allow direct connections from outside the VPC. If you need to connect from outside the VPC (such as from your local development environment), you can set up an EC2 instance in the same VPC as your DocumentDB cluster using the [AWS automatic connectivity guide](https://docs.aws.amazon.com/documentdb/latest/developerguide/connect-ec2-auto.html#auto-connect-ec2.process). Once the EC2 instance is set up, you can create a TCP tunnel using socat: `socat TCP-LISTEN:27017,fork TCP:<documentDBHost>:27017` to forward traffic from your local machine to the DocumentDB cluster through the EC2 instance.
+Important Network Consideration: DocumentDB clusters are typically deployed in private subnets and do not allow direct connections from outside the VPC. If you need to connect from outside the VPC (such as from your local development environment), you can set up an EC2 instance in the same VPC as your DocumentDB cluster using the [AWS automatic connectivity guide](https://docs.aws.amazon.com/documentdb/latest/developerguide/connect-ec2-auto.html#auto-connect-ec2.process). Once the EC2 instance is set up, you can create a TCP tunnel using socat: `socat TCP-LISTEN:27017,fork TCP:<documentDBHost>:27017` to forward traffic from your local machine to the DocumentDB cluster through the EC2 instance.
 
 The connector is designed to handle large datasets efficiently through streaming and pagination techniques, making it suitable for production environments with significant data volumes. It supports MongoDB-compatible operations since DocumentDB is MongoDB-compatible.
 
@@ -116,8 +116,8 @@ The connector implements the following error handling strategies:
 This connector creates the following tables in your destination:
 
 ### USERS
-- **Primary Key**: `_id`
-- **Columns**: 
+- Primary Key: `_id`
+- Columns: 
   - `_id` (STRING): Document unique identifier
   - `name` (STRING): User name
   - `email` (STRING): User email address
@@ -127,8 +127,8 @@ This connector creates the following tables in your destination:
   - `metadata` (JSON): Additional user metadata as JSON object
 
 ### ORDERS
-- **Primary Key**: `_id`
-- **Columns**:
+- Primary Key: `_id`
+- Columns:
   - `_id` (STRING): Document unique identifier
   - `user_id` (STRING): Reference to user who placed the order
   - `order_number` (STRING): Order identifier/number
@@ -143,8 +143,8 @@ This connector creates the following tables in your destination:
 
 This connector requires that the following prerequisites exist in your DocumentDB instance:
 
-1. A database named as specified in your configuration
-2. Collections with documents containing the following fields:
+- A database named as specified in your configuration
+- Collections with documents containing the following fields:
    - `_id` (ObjectId): Primary key
    - `updated_at` (datetime): Document update timestamp for incremental sync
    - Other fields as defined in your schema
