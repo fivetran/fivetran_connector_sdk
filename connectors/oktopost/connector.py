@@ -329,7 +329,7 @@ def _process_export_file(export_info: Dict[str, Any]) -> None:
     log.info(f"Downloading file for export {export_id}")
 
     try:
-        file_response = make_api_request_with_retry(file_url, {}, None)
+        file_response = make_api_request_with_retry(file_url, {})
         original_filename = urlparse(file_url).path.split("/")[-1]
 
         if original_filename.lower().endswith(".zip"):
