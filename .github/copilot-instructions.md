@@ -8,21 +8,33 @@ A public collection of Python examples, templates, and guides for building custo
 - `fivetran_platform_features/schema_change/` – shows handling of schema/type changes.
 
 **Runtime & tooling (assume unless PR updates it)**
-- Python supported across 3.9–3.13 
-- Linting: `flake8`.
-- Python standard coding and formatting guidelines are followed
+- Python supported across 3.9–3.13
+- Linting: `flake8` with PEP 8 compliance.
+- Python standard coding and formatting guidelines are followed (snake_case for functions/variables, PascalCase for classes)
 
 # How to validate PRs
 When a PR changes or adds a connector/example/template, perform these checks:
-- Each connector folder should include:
-  - `connector.py` (imports from `fivetran_connector_sdk`),
-  - `requirements.txt` (Required only when external dependencies are needed),
-  - `configuration.json` (no secrets committed),
-  - README (following the template present at `template_example_connector/README_template.md`).
-- The `requirements.txt` should not include `fivetran_connector_sdk` or `requests`.
-- Data operations use `op.upsert(...)`, `op.update(...)`, `op.delete(...)`, `op.checkpoint(...)` without `yield`.
-- `flake8` clean; follow PEP 8 coding guidelines; clear docstrings on public helpers.
-- Minimal, necessary dependencies; avoid heavyweight libraries for trivial tasks.
+
+## Structure and Files (BLOCKER if missing)
+- Each connector folder **must** include:
+  - `connector.py` with imports from `fivetran_connector_sdk` (Connector, Operations, Logging)
+  - `configuration.json` with **no real secrets or credentials** (use placeholders like `<YOUR_API_KEY>`)
+  - README following [README_template.md](https://github.com/fivetran/fivetran_connector_sdk/blob/main/template_example_connector/README_template.md)
+  - `requirements.txt` only when external dependencies are needed (exclude `fivetran_connector_sdk` and `requests`)
+
+## Code Quality (Request changes if violated)
+- `flake8` clean with PEP 8 compliance
+- Cognitive complexity < 15 per function (split into helpers if exceeded)
+- Clear docstrings for all public functions following template format
+- Minimal dependencies; avoid heavyweight libraries for simple tasks
+
+# Review Response Format
+When requesting changes, provide:
+1. **Severity**: BLOCKER (must fix) or REQUEST_CHANGES (should fix)
+2. **Issue**: Clear description of the problem
+3. **Location**: File and line number or function name
+4. **Fix**: Specific actionable guidance with code example if applicable
+5. **Reference**: Link to docs or template if relevant
 
 # When to search vs. trust this guide
 Default to these instructions. Only search the repo/docs if the PR introduces new SDK features or contradicts the guidance (e.g., newly supported Python versions, new operations). If you find inconsistency (e.g., README vs. release notes), call it out and cite the newest official docs. The docs at https://fivetran.com/docs/connectors/connector-sdk are the source of truth.
