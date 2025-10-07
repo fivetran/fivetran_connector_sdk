@@ -57,6 +57,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 - [customer_thermometer](https://github.com/fivetran/fivetran_connector_sdk/blob/main/connectors/customer_thermometer) - This example shows how to sync customer feedback data from Customer Thermometer's API by using Connector SDK. You need to provide your Customer Thermometer API key for this example to work.
 - [couchbase_magma](https://github.com/fivetran/fivetran_connector_sdk/blob/main/connectors/couchbase_magma) - This example shows how to sync data from a self-managed Couchbase Server using the Magma storage engine with Connector SDK. You need to provide your Couchbase credentials for this example to work.
 - [dolphin_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/dolphin_db) - This example shows how to sync data from DolphinDB database using Connector SDK. You need to provide your DolphinDB credentials for this example to work.
+- [documentdb](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/documentdb) - This example shows how to connect to AWS DocumentDB and sync data from DocumentDB collections using Connector SDK. This Python-based connector is specifically intended for [Hybrid Deployment (HD)](https://fivetran.com/docs/deployment-models/hybrid-deployment) scenarios, as the native DocumentDB connector does not support Hybrid Deployment. You need to provide your DocumentDB credentials and ensure proper network connectivity for this example to work.
 - [firebird_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/firebird_db) - This example shows how to sync data from Firebird DB using Connector SDK. You need to provide your Firebird DB credentials for this example to work.
 - [fleetio](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/fleetio) - This example shows how to sync data from Fleetio using Connector SDK. You need to provide your Fleetio API Token for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
@@ -86,6 +87,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 - [s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/s3_csv_validation) - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
 - [SAP HANA SQL](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/sap_hana_sql) - This example uses hdbcli to connect to SAP HANA SQL Server for syncing data using Connector SDK. You need to provide your SAP HANA SQL Server credentials for this example to work.
 - [sensor_tower](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/sensor_tower) - This example shows how to use the Connector SDK to integrate with Sensor Tower and sync market intelligence data for mobile apps of your choice.
+- [sensource](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/sensource) - This example shows how to use the Connector SDK to obtain traffic and occupancy metrics for physical spaces from SenSource.
 - [similarweb](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/similarweb) - This example shows how to use the Connector SDK to get website and app performance metrics from similarweb for domains of your choice.
 - [smartsheets](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/smartsheets) - This is an example of how we can sync Smartsheets sheets by using Connector SDK. You need to provide your Smartsheets api_key for this example to work.
 - [solace](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/solace): This example demonstrates how to sync messages from a Solace queue. To run it, you must provide your Solace broker credentials, including the host, username, password, and queue name.
@@ -229,6 +231,38 @@ Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connecto
 
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
+
+## Contributing
+
+We welcome contributions to the Fivetran Connector SDK repo.
+
+This repository is open source and intended specifically for Connector SDK examples. We encourage the community to contribute by suggesting improvements, bug fixes, new examples, and additional use cases that expand and strengthen the collection.
+
+### How to contribute
+
+1. Click **Fork** on the GitHub repository page to create your own copy of the repo.
+2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
+3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
+4. Ensure your code works correctly and follows our coding standards.
+5. Open a pull request with a clear description of your changes.
+
+### What we're looking for
+
+- New connector examples for popular APIs and databases
+- Bug fixes and performance improvements
+- Documentation enhancements
+- Code quality improvements
+- New common patterns and utilities
+
+### Getting started
+
+Before contributing, please:
+- Read through existing examples to understand our coding patterns
+- Run the setup script: `.github/scripts/setup-hooks.sh`
+- Follow the existing code style and conventions
+- Test your connector thoroughly before submitting
+
+We appreciate all contributions, whether they're small bug fixes or major new features.
 
 ## Additional considerations
 
