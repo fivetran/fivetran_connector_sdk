@@ -24,6 +24,7 @@ import os  # For getting environment variables
 from datetime import datetime, timezone, timedelta  # For handling date and time operations
 
 __TOKEN_EXPIRY_TIME = 3600  # Token expiry time in seconds (60 minutes)
+__BASE_URL = "http://127.0.0.1:5001/auth/session_token"  # URL for getting session token
 
 
 def schema(configuration: dict):
@@ -85,9 +86,7 @@ def update(configuration: dict, state: dict):
         "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
     )
 
-    base_url = "http://127.0.0.1:5001/auth/session_token"
-
-    sync_items(base_url, {}, state, configuration)
+    sync_items(__BASE_URL, {}, state, configuration)
 
 
 def update_configuration(config, new_token):
@@ -167,7 +166,7 @@ def get_session_token(base_url, config, state):
     Returns:
         session_token: A string representing the session token for making API calls.
     """
-    last_token_refresh = state.get("last_token_refresh", "1990-01-01T00:00:00Z")
+    last_token_refresh = state.get("last_token_refresh_time", "1990-01-01T00:00:00Z")
     # Convert the last_token_refresh string to a datetime object for comparison
     last_token_refresh_time = datetime.fromisoformat(last_token_refresh.replace("Z", "+00:00"))
     current_time = datetime.now(timezone.utc)
@@ -178,7 +177,7 @@ def get_session_token(base_url, config, state):
     if time_difference >= timedelta(seconds=__TOKEN_EXPIRY_TIME):
         token = refresh_session_token(base_url, config)
         # Update the state with the current time as the last token refresh time
-        state["last_token_refresh"] = current_time.isoformat()
+        state["last_token_refresh_time"] = current_time.isoformat()
         return token
 
     # If the token is still valid, return the existing token from the configuration
