@@ -48,17 +48,17 @@ The connector requires the following configuration keys. For production deployme
   "api_key": "YOUR_TRUSTPILOT_API_KEY",
   "business_unit_id": "YOUR_BUSINESS_UNIT_ID",
   "consumer_id": "YOUR_CONSUMER_ID",
-  "sync_frequency_hours": "4",
-  "initial_sync_days": "90",
-  "max_records_per_page": "100",
-  "request_timeout_seconds": "30",
-  "retry_attempts": "3",
-  "enable_incremental_sync": "true",
-  "enable_consumer_reviews": "true",
-  "enable_invitation_links": "true",
-  "enable_categories": "true",
-  "data_retention_days": "730",
-  "enable_debug_logging": "false"
+  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
+  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
+  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
+  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
+  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
+  "enable_incremental_sync": "YOUR_ENABLE_INCREMENTAL_SYNC",
+  "enable_consumer_reviews": "YOUR_ENABLE_CONSUMER_REVIEWS",
+  "enable_invitation_links": "YOUR_ENABLE_INVITATION_LINKS",
+  "enable_categories": "YOUR_ENABLE_CATEGORIES",
+  "data_retention_days": "YOUR_DATA_RETENTION_DAYS",
+  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
 }
 ```
 
