@@ -11,7 +11,7 @@
 *Do not use Title Case for any heading level other than H1 (a single top-level heading with a single `#`).*
 *Do not use **bold** text anywhere except for UI elements controls like tabs, menus, buttons, fields, etc.*
 *Do not use nested bulleted lists for descriptions - write the description inline, for example, "- `mock\_api.py` – A simulated API for testing data retrieval."*
-*Use "Note:" format for notes.*
+*Use the following format for notes: "Note: note text"; omit the double quotes.*
 *Use numbered lists only where the order is important, for example, for a sequence of user actions. Every item in numbered lists should end with full stop.*
 *Complex sequences of user actions should use numbers for parent items and Roman notation for child items, with blank lines between the lines with Roman numerals.*
 *Use bulleted lists where the items are listed without any particular order or where alternatives are presented.*
