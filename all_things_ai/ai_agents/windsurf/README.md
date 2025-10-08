@@ -1,15 +1,15 @@
 # Windsurf Agent for Fivetran Connector SDK
 
-This folder is designed to help you use **Windsurf** with the Fivetran Connector SDK to build custom connectors efficiently in a cloud-based collaborative environment.
+This folder is designed to help you use Windsurf with the Fivetran Connector SDK to build custom connectors efficiently in a cloud-based collaborative environment.
 
-## Getting Started with Windsurf
+## Getting started with Windsurf
 
-1. **Access Windsurf** - Go to [windsurf.com](https://windsurf.com) and create an account
-2. **Open this project in Windsurf** - Import or clone this repository
-3. **Use the AGENTS.md file** - Copy its contents into Windsurf's AI assistant for specialized help
-4. **Browse connector examples** - Check ../../examples/ for connector patterns and implementations
+1. Access Windsurf - Go to [windsurf.com](https://windsurf.com) and create an account.
+2. Open this project in Windsurf - Import or clone this repository.
+3. Use the AGENTS.md file - Copy its contents into Windsurf's AI assistant for specialized help.
+4. Browse our examples - Check ../../examples/ for patterns and implementations and ../../connectors for connector examples.
 
-## Folder Structure
+## Folder structure
 
 ```
 windsurf/
@@ -19,7 +19,7 @@ windsurf/
 # Examples are located at: ../../examples/
 ```
 
-## How to Use with Windsurf
+## How to use with Windsurf
 
 ### 1. Cloud Setup
 - Access Windsurf through your web browser
@@ -33,53 +33,53 @@ windsurf/
 - Use the AI assistant for code generation and debugging
 - Leverage collaborative AI features for team development
 
-### 3. Development Environment
-- **Built-in Editor**: Full-featured code editor in the browser
-- **Terminal Access**: Integrated terminal for testing connectors
-- **Git Integration**: Built-in version control
-- **Live Sharing**: Real-time collaboration with team members
+### 3. Development environment
+- Built-in Editor: Full-featured code editor in the browser
+- Terminal Access: Integrated terminal for testing connectors
+- Git Integration: Built-in version control
+- Live Sharing: Real-time collaboration with team members
 
-### 4. Building Your Connector
+### 4. Building your connector
 Use Windsurf's features:
-- **AI Assistant**: Get help with connector development
-- **Code Generation**: Generate complete connector implementations
-- **Real-time Collaboration**: Work with team members simultaneously
-- **Cloud Testing**: Test connectors directly in the cloud environment
+- AI Assistant: Get help with connector development
+- Code Generation: Generate complete connector implementations
+- Real-time Collaboration: Work with team members simultaneously
+- Cloud Testing: Test connectors directly in the cloud environment
 
-## Key Features
+## Key features
 
-- **Cloud-Based Development**: No local setup required
-- **Real-time Collaboration**: Multiple developers can work simultaneously
-- **AI-Powered**: Built-in AI assistance for code generation and debugging
-- **No Yield Required**: Modern SDK patterns without yield statements
-- **Complete Solutions**: Generate connector.py, requirements.txt, and configuration.json
-- **Enterprise Ready**: Production-quality code generation
+- Cloud-Based Development: No local setup required
+- Real-time Collaboration: Multiple developers can work simultaneously
+- AI-Powered: Built-in AI assistance for code generation and debugging
+- No Yield Required: Modern SDK patterns without yield statements
+- Complete Solutions: Generate connector.py, requirements.txt, and configuration.json
+- Enterprise Ready: Production-quality code generation
 
-## Video Tutorials
+## Video tutorials
 
-[Video tutorials will be added here]
+See our [Windsurf AI IDE video tutorial](https://fivetran.com/docs/connector-sdk/tutorials/windsurf-ai-video).
 
-## Development Workflow
+## Development workflow
 
-### 1. Planning Phase
+### 1. Planning phase
 - Use Windsurf's collaborative features to plan with team
 - Review API documentation using built-in browser
 - Design table structure and primary keys collaboratively
 - Plan error handling strategy with team input
 
-### 2. Implementation Phase
+### 2. Implementation phase
 - Use Windsurf AI to generate initial connector structure
 - Follow Fivetran SDK patterns from ../../examples/
 - Collaborate in real-time with team members
 - Test API integration using cloud-based tools
 
-### 3. Testing Phase
+### 3. Testing phase
 - Use integrated terminal for connector testing
 - Run `fivetran debug --configuration config.json`
 - Share testing results with team in real-time
 - Debug collaboratively using shared environment
 
-## Cloud Development Best Practices
+## Cloud development best practices
 
 ### 1. Collaboration
 - Use clear commit messages for team transparency
@@ -99,16 +99,16 @@ Use Windsurf's features:
 - Follow cloud security best practices
 - Implement proper authentication handling
 
-## Example Prompts for Windsurf AI
+## Example prompts for Windsurf AI
 
 Try these with Windsurf's AI assistant:
-- "Create a connector for [API name] using Fivetran SDK patterns"
+- "Create a connector for <API name> using Fivetran SDK patterns"
 - "Help me implement pagination with error handling"
 - "Generate a complete connector with proper logging"
 - "Debug this API integration and fix network issues"
 - "Add incremental sync capability to my connector"
 
-## Testing Your Connector
+## Testing your connector
 
 ```bash
 # In Windsurf terminal
@@ -120,21 +120,21 @@ ls -la warehouse.db
 # View logs (appear in terminal during debug run)
 ```
 
-## Collaborative Features
+## Collaborative features
 
-### 1. Live Editing
+### 1. Live editing
 - Multiple team members can edit files simultaneously
 - Real-time cursor tracking and change highlighting
 - Integrated chat for immediate communication
 - Shared terminal for collaborative testing
 
-### 2. Version Control
+### 2. Version control
 - Built-in Git integration
 - Easy branching and merging
 - Shared commit history
 - Conflict resolution tools
 
-### 3. Sharing and Review
+### 3. Sharing and review
 - Easy project sharing with team members
 - Built-in code review features
 - Commenting and suggestion system
@@ -142,11 +142,11 @@ ls -la warehouse.db
 
 ## Troubleshooting
 
-### Common Cloud Issues
-1. **Network connectivity**: Check internet connection
-2. **Performance**: Use efficient code patterns for cloud execution
-3. **Collaboration conflicts**: Use proper Git workflow
-4. **Resource limits**: Monitor cloud resource usage
+### Common cloud issues
+1. Network connectivity: Check internet connection.
+2. Performance: Use efficient code patterns for cloud execution.
+3. Collaboration conflicts: Use proper Git workflow.
+4. Resource limits: Monitor cloud resource usage.
 
 ### Solutions
 - Use Windsurf's built-in debugging tools
@@ -166,17 +166,17 @@ ls -la warehouse.db
 ## Support
 
 If you encounter issues:
-1. Check ../../examples/ for similar connector patterns
-2. Use Windsurf's AI assistant with AGENTS.md context
-3. Collaborate with team members for help
-4. Refer to official Fivetran and Windsurf documentation
+1. Check ../../examples/ for similar connector patterns.
+2. Use Windsurf's AI assistant with AGENTS.md context.
+3. Collaborate with team members for help.
+4. Refer to official Fivetran and Windsurf documentation.
 
 ## Advantages of Cloud Development
 
-- **No Setup Required**: Start coding immediately
-- **Team Collaboration**: Real-time collaborative development
-- **Cross-platform**: Access from any device with a browser
-- **Integrated Testing**: Cloud-based testing environment
-- **AI-Powered**: Built-in AI assistance for development
-- **Version Control**: Integrated Git workflow
-- **Scalability**: Cloud resources scale with your needs
+- No Setup Required: Start coding immediately
+- Team Collaboration: Real-time collaborative development
+- Cross-platform: Access from any device with a browser
+- Integrated Testing: Cloud-based testing environment
+- AI-Powered: Built-in AI assistance for development
+- Version Control: Integrated Git workflow
+- Scalability: Cloud resources scale with your needs
