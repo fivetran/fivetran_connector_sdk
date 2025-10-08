@@ -8,7 +8,7 @@ This folder is designed to help you use Visual Studio Code with AI assistants li
 2. Install Required Extensions - See recommended extensions below.
 3. Open this folder in VS Code - This gives you access to examples and instructions.
 4. Configure AI assistant - Use AGENTS.md content with your preferred AI assistant.
-5. Start building - Use ../../examples/ as reference for connector patterns.
+5. Start building - Use ../../../examples/ as reference for connector patterns.
 
 ## Folder structure
 
@@ -17,7 +17,7 @@ vscode_with_github_copilot/
 ├── AGENTS.md          # AI instructions for assistants
 └── README.md          # This file - instructions for humans
 
-# Examples are located at: ../../examples/
+# Examples are located at: ../../../examples/
 ```
 
 ## Recommended extensions
@@ -87,7 +87,7 @@ Create `.vscode/launch.json`:
 - Debugging: Ask Copilot to explain errors and suggest fixes
 
 ### 3. Building your connector
-1. Start with Examples: Browse ../../examples/ for connector patterns.
+1. Start with Examples: Browse ../../../examples/ for connector patterns.
 2. Use AI Assistance: Get help with complex API integrations.
 3. Test Frequently: Use integrated terminal for testing.
 

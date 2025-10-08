@@ -7,7 +7,7 @@ This folder is designed to help you use Windsurf with the Fivetran Connector SDK
 1. Access Windsurf - Go to [windsurf.com](https://windsurf.com) and create an account.
 2. Open this project in Windsurf - Import or clone this repository.
 3. Use the AGENTS.md file - Copy its contents into Windsurf's AI assistant for specialized help.
-4. Browse our examples - Check ../../examples/ for patterns and implementations and ../../connectors for connector examples.
+4. Browse our examples - Check ../../../examples/ for connector patterns and implementations and ../../../connectors for connector examples.
 
 ## Folder structure
 
@@ -16,7 +16,7 @@ windsurf/
 ├── AGENTS.md          # AI instructions for Windsurf assistant
 └── README.md          # This file - instructions for humans
 
-# Examples are located at: ../../examples/
+# Examples are located at: ../../../examples/
 ```
 
 ## How to use with Windsurf
@@ -69,7 +69,7 @@ See our [Windsurf AI IDE video tutorial](https://fivetran.com/docs/connector-sdk
 
 ### 2. Implementation phase
 - Use Windsurf AI to generate initial connector structure
-- Follow Fivetran SDK patterns from ../../examples/
+- Follow Fivetran SDK patterns from ../../../examples/
 - Collaborate in real-time with team members
 - Test API integration using cloud-based tools
 
@@ -152,7 +152,7 @@ ls -la warehouse.db
 - Use Windsurf's built-in debugging tools
 - Leverage AI assistant for error diagnosis
 - Collaborate with team for complex issues
-- Reference ../../examples/ for proven connector patterns
+- Reference ../../../examples/ for proven connector patterns
 
 ## Resources
 
@@ -166,7 +166,7 @@ ls -la warehouse.db
 ## Support
 
 If you encounter issues:
-1. Check ../../examples/ for similar connector patterns.
+1. Check ../../../examples/ for similar connector patterns.
 2. Use Windsurf's AI assistant with AGENTS.md context.
 3. Collaborate with team members for help.
 4. Refer to official Fivetran and Windsurf documentation.

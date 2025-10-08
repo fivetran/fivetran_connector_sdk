@@ -7,7 +7,7 @@ This folder is designed to help you use Cursor with the Fivetran Connector SDK t
 1. Download and Install Cursor - Visit [cursor.sh](https://cursor.sh) and download for your OS.
 2. Start Cursor in this folder - This ensures you have access to all necessary examples and instructions.
 3. Use the AGENTS.md file - Copy its contents into Cursor's chat for AI assistance with connector development.
-4. Browse connector examples - Check ../../examples/ for connector patterns and implementations.
+4. Browse examples - Check ../../../examples/ for connector patterns and implementation and ../../connectors for connector examples.
 
 ## Folder structure
 
@@ -16,7 +16,7 @@ cursor/
 ├── AGENTS.md          # AI instructions for Cursor
 └── README.md          # This file - instructions for humans
 
-# Examples are located at: ../../examples/
+# Examples are located at: ../../../examples/
 ```
 
 ## How to use with Cursor
@@ -70,7 +70,7 @@ See our [Cursor AI IDE video tutorial](https://fivetran.com/docs/connector-sdk/t
 
 ### 2. Implementation phase
 - Use Cursor AI to generate initial connector structure
-- Follow Fivetran SDK patterns from ../../examples/
+- Follow Fivetran SDK patterns from ../../../examples/
 - Test API integration and response handling
 - Validate data types and transformations
 

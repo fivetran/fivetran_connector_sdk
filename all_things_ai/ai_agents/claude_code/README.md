@@ -5,7 +5,7 @@ This folder is designed to help you use Claude Code with the Fivetran Connector 
 ## Getting started with Claude Code
 
 1. Start Claude Code in this folder - This ensures Claude picks up the `CLAUDE.md` instructions automatically.
-2. Browse connector examples - Check ../../../examples/ for connector patterns and implementation approaches.
+2. Browse connector examples - Check ../../../examples/ for connector patterns and implementation and ../../../connectors/ for connector examples
 3. Utilize specialized agents - The `.claude/agents` folder contains Connector SDK specific sub-agents.
 
 ## Folder structure
