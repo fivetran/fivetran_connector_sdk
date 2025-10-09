@@ -22,7 +22,6 @@ from table_specs import (
     TIMESTAMP_TYPE_NAMES,
     CHECKPOINT_EVERY_ROWS,
 )  # Table specifications and constants
-import time
 
 # Global variable to hold the list of table plans used during the sync
 __TABLE_PLAN_LIST = None
@@ -117,12 +116,8 @@ def get_table_plans(configuration):
 
     connection = connect_redshift(configuration=configuration)
     try:
-        t_build = time.perf_counter()
         # Build the table plans only once per connector run
         __TABLE_PLAN_LIST = build_table_plans(connection=connection, configuration=configuration)
-        build_time = time.perf_counter() - t_build
-        log.info(f"get_table_plans: build_table_plans time {build_time:.3f}s")
-
         # Return the list of table plans
         return __TABLE_PLAN_LIST
     finally:
@@ -138,7 +133,6 @@ def connect_redshift(configuration: dict):
     Returns:
         A Redshift connection object.
     """
-    t0 = time.perf_counter()
     connection = redshift_connector.connect(
         host=configuration.get("redshift_host"),
         port=int(configuration.get("redshift_port", "5439")),
@@ -148,7 +142,6 @@ def connect_redshift(configuration: dict):
         ssl=True,
     )
     log.info("Connected to Amazon Redshift Database successfully")
-    log.info(f"Connected to Amazon Redshift in {time.perf_counter() - t0:.3f}s")
     return connection
 
 
@@ -348,13 +341,10 @@ def fetch_metadata(connection, table_tuples):
     WHERE {where_clause}
     ORDER BY c.table_schema, c.table_name, c.ordinal_position;
     """
-    t_exec = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall()
-    exec_time = time.perf_counter() - t_exec
 
-    t_proc = time.perf_counter()
     metadata = {}
     for schema_name, table_name, column, datatype, _, is_primary_key in rows:
         key = (schema_name, table_name)
@@ -363,10 +353,6 @@ def fetch_metadata(connection, table_tuples):
         metadata[key]["columns"].append((column, datatype))
         if is_primary_key:
             metadata[key]["primary_keys"].append(column)
-    proc_time = time.perf_counter() - t_proc
-    log.info(
-        f"fetch_metadata: tables={len(table_tuples)}, execution time for metadata query ={exec_time:.3f}s, processing time for metadata query result={proc_time:.3f}s"
-    )
     return metadata
 
 
@@ -389,14 +375,11 @@ def fetch_schema_auto(connection, redshift_schema: str):
         WHERE table_schema = %s AND table_type = 'BASE TABLE'
         ORDER BY 1,2;
     """
-    t_list = time.perf_counter()
     with connection.cursor() as cursor:
         cursor.execute(sql_tables, (redshift_schema,))
         # Build a list of (schema, table) tuples fetched from redshift information_schema
         # This is used when auto schema detection is enabled
         table_tuples = [(data[0], data[1]) for data in cursor.fetchall()]
-    list_time = time.perf_counter() - t_list
-    log.info(f"fetch_schema_auto: discovered {len(table_tuples)} table(s) in {list_time:.3f}s")
 
     # Fetch the metadata for the discovered tables from Redshift
     metadata = fetch_metadata(connection=connection, table_tuples=table_tuples)
@@ -569,7 +552,6 @@ def build_table_plans(connection, configuration):
     Returns:
         List of TablePlan dataclass instances for each table to be synced
     """
-    t_total = time.perf_counter()
     # Extract configuration parameters
     redshift_schema = configuration["redshift_schema"]
     auto_schema_detection = configuration.get("auto_schema_detection", "").lower() == "true"
@@ -579,15 +561,12 @@ def build_table_plans(connection, configuration):
     enable_complete_resync = configuration.get("enable_complete_resync", "").lower() == "true"
     log.info(f"Complete resync is {'enabled' if enable_complete_resync else 'disabled'}.")
 
-    t_load = time.perf_counter()
     # Load base table specifications and fetch metadata from Redshift
     base_specs, metadata = _load_base_specs_and_metadata(
         connection=connection,
         redshift_schema=redshift_schema,
         auto_schema_detection=auto_schema_detection,
     )
-    load_time = time.perf_counter() - t_load
-    log.info(f"build_table_plans: base load time {load_time:.3f}s, specs={len(base_specs)}")
 
     # Build table plans for each table specified in the base_specs
     plans = []
@@ -607,16 +586,13 @@ def build_table_plans(connection, configuration):
             log.warning(f"{stream}: no columns discovered; skipping.")
             continue
 
-        t_proj = time.perf_counter()
         selected_cols_with_types = _select_columns_for_spec(
             spec=spec, cols_with_types=cols_with_types
         )
-        proj_time = time.perf_counter() - t_proj
         if not selected_cols_with_types:
             log.warning(f"{stream}: no columns selected after projection; skipping.")
             continue
 
-        t_plan = time.perf_counter()
         # Build the plan and add to the list of plans
         plan = _build_plan(
             spec=spec,
@@ -627,15 +603,9 @@ def build_table_plans(connection, configuration):
             selected_cols_with_types=selected_cols_with_types,
             enable_complete_resync=enable_complete_resync,
         )
-        plan_time = time.perf_counter() - t_plan
-        log.info(
-            f"{stream}: plan built in {plan_time:.3f}s (projection {proj_time:.3f}s), cols_selected={len(plan.selected_columns)}, strategy={plan.strategy}, repl_key={'yes' if plan.replication_key else 'no'}"
-        )
         plans.append(plan)
 
     log.info(f"Built table plans for {len(plans)} tables.")
-    total_time = time.perf_counter() - t_total
-    log.info(f"build_table_plans: built {len(plans)} plan(s) in {total_time:.3f}s")
     return plans
 
 
@@ -649,7 +619,6 @@ def _checkpoint(state, stream, replication_key, bookmark):
         replication_key: name of the replication key column
         bookmark: latest value of the replication key
     """
-    t0 = time.perf_counter()
     if replication_key and bookmark is not None:
         # Format the bookmark value appropriately for JSON serialization
         bookmark = (
@@ -662,7 +631,6 @@ def _checkpoint(state, stream, replication_key, bookmark):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state=state)
-    return time.perf_counter() - t0
 
 
 def upsert_record(
@@ -693,29 +661,16 @@ def upsert_record(
     Returns:
         Updated state dictionary, last bookmark value, and total rows seen
     """
-    metrics = {
-        "db_fetch_time": 0.0,
-        "upsert_time": 0.0,
-        "checkpoint_time": 0.0,
-        "batches": 0,
-        "rows": 0,
-    }
     while True:
-        t_fetch = time.perf_counter()
         # Fetch rows in batches to handle large datasets efficiently
-
         cursor.execute(f"FETCH {batch_size} FROM {table_cursor}")
         rows = cursor.fetchall()
 
-        fetch_time = time.perf_counter() - t_fetch
-        metrics["db_fetch_time"] += fetch_time
         if not rows:
             # No more rows to fetch; exit the loop
             break
-        metrics["batches"] += 1
 
         for row in rows:
-            t_upsert = time.perf_counter()
             # Form a record dictionary mapping column names to their corresponding values
             record = dict(zip(column_names, row))
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -731,16 +686,12 @@ def upsert_record(
                 if replication_key_val is not None:
                     last_bookmark = replication_key_val
 
-            metrics["upsert_time"] += time.perf_counter() - t_upsert
-
             if seen % CHECKPOINT_EVERY_ROWS == 0:
                 # Periodically checkpoint the state to save progress
-                metrics["checkpoint_time"] += _checkpoint(
-                    state, plan.stream, replication_key, last_bookmark
-                )
+                _checkpoint(state, plan.stream, replication_key, last_bookmark)
 
     cursor.execute(f"CLOSE {table_cursor}")
-    return state, last_bookmark, seen, metrics
+    return state, last_bookmark, seen
 
 
 def sync_table(connection, configuration, plan, state):
@@ -754,7 +705,6 @@ def sync_table(connection, configuration, plan, state):
         plan: TablePlan dataclass instance with sync details
         state: current state dictionary
     """
-    plan_start = time.perf_counter()
     replication_key = plan.replication_key
     prev_state = state.get(plan.stream) or {}
     bookmark = prev_state.get("bookmark") if replication_key else None
@@ -776,23 +726,19 @@ def sync_table(connection, configuration, plan, state):
     # Initialize last_bookmark to the current bookmark value
     last_bookmark = bookmark
 
-    t_exec = time.perf_counter()
     with connection.cursor() as cursor:
 
         table_cursor = f"{plan.table}_cursor"
         cursor.execute("BEGIN")
-        cursor.execute(f"DECLARE {table_cursor} NO SCROLL CURSOR FOR {sql_query}")
+        cursor.execute(f"DECLARE {table_cursor} NO SCROLL CURSOR FOR {sql_query}", params)
         log.warning(f"Successfully declared cursor {table_cursor}")
-
-        # cursor.execute(sql_query, params)
-        exec_time = time.perf_counter() - t_exec
 
         # Extract column names from cursor description
         cursor.execute(sql_query + " LIMIT 0")
         column_names = [data[0] for data in cursor.description]
 
         # Upsert records in batches and update state with bookmarks
-        state, last_bookmark, seen, metrics = upsert_record(
+        state, last_bookmark, seen = upsert_record(
             cursor=cursor,
             column_names=column_names,
             plan=plan,
@@ -805,15 +751,7 @@ def sync_table(connection, configuration, plan, state):
         )
 
     # Final checkpoint after completing the sync for the table
-    metrics["checkpoint_time"] += _checkpoint(state, plan.stream, replication_key, last_bookmark)
-    total_time = time.perf_counter() - plan_start
-    log.info(
-        f"{plan.stream}: rows={seen}, batches={metrics['batches']}, "
-        f"Total query execution time={exec_time:.3f}s, Total time to get batches from cursor={metrics['db_fetch_time']:.3f}s, "
-        f"Total upsert time={metrics['upsert_time']:.3f}s, Total checkpoint time={metrics['checkpoint_time']:.3f}s, "
-        f"total time={total_time:.3f}s, strategy={plan.strategy}, "
-        f"repl_key={'yes' if replication_key else 'no'}, batch_size={batch_size}"
-    )
+    _checkpoint(state, plan.stream, replication_key, last_bookmark)
     log.info(f"{plan.stream}: sync complete, {seen} row(s) processed.")
 
 

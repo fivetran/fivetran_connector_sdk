@@ -22,7 +22,6 @@ from redshift_client import (
     run_single_worker_sync,
     _run_plan_with_pool,
 )  # Redshift client utilities
-import time
 
 
 def validate_configuration(configuration: dict):
@@ -61,7 +60,6 @@ def schema(configuration: dict):
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    schema_time = time.perf_counter()
     # build table plans from configuration and Redshift metadata
     # This will use the TABLE_SPECS defined in table_specs.py if auto_schema_detection is false,
     # otherwise it will discover tables and primary keys from Redshift.
@@ -74,7 +72,6 @@ def schema(configuration: dict):
             # If there are any explicitly typed columns, include them in the schema
             table["columns"] = plan.explicit_columns
         schema_list.append(table)
-    log.info(f"Time to build schema: {time.perf_counter() - schema_time} seconds")
     return schema_list
 
 
@@ -106,19 +103,12 @@ def update(configuration: dict, state: dict):
         return
 
     if max_parallel_workers <= 1:
-        start_time = time.perf_counter()
         # Run sync sequentially using a single connection
         run_single_worker_sync(plans=plans, configuration=configuration, state=state)
-        log.info(
-            f"Total sync time when parallel workers is 1: {time.perf_counter() - start_time} seconds"
-        )
     else:
         # Run sync in parallel using a connection pool
-        start_time = time.perf_counter()
         pool = _ConnectionPool(configuration=configuration, size=max_parallel_workers)
-        log.info(f"Time to create connection pool: {time.perf_counter() - start_time} seconds")
         try:
-            sync_time = time.perf_counter()
             with ThreadPoolExecutor(max_workers=max_parallel_workers) as executor:
                 # Submit tasks to the executor for each table plan
                 futures = [
@@ -128,12 +118,6 @@ def update(configuration: dict, state: dict):
                 for future in as_completed(futures):
                     stream = future.result()
                     log.info(f"{stream}: Sync Finished.")
-            log.info(
-                f"Total sync time without connection creation time: {time.perf_counter() - sync_time} seconds"
-            )
-            log.info(
-                f"Total sync time including connection creation time: {time.perf_counter() - start_time} seconds"
-            )
         finally:
             # Close all connections in the pool after all tasks are completed
             pool.close_all()
