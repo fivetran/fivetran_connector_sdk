@@ -237,7 +237,7 @@ def make_api_request(url, api_key, params):
             response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             if response and response.status_code == 429:
                 # Exponential backoff for rate limiting
                 wait_time = 2**attempt
