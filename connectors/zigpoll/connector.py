@@ -321,7 +321,7 @@ def sync_account_responses(
             )
             break
 
-        previous_cursor = start_cursor
+        previous_cursor = end_cursor
         start_cursor = end_cursor
         log.info(f"Fetching next page with cursor: {start_cursor}")
 
