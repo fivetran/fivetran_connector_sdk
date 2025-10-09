@@ -1,6 +1,6 @@
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
+from datetime import datetime, timezone  # This is used for handling timestamps
 
 # Import required classes from fivetran_connector_sdk.
 # For enabling Logs in your connector code
@@ -61,6 +61,28 @@ class GreenplumClient:
             self.connection.close()
         log.info("Database connection closed.")
 
+    @staticmethod
+    def parse_state_timestamp(state):
+        """
+        Parse the last_timestamp from the state dictionary.
+        If the timestamp is not present or invalid, return a default datetime.
+        Args:
+            state: a dictionary containing state information from previous runs
+        Returns:
+            A datetime object representing the last processed timestamp.
+        """
+        timestamp_str = state.get("last_query_timestamp")
+        if not timestamp_str:
+            return datetime(1990, 1, 1, tzinfo=timezone.utc)
+        try:
+            # Handle possible 'Z'
+            timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+            if timestamp_str.tzinfo is None:
+                timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+            return timestamp_str
+        except ValueError:
+            return datetime(1990, 1, 1, tzinfo=timezone.utc)
+
     def upsert_data(self, query, table_name, state):
         """
         This method executes a SQL query to fetch data from the Greenplum database and upserts it into the destination table.
@@ -71,7 +93,7 @@ class GreenplumClient:
         """
 
         # Get the last query from the state dictionary.
-        last_query_timestamp = state.get("last_query_timestamp", "1990-01-01T00:00:00Z")
+        last_query_timestamp = GreenplumClient.parse_state_timestamp(state=state)
 
         # Execute the SQL query using the cursor.
         self.cursor.execute(query)
@@ -82,8 +104,6 @@ class GreenplumClient:
         for row in self.cursor:
             # Converting the row to a dictionary
             upsert_row = dict(row)
-            # Converting datetime objects to ISO format.
-            upsert_row = GreenplumClient.convert_datetime_to_iso(upsert_row)
             # The 'upsert' operation is used to insert or update the data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
@@ -94,18 +114,9 @@ class GreenplumClient:
             if upsert_row["query_start"] > last_query_timestamp:
                 last_query_timestamp = upsert_row["query_start"]
 
-        state = {"last_query_timestamp": last_query_timestamp}
+        state["last_query_timestamp"] = last_query_timestamp.isoformat()
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
-
-    @staticmethod
-    def convert_datetime_to_iso(data):
-        # This method converts datetime objects in the data dictionary to ISO format.
-        # This is a helper method to ensure that datetime values are serialized correctly.
-        for key, value in data.items():
-            if isinstance(value, datetime):
-                data[key] = value.isoformat()
-        return data

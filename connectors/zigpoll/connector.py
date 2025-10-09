@@ -161,7 +161,7 @@ def parse_iso_timestamp(iso_string: str):
         if iso_string.endswith("Z"):
             # Replace 'Z' with '+00:00' for UTC timezone
             normalized_string = iso_string.replace("Z", "+00:00")
-        elif "+" in iso_string or "-" in iso_string[-6:]:
+        elif "+" in iso_string or (len(iso_string) >= 6 and "-" in iso_string[-6:]):
             # Already has timezone info (e.g., +01:00 or -05:00), use as-is
             normalized_string = iso_string
         else:
@@ -339,7 +339,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: Source Examples : Zigpoll Survey Responses")
+    log.warning("Example: Source Connector: Zigpoll")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)

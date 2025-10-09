@@ -71,9 +71,8 @@ The connector processes and transforms data as follows (refer to `timescaleclien
 
 1. Queries data from TimescaleDb filtered by a timestamp column.
 2. Converts row results to dictionaries using psycopg2's `RealDictCursor`.
-3. Transforms datetime objects to ISO format strings for compatibility.
-4. Converts vector data (iterables) to lists for proper JSON serialization.
-5. Tracks the latest timestamp for each table to support incremental syncs.
+3. Converts vector data (iterables) to lists for proper JSON serialization.
+4. Tracks the latest timestamp for each table to support incremental syncs.
 
 ## Error handling
 
