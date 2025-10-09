@@ -78,9 +78,9 @@ The connector implements comprehensive error handling including retry logic with
 
 The connector creates the following table in your destination:
 
-| Table name     | Primary key | Description |
-|----------------|-------------|-------------|
-| `leave_report` | `id`        | Leave report data with flattened employee leave information including dates, status, and metadata |
+| Table name     | Primary key | Description                                                                                       |
+|----------------|-------------|---------------------------------------------------------------------------------------------------|
+| `LEAVE_REPORT` | `id`        | Leave report data with flattened employee leave information including dates, status, and metadata |
 
 The table includes flattened versions of nested objects using underscore notation, with arrays converted to JSON strings for storage.
 
