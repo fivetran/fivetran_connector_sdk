@@ -39,9 +39,7 @@ def validate_configuration(configuration: dict) -> None:
     required_configs = ["host", "port", "service_name", "user", "password"]
     missing = [key for key in required_configs if not configuration.get(key)]
     if missing:
-        raise ValueError(
-            f"Missing required configuration value(s): {', '.join(missing)}"
-        )
+        raise ValueError(f"Missing required configuration value(s): {', '.join(missing)}")
 
 
 def _parse_timestamp(value: Any) -> Optional[datetime]:
@@ -182,9 +180,7 @@ def update(configuration: dict, state: dict) -> None:
                             record = dict(zip(columns, row))
                             op.upsert(table=table_name, data=record)
 
-                            record_sync_dt = _parse_timestamp(
-                                record.get("LAST_UPDATED")
-                            )
+                            record_sync_dt = _parse_timestamp(record.get("LAST_UPDATED"))
                             if record_sync_dt:
                                 if table_latest_sync_dt is None:
                                     table_latest_sync_dt = record_sync_dt
@@ -196,9 +192,7 @@ def update(configuration: dict, state: dict) -> None:
                                 checkpoint_dt = table_latest_sync_dt or new_sync_time_dt
                                 if checkpoint_dt is None:
                                     checkpoint_dt = __DEFAULT_SYNC_DATETIME
-                                op.checkpoint(
-                                    {"last_sync_time": _format_timestamp(checkpoint_dt)}
-                                )
+                                op.checkpoint({"last_sync_time": _format_timestamp(checkpoint_dt)})
                                 log.info(
                                     f"Checkpointed state after {processed_rows} rows for table {full_table_name}"
                                 )
@@ -210,9 +204,7 @@ def update(configuration: dict, state: dict) -> None:
             if table_latest_sync_dt and table_latest_sync_dt > new_sync_time_dt:
                 new_sync_time_dt = table_latest_sync_dt
 
-            log.info(
-                f"Finished syncing table {full_table_name}, processed {processed_rows} rows"
-            )
+            log.info(f"Finished syncing table {full_table_name}, processed {processed_rows} rows")
 
     finally:
         conn.close()
