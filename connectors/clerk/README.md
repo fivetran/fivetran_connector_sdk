@@ -7,9 +7,9 @@ This connector integrates with the Clerk API to synchronize user data into your 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
@@ -51,12 +51,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 This connector uses API Key authentication with Bearer token. The API key is passed in the `Authorization` header as `Bearer <api_key>`.
 
 **To obtain your Clerk API key:**
-1. Log in to your [Clerk Dashboard](https://dashboard.clerk.com/)
-2. Navigate to **API Keys** in the left sidebar
-3. Copy your **Secret Key** (starts with `sk_test_` for test mode or `sk_live_` for production)
-4. Add this key to your `configuration.json` file
-
-Refer to `make_api_request()` function for the authentication implementation.
+1. Log in to your [Clerk Dashboard](https://dashboard.clerk.com/).
+2. Navigate to **API Keys** in the left sidebar.
+3. Copy your **Secret Key** (starts with `sk_test_` for test mode or `sk_live_` for production).
+4. Add this key to your `configuration.json` file.
 
 
 ## Pagination
@@ -69,8 +67,6 @@ The connector implements offset-based pagination using the Clerk API's `limit` a
 - For incremental syncs, the `created_at_after` parameter is added to fetch only new records
 
 The pagination logic is implemented as a generator function to avoid loading all data into memory at once, which is critical for handling large datasets efficiently.
-
-Refer to `fetch_users_paginated()` function for the pagination implementation.
 
 
 ## Data handling
@@ -90,7 +86,6 @@ The connector processes Clerk user data with sophisticated flattening logic to n
 - Only primary keys are explicitly defined in the schema
 - Fivetran automatically infers data types for all other columns based on the data
 
-Refer to `flatten_record()` and `process_child_tables()` functions for the flattening implementation.
 
 
 ## Error handling
@@ -110,21 +105,19 @@ The connector implements comprehensive error handling with retry logic:
 
 **Timeout:** All API requests have a 30-second timeout to prevent hanging connections.
 
-Refer to `make_api_request()` function for the error handling implementation.
-
 
 ## Tables created
 The connector creates 7 tables in your destination:
 
 | Table Name | Type | Primary Key | Foreign Key | Description |
 |------------|------|-------------|-------------|-------------|
-| **users** | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
-| **user_email_addresses** | Child table | `id` | `user_id` → `users.id` | Contains email addresses with verification details. |
-| **user_phone_numbers** | Child table | `id` | `user_id` → `users.id` | Contains phone numbers with verification and 2FA configuration. |
-| **user_web3_wallets** | Child table | `id` | `user_id` → `users.id` | Contains Web3 wallet addresses with verification details. |
-| **user_passkeys** | Child table | `id` | `user_id` → `users.id` | Contains passkey authentication methods. |
-| **user_external_accounts** | Child table | `id` | `user_id` → `users.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
-| **user_saml_accounts** | Child table | `id` | `user_id` → `users.id` | Contains SAML SSO account information. |
+| **USER** | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
+| **USER_EMAIL_ADDRESS** | Child table | `id` | `user_id` → `USER.id` | Contains email addresses with verification details. |
+| **USER_PHONE_NUMBER** | Child table | `id` | `user_id` → `USER.id` | Contains phone numbers with verification and 2FA configuration. |
+| **USER_WEB3_WALLET** | Child table | `id` | `user_id` → `USER.id` | Contains Web3 wallet addresses with verification details. |
+| **USER_PASSKEY** | Child table | `id` | `user_id` → `USER.id` | Contains passkey authentication methods. |
+| **USER_EXTERNAL_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
+| **USER_SAML_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
 
 
 ## Additional considerations
