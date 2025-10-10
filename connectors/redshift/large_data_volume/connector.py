@@ -42,6 +42,7 @@ def validate_configuration(configuration: dict):
         "redshift_schema",
         "batch_size",
         "auto_schema_detection",
+        "enable_complete_resync",
     ]
     missing = [k for k in required_configs if k not in configuration]
     if missing:
