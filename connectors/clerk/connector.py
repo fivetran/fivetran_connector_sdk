@@ -6,6 +6,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 # For reading configuration from a JSON file
 import json
+
 # For adding delay between retries
 import time
 
@@ -35,7 +36,7 @@ __CHILD_TABLES = {
     "web3_wallets": "user_web3_wallet",
     "passkeys": "user_passkey",
     "external_accounts": "user_external_account",
-    "saml_accounts": "user_saml_account"
+    "saml_accounts": "user_saml_account",
 }
 
 
@@ -53,7 +54,8 @@ def validate_configuration(configuration: dict):
 
     # Validate required configuration parameters
     if "api_key" not in configuration:
-        raise ValueError(f"Missing required configuration value: api_key")
+        raise ValueError("Missing required configuration value: api_key")
+
 
 def schema(configuration: dict):
     """
@@ -244,10 +246,7 @@ def fetch_users_paginated(api_key, last_created_at=None):
     while has_more_data:
         # Build API URL with pagination parameters
         url = f"{__API_BASE_URL}{__USERS_ENDPOINT}"
-        params = {
-            "limit": __PAGE_LIMIT,
-            "offset": offset
-        }
+        params = {"limit": __PAGE_LIMIT, "offset": offset}
 
         # Add incremental sync parameter if last_created_at is provided
         if last_created_at:
@@ -288,10 +287,7 @@ def make_api_request(url, api_key, params):
     Raises:
         requests.exceptions.RequestException: If all retry attempts fail.
     """
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     for attempt in range(__MAX_RETRIES):
         response = None
@@ -299,17 +295,19 @@ def make_api_request(url, api_key, params):
             response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             if response and response.status_code == 429:
                 # Exponential backoff for rate limiting
-                wait_time = 2 ** attempt
+                wait_time = 2**attempt
                 log.warning(f"Rate limited. Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             elif response and 500 <= response.status_code < 600:
                 # Retry on server errors
                 if attempt < __MAX_RETRIES - 1:
-                    wait_time = 2 ** attempt
-                    log.warning(f"Server error {response.status_code}. Retrying in {wait_time} seconds...")
+                    wait_time = 2**attempt
+                    log.warning(
+                        f"Server error {response.status_code}. Retrying in {wait_time} seconds..."
+                    )
                     time.sleep(wait_time)
                 else:
                     raise
@@ -319,7 +317,7 @@ def make_api_request(url, api_key, params):
         except requests.exceptions.RequestException as e:
             # Retry on network errors
             if attempt < __MAX_RETRIES - 1:
-                wait_time = 2 ** attempt
+                wait_time = 2**attempt
                 log.warning(f"Request failed: {str(e)}. Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:
