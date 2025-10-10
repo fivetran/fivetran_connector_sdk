@@ -1,0 +1,5 @@
+snowflake_connector_python==3.12.2
+cryptography==41.0.5
+psutil==7.0.0
+snowflake_sqlalchemy
+snowflake_snowpark_python
