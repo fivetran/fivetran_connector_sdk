@@ -1,0 +1,7 @@
+{
+ "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
+ "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
+ "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
+ "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>",
+ "mssql_port": "<YOUR_SQL_SERVER_PORT>"
+}
