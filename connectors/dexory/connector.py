@@ -257,14 +257,13 @@ def _sync_locations_pages(
 
 def update(configuration: dict, state: dict) -> None:
     """
-    Main update function that fetches inventory data from a single Dexory site
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Contains site configuration (site_name, api_key, base_url)
-        state: Connector state for incremental syncs
-
-    Returns:
-        None - Operations are executed directly through the op module
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Dexory")
 
@@ -276,23 +275,27 @@ def update(configuration: dict, state: dict) -> None:
     api_key = configuration.get("site_api_key")
     base_url = configuration.get("base_url", __DEFAULT_BASE_URL)
 
-    # Use built-in defaults; no longer read these from configuration
-    max_pages = __DEFAULT_MAX_PAGES
-    page_size = __DEFAULT_PAGE_SIZE
-    base_retry_delay = __BASE_RETRY_DELAY_SECONDS
     log.info(
-        f"Max pages: {max_pages}, Page size: {page_size}, Base retry delay: {base_retry_delay}s"
+        f"Max pages: {__DEFAULT_MAX_PAGES}, Page size: {__DEFAULT_PAGE_SIZE}, Base retry delay: {__BASE_RETRY_DELAY_SECONDS}s"
     )
     log.info(f"Syncing data for site: {site_name}")
 
     try:
         page_count, location_count = _sync_locations_pages(
-            site_name, api_key, page_size, base_url, max_pages, base_retry_delay
+            site_name,
+            api_key,
+            __DEFAULT_PAGE_SIZE,
+            base_url,
+            __DEFAULT_MAX_PAGES,
+            __BASE_RETRY_DELAY_SECONDS,
         )
 
         log.info(f"Completed: {page_count} pages, {location_count} locations")
 
-        # Add checkpoint
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         new_state = {"last_sync": datetime.now(timezone.utc).isoformat()}
         op.checkpoint(state=new_state)
 
@@ -305,20 +308,19 @@ def update(configuration: dict, state: dict) -> None:
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
-    Define schema for the location table and expected_inventory_object child table
-
-    Returns:
-        List of table definitions with primary keys
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": "location", "primary_key": ["name", "location_type", "aisle", "scan_date"]},
         {
             "table": "expected_inventory_object"
-            """
-            No primary key by design. FK fields will be added to each record,
-            but per dexoryscan "All fields are optional but at least one will be present."
-            Fivetran will infer a key based on all fields present.
-            """
+            # No primary key by design. FK fields will be added to each record,
+            # but per dexoryscan "All fields are optional but at least one will be present."
+            # Fivetran will infer a key based on all fields present.
         },
     ]
 
@@ -326,6 +328,14 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 # Create connector instance
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Run in debug mode for local testing
-    connector.debug()
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
+    connector.debug(configuration=configuration)
