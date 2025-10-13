@@ -31,7 +31,7 @@ The configuration file contains the API key required to authenticate with the Cl
 
 ```json
 {
-  "api_key": "<YOUR_CLERK_API_KEY"
+  "api_key": "<YOUR_CLERK_API_KEY>"
 }
 ```
 
