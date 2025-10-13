@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Flattens nested JSON objects into the main table using underscore notation
 - Separates nested arrays into child tables with foreign key relationships
 - Implements retry logic with exponential backoff for transient errors
-- Checkpoints state every 500 records to enable resumption on interruption
+- Checkpoints state every 1000 records to enable resumption on interruption
 - Memory-efficient processing using generator functions to avoid loading all data at once
 
 

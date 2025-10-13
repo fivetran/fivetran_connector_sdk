@@ -27,7 +27,7 @@ __API_BASE_URL = "https://api.clerk.com/v1"
 __USERS_ENDPOINT = "/users"
 __PAGE_LIMIT = 100  # Number of records to fetch per API request
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
-__CHECKPOINT_INTERVAL = 1000  # Checkpoint state after every 500 records processed
+__CHECKPOINT_INTERVAL = 1000  # Checkpoint state after every 1000 records processed
 
 # Child table configuration: maps array field names to their destination table names
 __CHILD_TABLES = {
@@ -150,7 +150,7 @@ def update(configuration: dict, state: dict):
                 checkpoint_sync_state(new_created_at, records_processed)
 
         # Final checkpoint with the latest state
-        finalize_sync(new_created_at, records_processed)
+        checkpoint_sync_state_final(new_created_at, records_processed)
 
     except requests.exceptions.RequestException as e:
         # Handle HTTP/network related errors
@@ -214,9 +214,9 @@ def checkpoint_sync_state(cursor_value, records_processed):
     log.info(f"Checkpointed after processing {records_processed} records")
 
 
-def finalize_sync(cursor_value, records_processed):
+def checkpoint_sync_state_final(cursor_value, records_processed):
     """
-    Finalize the sync by performing a final checkpoint and logging completion.
+    Checkpoint the final sync state and log completion.
 
     Args:
         cursor_value: The final cursor value to save.
@@ -246,7 +246,7 @@ def fetch_users_paginated(api_key, last_created_at=None):
     while has_more_data:
         # Build API URL with pagination parameters
         url = f"{__API_BASE_URL}{__USERS_ENDPOINT}"
-        params = {"limit": __PAGE_LIMIT, "offset": offset}
+        params = {"limit": __PAGE_LIMIT, "offset": offset, "order_by": "created_at"}
 
         # Add incremental sync parameter if last_created_at is provided
         if last_created_at:
@@ -256,7 +256,7 @@ def fetch_users_paginated(api_key, last_created_at=None):
         users = make_api_request(url, api_key, params)
 
         # If no users returned, we've reached the end
-        if not users or len(users) == 0:
+        if not users:
             has_more_data = False
             break
 
