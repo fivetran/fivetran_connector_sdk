@@ -342,7 +342,15 @@ def _process_export_file(export_info: Dict[str, Any]) -> None:
 
 
 def update(configuration: Dict[str, str], state: Dict[str, Any]):
-    """Main update function that fetches export metadata and CSV data from Oktopost BI Export API."""
+    """
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     try:
         # Validate configuration first
         validate_configuration(configuration=configuration)
@@ -382,13 +390,23 @@ def update(configuration: Dict[str, str], state: Dict[str, Any]):
 
 
 def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
-    """Define the schema for the connector tables."""
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [{"table": "active_export_metadata"}, {"table": "export_list_metadata"}]
 
 
 # Create the connector instance
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
