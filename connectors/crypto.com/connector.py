@@ -1803,9 +1803,7 @@ def update(configuration: dict, state: dict):
                         total_records += 1
                         book_count += 1
                     elif (
-                        book_data
-                        and isinstance(book_data, list)
-                        and len(book_data) > 0
+                        book_data and isinstance(book_data, list) and len(book_data) > 0
                     ):
                         # Handle case where book_data is a list
                         for book_entry in book_data:
