@@ -35,19 +35,24 @@ from typing import Dict, List, Optional, Any
 log.LOG_LEVEL = log.Level.INFO
 
 # Constants for API configuration and retry logic
-__MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
-__BASE_DELAY = 1  # Base delay in seconds for API request retries
-__CRYPTO_COM_BASE_URL = (
-    "https://api.crypto.com/exchange/v1"  # Base URL for Crypto.com API
-)
+# Maximum number of retry attempts for API requests
+__MAX_RETRIES = 3
+# Base delay in seconds for API request retries
+__BASE_DELAY = 1
+# Base URL for Crypto.com API
+__CRYPTO_COM_BASE_URL = "https://api.crypto.com/exchange/v1"
 
 # Rate limiting constants based on Crypto.com API documentation
-__RATE_LIMIT_DELAY = 0.1  # 100ms delay between requests to respect rate limits
-__BATCH_DELAY = 1.0  # 1 second delay between batches of requests
-__BATCH_SIZE = 10  # Process requests in batches to manage rate limits
+# 100ms delay between requests to respect rate limits
+__RATE_LIMIT_DELAY = 0.1
+# 1 second delay between batches of requests
+__BATCH_DELAY = 1.0
+# Process requests in batches to manage rate limits
+__BATCH_SIZE = 10
 
 # Checkpoint constants
-__CHECKPOINT_INTERVAL = 600  # 10 minutes in seconds for periodic checkpoints
+# 10 minutes in seconds for periodic checkpoints
+__CHECKPOINT_INTERVAL = 600
 
 # Global variable to track if file logging is enabled
 _file_logger = None
@@ -143,12 +148,12 @@ def process_in_batches(
     total_batches = (len(items) + batch_size - 1) // batch_size
     log_message(
         "info",
-        f"Processing {len(items)} items in {total_batches} batches of "
-        f"{batch_size} for {operation_name}",
+        f"Processing {len(items)} items in {total_batches} batches of"
+        f" {batch_size} for {operation_name}",
     )
 
     for i in range(0, len(items), batch_size):
-        batch = items[i : i + batch_size]
+        batch = items[i:i + batch_size]
         batch_num = (i // batch_size) + 1
         log_message(
             "info",
@@ -161,7 +166,8 @@ def process_in_batches(
         if i + batch_size < len(items):
             log_message(
                 "info",
-                "Rate limiting: waiting {__BATCH_DELAY}s before next batch",
+                f"Rate limiting: waiting {__BATCH_DELAY}s before"
+                f" next batch",
             )
             time.sleep(__BATCH_DELAY)
 
@@ -197,14 +203,14 @@ def perform_periodic_checkpoint(
         progress_info: Additional progress information
     """
     checkpoint_state = {
-        "endpoints_last_sync_time": endpoints_last_sync_time.copy(),
+        "endpoints_last_sync_time": (endpoints_last_sync_time.copy()),
         "completed_endpoints": completed_endpoints,
         "last_periodic_checkpoint": time.time(),
         "current_operation": operation_name,
     }
     op.checkpoint(checkpoint_state)
     log_message(
-        "info", "Periodic checkpoint during {operation_name}: {progress_info}"
+        "info", f"Periodic checkpoint during {operation_name}: {progress_info}"
     )
 
 
@@ -256,13 +262,12 @@ def should_sync_endpoint(
     if last_sync_time is None:
         log_message(
             "info",
-            "Endpoint {endpoint_name} has never been synced, will sync",
+            f"Endpoint {endpoint_name} has never" f" been synced, will sync",
         )
         return True
 
-    time_elapsed_hours = (
-        current_time - last_sync_time
-    ) / 3600.0  # Convert seconds to hours
+    # Convert seconds to hours
+    time_elapsed_hours = (current_time - last_sync_time) / 3600.0
     should_sync = time_elapsed_hours >= hours_between_syncs
 
     if should_sync:
@@ -307,15 +312,15 @@ def validate_configuration(configuration: dict):
     required_configs = ["api_key", "api_secret"]
     for key in required_configs:
         if key not in configuration:
-            raise ValueError("Missing required configuration value: {key}")
+            raise ValueError(f"Missing required configuration value: {key}")
 
     # Set default value for hours_between_syncs if not present
     if "hours_between_syncs" not in configuration:
         configuration["hours_between_syncs"] = "12.0"
         log_message(
             "info",
-            "hours_between_syncs not found in configuration, "
-            "defaulting to 12.0 hours",
+            "hours_between_syncs not found in configuration,"
+            " defaulting to 12.0 hours",
         )
 
 
@@ -421,13 +426,13 @@ def make_authenticated_request(
     Returns:
         Response data as dictionary
     """
-    url = "{__CRYPTO_COM_BASE_URL}{endpoint}"
+    url = f"{__CRYPTO_COM_BASE_URL}{endpoint}"
     # Generate timestamp once and use it consistently
     current_timestamp = int(time.time() * 1000)
     timestamp = str(current_timestamp)
 
-    log_message("info", "Making {method} request to: {url}")
-    log_message("info", "Request timestamp: {timestamp}")
+    log_message("info", f"Making {method} request to: {url}")
+    log_message("info", f"Request timestamp: {timestamp}")
 
     # Prepare request body
     body = ""
@@ -436,15 +441,15 @@ def make_authenticated_request(
     if endpoint.startswith("/private/"):
         # Private endpoints require specific JSON structure
         request_data = {
-            "id": current_timestamp,  # Use same timestamp as ID
-            "method": endpoint.lstrip(
-                "/"
-            ),  # Remove leading slash from endpoint
-            "api_key": configuration[
-                "api_key"
-            ],  # Include api_key in request body
+            # Use same timestamp as ID
+            "id": current_timestamp,
+            # Remove leading slash from endpoint
+            "method": endpoint.lstrip("/"),
+            # Include api_key in request body
+            "api_key": configuration["api_key"],
             "params": data if data else {},
-            "nonce": current_timestamp,  # Use same timestamp as nonce
+            # Use same timestamp as nonce
+            "nonce": current_timestamp,
         }
 
         # Create signature for private endpoints
@@ -456,10 +461,10 @@ def make_authenticated_request(
         request_data["sig"] = signature
 
         body = json.dumps(request_data)
-        log_message("info", "Private endpoint request body: {body}")
+        log_message("debug", f"Private endpoint request body: {body}")
     elif data:
         body = json.dumps(data)
-        log_message("info", "Request body: {body}")
+        log_message("debug", f"Request body: {body}")
 
     # Create signature according to Crypto.com API v1 spec
     if endpoint.startswith("/private/"):
@@ -485,18 +490,18 @@ def make_authenticated_request(
         "X-CRYPTO-TIMESTAMP": timestamp,
     }
 
-    log_message("info", "Request headers: {list(headers.keys())}")
+    log_message("info", f"Request headers: {list(headers.keys())}")
     log_message(
         "info",
-        "Content-Type header: {headers.get('Content-Type', 'NOT SET')}",
+        f"Content-Type header: {headers.get('Content-Type', 'NOT SET')}",
     )
 
     # For private endpoints, ensure we're using the correct method and headers
     if endpoint.startswith("/private/"):
-        log_message("info", "Private endpoint detected: {endpoint}")
-        log_message("info", "Request method: {method}")
-        log_message("info", "Request params: {params}")
-        log_message("info", "Request data: {data}")
+        log_message("info", f"Private endpoint detected: {endpoint}")
+        log_message("debug", f"Request method: {method}")
+        log_message("debug", f"Request params: {params}")
+        log_message("debug", f"Request data: {data}")
 
     # Apply rate limiting before making the request
     apply_rate_limit()
@@ -505,8 +510,8 @@ def make_authenticated_request(
     for attempt in range(__MAX_RETRIES):
         try:
             message = (
-                f"Attempt {attempt + 1}/{__MAX_RETRIES} for "
-                f"{method} {endpoint}"
+                f"Attempt {attempt + 1}/{__MAX_RETRIES} for"
+                f" {method} {endpoint}"
             )
             log_message(
                 "info",
@@ -527,8 +532,8 @@ def make_authenticated_request(
                     url, headers=headers, json=data, timeout=30
                 )
 
-            log_message("info", "Response status: {response.status_code}")
-            log_message("info", "Response headers: {dict(response.headers)}")
+            log_message("debug", f"Response status: {response.status_code}")
+            log_message("debug", f"Response headers: {dict(response.headers)}")
 
             # Log full response if status is not 200
             if response.status_code != 200:
@@ -562,7 +567,7 @@ def make_authenticated_request(
             else:
                 message = "Response data keys: Not a dict"
             log_message(
-                "info",
+                "debug",
                 message,
             )
             message = (
@@ -570,7 +575,7 @@ def make_authenticated_request(
                 f" {json.dumps(response_data, indent=2)}"
             )
             log_message(
-                "info",
+                "debug",
                 message,
             )
 
@@ -580,11 +585,11 @@ def make_authenticated_request(
             if attempt == __MAX_RETRIES - 1:
                 log_message(
                     "severe",
-                    "Failed to make API request after {"
-                    "__MAX_RETRIES} attempts: {str(e)}",
+                    f"Failed to make API request after {__MAX_RETRIES}"
+                    f" attempts: {str(e)}",
                 )
-                log_message("severe", "Final URL: {url}")
-                log_message("severe", "Final headers: {headers}")
+                log_message("severe", f"Final URL: {url}")
+                log_message("severe", f"Final headers: {headers}")
                 raise e
             delay = __BASE_DELAY * (2**attempt)
             status_code = (
@@ -600,7 +605,7 @@ def make_authenticated_request(
                 "warning",
                 message,
             )
-            log_message("warning", "Error details: {str(e)}")
+            log_message("warning", f"Error details: {str(e)}")
             time.sleep(delay)
 
     return {}
@@ -619,32 +624,41 @@ def fetch_instruments(configuration: dict) -> List[Dict]:
         response = make_authenticated_request(
             "GET", "/public/get-instruments", configuration
         )
-        log_message("info", "Instruments response received: {type(response)}")
+        log_message(
+            "debug", f"Instruments response received: {type(response)}"
+        )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
             result = response.get("result", {})
-            instruments = result.get(
-                "data", []
-            )  # Changed from "instruments" to "data"
+            # Changed from "instruments" to "data"
+            instruments = result.get("data", [])
             log_message(
                 "info",
                 "Extracted {len(instruments)} instruments from response",
             )
             if instruments:
+                if json.dumps(instruments[0]):
+                    message = (
+                        f"Sample instrument: "
+                        f"{json.dumps(instruments[0], indent=2)}"
+                    )
+                else:
+                    message = "Sample instrument: No instruments"
+
                 log_message(
-                    "info",
-                    "Sample instrument: {json.dumps(instruments[0],"
-                    "indent=2) if instruments else 'No instruments'}",
+                    "debug",
+                    message,
                 )
             return instruments
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -666,29 +680,30 @@ def fetch_tickers(configuration: dict) -> List[Dict]:
         response = make_authenticated_request(
             "GET", "/public/get-tickers", configuration
         )
-        log_message("info", "Tickers response received: {type(response)}")
+        log_message("debug", f"Tickers response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
             result = response.get("result", {})
             tickers = result.get("data", [])
             log_message(
-                "info", "Extracted {len(tickers)} tickers from response"
+                "info", f"Extracted {len(tickers)} tickers from response"
             )
             if tickers:
+                sample_ticker = json.dumps(tickers[0], indent=2)
                 log_message(
-                    "info",
-                    "Sample ticker: {json.dumps(tickers[0], indent=2) if "
-                    "tickers else 'No tickers'}",
+                    "debug",
+                    f"Sample ticker: {sample_ticker}",
                 )
             return tickers
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -727,25 +742,26 @@ def fetch_trades(
         response = make_authenticated_request(
             "GET", endpoint, configuration, params=params
         )
-        log_message("info", f"Trades response received: {type(response)}")
+        log_message("debug", f"Trades response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
-                "info", f"Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
             result = response.get("result", {})
             trades = result.get("data", [])
             trade_len = len(trades)
-            log_message("info", f"Extracted {trade_len} trades from response")
+            log_message("debug", f"Extracted {trade_len} trades from response")
             if trades:
                 if json.dumps(trades[0]):
                     message = (
-                        f"Sample trade: {json.dumps(trades[0], indent=2)}"
+                        f"Sample trade:" f" {json.dumps(trades[0], indent=2)}"
                     )
                 else:
                     message = "Sample trade: No trades"
                 log_message(
-                    "info",
+                    "debug",
                     message,
                 )
             return trades
@@ -777,7 +793,7 @@ def fetch_book(
     try:
         log_message(
             "info",
-            "Starting book fetch for {instrument_name} with depth {depth}",
+            f"Starting book fetch for {instrument_name} with depth {depth}",
         )
 
         params = {"instrument_name": instrument_name, "depth": depth}
@@ -785,21 +801,22 @@ def fetch_book(
         response = make_authenticated_request(
             "GET", "/public/get-book", configuration, params=params
         )
-        log_message("info", "Book response received: {type(response)}")
+        log_message("debug", f"Book response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
             result = response.get("result", {})
             book_data = result.get("data", {})
-            log_message("info", "Extracted book data for {instrument_name}")
+            log_message("info", f"Extracted book data for {instrument_name}")
             return book_data
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return {}
 
     except Exception as e:
@@ -829,8 +846,8 @@ def fetch_candlestick(
     try:
         log_message(
             "info",
-            "Starting candlestick fetch for {"
-            "instrument_name} with timeframe {timeframe}",
+            f"Starting candlestick fetch for {instrument_name}"
+            f" with timeframe {timeframe}",
         )
 
         params = {
@@ -842,29 +859,32 @@ def fetch_candlestick(
         response = make_authenticated_request(
             "GET", "/public/get-candlestick", configuration, params=params
         )
-        log_message("info", "Candlestick response received: {type(response)}")
+        log_message(
+            "debug", f"Candlestick response received: {type(response)}"
+        )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
             result = response.get("result", {})
             candles = result.get("data", [])
             log_message(
-                "info", "Extracted {len(candles)} candles from response"
+                "info", f"Extracted {len(candles)} candles from response"
             )
             if candles:
+                sample_candle = json.dumps(candles[0], indent=2)
                 log_message(
-                    "info",
-                    "Sample candle: {json.dumps(candles[0], indent=2) if "
-                    "candles else 'No candles'}",
+                    "debug",
+                    f"Sample candle: {sample_candle}",
                 )
             return candles
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -872,7 +892,7 @@ def fetch_candlestick(
             "severe",
             f"Error fetching candlestick for {instrument_name}: {str(e)}",
         )
-        log_message("severe", "Exception type: {type(e).__name__}")
+        log_message("severe", f"Exception type: {type(e).__name__}")
         return []
 
 
@@ -890,11 +910,14 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
         response = make_authenticated_request(
             "POST", "/private/user-balance", configuration, data={}
         )
-        log_message("info", "User balance response received: {type(response)}")
+        log_message(
+            "debug", f"User balance response received: {type(response)}"
+        )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
 
             # Check for Crypto.com API response format
@@ -977,13 +1000,13 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                     if all_balances:
                         if json.dumps(all_balances[0]):
                             message = (
-                                "Sample balance:"
+                                f"Sample balance:"
                                 f" {json.dumps(all_balances[0], indent=2)}"
                             )
                         else:
                             message = "Sample balance: No balances"
                         log_message(
-                            "info",
+                            "debug",
                             message,
                         )
                     return all_balances
@@ -996,14 +1019,14 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                     return []
             else:
                 log_message(
-                    "warning", "Unexpected response format: {response}"
+                    "warning", f"Unexpected response format: {response}"
                 )
                 return []
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -1027,12 +1050,13 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
             "POST", "/private/get-positions", configuration, data={}
         )
         log_message(
-            "info", "User positions response received: {type(response)}"
+            "info", f"User positions response received: {type(response)}"
         )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
 
             # Check for Crypto.com API response format
@@ -1052,13 +1076,13 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
                     if positions:
                         if json.dumps(positions[0]):
                             message = (
-                                "Sample position:"
+                                f"Sample position:"
                                 f" {json.dumps(positions[0], indent=2)}"
                             )
                         else:
                             message = "Sample position: No positions"
                         log_message(
-                            "info",
+                            "debug",
                             message,
                         )
                     return positions
@@ -1074,14 +1098,14 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
                     return []
             else:
                 log_message(
-                    "warning", "Unexpected response format: {response}"
+                    "warning", f"Unexpected response format: {response}"
                 )
                 return []
         else:
             log_message(
-                "warning", "Unexpected response type: {type(response)}"
+                "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -1105,7 +1129,7 @@ def fetch_open_orders(
     try:
         if instrument_name:
             log_message(
-                "info", "Starting open orders fetch for {instrument_name}..."
+                "info", f"Starting open orders fetch for {instrument_name}..."
             )
             params = {"instrument_name": instrument_name}
         else:
@@ -1117,11 +1141,14 @@ def fetch_open_orders(
         response = make_authenticated_request(
             "POST", "/private/get-open-orders", configuration, data=params
         )
-        log_message("info", "Open orders response received: {type(response)}")
+        log_message(
+            "debug", f"Open orders response received: {type(response)}"
+        )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
 
             # Check for Crypto.com API response format
@@ -1141,13 +1168,13 @@ def fetch_open_orders(
                     if orders:
                         if json.dumps(orders[0]):
                             message = (
-                                "Sample order:"
+                                f"Sample order:"
                                 f" {json.dumps(orders[0], indent=2)}"
                             )
                         else:
                             message = "Sample order: No orders"
                         log_message(
-                            "info",
+                            "debug",
                             message,
                         )
                     return orders
@@ -1163,14 +1190,14 @@ def fetch_open_orders(
                     return []
             else:
                 log_message(
-                    "warning", "Unexpected response format: {response}"
+                    "warning", f"Unexpected response format: {response}"
                 )
                 return []
         else:
             log_message(
                 "warning", f"Unexpected response type: {type(response)}"
             )
-            log_message("warning", "Response content: {response}")
+            log_message("warning", f"Response content: {response}")
             return []
 
     except Exception as e:
@@ -1258,13 +1285,14 @@ def fetch_order_history(
             end_time_ns = int(time.time() * 1000000000)
             log_message(
                 "info",
-                "No end time provided, using current time: {end_time_ns} ns",
+                f"No end time provided, using current time: {end_time_ns} ns",
             )
 
         params = {
             "start_time": start_time_ns,
             "end_time": end_time_ns,
-            "limit": min(limit, 100),  # Cap at 100 as per API limit
+            # Cap at 100 as per API limit
+            "limit": min(limit, 100),
         }
 
         # Only add instrument_name if specified
@@ -1275,12 +1303,13 @@ def fetch_order_history(
             "POST", "/private/get-order-history", configuration, data=params
         )
         log_message(
-            "info", "Order history response received: {type(response)}"
+            "info", f"Order history response received: {type(response)}"
         )
 
         if isinstance(response, dict):
             log_message(
-                "info", "Full response JSON: {json.dumps(response, indent=2)}"
+                "debug",
+                f"Full response JSON: {json.dumps(response, indent=2)}",
             )
 
             # Check for Crypto.com API response format
@@ -1300,13 +1329,13 @@ def fetch_order_history(
                     if orders:
                         if json.dumps(orders[0]):
                             message = (
-                                "Sample order:"
+                                f"Sample order:"
                                 f" {json.dumps(orders[0], indent=2)}"
                             )
                         else:
                             message = "Sample order: No orders"
                         log_message(
-                            "info",
+                            "debug",
                             message,
                         )
                     return orders
@@ -1354,50 +1383,63 @@ def schema(configuration: dict):
         {
             "table": "instrument",
             # Name of the table in the destination, required.
-            "primary_key": [
-                "symbol"
-            ],  # Primary key column(s) for the table, optional.
+            # Primary key column(s) for the table, optional.
+            "primary_key": ["symbol"],
         },
         {
-            "table": "ticker",  # Market ticker data
-            "primary_key": ["instrument"],  # Primary key for ticker data
+            # Market ticker data
+            "table": "ticker",
+            # Primary key for ticker data
+            "primary_key": ["instrument"],
         },
         {
-            "table": "trade",  # Trade history data
-            "primary_key": ["trade_id"],  # Primary key for trade data
+            # Trade history data
+            "table": "trade",
+            # Primary key for trade data
+            "primary_key": ["trade_id"],
         },
         {
-            "table": "book",  # Order book data
+            # Order book data
+            "table": "book",
             "primary_key": [
                 "instrument",
                 "timestamp",
-            ],  # Composite primary key
+                # Composite primary key
+            ],
         },
         {
-            "table": "candlestick",  # Historical price data
+            # Historical price data
+            "table": "candlestick",
+            # Composite primary key
             "primary_key": [
                 "instrument",
                 "timestamp",
                 "timeframe",
-            ],  # Composite primary key
+            ],
         },
         {
-            "table": "user_balance",  # User balance information
-            "primary_key": ["instrument_name"],  # Primary key for balance data
+            # User balance information
+            "table": "user_balance",
+            # Primary key for balance data
+            "primary_key": ["instrument_name"],
         },
         {
-            "table": "user_position",  # User trading positions
-            "primary_key": [
-                "instrument_name"
-            ],  # Primary key for position data
+            # User trading positions
+            "table": "user_position",
+            # Primary key for position data
+            "primary_key": ["instrument_name"],
         },
         {
-            "table": "open_order",  # Open orders
-            "primary_key": ["order_id"],  # Primary key for order data
+            # Open orders
+            "table": "open_order",
+            # Primary key for order data
+            "primary_key": ["order_id"],
         },
         {
-            "table": "order_history",  # Order history
-            "primary_key": ["order_id"],  # Primary key for order history data
+            # Order history
+            "table": "order_history",
+            # Primary key for order history data
+            "primary_key": ["order_id"],
         },
     ]
 
@@ -1420,7 +1462,7 @@ def update(configuration: dict, state: dict):
     setup_file_logging(configuration)
 
     log_message("info", "Starting Crypto.com connector sync")
-    log_message("info", "Configuration keys: {list(configuration.keys())}")
+    log_message("info", f"Configuration keys: {list(configuration.keys())}")
     log_message("info", f"Previous state: {state}")
 
     # Validate the configuration to ensure it contains all required values
@@ -1492,7 +1534,7 @@ def update(configuration: dict, state: dict):
                 total_records += 1
 
             log_message(
-                "info", "Upserted {len(instruments)} instrument records"
+                "info", f"Upserted {len(instruments)} instrument records"
             )
             total_upserts += len(instruments)
 
@@ -1541,17 +1583,28 @@ def update(configuration: dict, state: dict):
             for ticker in tickers:
                 # Map single-letter fields to descriptive names
                 processed_ticker = {
-                    "instrument": ticker.get("i"),  # Instrument identifier
-                    "high": ticker.get("h"),  # High price
-                    "low": ticker.get("l"),  # Low price
-                    "ask": ticker.get("a"),  # Ask price
-                    "volume": ticker.get("v"),  # Volume
-                    "volume_value": ticker.get("vv"),  # Volume value
-                    "change": ticker.get("c"),  # Change
-                    "bid": ticker.get("b"),  # Bid price
-                    "last_price": ticker.get("k"),  # Last price
-                    "open_interest": ticker.get("oi"),  # Open interest
-                    "timestamp": ticker.get("t"),  # Timestamp
+                    # Instrument identifier
+                    "instrument": ticker.get("i"),
+                    # High price
+                    "high": ticker.get("h"),
+                    # Low price
+                    "low": ticker.get("l"),
+                    # Ask price
+                    "ask": ticker.get("a"),
+                    # Volume
+                    "volume": ticker.get("v"),
+                    # Volume value
+                    "volume_value": ticker.get("vv"),
+                    # Change
+                    "change": ticker.get("c"),
+                    # Bid price
+                    "bid": ticker.get("b"),
+                    # Last price
+                    "last_price": ticker.get("k"),
+                    # Open interest
+                    "open_interest": ticker.get("oi"),
+                    # Timestamp
+                    "timestamp": ticker.get("t"),
                 }
 
                 op.upsert(table="ticker", data=processed_ticker)
@@ -1589,9 +1642,8 @@ def update(configuration: dict, state: dict):
                 "info",
                 "Fetching trades for all instruments with rate limiting...",
             )
-            all_instruments = [
-                inst["symbol"] for inst in instruments
-            ]  # Get all instruments
+            # Get all instruments
+            all_instruments = [inst["symbol"] for inst in instruments]
 
             trades_start_time = time.time()
             last_checkpoint_time = trades_start_time
@@ -1605,7 +1657,7 @@ def update(configuration: dict, state: dict):
 
                 for instrument_name in batch:
                     log_message(
-                        "info", "Fetching trades for {instrument_name}"
+                        "info", f"Fetching trades for {instrument_name}"
                     )
                     trades = fetch_trades(configuration, instrument_name)
                     if trades:
@@ -1635,14 +1687,22 @@ def update(configuration: dict, state: dict):
                     for trade in batch_trades:
                         # Map single-letter fields to descriptive names
                         processed_trade = {
-                            "trade_id": trade.get("d"),  # Trade ID
-                            "timestamp": trade.get("t"),  # Timestamp
-                            "trade_number": trade.get("tn"),  # Trade number
-                            "quantity": trade.get("q"),  # Quantity
-                            "price": trade.get("p"),  # Price
-                            "side": trade.get("s"),  # Side
-                            "instrument": trade.get("i"),  # Instrument
-                            "match_id": trade.get("m"),  # Match ID
+                            # Trade ID
+                            "trade_id": trade.get("d"),
+                            # Timestamp
+                            "timestamp": trade.get("t"),
+                            # Trade number
+                            "trade_number": trade.get("tn"),
+                            # Quantity
+                            "quantity": trade.get("q"),
+                            # Price
+                            "price": trade.get("p"),
+                            # Side
+                            "side": trade.get("s"),
+                            # Instrument
+                            "instrument": trade.get("i"),
+                            # Match ID
+                            "match_id": trade.get("m"),
                         }
 
                         op.upsert(table="trade", data=processed_trade)
@@ -1704,9 +1764,8 @@ def update(configuration: dict, state: dict):
                 "info",
                 message,
             )
-            all_instruments = [
-                inst["symbol"] for inst in instruments
-            ]  # Get all instruments
+            # Get all instruments
+            all_instruments = [inst["symbol"] for inst in instruments]
 
             book_start_time = time.time()
             last_checkpoint_time = book_start_time
@@ -1718,7 +1777,7 @@ def update(configuration: dict, state: dict):
             ):
                 for instrument_name in batch:
                     log_message(
-                        "info", "Fetching book data for {instrument_name}"
+                        "info", f"Fetching book data for {instrument_name}"
                     )
 
                     # Capture timestamp before making the request
@@ -1732,15 +1791,12 @@ def update(configuration: dict, state: dict):
                             # From request params
                             "timestamp": request_timestamp,
                             # Timestamp before request
-                            "depth": book_data.get(
-                                "depth"
-                            ),  # Order book depth
-                            "bids": json.dumps(
-                                book_data.get("bids", [])
-                            ),  # Bids as JSON string
-                            "asks": json.dumps(
-                                book_data.get("asks", [])
-                            ),  # Asks as JSON string
+                            # Order book depth
+                            "depth": book_data.get("depth"),
+                            # Bids as JSON string
+                            "bids": json.dumps(book_data.get("bids", [])),
+                            # Asks as JSON string
+                            "asks": json.dumps(book_data.get("asks", [])),
                         }
 
                         op.upsert(table="book", data=processed_entry)
@@ -1759,15 +1815,16 @@ def update(configuration: dict, state: dict):
                                     # From request params
                                     "timestamp": request_timestamp,
                                     # Timestamp before request
-                                    "depth": book_entry.get(
-                                        "depth"
-                                    ),  # Order book depth
+                                    # Order book depth
+                                    "depth": book_entry.get("depth"),
+                                    # Bids as JSON string
                                     "bids": json.dumps(
                                         book_entry.get("bids", [])
-                                    ),  # Bids as JSON string
+                                    ),
+                                    # Asks as JSON string
                                     "asks": json.dumps(
                                         book_entry.get("asks", [])
-                                    ),  # Asks as JSON string
+                                    ),
                                 }
 
                                 op.upsert(table="book", data=processed_entry)
@@ -1846,10 +1903,10 @@ def update(configuration: dict, state: dict):
                 "info",
                 message,
             )
-            all_instruments = [
-                inst["symbol"] for inst in instruments
-            ]  # Get all instruments
-            timeframes = ["1m", "5m", "1h"]  # Different timeframes
+            # Get all instruments
+            all_instruments = [inst["symbol"] for inst in instruments]
+            # Different timeframes
+            timeframes = ["1m", "5m", "1h"]
 
             candlestick_start_time = time.time()
             last_checkpoint_time = candlestick_start_time
@@ -1866,7 +1923,7 @@ def update(configuration: dict, state: dict):
                             f" {instrument_name}"
                         )
                         log_message(
-                            "info",
+                            "debug",
                             message,
                         )
                         candles = fetch_candlestick(
@@ -1880,14 +1937,18 @@ def update(configuration: dict, state: dict):
                                     # From request params
                                     "timeframe": timeframe,
                                     # From request params
-                                    "timestamp": candle.get(
-                                        "t"
-                                    ),  # Timestamp from candle data
-                                    "open": candle.get("o"),  # Open price
-                                    "high": candle.get("h"),  # High price
-                                    "low": candle.get("l"),  # Low price
-                                    "close": candle.get("c"),  # Close price
-                                    "volume": candle.get("v"),  # Volume
+                                    # Timestamp from candle data
+                                    "timestamp": candle.get("t"),
+                                    # Open price
+                                    "open": candle.get("o"),
+                                    # High price
+                                    "high": candle.get("h"),
+                                    # Low price
+                                    "low": candle.get("l"),
+                                    # Close price
+                                    "close": candle.get("c"),
+                                    # Volume
+                                    "volume": candle.get("v"),
                                 }
 
                                 op.upsert(
@@ -1977,7 +2038,7 @@ def update(configuration: dict, state: dict):
                 total_records += 1
 
             log_message(
-                "info", "Upserted {len(balances)} user balance records"
+                "info", f"Upserted {len(balances)} user balance records"
             )
             total_upserts += len(balances)
 
@@ -2010,9 +2071,8 @@ def update(configuration: dict, state: dict):
 
         # Use single API call to get all open
         # orders (more efficient than per-instrument calls)
-        all_open_orders = fetch_open_orders(
-            configuration
-        )  # No instrument_name = get all
+        # No instrument_name = get all
+        all_open_orders = fetch_open_orders(configuration)
 
         open_orders_duration = time.time() - open_orders_start_time
 
@@ -2034,7 +2094,7 @@ def update(configuration: dict, state: dict):
                 total_records += 1
 
             log_message(
-                "info", "Upserted {len(all_open_orders)} open order records"
+                "info", f"Upserted {len(all_open_orders)} open order records"
             )
             total_upserts += len(all_open_orders)
         else:
@@ -2077,7 +2137,8 @@ def update(configuration: dict, state: dict):
             start_time=order_history_last_sync,
             end_time=sync_start_time,
             limit=100,
-        )  # No instrument_name = get all
+            # No instrument_name = get all
+        )
 
         order_history_duration = time.time() - order_history_start_time
         message = (
@@ -2160,7 +2221,7 @@ def update(configuration: dict, state: dict):
             "order_history_last_sync": sync_start_time,
             # Store for incremental sync
         }
-        log_message("info", "Final state: {final_state}")
+        log_message("info", f"Final state: {final_state}")
 
         # Save the progress by checkpointing the state. This
         # is important for ensuring that the sync process
