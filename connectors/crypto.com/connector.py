@@ -82,18 +82,13 @@ def setup_file_logging(configuration: dict):
         file_handler.setLevel(logging.INFO)
 
         # Create formatter
-        formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(formatter)
 
         # Add handler to logger
         _file_logger.addHandler(file_handler)
 
-        log.info(
-            "File logging enabled - logs will be written to "
-            "crypto_connector.log"
-        )
+        log.info("File logging enabled - logs will be written to " "crypto_connector.log")
 
 
 def log_message(level: str, message: str):
@@ -153,7 +148,7 @@ def process_in_batches(
     )
 
     for i in range(0, len(items), batch_size):
-        batch = items[i:i + batch_size]
+        batch = items[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         log_message(
             "info",
@@ -166,15 +161,12 @@ def process_in_batches(
         if i + batch_size < len(items):
             log_message(
                 "info",
-                f"Rate limiting: waiting {__BATCH_DELAY}s before"
-                f" next batch",
+                f"Rate limiting: waiting {__BATCH_DELAY}s before" f" next batch",
             )
             time.sleep(__BATCH_DELAY)
 
 
-def should_checkpoint(
-    last_checkpoint_time: float, current_time: float
-) -> bool:
+def should_checkpoint(last_checkpoint_time: float, current_time: float) -> bool:
     """
     Check if a periodic checkpoint should be performed.
     Args:
@@ -209,9 +201,7 @@ def perform_periodic_checkpoint(
         "current_operation": operation_name,
     }
     op.checkpoint(checkpoint_state)
-    log_message(
-        "info", f"Periodic checkpoint during {operation_name}: {progress_info}"
-    )
+    log_message("info", f"Periodic checkpoint during {operation_name}: {progress_info}")
 
 
 def clean_order_data(order: dict) -> dict:
@@ -319,8 +309,7 @@ def validate_configuration(configuration: dict):
         configuration["hours_between_syncs"] = "12.0"
         log_message(
             "info",
-            "hours_between_syncs not found in configuration,"
-            " defaulting to 12.0 hours",
+            "hours_between_syncs not found in configuration," " defaulting to 12.0 hours",
         )
 
 
@@ -509,10 +498,7 @@ def make_authenticated_request(
     # Make request with retry logic using exponential backoff
     for attempt in range(__MAX_RETRIES):
         try:
-            message = (
-                f"Attempt {attempt + 1}/{__MAX_RETRIES} for"
-                f" {method} {endpoint}"
-            )
+            message = f"Attempt {attempt + 1}/{__MAX_RETRIES} for" f" {method} {endpoint}"
             log_message(
                 "info",
                 message,
@@ -520,17 +506,11 @@ def make_authenticated_request(
 
             if endpoint.startswith("/private/"):
                 # Private endpoints always use POST with JSON body
-                response = requests.post(
-                    url, headers=headers, data=body, timeout=30
-                )
+                response = requests.post(url, headers=headers, data=body, timeout=30)
             elif method.upper() == "GET":
-                response = requests.get(
-                    url, headers=headers, params=params, timeout=30
-                )
+                response = requests.get(url, headers=headers, params=params, timeout=30)
             else:
-                response = requests.post(
-                    url, headers=headers, json=data, timeout=30
-                )
+                response = requests.post(url, headers=headers, json=data, timeout=30)
 
             log_message("debug", f"Response status: {response.status_code}")
             log_message("debug", f"Response headers: {dict(response.headers)}")
@@ -538,10 +518,7 @@ def make_authenticated_request(
             # Log full response if status is not 200
             if response.status_code != 200:
                 try:
-                    message = (
-                        f"Non-200 response received. Full response:"
-                        f" {response.text}"
-                    )
+                    message = f"Non-200 response received. Full response:" f" {response.text}"
                     log_message(
                         "severe",
                         message,
@@ -561,19 +538,14 @@ def make_authenticated_request(
 
             response_data = response.json()
             if isinstance(response_data, dict):
-                message = (
-                    f"Response data keys:" f" {list(response_data.keys())}"
-                )
+                message = f"Response data keys:" f" {list(response_data.keys())}"
             else:
                 message = "Response data keys: Not a dict"
             log_message(
                 "debug",
                 message,
             )
-            message = (
-                f"Complete response JSON:"
-                f" {json.dumps(response_data, indent=2)}"
-            )
+            message = f"Complete response JSON:" f" {json.dumps(response_data, indent=2)}"
             log_message(
                 "debug",
                 message,
@@ -585,8 +557,7 @@ def make_authenticated_request(
             if attempt == __MAX_RETRIES - 1:
                 log_message(
                     "severe",
-                    f"Failed to make API request after {__MAX_RETRIES}"
-                    f" attempts: {str(e)}",
+                    f"Failed to make API request after {__MAX_RETRIES}" f" attempts: {str(e)}",
                 )
                 log_message("severe", f"Final URL: {url}")
                 log_message("severe", f"Final headers: {headers}")
@@ -621,12 +592,8 @@ def fetch_instruments(configuration: dict) -> List[Dict]:
     """
     try:
         log_message("info", "Starting instruments fetch...")
-        response = make_authenticated_request(
-            "GET", "/public/get-instruments", configuration
-        )
-        log_message(
-            "debug", f"Instruments response received: {type(response)}"
-        )
+        response = make_authenticated_request("GET", "/public/get-instruments", configuration)
+        log_message("debug", f"Instruments response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -642,10 +609,7 @@ def fetch_instruments(configuration: dict) -> List[Dict]:
             )
             if instruments:
                 if json.dumps(instruments[0]):
-                    message = (
-                        f"Sample instrument: "
-                        f"{json.dumps(instruments[0], indent=2)}"
-                    )
+                    message = f"Sample instrument: " f"{json.dumps(instruments[0], indent=2)}"
                 else:
                     message = "Sample instrument: No instruments"
 
@@ -655,9 +619,7 @@ def fetch_instruments(configuration: dict) -> List[Dict]:
                 )
             return instruments
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -677,9 +639,7 @@ def fetch_tickers(configuration: dict) -> List[Dict]:
     """
     try:
         log_message("info", "Starting tickers fetch...")
-        response = make_authenticated_request(
-            "GET", "/public/get-tickers", configuration
-        )
+        response = make_authenticated_request("GET", "/public/get-tickers", configuration)
         log_message("debug", f"Tickers response received: {type(response)}")
 
         if isinstance(response, dict):
@@ -689,9 +649,7 @@ def fetch_tickers(configuration: dict) -> List[Dict]:
             )
             result = response.get("result", {})
             tickers = result.get("data", [])
-            log_message(
-                "info", f"Extracted {len(tickers)} tickers from response"
-            )
+            log_message("info", f"Extracted {len(tickers)} tickers from response")
             if tickers:
                 sample_ticker = json.dumps(tickers[0], indent=2)
                 log_message(
@@ -700,9 +658,7 @@ def fetch_tickers(configuration: dict) -> List[Dict]:
                 )
             return tickers
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -712,9 +668,7 @@ def fetch_tickers(configuration: dict) -> List[Dict]:
         return []
 
 
-def fetch_trades(
-    configuration: dict, instrument_name: Optional[str] = None
-) -> List[Dict]:
+def fetch_trades(configuration: dict, instrument_name: Optional[str] = None) -> List[Dict]:
     """
     Fetch recent trades from Crypto.com API.
     Args:
@@ -724,10 +678,7 @@ def fetch_trades(
         List of trade data
     """
     try:
-        message = (
-            f"Starting trades fetch for instrument:"
-            f" {instrument_name or 'all'}"
-        )
+        message = f"Starting trades fetch for instrument:" f" {instrument_name or 'all'}"
         log_message(
             "info",
             message,
@@ -739,9 +690,7 @@ def fetch_trades(
         if instrument_name:
             params["instrument_name"] = instrument_name
 
-        response = make_authenticated_request(
-            "GET", endpoint, configuration, params=params
-        )
+        response = make_authenticated_request("GET", endpoint, configuration, params=params)
         log_message("debug", f"Trades response received: {type(response)}")
 
         if isinstance(response, dict):
@@ -755,9 +704,7 @@ def fetch_trades(
             log_message("debug", f"Extracted {trade_len} trades from response")
             if trades:
                 if json.dumps(trades[0]):
-                    message = (
-                        f"Sample trade:" f" {json.dumps(trades[0], indent=2)}"
-                    )
+                    message = f"Sample trade:" f" {json.dumps(trades[0], indent=2)}"
                 else:
                     message = "Sample trade: No trades"
                 log_message(
@@ -766,9 +713,7 @@ def fetch_trades(
                 )
             return trades
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -778,9 +723,7 @@ def fetch_trades(
         return []
 
 
-def fetch_book(
-    configuration: dict, instrument_name: str, depth: int = 50
-) -> Dict:
+def fetch_book(configuration: dict, instrument_name: str, depth: int = 50) -> Dict:
     """
     Fetch order book data from Crypto.com API.
     Args:
@@ -813,16 +756,12 @@ def fetch_book(
             log_message("info", f"Extracted book data for {instrument_name}")
             return book_data
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return {}
 
     except Exception as e:
-        log_message(
-            "severe", f"Error fetching book for {instrument_name}: {str(e)}"
-        )
+        log_message("severe", f"Error fetching book for {instrument_name}: {str(e)}")
         log_message("severe", f"Exception type: {type(e).__name__}")
         return {}
 
@@ -846,8 +785,7 @@ def fetch_candlestick(
     try:
         log_message(
             "info",
-            f"Starting candlestick fetch for {instrument_name}"
-            f" with timeframe {timeframe}",
+            f"Starting candlestick fetch for {instrument_name}" f" with timeframe {timeframe}",
         )
 
         params = {
@@ -859,9 +797,7 @@ def fetch_candlestick(
         response = make_authenticated_request(
             "GET", "/public/get-candlestick", configuration, params=params
         )
-        log_message(
-            "debug", f"Candlestick response received: {type(response)}"
-        )
+        log_message("debug", f"Candlestick response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -870,9 +806,7 @@ def fetch_candlestick(
             )
             result = response.get("result", {})
             candles = result.get("data", [])
-            log_message(
-                "info", f"Extracted {len(candles)} candles from response"
-            )
+            log_message("info", f"Extracted {len(candles)} candles from response")
             if candles:
                 sample_candle = json.dumps(candles[0], indent=2)
                 log_message(
@@ -881,9 +815,7 @@ def fetch_candlestick(
                 )
             return candles
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -910,9 +842,7 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
         response = make_authenticated_request(
             "POST", "/private/user-balance", configuration, data={}
         )
-        log_message(
-            "debug", f"User balance response received: {type(response)}"
-        )
+        log_message("debug", f"User balance response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -930,9 +860,7 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                     # Extract position_balances from each account
                     all_balances = []
                     for account in data:
-                        position_balances = account.get(
-                            "position_balances", []
-                        )
+                        position_balances = account.get("position_balances", [])
                         for balance in position_balances:
                             # Add account-level data to each position balance
                             balance_record = balance.copy()
@@ -941,51 +869,31 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                                     "total_available_balance": account.get(
                                         "total_available_balance"
                                     ),
-                                    "total_margin_balance": account.get(
-                                        "total_margin_balance"
-                                    ),
-                                    "total_initial_margin": account.get(
-                                        "total_initial_margin"
-                                    ),
-                                    "total_position_im": account.get(
-                                        "total_position_im"
-                                    ),
-                                    "total_haircut": account.get(
-                                        "total_haircut"
-                                    ),
+                                    "total_margin_balance": account.get("total_margin_balance"),
+                                    "total_initial_margin": account.get("total_initial_margin"),
+                                    "total_position_im": account.get("total_position_im"),
+                                    "total_haircut": account.get("total_haircut"),
                                     "total_maintenance_margin": account.get(
                                         "total_maintenance_margin"
                                     ),
-                                    "total_position_cost": account.get(
-                                        "total_position_cost"
-                                    ),
-                                    "total_cash_balance": account.get(
-                                        "total_cash_balance"
-                                    ),
+                                    "total_position_cost": account.get("total_position_cost"),
+                                    "total_cash_balance": account.get("total_cash_balance"),
                                     "total_collateral_value": account.get(
                                         "total_collateral_value"
                                     ),
                                     "total_unrealized_pnl": account.get(
                                         "total_session_unrealized_pnl"
                                     ),
-                                    "account_instrument_name": account.get(
-                                        "instrument_name"
-                                    ),
+                                    "account_instrument_name": account.get("instrument_name"),
                                     "total_session_realized_pnl": account.get(
                                         "total_session_realized_pnl"
                                     ),
-                                    "is_liquidating": account.get(
-                                        "is_liquidating"
-                                    ),
+                                    "is_liquidating": account.get("is_liquidating"),
                                     "total_effective_leverage": account.get(
                                         "total_effective_leverage"
                                     ),
-                                    "position_limit": account.get(
-                                        "position_limit"
-                                    ),
-                                    "used_position_limit": account.get(
-                                        "used_position_limit"
-                                    ),
+                                    "position_limit": account.get("position_limit"),
+                                    "used_position_limit": account.get("used_position_limit"),
                                 }
                             )
                             all_balances.append(balance_record)
@@ -1000,8 +908,7 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                     if all_balances:
                         if json.dumps(all_balances[0]):
                             message = (
-                                f"Sample balance:"
-                                f" {json.dumps(all_balances[0], indent=2)}"
+                                f"Sample balance:" f" {json.dumps(all_balances[0], indent=2)}"
                             )
                         else:
                             message = "Sample balance: No balances"
@@ -1018,14 +925,10 @@ def fetch_user_balance(configuration: dict) -> List[Dict]:
                     )
                     return []
             else:
-                log_message(
-                    "warning", f"Unexpected response format: {response}"
-                )
+                log_message("warning", f"Unexpected response format: {response}")
                 return []
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -1049,9 +952,7 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
         response = make_authenticated_request(
             "POST", "/private/get-positions", configuration, data={}
         )
-        log_message(
-            "info", f"User positions response received: {type(response)}"
-        )
+        log_message("info", f"User positions response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -1075,10 +976,7 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
                     )
                     if positions:
                         if json.dumps(positions[0]):
-                            message = (
-                                f"Sample position:"
-                                f" {json.dumps(positions[0], indent=2)}"
-                            )
+                            message = f"Sample position:" f" {json.dumps(positions[0], indent=2)}"
                         else:
                             message = "Sample position: No positions"
                         log_message(
@@ -1097,14 +995,10 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
                     )
                     return []
             else:
-                log_message(
-                    "warning", f"Unexpected response format: {response}"
-                )
+                log_message("warning", f"Unexpected response format: {response}")
                 return []
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -1114,9 +1008,7 @@ def fetch_user_positions(configuration: dict) -> List[Dict]:
         return []
 
 
-def fetch_open_orders(
-    configuration: dict, instrument_name: str = None
-) -> List[Dict]:
+def fetch_open_orders(configuration: dict, instrument_name: str = None) -> List[Dict]:
     """
     Fetch open orders from Crypto.com API.
     Args:
@@ -1128,22 +1020,16 @@ def fetch_open_orders(
     """
     try:
         if instrument_name:
-            log_message(
-                "info", f"Starting open orders fetch for {instrument_name}..."
-            )
+            log_message("info", f"Starting open orders fetch for {instrument_name}...")
             params = {"instrument_name": instrument_name}
         else:
-            log_message(
-                "info", "Starting open orders fetch for all instruments..."
-            )
+            log_message("info", "Starting open orders fetch for all instruments...")
             params = {}
 
         response = make_authenticated_request(
             "POST", "/private/get-open-orders", configuration, data=params
         )
-        log_message(
-            "debug", f"Open orders response received: {type(response)}"
-        )
+        log_message("debug", f"Open orders response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -1167,10 +1053,7 @@ def fetch_open_orders(
                     )
                     if orders:
                         if json.dumps(orders[0]):
-                            message = (
-                                f"Sample order:"
-                                f" {json.dumps(orders[0], indent=2)}"
-                            )
+                            message = f"Sample order:" f" {json.dumps(orders[0], indent=2)}"
                         else:
                             message = "Sample order: No orders"
                         log_message(
@@ -1189,14 +1072,10 @@ def fetch_open_orders(
                     )
                     return []
             else:
-                log_message(
-                    "warning", f"Unexpected response format: {response}"
-                )
+                log_message("warning", f"Unexpected response format: {response}")
                 return []
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -1228,18 +1107,14 @@ def fetch_order_history(
     try:
         if instrument_name:
             message = (
-                f"Starting order history fetch for {instrument_name}"
-                f" with limit {limit}..."
+                f"Starting order history fetch for {instrument_name}" f" with limit {limit}..."
             )
             log_message(
                 "info",
                 message,
             )
         else:
-            message = (
-                f"Starting order history fetch for all instruments"
-                f" with limit {limit}..."
-            )
+            message = f"Starting order history fetch for all instruments" f" with limit {limit}..."
             log_message(
                 "info",
                 message,
@@ -1249,10 +1124,7 @@ def fetch_order_history(
         if start_time is not None:
             # Convert from seconds to nanoseconds for API
             start_time_ns = int(start_time * 1000000000)
-            message = (
-                f"Using incremental sync start time"
-                f": {start_time} ({start_time_ns} ns)"
-            )
+            message = f"Using incremental sync start time" f": {start_time} ({start_time_ns} ns)"
             log_message(
                 "info",
                 message,
@@ -1260,10 +1132,7 @@ def fetch_order_history(
         else:
             # Default to 30 days ago if no start time provided
             start_time_ns = int((time.time() - 60 * 24 * 3600) * 1000000000)
-            message = (
-                f"No start time provided, using default"
-                f" 30 days ago: {start_time_ns} ns"
-            )
+            message = f"No start time provided, using default" f" 30 days ago: {start_time_ns} ns"
             log_message(
                 "info",
                 message,
@@ -1272,10 +1141,7 @@ def fetch_order_history(
         if end_time is not None:
             # Convert from seconds to nanoseconds for API
             end_time_ns = int(end_time * 1000000000)
-            message = (
-                f"Using incremental sync end time"
-                f": {end_time} ({end_time_ns} ns)"
-            )
+            message = f"Using incremental sync end time" f": {end_time} ({end_time_ns} ns)"
             log_message(
                 "info",
                 message,
@@ -1302,9 +1168,7 @@ def fetch_order_history(
         response = make_authenticated_request(
             "POST", "/private/get-order-history", configuration, data=params
         )
-        log_message(
-            "info", f"Order history response received: {type(response)}"
-        )
+        log_message("info", f"Order history response received: {type(response)}")
 
         if isinstance(response, dict):
             log_message(
@@ -1328,10 +1192,7 @@ def fetch_order_history(
                     )
                     if orders:
                         if json.dumps(orders[0]):
-                            message = (
-                                f"Sample order:"
-                                f" {json.dumps(orders[0], indent=2)}"
-                            )
+                            message = f"Sample order:" f" {json.dumps(orders[0], indent=2)}"
                         else:
                             message = "Sample order: No orders"
                         log_message(
@@ -1350,14 +1211,10 @@ def fetch_order_history(
                     )
                     return []
             else:
-                log_message(
-                    "warning", f"Unexpected response format: {response}"
-                )
+                log_message("warning", f"Unexpected response format: {response}")
                 return []
         else:
-            log_message(
-                "warning", f"Unexpected response type: {type(response)}"
-            )
+            log_message("warning", f"Unexpected response type: {type(response)}")
             log_message("warning", f"Response content: {response}")
             return []
 
@@ -1472,22 +1329,16 @@ def update(configuration: dict, state: dict):
     # Get the state variable for the sync, if needed
     endpoints_last_sync_time = state.get("endpoints_last_sync_time", {})
     sync_start_time = time.time()
-    log_message(
-        "info", f"Endpoints last sync times: {endpoints_last_sync_time}"
-    )
+    log_message("info", f"Endpoints last sync times: {endpoints_last_sync_time}")
     log_message("info", f"Sync start time: {sync_start_time}")
 
     # Parse hours_between_syncs from configuration
-    hours_between_syncs = float(
-        configuration.get("hours_between_syncs", "12.0")
-    )
+    hours_between_syncs = float(configuration.get("hours_between_syncs", "12.0"))
     log_message("info", f"Hours between syncs: {hours_between_syncs}")
 
     # Track completed endpoints from previous runs
     completed_endpoints = state.get("completed_endpoints", [])
-    log_message(
-        "info", f"Previously completed endpoints: {completed_endpoints}"
-    )
+    log_message("info", f"Previously completed endpoints: {completed_endpoints}")
 
     # Track operation counts for logging
     total_upserts = 0
@@ -1533,9 +1384,7 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="instrument", data=instrument)
                 total_records += 1
 
-            log_message(
-                "info", f"Upserted {len(instruments)} instrument records"
-            )
+            log_message("info", f"Upserted {len(instruments)} instrument records")
             total_upserts += len(instruments)
 
             # Checkpoint after instruments endpoint
@@ -1546,8 +1395,7 @@ def update(configuration: dict, state: dict):
             }
             op.checkpoint(instruments_state)
             message = (
-                "Checkpointed after instruments endpoint with sync time"
-                f" {sync_start_time}"
+                "Checkpointed after instruments endpoint with sync time" f" {sync_start_time}"
             )
             log_message(
                 "info",
@@ -1559,9 +1407,7 @@ def update(configuration: dict, state: dict):
         if not should_sync_endpoint(
             "tickers", tickers_last_sync, hours_between_syncs, sync_start_time
         ):
-            log_message(
-                "info", "Skipping tickers endpoint - not enough time elapsed"
-            )
+            log_message("info", "Skipping tickers endpoint - not enough time elapsed")
             tickers = []
         else:
             # Fetch tickers
@@ -1620,10 +1466,7 @@ def update(configuration: dict, state: dict):
                 "completed_endpoints": ["instruments", "tickers"],
             }
             op.checkpoint(tickers_state)
-            message = (
-                "Checkpointed after tickers"
-                f" endpoint with sync time {sync_start_time}"
-            )
+            message = "Checkpointed after tickers" f" endpoint with sync time {sync_start_time}"
             log_message(
                 "info",
                 message,
@@ -1634,9 +1477,7 @@ def update(configuration: dict, state: dict):
         if not should_sync_endpoint(
             "trades", trades_last_sync, hours_between_syncs, sync_start_time
         ):
-            log_message(
-                "info", "Skipping trades endpoint - not enough time elapsed"
-            )
+            log_message("info", "Skipping trades endpoint - not enough time elapsed")
         elif instruments:
             log_message(
                 "info",
@@ -1650,15 +1491,11 @@ def update(configuration: dict, state: dict):
             total_trades_processed = 0
             processed_instruments = 0
 
-            for batch in process_in_batches(
-                all_instruments, __BATCH_SIZE, "trades"
-            ):
+            for batch in process_in_batches(all_instruments, __BATCH_SIZE, "trades"):
                 batch_trades = []
 
                 for instrument_name in batch:
-                    log_message(
-                        "info", f"Fetching trades for {instrument_name}"
-                    )
+                    log_message("info", f"Fetching trades for {instrument_name}")
                     trades = fetch_trades(configuration, instrument_name)
                     if trades:
                         batch_trades.extend(trades)
@@ -1737,10 +1574,7 @@ def update(configuration: dict, state: dict):
                 "completed_endpoints": ["instruments", "tickers", "trades"],
             }
             op.checkpoint(trades_state)
-            message = (
-                "Checkpointed after trades"
-                f" endpoint with sync time {sync_start_time}"
-            )
+            message = "Checkpointed after trades" f" endpoint with sync time {sync_start_time}"
             log_message(
                 "info",
                 message,
@@ -1756,10 +1590,7 @@ def update(configuration: dict, state: dict):
                 "Skipping order book endpoint - not enough time elapsed",
             )
         elif instruments:
-            message = (
-                "Fetching order book data for"
-                " all instruments with rate limiting..."
-            )
+            message = "Fetching order book data for" " all instruments with rate limiting..."
             log_message(
                 "info",
                 message,
@@ -1772,13 +1603,9 @@ def update(configuration: dict, state: dict):
             book_count = 0
             processed_instruments = 0
 
-            for batch in process_in_batches(
-                all_instruments, __BATCH_SIZE, "order book"
-            ):
+            for batch in process_in_batches(all_instruments, __BATCH_SIZE, "order book"):
                 for instrument_name in batch:
-                    log_message(
-                        "info", f"Fetching book data for {instrument_name}"
-                    )
+                    log_message("info", f"Fetching book data for {instrument_name}")
 
                     # Capture timestamp before making the request
                     request_timestamp = int(time.time() * 1000)
@@ -1802,9 +1629,7 @@ def update(configuration: dict, state: dict):
                         op.upsert(table="book", data=processed_entry)
                         total_records += 1
                         book_count += 1
-                    elif (
-                        book_data and isinstance(book_data, list) and len(book_data) > 0
-                    ):
+                    elif book_data and isinstance(book_data, list) and len(book_data) > 0:
                         # Handle case where book_data is a list
                         for book_entry in book_data:
                             if isinstance(book_entry, dict):
@@ -1816,13 +1641,9 @@ def update(configuration: dict, state: dict):
                                     # Order book depth
                                     "depth": book_entry.get("depth"),
                                     # Bids as JSON string
-                                    "bids": json.dumps(
-                                        book_entry.get("bids", [])
-                                    ),
+                                    "bids": json.dumps(book_entry.get("bids", [])),
                                     # Asks as JSON string
-                                    "asks": json.dumps(
-                                        book_entry.get("asks", [])
-                                    ),
+                                    "asks": json.dumps(book_entry.get("asks", [])),
                                 }
 
                                 op.upsert(table="book", data=processed_entry)
@@ -1871,10 +1692,7 @@ def update(configuration: dict, state: dict):
                 ],
             }
             op.checkpoint(book_state)
-            message = (
-                "Checkpointed after order book"
-                f" endpoint with sync time {sync_start_time}"
-            )
+            message = "Checkpointed after order book" f" endpoint with sync time {sync_start_time}"
             log_message(
                 "info",
                 message,
@@ -1893,10 +1711,7 @@ def update(configuration: dict, state: dict):
                 "Skipping candlestick endpoint - not enough time elapsed",
             )
         elif instruments:
-            message = (
-                "Fetching candlestick data for"
-                " all instruments with rate limiting..."
-            )
+            message = "Fetching candlestick data for" " all instruments with rate limiting..."
             log_message(
                 "info",
                 message,
@@ -1911,14 +1726,11 @@ def update(configuration: dict, state: dict):
             candlestick_count = 0
             processed_instruments = 0
 
-            for batch in process_in_batches(
-                all_instruments, __BATCH_SIZE, "candlestick"
-            ):
+            for batch in process_in_batches(all_instruments, __BATCH_SIZE, "candlestick"):
                 for instrument_name in batch:
                     for timeframe in timeframes:
                         message = (
-                            f"Fetching {timeframe} candlestick data for"
-                            f" {instrument_name}"
+                            f"Fetching {timeframe} candlestick data for" f" {instrument_name}"
                         )
                         log_message(
                             "debug",
@@ -1949,9 +1761,7 @@ def update(configuration: dict, state: dict):
                                     "volume": candle.get("v"),
                                 }
 
-                                op.upsert(
-                                    table="candlestick", data=processed_candle
-                                )
+                                op.upsert(table="candlestick", data=processed_candle)
                                 total_records += 1
                                 candlestick_count += 1
 
@@ -2001,8 +1811,7 @@ def update(configuration: dict, state: dict):
             }
             op.checkpoint(candlestick_state)
             message = (
-                "Checkpointed after candlestick"
-                f" endpoint with sync time {sync_start_time}"
+                "Checkpointed after candlestick" f" endpoint with sync time {sync_start_time}"
             )
             log_message(
                 "info",
@@ -2035,9 +1844,7 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="user_balance", data=cleaned_balance)
                 total_records += 1
 
-            log_message(
-                "info", f"Upserted {len(balances)} user balance records"
-            )
+            log_message("info", f"Upserted {len(balances)} user balance records")
             total_upserts += len(balances)
 
             # Checkpoint after user balance endpoint
@@ -2055,8 +1862,7 @@ def update(configuration: dict, state: dict):
             }
             op.checkpoint(balance_state)
             message = (
-                "Checkpointed after user balance"
-                f" endpoint with sync time {sync_start_time}"
+                "Checkpointed after user balance" f" endpoint with sync time {sync_start_time}"
             )
             log_message(
                 "info",
@@ -2091,9 +1897,7 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="open_order", data=cleaned_order)
                 total_records += 1
 
-            log_message(
-                "info", f"Upserted {len(all_open_orders)} open order records"
-            )
+            log_message("info", f"Upserted {len(all_open_orders)} open order records")
             total_upserts += len(all_open_orders)
         else:
             log_message("info", "No open orders found across all instruments")
@@ -2113,10 +1917,7 @@ def update(configuration: dict, state: dict):
             ],
         }
         op.checkpoint(open_orders_state)
-        message = (
-            "Checkpointed after open orders"
-            f" endpoint with sync time {sync_start_time}"
-        )
+        message = "Checkpointed after open orders" f" endpoint with sync time {sync_start_time}"
         log_message(
             "info",
             message,
@@ -2162,9 +1963,7 @@ def update(configuration: dict, state: dict):
             )
             total_upserts += len(all_order_history)
         else:
-            log_message(
-                "info", "No order history found across all instruments"
-            )
+            log_message("info", "No order history found across all instruments")
 
         # Checkpoint after order history endpoint
         endpoints_last_sync_time["order_history"] = sync_start_time
@@ -2184,10 +1983,7 @@ def update(configuration: dict, state: dict):
             # Store for incremental sync
         }
         op.checkpoint(order_history_state)
-        message = (
-            "Checkpointed after order history"
-            f" endpoint with sync time {sync_start_time}"
-        )
+        message = "Checkpointed after order history" f" endpoint with sync time {sync_start_time}"
         log_message(
             "info",
             message,
