@@ -25,6 +25,7 @@ from datetime import datetime, timezone, timedelta  # For handling date and time
 
 __TOKEN_EXPIRY_TIME = 3600  # Token expiry time in seconds (60 minutes)
 __BASE_URL = "http://127.0.0.1:5001/auth/session_token"  # URL for getting session token
+__UPDATE_BASE_URL = "https://api.fivetran.com/v1/connections"
 
 
 def schema(configuration: dict):
@@ -61,9 +62,9 @@ def validate_configuration(configuration: dict):
 
     # Validate required configuration parameters
     required_configs = ["username", "password", "fivetran_api_key"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    missing = [key for key in required_configs if key not in configuration]
+    if missing:
+        raise ValueError(f"Missing required configuration value(s): {', '.join(missing)}")
 
 
 def update(configuration: dict, state: dict):
@@ -101,9 +102,11 @@ def update_configuration(config, new_token):
     fivetran_api_key = config.get("fivetran_api_key")
     # You can get the connection id during the runtime from environment variable
     connection_id = os.environ.get("FIVETRAN_CONNECTION_ID")
-    url = f"https://api.fivetran.com/v1/connections/{connection_id}"
+    update_url = f"{__UPDATE_BASE_URL}/{connection_id}"
 
     # updating the configuration values as per the required format of Fivetran API
+    # Ensure that the entire configuration needs to be passed as payload while calling the Fivetran REST API endpoint,
+    # and it will override all the keys present.
     # For reference check the Fivetran REST API documentation
     # https://fivetran.com/docs/rest-api/api-reference/connections/modify-connection?service=connector_sdk
     payload = {
@@ -121,7 +124,7 @@ def update_configuration(config, new_token):
     }
 
     # Making a PATCH request to the Fivetran API to update the configuration
-    response = rq.request("PATCH", url, json=payload, headers=headers)
+    response = rq.patch(update_url, json=payload, headers=headers)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     log.info(f"Configuration updated successfully with new token: {response.json()}")
 

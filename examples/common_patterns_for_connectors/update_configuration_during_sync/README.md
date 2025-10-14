@@ -1,7 +1,7 @@
 # Updating Configuration During Sync Connector Example
 
 ## Connector overview
-This example demonstrates how to update the configuration values using Fivetran REST API during a sync. It simulates a login flow where credentials are exchanged for a temporary session token, which is then used to authorize subsequent API requests. This temporary session token is updated in the configuration using the Fivetran REST API during the sync. The connector retrieves user records and upserts them into a destination table named `USER`.
+This example demonstrates how to update the configuration values using [Fivetran REST API](https://fivetran.com/docs/rest-api/api-reference/connections/modify-connection?service=connector_sdk) during a sync. It simulates a login flow where credentials are exchanged for a temporary session token, which is then used to authorize subsequent API requests. This temporary session token is updated in the configuration using the Fivetran REST API during the sync. The connector retrieves user records and upserts them into a destination table named `USER`.
 
 This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock API responses locally. It is not meant for production use.
 
@@ -40,6 +40,8 @@ The connector requires the following configuration parameters:
 ```
 
 The configuration also includes the `token` key. The value of the `token` key is updated during the sync process using Fivetran REST API.
+
+> Ensure that the entire configuration needs to be passed as payload while calling the Fivetran REST API endpoint, and it will override all the keys present.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
