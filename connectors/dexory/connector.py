@@ -1,6 +1,7 @@
 """
-Fivetran Connector for Dexory Inventory API
-Fetches inventory scan data from a single site
+This example fetches inventory scan data from a single site using Dexory Inventory API
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For JSON serialization
@@ -265,7 +266,7 @@ def update(configuration: dict, state: dict) -> None:
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Dexory")
+    log.warning("Example: Source Examples - Dexory")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -315,7 +316,10 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
-        {"table": "location", "primary_key": ["name", "location_type", "aisle", "scan_date"]},
+        {
+            "table": "location", 
+            "primary_key": ["name", "location_type", "aisle", "scan_date"]
+        },
         {
             "table": "expected_inventory_object"
             # No primary key by design. FK fields will be added to each record,
@@ -325,7 +329,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     ]
 
 
-# Create connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
