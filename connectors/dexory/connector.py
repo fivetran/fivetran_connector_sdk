@@ -265,7 +265,7 @@ def update(configuration: dict, state: dict) -> None:
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Dexory")
+    log.warning("Example: Source Examples - Dexory")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
