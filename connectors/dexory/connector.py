@@ -316,10 +316,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
-        {
-            "table": "location", 
-            "primary_key": ["name", "location_type", "aisle", "scan_date"]
-        },
+        {"table": "location", "primary_key": ["name", "location_type", "aisle", "scan_date"]},
         {
             "table": "expected_inventory_object"
             # No primary key by design. FK fields will be added to each record,
