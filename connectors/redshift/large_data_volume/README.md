@@ -38,7 +38,7 @@ The configuration file (`configuration.json`) contains the necessary parameters 
   "redshift_schema": "<YOUR_REDSHIFT_SCHEMA>",
   "batch_size": "<YOUR_BATCH_SIZE_FOR_FETCHING_DATA>",
   "auto_schema_detection": "<ENABLE_OR_DISABLE_AUTO_SCHEMA_DETECTION>",
-  "enable_complete_resync": "<ENABLE_OR_DISABLE_COMPLETE_RESYNC>",
+  "enable_complete_resync": "<ENABLE_OR_DISABLE_FULL_RESYNC_DURING_EACH_SYNC>",
   "max_parallel_workers": "<NUMBER_OF_PARALLEL_WORKERS>"
 }
 ```
@@ -51,7 +51,7 @@ The parameters include:
 - `redshift_schema`: The schema within the Redshift database to extract data from.
 - `batch_size`: The number of rows to fetch in each batch during data extraction.
 - `auto_schema_detection`: A boolean flag to enable or disable automatic schema detection. To enable automatic schema detection, set this parameter to `true`. To pass the source schema manually using the `table_spec.py`, set this parameter to `false`.
-- `enable_complete_resync`: A boolean flag to enable or disable complete resync for all the tables. This flag allows the sync to run as historical sync everytime. To enable complete resync, set this parameter to `true`. To disable it, set this parameter to `false`.
+- `enable_complete_resync`: A boolean flag that defines whether each sync is a [full re-sync](https://fivetran.com/docs/using-fivetran/features#fullresync).
 - `max_parallel_workers`: The maximum number of parallel workers to use for data extraction. We recommend setting this value between 2 and 4. Setting it too high may lead to potential performance degradation.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
