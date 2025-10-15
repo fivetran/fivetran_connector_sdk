@@ -62,7 +62,7 @@ For CSV data processing, the connector handles multiple files within ZIP archive
 ## Data handling
 The connector processes data through several stages:
 
-1. **Export metadata retrieval**: Fetches export list from the API and stores metadata in the `export_list_metadata` table
+1. **Export metadata retrieval**: Fetches export list from the API and stores metadata in the `export_list_metadata` table.
 2. **Active export filtering**: Identifies exports with 'active' status for further processing
 3. **Detailed metadata extraction**: Retrieves comprehensive metadata for active exports and stores in `active_export_metadata` table
 4. **CSV file processing**: Downloads ZIP files, extracts CSV content, and processes data into structured tables
