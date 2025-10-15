@@ -382,6 +382,10 @@ def update(configuration: Dict[str, str], state: Dict[str, Any]):
             if export_info:
                 _process_export_file(export_info)
 
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state={"last_sync_timestamp": current_sync})
         log.info("Sync completed successfully")
 
