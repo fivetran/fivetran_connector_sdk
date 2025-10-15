@@ -244,7 +244,7 @@ def _get_exports_to_process(
 
 def _process_export_metadata(
     export: Dict[str, Any], base_url: str, headers: Dict[str, str], auth: tuple, current_sync: str
-) -> Dict[str, Any]:
+) -> dict[str, str | None | Any] | None:
     """Process export metadata and return export details."""
     export_id = export.get("Id")
     if not export_id:
