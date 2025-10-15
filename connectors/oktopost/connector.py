@@ -235,6 +235,10 @@ def _get_exports_to_process(
 
     # Store export list metadata
     for export in exports:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="export_list_metadata", data={**export, "sync_timestamp": current_sync})
 
     active_exports = [export for export in exports if export.get("Status") == "active"]
@@ -301,6 +305,10 @@ def _process_zip_file(file_response: requests.Response, export_id: str) -> None:
         rows = process_csv_data(csv_file["content"], original_filename, export_id)
 
         for row in rows:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table=table_name, data=row)
         log.info(f"Processed {len(rows)} rows for table {table_name} from {csv_file['filename']}")
 
