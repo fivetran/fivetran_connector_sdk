@@ -328,7 +328,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     ]
 
 
-# Create connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
