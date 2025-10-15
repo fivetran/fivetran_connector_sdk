@@ -36,10 +36,7 @@ The connector requires the following configuration parameters in the configurati
 {
     "site_name": "<YOUR_SITE_NAME>",
     "site_api_key": "<YOUR_SITE_API_KEY>",
-    "base_url": "https://api.service.dexoryview.com",
-    "max_pages": "1000",
-    "page_size": "1000",
-    "base_retry_delay_seconds": "2"
+    "base_url": "https://api.service.dexoryview.com"
 }
 ```
 
@@ -118,13 +115,13 @@ The connector implements comprehensive error handling strategies across multiple
 
 The connector creates two related tables in your data warehouse:
 
-### 1. **locations**
+### 1. **LOCATIONS**
 - **Purpose**: Contains location metadata and scan information
 - **Primary Key**: `["name", "location_type", "aisle", "scan_date"]`
 - **Content**: Location details, scan timestamps, and metadata
 - **Data Source**: `/customer-api/v1/locations` endpoint
 
-### 2. **expected_inventory_objects**
+### 2. **EXPECTED_INVENTORY_OBJECTS**
 - **Purpose**: Contains individual inventory objects associated with each location
 - **Primary Key**: `_fivetran_id` (auto-generated hash of all fields)
 - **Content**: Inventory object details with foreign key references to parent location
