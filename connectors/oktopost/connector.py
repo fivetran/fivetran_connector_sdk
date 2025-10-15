@@ -398,14 +398,8 @@ def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    return [
-        {
-            "table": "active_export_metadata"
-        },
-        {
-            "table": "export_list_metadata"
-        }
-    ]    
+    return [{"table": "active_export_metadata"}, {"table": "export_list_metadata"}]
+
 
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
