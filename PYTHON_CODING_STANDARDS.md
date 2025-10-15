@@ -1,8 +1,8 @@
 # Introduction
 
-This document defines coding standards to ensure consistency and maintainability in our Python examples codebase. Adhering to these guidelines will make our code easier to read and understand and reduce the likelihood of errors and bugs.
+This document defines coding standards to ensure consistency and maintainability in our Connector SDK Python examples codebase. Adhering to these guidelines will make our code easier to read and understand and reduce the likelihood of errors and bugs.
 
-## Style guide
+## Coding style guide
 
 Please refer to the official [PEP8 style guide](https://peps.python.org/pep-0008/) for detailed guidelines. PEP8 is continuously updated to reflect any new changes introduced to the Python programming language.
 
@@ -12,15 +12,15 @@ Make sure to also read [PEP257](https://peps.python.org/pep-0257/) for docstring
 
 We use [flake8](https://pypi.org/project/flake8/) for linting, i.e., analyzing source code to identify potential errors, stylistic issues, and deviations from coding standards.
 
-You can install flake8 via
+You can install flake8 with:
 
 ```bash
 pip install flake8
 ```
 
-This repository, already contains `.flake8` config file at the root level, which scans only interesting errors and without too much noise.
+This repository, already contains the `.flake8` config file at the root level, which scans only relevant errors without too much noise.
 
-The PRs also have automation, to print the errors after each commit, which can ensure our examples in the repository are healthy.
+The PRs also have an automation which prints the errors after each commit. This maintains the health of our examples in the repository.
 
 ## Formatting
 
@@ -31,7 +31,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 We follow these general principles for naming in our code:
 
-### 1. A name expresses a single concept or intention.
+### 1. A name expresses a single concept or intention
 
 ```python
 # Bad: Does not express any concept
@@ -54,7 +54,7 @@ def process_items(items):
 
 ```
 
-### 2. A name is as short as possible yet descriptive.
+### 2. A name is as short as possible yet descriptive
 
 ```python
 # Bad: Too long and hard to scan quickly
@@ -65,7 +65,7 @@ should_notify_if_state_mutates = True
 
 ```
 
-### 3. Abbreviations are avoided unless it's an industry standard abbreviation (HTTP, ELT, DB, etc.). 
+### 3. Abbreviations are avoided unless it's an industry standard abbreviation (such as HTTP, ELT, and DB)
 
 ```python
 # Bad: Avoid non-standard abbreviations
@@ -80,7 +80,7 @@ operation_timestamp = get_current_timestamp()
 
 ```
 
-### 4. A name does not contain implementation details.
+### 4. A name does not contain implementation details
 
 ```python
 # Bad: Exposing implementation details (should be avoided)
@@ -95,7 +95,7 @@ items = []                                # concise and descriptive
 
 ```
 
-### 5. If an entity encapsulates a well-known pattern or algorithm, it is recommended to reflect it in its name.
+### 5. If an entity encapsulates a well-known pattern or algorithm, it is recommended to reflect it in its name
 
 ```python
 # Bad: Generic helper name — hides the design intent
@@ -122,7 +122,7 @@ class WriterQueue:
 
 ```
 
-### 6. Antonyms are used for opposing entities.
+### 6. Antonyms are used for opposing entities
 
 ```python
 # Bad: Mismatched antonyms
@@ -143,7 +143,7 @@ last_element = items[-1]
 
 ## Directories
 
-The directories should only be named in `lowercase_with_underscores`
+Directories must be named in `lowercase_with_underscores`.
 
 ```python
 # Bad: Names
@@ -156,7 +156,7 @@ examples/quickstart_examples/multiple_code_files
 
 ## Classes
 
-### 1. Class names are UpperCamelCase.
+### 1. Class names are UpperCamelCase
 
 ```python
 # Bad: Not UpperCamelCase
@@ -172,7 +172,7 @@ class AwsCredentialsProvider:
 
 ```
 
-### 2. Class names are nouns.
+### 2. Class names are nouns
 
 ```python
 # Bad: Verb-based name — not ideal
@@ -200,7 +200,7 @@ class StateService:
 
 ```
 
-### 3. Class names are singular. Stateless utility class names can be plural.
+### 3. Class names are singular; stateless utility class names can be plural
 
 ```python
 # Bad: name is plural, but class likely holds state
@@ -224,9 +224,9 @@ class ExceptionUtils:
 
 ## Methods
 
-We should split the code into small methods which are easy to follow and maintain. Each function should have a proper name and PyDoc string describing its purpose along with parameters.
+You should split the code into small methods which are easy to follow and maintain. Each function should have a proper name and PyDoc string describing its purpose along with parameters.
 
-We should aim for [Cylcomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) less than 10 in the methods.
+Aim for a [cylcomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of less than 10 in the methods.
 
 ```python
 Non-compliant Example:
@@ -342,9 +342,9 @@ class Feature:
 
 ## Variables
 
-General rules
+The sections below outline the general rules for working with variables.
 
-### 1. Variables containing measurable values have their unit in the name.
+### 1. Variables containing measurable values have their unit in the name
 
 ```python
 # Bad: Ambiguous
@@ -367,7 +367,7 @@ MAX_WAIT_TIME_MS = 1000
 
 ```
 
-### 3. Instance, Loop Counters, and Parameters
+### 3. Instance, loop counters, and parameters
 
 Use snake_case for all variable and parameter names.
 
@@ -379,7 +379,7 @@ ModifiedTimestamp = None
 modified_timestamp = None
 ```
 
-### 4. Short Loop Counters and Exception Variables
+### 4. Short loop counters and exception variables
 
 ```python
 # Bad: Loop counters
@@ -406,7 +406,7 @@ for customer in customers:
 
 ```
 
-### 5. Boolean variables follow the same conventions as instance/static variables but also contain is, has , can , should etc.
+### 5. Boolean variables follow the same conventions as instance/static variables but also contain is, has, can, should, etc.
 
 ```python
 # Bad: Vague
@@ -419,9 +419,9 @@ has_null_id = True
 can_merge_rows = True
 ```
 
-## Defining Constants 
+## Defining constants 
 
-Constant values should not be left scattered in the code. Instead, we should define them at the top of the code with Private (unless they need more) visibility .
+Do not leave constant values scattered in the code. Instead, define them at the top of the code with private visibility (unless they need more).
 
 ```python
 Non-compliant Example:
@@ -466,8 +466,8 @@ __BASE_DELAY = 1  # Base delay in seconds for API request retries
 
 ```
 
-# Template Connector
+## Templates
 
-We have a template `connector.py` with a `README.md` template for your reference in this repo ([https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector)).
+Refer to our `connector.py` template and `README.md` template in this repo ([https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector)).
 
-It contains some ideas about structuring your code. Please review it to get a general understanding of our example format.
+It contains some ideas about structuring your code. Review it to get a general understanding of our example format.
