@@ -351,6 +351,7 @@ def update(configuration: Dict[str, str], state: Dict[str, Any]):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: Source Examples - Oktopost")
     try:
         # Validate configuration first
         validate_configuration(configuration=configuration)
@@ -397,8 +398,14 @@ def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    return [{"table": "active_export_metadata"}, {"table": "export_list_metadata"}]
-
+    return [
+        {
+            "table": "active_export_metadata"
+        },
+        {
+            "table": "export_list_metadata"
+        }
+    ]    
 
 # Create the connector instance
 connector = Connector(update=update, schema=schema)

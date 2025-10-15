@@ -14,13 +14,13 @@ The Oktopost connector fetches export metadata and CSV data from the Oktopost BI
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- **Export metadata retrieval**: Fetches comprehensive export list metadata from Oktopost BI Export API
-- **Active export processing**: Identifies and processes only active exports for data synchronization
-- **CSV data extraction**: Downloads and processes CSV files from ZIP archives
-- **Flexible configuration**: Supports custom base URLs and test export ID specification
-- **Robust error handling**: Implements exponential backoff retry logic with comprehensive error handling
-- **Data validation**: Validates configuration parameters and API responses
-- **Incremental sync support**: Tracks sync timestamps for efficient data updates
+- Export metadata retrieval: Fetches comprehensive export list metadata from Oktopost BI Export API
+- Active export processing: Identifies and processes only active exports for data synchronization
+- CSV data extraction: Downloads and processes CSV files from ZIP archives
+- Flexible configuration: Supports custom base URLs and test export ID specification
+- Robust error handling: Implements exponential backoff retry logic with comprehensive error handling
+- Data validation: Validates configuration parameters and API responses
+- Incremental sync support: Tracks sync timestamps for efficient data updates
 
 ## Configuration file
 The configuration keys defined for the Oktopost connector are uploaded to Fivetran from the configuration.json file.
