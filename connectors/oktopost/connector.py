@@ -1,8 +1,8 @@
 """
-Oktopost BI Export Fivetran Connector
-
 This connector fetches export metadata from Oktopost BI Export API and downloads
 the associated CSV files for data synchronization.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For reading CSV files
