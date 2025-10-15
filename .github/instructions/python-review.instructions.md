@@ -16,22 +16,6 @@ The following issues are **automatic blockers** for PR approval:
   - BLOCKER: `from fivetran_connector_sdk import operations as op`
   - CORRECT: `from fivetran_connector_sdk import Operations as op`
 
-## Performance and Memory Issues
-- **Loads unbounded datasets into memory**: No pagination, batching, or streaming
-  - BLOCKER: `all_data = api.get_all_records()` (loads everything)
-  - BLOCKER: `records = []` then appending all records before processing
-  - CORRECT: Process records in pages/batches with streaming
-- **Per-row API calls**: Making API call for each record instead of bulk operations
-  - BLOCKER: `for id in ids: api.get_record(id)`
-  - CORRECT: `api.get_records_batch(ids)` or paginated fetch
-
-## State and Checkpointing Issues
-- **No checkpointing** in long-running syncs (large datasets, pagination loops)
-- **Checkpointing before operations**: Must upsert/update/delete **before** checkpoint
-  - BLOCKER: `op.checkpoint(state)` then `op.upsert(...)`
-  - CORRECT: `op.upsert(...)` then `op.checkpoint(state)`
-- **State not updated incrementally**: State cursor only updated at end, not progressively
-
 ## Error Handling Issues
 - **Generic exception catching** without re-raising: `except Exception: pass`
 - **No retry logic** for network calls, API requests, or transient failures
@@ -170,7 +154,7 @@ The following issues are **automatic blockers** for PR approval:
   - BLOCKER: `print()` statements
   - BLOCKER: `import logging` or Python's logging module
   - BLOCKER: Other logging frameworks (loguru, structlog, etc.)
-- **Three log levels only**:
+- **Four log levels only**:
   - `log.info()` - Progress updates, cursors, pagination status (moderate frequency)
     - Example: `log.info(f"Processing page {page_num} of {total_pages}")`
     - Example: `log.info(f"Current cursor: {cursor_value}")`
@@ -180,6 +164,8 @@ The following issues are **automatic blockers** for PR approval:
   - `log.severe()` - Errors, failures, critical issues requiring attention
     - Example: `log.severe(f"API request failed: {error_message}")`
     - Example: `log.severe(f"Authentication error: {auth_error}")`
+  - `log.fine()` - Detailed debug info, very high frequency, only for deep debugging
+    - Example: `log.fine(f"Full API response: {response_json}")`
 - **NO excessive logging**: Do not log every record or inside tight loops
   - BAD: Logging each record in a loop of 10,000 records
   - GOOD: Log every N records or at page boundaries
@@ -351,7 +337,7 @@ op.checkpoint(state)
 
 ### Required End-of-File Comments (BLOCKER if missing or incorrect)
 
-**At the end of connector.py** (exact format required):
+**At the end of connector.py**:
 ```python
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
@@ -361,12 +347,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
-
     # Test the connector locally
-    connector.debug(configuration=configuration)
+    connector.debug()
 ```
 
 ### Helper Function Comments (REQUEST_CHANGES if missing)
@@ -395,41 +377,3 @@ When reviewing Python connector code, systematically check:
 8. **Schema**: Minimal approach with primary keys
 9. **Code quality**: Complexity < 15, descriptive names, no magic numbers
 10. **Dependencies**: Minimal, all commented, no forbidden imports
-
-# Review Response Format
-
-When providing review feedback:
-
-**For BLOCKERS** (must fix before approval):
-```
-BLOCKER: [Issue Title]
-
-**File**: `connector.py:45-52`
-
-**Problem**: Uses deprecated `yield` pattern with operations
-
-**Current code**:
-    ```python
-    yield op.upsert("users", user_data)
-    ```
-
-**Required fix**:
-    ```python
-    op.upsert("users", user_data)
-    ```
-
-**Reference**: SDK v2+ does not use yield. See https://fivetran.com/docs/connector-sdk/technical-reference#update
-```
-
-**For REQUEST_CHANGES** (should improve):
-```
-⚠️ REQUEST_CHANGES: [Issue Title]
-
-**File**: `connector.py:78`
-
-**Issue**: Magic number used instead of constant
-
-**Suggestion**: Define `__BATCH_SIZE = 1000` constant at module level and use it here
-
-**Why**: Makes code more maintainable and self-documenting
-```

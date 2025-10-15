@@ -18,6 +18,7 @@ When a PR changes or adds a connector/example/template, perform these checks:
 ## Structure and Files (BLOCKER if missing)
 - Each connector folder **must** include:
   - `connector.py` with imports from `fivetran_connector_sdk` (Connector, Operations, Logging)
+- Each connector folder can include:
   - `configuration.json` with **no real secrets or credentials** (use placeholders like `<YOUR_API_KEY>`)
   - README following [README_template.md](https://github.com/fivetran/fivetran_connector_sdk/blob/main/template_example_connector/README_template.md)
   - `requirements.txt` only when external dependencies are needed (exclude `fivetran_connector_sdk` and `requests`)
