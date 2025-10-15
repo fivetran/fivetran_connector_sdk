@@ -400,7 +400,7 @@ def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
     return [{"table": "active_export_metadata"}, {"table": "export_list_metadata"}]
 
 
-# Create the connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
