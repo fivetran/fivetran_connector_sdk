@@ -1,7 +1,6 @@
 {
-    "api_key": "hmcCvTT0tFZGy7eolgWqQn1hakqRfbhA",
-    "start_date": "2024-01",
-    "end_date": "2024-12",
-    "period": "7",
-    "share_type": "facebook"
+    "api_key": "<YOUR_API_KEY>",
+    "start_date": "<YOUR_START_DATE>",
+    "period": "<YOUR_PERIOD>",
+    "share_type": "<YOUR_SHARE_TYPE>"
 }

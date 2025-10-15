@@ -1,7 +1,7 @@
 # New York Times Connector Example
 
 ## Connector overview
-This connector synchronizes data from the New York Times API, providing access to both historical articles through the Archive API and trending content through the Most Popular API. It enables users to retrieve and analyze news content, monitor popular articles, and track content engagement metrics.
+This connector synchronizes data from the New York Times API, providing access to both historical articles through the Archive API and trending content through the Most Popular API. It enables users to retrieve and analyze news content and monitor popular articles.
 
 ## Features
 - Archive API integration for historical article retrieval
@@ -25,7 +25,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
     "api_key": "YOUR_API_KEY",
     "start_date": "2024-01",
-    "end_date": "2024-12",
     "period": "7",
     "share_type": "facebook"
 }
@@ -68,12 +67,20 @@ Data transformation is handled by dedicated functions for each stream type. Refe
 
 ## Error handling
 The connector implements comprehensive error handling (refer to lines 105-143 in `connector.py`):
-- Rate limit detection and exponential backoff
+- Rate limit detection and exponential backoff with sync failure preservation
 - Network error retry logic with configurable attempts
 - Date format validation and transformation
 - Configuration parameter validation
-- State management for failed syncs
+- State management for failed syncs (including rate limit failures)
+- Secure error logging with API key redaction
 - Detailed error logging for troubleshooting
+
+### Rate Limit Handling
+When encountering rate limits (HTTP 429), the connector:
+1. Attempts retries with exponential backoff
+2. If max retries are exceeded, fails the sync gracefully
+3. Preserves the current state to resume from the same point in the next sync
+4. Ensures no data loss during rate-limited scenarios
 
 ## Tables created
 The connector creates two main tables:
@@ -87,17 +94,21 @@ requests
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-## Authentication
-Authentication is implemented using an API key obtained from the NY Times Developer Portal. The key is included in the request parameters. Refer to the `make_request` function in `connector.py` for implementation.
-
-## Pagination
-Date-based pagination is implemented for the Archive API, processing one month of articles at a time. Refer to the `fetch_articles` function in `connector.py` for the pagination implementation.
 
 ## Data handling
 Data processing is managed through two main functions in `connector.py`:
 - `transform_article` - Handles Archive API response transformation
 - `transform_popular_article` - Processes Most Popular API data
 Both functions map source data to the defined schema and handle data type conversions.
+
+### Archive Date Tracking
+The connector now includes an `archive_date` column in the Articles table that:
+- Records the first day of the month for which the article was retrieved
+- Helps track which archive period each article belongs to
+- Facilitates data analysis and verification of sync processes
+- Format: ISO 8601 UTC datetime (e.g., "2023-03-01T00:00:00+00:00" for articles from March 2023)
+- Uses midnight UTC (00:00:00) to represent the start of each month
+- Includes timezone information (+00:00) for proper datetime handling
 
 ## Error handling
 Error handling is implemented in the `make_request` function in `connector.py`, featuring rate limit detection, exponential backoff, and network error retries.
@@ -119,10 +130,6 @@ Primary key: `id`
 - `updated` (UTC_DATETIME) - Last update timestamp
 - `uri` (STRING) - Article URI
 
-## Additional considerations
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-The NY Times API has rate limits that vary by endpoint and subscription level. Monitor your API usage to stay within these limits. The connector includes built-in rate limit handling, but you may need to adjust the retry parameters based on your specific use case.
 
 ### Articles table
 Primary key: `_id`
@@ -139,30 +146,13 @@ Primary key: `_id`
 - `type_of_material` (STRING) - Material type
 - `word_count` (INT) - Article word count
 - `uri` (STRING) - Article URI
-
-### Most Popular table
-Primary key: `id`
-- `id` (STRING) - Unique article identifier
-- `url` (STRING) - Article URL
-- `adx_keywords` (STRING) - Article keywords
-- `section` (STRING) - Article section
-- `byline` (STRING) - Author information
-- `type` (STRING) - Content type
-- `title` (STRING) - Article title
 - `abstract` (STRING) - Article abstract
-- `published_date` (UTC_DATETIME) - Publication date
-- `source` (STRING) - Content source
-- `updated` (UTC_DATETIME) - Last update timestamp
-- `uri` (STRING) - Article URI
+- `archive_date` (UTC_DATETIME) - The first day of the month from which this article was retrieved from the archive API, stored as UTC midnight (e.g., "2025-10-01T00:00:00+00:00")
+
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
-## Authentication
-The connector uses API key authentication. You need to provide your NY Times API key in the configuration.
-
-## Rate Limiting
-The NY Times API has rate limits that vary by endpoint and subscription level. The connector includes error handling to manage rate limits appropriately.
 
 ## Error Handling
 - Validates configuration parameters before sync

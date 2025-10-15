@@ -1,8 +1,10 @@
 """This connector fetches news articles and analytics from the New York Times API.
 It supports multiple endpoints including article archive search and most popular articles.
 """
-
+# For reading configuration from a JSON file
 import json
+
+# Additional imports for API functionality
 import requests
 import time
 from datetime import datetime, timedelta
@@ -35,12 +37,6 @@ def validate_configuration(configuration: dict):
         datetime.strptime(configuration["start_date"], "%Y-%m")
     except ValueError:
         raise ValueError("start_date must be in YYYY-MM format")
-
-    if "end_date" in configuration:
-        try:
-            datetime.strptime(configuration["end_date"], "%Y-%m")
-        except ValueError:
-            raise ValueError("end_date must be in YYYY-MM format")
 
     # Validate period
     try:
@@ -75,7 +71,9 @@ def schema(configuration: dict):
                 "section_name": "STRING",
                 "type_of_material": "STRING",
                 "word_count": "INT",
-                "uri": "STRING"
+                "uri": "STRING",
+                "archive_date": "UTC_DATETIME",
+                "abstract": "STRING"
             }
         },
         {
@@ -111,6 +109,11 @@ def make_request(url: str, params: Dict, api_key: str, max_retries: int = 3) -> 
     Raises:
         NYTimesAPIError: If the API request fails after all retries
     """
+    # Create sanitized URL for logging by replacing API key with ***
+    safe_url = url.replace(api_key, "***") if api_key in url else url
+    safe_params = params.copy()
+    safe_params["api-key"] = "***"
+    
     headers = {"Accept": "application/json"}
     params["api-key"] = api_key
     
@@ -125,22 +128,27 @@ def make_request(url: str, params: Dict, api_key: str, max_retries: int = 3) -> 
                 retry_count += 1
                 if retry_count < max_retries:
                     wait_time = 2 ** retry_count  # Exponential backoff
-                    log.warning(f"Rate limit reached. Waiting {wait_time} seconds before retry {retry_count}")
+                    log.warning(f"Rate limit reached for {safe_url}. Waiting {wait_time} seconds before retry {retry_count}")
                     time.sleep(wait_time)
                     continue
-            raise NYTimesAPIError(f"API request failed: {str(e)}")
+                # Max retries reached for rate limit, raise specific error
+                raise NYTimesAPIError(f"Rate limit exceeded after {max_retries} retries. API is currently unavailable.")
+            # Other HTTP errors
+            safe_error = str(e).replace(api_key, "***")
+            raise NYTimesAPIError(f"API request failed: {safe_error}")
         except requests.exceptions.RequestException as e:
-            raise NYTimesAPIError(f"API request failed: {str(e)}")
+            safe_error = str(e).replace(api_key, "***")
+            raise NYTimesAPIError(f"API request failed: {safe_error}")
     
-    raise NYTimesAPIError("Max retries exceeded")
+    raise NYTimesAPIError(f"Max retries ({max_retries}) exceeded for {safe_url}")
 
-def fetch_articles(configuration: dict, start_date: str, end_date: str = None) -> List[Dict]:
+def fetch_articles(configuration: dict, start_date: str, end_date: str) -> List[Dict]:
     """
     Fetch articles from the NY Times Archive API.
     Args:
         configuration: Connector configuration
         start_date: Start date in YYYY-MM format
-        end_date: Optional end date in YYYY-MM format
+        end_date: End date in YYYY-MM format
     Returns:
         List of article records
     """
@@ -158,7 +166,14 @@ def fetch_articles(configuration: dict, start_date: str, end_date: str = None) -
         
         try:
             response = make_request(url, {}, configuration["api_key"])
-            articles.extend(response.get("response", {}).get("docs", []))
+            docs = response.get("response", {}).get("docs", [])
+            
+            # Add archive_date to each article
+            for doc in docs:
+                # Format as UTC datetime with midnight time
+                doc["archive_date"] = current_date.strftime("%Y-%m-%dT00:00:00+00:00")
+            
+            articles.extend(docs)
             
             # Checkpoint after each month
             op.checkpoint({"last_sync_date": current_date.strftime("%Y-%m")})
@@ -231,7 +246,9 @@ def transform_article(article: Dict) -> Dict:
         "section_name": article.get("section_name"),
         "type_of_material": article.get("type_of_material"),
         "word_count": article.get("word_count"),
-        "uri": article.get("uri")
+        "uri": article.get("uri"),
+        "archive_date": article.get("archive_date"),
+        "abstract": article.get("abstract")
     }
     # Remove None values
     return {k: v for k, v in transformed.items() if v is not None}
@@ -297,7 +314,7 @@ def update(configuration: dict, state: dict):
 
     try:
         # Fetch and sync archive articles
-        articles = fetch_articles(configuration, last_sync_date, configuration.get("end_date", current_date))
+        articles = fetch_articles(configuration, last_sync_date, current_date)
         for article in articles:
             transformed_article = transform_article(article)
             op.upsert("article", transformed_article)
