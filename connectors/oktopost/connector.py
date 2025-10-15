@@ -1,8 +1,8 @@
 """
-Oktopost BI Export Fivetran Connector
-
 This connector fetches export metadata from Oktopost BI Export API and downloads
 the associated CSV files for data synchronization.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For reading CSV files
@@ -244,7 +244,7 @@ def _get_exports_to_process(
 
 def _process_export_metadata(
     export: Dict[str, Any], base_url: str, headers: Dict[str, str], auth: tuple, current_sync: str
-) -> Dict[str, Any]:
+) -> dict[str, str | None | Any] | None:
     """Process export metadata and return export details."""
     export_id = export.get("Id")
     if not export_id:
@@ -407,7 +407,7 @@ def schema(configuration: Dict[str, str]) -> List[Dict[str, Any]]:
         }
     ]    
 
-# Create the connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
