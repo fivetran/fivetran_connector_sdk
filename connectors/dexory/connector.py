@@ -1,6 +1,7 @@
 """
-Fivetran Connector for Dexory Inventory API
-Fetches inventory scan data from a single site
+This example fetches inventory scan data from a single site using Dexory Inventory API
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For JSON serialization
