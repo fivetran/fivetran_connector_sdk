@@ -7,7 +7,7 @@ import json
 # Additional imports for API functionality
 import requests
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List
 
 # Fivetran SDK imports
@@ -15,9 +15,11 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
+
 class NYTimesAPIError(Exception):
     """Custom exception for NY Times API errors"""
     pass
+    
 
 def validate_configuration(configuration: dict):
     """
@@ -82,7 +84,7 @@ def schema(configuration: dict):
             "columns": {
                 "id": "STRING",
                 "url": "STRING",
-                "adx_keywords": "STRING", 
+                "adx_keywords": "STRING",
                 "section": "STRING",
                 "byline": "STRING",
                 "type": "STRING",
@@ -113,10 +115,8 @@ def make_request(url: str, params: Dict, api_key: str, max_retries: int = 3) -> 
     safe_url = url.replace(api_key, "***") if api_key in url else url
     safe_params = params.copy()
     safe_params["api-key"] = "***"
-    
     headers = {"Accept": "application/json"}
     params["api-key"] = api_key
-    
     retry_count = 0
     while retry_count < max_retries:
         try:
@@ -215,6 +215,7 @@ def transform_article(article: Dict) -> Dict:
     """
     pub_date = article.get("pub_date")
     # Convert date to ISO 8601 format with timezone if needed
+    
     def parse_date(date_str):
         if not date_str:
             return None
@@ -334,12 +335,13 @@ def update(configuration: dict, state: dict):
         log.warning(f"Failed to sync data: {str(e)}")
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
+    
 # Create the connector object
 connector = Connector(update=update, schema=schema)
+
 
 if __name__ == "__main__":
     # Test the connector locally
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-    
     connector.debug(configuration=configuration)
