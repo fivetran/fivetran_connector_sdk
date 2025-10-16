@@ -17,7 +17,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Fetches user data from the Clerk API `/v1/users` endpoint
-- Incremental sync support using `created_at_after` parameter to fetch only new/updated users
+- Incremental sync support using `created_at_after` parameter to fetch only new/updated users (defaults to January 1, 1990 for initial sync)
 - Automatic pagination using offset-based pagination (limit and offset parameters)
 - Flattens nested JSON objects into the main table using underscore notation
 - Separates nested arrays into child tables with foreign key relationships
@@ -31,7 +31,7 @@ The configuration file contains the API key required to authenticate with the Cl
 
 ```json
 {
-  "api_key": "<YOUR_CLERK_API_KEY>"
+  "api_key": "<YOUR_CLERK_API_KEY"
 }
 ```
 
@@ -73,7 +73,7 @@ The pagination logic is implemented as a generator function to avoid loading all
 The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures:
 
 **Main table flattening:**
-- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `user` table using underscore notation
+- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `users` table using underscore notation
 - Example: `public_metadata.role` becomes `public_metadata_role` column
 - Deeply nested objects use multiple underscores: `verification.error.code` becomes `verification_error_code`
 
@@ -107,17 +107,18 @@ The connector implements comprehensive error handling with retry logic:
 
 
 ## Tables created
-The connector creates 7 tables in your destination:
+The connector creates 8 tables in your destination:
 
-| Table Name            | Type        | Primary Key | Foreign Key                | Description                                                                                                                        |
-|----------------------|-------------|-------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| **user**             | Main table  | `id`        | -                          | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
-| **user_email_address**| Child table | `id`        | `user_id` → `user.id`      | Contains email addresses with verification details.                                                                                |
-| **user_phone_number** | Child table | `id`        | `user_id` → `user.id`      | Contains phone numbers with verification and 2FA configuration.                                                                    |
-| **user_web3_wallet**  | Child table | `id`        | `user_id` → `user.id`      | Contains Web3 wallet addresses with verification details.                                                                          |
-| **user_passkey**      | Child table | `id`        | `user_id` → `user.id`      | Contains passkey authentication methods.                                                                                           |
-| **user_external_account** | Child table | `id`    | `user_id` → `user.id`      | Contains OAuth social login accounts (Google, GitHub, etc.).                                                                       |
-| **user_saml_account** | Child table | `id`        | `user_id` → `user.id`      | Contains SAML SSO account information.                                                                                             |
+| Table Name | Type | Primary Key | Foreign Key | Description |
+|------------|------|-------------|-------------|-------------|
+| **USER** | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
+| **USER_EMAIL_ADDRESS** | Child table | `id` | `user_id` → `USER.id` | Contains email addresses with verification details. |
+| **USER_PHONE_NUMBER** | Child table | `id` | `user_id` → `USER.id` | Contains phone numbers with verification and 2FA configuration. |
+| **USER_WEB3_WALLET** | Child table | `id` | `user_id` → `USER.id` | Contains Web3 wallet addresses with verification details. |
+| **USER_PASSKEY** | Child table | `id` | `user_id` → `USER.id` | Contains passkey authentication methods. |
+| **USER_EXTERNAL_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
+| **USER_SAML_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
+| **USER_ENTERPRISE_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains enterprise account connections and SSO details. |
 
 
 ## Additional considerations

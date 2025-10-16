@@ -28,6 +28,9 @@ __USERS_ENDPOINT = "/users"
 __PAGE_LIMIT = 100  # Number of records to fetch per API request
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint state after every 1000 records processed
+__DEFAULT_START_CREATED_AT = (
+    631152000000  # Epoch milliseconds for 1990-01-01 (default start date for incremental sync)
+)
 
 # Child table configuration: maps array field names to their destination table names
 __CHILD_TABLES = {
@@ -37,6 +40,7 @@ __CHILD_TABLES = {
     "passkeys": "user_passkey",
     "external_accounts": "user_external_account",
     "saml_accounts": "user_saml_account",
+    "enterprise_accounts": "user_enterprise_account",
 }
 
 
@@ -99,6 +103,10 @@ def schema(configuration: dict):
             "table": "user_saml_account",
             "primary_key": ["id"],
         },
+        {
+            "table": "user_enterprise_account",
+            "primary_key": ["id"],
+        },
     ]
 
 
@@ -126,8 +134,8 @@ def update(configuration: dict, state: dict):
     api_key = configuration.get("api_key")
 
     # Get the state variable for the sync - last_created_at tracks incremental sync using created_at_after
-    # Default to January 1, 1990 (631152000000 ms since epoch) if no previous state exists
-    last_created_at = state.get("last_created_at", 631152000000)
+    # Default to January 1, 1990 if no previous state exists
+    last_created_at = state.get("last_created_at", __DEFAULT_START_CREATED_AT)
     new_created_at = last_created_at
 
     # Counter for tracking records processed for checkpointing
@@ -353,7 +361,9 @@ def flatten_record(record, excluded_fields=None):
                         flattened[f"{key}_{nested_key}_{deep_key}"] = deep_value
                 else:
                     if isinstance(nested_value, list):
-                        flattened[f"{key}_{nested_key}"] = json.dumps(nested_value) if nested_value else None
+                        flattened[f"{key}_{nested_key}"] = (
+                            json.dumps(nested_value) if nested_value else None
+                        )
                     else:
                         flattened[f"{key}_{nested_key}"] = nested_value
         elif isinstance(value, list):
@@ -376,8 +386,8 @@ def flatten_user_record(user):
     Returns:
         Flattened user dictionary with nested objects converted to column names.
     """
-    # Exclude array fields that will be processed separately
-    array_fields = list(__CHILD_TABLES.keys()) + ["enterprise_accounts"]
+    # Exclude array fields that will be processed separately as child tables
+    array_fields = list(__CHILD_TABLES.keys())
     return flatten_record(user, excluded_fields=array_fields)
 
 
