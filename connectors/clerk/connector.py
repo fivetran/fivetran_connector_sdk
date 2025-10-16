@@ -352,7 +352,10 @@ def flatten_record(record, excluded_fields=None):
                     for deep_key, deep_value in nested_value.items():
                         flattened[f"{key}_{nested_key}_{deep_key}"] = deep_value
                 else:
-                    flattened[f"{key}_{nested_key}"] = nested_value
+                    if isinstance(nested_value, list):
+                        flattened[f"{key}_{nested_key}"] = json.dumps(nested_value) if nested_value else None
+                    else:
+                        flattened[f"{key}_{nested_key}"] = nested_value
         elif isinstance(value, list):
             # Convert arrays to JSON strings for storage
             flattened[key] = json.dumps(value) if value else None
