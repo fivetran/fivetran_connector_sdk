@@ -38,6 +38,7 @@ The configuration file (`configuration.json`) contains the necessary parameters 
   "redshift_schema": "<YOUR_REDSHIFT_SCHEMA>",
   "batch_size": "<YOUR_BATCH_SIZE_FOR_FETCHING_DATA>",
   "auto_schema_detection": "<ENABLE_OR_DISABLE_AUTO_SCHEMA_DETECTION>",
+  "enable_complete_resync": "<ENABLE_OR_DISABLE_FULL_RESYNC_DURING_EACH_SYNC>",
   "max_parallel_workers": "<NUMBER_OF_PARALLEL_WORKERS>"
 }
 ```
@@ -50,6 +51,7 @@ The parameters include:
 - `redshift_schema`: The schema within the Redshift database to extract data from.
 - `batch_size`: The number of rows to fetch in each batch during data extraction.
 - `auto_schema_detection`: A boolean flag to enable or disable automatic schema detection. To enable automatic schema detection, set this parameter to `true`. To pass the source schema manually using the `table_spec.py`, set this parameter to `false`.
+- `enable_complete_resync`: A boolean flag that defines whether each sync is a [full re-sync](https://fivetran.com/docs/using-fivetran/features#fullresync).
 - `max_parallel_workers`: The maximum number of parallel workers to use for data extraction. We recommend setting this value between 2 and 4. Setting it too high may lead to potential performance degradation.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -92,7 +94,7 @@ The connector includes robust error handling mechanisms to manage potential issu
 
 
 ## Tables created
-The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>.<table_name>`.
+The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>_<table_name>`.
 
 The connector automatically detects the schema of each table and creates corresponding tables in the destination with appropriate data types. If automatic schema detection is disabled, the connector uses the schema defined in the `table_spec.py` file.
 
