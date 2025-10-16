@@ -265,7 +265,7 @@ This repository is open source and intended specifically for Connector SDK examp
 Before contributing, please:
 - Read through existing examples to understand our coding patterns
 - Run the setup script: `.github/scripts/setup-hooks.sh`
-- Follow the existing code style and conventions
+- Follow the [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
 - Test your connector thoroughly before submitting
 
 We appreciate all contributions, whether they're small bug fixes or major new features.
