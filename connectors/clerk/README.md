@@ -109,15 +109,15 @@ The connector implements comprehensive error handling with retry logic:
 ## Tables created
 The connector creates 7 tables in your destination:
 
-| Table Name | Type | Primary Key | Foreign Key | Description |
-|------------|------|-------------|-------------|-------------|
-| **USER** | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
-| **USER_EMAIL_ADDRESS** | Child table | `id` | `user_id` → `USER.id` | Contains email addresses with verification details. |
-| **USER_PHONE_NUMBER** | Child table | `id` | `user_id` → `USER.id` | Contains phone numbers with verification and 2FA configuration. |
-| **USER_WEB3_WALLET** | Child table | `id` | `user_id` → `USER.id` | Contains Web3 wallet addresses with verification details. |
-| **USER_PASSKEY** | Child table | `id` | `user_id` → `USER.id` | Contains passkey authentication methods. |
-| **USER_EXTERNAL_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
-| **USER_SAML_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
+| Table Name            | Type        | Primary Key | Foreign Key                | Description                                                                                                                        |
+|----------------------|-------------|-------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| **user**             | Main table  | `id`        | -                          | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
+| **user_email_address**| Child table | `id`        | `user_id` → `user.id`      | Contains email addresses with verification details.                                                                                |
+| **user_phone_number** | Child table | `id`        | `user_id` → `user.id`      | Contains phone numbers with verification and 2FA configuration.                                                                    |
+| **user_web3_wallet**  | Child table | `id`        | `user_id` → `user.id`      | Contains Web3 wallet addresses with verification details.                                                                          |
+| **user_passkey**      | Child table | `id`        | `user_id` → `user.id`      | Contains passkey authentication methods.                                                                                           |
+| **user_external_account** | Child table | `id`    | `user_id` → `user.id`      | Contains OAuth social login accounts (Google, GitHub, etc.).                                                                       |
+| **user_saml_account** | Child table | `id`        | `user_id` → `user.id`      | Contains SAML SSO account information.                                                                                             |
 
 
 ## Additional considerations
