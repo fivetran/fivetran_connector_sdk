@@ -1,0 +1,14 @@
+{
+    "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
+    "mssql_cert_server": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
+    "mssql_port": "<YOUR_SQL_SERVER_PORT>",
+    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
+    "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
+    "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>",
+    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
+    "threads": "<YOUR_THREAD_COUNT>",
+    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
+    "max_retries": "<YOUR_MAX_RETRIES>",
+    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
+    "debug": "<YOUR_DEBUG_FLAG>"
+}
