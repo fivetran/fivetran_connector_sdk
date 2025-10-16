@@ -116,7 +116,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
-<summary><h3>Quickstart examples</h3></summary>(#quickstart-examples)
+<summary><h3>Quickstart examples</h3></summary>
 
 - [hello](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/hello) - This is the simplest, append-only example.
 
