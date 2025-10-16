@@ -250,11 +250,11 @@ This repository is open source and intended specifically for Connector SDK examp
 2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
 3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
 4. Ensure your code works correctly and follows our coding standards.
-  a. [Python coding standards](./PYTHON_CODING_STANDARDS.md)
-  b. Fivetran coding principles
+  * [Python coding standards](./PYTHON_CODING_STANDARDS.md)
+  * Fivetran coding principles
 5. Open a pull request with a clear description of your changes.
-  a. If you're part of the AI Accelerate Google Hackathon please use the `accel Google hack 2025` tag in your PR 
-  b. If your're part of the Fivetran internal hackathon, please use the `hackathon` tag in your PR 
+  * If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag 
+  * If your're part of the Fivetran internal hackathon, please use the `hackathon` tag  
 
 ### What we're looking for
 
