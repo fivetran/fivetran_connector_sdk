@@ -114,7 +114,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 There are several examples available under `/examples`:
 
 <details class="details-heading" open="open">
-<summary><h3>Quickstart examples</h3></summary>
+<summary><h3>Quickstart examples</h3></summary>(#quickstart-examples)
 
 - [hello](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/hello) - This is the simplest, append-only example.
 
@@ -267,7 +267,7 @@ This repository is open source and intended specifically for Connector SDK examp
 ### Getting started
 
 Before contributing, please:
-- Read through existing examples to understand our coding patterns
+- Read through existing [examples](#quickstart-examples) to understand our coding patterns
 - Run the setup script: `.github/scripts/setup-hooks.sh`
 - Follow the [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
 - Test your connector thoroughly before submitting
