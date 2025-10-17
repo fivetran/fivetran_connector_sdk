@@ -1,0 +1,6 @@
+{
+  "api_key": "YOUR_API_KEY",
+  "base_url": "https://api.awardco.com/api",
+  "rate_limit": "1000",
+  "use_mock": "true"
+}
