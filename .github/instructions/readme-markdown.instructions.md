@@ -1,5 +1,5 @@
 ---
-applyTo: "fivetran_connector_sdk/examples/source_examples/**/*README*.md,fivetran_connector_sdk/connectors/**/*README*.md"
+applyTo: "examples/source_examples/**/*README*.md,connectors/**/*README*.md"
 ---
 
 # Copilot Review Instructions for Fivetran Documentation
