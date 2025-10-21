@@ -197,7 +197,17 @@ def normalize_table_name(filename: str) -> str:
 
 
 def process_csv_data(csv_content: str, filename: str, export_id: str) -> List[Dict[str, Any]]:
-    """Process CSV content and return rows for upserting."""
+    """
+    Process CSV content and return rows for upserting.
+
+    Args:
+        csv_content: CSV data as string.
+        filename: Original filename for tracking.
+        export_id: Export identifier.
+
+    Returns:
+        List of dictionaries with normalized column names and added export_id/source_filename fields.
+    """
     try:
         return [
             {
