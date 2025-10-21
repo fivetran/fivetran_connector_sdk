@@ -306,7 +306,7 @@ def quote_identifier(column_name: str) -> str:
     """
     reserved_names = {"order", "select", "where", "table", "group", "user", "schema"}
     if column_name.lower() in reserved_names:
-        return f"'{column_name}'"
+        return f'`{column_name}`'
     return column_name
 
 # Create the connector object using the schema and update functions
