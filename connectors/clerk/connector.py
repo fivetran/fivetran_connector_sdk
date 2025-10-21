@@ -257,7 +257,7 @@ def fetch_users_paginated(api_key, last_created_at=None):
         params = {"limit": __PAGE_LIMIT, "offset": offset, "order_by": "created_at"}
 
         # Add incremental sync parameter if last_created_at is provided
-        if last_created_at:
+        if last_created_at is not None:
             params["created_at_after"] = last_created_at
 
         # Make API request with retry logic
