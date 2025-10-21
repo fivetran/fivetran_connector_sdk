@@ -1,0 +1,10 @@
+{
+    "base_url": "https://api.fda.gov/tobacco/problem.json",
+    "api_key": "",
+    "rate_limit": "240",
+    "page_size": "1000",
+    "checkpoint_interval": "100",
+    "test_mode": "false",
+    "test_limit": "10",
+    "sync_frequency_minutes": "1440"
+}

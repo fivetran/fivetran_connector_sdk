@@ -1,0 +1,64 @@
+# OAuth2 Refresh Token Hubspot Connector Example
+
+> NOTE: We have Fivetran connector for HubSpot that users can integrate directly on the dashboard [here](https://fivetran.com/docs/connectors/applications/hubspot#hubspot). You can use this example as a reference for the cases where you want to connect to a custom OAuth2 source that requires access token refresh.
+
+## Prerequisites
+
+1. If you don't have a HubSpot account, follow HubSpot's [instructions](https://developers.hubspot.com/docs/guides/apps/public-apps/overview) to create one.
+
+2. Create a developer account and a HubSpot app with scopes and redirect URL. See HubSpot's [OAuth documentations](https://developers.hubspot.com/docs/reference/api/app-management/oauth) for details.
+
+3. Paste the **ClientID**, **Client Secret** and **Redirect URL** values from the developer account in the (<list_the_corresponding_fields_here>  on the **Authorisation** tab in Postman:
+     ![Screenshot1.png](Screenshot1.png)
+
+4. Fetch the Refresh Token:
+    1. Click **Get new access Token**. You are redirected to a developer sign in popup.
+    1. Log in to your developer account, and click authorize to grant access to the redirect url. The popup will close and you should see the following window with tokens.
+      ![Screenshot2.png](Screenshot2.png)
+
+
+5. Access the [HubSpot API collection](https://developers.hubspot.com/docs/reference/api/crm/objects).
+
+## Debug
+
+1. Once you have the refresh token, client secret, and ID, replace the existing credentials in the `configuration.json` file.
+2. Run the `main` function to trigger the `debug` command and start syncing your code to your local machine.
+
+## Deploy the connector
+
+1. Get your base64 Fivetran API key in your [Fivetran dashboard](https://fivetran.com/dashboard/user/api-config)
+
+2. [Create a destination](https://fivetran.com/dashboard/destinations) in the Fivetran dashboard.
+
+3. Use the following command in the folder containing the `connector.py` file to deploy the connector:
+
+     ```bash
+     python connector.py --api-key <FIVETRAN-API-KEY> --destination <DESTINATION-NAME> --connection <CONNECTION-NAME> --configuration configuration.json
+     ```
+4. Once you have deployed the connector, follow the link in the terminal or search in the dashboard with the connection name to view the sync status and logs.
+
+> NOTE: This example only supports cases where the refresh token does not have a TTL, and only the access token is refreshed with the refresh token. If you occasionally need to update the refresh token, you can do it in the dashboard and in the connection setup. We will update this example with a similar approach once we support refreshing passed credentials via the connector code.
+
+## Update the refresh token
+You can update the refresh token using the following two methods
++ **Using fivetran [Update Api](https://fivetran.com/docs/rest-api/api-reference/connectors/modify-connector?service=15five#updateaconnection)**
+
+    ```
+  PATCH /v1/connections/connectionId HTTP/1.1
+    Accept: application/json;version=2
+    Authorization: Basic REPLACE_BASIC_AUTH
+    Content-Type: application/json
+    Host: api.fivetran.com
+    Content-Length: 625
+    
+    {
+      "config": {
+        "refresh_token": "updated_refresh_token",
+        "client_id": "your_client_id",
+        "client_secret": "your_client_secret"
+      }
+    }
+  ```
++ **Updating Manually in [Fivetran Dashboard](https://fivetran.com/dashboard/connectors/connectiion_id/setup)**
+
+    The configuration passed in `coniguration.json` at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.

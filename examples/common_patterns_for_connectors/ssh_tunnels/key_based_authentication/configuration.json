@@ -1,0 +1,9 @@
+{
+  "ssh_host": "YOUR_SSH_HOST_IP_OR_HOSTNAME",
+  "ssh_user": "YOUR_SSH_USERNAME",
+  "api_key": "YOUR_PLAYGROUND_API_KEY",
+  "local_port": "LOCAL_PORT_TO_FORWARD",
+  "remote_port": "REMOTE_PORT_OF_THE_SERVER",
+  "ssh_private_key": "YOUR_SSH_PRIVATE_KEY_PEM_CONTENT",
+  "ssh_key_passphrase": "YOUR_SSH_KEY_PASSPHRASE"
+}

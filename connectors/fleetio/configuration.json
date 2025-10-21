@@ -1,0 +1,4 @@
+{
+    "Account-Token": "<YOUR_FLEETIO_ACCOUNT_TOKEN>",
+    "Authorization": "Token <YOUR_FLEETIO_API_KEY>"
+}

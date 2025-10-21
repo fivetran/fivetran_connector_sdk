@@ -1,0 +1,8 @@
+{
+  "user":"<YOUR_SNOWFLAKE_USERNAME>",
+  "password":"<YOUR_SNOWFLAKE_PASSWORD>",
+  "account":"<YOUR_ACCOUNT_IDENTIFIER>",
+  "database":"<YOUR_DATABASE_NAME>",
+  "schema":"<YOUR_SCHEMA_NAME>",
+  "tables": "<YOUR_TABLE_NAMES_SEPARATED_BY_COMMA>"
+}

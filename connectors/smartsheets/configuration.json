@@ -1,0 +1,4 @@
+{
+    "smartsheet_api_token": "your_api_token",
+    "smartsheet_sheet_id": "your_smartsheet_sheet_id"
+}

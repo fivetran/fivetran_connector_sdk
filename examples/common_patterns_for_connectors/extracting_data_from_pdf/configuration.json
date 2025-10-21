@@ -1,0 +1,7 @@
+{
+  "aws_access_key_id": "<YOUR_AWS_S3_ACCESS_KEY>",
+  "aws_secret_access_key": "<YOUR_AWS_S3_SECRET_KEY>",
+  "region_name": "<YOUR_AWS_S3_REGION>",
+  "bucket_name": "<YOUR_AWS_S3_BUCKET_NAME>",
+  "prefix": "<YOUR_AWS_S3_FOLDER_NAME>"
+}
