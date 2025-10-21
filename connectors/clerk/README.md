@@ -19,7 +19,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Fetches user data from the Clerk API `/v1/users` endpoint
-- Incremental sync support using `created_at_after` parameter to fetch only new/updated users (defaults to January 1, 1990 for initial sync)
+- Incremental sync support using `created_at_after` parameter to fetch only newly created users (defaults to January 1, 1990 for initial sync)
 - Automatic pagination using offset-based pagination (limit and offset parameters)
 - Flattens nested JSON objects into the main table using underscore notation
 - Separates nested arrays into child tables with foreign key relationships
