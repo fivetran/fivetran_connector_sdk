@@ -1,7 +1,9 @@
 # Clerk API Connector
 
 ## Connector overview
-This connector integrates with the Clerk API to synchronize user data into your destination data warehouse. Clerk is a user authentication and management platform that provides APIs for managing users, their email addresses, phone numbers, social accounts, and authentication methods. This connector fetches user records from Clerk and flattens nested data structures into normalized tables, making it easy to analyze user data in your data warehouse. The connector supports incremental sync using timestamp-based cursors and handles pagination automatically to process large datasets efficiently.
+This connector integrates with the Clerk API to synchronize user data into your destination. It fetches user records from Clerk and flattens nested data structures into normalized tables, making it easy to analyze user data in your data warehouse. The connector supports incremental sync using timestamp-based cursors and handles pagination automatically to process large datasets efficiently.
+
+Clerk is a user authentication and management platform that provides APIs for managing users, their email addresses, phone numbers, social accounts, and authentication methods. 
 
 
 ## Requirements
@@ -23,7 +25,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Separates nested arrays into child tables with foreign key relationships
 - Implements retry logic with exponential backoff for transient errors
 - Checkpoints state every 1000 records to enable resumption on interruption
-- Memory-efficient processing using generator functions to avoid loading all data at once
+- Memory-efficient processing using generator functions to avoid loading all the data at once
 
 
 ## Configuration file
@@ -36,7 +38,7 @@ The configuration file contains the API key required to authenticate with the Cl
 ```
 
 **Configuration parameters:**
-- `api_key` (required): Your Clerk API secret key. You can obtain this from your Clerk Dashboard under API Keys.
+- `api_key` (required): Your Clerk API secret key.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -73,35 +75,35 @@ The pagination logic is implemented as a generator function to avoid loading all
 The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures:
 
 **Main table flattening:**
-- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `users` table using underscore notation
-- Example: `public_metadata.role` becomes `public_metadata_role` column
+- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `USERS` table using underscore notation
+- Example: `public_metadata.role` becomes the `public_metadata_role` column
 - Deeply nested objects use multiple underscores: `verification.error.code` becomes `verification_error_code`
 
-**Array flattening:**
+Array flattening:
 - Nested arrays are extracted into separate child tables with foreign key relationships
 - Each child table includes a `user_id` column linking back to the parent user
 - Arrays within child records (e.g., `linked_to`, `backup_codes`) are converted to JSON strings
 
-**Data type inference:**
+Data type inference:
 - Only primary keys are explicitly defined in the schema
 - Fivetran automatically infers data types for all other columns based on the data
 
 
 
 ## Error handling
-The connector implements comprehensive error handling with retry logic:
+The connector implements comprehensive error handling with retry logic.
 
-**Retry strategy:**
+Retry strategy:
 - Maximum 3 retry attempts for transient errors (configurable via `__MAX_RETRIES` constant)
 - Exponential backoff strategy: waits 2^attempt seconds between retries
 - Rate limit (429) errors trigger automatic retry with exponential backoff
 - Server errors (5xx) are retried, client errors (4xx) fail immediately
 
-**Error categories:**
-- **Configuration errors:** Validated at the start of sync with clear error messages
-- **HTTP errors:** Caught and retried based on status code
-- **Network errors:** Retried with exponential backoff
-- **Data processing errors:** Wrapped in RuntimeError with descriptive messages
+Error categories:
+- Configuration errors: Validated at the start of sync with clear error messages
+- HTTP errors: Caught and retried based on status code
+- Network errors: Retried with exponential backoff
+- Data processing errors: Wrapped in RuntimeError with descriptive messages
 
 **Timeout:** All API requests have a 30-second timeout to prevent hanging connections.
 
@@ -111,14 +113,14 @@ The connector creates 8 tables in your destination:
 
 | Table Name | Type | Primary Key | Foreign Key | Description |
 |------------|------|-------------|-------------|-------------|
-| **USER** | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
-| **USER_EMAIL_ADDRESS** | Child table | `id` | `user_id` → `USER.id` | Contains email addresses with verification details. |
-| **USER_PHONE_NUMBER** | Child table | `id` | `user_id` → `USER.id` | Contains phone numbers with verification and 2FA configuration. |
-| **USER_WEB3_WALLET** | Child table | `id` | `user_id` → `USER.id` | Contains Web3 wallet addresses with verification details. |
-| **USER_PASSKEY** | Child table | `id` | `user_id` → `USER.id` | Contains passkey authentication methods. |
-| **USER_EXTERNAL_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
-| **USER_SAML_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
-| **USER_ENTERPRISE_ACCOUNT** | Child table | `id` | `user_id` → `USER.id` | Contains enterprise account connections and SSO details. |
+| `USER` | Main table | `id` | - | Contains flattened user profile data including metadata fields. Nested objects like `public_metadata`, `private_metadata`, `unsafe_metadata` are flattened into columns. |
+| `USER_EMAIL_ADDRESS` | Child table | `id` | `user_id` → `USER.id` | Contains email addresses with verification details. |
+| `USER_PHONE_NUMBER` | Child table | `id` | `user_id` → `USER.id` | Contains phone numbers with verification and 2FA configuration. |
+| `USER_WEB3_WALLET` | Child table | `id` | `user_id` → `USER.id` | Contains Web3 wallet addresses with verification details. |
+| `USER_PASSKEY` | Child table | `id` | `user_id` → `USER.id` | Contains passkey authentication methods. |
+| `USER_EXTERNAL_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
+| `USER_SAML_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
+| `USER_ENTERPRISE_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains enterprise account connections and SSO details. |
 
 
 ## Additional considerations
