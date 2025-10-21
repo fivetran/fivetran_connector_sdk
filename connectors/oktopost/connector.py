@@ -183,7 +183,12 @@ def extract_csv_from_zip(zip_content: bytes) -> List[Dict[str, Any]]:
 
 
 def normalize_table_name(filename: str) -> str:
-    """Normalize filename to generate consistent table names."""
+    """
+    Normalize filename to generate consistent table names.
+
+    Removes file extension, strips date prefix (YYYY-MM-DD-), replaces hyphens with underscores,
+    converts to lowercase, and removes trailing underscores.
+    """
     # Remove file extension
     name_without_ext = re.sub(r"\.[^.]*$", "", filename)
     return (
