@@ -19,8 +19,7 @@ from fivetran_connector_sdk import Operations as op
 # Import the RavenDB Python SDK for connecting to RavenDB database
 from ravendb import DocumentStore
 
-# For handling dates and type hints
-from datetime import datetime
+# For handling type hints
 from typing import Optional, List, Dict, Any
 
 # For handling the deployment-safe base64-encoded certificate
