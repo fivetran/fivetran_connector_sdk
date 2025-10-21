@@ -76,7 +76,7 @@ The connector processes Dexory inventory data through several transformation ste
 
 **Data Retrieval:** Fetches location data from the `/customer-api/v1/locations` endpoint with automatic pagination support.
 
-**Data Transformation:** The `convert_lists_to_strings` function converts complex nested data structures to JSON strings for Fivetran compatibility, while preserving the `expected_inventory_objects` field for separate table processing.
+**Data Transformation:** The `convert_lists_to_strings` function converts complex nested data structures to JSON strings for Fivetran compatibility, while preserving the `expected_inventory_object` field for separate table processing.
 
 **Parent-Child Table Structure:** 
 - **Parent Table (`location`)**: Contains location metadata including name, type, aisle, and scan date
