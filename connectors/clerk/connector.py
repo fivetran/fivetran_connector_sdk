@@ -161,7 +161,7 @@ def update(configuration: dict, state: dict):
         if new_created_at is not None:
             checkpoint_sync_state_final(new_created_at, records_processed)
         else:
-            log.info(f"No new records to process. Sync completed without state update.")
+            log.info("No new records to process. Sync completed without state update.")
 
     except requests.exceptions.RequestException as e:
         # Handle HTTP/network related errors
