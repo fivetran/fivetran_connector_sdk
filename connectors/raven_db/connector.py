@@ -306,10 +306,11 @@ def update(configuration: dict, state: dict):
                 row_count += 1
                 batch_row_count += 1
 
-                # Update new_last_modified with the current document's LastModified
-                doc_last_modified = document.get("LastModified")
-                if doc_last_modified:
-                    new_last_modified = doc_last_modified
+            # After processing the batch, update new_last_modified with the last document's LastModified
+            if documents:
+                last_doc_last_modified = documents[-1].get("LastModified")
+                if last_doc_last_modified:
+                    new_last_modified = last_doc_last_modified
 
             # Checkpoint periodically
             if row_count % __CHECKPOINT_INTERVAL == 0:
