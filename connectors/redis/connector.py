@@ -40,7 +40,6 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
-
     # Validate required configuration parameters
     required_configs = ["host", "port"]
     for key in required_configs:
@@ -56,7 +55,6 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-
     # Get table name from configuration or use default
     table_name = configuration.get("table_name", "redis_data")
 
@@ -76,13 +74,13 @@ def schema(configuration: dict):
     ]
 
 
-def create_redis_client(configuration: dict):
+def build_connection_params(configuration: dict) -> dict:
     """
-    Create a Redis client using the provided configuration.
+    Build Redis connection parameters from configuration.
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
+        configuration: Configuration dictionary.
     Returns:
-        redis.Redis: A Redis client instance.
+        Dictionary of connection parameters for Redis client.
     """
     host = configuration.get("host", "localhost")
     port = int(configuration.get("port", 6379))
@@ -112,6 +110,22 @@ def create_redis_client(configuration: dict):
         connection_params["ssl_cert_reqs"] = "required"
         connection_params["ssl_check_hostname"] = False
 
+    return connection_params
+
+
+def create_redis_client(configuration: dict):
+    """
+    Create a Redis client using the provided configuration.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Returns:
+        redis.Redis: A Redis client instance.
+    """
+    connection_params = build_connection_params(configuration)
+    host = connection_params["host"]
+    port = connection_params["port"]
+    database = connection_params["db"]
+
     try:
         # Create Redis client
         redis_client = redis.Redis(**connection_params)
@@ -125,6 +139,43 @@ def create_redis_client(configuration: dict):
         raise RuntimeError(f"Failed to create Redis client: {str(e)}")
 
 
+def extract_value_by_type(redis_client: redis.Redis, key: str, key_type: str) -> Tuple[str, int]:
+    """
+    Extract value and size based on Redis data type.
+    Args:
+        redis_client: Redis client instance.
+        key: Redis key.
+        key_type: Redis data type (string, hash, list, set, zset).
+    Returns:
+        Tuple of (value, size).
+    """
+    if key_type == "string":
+        value = redis_client.get(key)
+        size = len(value) if value else 0
+        return value, size
+
+    elif key_type == "hash":
+        data = redis_client.hgetall(key)
+        return json.dumps(data), len(data)
+
+    elif key_type == "list":
+        data = redis_client.lrange(key, 0, -1)
+        return json.dumps(data), len(data)
+
+    elif key_type == "set":
+        data = list(redis_client.smembers(key))
+        return json.dumps(data), len(data)
+
+    elif key_type == "zset":
+        zset_data = redis_client.zrange(key, 0, -1, withscores=True)
+        # Convert to list of [member, score] pairs for JSON serialization
+        zset_list = [[member, score] for member, score in zset_data]
+        return json.dumps(zset_list), len(zset_data)
+
+    else:
+        return f"Unsupported type: {key_type}", 0
+
+
 def get_redis_value_info(redis_client: redis.Redis, key: str) -> Dict[str, Any]:
     """
     Get comprehensive information about a Redis key including value, type, TTL, and size.
@@ -135,41 +186,12 @@ def get_redis_value_info(redis_client: redis.Redis, key: str) -> Dict[str, Any]:
         Dictionary containing key information.
     """
     try:
-        # Get key type
+        # Get key type and TTL
         key_type = redis_client.type(key)
+        ttl = redis_client.ttl(key)  # -1 = no expiry, -2 = expired/doesn't exist
 
-        # Get TTL (-1 = no expiry, -2 = expired/doesn't exist)
-        ttl = redis_client.ttl(key)
-
-        # Initialize value and size
-        value = None
-        size = 0
-
-        # Get value based on type
-        if key_type == "string":
-            value = redis_client.get(key)
-            size = len(value) if value else 0
-        elif key_type == "hash":
-            hash_data = redis_client.hgetall(key)
-            value = json.dumps(hash_data)
-            size = len(hash_data)
-        elif key_type == "list":
-            list_data = redis_client.lrange(key, 0, -1)
-            value = json.dumps(list_data)
-            size = len(list_data)
-        elif key_type == "set":
-            set_data = list(redis_client.smembers(key))
-            value = json.dumps(set_data)
-            size = len(set_data)
-        elif key_type == "zset":
-            zset_data = redis_client.zrange(key, 0, -1, withscores=True)
-            # Convert to list of [member, score] pairs
-            zset_list = [[member, score] for member, score in zset_data]
-            value = json.dumps(zset_list)
-            size = len(zset_data)
-        else:
-            value = f"Unsupported type: {key_type}"
-            size = 0
+        # Extract value and size based on type
+        value, size = extract_value_by_type(redis_client, key, key_type)
 
         return {
             "key": key,
@@ -217,6 +239,92 @@ def scan_redis_keys(
         raise RuntimeError(f"Failed to scan Redis keys: {str(e)}")
 
 
+def process_batch(redis_client: redis.Redis, keys: List[str], table_name: str) -> int:
+    """
+    Process a batch of Redis keys and upsert them to the destination.
+    Args:
+        redis_client: Redis client instance.
+        keys: List of keys to process.
+        table_name: Destination table name.
+    Returns:
+        Number of keys processed in this batch.
+    """
+    batch_row_count = 0
+    for key in keys:
+        # Get comprehensive key information
+        key_info = get_redis_value_info(redis_client, key)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table=table_name, data=key_info)
+        batch_row_count += 1
+
+    return batch_row_count
+
+
+def sync_redis_data(
+    redis_client: redis.Redis,
+    table_name: str,
+    key_pattern: str,
+    batch_size: int,
+    cursor: int,
+    current_sync_time: str,
+) -> int:
+    """
+    Sync Redis data by scanning and processing keys in batches.
+    Args:
+        redis_client: Redis client instance.
+        table_name: Destination table name.
+        key_pattern: Pattern to match keys.
+        batch_size: Number of keys to process per batch.
+        cursor: Starting cursor position.
+        current_sync_time: Current sync timestamp.
+    Returns:
+        Total number of keys processed.
+    """
+    row_count = 0
+    batch_count = 0
+    total_keys_processed = 0
+
+    log.info(f"Starting Redis key scan with pattern: {key_pattern}, batch size: {batch_size}")
+
+    # Scan all keys matching the pattern
+    while True:
+        batch_count += 1
+        log.info(f"Processing batch {batch_count}, cursor: {cursor}")
+
+        # Scan keys from Redis
+        cursor, keys = scan_redis_keys(redis_client, key_pattern, cursor, batch_size)
+
+        if not keys:
+            log.info("No more keys to process")
+            if cursor == 0:  # Scan completed
+                break
+            continue
+
+        # Process each key in the current batch
+        batch_row_count = process_batch(redis_client, keys, table_name)
+        row_count += batch_row_count
+        total_keys_processed += batch_row_count
+
+        # Checkpoint periodically and at cursor reset
+        if row_count % __CHECKPOINT_INTERVAL == 0 or cursor == 0:
+            save_state(cursor, current_sync_time)
+
+        log.info(
+            f"Completed batch {batch_count}: processed {batch_row_count} keys, "
+            f"total processed: {total_keys_processed}, cursor: {cursor}"
+        )
+
+        # If cursor is 0, we've completed the full scan
+        if cursor == 0:
+            break
+
+    return total_keys_processed
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -227,8 +335,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-
-    log.warning("Example: Database Examples: Redis Data Sync")
+    log.warning("Example: Database Connector: Redis Connector")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -247,60 +354,15 @@ def update(configuration: dict, state: dict):
     current_sync_time = datetime.now(timezone.utc).isoformat()
 
     try:
-        row_count = 0
-        batch_count = 0
-        total_keys_processed = 0
-
-        log.info(f"Starting Redis key scan with pattern: {key_pattern}, batch size: {batch_size}")
-
-        # Scan all keys matching the pattern
-        while True:
-            batch_count += 1
-            log.info(f"Processing batch {batch_count}, cursor: {cursor}")
-
-            # Scan keys from Redis
-            cursor, keys = scan_redis_keys(redis_client, key_pattern, cursor, batch_size)
-
-            if not keys:
-                log.info("No more keys to process")
-                if cursor == 0:  # Scan completed
-                    break
-                continue
-
-            # Process each key in the current batch
-            batch_row_count = 0
-            for key in keys:
-                # Get comprehensive key information
-                key_info = get_redis_value_info(redis_client, key)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table=table_name, data=key_info)
-                row_count += 1
-                batch_row_count += 1
-                total_keys_processed += 1
-
-            # Checkpoint periodically and at cursor reset
-            if row_count % __CHECKPOINT_INTERVAL == 0 or cursor == 0:
-                save_state(cursor, current_sync_time)
-
-            log.info(
-                f"Completed batch {batch_count}: processed {batch_row_count} keys, "
-                f"total processed: {total_keys_processed}, cursor: {cursor}"
-            )
-
-            # If cursor is 0, we've completed the full scan
-            if cursor == 0:
-                break
+        # Sync all Redis data
+        total_keys_processed = sync_redis_data(
+            redis_client, table_name, key_pattern, batch_size, cursor, current_sync_time
+        )
 
         # Final checkpoint
         save_state(0, current_sync_time)  # Reset cursor to 0 for next full scan
 
-        log.info(
-            f"Successfully synced {total_keys_processed} Redis keys across {batch_count} batches"
-        )
+        log.info(f"Successfully synced {total_keys_processed} Redis keys")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
