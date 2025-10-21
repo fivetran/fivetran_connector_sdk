@@ -1,0 +1,5 @@
+{
+  "connection_url": "<YOUR_CONNECTION_URL>",
+  "queues": "<YOUR_COMMA_SEPARATED_LIST_OF_QUEUES>",
+  "batch_size": "<YOUR_BATCH_SIZE>"
+}
