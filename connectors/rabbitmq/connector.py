@@ -20,11 +20,11 @@ import pika
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 # For handling type hints
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 # For parsing timestamps and generating unique IDs
-from datetime import datetime
 import hashlib
+from datetime import datetime, timezone
 
 # Checkpoint every 500 records
 __CHECKPOINT_INTERVAL = 500
@@ -200,7 +200,9 @@ def build_message_record(
         "expiration": properties.expiration or "",
         "message_id_header": properties.message_id or "",
         "timestamp": (
-            datetime.utcfromtimestamp(properties.timestamp).isoformat() + "Z"
+            datetime.fromtimestamp(properties.timestamp, tz=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
             if properties.timestamp
             else synced_at
         ),
@@ -218,7 +220,7 @@ def fetch_messages_batch(
     queue_name: str,
     last_delivery_tag: Optional[int] = None,
     batch_size: int = __DEFAULT_BATCH_SIZE,
-) -> tuple[List[Dict[str, Any]], bool, int]:
+) -> Tuple[List[Dict[str, Any]], bool, int]:
     """
     Fetch a batch of messages from RabbitMQ queue.
     Messages are consumed (removed) from the queue after successful sync to prevent duplicate reads.
@@ -237,7 +239,7 @@ def fetch_messages_batch(
     try:
         messages = []
         highest_delivery_tag = last_delivery_tag or 0
-        synced_at = datetime.utcnow().isoformat() + "Z"
+        synced_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         # Get queue information to check message count
         queue_declare_result = channel.queue_declare(queue=queue_name, passive=True)
