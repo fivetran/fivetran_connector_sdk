@@ -125,7 +125,7 @@ The connector creates the following tables in your destination:
 | `ADDRESS` | `number`, `address_purpose` | Provider addresses (LOCATION or MAILING) with fields: address_1, address_2, city, state, postal_code, country_code, country_name, telephone_number, fax_number, address_type |
 | `TAXONOMY` | `number`, `code` | Healthcare provider taxonomy/specialty information with fields: taxonomy_group, description, state, license, primary |
 | `IDENTIFIER` | `number`, `identifier`, `code` | Other provider identifiers such as state licenses with fields: description, issuer, state |
-| `ENDPOINT` | `number`, `endpoint` | Electronic health record endpoint information with fields: endpointType, endpointTypeDescription, endpointDescription, affiliation, affliationName, use, useDescription, useOtherDescription, contentType, contentTypeDescription, contentOtherDescription, plus address fields |
+| `ENDPOINT` | `number`, `endpoint` | Electronic health record endpoint information with fields: endpointType, endpointTypeDescription, endpointDescription, affiliation, affiliationName, use, useDescription, useOtherDescription, contentType, contentTypeDescription, contentOtherDescription, plus address fields |
 | `OTHER_NAME` | `number`, `code`, `type` | Alternative organization names with fields: organization_name, type |
 | `PRACTICE_LOCATION` | `number`, `address_1` | Secondary practice location addresses with fields: address_2, city, state, postal_code, country_code, country_name, telephone_number |
 
