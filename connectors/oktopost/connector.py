@@ -161,7 +161,12 @@ def make_api_request_with_retry(
 
 
 def extract_csv_from_zip(zip_content: bytes) -> List[Dict[str, Any]]:
-    """Extract CSV files from a ZIP archive."""
+    """
+    Extract CSV files from a ZIP archive.
+
+    Returns:
+        List of dictionaries with keys "filename" and "content" for each CSV file found in the archive.
+    """
     try:
         with zipfile.ZipFile(io.BytesIO(zip_content)) as zip_file:
             return [
