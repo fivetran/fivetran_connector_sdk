@@ -334,8 +334,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync data: {str(e)}")
     finally:
         # Always close the document store
-        if store:
-            store.close()
+        store.close()
 
 
 def save_state(new_last_modified):
