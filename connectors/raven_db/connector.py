@@ -174,11 +174,11 @@ def create_document_store(configuration: dict) -> DocumentStore:
 
 
 def fetch_documents_batch(
-        store: DocumentStore,
-        collection_name: str,
-        last_modified: Optional[str] = None,
-        skip: int = 0,
-        take: int = __DEFAULT_BATCH_SIZE,
+    store: DocumentStore,
+    collection_name: str,
+    last_modified: Optional[str] = None,
+    skip: int = 0,
+    take: int = __DEFAULT_BATCH_SIZE,
 ) -> tuple[List[Dict[str, Any]], bool]:
     """
     Fetch a batch of documents from RavenDB collection where LastModified is greater than the last sync time.
