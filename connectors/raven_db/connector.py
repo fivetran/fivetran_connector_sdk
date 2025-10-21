@@ -126,6 +126,8 @@ def create_document_store(configuration: dict) -> DocumentStore:
     database_name = configuration.get("database_name")
     certificate_base64 = configuration.get("certificate_base64")
 
+    # Initialize temp_cert_path so it is available in the except block below,
+    # even if an exception occurs before it is assigned.
     temp_cert_path: Optional[str] = None
 
     try:
