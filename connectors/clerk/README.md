@@ -50,19 +50,19 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector uses API Key authentication with Bearer token. The API key is passed in the `Authorization` header as `Bearer <api_key>`.
+This connector uses API key authentication with bearer tokens. The API key is passed in the `Authorization` header as `Bearer <api_key>`.
 
-**To obtain your Clerk API key:**
+To obtain your Clerk API key:
 1. Log in to your [Clerk Dashboard](https://dashboard.clerk.com/).
 2. Navigate to **API Keys** in the left sidebar.
-3. Copy your **Secret Key** (starts with `sk_test_` for test mode or `sk_live_` for production).
+3. Make a note of your secret key (starts with `sk_test_` for test mode or `sk_live_` for production).
 4. Add this key to your `configuration.json` file.
 
 
 ## Pagination
 The connector implements offset-based pagination using the Clerk API's `limit` and `offset` query parameters.
 
-**Pagination details:**
+Pagination details:
 - Page size: 100 records per request (configurable via `__PAGE_LIMIT` constant)
 - The connector starts with `offset=0` and increments by the page size after each request
 - Pagination continues until the API returns fewer records than the page size
@@ -72,9 +72,9 @@ The pagination logic is implemented as a generator function to avoid loading all
 
 
 ## Data handling
-The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures:
+The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures.
 
-**Main table flattening:**
+Main table flattening:
 - Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `USERS` table using underscore notation
 - Example: `public_metadata.role` becomes the `public_metadata_role` column
 - Deeply nested objects use multiple underscores: `verification.error.code` becomes `verification_error_code`
@@ -105,7 +105,7 @@ Error categories:
 - Network errors: Retried with exponential backoff
 - Data processing errors: Wrapped in RuntimeError with descriptive messages
 
-**Timeout:** All API requests have a 30-second timeout to prevent hanging connections.
+Timeout: All API requests have a 30-second timeout to prevent hanging connections.
 
 
 ## Tables created
