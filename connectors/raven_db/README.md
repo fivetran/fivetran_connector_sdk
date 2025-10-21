@@ -75,7 +75,17 @@ To obtain your certificate:
 1. Log in to your RavenDB Cloud portal (https://cloud.ravendb.net/)
 2. Navigate to your instance
 3. Download the client certificate package
-4. Convert the certificate to base64 format
+4. Convert the certificate to base64 format:
+
+    - **macOS/Linux:**  
+      ```sh
+      base64 -i certificate.pem
+      ```
+    - **Windows:**  
+      ```cmd
+      certutil -encode certificate.pem certificate.b64
+      ```
+      The base64-encoded certificate will be in `certificate.b64`.
 5. Add the base64 string to your configuration
 
 ## Pagination
