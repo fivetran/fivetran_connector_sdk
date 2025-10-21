@@ -174,6 +174,40 @@ def create_document_store(configuration: dict) -> DocumentStore:
         raise RuntimeError(f"Failed to create RavenDB DocumentStore: {e}")
 
 
+def build_rql_query(
+    collection_name: str,
+    last_modified: Optional[str] = None,
+    skip: int = 0,
+    take: int = __DEFAULT_BATCH_SIZE,
+) -> str:
+    """
+    Build an RQL query string for fetching documents from a RavenDB collection.
+
+    Args:
+        collection_name: The name of the collection to query.
+        last_modified: The last modified timestamp for incremental sync filtering.
+        skip: Number of records to skip (for pagination).
+        take: Number of records to fetch in this batch.
+    Returns:
+        An RQL query string ready for execution.
+    """
+    # Start with base collection query
+    # RavenDB groups documents into collections based on ID prefix (e.g., "Orders/1-A")
+    rql = f"from '{collection_name}'"
+
+    # Add filter for incremental sync if last_modified provided
+    if last_modified:
+        rql += f" where @metadata.'@last-modified' > '{last_modified}'"
+
+    # Add ordering for consistent results
+    rql += " order by @metadata.'@last-modified'"
+
+    # Add pagination
+    rql += f" limit {skip}, {take}"
+
+    return rql
+
+
 def fetch_documents_batch(
     store: DocumentStore,
     collection_name: str,
@@ -197,21 +231,8 @@ def fetch_documents_batch(
     """
     try:
         with store.open_session() as session:
-            # Build RQL query to get documents from specific collection
-            # RavenDB groups documents into collections based on ID prefix (e.g., "Orders/1-A")
-            rql = f"""
-                from '{collection_name}'
-            """
-
-            # Add filter for incremental sync if last_modified provided
-            if last_modified:
-                rql += f" where @metadata.'@last-modified' > '{last_modified}'"
-
-            # Add ordering for consistent results
-            rql += " order by @metadata.'@last-modified'"
-
-            # Add pagination
-            rql += f" limit {skip}, {take}"
+            # Build RQL query using helper function
+            rql = build_rql_query(collection_name, last_modified, skip, take)
 
             # Execute raw RQL query
             results = list(session.advanced.raw_query(rql, object_type=dict))
@@ -278,6 +299,7 @@ def update(configuration: dict, state: dict):
         batch_count = 0
         skip = 0
         has_more_data = True
+        rows_since_last_checkpoint = 0
 
         log.info(f"Starting batch processing with batch size: {batch_size}")
 
@@ -312,9 +334,13 @@ def update(configuration: dict, state: dict):
                 if last_doc_last_modified:
                     new_last_modified = last_doc_last_modified
 
-            # Checkpoint periodically
-            if row_count % __CHECKPOINT_INTERVAL == 0:
-                save_state(new_last_modified)
+            # Update rows since last checkpoint
+            rows_since_last_checkpoint += batch_row_count
+
+            # Checkpoint after each complete batch to ensure consistent state
+            # This avoids boundary issues with cumulative row counts
+            save_state(new_last_modified)
+            rows_since_last_checkpoint = 0
 
             log.info(
                 f"Completed batch {batch_count}: processed {batch_row_count} documents, "
@@ -323,9 +349,6 @@ def update(configuration: dict, state: dict):
 
             # Update skip for next batch
             skip += batch_size
-
-        # Final checkpoint
-        save_state(new_last_modified)
 
         log.info(f"Successfully synced {row_count} documents across {batch_count} batches")
 
