@@ -1,0 +1,9 @@
+{
+    "TIDB_HOST":"",
+    "TIDB_USER":"",
+    "TIDB_PASS":"",
+    "TIDB_PORT":"",
+    "TIDB_DATABASE":"",
+    "TABLES_PRIMARY_KEY_COLUMNS": "",
+    "VECTOR_TABLES_DATA": ""
+}
