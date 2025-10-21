@@ -24,7 +24,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Supports pagination for handling large datasets efficiently
 - Implements robust retry logic with configurable exponential backoff
 - Handles nested data structures by creating separate parent-child tables
-- Provides configurable page size and maximum page limits
 - Includes comprehensive error handling for various API failure scenarios
 - Supports incremental sync with state checkpointing
 
@@ -46,9 +45,6 @@ The connector requires the following configuration parameters in the configurati
 
 **Optional Parameters:**
 - `base_url`: The Dexory API base URL (default: https://api.service.dexoryview.com)
-- `max_pages`: Maximum number of pages to process (default: 1000)
-- `page_size`: Number of records per page (default: 1000)
-- `base_retry_delay_seconds`: Base delay in seconds for retry logic (default: 2)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -83,8 +79,8 @@ The connector processes Dexory inventory data through several transformation ste
 **Data Transformation:** The `convert_lists_to_strings` function converts complex nested data structures to JSON strings for Fivetran compatibility, while preserving the `expected_inventory_objects` field for separate table processing.
 
 **Parent-Child Table Structure:** 
-- **Parent Table (`locations`)**: Contains location metadata including name, type, aisle, and scan date
-- **Child Table (`expected_inventory_objects`)**: Contains individual inventory objects with foreign key references to the parent location
+- **Parent Table (`location`)**: Contains location metadata including name, type, aisle, and scan date
+- **Child Table (`expected_inventory_object`)**: Contains individual inventory objects with foreign key references to the parent location
 
 **Data Flattening:** Nested objects are flattened and foreign key relationships are established by adding location identifiers to each inventory object record.
 

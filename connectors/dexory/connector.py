@@ -203,20 +203,6 @@ def _process_locations_page(locations: List[Dict[str, Any]], page_count: int) ->
     return location_count
 
 
-def _should_continue_pagination(
-    next_url: str, base_url: str, page_count: int, max_pages: int
-) -> bool:
-    """Determine if pagination should continue"""
-    if page_count > max_pages:
-        log.warning(f"Reached maximum page limit ({max_pages})")
-        return False
-
-    if not next_url or not next_url.startswith(base_url):
-        return False
-
-    return True
-
-
 def _sync_locations_pages(
     site_name: str,
     api_key: str,
@@ -231,11 +217,14 @@ def _sync_locations_pages(
     location_count = 0
 
     while True:
-        page_count += 1
-
-        if not _should_continue_pagination(next_url, base_url, page_count, max_pages):
+        # Check if we've reached the max page limit before fetching
+        if page_count >= max_pages:
+            log.warning(f"Reached maximum page limit ({max_pages})")
             break
 
+        page_count += 1
+
+        # Fetch the current page (first page when next_url is None)
         response_data = fetch_locations_with_retry(
             site_name, api_key, page_size, base_url, next_url, __MAX_RETRIES, base_retry_delay
         )
@@ -252,6 +241,10 @@ def _sync_locations_pages(
         # Check for next page
         links = response_data.get("links", {})
         next_url = links.get("next")
+
+        # Break if there's no next page or if next_url is invalid
+        if not next_url or not next_url.startswith(base_url):
+            break
 
     return page_count, location_count
 
