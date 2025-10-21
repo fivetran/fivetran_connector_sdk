@@ -136,7 +136,7 @@ def update(configuration: dict, state: dict):
     # Get the state variable for the sync - last_created_at tracks incremental sync using created_at_after
     # Default to January 1, 1990 if no previous state exists
     last_created_at = state.get("last_created_at", __DEFAULT_START_CREATED_AT)
-    new_created_at = last_created_at
+    new_created_at = None  # Only update if we actually process records
 
     # Counter for tracking records processed for checkpointing
     records_processed = 0
@@ -157,8 +157,11 @@ def update(configuration: dict, state: dict):
             if records_processed % __CHECKPOINT_INTERVAL == 0:
                 checkpoint_sync_state(new_created_at, records_processed)
 
-        # Final checkpoint with the latest state
-        checkpoint_sync_state_final(new_created_at, records_processed)
+        # Final checkpoint with the latest state only if we processed any records
+        if new_created_at is not None:
+            checkpoint_sync_state_final(new_created_at, records_processed)
+        else:
+            log.info(f"No new records to process. Sync completed without state update.")
 
     except requests.exceptions.RequestException as e:
         # Handle HTTP/network related errors
@@ -359,14 +362,14 @@ def flatten_record(record, excluded_fields=None):
                     # Handle deeply nested objects
                     for deep_key, deep_value in nested_value.items():
                         if isinstance(deep_value, (dict, list)):
-                            flattened[f"{key}_{nested_key}_{deep_key}"] = json.dumps(deep_value) if deep_value else None
+                            flattened[f"{key}_{nested_key}_{deep_key}"] = (
+                                json.dumps(deep_value) if deep_value else None
+                            )
                         else:
                             flattened[f"{key}_{nested_key}_{deep_key}"] = deep_value
                 else:
                     if isinstance(nested_value, list):
-                        flattened[f"{key}_{nested_key}"] = (
-                            json.dumps(nested_value)
-                        )
+                        flattened[f"{key}_{nested_key}"] = json.dumps(nested_value)
                     else:
                         flattened[f"{key}_{nested_key}"] = nested_value
         elif isinstance(value, list):
