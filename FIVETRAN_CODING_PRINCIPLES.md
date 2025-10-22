@@ -1,6 +1,5 @@
-# Fivetran code review and example connector guidelines
+# Fivetran Code Review and Example Connector Guidelines
 
----
 
 ## 1. Code review principles
 
@@ -127,7 +126,6 @@ This is a great place to start to learn our coding practices through templated e
 - Create separate folders/examples, each with a distinct goal.
 - Keep the `update()` method short — use smaller helper methods.
 
----
 
 ### 5.4 Use a clear, self-contained folder
 
@@ -192,4 +190,3 @@ These guidelines ensure all Fivetran examples and code reviews are:
 
 Following these principles leads to faster reviews, cleaner merges, and more resilient code.
 
----
