@@ -148,6 +148,10 @@ def get_all_responses(start_date, end_date, token):
 
         for item in items:
             flat = flatten_response(item)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="responses", data=flat)
 
         offset += limit
@@ -185,6 +189,10 @@ def get_scrunch_peformance(start_date, end_date, token):
 
     counter = 0
     for rec in data:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="overall_scrunch_performance", data=rec)
         counter += 1
         if counter % 100 == 0:
@@ -231,6 +239,10 @@ def get_competitor_performance(start_date, end_date, token):
 
     counter = 0
     for rec in data:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="competitor_performance", data=rec)
         counter += 1
         if counter % 100 == 0:
@@ -276,6 +288,10 @@ def get_daily_citations(start_date, end_date, token):
 
     counter = 0
     for rec in data:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="daily_citations", data=rec)
         counter += 1
         if counter % 100 == 0:
