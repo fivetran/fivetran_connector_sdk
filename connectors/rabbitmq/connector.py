@@ -20,7 +20,7 @@ import pika
 from pika.exceptions import AMQPConnectionError, AMQPChannelError
 
 # For handling type hints
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple
 
 # For parsing timestamps and generating unique IDs
 import hashlib
