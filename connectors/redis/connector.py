@@ -29,6 +29,11 @@ from typing import Dict, List, Any, Tuple
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 keys
 __BATCH_SIZE = 100  # Batch size for key scanning
 __SCAN_COUNT = 100  # Redis SCAN count parameter for pagination
+__TIMESERIES_BATCH_SIZE = 1000  # Number of data points to process per batch for TimeSeries
+__DEFAULT_REDIS_PORT = 6379  # Default Redis port
+__DEFAULT_REDIS_DB = 0  # Default Redis database number
+__SOCKET_TIMEOUT_SEC = 30  # Socket timeout in seconds
+__SOCKET_CONNECT_TIMEOUT_SEC = 30  # Socket connection timeout in seconds
 
 
 def validate_configuration(configuration: dict):
@@ -83,10 +88,10 @@ def build_connection_params(configuration: dict) -> dict:
         Dictionary of connection parameters for Redis client.
     """
     host = configuration.get("host", "localhost")
-    port = int(configuration.get("port", 6379))
+    port = int(configuration.get("port", __DEFAULT_REDIS_PORT))
     username = configuration.get("username")
     password = configuration.get("password")
-    database = int(configuration.get("database", 0))
+    database = int(configuration.get("database", __DEFAULT_REDIS_DB))
     ssl_config = configuration.get("ssl", "false")
     ssl = ssl_config.lower() == "true" if isinstance(ssl_config, str) else ssl_config
 
@@ -95,8 +100,8 @@ def build_connection_params(configuration: dict) -> dict:
         "port": port,
         "db": database,
         "decode_responses": True,  # Decode responses to strings
-        "socket_timeout": 30,
-        "socket_connect_timeout": 30,
+        "socket_timeout": __SOCKET_TIMEOUT_SEC,
+        "socket_connect_timeout": __SOCKET_CONNECT_TIMEOUT_SEC,
     }
 
     if username and username.strip():  # Add username if provided (for Redis ACL)
@@ -149,6 +154,100 @@ def close_redis_client(redis_client: redis.Redis):
         redis_client.close()
     except Exception as e:
         log.warning(f"Error closing Redis connection: {e}")
+
+
+def is_timeseries_key(redis_client: redis.Redis, key: str) -> bool:
+    """
+    Check if a Redis key is a TimeSeries key.
+    Args:
+        redis_client: Redis client instance.
+        key: Redis key to check.
+    Returns:
+        True if the key is a TimeSeries, False otherwise.
+    """
+    try:
+        key_type = redis_client.type(key)
+        # TimeSeries keys have type "TSDB-TYPE" or "timeseries"
+        return key_type.lower() in ["tsdb-type", "timeseries"]
+    except Exception as e:
+        log.warning(f"The supplied key is not a timeseries key'{key}': {e}")
+        return False
+
+
+def get_timeseries_range(
+    redis_client: redis.Redis,
+    key: str,
+    from_timestamp: int,
+    to_timestamp: str = "+",
+) -> List[Tuple[int, float]]:
+    """
+    Get TimeSeries data points within a timestamp range.
+    Args:
+        redis_client: Redis client instance.
+        key: TimeSeries key name.
+        from_timestamp: Starting timestamp in milliseconds (Unix epoch).
+        to_timestamp: Ending timestamp in milliseconds or "+" for latest.
+    Returns:
+        List of (timestamp, value) tuples.
+    """
+    try:
+        # TS.RANGE returns list of [timestamp, value] pairs
+        result = redis_client.execute_command("TS.RANGE", key, from_timestamp, to_timestamp)
+        return result if result else []
+    except Exception as e:
+        log.warning(f"Failed to get TimeSeries range for key '{key}': {e}")
+        return []
+
+
+def sync_timeseries_key(
+    redis_client: redis.Redis,
+    key: str,
+    table_name: str,
+    last_timestamp: int,
+    current_sync_time: str,
+) -> Tuple[int, int]:
+    """
+    Sync a single TimeSeries key incrementally from last_timestamp to now.
+    Args:
+        redis_client: Redis client instance.
+        key: TimeSeries key name.
+        table_name: Destination table name.
+        last_timestamp: Last synced timestamp in milliseconds.
+        current_sync_time: Current sync timestamp string.
+    Returns:
+        Tuple of (number of data points synced, latest timestamp).
+    """
+    # Query from last_timestamp + 1 to latest
+    from_ts = last_timestamp + 1 if last_timestamp > 0 else 0
+    data_points = get_timeseries_range(redis_client, key, from_ts, "+")
+
+    if not data_points:
+        return 0, last_timestamp
+
+    max_timestamp = last_timestamp
+    count = 0
+
+    # Process each data point
+    for timestamp, value in data_points:
+        # Create record for each data point
+        record = {
+            "key": key,
+            "value": str(value),
+            "data_type": "timeseries",
+            "ttl": -1,  # TimeSeries don't typically use TTL
+            "last_modified": datetime.fromtimestamp(timestamp / 1000, timezone.utc).isoformat(),
+            "size": 1,  # Each data point is a single value
+        }
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table=table_name, data=record)
+        count += 1
+        max_timestamp = max(max_timestamp, timestamp)
+
+    return count, max_timestamp
 
 
 def extract_value_by_type(redis_client: redis.Redis, key: str, key_type: str) -> Tuple[str, int]:
@@ -251,29 +350,55 @@ def scan_redis_keys(
         raise RuntimeError(f"Failed to scan Redis keys: {str(e)}")
 
 
-def process_batch(redis_client: redis.Redis, keys: List[str], table_name: str) -> int:
+def process_batch(
+    redis_client: redis.Redis,
+    keys: List[str],
+    table_name: str,
+    timeseries_state: Dict[str, int],
+) -> Tuple[int, Dict[str, int]]:
     """
     Process a batch of Redis keys and upsert them to the destination.
+    Detects TimeSeries keys and syncs them incrementally.
     Args:
         redis_client: Redis client instance.
         keys: List of keys to process.
         table_name: Destination table name.
+        timeseries_state: Dictionary mapping TimeSeries keys to their last synced timestamp.
     Returns:
-        Number of keys processed in this batch.
+        Tuple of (number of records processed, updated timeseries_state).
     """
     batch_row_count = 0
+    current_sync_time = datetime.now(timezone.utc).isoformat()
+
     for key in keys:
-        # Get comprehensive key information
-        key_info = get_redis_value_info(redis_client, key)
+        # Check if this is a TimeSeries key
+        if is_timeseries_key(redis_client, key):
+            # Sync incrementally from last known timestamp
+            last_ts = timeseries_state.get(key, 0)
+            count, max_ts = sync_timeseries_key(
+                redis_client, key, table_name, last_ts, current_sync_time
+            )
+            batch_row_count += count
 
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted,
-        op.upsert(table=table_name, data=key_info)
-        batch_row_count += 1
+            # Update the state with the latest timestamp for this key
+            if max_ts > last_ts:
+                timeseries_state[key] = max_ts
 
-    return batch_row_count
+            log.info(
+                f"Synced {count} data points from TimeSeries key '{key}' (timestamp: {max_ts})"
+            )
+        else:
+            # Handle regular Redis key-value data
+            key_info = get_redis_value_info(redis_client, key)
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(table=table_name, data=key_info)
+            batch_row_count += 1
+
+    return batch_row_count, timeseries_state
 
 
 def sync_redis_data(
@@ -283,9 +408,11 @@ def sync_redis_data(
     batch_size: int,
     cursor: int,
     current_sync_time: str,
-) -> int:
+    timeseries_state: Dict[str, int],
+) -> Tuple[int, Dict[str, int]]:
     """
     Sync Redis data by scanning and processing keys in batches.
+    Supports both regular Redis keys and TimeSeries keys with incremental sync.
     Args:
         redis_client: Redis client instance.
         table_name: Destination table name.
@@ -293,8 +420,9 @@ def sync_redis_data(
         batch_size: Number of keys to process per batch.
         cursor: Starting cursor position.
         current_sync_time: Current sync timestamp.
+        timeseries_state: Dictionary mapping TimeSeries keys to their last synced timestamp.
     Returns:
-        Total number of keys processed.
+        Tuple of (total records processed, updated timeseries_state).
     """
     row_count = 0
     batch_count = 0
@@ -317,16 +445,18 @@ def sync_redis_data(
             continue
 
         # Process each key in the current batch
-        batch_row_count = process_batch(redis_client, keys, table_name)
+        batch_row_count, timeseries_state = process_batch(
+            redis_client, keys, table_name, timeseries_state
+        )
         row_count += batch_row_count
         total_keys_processed += batch_row_count
 
         # Checkpoint periodically and at cursor reset
         if row_count % __CHECKPOINT_INTERVAL == 0 or cursor == 0:
-            save_state(cursor, current_sync_time)
+            save_state(cursor, current_sync_time, timeseries_state)
 
         log.info(
-            f"Completed batch {batch_count}: processed {batch_row_count} keys, "
+            f"Completed batch {batch_count}: processed {batch_row_count} records, "
             f"total processed: {total_keys_processed}, cursor: {cursor}"
         )
 
@@ -334,7 +464,7 @@ def sync_redis_data(
         if cursor == 0:
             break
 
-    return total_keys_processed
+    return total_keys_processed, timeseries_state
 
 
 def update(configuration: dict, state: dict):
@@ -360,21 +490,29 @@ def update(configuration: dict, state: dict):
     key_pattern = configuration.get("key_pattern", "*")
     batch_size = int(configuration.get("batch_size", __BATCH_SIZE))
 
-    # Get the state variable for the sync - Redis doesn't have built-in timestamps,
-    # so we'll use a full scan approach but track cursor for resumption
+    # Get the state variables for the sync
+    # For regular Redis keys: track cursor for resumption using SCAN
+    # For TimeSeries keys: track last synced timestamp for incremental sync
     cursor = state.get("cursor", 0)
+    timeseries_state = state.get("timeseries_state", {})
     current_sync_time = datetime.now(timezone.utc).isoformat()
 
     try:
-        # Sync all Redis data
-        total_keys_processed = sync_redis_data(
-            redis_client, table_name, key_pattern, batch_size, cursor, current_sync_time
+        # Sync all Redis data (both regular keys and TimeSeries)
+        total_records_processed, timeseries_state = sync_redis_data(
+            redis_client,
+            table_name,
+            key_pattern,
+            batch_size,
+            cursor,
+            current_sync_time,
+            timeseries_state,
         )
 
-        # Final checkpoint
-        save_state(0, current_sync_time)  # Reset cursor to 0 for next full scan
+        # Final checkpoint - reset cursor to 0 for next scan, but preserve TimeSeries timestamps
+        save_state(0, current_sync_time, timeseries_state)
 
-        log.info(f"Successfully synced {total_keys_processed} Redis keys")
+        log.info(f"Successfully synced {total_records_processed} records from Redis")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
@@ -384,14 +522,19 @@ def update(configuration: dict, state: dict):
         close_redis_client(redis_client)
 
 
-def save_state(cursor: int, sync_time: str):
+def save_state(cursor: int, sync_time: str, timeseries_state: Dict[str, int]):
     """
-    Save the current state including cursor position and sync time.
+    Save the current state including cursor position, sync time, and TimeSeries timestamps.
     Args:
         cursor: Current cursor position for Redis SCAN.
         sync_time: Current sync timestamp.
+        timeseries_state: Dictionary mapping TimeSeries keys to their last synced timestamp.
     """
-    new_state = {"cursor": cursor, "last_sync_time": sync_time}
+    new_state = {
+        "cursor": cursor,
+        "last_sync_time": sync_time,
+        "timeseries_state": timeseries_state,
+    }
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
