@@ -7,7 +7,7 @@ This example shows how to pull AI/ML response and aggregate data from the Scrunc
 - Flattens lists and serializes nested objects for destination compatibility.
 - Implements checkpointed incremental syncs per dataset.
 
-Related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `get_responses`, `flatten_response`, `get_scrunch_peformance`, `get_competitor_performance`, `get_daily_citations`.
+Related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `get_responses`, `flatten_response`, `get_scrunch_performance`, `get_competitor_performance`, `get_daily_citations`.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) 
@@ -26,7 +26,7 @@ For local testing, this example includes a `__main__` block that reads `configur
   - Refer to `get_all_responses` and `get_responses`.
 - Aggregates:
   - Overall Scrunch performance.
-    - Refer to `get_scrunch_peformance`.
+    - Refer to `get_scrunch_performance`.
   - Competitor performance.
     - Refer to `get_competitor_performance`.
   - Daily citations.
@@ -119,7 +119,7 @@ Summary of tables replicated.
 - metrics: `responses`.
 
 ## Additional files
-- `connector.py` – Contains all the core logic, including `schema`, `update`, `get_all_responses`, and all helper functions (`get_responses`, `flatten_response`, `get_scrunch_peformance`, `get_competitor_performance`, `get_daily_citations`).
+- `connector.py` – Contains all the core logic, including `schema`, `update`, `get_all_responses`, and all helper functions (`get_responses`, `flatten_response`, `get_scrunch_performance`, `get_competitor_performance`, `get_daily_citations`).
 - `configuration.json` – The file used for connector configuration, including `api_token` and `brand_id`.
 - `requirements.txt` – Specifies required third-party Python libraries (`python-dotenv`, `python_dateutil`).
 
