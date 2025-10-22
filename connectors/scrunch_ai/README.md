@@ -1,129 +1,127 @@
 # Scrunch Connector Example
 
-## connector overview
-this example shows how to pull ai/ml response and aggregate data from the scrunch api and load it into a destination using the fivetran connector sdk. scrunch provides individual responses, citations, and performance metrics across prompts, personas, and platforms. the connector:
-- retrieves paginated responses (raw records)
-- executes aggregate queries for overall performance, competitor performance, and daily citations
-- flattens lists and serializes nested objects for destination compatibility
-- implements checkpointed incremental syncs per dataset
+## Connector overview
+This example shows how to pull AI/ML response and aggregate data from the Scrunch API and load it into a destination using the Fivetran Connector SDK. Scrunch provides individual responses, citations, and performance metrics across prompts, personas, and platforms. The connector:
+- Retrieves paginated responses (raw records).
+- Executes aggregate queries for overall performance, competitor performance, and daily citations.
+- Flattens lists and serializes nested objects for destination compatibility.
+- Implements checkpointed incremental syncs per dataset.
 
-related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `get_responses`, `flatten_response`, `get_scrunch_peformance` (spelling matches code), `get_competitor_performance`, `get_daily_citations`
+Related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `get_responses`, `flatten_response`, `get_scrunch_peformance`, `get_competitor_performance`, `get_daily_citations`.
 
-## requirements
-- [supported python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) (use **python 3**)
-- operating system:
-  - windows: 10 or later (64-bit only)
-  - macos: 13 (ventura) or later (apple silicon [arm64] or intel [x86_64])
-  - linux: ubuntu 20.04+ / debian 10+ / amazon linux 2+ (arm64 or x86_64)
+## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) 
+- Operating system:
+  - Windows: 10 or later (64-bit only).
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64]).
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64).
 
-## getting started
-refer to the [connector sdk setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-for local testing, this example includes a `__main__` block that reads `configuration.json` and runs `connector.debug(...)`.
+For local testing, this example includes a `__main__` block that reads `configuration.json` and runs `connector.debug(...)`.
 
-## features
-- responses ingestion: offset-based pagination over `/v1/{account_id}/responses`  
-  see `get_all_responses`, `get_responses`
-- aggregates:
-  - overall scrunch performance  
-    see `get_scrunch_peformance`
-  - competitor performance  
-    see `get_competitor_performance`
-  - daily citations  
-    see `get_daily_citations`
-- data shaping: list fields collapsed with a stable delimiter; `citations` serialized to json  
-  see `flatten_response`
-- incremental syncs: dataset-specific checkpoints with rolling lookbacks  
-  see `update` plus each helper’s `op.checkpoint(...)`
+## Features
+- Responses ingestion: offset-based pagination over `/v1/{account_id}/responses`.
+  - Refer to `get_all_responses` and `get_responses`.
+- Aggregates:
+  - Overall Scrunch performance.
+    - Refer to `get_scrunch_peformance`.
+  - Competitor performance.
+    - Refer to `get_competitor_performance`.
+  - Daily citations.
+    - Refer to `get_daily_citations`.
+- Data shaping: list fields collapsed with a stable delimiter; `citations` serialized to JSON.
+  - Refer to `flatten_response`.
+- Incremental syncs: dataset-specific checkpoints with rolling lookbacks.
+  - Refer to `update` plus each helper's `op.checkpoint(...)`.
 
-## configuration file
-the connector expects a minimal configuration uploaded from `configuration.json`.
+## Configuration file
+Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the `configuration.json` file.
 ```
 {
   "api_token": "<your_api_token>", 
   "brand_id": "<specific_brand_id>"
 }
 ```
-The brand_id is a value that you will be getting directly from Scrunch AI
+- `api_token`: The Bearer token required for API authentication.
+- `brand_id`: The specific brand identifier to filter data from Scrunch AI.
+
+Note: The `brand_id` is a value that you will be getting directly from Scrunch AI.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-python-dotenv==1.1.1 is required to load environment variables from a .env file
+Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.
 
-python_dateutil==2.9.0.post0 is needed to calclate rolling lookback windows
+*Example content of `requirements.txt`:*
+python-dotenv==1.1.1 python_dateutil==2.9.0.post0
+
+- `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
+- `python_dateutil==2.9.0.post0` is needed to calculate rolling lookback windows.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-- **type**: bearer token  
-- **header**: `authorization: bearer <api_token>` (provided via `configuration["api_token"]`)  
-- **where set**: all `requests.get(...)` calls across helpers set this header  
+- type: Bearer token.
+- header: `authorization: bearer <api_token>` (provided via `configuration["api_token"]`).
+- where set: All `requests.get(...)` calls across helpers set this header.
 
-You can get the API token directly from Scrunch AI
+You can get the API token directly from Scrunch AI.
 
 ## Pagination
-The `get_all_responses` function loops while the `offset` is less than the `total` number of responses.
-* Each page of responses is retrieved. The items from that page are then flattened.
-* These flattened items are **upserted** into the "responses" table using `op.upsert(table="responses", data=...)`.
-* The example code advances the **offset** in increments of 100. This relies on the API's default page size. 
-* For more details, refer to the `get_responses` and `get_all_responses` functions.
+The `get_all_responses` function handles pagination.
+
+- The function loops while the `offset` is less than the `total` number of responses.
+- Each page of responses is retrieved and flattened.
+- These flattened items are **upserted** into the "responses" table using `op.upsert(table="responses", data=...)`.
+- The example code advances the **offset** in increments of 100, relying on the API's default page size.
+- Refer to `get_all_responses` and `get_responses` for details.
 
 ## Data handling
-### schema definition
-`schema(configuration)` returns four tables:
-- **responses** (primary key: `id`)
-- **overall_scrunch_performance**
-- **competitor_performance**
-- **daily_citations**
+- Schema definition: `schema(configuration)` returns four tables:
+  - `responses` (primary key: `id`).
+  - `overall_scrunch_performance`.
+  - `competitor_performance`.
+  - `daily_citations`.
 
-### flattening
-`flatten_response`:
-- preserves scalar fields  
-- converts lists to delimited strings using `LIST_JOINER = " | "`  
-- serializes `citations` to a JSON string (`citations_json`) to retain structure without array types
+- Flattening: `flatten_response` transforms data for destination compatibility:
+  - Preserves scalar fields.
+  - Converts lists to delimited strings using `LIST_JOINER = " | "`.
+  - Serializes `citations` to a JSON string (`citations_json`) to retain structure without array types.
 
-### aggregates
-each aggregate helper builds `fields`/`group_by` and upserts rows as returned by the API.  
-no additional type casting is performed in this example.
+- Aggregates: Each aggregate helper builds `fields`/`group_by` and upserts rows as returned by the API; no additional type casting is performed in this example.
 
-### upserts
-all writes use:
-```
-python op.upset(...)
-```
+- Upserts: All writes use `op.upsert(...)`.
 
 ## Error handling
-- **http errors**:  
-  `response.raise_for_status()` is called on all requests to surface API errors immediately.
-
-- **config validation**:  
-  early failure if token is missing in configuration.  
-
-- **operational logging**:  
-  progress prints every 100 upserts in aggregate loaders.
-
+- HTTP errors: `response.raise_for_status()` is called on all requests to surface API errors immediately.
+- Config validation: Early failure if the `api_token` is missing in configuration.
+- Operational logging: Progress prints every 100 upserts in aggregate loaders.
 
 ## Tables created
 
+Summary of tables replicated.
+
 ### responses
-- **primary key**: `id`  
-- **selected columns** (not exhaustive):  
-  `id`, `created_at`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `country`, `stage`, `branded`, `platform`, `brand_present`, `brand_sentiment`, `brand_position`, `response_text`, `tags`, `key_topics`, `competitors_present`, `citations_json`
+- primary key: `id`.
+- selected columns (not exhaustive): `id`, `created_at`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `country`, `stage`, `branded`, `platform`, `brand_present`, `brand_sentiment`, `brand_position`, `response_text`, `tags`, `key_topics`, `competitors_present`, `citations_json`.
 
-### overall_scrunch_performance
-- **dimensions**:  
-  `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `ai_platform`, `branded`
-- **metrics**:  
-  `responses`, `brand_presence_percentage`, `brand_position_score`, `brand_sentiment_score`, `competitor_presence_percentage`
+### overall\_scrunch\_performance
+- dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `ai_platform`, `branded`.
+- metrics: `responses`, `brand_presence_percentage`, `brand_position_score`, `brand_sentiment_score`, `competitor_presence_percentage`.
 
-### competitor_performance
-- **dimensions**:  
-  `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `competitor_id`, `competitor_name`
-- **metrics**:  
-  `responses`, `brand_presence_percentage`, `competitor_presence_percentage`
+### competitor\_performance
+- dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `competitor_id`, `competitor_name`.
+- metrics: `responses`, `brand_presence_percentage`, `competitor_presence_percentage`.
 
-### daily_citations
-- **dimensions**:  
-  `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `source_type`, `source_url`
-- **metrics**:  
-  `responses`
+### daily\_citations
+- dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `source_type`, `source_url`.
+- metrics: `responses`.
 
+## Additional files
+- `connector.py` – Contains all the core logic, including `schema`, `update`, `get_all_responses`, and all helper functions (`get_responses`, `flatten_response`, `get_scrunch_peformance`, `get_competitor_performance`, `get_daily_citations`).
+- `configuration.json` – The file used for connector configuration, including `api_token` and `brand_id`.
+- `requirements.txt` – Specifies required third-party Python libraries (`python-dotenv`, `python_dateutil`).
+
+## Additional considerations
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
