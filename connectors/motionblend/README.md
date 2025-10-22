@@ -1,4 +1,4 @@
-# MotionBlend Connector Example
+# Rydlr MotionBlend Connector Example
 
 ## Connector overview
 The MotionBlend connector ingests motion-capture (MoCap) metadata from Google Cloud Storage (GCS) and delivers it to BigQuery for downstream transformation and analytics. It scans folders containing `.bvh` and `.fbx` files, extracts key metadata (such as motion type, frame rate, skeleton ID, and timestamps), and loads this structured information into BigQuery.
