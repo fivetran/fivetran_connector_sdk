@@ -28,7 +28,7 @@ import requests
 import time
 
 # For type hinting
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Tuple
 
 
 __PRODUCTION_BASE_URL = "https://swapi.py4e.com/api"  # Endpoint to use in production environment

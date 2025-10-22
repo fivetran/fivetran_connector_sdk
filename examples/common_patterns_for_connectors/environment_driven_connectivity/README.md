@@ -90,32 +90,32 @@ The connector creates six tables in your destination:
 
 ### PLANETS
 - Primary key: url
-- Columns: All fields from SWAPI's people resource, including:
+- Columns: All fields from SWAPI's planets resource, including:
   - created, edited (`UTC_DATETIME`)
   - residents, films (`JSON` arrays)
 
 ### FILMS
 - Primary key: url
-- Columns: All fields from SWAPI's people resource, including:
+- Columns: All fields from SWAPI's films resource, including:
   - created, edited (`UTC_DATETIME`)
   - release_date (`NAIVE_DATE`)
   - characters, planets, starships, vehicles, species (`JSON` arrays)
 
 ### SPECIES
 - Primary key: url
-- Columns: All fields from SWAPI's people resource, including:
+- Columns: All fields from SWAPI's species resource, including:
   - created, edited (`UTC_DATETIME`)
   - people, films (`JSON` arrays)
 
 ### STARSHIPS
 - Primary key: url
-- Columns: All fields from SWAPI's people resource, including:
+- Columns: All fields from SWAPI's starships resource, including:
   - created, edited (`UTC_DATETIME`)
   - pilots, films (`JSON` arrays)
 
 ### VEHICLES
 - Primary key: url
-- Columns: All fields from SWAPI's people resource, including:
+- Columns: All fields from SWAPI's vehicles resource, including:
   - created, edited (`UTC_DATETIME`)
   - pilots, films (`JSON` arrays)
 
