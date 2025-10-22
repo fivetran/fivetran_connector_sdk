@@ -1,73 +1,64 @@
-# SAP Ariba Purchase Orders Connector (Custom Fivetran SDK)
+# SAP Ariba Purchase Orders Connector Example
 
 ## Connector overview
+The SAP Ariba Purchase Orders connector demonstrates how to use the Fivetran Connector SDK to extract **purchase order (PO)** and **line-item** data from the [SAP Ariba API](https://api.sap.com/api/api_purchase_orders/overview). It loads the data into a Fivetran destination for analytics and reporting.
 
-This connector retrieves **Purchase Order (PO)** and **Purchase Order Item** data from the **SAP Ariba API** and loads it into your Fivetran destination using the **Fivetran Connector SDK**.
+The connector supports **incremental syncing** by maintaining timestamps in its internal state. It fetches new or modified purchase orders and items and marks processed rows with checkpoints for reliable continuation.
 
-It supports incremental syncing by maintaining timestamps in its internal state and emits structured, schema-defined records into two destination tables:
+It maintains two tables:
+- `orders` – contains header-level purchase order metadata.
+- `items` – contains detailed line-item records for each order.
 
-- `orders` — Contains high-level purchase order metadata.
-- `items` — Contains line-item level data for each order.
-
-The connector uses the **SAP Ariba Sandbox API** for demonstration purposes and can be configured for production endpoints.
-
----
+This example uses the **SAP Ariba Sandbox API** but can easily be configured for production environments.
 
 ## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+    - Windows: 10 or later (64-bit only)
+    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- SAP Ariba API key (sandbox or production)
+- Outbound internet access to `sandbox.api.sap.com` (or your production Ariba host)
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating System:
-    * Windows 10 or later
-    * macOS 13 (Ventura) or later
-    * Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
-* SAP Ariba API Key (or Sandbox access)
-* Outbound internet access to `sandbox.api.sap.com` (or your production Ariba endpoint)
-
----
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for setup instructions, including installing dependencies, configuring authentication, and running local tests.
 
 ## Features
-
-* Fetches **purchase orders** and **line items** from the Ariba API
-* Performs **incremental syncs** using internal timestamp checkpoints
-* Automatically handles API pagination via `$skip` and `$top` parameters
-* Converts Ariba timestamps to ISO 8601 UTC format
-* Retries automatically on network or rate limit errors
-* Performs schema-aware upserts for reliable idempotent loads
-
----
+- Fetches purchase orders and line items from the SAP Ariba API.
+- Performs **incremental syncs** using internal timestamp checkpoints.
+- Supports pagination with `$skip` and `$top` query parameters.
+- Converts timestamps to ISO 8601 UTC format.
+- Retries automatically on network failures or rate limit errors.
+- Performs schema-aware upserts for idempotent loading into Fivetran destinations.
 
 ## Configuration file
+The connector reads configuration settings from `configuration.json`, which defines the authentication parameters for SAP Ariba.
 
-Example `configuration.json`:
-
-```json
+```
 {
   "APIKey": "YOUR_API_KEY"
 }
 ```
 
-**Notes**
-- The Ariba Sandbox API requires an `APIKey` header for authentication.
-- You can replace the sandbox base URL (`https://sandbox.api.sap.com/ariba/api/purchase-orders/v1/sandbox/`) with your production endpoint.
+| Key | Required | Description |
+|-----|-----------|-------------|
+| `APIKey` | Yes | Your SAP Ariba API key for authentication. |
 
----
+Note: The connector defaults to the Ariba Sandbox API endpoint (`https://sandbox.api.sap.com/ariba/api/purchase-orders/v1/sandbox/`). Replace it with your production base URL if applicable.
 
 ## Requirements file
+The `requirements.txt` file specifies Python dependencies required by the connector.
 
-Minimal dependencies:
-
-```text
+```
 fivetran-connector-sdk
 requests
 ```
 
-These are pre-installed in the Fivetran environment.
-
----
+Note: Both `fivetran_connector_sdk` and `requests` are pre-installed in the Fivetran environment. This file is only required for local testing.
 
 ## Authentication
-
-The connector authenticates to SAP Ariba via an API key passed in headers:
+The connector authenticates using a single API key passed in the request headers.  
+Each request includes:
 
 ```
 APIKey: <YOUR_API_KEY>
@@ -75,164 +66,104 @@ Accept: application/json
 DataServiceVersion: 2.0
 ```
 
----
+No OAuth or password-based authentication is needed.
 
-## Data handling and flow
+## Pagination
+Pagination is handled in the data extraction functions using the `$skip` and `$top` query parameters.  
+The connector iterates through API pages until it receives an empty response, ensuring complete data retrieval.
 
-1. Builds schema for two tables:
-    - **orders** (top-level purchase order data)
-    - **items** (line-item level detail)
-2. Fetches data via paginated REST calls (`$top`, `$skip`)
-3. Filters and normalizes response JSON into structured rows
-4. Converts date strings (e.g., `"16 May 2019 1:41:26 AM"`) into ISO timestamps
-5. Emits:
-    - `op.Upsert(table, data)` for every record
-    - `op.Checkpoint(state)` periodically for reliable recovery
-6. Updates the `last_updated_at` field in connector state after each successful batch.
+Example:
+```
+GET /purchase-orders?$top=100&$skip=200
+```
 
----
+## Data handling
+The connector uses the `update(configuration, state)` function to:
+1. Fetch data from the `/purchase-orders` and related endpoints.
+2. Parse JSON responses and flatten nested structures into relational rows.
+3. Convert Ariba timestamp fields (e.g., `"16 May 2019 1:41:26 AM"`) to ISO UTC.
+4. Emit `Upsert` operations for every record using `op.upsert()`.
+5. Save sync progress with checkpoints via `op.checkpoint(state)`.
 
-## Incremental sync logic
-
-| Setting | Description |
-|----------|-------------|
-| `__LAST_UPDATED_AT` | Tracks last processed timestamp per table |
-| `__CHECKPOINT_INTERVAL` | Checkpoints every 1,000 processed records |
-| `__EPOCH_START_DATE` | Default starting point (`1970-01-01T00:00:00Z`) |
-
-### Example Flow
-
-1. Start from `state[table]["last_updated_at"]` or epoch start.
-2. Fetch all new records using `$skip`/`$top` pagination.
-3. For each record, assign:
-    - `row_id` = running count
-    - `last_updated_at` = sync start timestamp
-4. Upsert into destination.
-5. After every 1,000 rows → `op.checkpoint(state)`
-6. Save `last_updated_at` after final page.
-
----
-
-## Tables Created
-
-### orders
-**Primary key:** `payload_id`, `revision`, `row_id`
-
-| Field | Type | Description |
-|--------|------|-------------|
-| `documentNumber` | STRING | Purchase order number |
-| `orderDate` | UTC_DATETIME | Order creation date |
-| `supplierName` | STRING | Supplier organization name |
-| `supplierANID` | STRING | Supplier Ariba Network ID |
-| `buyerANID` | STRING | Buyer Ariba Network ID |
-| `customerName` | STRING | Customer name |
-| `systemId` | STRING | Ariba system identifier |
-| `payloadId` | STRING | Unique payload ID |
-| `revision` | STRING | Revision identifier |
-| `endpointId` | STRING | Endpoint identifier |
-| `created` | UTC_DATETIME | Creation date |
-| `status` | STRING | Order status |
-| `documentStatus` | STRING | Document state (Confirmed/Unconfirmed) |
-| `amount` | DOUBLE | Total purchase order value |
-| `numberOfInvoices` | INT | Count of associated invoices |
-| `invoiced_amount` | DOUBLE | Invoiced amount |
-| `company_code` | STRING | Company identifier |
-| `row_id` | INT | Sequential row counter |
-
----
-
-### items
-**Primary key:** `document_number`, `line_number`, `row_id`
-
-| Field | Type | Description |
-|--------|------|-------------|
-| `documentNumber` | STRING | Parent PO number |
-| `lineNumber` | INT | Line item number |
-| `quantity` | DOUBLE | Ordered quantity |
-| `unitOfMeasure` | STRING | Unit of measure |
-| `supplierPart` | STRING | Supplier part number |
-| `buyerPartId` | STRING | Buyer’s part number |
-| `manufacturerPartId` | STRING | Manufacturer part ID |
-| `description` | STRING | Item description |
-| `itemShipToName` | STRING | Shipping contact name |
-| `itemShipToStreet` | STRING | Street address |
-| `itemShipToCity` | STRING | City |
-| `itemShipToState` | STRING | State |
-| `itemShipToPostalCode` | STRING | Postal code |
-| `itemShipToCountry` | STRING | Country |
-| `isoCountryCode` | STRING | ISO 2-letter country code |
-| `itemShipToCode` | STRING | Ship-to code |
-| `itemLocation` | STRING | Delivery location |
-| `requestedDeliveryDate` | UTC_DATETIME | Requested delivery date |
-| `requestedShipmentDate` | UTC_DATETIME | Requested ship date |
-| `row_id` | INT | Sequential row counter |
-
----
+The connector also defines schemas and primary keys for both the `orders` and `items` tables through the `schema(configuration)` function.
 
 ## Error handling
+Refer to the HTTP request logic in the connector implementation.
 
-| Error | Description | Resolution |
-|--------|-------------|-------------|
-| 400–499 | Client errors (bad API key, malformed request) | Check API key or request parameters |
-| 429 | Rate limit reached | Retries with exponential backoff |
-| 500–599 | Server errors | Retries automatically with delay |
-| Network errors | Connection failures or timeouts | Retries up to 3 times with delay |
-| Data parsing | Invalid JSON or date format | Logged; record skipped |
+The connector implements the following error handling:
+- `400–499`: Client-side errors (e.g., invalid key or malformed request) – connector logs and exits.
+- `429`: API rate limit exceeded – connector retries automatically using exponential backoff.
+- `500–599`: Server errors – connector retries after a short delay.
+- Network issues: Automatically retried up to 3 times.
+- Invalid JSON or date parsing errors: Skipped gracefully and logged for review.
 
-All errors and warnings are logged via `fivetran_connector_sdk.Logging`.
+All logs and exceptions are managed using the `fivetran_connector_sdk.Logging` interface.
 
----
+## Tables created
+The connector creates two destination tables.
 
-## Example logs
+### orders
+Primary key: `payload_id`, `revision`, `row_id`
 
-```
-Starting sync from SAP Ariba API...
-Total records to process for table orders: 500
-Processed 1000 records for items
-Checkpoint created
-Sync completed successfully.
-```
+| Column | Type | Description |
+|--------|------|-------------|
+| `documentNumber` | STRING | Unique purchase order number. |
+| `orderDate` | UTC_DATETIME | Date when the order was created. |
+| `supplierName` | STRING | Name of the supplier. |
+| `supplierANID` | STRING | Supplier Ariba Network ID. |
+| `buyerANID` | STRING | Buyer Ariba Network ID. |
+| `customerName` | STRING | Name of the customer. |
+| `systemId` | STRING | Ariba system identifier. |
+| `payloadId` | STRING | Unique payload identifier. |
+| `revision` | STRING | Revision number or version. |
+| `endpointId` | STRING | Endpoint identifier. |
+| `created` | UTC_DATETIME | Creation timestamp. |
+| `status` | STRING | Status of the order. |
+| `documentStatus` | STRING | Confirmation state (Confirmed/Unconfirmed). |
+| `amount` | DOUBLE | Total purchase order amount. |
+| `numberOfInvoices` | INT | Number of invoices linked to the order. |
+| `invoiced_amount` | DOUBLE | Total invoiced amount. |
+| `company_code` | STRING | Internal company code. |
+| `row_id` | INT | Sequential ID used for uniqueness. |
 
----
+### items
+Primary key: `document_number`, `line_number`, `row_id`
 
-## Local testing
+| Column | Type | Description |
+|--------|------|-------------|
+| `documentNumber` | STRING | Associated purchase order number. |
+| `lineNumber` | INT | Line item number. |
+| `quantity` | DOUBLE | Ordered quantity. |
+| `unitOfMeasure` | STRING | Measurement unit for the item. |
+| `supplierPart` | STRING | Supplier’s part identifier. |
+| `buyerPartId` | STRING | Buyer’s part identifier. |
+| `manufacturerPartId` | STRING | Manufacturer’s part number. |
+| `description` | STRING | Description of the item. |
+| `itemShipToName` | STRING | Recipient name for shipment. |
+| `itemShipToStreet` | STRING | Street address of recipient. |
+| `itemShipToCity` | STRING | City of destination. |
+| `itemShipToState` | STRING | State or province. |
+| `itemShipToPostalCode` | STRING | Postal code. |
+| `itemShipToCountry` | STRING | Country name. |
+| `isoCountryCode` | STRING | ISO 2-letter country code. |
+| `itemShipToCode` | STRING | Internal ship-to code. |
+| `itemLocation` | STRING | Delivery location name. |
+| `requestedDeliveryDate` | UTC_DATETIME | Requested delivery date. |
+| `requestedShipmentDate` | UTC_DATETIME | Requested shipment date. |
+| `row_id` | INT | Sequential ID used for uniqueness. |
 
-Run the connector locally for debugging:
-
-```bash
-fivetran debug --configuration configuration.json
-```
-
-### Example debug summary
-```
-Operation       | Calls
-----------------+------------
-Upserts         | 859
-Updates         | 0
-Deletes         | 0
-Truncates       | 0
-SchemaChanges   | 2
-Checkpoints     | 3
-```
-
----
-
-## Deployment
-
-Deploy the connector to Fivetran:
-
-```bash
-fivetran deploy --destination <DESTINATION_NAME>                 --connection ariba_purchase_orders                 --configuration configuration.json
-```
-
----
+## Additional files
+- `sap_ariba_connector.py` – Main connector implementation, including schema and update logic.
+- `helpers.py` – Handles date parsing and pagination utilities.
+- `constants.py` – Stores default API URLs, retry intervals, and state key names.
 
 ## Additional considerations
+The example is intended for demonstration and educational purposes using the Fivetran Connector SDK.  
+When adapting this connector for production:
+- Replace the Sandbox API URL with your tenant’s production endpoint.
+- Increase retry delay (`__RETRY_DELAY`) if you encounter rate limits.
+- Confirm that your API key has permissions for both Purchase Order and Item endpoints.
+- All timestamps are normalized to UTC (`UTC_DATETIME`).
+- The connector is idempotent and safe for repeated runs.
 
-* The Ariba Sandbox API is rate-limited — adjust retry delay (`__RETRY_DELAY`) if needed.
-* In production, update `__BASE_URL` to point to your tenant’s Ariba API endpoint.
-* All timestamps are normalized to UTC (`UTC_DATETIME`).
-* Ensure your API key has access to Purchase Order and Item endpoints.
-* The connector supports pagination and incremental syncs out of the box.
-
----
+For questions or issues, contact Fivetran Support.
