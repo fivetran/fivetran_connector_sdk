@@ -82,7 +82,27 @@ def schema(configuration: dict):
                 "method": "STRING",
                 "file_uri": "STRING",
                 "created_at": "UTC_DATETIME",
-                "updated_at": "UTC_DATETIME"
+                "updated_at": "UTC_DATETIME",
+                # Quality metrics (computed post-ingestion)
+                "fid": "FLOAT",
+                "coverage": "FLOAT",
+                "global_diversity": "FLOAT",
+                "local_diversity": "FLOAT",
+                "inter_diversity": "FLOAT",
+                "intra_diversity": "FLOAT",
+                "l2_velocity_mean": "FLOAT",
+                "l2_velocity_std": "FLOAT",
+                "l2_velocity_max": "FLOAT",
+                "l2_velocity_transition": "FLOAT",
+                "l2_acceleration_mean": "FLOAT",
+                "l2_acceleration_std": "FLOAT",
+                "l2_acceleration_max": "FLOAT",
+                "l2_acceleration_transition": "FLOAT",
+                "transition_smoothness": "FLOAT",
+                "velocity_ratio": "FLOAT",
+                "acceleration_ratio": "FLOAT",
+                "quality_score": "FLOAT",
+                "quality_category": "STRING"
             }
         }
     ]
@@ -193,7 +213,7 @@ def transform_build_record(raw: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform raw GCS metadata into blend_motions record."""
+    """Transform raw GCS metadata into blend_motions record with quality metrics placeholders."""
     now = datetime.utcnow().isoformat()
     file_id = generate_record_id(raw["file_uri"])
     
@@ -207,7 +227,27 @@ def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
         "method": "snn",
         "file_uri": raw["file_uri"],
         "created_at": now,
-        "updated_at": raw.get("updated_at", now)
+        "updated_at": raw.get("updated_at", now),
+        # Quality metrics (populated by post-processing pipeline)
+        "fid": None,
+        "coverage": None,
+        "global_diversity": None,
+        "local_diversity": None,
+        "inter_diversity": None,
+        "intra_diversity": None,
+        "l2_velocity_mean": None,
+        "l2_velocity_std": None,
+        "l2_velocity_max": None,
+        "l2_velocity_transition": None,
+        "l2_acceleration_mean": None,
+        "l2_acceleration_std": None,
+        "l2_acceleration_max": None,
+        "l2_acceleration_transition": None,
+        "transition_smoothness": None,
+        "velocity_ratio": None,
+        "acceleration_ratio": None,
+        "quality_score": None,
+        "quality_category": None
     }
 
 
