@@ -81,7 +81,7 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
 
         for item in items:
             count += 1
-            values = filter_item_columns(item, allowed_columns)
+            values = filter_columns(item, allowed_columns)
             values["row_id"] = count
             values["last_updated_at"] = sync_start
 
@@ -126,7 +126,7 @@ def sync_orders(params, headers, state, sync_start):
     if state.get(table_name) is None:
         state[table_name] = {}
 
-    sync_rows(table_name, params, headers, state, "orderDate", getOrderColumns(), sync_start)
+    sync_rows(table_name, params, headers, state, getOrderColumns(), sync_start)
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
     op.checkpoint(state)
@@ -142,7 +142,7 @@ def sync_items(params, headers, state, sync_start):
     if state.get(table_name) is None:
             state[table_name] = {}
 
-    sync_rows(table_name, params, headers, state, "requestedDeliveryDate", getItemColumns(), sync_start)
+    sync_rows(table_name, params, headers, state, getItemColumns(), sync_start)
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
     op.checkpoint(state)
