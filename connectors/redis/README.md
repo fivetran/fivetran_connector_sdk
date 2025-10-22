@@ -48,14 +48,12 @@ The configuration keys required for your connector are as follows:
 
 ```
 {
-  "host": "<YOUR_REDIS_HOST>",
-  "port": "<YOUR_REDIS_PORT>",
-  "username": "<YOUR_USERNAME>",
-  "password": "<YOUR_PASSWORD>",
-  "database": "<YOUR_DATABASE_NUMBER>",
-  "ssl": "<TRUE_OR_FALSE>",
-  "table_name": "<YOUR_TABLE_NAME>",
-  "key_pattern": "<YOUR_KEY_PATTERN>",
+  "username": "<YOUR_REDIS_USERNAME>",
+  "password": "<YOUR_REDIS_PASSWORD>",
+  "database": "<YOUR_REDIS_DATABASE_NUMBER>",
+  "ssl": "<ENABLE_OR_DISABLE_SSL>",
+  "table_name": "<YOUR_REDIS_TABLE_NAME>",
+  "key_pattern": "<YOUR_REDIS_KEY_PATTERN>",
   "batch_size": "<YOUR_BATCH_SIZE>"
 }
 ```

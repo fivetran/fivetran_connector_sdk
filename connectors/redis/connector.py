@@ -139,6 +139,18 @@ def create_redis_client(configuration: dict):
         raise RuntimeError(f"Failed to create Redis client: {str(e)}")
 
 
+def close_redis_client(redis_client: redis.Redis):
+    """
+    Close the Redis client connection.
+    Args:
+        redis_client: The Redis client instance to close.
+    """
+    try:
+        redis_client.close()
+    except Exception as e:
+        log.warning(f"Error closing Redis connection: {e}")
+
+
 def extract_value_by_type(redis_client: redis.Redis, key: str, key_type: str) -> Tuple[str, int]:
     """
     Extract value and size based on Redis data type.
@@ -335,7 +347,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Database Connector: Redis Connector")
+    log.warning("Example: Source Examples - Redis")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -369,10 +381,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync data: {str(e)}")
     finally:
         # Close Redis connection
-        try:
-            redis_client.close()
-        except Exception as e:
-            log.warning(f"Error closing Redis connection: {e}")
+        close_redis_client(redis_client)
 
 
 def save_state(cursor: int, sync_time: str):
