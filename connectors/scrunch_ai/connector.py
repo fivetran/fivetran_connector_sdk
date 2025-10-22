@@ -33,23 +33,11 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
-API_BASE = "https://api.scrunchai.com/v1"
-LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
+__API_BASE = "https://api.scrunchai.com/v1"
+__LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
 
 
 def schema(configuration: dict):
-    """
-    Define the schema the connector delivers to the destination.
-
-    See the technical reference for details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
-    Args:
-        configuration (dict): Connector configuration dictionary.
-
-    Returns:
-        list[dict]: Table definitions with table names and optional primary keys.
-    """
     return [
         {
             "table": "responses",  # Destination table for raw/flattened responses
@@ -85,7 +73,7 @@ def get_responses(start_date, end_date, offset, token):
         dict: Response JSON containing "total" and "items" keys.
     """
     resp = requests.get(
-        f"{API_BASE}/2812/responses",
+        f"{__API_BASE}/2812/responses",
         headers={"Authorization": f"Bearer {token}"},
         params={
             "start_date": start_date,
@@ -130,9 +118,9 @@ def flatten_response(rec: dict) -> dict:
         "brand_position": rec.get("brand_position"),
         "response_text": rec.get("response_text"),
         # Lists → scalars
-        "tags": LIST_JOINER.join(rec.get("tags", [])) if rec.get("tags") else None,
-        "key_topics": LIST_JOINER.join(rec.get("key_topics", [])) if rec.get("key_topics") else None,
-        "competitors_present": LIST_JOINER.join(rec.get("competitors_present", [])) if rec.get("competitors_present") else None,
+        "tags": __LIST_JOINER.join(rec.get("tags", [])) if rec.get("tags") else None,
+        "key_topics": __LIST_JOINER.join(rec.get("key_topics", [])) if rec.get("key_topics") else None,
+        "competitors_present": __LIST_JOINER.join(rec.get("competitors_present", [])) if rec.get("competitors_present") else None,
         "citations_json": json.dumps(rec.get("citations", []), ensure_ascii=False) if rec.get("citations") is not None else None,
     }
 
