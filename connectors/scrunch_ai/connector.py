@@ -14,24 +14,25 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
 
-# --- Standard Library Imports -------------------------------------------------
-import json  # Handle JSON serialization/deserialization
 import time  # Rate limiting, retries, or backoff (if needed)
 from datetime import datetime, timezone  # Timestamps and date utilities
 from typing import Dict, List, Any, Optional  # Type hints for clarity
 import os  # Environment variable access (when used with dotenv)
-
-# --- Third-Party Imports ------------------------------------------------------
 import requests  # HTTP requests to Scrunch API
 from dotenv import load_dotenv  # Load environment variables from .env
 from dateutil.relativedelta import relativedelta  # Date arithmetic utilities
 
-# --- Fivetran Connector SDK Imports ------------------------------------------
-from fivetran_connector_sdk import Connector  # Core connector object (update/schema)
-from fivetran_connector_sdk import Logging as log  # Structured logging
-from fivetran_connector_sdk import Operations as op  # Upsert/Update/Delete/checkpoint
+# For reading configuration from a JSON file
+import json
 
-# --- Module Constants ---------------------------------------------------------
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 API_BASE = "https://api.scrunchai.com/v1"
 LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
 
