@@ -1,4 +1,4 @@
 {
-  "api_token": "<your_api_token>", 
-  "brand_id": "<specific_brand_id>"
+  "api_token": "<YOUR_SCRUNCH_AI_API_TOKEN>", 
+  "brand_id": "<YOUR_SPECIFIC_BRAND_ID>"
 }
