@@ -29,7 +29,6 @@ from datetime import datetime, timezone
 # Checkpoint every 500 records
 __CHECKPOINT_INTERVAL = 500
 __DEFAULT_BATCH_SIZE = 100
-__EARLIEST_TIMESTAMP = "1990-01-01T00:00:00.000000"
 
 
 def validate_configuration(configuration: dict):
@@ -76,30 +75,9 @@ def schema(configuration: dict):
         schemas.append(
             {
                 "table": table_name,  # Name of the table in the destination, required.
-                "primary_key": ["message_id"],  # Primary key column(s) for the table, optional.
-                "columns": {  # Definition of columns and their types, optional.
-                    "message_id": "STRING",  # Unique message identifier
-                    "delivery_tag": "INT",  # RabbitMQ delivery tag
-                    "queue_name": "STRING",  # Queue name
-                    "routing_key": "STRING",  # Routing key used
-                    "exchange": "STRING",  # Exchange name
-                    "message_body": "STRING",  # Message content
-                    "content_type": "STRING",  # Content type
-                    "content_encoding": "STRING",  # Content encoding
-                    "delivery_mode": "INT",  # Delivery mode (1=non-persistent, 2=persistent)
-                    "priority": "INT",  # Message priority
-                    "correlation_id": "STRING",  # Correlation ID
-                    "reply_to": "STRING",  # Reply-to queue
-                    "expiration": "STRING",  # Message expiration
-                    "message_id_header": "STRING",  # Message ID from headers
-                    "timestamp": "UTC_DATETIME",  # Message timestamp
-                    "type": "STRING",  # Message type
-                    "user_id": "STRING",  # User ID
-                    "app_id": "STRING",  # Application ID
-                    "headers": "STRING",  # Additional headers as JSON string
-                    "redelivered": "BOOLEAN",  # Whether message was redelivered
-                    "synced_at": "UTC_DATETIME",  # When this message was synced
-                },
+                "primary_key": ["message_id"],  # Primary key column(s) for the table, required.
+                # Note: Column types are automatically inferred by Fivetran.
+                # See the README for detailed column descriptions.
             }
         )
 
@@ -215,14 +193,15 @@ def build_message_record(
     }
 
 
-def fetch_messages_batch(
+def fetch_and_upsert_messages_batch(
     channel,
     queue_name: str,
+    table_name: str,
     last_delivery_tag: Optional[int] = None,
     batch_size: int = __DEFAULT_BATCH_SIZE,
-) -> Tuple[List[Dict[str, Any]], bool, int]:
+) -> Tuple[int, bool, int]:
     """
-    Fetch a batch of messages from RabbitMQ queue.
+    Fetch messages from RabbitMQ queue and upsert them immediately to avoid memory accumulation.
     Messages are consumed (removed) from the queue after successful sync to prevent duplicate reads.
 
     This function implements incremental sync by tracking delivery tags. Messages with delivery tags
@@ -231,13 +210,13 @@ def fetch_messages_batch(
     Args:
         channel: The RabbitMQ channel instance.
         queue_name: The name of the queue to fetch data from.
+        table_name: The destination table name.
         last_delivery_tag: The last delivery tag from the previous sync (used for incremental sync).
         batch_size: Number of messages to fetch in this batch.
     Returns:
-        A tuple containing (list of messages, has_more_data boolean, highest_delivery_tag).
+        A tuple containing (message_count, has_more_data boolean, highest_delivery_tag).
     """
     try:
-        messages = []
         highest_delivery_tag = last_delivery_tag or 0
         synced_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -274,7 +253,11 @@ def fetch_messages_batch(
                 synced_at=synced_at,
             )
 
-            messages.append(message)
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(table=table_name, data=message)
             fetched_count += 1
 
             # Track the highest delivery tag seen for state management
@@ -287,7 +270,7 @@ def fetch_messages_batch(
             channel.basic_ack(delivery_tag=delivery_tag)
 
         log.info(
-            f"Fetched batch: {fetched_count} messages from queue: {queue_name}, "
+            f"Fetched and upserted batch: {fetched_count} messages from queue: {queue_name}, "
             f"highest delivery_tag: {highest_delivery_tag}"
         )
 
@@ -295,7 +278,7 @@ def fetch_messages_batch(
         # If we fetched exactly the batch size, there might be more messages
         has_more_data = fetched_count == batch_size
 
-        return messages, has_more_data, highest_delivery_tag
+        return fetched_count, has_more_data, highest_delivery_tag
 
     except AMQPChannelError as e:
         log.severe(f"Channel error while fetching from queue {queue_name}: {e}")
@@ -303,32 +286,6 @@ def fetch_messages_batch(
     except Exception as e:
         log.severe(f"Failed to fetch batch from queue {queue_name}: {e}")
         raise RuntimeError(f"Failed to fetch batch from queue {queue_name}: {str(e)}")
-
-
-def upsert_messages_to_table(table_name: str, messages: List[Dict[str, Any]]) -> int:
-    """
-    Upsert a batch of messages to the destination table and track the highest delivery tag.
-
-    Args:
-        table_name: The destination table name
-        messages: List of message records to upsert
-    Returns:
-        The highest delivery tag from the batch
-    """
-    highest_delivery_tag = 0
-
-    for message in messages:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted,
-        op.upsert(table=table_name, data=message)
-
-        # Track the highest delivery tag for state management
-        if message["delivery_tag"] > highest_delivery_tag:
-            highest_delivery_tag = message["delivery_tag"]
-
-    return highest_delivery_tag
 
 
 def process_queue_batches(
@@ -370,23 +327,20 @@ def process_queue_batches(
         batch_count += 1
         log.info(f"Processing batch {batch_count} for queue '{queue_name}'")
 
-        # Fetch message batch from RabbitMQ
-        messages, has_more_data, highest_delivery_tag = fetch_messages_batch(
-            channel, queue_name, last_delivery_tag, batch_size
+        # Fetch and upsert messages
+        batch_row_count, has_more_data, highest_delivery_tag = fetch_and_upsert_messages_batch(
+            channel, queue_name, table_name, last_delivery_tag, batch_size
         )
 
-        if not messages:
+        if batch_row_count == 0:
             log.info(f"No more messages to process from queue '{queue_name}'")
             break
 
-        # Upsert messages to destination table
-        batch_highest_tag = upsert_messages_to_table(table_name, messages)
-        batch_row_count = len(messages)
         row_count += batch_row_count
 
         # Update new_delivery_tag with the highest delivery tag from this batch
-        if batch_highest_tag > new_delivery_tag:
-            new_delivery_tag = batch_highest_tag
+        if highest_delivery_tag > new_delivery_tag:
+            new_delivery_tag = highest_delivery_tag
 
         if row_count % __CHECKPOINT_INTERVAL == 0:
             save_state(state, queue_name, new_delivery_tag)

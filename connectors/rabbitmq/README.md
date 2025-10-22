@@ -28,12 +28,13 @@ The configuration keys required for your connector are as follows:
 
 ```json
 {
-  "connection_url": "<YOUR_CONNECTION_URL>",
-  "queues": "<YOUR_COMMA_SEPARATED_LIST_OF_QUEUES>",
+  "connection_url": "<YOUR_RABBITMQ_CONNECTION_URL>",
+  "queues": "<YOUR_COMMA_SEPARATED_LIST_OF_RABBITMQ_QUEUES>",
   "batch_size": "<YOUR_BATCH_SIZE>"
 }
 ```
 
+## Configuration parameters:
 - `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host
 - `queues` (required): Comma-separated list of queue names to sync
 - `batch_size` (optional): Number of messages to process per batch (defaults to 100)
@@ -113,7 +114,7 @@ The connector implements comprehensive error handling strategies. Refer to the f
 
 ## Tables created
 
-The connector creates a separate table for each queue specified in configuration. Each table has the following schema:
+The connector creates a separate table for each queue specified in configuration. Column types are automatically inferred by Fivetran based on the data. Each table includes the following columns:
 
 | Column | Type | Description |
 |--------|------|-------------|
