@@ -132,10 +132,10 @@ def get_all_collection_names(base_url: str, session: requests.Session):
         base_url: The base URL of the SWAPI endpoint.
         session: The requests.Session to use for making requests.
     Returns:
-        An list of collection names.
+        A list of collection names.
     """
     root = make_api_request(base_url, session=session)
-    if not root.keys():
+    if not root:
         raise ValueError("No collections found at SWAPI root endpoint")
 
     return list(root.keys())
