@@ -98,7 +98,7 @@ This is a great place to start to learn our coding practices through templated e
 - Define a complete data model in the `schema()` function, with primary keys and data types.
 - Avoid loading all data into memory — use pagination or streaming.
 - Document pagination, upsert/update/delete, and checkpointing with clear comments.
-- Checkpoint state regularly to resume from the last successful sync.
+- Checkpoint state regularly to resume from the last successful sync and cleanly send data to your warehouse.
 - Refer to the [Connector SDK Best Practices](https://fivetran.com/docs/connectors/connector-sdk/best-practices).
 
 ---
