@@ -200,11 +200,7 @@ def get_timeseries_range(
 
 
 def sync_timeseries_key(
-    redis_client: redis.Redis,
-    key: str,
-    table_name: str,
-    last_timestamp: int,
-    current_sync_time: str,
+    redis_client: redis.Redis, key: str, table_name: str, last_timestamp: int
 ) -> Tuple[int, int]:
     """
     Sync a single TimeSeries key incrementally from last_timestamp to now.
@@ -368,16 +364,13 @@ def process_batch(
         Tuple of (number of records processed, updated timeseries_state).
     """
     batch_row_count = 0
-    current_sync_time = datetime.now(timezone.utc).isoformat()
 
     for key in keys:
         # Check if this is a TimeSeries key
         if is_timeseries_key(redis_client, key):
             # Sync incrementally from last known timestamp
             last_ts = timeseries_state.get(key, 0)
-            count, max_ts = sync_timeseries_key(
-                redis_client, key, table_name, last_ts, current_sync_time
-            )
+            count, max_ts = sync_timeseries_key(redis_client, key, table_name, last_ts)
             batch_row_count += count
 
             # Update the state with the latest timestamp for this key
