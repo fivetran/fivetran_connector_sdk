@@ -127,6 +127,93 @@ def generate_message_id(queue_name: str, delivery_tag: int, body: bytes) -> str:
     return f"{queue_name}_{delivery_tag}_{message_hash[:16]}"
 
 
+def parse_message_body(body: bytes, content_type: str) -> str:
+    """
+    Parse message body based on content type with error handling.
+
+    Args:
+        body (bytes): Raw message body as bytes.
+        content_type (str): Content type from message properties.
+
+    Returns:
+        str: Decoded message body as string.
+    """
+    try:
+        if content_type == "application/json":
+            return body.decode("utf-8")
+        else:
+            return body.decode("utf-8", errors="replace")
+    except Exception:
+        return str(body)
+
+
+def format_timestamp_from_properties(properties_timestamp, fallback_timestamp: str) -> str:
+    """
+    Format timestamp from RabbitMQ properties or use fallback.
+
+    Converts Unix timestamp from RabbitMQ properties to ISO 8601 format.
+    If no timestamp is available in properties, uses the provided fallback.
+
+    Args:
+        properties_timestamp: Timestamp from RabbitMQ message properties (Unix timestamp or None).
+        fallback_timestamp (str): Fallback timestamp to use if properties timestamp is None.
+
+    Returns:
+        str: ISO 8601 formatted timestamp string.
+    """
+    if not properties_timestamp:
+        return fallback_timestamp
+
+    return (
+        datetime.fromtimestamp(properties_timestamp, tz=timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def extract_routing_info(method_frame) -> Dict[str, str]:
+    """
+    Extract routing information from RabbitMQ method frame.
+
+    Args:
+        method_frame: RabbitMQ method frame containing routing information.
+
+    Returns:
+        dict: Dictionary containing routing_key, exchange, and redelivered flag.
+    """
+    return {
+        "routing_key": method_frame.routing_key or "",
+        "exchange": method_frame.exchange or "",
+        "redelivered": method_frame.redelivered,
+    }
+
+
+def extract_message_properties(properties) -> Dict[str, Any]:
+    """
+    Extract all relevant properties from RabbitMQ message properties.
+
+    Args:
+        properties: RabbitMQ message properties object.
+
+    Returns:
+        dict: Dictionary containing all extracted properties with safe defaults.
+    """
+    return {
+        "content_type": properties.content_type or "",
+        "content_encoding": properties.content_encoding or "",
+        "delivery_mode": properties.delivery_mode or 1,
+        "priority": properties.priority or 0,
+        "correlation_id": properties.correlation_id or "",
+        "reply_to": properties.reply_to or "",
+        "expiration": properties.expiration or "",
+        "message_id_header": properties.message_id or "",
+        "type": properties.type or "",
+        "user_id": properties.user_id or "",
+        "app_id": properties.app_id or "",
+        "headers": json.dumps(properties.headers) if properties.headers else "{}",
+    }
+
+
 def build_message_record(
     queue_name: str,
     delivery_tag: int,
@@ -137,59 +224,54 @@ def build_message_record(
 ) -> Dict[str, Any]:
     """
     Build a complete message record from RabbitMQ message components.
-    This function handles message parsing, property extraction, and record construction.
+
+    This function orchestrates the parsing and extraction of all message components,
+    combining them into a single record ready for database upsert.
 
     Args:
-        queue_name: The queue name
-        delivery_tag: RabbitMQ delivery tag
-        method_frame: RabbitMQ method frame containing routing info
-        properties: RabbitMQ message properties
-        body: Raw message body as bytes
-        synced_at: Timestamp when message was synced
+        queue_name (str): The queue name.
+        delivery_tag (int): RabbitMQ delivery tag.
+        method_frame: RabbitMQ method frame containing routing info.
+        properties: RabbitMQ message properties.
+        body (bytes): Raw message body as bytes.
+        synced_at (str): Timestamp when message was synced.
+
     Returns:
-        Dictionary containing all message data ready for upsert
+        Dict[str, Any]: Dictionary containing all message data ready for upsert with fields:
+            - message_id: Unique identifier for the message
+            - delivery_tag: RabbitMQ delivery tag
+            - queue_name: Source queue name
+            - routing_key, exchange: Routing information
+            - message_body: Decoded message content
+            - Various properties: content_type, delivery_mode, priority, etc.
+            - timestamp: Message timestamp or synced_at fallback
+            - headers: JSON-serialized headers
     """
-    # Generate unique message ID for this message
+    # Generate unique message ID
     message_id = generate_message_id(queue_name, delivery_tag, body)
 
-    # Parse message body based on content type with error handling
-    try:
-        if properties.content_type == "application/json":
-            message_body = body.decode("utf-8")
-        else:
-            message_body = body.decode("utf-8", errors="replace")
-    except Exception:
-        message_body = str(body)
+    # Parse message body based on content type
+    message_body = parse_message_body(body, properties.content_type or "")
 
-    # Build complete message record with all properties
+    # Extract routing information from method frame
+    routing_info = extract_routing_info(method_frame)
+
+    # Extract all message properties
+    message_props = extract_message_properties(properties)
+
+    # Format timestamp from properties or use synced_at
+    timestamp = format_timestamp_from_properties(properties.timestamp, synced_at)
+
+    # Build complete message record by combining all components
     return {
         "message_id": message_id,
         "delivery_tag": delivery_tag,
         "queue_name": queue_name,
-        "routing_key": method_frame.routing_key or "",
-        "exchange": method_frame.exchange or "",
         "message_body": message_body,
-        "content_type": properties.content_type or "",
-        "content_encoding": properties.content_encoding or "",
-        "delivery_mode": properties.delivery_mode or 1,
-        "priority": properties.priority or 0,
-        "correlation_id": properties.correlation_id or "",
-        "reply_to": properties.reply_to or "",
-        "expiration": properties.expiration or "",
-        "message_id_header": properties.message_id or "",
-        "timestamp": (
-            datetime.fromtimestamp(properties.timestamp, tz=timezone.utc)
-            .isoformat()
-            .replace("+00:00", "Z")
-            if properties.timestamp
-            else synced_at
-        ),
-        "type": properties.type or "",
-        "user_id": properties.user_id or "",
-        "app_id": properties.app_id or "",
-        "headers": json.dumps(properties.headers) if properties.headers else "{}",
-        "redelivered": method_frame.redelivered,
+        "timestamp": timestamp,
         "synced_at": synced_at,
+        **routing_info,
+        **message_props,
     }
 
 
