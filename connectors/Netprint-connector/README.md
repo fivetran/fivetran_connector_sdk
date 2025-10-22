@@ -1,43 +1,34 @@
-# NetPrint Connector (Custom Fivetran SDK)
+# NetPrint Connector Example
 
 ## Connector overview
+The NetPrint connector demonstrates how to use the Fivetran Connector SDK to extract data from the NetPrint Web API provided by [printing.ne.jp](https://printing.ne.jp). The connector retrieves information about user storage usage, account metadata, and uploaded files, then loads that data into a Fivetran destination.
 
-This connector extracts data from the **NetPrint Web API** (used by [printing.ne.jp](https://printing.ne.jp)) and loads it into a Fivetran destination using the **Fivetran Connector SDK (v2)**.
+It performs a full sync for small endpoints (`core/information`, `core/folderSize`) and an incremental sync for the `core/file` endpoint, which provides metadata about files stored in the user's account. The connector supports soft deletes for files that are removed between syncs.
 
-It performs:
-- **Full refreshes** of small tables (`system_info`, `folder_usage`)
-- **Incremental syncs** of files (`files`)
-- **Soft deletes** for removed files using `_fivetran_deleted` flag
-
-The connector is fully stateless for system metadata but maintains checkpoints for incremental syncs of files.
-
----
-
-## Features
-
-- Supports both **full** and **incremental** syncs  
-- **Soft deletes** for missing files via `_fivetran_deleted` flag  
-- Handles **429 rate limits** with automatic backoff  
-- Converts timestamps to **UTC** consistently  
-- Efficient **paging** using `fromCount` and `showCount` parameters  
-- Designed for **idempotent** upserts and resumable checkpoints
-
----
+This example is designed for developers who want to learn how to build custom connectors for APIs that use pagination, rate limits, and state-based incremental updates.
 
 ## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+    - Windows: 10 or later (64-bit only)
+    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* OS: macOS 13+, Windows 10+, or Linux (Ubuntu 20.04+, Amazon Linux 2+)
-* Access to [NetPrint API](https://api-s.printing.ne.jp/usr/webservice/api/)
-* API credentials: username and password
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started. This guide walks you through installing dependencies, configuring your connector locally, and running `fivetran debug` to test your implementation.
 
----
+## Features
+- Retrieves system information, folder usage, and file metadata from the NetPrint API.
+- Performs a full refresh for small datasets and incremental syncs for large datasets using the `uploadDate` or `registrationDate` fields.
+- Implements soft deletes using the `_fivetran_deleted` flag to mark removed files.
+- Includes automatic handling of HTTP `429 Too Many Requests` responses with retry and backoff.
+- Supports paging using the `fromCount` and `showCount` query parameters.
+- Converts all timestamps to UTC for consistency.
 
 ## Configuration file
+The connector reads configuration values from `configuration.json`. These settings are used to authenticate to the NetPrint API and to define pagination and base URL parameters.
 
-Example `configuration.json`:
-
-```json
+```
 {
   "username": "your_netprint_username",
   "password": "your_netprint_password",
@@ -47,171 +38,98 @@ Example `configuration.json`:
 ```
 
 | Key | Required | Description |
-|-----|---------|-------------|
-| `username` | Yes     | NetPrint username |
-| `password` | Yes     | NetPrint password |
-| `BASE_URL` | No      | Override for custom NetPrint API base URL |
-| `PAGE_SIZE` | No      | Pagination size for `core/file` endpoint (default 200) |
+|-----|-----------|-------------|
+| `username` | Yes | Your NetPrint account username. |
+| `password` | Yes | Your NetPrint account password. |
+| `BASE_URL` | No | The base URL for the NetPrint API (defaults to the production API). |
+| `PAGE_SIZE` | No | Number of records retrieved per page from the API (default is 200). |
 
-> All configuration values are treated as **strings** per SDK requirements.
-
----
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
+The `requirements.txt` file specifies Python libraries required by the connector. For this example:
 
-Example `requirements.txt`:
-
-```text
+```
 fivetran-connector-sdk
 requests
 ```
 
----
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
+The connector authenticates to the NetPrint API using a custom Base64-encoded header.
 
-NetPrint uses a **custom Base64 authentication scheme**:
 ```
 X-NPS-Authorization: base64(username%password%4)
 ```
-The connector automatically builds this header during initialization.
 
----
+This header is generated automatically when the connector is initialized. No OAuth or additional tokens are required.
 
-## Data model
+## Pagination
+Pagination is handled in the `NetPrintAPI.iter_files()` function. The connector uses the `fromCount` and `showCount` parameters to retrieve data in pages of a configurable size (`PAGE_SIZE`, default 200).
 
-### Tables created
+The connector continues fetching until an empty `fileList` response is received, ensuring all records are retrieved.
 
-#### `system_info`
-| Field | Type | Description |
-|--------|------|-------------|
-| _dynamic_ | VARIES | Returns system-level info from `core/information` |
-| `_fivetran_deleted` | BOOLEAN | Always `False` (no deletions expected) |
+## Data handling
+Data extraction and delivery are performed in the `update(configuration, state)` function:
+- Fetches data from three endpoints:
+    - `core/information` → inserted into `system_info`
+    - `core/folderSize` → inserted into `folder_usage`
+    - `core/file` → inserted into `files`
+- Each endpoint response is emitted to Fivetran as `Upsert` operations.
+- Missing files are marked with `_fivetran_deleted = True` to indicate soft deletion.
+- The connector stores incremental state in the `state["files"]` dictionary, which includes `last_synced_at` and a list of `known_keys`.
 
-#### `folder_usage`
-| Field | Type | Description |
-|--------|------|-------------|
-| _dynamic_ | VARIES | Returns folder usage from `core/folderSize` |
-| `_fivetran_deleted` | BOOLEAN | Always `False` |
-
-#### `files`
-| Field | Type | Description |
-|--------|------|-------------|
-| `accessKey` | STRING | Unique file key (primary key) |
-| `_fivetran_deleted` | BOOLEAN | Soft delete flag |
-| _all other fields_ | VARIES | Metadata from `core/file` endpoint |
-
----
-
-## Incremental sync logic
-
-The connector stores state per table:
-
-```json
+Example state structure:
+```
 "files": {
   "last_synced_at": "2025-10-21T09:00:00Z",
-  "known_keys": ["ABCD123", "XYZ987", ...]
+  "known_keys": ["AK1", "AK2", "AK3"]
 }
 ```
 
-On each sync:
-1. **Fetch active files** with paging (`core/file?fromCount=&showCount=`).
-2. Track all current file `accessKey` values.
-3. Compare against `known_keys` from previous state.
-4. Insert/Upsert all current files with `_fivetran_deleted = False`.
-5. Soft delete any missing keys by emitting `_fivetran_deleted = True`.
-6. Save new state with updated `last_synced_at` and `known_keys`.
-
----
-
-## Retry and rate limiting
-
-When the API returns HTTP **429 Too Many Requests**, the connector:
-- Reads `Retry-After` header (defaults to 60 seconds if absent)
-- Sleeps for the indicated time
-- Retries the request once
-
-Example log:
-```
-429 from core/file. Sleeping 30s and retrying once.
-```
-
----
-
-## Checkpointing
-
-State checkpoints ensure resumable syncs and incremental continuity.
-
-```python
-op.checkpoint(state)
-```
-
-A checkpoint is emitted after each sync cycle, storing the new `last_synced_at` and `known_keys`.
-
----
-
 ## Error handling
+Refer to `NetPrintAPI._request()`.
 
-| Error | Description | Resolution |
-|--------|-------------|-------------|
-| 401 / 403 | Invalid credentials | Check username and password |
-| 404 | Endpoint missing or invalid | Verify base URL |
-| 429 | API throttled | Connector retries automatically |
-| Network failure | Connection issue | Connector retries or logs |
-| Invalid JSON | Malformed response | Skipped and logged |
+The connector implements error handling for network and API-related issues:
+- Retries once automatically for HTTP `429 Too Many Requests` responses, honoring the `Retry-After` header.
+- Raises `PermissionError` for authentication failures (`401` or `403`).
+- Logs a warning for `404` (resource not found).
+- Logs and skips invalid JSON responses.
+- All other HTTP errors raise a `RuntimeError`.
 
----
+## Tables created
+The connector creates the following destination tables.
 
-## Example logs
+### system_info
+Contains general account and system-level information returned from the `core/information` endpoint.
 
-```
-Connected to NetPrint API.
-Fetched 200 files from core/file.
-files synced: 784, soft-deleted: 12
-Checkpoint created.
-```
+| Column | Description |
+|--------|-------------|
+| *Dynamic fields* | Vary depending on API response. |
+| `_fivetran_deleted` | Always false; indicates active record. |
 
----
+### folder_usage
+Contains details about total and used storage space returned from the `core/folderSize` endpoint.
 
-## Local testing
+| Column | Description |
+|--------|-------------|
+| *Dynamic fields* | Vary depending on API response. |
+| `_fivetran_deleted` | Always false; indicates active record. |
 
-Run the connector locally for debugging:
+### files
+Contains metadata for each uploaded file returned from the `core/file` endpoint.
 
-```bash
-fivetran debug --configuration configuration.json
-```
+| Column | Description |
+|--------|-------------|
+| `accessKey` | Primary key identifying each file. |
+| `_fivetran_deleted` | Boolean flag for soft deletes. |
+| *Other fields* | Include file name, upload date, size, and related metadata. |
 
-Example debug summary:
-
-```
-Operation       | Calls
-----------------+------------
-Upserts         | 996
-Updates         | 0
-Deletes         | 0
-Truncates       | 0
-SchemaChanges   | 3
-Checkpoints     | 4
-```
-
----
-
-## Deployment
-
-Deploy the connector in your Fivetran workspace:
-
-```bash
-fivetran deploy --destination <DESTINATION_NAME>                 --connection netprint_connector                 --configuration configuration.json
-```
-
----
+## Additional files
+- `netprint_connector.py` – Contains all connector logic, including schema definition and update functions.
+- `NetPrintAPI` – Internal helper class that wraps HTTP requests and implements retry logic.
+- `_parse_dt()` – Converts timestamps from NetPrint API into UTC datetime objects.
 
 ## Additional considerations
-
-* The connector uses `_fivetran_deleted` for soft deletes instead of DELETE operations.
-* Timestamps are converted to **UTC** via Python’s `datetime.fromisoformat()`.
-* Missing or malformed datetimes default to epoch UTC (`1970-01-01T00:00:00Z`).
-* For large datasets, increase `PAGE_SIZE` in configuration for fewer API calls.
-* Each endpoint call (`core/information`, `core/folderSize`, `core/file`) is independent—failures in one do not halt the others.
-
----
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we’ve tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
