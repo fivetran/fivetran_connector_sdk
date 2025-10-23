@@ -4,7 +4,7 @@
 
 This connector demonstrates how to sync inventory scan data from the Dexory Inventory API using the Fivetran Connector SDK. Dexory provides real-time inventory visibility and tracking solutions for warehouses and distribution centers. The connector fetches location data and associated expected inventory objects from a single Dexory site, enabling organizations to integrate their inventory management data with their data warehouse for analytics and reporting.
 
-The connector supports pagination for large datasets, implements robust retry logic with exponential backoff, and handles nested data structures by flattening them into separate tables for optimal data warehouse storage.
+The connector supports pagination for large datasets, implements a robust retry logic with exponential backoff, and handles nested data structures by flattening them into separate tables for optimal data warehouse storage.
 
 ## Requirements
 
@@ -39,12 +39,10 @@ The connector requires the following configuration parameters in the configurati
 }
 ```
 
-**Required Parameters:**
-- `site_name`: The name of your Dexory site
-- `site_api_key`: Your Dexory API key for authentication
-
-**Optional Parameters:**
-- `base_url`: The Dexory API base URL (default: https://api.service.dexoryview.com)
+Configuration parameters:
+- `site_name` (required): The name of your Dexory site
+- `site_api_key` (required): Your Dexory API key for authentication
+- `base_url` (optional): The Dexory API base URL (default: `https://api.service.dexoryview.com`)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -74,17 +72,10 @@ The pagination logic automatically handles the `links.next` field from the Dexor
 
 The connector processes Dexory inventory data through several transformation steps:
 
-**Data Retrieval:** Fetches location data from the `/customer-api/v1/locations` endpoint with automatic pagination support.
-
-**Data Transformation:** The `convert_lists_to_strings` function converts complex nested data structures to JSON strings for Fivetran compatibility, while preserving the `expected_inventory_object` field for separate table processing.
-
-**Parent-Child Table Structure:** 
-- **Parent Table (`location`)**: Contains location metadata including name, type, aisle, and scan date
-- **Child Table (`expected_inventory_object`)**: Contains individual inventory objects with foreign key references to the parent location
-
-**Data Flattening:** Nested objects are flattened and foreign key relationships are established by adding location identifiers to each inventory object record.
-
-**State Management:** The connector maintains sync state using checkpointing to enable resumable syncs and track the last successful sync timestamp.
+1. Fetches location data from the `/customer-api/v1/locations` endpoint with automatic pagination support.
+2. The `convert_lists_to_strings` function converts complex nested data structures to JSON strings for Fivetran compatibility, while preserving the `expected_inventory_object` field for separate table processing.
+3. Flattens nested objects and establishes foreign key relationships by adding location identifiers to each inventory object record.
+4. The connector maintains sync state using checkpointing to enable resumable syncs and track the last successful sync timestamp.
 
 ## Error handling
 
@@ -111,15 +102,15 @@ The connector implements comprehensive error handling strategies across multiple
 
 The connector creates two related tables in your data warehouse:
 
-### 1. **LOCATIONS**
+### `LOCATIONS`
 - **Purpose**: Contains location metadata and scan information
 - **Primary Key**: `["name", "location_type", "aisle", "scan_date"]`
 - **Content**: Location details, scan timestamps, and metadata
 - **Data Source**: `/customer-api/v1/locations` endpoint
 
-### 2. **EXPECTED_INVENTORY_OBJECTS**
+### `EXPECTED_INVENTORY_OBJECTS`
 - **Purpose**: Contains individual inventory objects associated with each location
-- **Primary Key**: `_fivetran_id` (auto-generated hash of all fields)
+- **Primary key**: `_fivetran_id` (auto-generated hash of all fields)
 - **Content**: Inventory object details with foreign key references to parent location
 - **Data Source**: Nested `expected_inventory_objects` field from locations API response
 - **Foreign Keys**: `name`, `location_type`, `aisle`, `scan_date` (linking to locations table)
