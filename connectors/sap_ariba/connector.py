@@ -27,6 +27,7 @@ __RECORDS_PER_PAGE = 100
 __EPOCH_START_DATE = "1970-01-01T00:00:00Z"
 __LAST_UPDATED_AT = "last_updated_at"
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
+__PAGE_OFFSET = "$skip"
 
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
@@ -64,16 +65,14 @@ def update(configuration: dict, state: dict):
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
-    "APIKey": configuration.get("APIKey"),
+    "APIKey": configuration.get("api_key"),
     "Accept": "application/json",
     "DataServiceVersion": "2.0"
     }
 
     log.info("Starting sync from SAP Ariba API...")
 
-    params = {}
-    params["$top"] = __RECORDS_PER_PAGE
-    params["$$count"] = True
+    params = {"$top": __RECORDS_PER_PAGE, "$$count": True}
 
     sync_orders(params, headers, state, current_sync_start)
     sync_items(params, headers, state, current_sync_start)
@@ -98,12 +97,12 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
     record_count = None
     while record_count is None or count < record_count:
         data = make_api_request(f"{table_name}", params=params, headers=headers)
-        firstPage = data.get("firstPage")
+        first_page = data.get("firstPage")
 
         items = data.get("content", [])
         if not items:
             break
-        if firstPage is True:
+        if first_page is True:
             record_count = data.get("count", 0)
             log.info(f"Total records to process for table {table_name}: {record_count}")
 
@@ -129,7 +128,7 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
             if record_count and count >= record_count:
                 break
 
-        params["$skip"] += __RECORDS_PER_PAGE
+        params[__PAGE_OFFSET] += __RECORDS_PER_PAGE
 
 
 def convert_to_iso(date_str):
@@ -172,7 +171,7 @@ def sync_orders(params, headers, state, sync_start):
     """
     table_name = "order"
 
-    params["$skip"] = 0
+    params[__PAGE_OFFSET] = 0
 
     if state.get(table_name) is None:
         state[table_name] = {}
@@ -198,7 +197,7 @@ def sync_items(params, headers, state, sync_start):
     """
     table_name = "item"
 
-    params["$skip"] = 0
+    params[__PAGE_OFFSET] = 0
 
     if state.get(table_name) is None:
             state[table_name] = {}
@@ -245,16 +244,16 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Rate limit hit. Retrying in {wait}s...")
                 time.sleep(wait)
             elif 400 <= response.status_code < 500:
-                raise Exception(f"Client error {response.status_code}: {response.text}")
+                raise Exception(f"Client error: {response.text}")
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
             else:
-                raise Exception(f"Unexpected response: {response.status_code}")
+                raise Exception(f"Error code: {response.status_code}")
         except requests.RequestException as e:
-                log.severe(f"Network error: {e}")
-                time.sleep(delay * attempt)
-        raise Exception(f"Failed to fetch {url} after {retries} retries")
+            log.severe(f"Network error: {e}")
+            time.sleep(delay * attempt)
+    raise Exception(f"Failed to fetch {url}")
 
 def get_order_columns():
     """

@@ -36,7 +36,7 @@ The connector reads configuration settings from `configuration.json`, which defi
 
 ```
 {
-  "APIKey": "YOUR_SAP_ARIBA_API_KEY"
+  "api_key": <"YOUR_SAP_ARIBA_API_KEY">
 }
 ```
 
@@ -44,17 +44,8 @@ The connector reads configuration settings from `configuration.json`, which defi
 |-----|-----------|-------------|
 | `APIKey` | Yes | Your SAP Ariba API key for authentication. |
 
-Note: The connector defaults to the Ariba Sandbox API endpoint (`https://sandbox.api.sap.com/ariba/api/purchase-orders/v1/sandbox/`). Replace it with your production base URL if applicable.
 
-## Requirements file
-The `requirements.txt` file specifies Python dependencies required by the connector.
-
-```
-fivetran-connector-sdk
-requests
-```
-
-Note: Both `fivetran_connector_sdk` and `requests` are pre-installed in the Fivetran environment. This file is only required for local testing.
+---
 
 ## Authentication
 The connector authenticates using a single API key passed in the request headers.  
@@ -66,7 +57,6 @@ Accept: application/json
 DataServiceVersion: 2.0
 ```
 
-No OAuth or password-based authentication is needed.
 
 ## Pagination
 Pagination is handled in the data extraction functions using the `$skip` and `$top` query parameters.  
@@ -97,7 +87,6 @@ The connector implements the following error handling:
 - Network issues: Automatically retried up to 3 times.
 - Invalid JSON or date parsing errors: Skipped gracefully and logged for review.
 
-All logs and exceptions are managed using the `fivetran_connector_sdk.Logging` interface.
 
 ## Tables created
 The connector creates two destination tables.
@@ -152,10 +141,6 @@ Primary key: `document_number`, `line_number`, `row_id`
 | `requestedShipmentDate` | UTC_DATETIME | Requested shipment date. |
 | `row_id` | INT | Sequential ID used for uniqueness. |
 
-## Additional files
-- `sap_ariba_connector.py` – Main connector implementation, including schema and update logic.
-- `helpers.py` – Handles date parsing and pagination utilities.
-- `constants.py` – Stores default API URLs, retry intervals, and state key names.
 
 ## Additional considerations
 The example is intended for demonstration and educational purposes using the Fivetran Connector SDK.  
