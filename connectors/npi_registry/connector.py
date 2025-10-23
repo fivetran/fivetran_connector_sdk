@@ -194,6 +194,7 @@ def make_api_request_with_retry(url: str):
                 f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}. Retrying in {delay}s..."
             )
             time.sleep(delay)
+    return None
 
 
 def process_provider_record(result: dict):
