@@ -134,7 +134,7 @@ The connector creates a separate table for each queue specified in configuration
 | app_id | STRING | Application ID that published the message |
 | headers | STRING | Additional message headers as JSON string |
 | redelivered | BOOLEAN | Whether message was redelivered |
-| synced_at | UTC_DATETIME | Timestamp when message was synced by connector |
+| synced_at | UTC_DATETIME | Timestamp when message was synced by the connector |
 
 Table names are derived from queue names (lowercase with special characters replaced by underscores).
 
