@@ -1,33 +1,30 @@
-"""Dotdigital → Fivetran (Connector SDK)
+"""Example: Dotdigital Connector
 
-A minimal, production-ready connector that syncs:
-  • Contacts (v3 API)
-  • Campaigns (v2 API)
+This example demonstrates how to build a Fivetran connector using the
+Connector SDK to extract and load data from the Dotdigital marketing
+automation platform.
 
-Standards: PEP8, PEP257, black formatting, flake8-friendly.
+It syncs:
+  • Contacts (v3 API, seek pagination)
+  • Campaigns (v2 API, skip pagination)
 
-Configuration keys (set via configuration.json or UI):
-  DOTDIGITAL_API_USER         (str)  – required
-  DOTDIGITAL_API_PASSWORD     (str)  – required
-  DOTDIGITAL_REGION_ID        (str)  – optional if AUTO_DISCOVER_REGION=true, e.g. "r1"
-  AUTO_DISCOVER_REGION        ("true"/"false")
-  CONTACTS_PAGE_SIZE          (int)  – default 500
-  V2_PAGE_SIZE                (int)  – default 1000
-  CONTACTS_START_TIMESTAMP    (ISO 8601 UTC string) – default "1970-01-01T00:00:00Z"
-  CAMPAIGNS_ENABLED           ("true"/"false") – default true
-  LIST_ID_FILTER              (str/int) – optional, filter contacts by listId
+The connector shows:
+  • Region autodiscovery handling
+  • Pagination with marker tokens
+  • Basic rate limit backoff
+  • Incremental sync with checkpoints
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional
-import base64
-import time
-
-import requests
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+import base64  # For basic auth encoding
+import time  # For rate-limit backoff handling
+import requests  # For HTTP API requests
+from fivetran_connector_sdk import Connector  # Core SDK object
+from fivetran_connector_sdk import Logging as log  # Logging abstraction
+from fivetran_connector_sdk import Operations as op  # DB write operations
 
 # -----------------------------
 # Constants
@@ -83,12 +80,13 @@ class RateLimitError(Exception):
 
 
 # -----------------------------
-# HTTP Client
+# Dotdigital Client
 # -----------------------------
 class DotdigitalClient:
     """Lightweight HTTP client for Dotdigital APIs."""
 
     def __init__(self, api_user: str, api_password: str, region_id: Optional[str] = None) -> None:
+        """Initialize a new Dotdigital client with authentication and region."""
         token = base64.b64encode(f"{api_user}:{api_password}".encode("utf-8")).decode("ascii")
         self.session = requests.Session()
         self.session.headers.update(
@@ -181,10 +179,8 @@ class DotdigitalClient:
         marker = params.get("marker")
         while True:
             if marker is not None:
-                # Set marker only when non-None to avoid sending marker=None
                 params["marker"] = marker
             elif "marker" in params:
-                # Remove marker param if None to prevent leftover state
                 del params["marker"]
 
             resp = self._request("GET", path, params=params)
@@ -220,7 +216,7 @@ class DotdigitalClient:
 
 
 # -----------------------------
-# Schema
+# Schema Definition
 # -----------------------------
 def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Define destination tables and their columns."""
@@ -260,10 +256,10 @@ def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 # -----------------------------
-# Update (sync)
+# Update (Sync Logic)
 # -----------------------------
 def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
-    """Extract from Dotdigital and upsert into destination tables."""
+    """Extract data from Dotdigital and upsert into destination tables."""
     api_user = configuration.get("DOTDIGITAL_API_USER")
     api_password = configuration.get("DOTDIGITAL_API_PASSWORD")
     region_id = configuration.get("DOTDIGITAL_REGION_ID") or DEFAULT_REGION
@@ -277,7 +273,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
         try:
             client.autodiscover_region()
         except (requests.RequestException, ValueError) as exc:
-            log.warning(f"Region autodiscovery failed: {exc}. Continuing with region {client.region_id}")
+            log.warning(
+                f"Region autodiscovery failed: {exc}. Continuing with region {client.region_id}"
+            )
 
     contacts_page_size = int(configuration.get("CONTACTS_PAGE_SIZE", 500))
     v2_page_size = int(configuration.get("V2_PAGE_SIZE", 1000))
@@ -355,11 +353,3 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
 # Connector Entry Point
 # -----------------------------
 connector = Connector(update=update, schema=schema)
-
-# -----------------------------
-# Notes
-# -----------------------------
-# • Keep requirements.txt empty – the SDK supplies fivetran_connector_sdk & requests.
-# • To format/lint locally:
-#     black connector.py
-#     flake8 connector.py
