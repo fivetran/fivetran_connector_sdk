@@ -170,7 +170,7 @@ def is_timeseries_key(redis_client: redis.Redis, key: str) -> bool:
         # TimeSeries keys have type "TSDB-TYPE" or "timeseries"
         return key_type.lower() in ["tsdb-type", "timeseries"]
     except Exception as e:
-        log.warning(f"The supplied key is not a timeseries key'{key}': {e}")
+        log.warning(f"The supplied key is not a timeseries key '{key}': {e}")
         return False
 
 

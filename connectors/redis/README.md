@@ -51,6 +51,8 @@ The configuration keys required for your connector are as follows:
 
 ```
 {
+  "host": "<YOUR_REDIS_HOST>",
+  "port": "<YOUR_REDIS_PORT>",
   "username": "<YOUR_REDIS_USERNAME>",
   "password": "<YOUR_REDIS_PASSWORD>",
   "database": "<YOUR_REDIS_DATABASE_NUMBER>",
