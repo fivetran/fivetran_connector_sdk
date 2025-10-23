@@ -34,15 +34,11 @@ The configuration keys required for your connector are as follows:
 }
 ```
 
-## Configuration parameters:
-- `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host
+## Configuration parameters
+
+- `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host (see Authentication section for format examples)
 - `queues` (required): Comma-separated list of queue names to sync
 - `batch_size` (optional): Number of messages to process per batch (defaults to 100)
-
-Connection URL format examples:
-- Local/Docker RabbitMQ: `amqp://guest:guest@localhost:5672/`
-- CloudAMQP (secure): `amqps://username:password@host.cloudamqp.com/vhost`
-- Self-hosted with TLS: `amqps://username:password@your-host:5671/vhost`
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 

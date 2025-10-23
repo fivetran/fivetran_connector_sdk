@@ -143,7 +143,8 @@ def parse_message_body(body: bytes, content_type: str) -> str:
             return body.decode("utf-8")
         else:
             return body.decode("utf-8", errors="replace")
-    except Exception:
+    except (UnicodeDecodeError, AttributeError):
+        # Fallback to string representation if decoding fails
         return str(body)
 
 
