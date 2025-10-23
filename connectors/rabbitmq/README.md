@@ -66,7 +66,7 @@ Example configurations:
 }
 ```
 
-Local RabbitMQ (default credentials):
+- Local RabbitMQ (default credentials):
 ```json
 {
   "connection_url": "amqp://guest:guest@localhost:5672/"
