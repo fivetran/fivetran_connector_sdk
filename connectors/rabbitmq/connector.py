@@ -425,7 +425,7 @@ def process_queue_batches(
         if highest_delivery_tag > new_delivery_tag:
             new_delivery_tag = highest_delivery_tag
 
-        if row_count % __CHECKPOINT_INTERVAL == 0:
+        if row_count > 0 and row_count % __CHECKPOINT_INTERVAL == 0:
             save_state(state, queue_name, new_delivery_tag)
 
         log.info(
