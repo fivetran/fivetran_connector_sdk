@@ -86,10 +86,10 @@ The connector automatically handles AMQPS/TLS connections when using the `amqps:
 
 **IMPORTANT WARNING**: Messages are permanently removed from RabbitMQ after successful sync. This connector CONSUMES messages using `basic_ack`, which deletes them from the queue. Only use this connector with dedicated analytical queues (dead letter queues, audit queues) - NEVER with production operational queues.
 
-The connector performs message consumption and transformation. Refer to the `fetch_messages_batch` function for message handling:
+The connector performs message consumption and transformation. Refer to the `fetch_and_upsert_messages_batch` function for message handling:
 
 - Queue discovery - Declares queues passively to verify existence and get message counts
-- Message retrieval - Uses `basic_get` with `auto_ack=False` to fetch messages without immediate consumption
+- Message retrieval - Uses `basic_get` with `auto_ack=False` to fetch messages with manual acknowledgment
 - Incremental filtering - Skips messages with delivery tags less than or equal to the last synced tag
 - Message parsing - Handles different content types (application/json, text) with proper decoding
 - Metadata extraction - Captures all RabbitMQ message properties (headers, routing keys, timestamps, delivery mode)
@@ -104,8 +104,8 @@ The connector implements comprehensive error handling strategies. Refer to the f
 
 - Configuration validation (`validate_configuration`) - Ensures required parameters (connection_url, queues) are present
 - Connection error handling (`create_rabbitmq_connection`) - Handles AMQP connection errors with detailed logging and runtime errors
-- Channel error handling (`fetch_messages_batch`) - Handles AMQP channel errors during message retrieval
-- Message parsing errors (`fetch_messages_batch`) - Gracefully handles message decoding failures with fallback to string representation
+- Channel error handling (`fetch_and_upsert_messages_batch`) - Handles AMQP channel errors during message retrieval
+- Message parsing errors (`fetch_and_upsert_messages_batch`) - Gracefully handles message decoding failures with fallback to string representation
 - Connection cleanup (`update` function finally block) - Ensures RabbitMQ connections are properly closed even on errors
 
 ## Tables created
