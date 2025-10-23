@@ -65,21 +65,22 @@ The configuration keys required for your connector are as follows:
 
 ### Configuration parameters
 
-- `host` (required): Redis server hostname or IP address
-- `port` (required): Redis server port (typically 6379)
-- `password` (optional): Redis authentication password (leave empty for no authentication)
-- `database` (optional): Redis database number 0-15 (defaults to 0)
-- `ssl` (optional): Enable SSL/TLS connection - "true" or "false" (defaults to "false")
-- `table_name` (optional): Destination table name (defaults to "redis_data")
-- `key_pattern` (optional): Pattern to match keys - supports wildcards (defaults to "*" for all keys)
-- `batch_size` (optional): Number of keys to process per batch (defaults to 100)
+- `host` (required) - Redis server hostname or IP address
+- `port` (required) - Redis server port (typically 6379)
+- `username` (optional) - Redis username for ACL authentication (leave empty if not using ACL)
+- `password` (optional) - Redis authentication password (leave empty for no authentication)
+- `database` (optional) - Redis database number 0-15 (defaults to 0)
+- `ssl` (optional) - Enable SSL/TLS connection - "true" or "false" (defaults to "false")
+- `table_name` (optional) - Destination table name (defaults to "redis_data")
+- `key_pattern` (optional) - Pattern to match keys - supports wildcards (defaults to "*" for all keys)
+- `batch_size` (optional) - Number of keys to process per batch (defaults to 100)
 
 Key pattern examples:
-- `"*"`: All keys (for full database sync)
-- `"leaderboard:*"`: All leaderboard keys (e.g., "leaderboard:global", "leaderboard:weekly")
-- `"player:*:profile"`: All player profile hashes
-- `"game:*:stats"`: All game statistics
-- `"achievement:*"`: All achievement data
+- `"*"` - All keys (for full database sync)
+- `"leaderboard:*"` - All leaderboard keys (e.g., "leaderboard:global", "leaderboard:weekly")
+- `"player:*:profile"` - All player profile hashes
+- `"game:*:stats"` - All game statistics
+- `"achievement:*"` - All achievement data
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -133,18 +134,12 @@ The SCAN operation is memory-efficient, non-blocking, and allows other Redis ope
 ## Data handling
 The connector performs comprehensive data extraction and transformation.
 
-1. Key discovery: Uses SCAN command with optional pattern filtering to discover matching keys (`scan_redis_keys`)
-2. Type detection: Identifies Redis data type for each key (string, hash, list, set, zset, timeseries) using `is_timeseries_key`
-3. Value extraction: Retrieves values using type-specific Redis commands:
-  - Strings: Direct value extraction with GET
-  - Hashes: Extracted with HGETALL and converted to JSON objects
-  - Lists: Retrieved with LRANGE and converted to JSON arrays
-  - Sets: Extracted with SMEMBERS and converted to JSON arrays
-  - Sorted sets: Retrieved with ZRANGE including scores, converted to JSON arrays of [member, score] pairs
-  - TimeSeries: Extracted with TS.RANGE command (`get_timeseries_range`), querying only new data points since last sync
-4. Metadata collection: Gathers TTL (Time To Live), size, and timestamp for each key
-5. Upsert operations: All records are upserted to handle both new and updated keys
-6. Incremental sync for TimeSeries: Tracks last synced timestamp per key in state to enable incremental data fetching
+1. Key discovery - Uses SCAN command with optional pattern filtering to discover matching keys (`scan_redis_keys`)
+2. Type detection - Identifies Redis data type for each key (string, hash, list, set, zset, timeseries) using `is_timeseries_key`
+3. Value extraction - Retrieves values using type-specific Redis commands (strings via GET, hashes via HGETALL converted to JSON objects, lists via LRANGE converted to JSON arrays, sets via SMEMBERS converted to JSON arrays, sorted sets via ZRANGE with scores as [member, score] pairs, TimeSeries via TS.RANGE querying only new data points since last sync)
+4. Metadata collection - Gathers TTL (Time To Live), size, and timestamp for each key
+5. Upsert operations - All records are upserted to handle both new and updated keys
+6. Incremental sync for TimeSeries - Tracks last synced timestamp per key in state to enable incremental data fetching
 
 The `update` function orchestrates the complete sync process with state management and error handling, coordinated by `sync_redis_data`.
 
@@ -161,14 +156,14 @@ The connector implements comprehensive error handling strategies. Refer to the f
 ## Tables created
 The connector creates a table in the destination based on your configuration (configurable via `table_name` parameter, defaults to `redis_data`):
 
-| Column | Type | Description |
-|--------|------|-------------|
-| key | STRING | Redis key name (Primary Key) |
-| value | STRING | Redis value - JSON string for complex types (hashes, lists, sets) |
-| data_type | STRING | Redis data type: string, hash, list, set, or zset |
-| ttl | INT | Time to live in seconds (-1 = no expiry, -2 = expired/non-existent) |
-| last_modified | UTC_DATETIME | Timestamp when key was last processed by connector |
-| size | INT | Size metric - length for strings, count for collections |
+| Column        | Type         | Description                                                         |
+|---------------|--------------|---------------------------------------------------------------------|
+| key           | STRING       | Redis key name (Primary Key)                                        |
+| value         | STRING       | Redis value - JSON string for complex types (hashes, lists, sets)   |
+| data_type     | STRING       | Redis data type: string, hash, list, set, or zset                   |
+| ttl           | INT          | Time to live in seconds (-1 = no expiry, -2 = expired/non-existent) |
+| last_modified | UTC_DATETIME | Timestamp when key was last processed by connector                  |
+| size          | INT          | Size metric - length for strings, count for collections             |
 
 The table uses `key` as the primary key, enabling upserts for handling updated Redis values across syncs.
 

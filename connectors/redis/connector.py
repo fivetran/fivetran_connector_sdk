@@ -209,7 +209,6 @@ def sync_timeseries_key(
         key: TimeSeries key name.
         table_name: Destination table name.
         last_timestamp: Last synced timestamp in milliseconds.
-        current_sync_time: Current sync timestamp string.
     Returns:
         Tuple of (number of data points synced, latest timestamp).
     """
