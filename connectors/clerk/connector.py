@@ -31,6 +31,10 @@ __CHECKPOINT_INTERVAL = 1000  # Checkpoint state after every 1000 records proces
 __DEFAULT_START_CREATED_AT = (
     631152000000  # Epoch milliseconds for 1990-01-01 (default start date for incremental sync)
 )
+__REQUEST_TIMEOUT_SEC = 30  # Timeout for API requests in seconds
+__RATE_LIMIT_STATUS_CODE = 429  # HTTP status code for rate limiting
+__SERVER_ERROR_MIN_STATUS = 500  # Minimum HTTP status code for server errors
+__SERVER_ERROR_MAX_STATUS = 600  # Maximum HTTP status code for server errors
 
 # Child table configuration: maps array field names to their destination table names
 __CHILD_TABLES = {
@@ -283,68 +287,218 @@ def fetch_users_paginated(api_key, last_created_at=None):
             offset += __PAGE_LIMIT
 
 
+def should_retry_http_error(status_code):
+    """
+    Determine if an HTTP error should be retried based on status code.
+
+    Args:
+        status_code (int): HTTP status code from the response.
+
+    Returns:
+        bool: True if the error is retryable (429 or 5xx), False otherwise.
+    """
+    is_rate_limit = status_code == __RATE_LIMIT_STATUS_CODE
+    is_server_error = __SERVER_ERROR_MIN_STATUS <= status_code < __SERVER_ERROR_MAX_STATUS
+    return is_rate_limit or is_server_error
+
+
+def retry_with_backoff(attempt_number, error_message):
+    """
+    Sleep for exponential backoff duration and log a warning.
+
+    Implements exponential backoff strategy: wait time = 2^attempt_number seconds.
+    For example: attempt 0 = 1s, attempt 1 = 2s, attempt 2 = 4s.
+
+    Args:
+        attempt_number (int): Current retry attempt number (0-indexed).
+        error_message (str): Message to log before waiting.
+    """
+    wait_time_sec = 2**attempt_number
+    log.warning(f"{error_message} Retrying in {wait_time_sec} seconds...")
+    time.sleep(wait_time_sec)
+
+
+def handle_http_error_with_retry(response, attempt_number):
+    """
+    Handle HTTP errors with appropriate retry logic based on status code.
+
+    Retryable errors (429 rate limit, 5xx server errors) will sleep with exponential backoff.
+    Non-retryable errors (4xx client errors except 429) will raise immediately.
+
+    Args:
+        response: HTTP response object containing status code.
+        attempt_number (int): Current retry attempt number (0-indexed).
+
+    Raises:
+        requests.exceptions.HTTPError: For non-retryable errors or when retries exhausted.
+    """
+    if not response:
+        raise
+
+    status_code = response.status_code
+
+    # Don't retry client errors (4xx) except rate limiting (429)
+    if not should_retry_http_error(status_code):
+        raise
+
+    # For rate limiting errors
+    if status_code == __RATE_LIMIT_STATUS_CODE:
+        retry_with_backoff(attempt_number, "Rate limited.")
+        return
+
+    # For server errors (5xx)
+    if attempt_number < __MAX_RETRIES - 1:
+        retry_with_backoff(attempt_number, f"Server error {status_code}.")
+    else:
+        raise
+
+
 def make_api_request(url, api_key, params):
     """
     Make an API request to Clerk API with retry logic and exponential backoff.
 
+    This function implements a robust retry mechanism for handling transient errors:
+    - Rate limiting (429): Retries with exponential backoff
+    - Server errors (5xx): Retries with exponential backoff
+    - Network errors: Retries with exponential backoff
+    - Client errors (4xx except 429): No retry, raises immediately
+
     Args:
-        url: The API endpoint URL.
-        api_key: The API key for authentication.
-        params: Query parameters for the request.
+        url (str): The API endpoint URL.
+        api_key (str): The API key for authentication.
+        params (dict): Query parameters for the request.
 
     Returns:
-        JSON response from the API.
+        dict: JSON response from the API.
 
     Raises:
-        requests.exceptions.RequestException: If all retry attempts fail.
+        requests.exceptions.RequestException: If all retry attempts fail or for non-retryable errors.
     """
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     for attempt in range(__MAX_RETRIES):
         response = None
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SEC
+            )
             response.raise_for_status()
             return response.json()
+
         except requests.exceptions.HTTPError:
-            if response and response.status_code == 429:
-                # Exponential backoff for rate limiting
-                wait_time = 2**attempt
-                log.warning(f"Rate limited. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-            elif response and 500 <= response.status_code < 600:
-                # Retry on server errors
-                if attempt < __MAX_RETRIES - 1:
-                    wait_time = 2**attempt
-                    log.warning(
-                        f"Server error {response.status_code}. Retrying in {wait_time} seconds..."
-                    )
-                    time.sleep(wait_time)
-                else:
-                    raise
-            else:
-                # Don't retry on client errors (4xx except 429)
-                raise
+            handle_http_error_with_retry(response, attempt)
+
         except requests.exceptions.RequestException as e:
-            # Retry on network errors
+            # Retry network errors with exponential backoff
             if attempt < __MAX_RETRIES - 1:
-                wait_time = 2**attempt
-                log.warning(f"Request failed: {str(e)}. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
+                retry_with_backoff(attempt, f"Request failed: {str(e)}.")
             else:
                 raise
 
-    # If all retries exhausted
+    # If all retries exhausted without returning
     raise requests.exceptions.RequestException(f"Failed after {__MAX_RETRIES} attempts")
+
+
+def serialize_complex_value(value):
+    """
+    Serialize complex data types (dict, list) to JSON string.
+
+    Args:
+        value: The value to serialize (can be dict, list, or any JSON-serializable type).
+
+    Returns:
+        str or None: JSON string representation if value is non-empty, None otherwise.
+    """
+    if not value:
+        return None
+    return json.dumps(value)
+
+
+def flatten_deeply_nested_value(parent_key, nested_key, deep_key, deep_value):
+    """
+    Flatten a deeply nested (3-level) dictionary value.
+
+    Args:
+        parent_key: The top-level key name.
+        nested_key: The second-level key name.
+        deep_key: The third-level key name.
+        deep_value: The value at the third level.
+
+    Returns:
+        tuple: (flattened_key, processed_value) where flattened_key is underscore-separated
+               and processed_value is either serialized JSON or the raw value.
+    """
+    flattened_key = f"{parent_key}_{nested_key}_{deep_key}"
+
+    if isinstance(deep_value, (dict, list)):
+        return flattened_key, serialize_complex_value(deep_value)
+
+    return flattened_key, deep_value
+
+
+def flatten_nested_value(parent_key, nested_key, nested_value):
+    """
+    Flatten a nested (2-level) dictionary value.
+
+    Args:
+        parent_key: The top-level key name.
+        nested_key: The second-level key name.
+        nested_value: The value at the second level.
+
+    Returns:
+        dict: Dictionary containing flattened key-value pairs. May contain multiple entries
+              if nested_value is itself a dictionary.
+    """
+    flattened = {}
+    flattened_key = f"{parent_key}_{nested_key}"
+
+    if isinstance(nested_value, dict):
+        # Handle deeply nested objects (3 levels)
+        for deep_key, deep_value in nested_value.items():
+            key, value = flatten_deeply_nested_value(parent_key, nested_key, deep_key, deep_value)
+            flattened[key] = value
+    elif isinstance(nested_value, list):
+        flattened[flattened_key] = json.dumps(nested_value)
+    else:
+        flattened[flattened_key] = nested_value
+
+    return flattened
+
+
+def flatten_dict_value(key, value):
+    """
+    Flatten a dictionary value by converting nested structures to underscore-separated keys.
+
+    Args:
+        key: The parent key name.
+        value: The dictionary value to flatten.
+
+    Returns:
+        dict: Dictionary with flattened key-value pairs.
+    """
+    flattened = {}
+
+    for nested_key, nested_value in value.items():
+        nested_flattened = flatten_nested_value(key, nested_key, nested_value)
+        flattened.update(nested_flattened)
+
+    return flattened
 
 
 def flatten_record(record, excluded_fields=None):
     """
     Flatten a record by converting nested dictionaries into underscore-separated column names.
 
+    This function processes a nested dictionary structure and converts it into a flat dictionary
+    suitable for database storage. Nested dictionaries are flattened using underscore notation
+    (e.g., {"user": {"name": "John"}} becomes {"user_name": "John"}). Lists and deeply nested
+    structures are serialized to JSON strings.
+
     Args:
-        record: The record to flatten.
-        excluded_fields: List of field names to exclude from flattening (e.g., array fields).
+        record (dict): The record to flatten. Can contain nested dicts, lists, and scalar values.
+        excluded_fields (list, optional): List of field names to exclude from flattening
+                                         (e.g., array fields that need separate processing).
+                                         Defaults to None.
 
     Returns:
         Flattened dictionary.
@@ -353,27 +507,15 @@ def flatten_record(record, excluded_fields=None):
     excluded_fields = excluded_fields or []
 
     for key, value in record.items():
+        # Skip excluded fields early to reduce nesting
         if key in excluded_fields:
             continue
-        elif isinstance(value, dict):
-            # Flatten nested objects with underscore notation
-            for nested_key, nested_value in value.items():
-                if isinstance(nested_value, dict):
-                    # Handle deeply nested objects
-                    for deep_key, deep_value in nested_value.items():
-                        if isinstance(deep_value, (dict, list)):
-                            flattened[f"{key}_{nested_key}_{deep_key}"] = (
-                                json.dumps(deep_value) if deep_value else None
-                            )
-                        else:
-                            flattened[f"{key}_{nested_key}_{deep_key}"] = deep_value
-                else:
-                    if isinstance(nested_value, list):
-                        flattened[f"{key}_{nested_key}"] = json.dumps(nested_value)
-                    else:
-                        flattened[f"{key}_{nested_key}"] = nested_value
+
+        # Process based on value type
+        if isinstance(value, dict):
+            dict_flattened = flatten_dict_value(key, value)
+            flattened.update(dict_flattened)
         elif isinstance(value, list):
-            # Convert arrays to JSON strings for storage
             flattened[key] = json.dumps(value)
         else:
             flattened[key] = value
