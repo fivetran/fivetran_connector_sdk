@@ -94,7 +94,7 @@ The connector performs message consumption and transformation. Refer to the `fet
 - Message parsing - Handles different content types (application/json, text) with proper decoding
 - Metadata extraction - Captures all RabbitMQ message properties (headers, routing keys, timestamps, delivery mode)
 - Message consumption - Acknowledges messages with `basic_ack` after successful sync to prevent re-reading
-- Upsert operations - All records are upserted based on unique message_id (generated from queue, delivery_tag, and body hash)
+- Upsert operations - All records are upserted based on a unique message_id (generated from queue, delivery_tag, and body hash)
 
 The `update` function orchestrates the complete sync process with state management and error handling for multiple queues.
 
