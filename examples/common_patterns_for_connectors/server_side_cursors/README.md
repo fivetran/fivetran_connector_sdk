@@ -9,7 +9,7 @@ This example demonstrates how to fetch data from a PostgreSQL database using dif
 
 This pattern is essential for building connectors that need to handle large volumes of data efficiently without running into memory constraints. The connector implements incremental syncing based on a `last_updated` timestamp column and includes checkpointing after each batch to ensure sync reliability.
 
-> **Note**: This example implements the core logic of server-side cursors for PostgreSQL database. There are multiple source databases which support server-side cursors; the concepts here can be adapted accordingly.
+Note: This example implements the core logic of server-side cursors for PostgreSQL database. There are multiple source databases which support server-side cursors; the concepts here can be adapted accordingly.
 
 ## Requirements
 
@@ -50,6 +50,7 @@ The connector requires the following configuration keys in the `configuration.js
   "cursor_mode": "<YOUR_CURSOR_MODE>"
 }
 ```
+Configuration parameters:
 
 - `hostname` (required): PostgreSQL server hostname or IP address.
 - `port` (required): PostgreSQL server port (typically 5432).
@@ -142,13 +143,13 @@ The connector implements comprehensive error handling to ensure reliability and 
 
 The connector creates a single table in the destination based on the `table_name` configuration parameter. For example, if `table_name` is set to `people`, the following table will be created:
 
-### Table: `PEOPLE` 
+### `PEOPLE` 
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | INT | Primary key; unique identifier for each row |
-| `last_updated` | UTC_DATETIME | Timestamp of when the row was last updated; used for incremental sync |
-| Additional columns | (inferred) | All other columns from the source table are automatically inferred and synced |
+| `id` | INT | Primary key; unique identifier for each row. |
+| `last_updated` | UTC_DATETIME | Timestamp of when the row was last updated; used for incremental syncs. |
+| Additional columns | (inferred) | All other columns from the source table are automatically inferred and synced. |
 
 The `last_updated` column is critical for incremental syncing. Ensure your source table has this column and that it's updated whenever a row changes.
 
