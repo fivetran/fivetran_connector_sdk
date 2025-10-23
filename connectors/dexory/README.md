@@ -81,17 +81,17 @@ The connector processes Dexory inventory data through several transformation ste
 
 The connector implements comprehensive error handling strategies across multiple functions:
 
-**API Request Retries:** The `fetch_locations_with_retry` function implements exponential backoff retry logic for:
+**API request retries:** The `fetch_locations_with_retry` function implements exponential backoff retry logic for:
 - Connection timeouts and network errors
 - Rate limiting (HTTP 429 responses)
 - Server errors (5xx status codes)
 - General request exceptions
 
-**Configuration Validation:** The `validate_configuration` function validates the presence of all required configuration parameters before processing begins.
+**Configuration validation:** The `validate_configuration` function validates the presence of all required configuration parameters before processing begins.
 
-**Data Processing Errors:** Graceful handling of missing or malformed data with appropriate logging and continuation of processing.
+**Data processing errors:** Graceful handling of missing or malformed data with appropriate logging and continuation of processing.
 
-**Retry Logic:** Configurable retry attempts with exponential backoff using the formula: `base_retry_delay * (2^attempt)` where:
+**Retry logic:** Configurable retry attempts with exponential backoff using the formula: `base_retry_delay * (2^attempt)` where:
 - Attempt 1: 2 seconds
 - Attempt 2: 4 seconds  
 - Attempt 3: 8 seconds
