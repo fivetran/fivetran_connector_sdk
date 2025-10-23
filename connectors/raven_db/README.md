@@ -36,10 +36,10 @@ The connector requires the following configuration parameters:
 ```json
 {
   "ravendb_urls": "<YOUR_RAVENDB_CLOUD_URL>",
-  "database_name": "<YOUR_DATABASE_NAME>",
-  "collection_name": "<YOUR_COLLECTION_NAME>",
+  "database_name": "<YOUR_RAVENDB_DATABASE_NAME>",
+  "collection_name": "<YOUR_RAVENDB_COLLECTION_NAME>",
   "batch_size": "<YOUR_BATCH_SIZE>",
-  "certificate_base64": "<YOUR_BASE64_ENCODED_CERTIFICATE>"
+  "certificate_base64": "<YOUR_RAVENDB_BASE64_ENCODED_CERTIFICATE>"
 }
 ```
 
@@ -91,7 +91,7 @@ To obtain your certificate:
 ## Pagination
 
 The connector implements efficient pagination when retrieving data from RavenDB:
-- Uses RavenDB's skip/take pagination with configurable batch sizes
+- Uses RavenDB's `skip`/`take` pagination with configurable batch sizes
 - Default batch size is set to 100 documents but can be adjusted
 - Performs upserts one document at a time, avoiding excessive memory usage
 - Handles checkpointing every 1000 records to maintain state during long-running syncs

@@ -20,7 +20,7 @@ from fivetran_connector_sdk import Operations as op
 from ravendb import DocumentStore
 
 # For handling type hints
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 # For handling the deployment-safe base64-encoded certificate
 import base64
@@ -41,7 +41,7 @@ def validate_configuration(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
 
     # Validate required configuration parameters
@@ -49,6 +49,12 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+
+    # Validate that ravendb_urls contains at least one valid URL
+    ravendb_urls = configuration.get("ravendb_urls", "")
+    urls = [u.strip() for u in ravendb_urls.split(",") if u.strip()]
+    if not urls:
+        raise ValueError("No valid RavenDB URLs provided")
 
 
 def flatten_dict(data: dict, prefix: str = "", separator: str = "_") -> dict:
@@ -95,7 +101,7 @@ def schema(configuration: dict):
     """
 
     # Get collection name from configuration or use default
-    collection_name = configuration.get("collection_name", "Orders")
+    collection_name = configuration.get("collection_name", __DEFAULT_COLLECTION_NAME)
 
     return [
         {
@@ -131,17 +137,8 @@ def create_document_store(configuration: dict) -> DocumentStore:
     temp_cert_path: Optional[str] = None
 
     try:
-        if not ravendb_urls:
-            raise ValueError("ravendb_urls is required")
-        if not database_name:
-            raise ValueError("database_name is required")
-        if not certificate_base64:
-            raise ValueError("certificate_base64 is required for RavenDB Cloud connection")
-
         # Support comma-separated URLs for cluster compatibility
         urls = [u.strip() for u in ravendb_urls.split(",") if u.strip()]
-        if not urls:
-            raise ValueError("No valid RavenDB URLs provided")
 
         log.info("Decoding base64 certificate")
         try:
@@ -208,47 +205,77 @@ def build_rql_query(
     return rql
 
 
+def enrich_document_with_metadata(document, metadata):
+    """
+    Enrich a document with metadata fields (Id and LastModified).
+
+    Args:
+        document (dict): The document to enrich.
+        metadata (dict): The metadata dictionary from RavenDB.
+
+    Returns:
+        dict: The enriched document with Id and LastModified fields.
+    """
+    if metadata:
+        document["Id"] = metadata.get("@id", "")
+        document["LastModified"] = metadata.get("@last-modified", "")
+    return document
+
+
 def fetch_documents_batch(
     store: DocumentStore,
     collection_name: str,
     last_modified: Optional[str] = None,
     skip: int = 0,
     take: int = __DEFAULT_BATCH_SIZE,
-) -> tuple[List[Dict[str, Any]], bool]:
+) -> Tuple[List[Dict[str, Any]], bool]:
     """
-    Fetch a batch of documents from RavenDB collection where LastModified is greater than the last sync time.
-    Uses skip/take pagination to handle large collections efficiently.
-    Data is explicitly ordered by LastModified to ensure consistent incremental sync.
+    Fetch a batch of documents from RavenDB collection using streaming to minimize memory footprint.
+
+    This function uses RavenDB's query iterator to stream documents one at a time rather than
+    loading the entire result set into memory. Documents are processed incrementally and only
+    the requested batch size is kept in memory.
 
     Args:
-        store: The RavenDB DocumentStore instance.
-        collection_name: The name of the collection to fetch data from.
-        last_modified: The last modified timestamp from the previous sync.
-        skip: Number of records to skip (for pagination).
-        take: Number of records to fetch in this batch.
+        store (DocumentStore): The RavenDB DocumentStore instance.
+        collection_name (str): The name of the collection to fetch data from.
+        last_modified (str, optional): The last modified timestamp from the previous sync.
+        skip (int): Number of records to skip (for pagination).
+        take (int): Number of records to fetch in this batch.
+
     Returns:
-        A tuple containing (list of documents sorted by LastModified, has_more_data boolean).
+        Tuple[List[Dict[str, Any]], bool]: A tuple containing:
+            - List of documents (limited to 'take' size) sorted by LastModified
+            - Boolean indicating if more data exists
+
+    Raises:
+        RuntimeError: If the batch fetch fails.
     """
     try:
         with store.open_session() as session:
             # Build RQL query using helper function
             rql = build_rql_query(collection_name, last_modified, skip, take)
 
-            # Execute raw RQL query
-            results = list(session.advanced.raw_query(rql, object_type=dict))
+            # Execute raw RQL query and get iterator (does not load all results into memory)
+            query_result = session.advanced.raw_query(rql, object_type=dict)
 
-            # Extract documents with their metadata
+            # Process documents one at a time using iterator
             documents = []
-            for doc in results:
-                # Get metadata from session
+            document_count = 0
+
+            for doc in query_result:
+                # Get metadata for this document
                 metadata = session.advanced.get_metadata_for(doc)
 
-                # Add Id and LastModified from metadata to document
-                if metadata:
-                    doc["Id"] = metadata.get("@id", "")
-                    doc["LastModified"] = metadata.get("@last-modified", "")
+                # Enrich document with metadata
+                enriched_doc = enrich_document_with_metadata(doc, metadata)
+                documents.append(enriched_doc)
 
-                documents.append(doc)
+                document_count += 1
+
+                # Stop if we've reached the batch size
+                if document_count >= take:
+                    break
 
             log.info(
                 f"Fetched batch: {len(documents)} documents from collection: {collection_name}, "
@@ -256,6 +283,7 @@ def fetch_documents_batch(
             )
 
             # Check if there might be more data
+            # If we got exactly 'take' documents, there might be more
             has_more_data = len(documents) == take
 
             return documents, has_more_data
@@ -267,90 +295,179 @@ def fetch_documents_batch(
         )
 
 
+def process_document_batch(documents, collection_name):
+    """
+    Process a batch of documents by flattening and upserting them.
+
+    Args:
+        documents (list): List of document dictionaries to process.
+        collection_name (str): Name of the collection (used as table name).
+
+    Returns:
+        int: Number of documents processed in this batch.
+    """
+    processed_count = 0
+
+    for document in documents:
+        # Flatten nested document structure
+        flattened_doc = flatten_dict(document)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        op.upsert(table=collection_name.lower(), data=flattened_doc)
+        processed_count += 1
+
+    return processed_count
+
+
+def extract_last_modified_timestamp(documents):
+    """
+    Extract the LastModified timestamp from the last document in a batch.
+
+    Args:
+        documents (list): List of document dictionaries.
+
+    Returns:
+        str or None: The LastModified timestamp from the last document, or None if not found.
+    """
+    if not documents:
+        return None
+
+    last_document = documents[-1]
+    return last_document.get("LastModified")
+
+
+def process_single_batch(store, collection_name, last_modified, skip, batch_size):
+    """
+    Fetch and process a single batch of documents from RavenDB.
+
+    Args:
+        store (DocumentStore): The RavenDB DocumentStore instance.
+        collection_name (str): Name of the collection to fetch from.
+        last_modified (str): Timestamp for incremental sync filtering.
+        skip (int): Number of records to skip for pagination.
+        batch_size (int): Number of records to fetch in this batch.
+
+    Returns:
+        tuple: (processed_count, new_last_modified, has_more_data) where:
+            - processed_count (int): Number of documents processed
+            - new_last_modified (str): Updated last modified timestamp
+            - has_more_data (bool): Whether more data exists to fetch
+    """
+    # Fetch document batch from RavenDB
+    documents, has_more_data = fetch_documents_batch(
+        store, collection_name, last_modified, skip, batch_size
+    )
+
+    if not documents:
+        log.info("No more documents to process")
+        return 0, last_modified, False
+
+    # Process all documents in the batch
+    processed_count = process_document_batch(documents, collection_name)
+
+    # Extract the latest timestamp from this batch
+    new_last_modified = extract_last_modified_timestamp(documents)
+    if not new_last_modified:
+        new_last_modified = last_modified
+
+    return processed_count, new_last_modified, has_more_data
+
+
+def sync_collection_data(store, collection_name, batch_size, initial_last_modified):
+    """
+    Sync all data from a RavenDB collection using batch processing with pagination.
+
+    This function orchestrates the batch-by-batch processing of documents, handling
+    pagination, state updates, and checkpointing.
+
+    Args:
+        store (DocumentStore): The RavenDB DocumentStore instance.
+        collection_name (str): Name of the collection to sync.
+        batch_size (int): Number of documents to process per batch.
+        initial_last_modified (str): Starting timestamp for incremental sync.
+
+    Returns:
+        tuple: (total_row_count, total_batch_count) with sync statistics.
+    """
+    last_modified = initial_last_modified
+    total_row_count = 0
+    batch_count = 0
+    skip = 0
+    has_more_data = True
+
+    log.info(f"Starting batch processing with batch size: {batch_size}")
+
+    while has_more_data:
+        batch_count += 1
+        log.info(f"Processing batch {batch_count}, skip: {skip}")
+
+        # Process a single batch
+        batch_row_count, new_last_modified, has_more_data = process_single_batch(
+            store, collection_name, last_modified, skip, batch_size
+        )
+
+        # Update state if we processed any documents
+        if batch_row_count > 0:
+            total_row_count += batch_row_count
+            last_modified = new_last_modified
+
+            # Checkpoint after each complete batch to ensure consistent state
+            save_state(last_modified)
+
+            log.info(
+                f"Completed batch {batch_count}: processed {batch_row_count} documents, "
+                f"total processed: {total_row_count}, last modified: {last_modified}"
+            )
+
+        # Update skip for next batch
+        skip += batch_size
+
+    return total_row_count, batch_count
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
+
+    This function orchestrates the sync process by:
+    1. Validating configuration
+    2. Creating a connection to RavenDB
+    3. Syncing collection data in batches
+    4. Managing state and cleanup
+
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        configuration (dict): A dictionary containing connection details.
+        state (dict): A dictionary containing state information from previous runs.
+                     The state dictionary is empty for the first sync or for any full re-sync.
+
+    Raises:
+        RuntimeError: If the sync process fails.
     """
+    log.warning("Example: Source Examples - RavenDB")
 
-    log.warning("Example: Database Examples: RavenDB Document Sync")
-
-    # Validate the configuration to ensure it contains all required values.
+    # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
 
     # Create RavenDB DocumentStore
     store = create_document_store(configuration)
 
     try:
-        # Get configuration parameters
+        # Extract configuration parameters
         collection_name = configuration.get("collection_name", __DEFAULT_COLLECTION_NAME)
         batch_size = int(configuration.get("batch_size", __DEFAULT_BATCH_SIZE))
-
-        # Get the state variable for the sync
         last_modified = state.get("last_modified", __EARLIEST_TIMESTAMP)
-        new_last_modified = last_modified
 
-        row_count = 0
-        batch_count = 0
-        skip = 0
-        has_more_data = True
-        rows_since_last_checkpoint = 0
+        # Sync all collection data
+        total_row_count, total_batch_count = sync_collection_data(
+            store, collection_name, batch_size, last_modified
+        )
 
-        log.info(f"Starting batch processing with batch size: {batch_size}")
-
-        # Process data in batches using skip/take pagination
-        while has_more_data:
-            batch_count += 1
-            log.info(f"Processing batch {batch_count}, skip: {skip}")
-
-            # Fetch document batch from RavenDB
-            documents, has_more_data = fetch_documents_batch(
-                store, collection_name, last_modified, skip, batch_size
-            )
-
-            if not documents:
-                log.info("No more documents to process")
-                break
-
-            # Process each document in the current batch
-            batch_row_count = 0
-            for document in documents:
-                # Flatten nested document structure
-                flattened_doc = flatten_dict(document)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                op.upsert(table=collection_name.lower(), data=flattened_doc)
-                row_count += 1
-                batch_row_count += 1
-
-            # After processing the batch, update new_last_modified with the last document's LastModified
-            if documents:
-                last_doc_last_modified = documents[-1].get("LastModified")
-                if last_doc_last_modified:
-                    new_last_modified = last_doc_last_modified
-
-            # Update rows since last checkpoint
-            rows_since_last_checkpoint += batch_row_count
-
-            # Checkpoint after each complete batch to ensure consistent state
-            # This avoids boundary issues with cumulative row counts
-            save_state(new_last_modified)
-            rows_since_last_checkpoint = 0
-
-            log.info(
-                f"Completed batch {batch_count}: processed {batch_row_count} documents, "
-                f"total processed: {row_count}, last modified: {new_last_modified}"
-            )
-
-            # Update skip for next batch
-            skip += batch_size
-
-        log.info(f"Successfully synced {row_count} documents across {batch_count} batches")
+        log.info(
+            f"Successfully synced {total_row_count} documents across {total_batch_count} batches"
+        )
 
     except Exception as e:
         # In case of an exception, raise a runtime error
