@@ -110,7 +110,7 @@ The connector implements comprehensive error handling strategies. Refer to the f
 
 ## Tables created
 
-The connector creates a separate table for each queue specified in configuration. Column types are automatically inferred by Fivetran based on the data. Each table includes the following columns:
+The connector creates a separate table for each queue specified in the configuration file. Column types are automatically inferred by Fivetran based on the data. Each table includes the following columns:
 
 | Column | Type | Description |
 |--------|------|-------------|
