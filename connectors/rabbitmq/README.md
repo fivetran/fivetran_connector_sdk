@@ -59,7 +59,7 @@ The connector uses AMQP connection URLs for authentication. The connection URL i
 
 Example configurations:
 
-CloudAMQP (recommended for testing):
+- CloudAMQP (recommended for testing):
 ```json
 {
   "connection_url": "amqps://username:password@host.cloudamqp.com/vhost"
