@@ -44,6 +44,8 @@ The connector reads configuration settings from `configuration.json`, which defi
 |-----|-----------|-------------|
 | `APIKey` | Yes | Your SAP Ariba API key for authentication. |
 
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
 
 ---
 
