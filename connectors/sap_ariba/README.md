@@ -6,8 +6,8 @@ The SAP Ariba Purchase Orders connector demonstrates how to use the Fivetran Con
 The connector supports **incremental syncing** by maintaining timestamps in its internal state. It fetches new or modified purchase orders and items and marks processed rows with checkpoints for reliable continuation.
 
 It maintains two tables:
-- `orders` – contains header-level purchase order metadata.
-- `items` – contains detailed line-item records for each order.
+- `ORDER` – contains header-level purchase order metadata.
+- `ITEM` – contains detailed line-item records for each order.
 
 This example uses the **SAP Ariba Sandbox API** but can easily be configured for production environments.
 
@@ -36,7 +36,7 @@ The connector reads configuration settings from `configuration.json`, which defi
 
 ```
 {
-  "APIKey": "YOUR_API_KEY"
+  "APIKey": "YOUR_SAP_ARIBA_API_KEY"
 }
 ```
 
@@ -102,7 +102,7 @@ All logs and exceptions are managed using the `fivetran_connector_sdk.Logging` i
 ## Tables created
 The connector creates two destination tables.
 
-### orders
+### ORDER
 Primary key: `payload_id`, `revision`, `row_id`
 
 | Column | Type | Description |
@@ -126,7 +126,7 @@ Primary key: `payload_id`, `revision`, `row_id`
 | `company_code` | STRING | Internal company code. |
 | `row_id` | INT | Sequential ID used for uniqueness. |
 
-### items
+### ITEM
 Primary key: `document_number`, `line_number`, `row_id`
 
 | Column | Type | Description |

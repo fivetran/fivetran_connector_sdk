@@ -28,22 +28,39 @@ __EPOCH_START_DATE = "1970-01-01T00:00:00Z"
 __LAST_UPDATED_AT = "last_updated_at"
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
 
-# date_format = "%d %b %Y %I:%M:%S %p"
-# naive_datetime = datetime.strptime(date_string, date_format)
+# Define the schema function which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
+
 def schema(configuration: dict):
     return [{
-    "table": "orders", # Name of the table in the destination.
+    "table": "order", # Name of the table in the destination.
     "primary_key": ["payload_id", "revision", "row_id"],
-    "columns": getOrderColumns() # Define the columns and their data types.
+    "columns": get_order_columns() # Define the columns and their data types.
     },
     {
-    "table": "items", # Name of the table in the destination.
+    "table": "item", # Name of the table in the destination.
     "primary_key": ["document_number", "line_number", "row_id"],
-    "columns": getItemColumns() # Define the columns and their data types.
+    "columns": get_item_columns() # Define the columns and their data types.
     }]
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync
+
 def update(configuration: dict, state: dict):
-    """Define the update function, which is a required function, and is called by Fivetran during each sync."""
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    Arrgs:
+        configuration: dictionary contains any secrets or payloads you configure when deploying the connector
+        state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
+    """
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
@@ -61,11 +78,22 @@ def update(configuration: dict, state: dict):
     sync_orders(params, headers, state, current_sync_start)
     sync_items(params, headers, state, current_sync_start)
 
-    # Checkpoint state if needed
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
-    """Fetch all rows for a table with pagination"""
+    """
+    This function fetch all rows for a table with pagination
+    Arg: table_name: Name of the table to sync
+         params: API request parameters
+         headers: API request headers
+         state: State dictionary to track sync progress
+         allowed_columns: Dictionary of allowed columns for filtering
+         sync_start: Timestamp of the current sync start
+    """
     count = 0
     record_count = None
     while record_count is None or count < record_count:
@@ -85,10 +113,18 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
             values["row_id"] = count
             values["last_updated_at"] = sync_start
 
+            # The 'upsert' operation is used to insert or update data in a table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+            # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table=table_name, data=values)
 
             if count % __CHECKPOINT_INTERVAL == 0:
-                op.checkpoint(state) # for frequent checkpointing
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
 
             if record_count and count >= record_count:
                 break
@@ -97,6 +133,10 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
 
 
 def convert_to_iso(date_str):
+    """
+    Convert a date string to ISO 8601 format.
+    Args: param date_str:
+    """
     if not date_str:
         return None
     try:
@@ -106,6 +146,11 @@ def convert_to_iso(date_str):
         return date_str  # fallback if it’s already ISO
 
 def filter_columns(record: dict, allowed_columns: dict) -> dict:
+    """
+    Filter the record to include only allowed columns and convert date fields to ISO format.
+    Args: param record:
+        :param allowed_columns:
+    """
     filtered = {}
     for col in allowed_columns.keys():
         if col == "row_id":
@@ -117,37 +162,62 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
     return filtered
 
 def sync_orders(params, headers, state, sync_start):
-    """Fetch all rows for a table with pagination"""
-    table_name = "orders"
-    last_updated_at = last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
+    """
+    This function fetches all rows for a table with pagination
+    Args: table_name: Name of the table to sync
+         params: API request parameters
+         headers: API request headers
+         state: State dictionary to track sync progress
+         sync_start: Timestamp of the current sync start
+    """
+    table_name = "order"
 
     params["$skip"] = 0
 
     if state.get(table_name) is None:
         state[table_name] = {}
 
-    sync_rows(table_name, params, headers, state, getOrderColumns(), sync_start)
+    sync_rows(table_name, params, headers, state, get_order_columns(), sync_start)
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 
 def sync_items(params, headers, state, sync_start):
-    """Fetch all rows for a table with pagination"""
-    table_name = "items"
-    last_updated_at = last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
+    """
+    This function fetches all rows for a table with pagination
+    Args: table_name: Name of the table to sync
+         params: API request parameters
+         headers: API request headers
+         state: State dictionary to track sync progress
+         sync_start: Timestamp of the current sync start
+    """
+    table_name = "item"
 
     params["$skip"] = 0
 
     if state.get(table_name) is None:
             state[table_name] = {}
 
-    sync_rows(table_name, params, headers, state, getItemColumns(), sync_start)
+    sync_rows(table_name, params, headers, state, get_item_columns(), sync_start)
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 def to_snake_case(s: str) -> str:
+    """
+    Convert a string to snake_case.
+    Args :param s: Input string
+          :return: Snake_case string
+    """
     # Replace spaces and hyphens with underscores
     s = re.sub(r'[\s\-]+', '_', s)
     # Convert CamelCase or mixed case to lowercase with underscores
@@ -155,7 +225,14 @@ def to_snake_case(s: str) -> str:
     return s.lower()
 
 def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
-    """Generic GET with retry and backoff"""
+    """
+    This is a Generic GET with retry and backoff
+    Args: endpoint: API endpoint to call
+         params: API request parameters
+         headers: API request headers
+         retries: Number of retries for failed requests
+         delay: Delay between retries
+    """
     url = f"{__BASE_URL}{endpoint}"
     for attempt in range(1, retries + 1):
         try:
@@ -179,7 +256,10 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 time.sleep(delay * attempt)
         raise Exception(f"Failed to fetch {url} after {retries} retries")
 
-def getOrderColumns():
+def get_order_columns():
+    """
+    Define the order table columns and their data types.
+    """
     return {
     "documentNumber": "STRING",
     "orderDate": "UTC_DATETIME",
@@ -201,7 +281,10 @@ def getOrderColumns():
     "row_id": "INT"
     }
 
-def getItemColumns():
+def get_item_columns():
+    """
+    Define the item table columns and their data types.
+    """
     return {
     "documentNumber": "STRING",
     "lineNumber": "INT",
