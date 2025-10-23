@@ -73,7 +73,7 @@ Local RabbitMQ (default credentials):
 }
 ```
 
-Self-hosted with custom credentials:
+- Self-hosted with custom credentials:
 ```json
 {
   "connection_url": "amqps://myuser:mypassword@rabbitmq.example.com:5671/production"
