@@ -44,7 +44,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 This connector does not require authentication as it uses the public Star Wars API (SWAPI). The API is freely accessible without API keys or credentials.
 
-The Fivetran platform automatically sets the `FIVETRAN_DEPLOYMENT_MODEL` environment variable based on the deployment context. See the [Technical Reference documentation](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#referencingenvironmentvariablesinyourcode) for details.
+The Fivetran platform automatically sets the `FIVETRAN_DEPLOYMENT_MODEL` environment variable based on the deployment context. See the [Working with Connector SDK documentation](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#referencingenvironmentvariablesinyourcode) for details.
 
 ## Pagination
 The connector handles pagination automatically using SWAPI's pagination structure:

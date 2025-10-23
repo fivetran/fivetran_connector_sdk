@@ -1,7 +1,7 @@
 """
 This example demonstrates environment-driven connectivity using the Star Wars API (SWAPI).
 It selects between a production mirror and the direct API endpoint based on the FIVETRAN_DEPLOYMENT_MODEL environment variable.
-The FIVETRAN_DEPLOYMENT_MODEL environment variable is set by Fivetran to indicate the deployment environment of the connector.
+See the Working with Connector SDK documentation (https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#referencingenvironmentvariablesinyourcode)
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
