@@ -1,7 +1,7 @@
 # RabbitMQ Connector SDK Example
 
 ## Connector overview
-This connector syncs messages from RabbitMQ queues to Fivetran. The connector retrieves messages from specified queues using RabbitMQ's basic_get method, consuming messages after successful sync to prevent duplicate reads.
+This connector syncs messages from RabbitMQ queues to Fivetran. The connector retrieves messages from specified queues using RabbitMQ's `basic_get` method. It consumes the messages only after a successful sync to prevent duplicate reads.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
