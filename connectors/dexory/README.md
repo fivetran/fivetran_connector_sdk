@@ -104,16 +104,16 @@ The connector creates two related tables in your data warehouse:
 
 ### `LOCATIONS`
 - **Purpose**: Contains location metadata and scan information
-- **Primary Key**: `["name", "location_type", "aisle", "scan_date"]`
+- **Primary key**: Composite primary key made up of `name`, `location_type`, `aisle`, and `scan_date`
 - **Content**: Location details, scan timestamps, and metadata
-- **Data Source**: `/customer-api/v1/locations` endpoint
+- **Data source**: `/customer-api/v1/locations` endpoint
 
 ### `EXPECTED_INVENTORY_OBJECTS`
 - **Purpose**: Contains individual inventory objects associated with each location
 - **Primary key**: `_fivetran_id` (auto-generated hash of all fields)
 - **Content**: Inventory object details with foreign key references to parent location
-- **Data Source**: Nested `expected_inventory_objects` field from locations API response
-- **Foreign Keys**: `name`, `location_type`, `aisle`, `scan_date` (linking to locations table)
+- **Data source**: Nested `expected_inventory_objects` field from locations API response
+- **Foreign keys**: `name`, `location_type`, `aisle`, and `scan_date` (linking to the `LOCATIONS` table)
 
 Both tables use the `op.upsert()` operation to insert or update data, ensuring data consistency across sync runs. The parent-child relationship allows for efficient querying of inventory data while maintaining referential integrity.
 
