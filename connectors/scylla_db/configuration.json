@@ -1,10 +1,10 @@
 {
-  "username": "<USERNAME>",
-  "password": "<PASSWORD>",
-  "host_1": "<HOST_1>",
-  "host_2": "<HOST_2>",
-  "host_3": "<HOST_3>",
-  "port": "<PORT_NUMBER>",
-  "dc_region": "<DATA_CENTER_REGION>",
-"keyspace": "<KEYSPACE>"
+  "username": "<YOUR_SCYLLA_DB_USERNAME>",
+  "password": "<YOUR_SCYLLA_DB_PASSWORD>",
+  "host_1": "<YOUR_SCYLLA_DB_HOST_1>",
+  "host_2": "<YOUR_SCYLLA_DB_HOST_2>",
+  "host_3": "<YOUR_SCYLLA_DB_HOST_3>",
+  "port": "<YOUR_SCYLLA_DB_PORT_NUMBER>",
+  "dc_region": "<YOUR_SCYLLA_DB_DATA_CENTER_REGION>",
+  "keyspace": "<YOUR_SCYLLA_DB_KEYSPACE>"
 }

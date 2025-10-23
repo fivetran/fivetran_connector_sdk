@@ -1,11 +1,17 @@
+# This is an example for how to work with the fivetran_connector_sdk module.
+# Imports classes and constants from the `cassandra.cluster` module, which provides
+# the main interface for connecting to and interacting with an Apache Cassandra cluster.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
+
 from cassandra.cluster import Cluster, ExecutionProfile, EXEC_PROFILE_DEFAULT
 from cassandra.policies import DCAwareRoundRobinPolicy, TokenAwarePolicy
 from cassandra.auth import PlainTextAuthProvider
-from uuid import uuid4
 from datetime import datetime, timedelta, timezone
-import random
-from uuid import UUID
 
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
@@ -36,7 +42,7 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration field: {field}")
     log.info("Configuration validation passed.")
 
-def getCluster(configuration: dict):
+def get_cluster(configuration: dict):
     try:
         profile = ExecutionProfile(load_balancing_policy=TokenAwarePolicy(DCAwareRoundRobinPolicy(local_dc='AWS_US_EAST_1')))
         return Cluster(
@@ -59,7 +65,7 @@ def cluster_shutdown(cluster):
 def schema(configuration: dict):
     schema = []
 
-    cluster = getCluster(configuration)
+    cluster = get_cluster(configuration)
     session = cluster.connect()
     keyspace = configuration["keyspace"]
     session.set_keyspace(keyspace)
@@ -80,7 +86,7 @@ def schema(configuration: dict):
     return schema
 
 def get_tables(session, keyspace: str):
-#     session = cluster.connect()
+    # Fetch all table names in the specified keyspace
     rows = session.execute(f"SELECT table_name FROM system_schema.tables WHERE keyspace_name='{keyspace}';")
     tables = [row.table_name for row in rows]
     return tables
@@ -97,8 +103,6 @@ def get_primary_keys(session, keyspace, table):
     return pk_columns
 
 def get_all_columns(session, keyspace, table):
-    schema_map = {}
-
     # Fetch columns metadata (some Scylla versions use type_name instead of type)
     query = f"""
         SELECT column_name, kind, type
@@ -150,9 +154,7 @@ def update(configuration: dict, state: dict):
         raise ve
 
     try:
-        tables = []
-        cluster = None
-        cluster = getCluster(configuration)
+        cluster = get_cluster(configuration)
     except Exception as e:
             log.severe(f"Error while connecting with cluster: {e}")
             raise e
