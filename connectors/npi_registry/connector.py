@@ -131,7 +131,7 @@ def update(configuration: dict, state: dict):
                 break
 
             # Warn if approaching API limit
-            if current_skip >= __MAX_SKIP and total_results > current_skip:
+            if __MAX_SKIP <= current_skip < total_results:
                 log.warning(
                     f"API limit reached. Maximum skip value is {__MAX_SKIP}. Retrieved {records_processed} of {total_results} total records. Refine your search criteria to get specific records."
                 )
