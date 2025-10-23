@@ -84,7 +84,7 @@ The connector automatically handles AMQPS/TLS connections when using the `amqps:
 
 ## Data handling
 
-**IMPORTANT WARNING**: Messages are permanently removed from RabbitMQ after successful sync. This connector CONSUMES messages using `basic_ack`, which deletes them from the queue. Only use this connector with dedicated analytical queues (dead letter queues, audit queues) - NEVER with production operational queues.
+**Important**: Messages are permanently removed from RabbitMQ after a successful sync. This connector consumes messages using `basic_ack`, which deletes them from the queue. Use this connector only with dedicated analytical queues (for example, dead-letter or audit queues); never use it on production operational queues.
 
 The connector performs message consumption and transformation. Refer to the `fetch_and_upsert_messages_batch` function for message handling:
 
