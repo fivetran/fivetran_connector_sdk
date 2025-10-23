@@ -37,7 +37,7 @@ The configuration keys required for your connector are as follows:
 ## Configuration parameters
 
 - `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host (see Authentication section for format examples)
-- `queues` (required): Comma-separated list of queue names to sync
+- `queues` (required): Comma-separated list of queue names to sync (for example: "orders,payments,notifications")
 - `batch_size` (optional): Number of messages to process per batch (defaults to 100)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -122,7 +122,7 @@ The connector creates a separate table for each queue specified in the configura
 | message_body | STRING | Message content (JSON or text) |
 | content_type | STRING | Content type (e.g., application/json) |
 | content_encoding | STRING | Content encoding (e.g., utf-8) |
-| delivery_mode | INT | 1=non-persistent, 2=persistent |
+| delivery_mode | INT | Message persistence mode (1=non-persistent, 2=persistent) |
 | priority | INT | Message priority (0-255) |
 | correlation_id | STRING | Correlation ID for request-response patterns |
 | reply_to | STRING | Reply-to queue for response messages |
