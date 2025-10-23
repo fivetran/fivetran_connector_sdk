@@ -26,9 +26,7 @@ from fivetran_connector_sdk import Connector  # Core SDK interface
 from fivetran_connector_sdk import Logging as log  # Logging abstraction
 from fivetran_connector_sdk import Operations as op  # Destination operations
 
-# -----------------------------
-# Private Constants
-# -----------------------------
+# Private constants
 __DEFAULT_REGION = "r1"
 __BASE_URL_FMT = "https://{region}-api.dotdigital.com"
 __USER_AGENT = "fivetran-connector-sdk-dotdigital/1.0"
@@ -69,9 +67,7 @@ def _normalize_utc(dt_str: Optional[str]) -> Optional[str]:
 class RateLimitError(Exception):
     """Raised when API responds with HTTP 429 and requires backoff."""
 
-    def __init__(
-        self, reset_epoch: Optional[int] = None, message: str = "429 Too Many Requests"
-    ):
+    def __init__(self, reset_epoch: Optional[int] = None, message: str = "429 Too Many Requests"):
         super().__init__(message)
         self.reset_epoch = reset_epoch
 
@@ -79,13 +75,9 @@ class RateLimitError(Exception):
 class DotdigitalClient:
     """Lightweight HTTP client for Dotdigital APIs."""
 
-    def __init__(
-        self, api_user: str, api_password: str, region_id: Optional[str] = None
-    ) -> None:
+    def __init__(self, api_user: str, api_password: str, region_id: Optional[str] = None) -> None:
         """Initialize the API client with Basic Auth and region."""
-        token = base64.b64encode(f"{api_user}:{api_password}".encode("utf-8")).decode(
-            "ascii"
-        )
+        token = base64.b64encode(f"{api_user}:{api_password}".encode("utf-8")).decode("ascii")
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -125,9 +117,7 @@ class DotdigitalClient:
             reset_header = resp.headers.get("X-RateLimit-Reset") or resp.headers.get(
                 "x-ratelimit-reset"
             )
-            reset_epoch = (
-                int(reset_header) if reset_header and reset_header.isdigit() else None
-            )
+            reset_epoch = int(reset_header) if reset_header and reset_header.isdigit() else None
             raise RateLimitError(reset_epoch=reset_epoch)
         resp.raise_for_status()
 
@@ -167,10 +157,7 @@ class DotdigitalClient:
                     raise
 
     def get_seek_paged(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None,
+        self, path: str, params: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
     ) -> Iterable[Dict[str, Any]]:
         """Generator for v3 seek pagination using marker tokens."""
         params = dict(params or {})
@@ -221,7 +208,7 @@ def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Define destination tables and their columns."""
     return [
         {
-            "table": "dotdigital_contacts",
+            "table": "dotdigital_contact",
             "primary_key": ["contact_id"],
             "columns": {
                 "contact_id": "LONG",
@@ -239,7 +226,7 @@ def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
             },
         },
         {
-            "table": "dotdigital_campaigns",
+            "table": "dotdigital_campaign",
             "primary_key": ["campaign_id"],
             "columns": {
                 "campaign_id": "LONG",
@@ -269,6 +256,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
         try:
             client.autodiscover_region()
         except (requests.RequestException, ValueError) as exc:
+            # Continue with configured/default region if autodiscovery fails
             log.warning(f"Region autodiscovery failed: {exc}")
 
     _sync_contacts(client, configuration, state)
@@ -297,22 +285,16 @@ def _sync_contacts(
     if list_id_filter:
         params["~listId"] = str(list_id_filter)
 
-    for item in client.get_seek_paged(
-        "/contacts/v3", params=params, limit=contacts_page_size
-    ):
+    for item in client.get_seek_paged("/contacts/v3", params=params, limit=contacts_page_size):
         identifiers = item.get("identifiers", {})
         email = None
         mobile_number = None
         if isinstance(identifiers, dict):
             email = identifiers.get("email") or identifiers.get("Email")
-            mobile_number = identifiers.get("mobileNumber") or identifiers.get(
-                "MobileNumber"
-            )
+            mobile_number = identifiers.get("mobileNumber") or identifiers.get("MobileNumber")
 
         created = _normalize_utc(item.get("created") or item.get("dateCreated"))
-        updated = (
-            _normalize_utc(item.get("updated") or item.get("dateUpdated")) or created
-        )
+        updated = _normalize_utc(item.get("updated") or item.get("dateUpdated")) or created
 
         row = {
             "contact_id": item.get("contactId"),
@@ -328,7 +310,7 @@ def _sync_contacts(
             "preferences": item.get("preferences"),
             "consent_records": item.get("consentRecords"),
         }
-        op.upsert(table="dotdigital_contacts", data=row)
+        op.upsert(table="dotdigital_contact", data=row)
 
         if updated and (max_seen_updated is None or updated > max_seen_updated):
             max_seen_updated = updated
@@ -357,7 +339,7 @@ def _sync_campaigns(
             "raw": item,
         }
         if row["campaign_id"] is not None:
-            op.upsert(table="dotdigital_campaigns", data=row)
+            op.upsert(table="dotdigital_campaign", data=row)
 
     op.checkpoint(state={"campaigns_synced_at": _now_utc_iso()})
 
