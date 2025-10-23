@@ -2,7 +2,7 @@
 
 
 ## Connector overview
-This example demonstrates how to build a connector that automatically selects between different API endpoints based on the deployment environment. It uses the Star Wars API (SWAPI) to showcase environment-driven connectivity patterns, switching between a production mirror and the direct API endpoint using the `FIVETRAN_DEPLOYMENT_MODEL` environment variable.
+This example demonstrates how to build a connector that automatically selects API endpoints based on the deployment environment. It uses the Star Wars API (SWAPI) to showcase environment-driven connectivity patterns, switching between a production mirror and the direct API endpoint using the `FIVETRAN_DEPLOYMENT_MODEL` environment variable.
 
 - **Production environment**: Uses a mirror (https://swapi.py4e.com/api) for improved reliability and performance
 - **Local debug environment**: Uses the direct API endpoint (https://swapi.dev/api) for development and testing
@@ -42,7 +42,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector does not require authentication as it uses the public Star Wars API (SWAPI). The API is freely accessible without API keys or credentials.
+This connector does not require authentication as it uses SWAPI. The API is freely accessible without API keys or credentials.
 
 The Fivetran platform automatically sets the `FIVETRAN_DEPLOYMENT_MODEL` environment variable based on the deployment context. See the [Working with Connector SDK documentation](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#referencingenvironmentvariablesinyourcode) for details.
 
@@ -70,7 +70,7 @@ The connector processes data as follows:
 ## Error handling
 The connector implements comprehensive error handling:
 
-- Retry logic: Attempts up to 3 retries for transient failures
+- Retry logic: Attempts up to three retries for transient failures
 - Exponential backoff: Doubles wait time between retries (1s, 2s, 4s), capped at 16 seconds
 - Rate limiting: Handles HTTP 429 responses by respecting the Retry-After header
 - Request timeout: 20-second timeout for all API requests to prevent hanging
