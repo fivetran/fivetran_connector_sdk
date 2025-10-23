@@ -69,7 +69,7 @@ The connector performs the following transformations:
 * Extracts both post data and associated comments.
 * Flattens data into relational form for CSV export and table upsert.
 * Writes data using Operations.upsert() for incremental schema updates.
-
+```
 Schema definition: 
 Field           |  Type    |  Description                   
 ----------------+----------+-------------------------------------------
@@ -80,7 +80,7 @@ post_author     |  STRING  |  Username of the post author
 comment_id      |  STRING  |  Reddit comment identifier     
 comment_author  |  STRING  |  Username of the comment author
 comment_text    |  STRING  |  Comment body text             
-
+```
 Reddit has its id (post and comment) as alphanumeric instead of a number. 
 
 ## Error handling
