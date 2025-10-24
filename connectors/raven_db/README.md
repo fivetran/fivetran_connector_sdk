@@ -85,7 +85,7 @@ To obtain your certificate:
       ```cmd
       certutil -encode certificate.pem certificate.b64
       ```
-      The base64-encoded certificate will be in `certificate.b64`.
+      The base64-encoded certificate is saved to `certificate.b64`.
 5. Add the base64 string to your configuration
 
 ## Pagination
