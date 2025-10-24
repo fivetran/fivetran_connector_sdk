@@ -107,6 +107,7 @@ These connectors are ready to use out of the box, requiring minimal modification
   - [session_id_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/veeva_vault/session_id_auth) - This example shows how to authenticate to Veeva Vault using session id authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
 - [vercel](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/vercel) - This example shows how to sync deployment data from Vercel's REST API by using the Connector SDK, focusing on a single endpoint (/v6/deployments). You need to provide your Vercel API token for this example to work. Optionally, you can also provide a Team ID to access team resources instead of personal account deployments.
 - [zigpoll](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/zigpoll) - This is an example of how to sync Zigpoll data using Connector SDK. You need to provide your Zigpoll API key for this example to work.
+- [tidb](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/tidb) - This is an example source connector that demonstrates incremental replication from TiDB databases into Fivetran destinations. Supports schema declaration, stateful checkpointing by created_at, and optional vector column parsing for JSON/vector payloads
 
 ## Examples
 
