@@ -26,7 +26,6 @@ from fivetran_connector_sdk import Connector  # Core SDK interface
 from fivetran_connector_sdk import Logging as log  # Logging abstraction
 from fivetran_connector_sdk import Operations as op  # Destination operations
 
-# Private constants
 __DEFAULT_REGION = "r1"
 __BASE_URL_FMT = "https://{region}-api.dotdigital.com"
 __USER_AGENT = "fivetran-connector-sdk-dotdigital/1.0"
@@ -256,7 +255,6 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
         try:
             client.autodiscover_region()
         except (requests.RequestException, ValueError) as exc:
-            # Continue with configured/default region if autodiscovery fails
             log.warning(f"Region autodiscovery failed: {exc}")
 
     _sync_contacts(client, configuration, state)
@@ -264,18 +262,13 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
     log.info("Dotdigital sync complete.")
 
 
-def _sync_contacts(
-    client: DotdigitalClient, configuration: Dict[str, Any], state: Dict[str, Any]
-) -> None:
+def _sync_contacts(client: DotdigitalClient, configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
     """Extract and upsert contact records (v3 API)."""
     contacts_page_size = int(configuration.get("CONTACTS_PAGE_SIZE", 500))
     contacts_cursor = (
-        state.get("contacts_cursor")
-        or configuration.get("CONTACTS_START_TIMESTAMP")
-        or "1970-01-01T00:00:00Z"
+        state.get("contacts_cursor") or configuration.get("CONTACTS_START_TIMESTAMP") or "1970-01-01T00:00:00Z"
     )
     list_id_filter = configuration.get("LIST_ID_FILTER")
-
     log.info("Syncing contacts (v3)...")
     max_seen_updated = contacts_cursor
 
@@ -287,12 +280,8 @@ def _sync_contacts(
 
     for item in client.get_seek_paged("/contacts/v3", params=params, limit=contacts_page_size):
         identifiers = item.get("identifiers", {})
-        email = None
-        mobile_number = None
-        if isinstance(identifiers, dict):
-            email = identifiers.get("email") or identifiers.get("Email")
-            mobile_number = identifiers.get("mobileNumber") or identifiers.get("MobileNumber")
-
+        email = identifiers.get("email") or identifiers.get("Email") if isinstance(identifiers, dict) else None
+        mobile_number = identifiers.get("mobileNumber") or identifiers.get("MobileNumber") if isinstance(identifiers, dict) else None
         created = _normalize_utc(item.get("created") or item.get("dateCreated"))
         updated = _normalize_utc(item.get("updated") or item.get("dateUpdated")) or created
 
@@ -318,16 +307,12 @@ def _sync_contacts(
     op.checkpoint(state={"contacts_cursor": max_seen_updated or contacts_cursor})
 
 
-def _sync_campaigns(
-    client: DotdigitalClient, configuration: Dict[str, Any], state: Dict[str, Any]
-) -> None:
+def _sync_campaigns(client: DotdigitalClient, configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
     """Extract and upsert campaign records (v2 API)."""
     if not _as_bool(configuration.get("CAMPAIGNS_ENABLED"), True):
         return
-
     log.info("Syncing campaigns (v2)...")
     v2_page_size = int(configuration.get("V2_PAGE_SIZE", 1000))
-
     for item in client.get_select_skip_paged("/v2/campaigns", page_size=v2_page_size):
         row = {
             "campaign_id": item.get("id"),
@@ -340,9 +325,7 @@ def _sync_campaigns(
         }
         if row["campaign_id"] is not None:
             op.upsert(table="dotdigital_campaign", data=row)
-
     op.checkpoint(state={"campaigns_synced_at": _now_utc_iso()})
 
 
-# Required Connector object for SDK execution
 connector = Connector(update=update, schema=schema)
