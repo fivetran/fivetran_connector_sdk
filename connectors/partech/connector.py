@@ -167,7 +167,7 @@ def flatten_multiple_redemptions(data, multiple_redemptions):
     data["auto_redemption_discounts"] = ",".join(str(x) for x in auto_redemption)
 
     priority_discount = multiple_redemptions.pop("processing_priority_by_discount_type", [])
-    data["processing_priority_by_discount_type"] = ",".join(priority_discount)
+    data["processing_priority_by_discount_type"] = ",".join(str(x) for x in priority_discount)
 
     interop_strategy = multiple_redemptions.pop("exclude_interoperability_strategy_between", [])
     data["exclude_interoperability_strategy_between"] = ",".join(str(x) for x in interop_strategy)
