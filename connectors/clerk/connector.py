@@ -330,16 +330,18 @@ def handle_http_error_with_retry(response, attempt_number):
         attempt_number (int): Current retry attempt number (0-indexed).
 
     Raises:
-        requests.exceptions.HTTPError: For non-retryable errors or when retries exhausted.
+        requests.exceptions.RequestException: For non-retryable errors or when retries exhausted.
     """
     if not response:
-        raise
+        raise requests.exceptions.RequestException("No response received from API")
 
     status_code = response.status_code
 
     # Don't retry client errors (4xx) except rate limiting (429)
     if not should_retry_http_error(status_code):
-        raise
+        raise requests.exceptions.HTTPError(
+            f"HTTP {status_code} error: {response.reason}", response=response
+        )
 
     # For rate limiting errors
     if status_code == __RATE_LIMIT_STATUS_CODE:
@@ -350,7 +352,10 @@ def handle_http_error_with_retry(response, attempt_number):
     if attempt_number < __MAX_RETRIES - 1:
         retry_with_backoff(attempt_number, f"Server error {status_code}.")
     else:
-        raise
+        raise requests.exceptions.HTTPError(
+            f"Server error {status_code} after {__MAX_RETRIES} attempts: {response.reason}",
+            response=response,
+        )
 
 
 def make_api_request(url, api_key, params):
