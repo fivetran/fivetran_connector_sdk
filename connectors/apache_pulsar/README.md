@@ -6,9 +6,9 @@ This connector demonstrates how to fetch data from Apache Pulsar topics and sync
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
@@ -30,7 +30,6 @@ The `configuration.json` file contains the connection details for your Apache Pu
   "tenant": "<YOUR_TENANT>",
   "namespace": "<YOUR_NAMESPACE>",
   "topics": "<YOUR_TOPICS_COMMA_SEPARATED>",
-  "subscription_name": "<YOUR_SUBSCRIPTION_NAME>",
   "auth_token": "<YOUR_AUTH_TOKEN_IF_REQUIRED>"
 }
 ```
@@ -40,7 +39,6 @@ Configuration keys:
 - `tenant` - The Pulsar tenant name
 - `namespace` - The Pulsar namespace name
 - `topics` - Comma-separated list of topic names to sync
-- `subscription_name` - The subscription name for consuming messages
 - `auth_token` - Optional authentication token for secured Pulsar clusters
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -58,13 +56,13 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector supports authentication using Apache Pulsar authentication tokens. For local standalone Pulsar instances, authentication is typically not required. For cloud or secured clusters, you can provide an authentication token in the `auth_token` configuration parameter. To obtain an authentication token, refer to your Pulsar provider's documentation (e.g., DataStax Astra Streaming, StreamNative Cloud).
 
 ## Pagination
-The connector processes messages in batches to prevent memory overflow. It reads up to `MAX_MESSAGES_PER_TOPIC` (default: 1000) messages per topic per sync. The connector uses a timeout mechanism (`READ_TIMEOUT_MS`, default: 5000ms) to detect when all available messages have been read. This approach ensures efficient memory usage while maintaining good throughput. Refer to lines 27-31 and 234-272 in `connector.py`.
+The connector processes messages in batches to prevent memory overflow. It reads up to `MAX_MESSAGES_PER_TOPIC` (default: 1000) messages per topic per sync. The connector uses a timeout mechanism (`READ_TIMEOUT_MS`, default: 5000ms) to detect when all available messages have been read. This approach ensures efficient memory usage while maintaining good throughput.
 
 ## Data handling
-Each Pulsar message is parsed and transformed into a structured record before being upserted to the destination. The connector creates a separate table for each topic, with the table name normalized from the topic name (replacing hyphens and dots with underscores). Message payloads are parsed as JSON when possible; otherwise, they are stored as raw strings or base64-encoded data. Refer to the `parse_message` function in `connector.py` (lines 292-345).
+Each Pulsar message is parsed and transformed into a structured record before being upserted to the destination. The connector creates a separate table for each topic, with the table name normalized from the topic name (replacing hyphens and dots with underscores). Message payloads are parsed as JSON when possible; otherwise, they are stored as raw strings or base64-encoded data. Refer to the `parse_message` function in `connector.py`.
 
 ## Error handling
-The connector implements error handling at multiple levels. Configuration validation ensures all required parameters are present before sync starts (lines 34-61). Connection errors are caught and raised with descriptive messages (lines 153-179). Individual message processing errors are logged as warnings and the connector continues processing subsequent messages (lines 265-271). Timeout exceptions are used to detect when all available messages have been consumed (lines 266-268).
+The connector implements error handling at multiple levels. Configuration validation ensures all required parameters are present before sync starts. Connection errors are caught and raised with descriptive messages. Individual message processing errors are logged as warnings and the connector continues processing subsequent messages. Timeout exceptions are used to detect when all available messages have been consumed.
 
 ## Tables created
 The connector creates one table per Pulsar topic. Each table has the following schema:
@@ -82,7 +80,7 @@ The connector creates one table per Pulsar topic. Each table has the following s
 | `sequence_id` | INT | Message sequence ID |
 | `synced_at` | UTC_DATETIME | When Fivetran synced this message |
 
-Refer to the `schema` function in `connector.py` (lines 85-122).
+Refer to the `schema` function in `connector.py`.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

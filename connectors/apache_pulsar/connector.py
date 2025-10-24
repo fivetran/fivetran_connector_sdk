@@ -22,7 +22,7 @@ import pulsar
 from pulsar import MessageId
 
 # For handling timestamps and data parsing
-from datetime import datetime
+from datetime import datetime, UTC
 
 # Maximum number of messages to process per topic per sync (prevents memory overflow)
 _MAX_MESSAGES_PER_TOPIC = 1000
@@ -48,7 +48,7 @@ def validate_configuration(configuration: dict):
         ValueError: If any required configuration parameter is missing.
     """
     # Validate required configuration parameters
-    required_configs = ["service_url", "tenant", "namespace", "topics", "subscription_name"]
+    required_configs = ["service_url", "tenant", "namespace", "topics"]
 
     for key in required_configs:
         if key not in configuration:
@@ -59,9 +59,9 @@ def validate_configuration(configuration: dict):
     if isinstance(topics, str):
         # Parse comma-separated string
         if not topics.strip():
-            raise ValueError("'topics' must be a non-empty string or list of topic names")
+            raise ValueError("'topics' must be a non-empty string of comma-separated topic names")
     elif isinstance(topics, list):
-        if len(topics) == 0:
+        if not topics:
             raise ValueError("'topics' must be a non-empty list of topic names")
     else:
         raise ValueError("'topics' must be a string (comma-separated) or a list of topic names")
@@ -150,7 +150,6 @@ def update(configuration: dict, state: dict):
     tenant = configuration.get("tenant")
     namespace = configuration.get("namespace")
     topics = parse_topics(configuration)
-    subscription_name = configuration.get("subscription_name")
 
     # Optional authentication token for secured Pulsar clusters
     auth_token = configuration.get("auth_token")
@@ -176,7 +175,6 @@ def update(configuration: dict, state: dict):
                 tenant=tenant,
                 namespace=namespace,
                 topic=topic,
-                subscription_name=subscription_name,
                 state=state,
             )
 
@@ -257,7 +255,7 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
                 log.info(f"Checkpointed after {messages_processed} messages for topic {topic}")
 
         except Exception as e:
-            if "Timeout" in str(e) or "timeout" in str(e).lower():
+            if "timeout" in str(e).lower():
                 break
             else:
                 log.warning(f"Error processing message: {str(e)}")
@@ -266,9 +264,7 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
     return messages_processed, last_message_id
 
 
-def sync_topic(
-    client, tenant: str, namespace: str, topic: str, subscription_name: str, state: dict
-) -> dict:
+def sync_topic(client, tenant: str, namespace: str, topic: str, state: dict) -> None:
     """
     Sync messages from a single Pulsar topic.
 
@@ -277,7 +273,6 @@ def sync_topic(
         tenant: Pulsar tenant name
         namespace: Pulsar namespace name
         topic: Topic name to sync
-        subscription_name: Subscription name for consuming messages
         state: State dictionary for checkpointing
 
     Returns:
@@ -315,7 +310,7 @@ def sync_topic(
         reader.close()
 
     except Exception as e:
-        log.error(f"Error syncing topic {topic}: {str(e)}")
+        log.severe(f"Error syncing topic {topic}: {str(e)}")
         raise
 
 
@@ -349,8 +344,12 @@ def parse_message(msg, topic: str) -> dict:
         data = json.loads(msg.data().decode("utf-8"))
     except json.JSONDecodeError:
         # If not JSON, store as string
-        data = {"raw_data": msg.data().decode("utf-8")}
-    except Exception:
+        try:
+            data = {"raw_data": msg.data().decode("utf-8")}
+        except UnicodeDecodeError:
+            # If decoding fails, store as base64
+            data = {"raw_data_base64": base64.b64encode(msg.data()).decode("utf-8")}
+    except UnicodeDecodeError:
         # If decoding fails, store as base64
         data = {"raw_data_base64": base64.b64encode(msg.data()).decode("utf-8")}
 
@@ -368,7 +367,7 @@ def parse_message(msg, topic: str) -> dict:
         "properties": properties,
         "producer_name": msg.producer_name() if hasattr(msg, "producer_name") else None,
         "sequence_id": msg.sequence_id() if hasattr(msg, "sequence_id") else None,
-        "synced_at": datetime.utcnow().isoformat() + "Z",
+        "synced_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     }
 
     return record
@@ -377,7 +376,10 @@ def parse_message(msg, topic: str) -> dict:
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Main entry point for local testing
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
