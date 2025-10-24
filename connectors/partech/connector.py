@@ -164,7 +164,7 @@ def flatten_multiple_redemptions(data, multiple_redemptions):
     """
     # Convert simple arrays to comma-separated strings
     auto_redemption = multiple_redemptions.pop("auto_redemption_discounts", [])
-    data["auto_redemption_discounts"] = ",".join(auto_redemption)
+    data["auto_redemption_discounts"] = ",".join(str(x) for x in auto_redemption)
 
     priority_discount = multiple_redemptions.pop("processing_priority_by_discount_type", [])
     data["processing_priority_by_discount_type"] = ",".join(priority_discount)
