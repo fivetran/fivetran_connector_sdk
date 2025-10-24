@@ -72,7 +72,7 @@ The connector uses certificate-based authentication with RavenDB.
 - The certificate is decoded at runtime and written to a temporary file for the RavenDB client
 
 To obtain your certificate:
-1. Log in to your RavenDB Cloud portal (https://cloud.ravendb.net/)
+1. Log in to your RavenDB [Cloud portal](https://cloud.ravendb.net/)
 2. Navigate to your instance
 3. Download the client certificate package
 4. Convert the certificate to base64 format:
