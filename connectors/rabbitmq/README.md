@@ -33,7 +33,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-## Configuration parameters
+The configuration keys required for your connector are as follows:
 
 - `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host (see Authentication section for format examples)
 - `queues` (required): Comma-separated list of queue names to sync (for example: "orders,payments,notifications")
