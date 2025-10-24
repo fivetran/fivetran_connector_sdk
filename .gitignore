@@ -14,3 +14,23 @@ examples/**/dist/
 *.spec
 **/__run.py
 **/Dockerfile
+
+
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# IDE files
+.idea/
+.vscode/
+
+# owasp_api_vulns connector specific exclusions
+connectors/owasp_api_vulns/configuration_local_test.json
+connectors/owasp_api_vulns/configuration.json
+connectors/owasp_api_vulns/local_output_files/
+connectors/owasp_api_vulns/files/
+connectors/owasp_api_vulns/.venv/
+connectors/owasp_api_vulns/.venv_fivetran/
+connectors/owasp_api_vulns/dist/
+
