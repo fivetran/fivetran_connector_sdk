@@ -70,7 +70,7 @@ The connector processes data using the following approach. Refer to the `sync_lo
 
 - Location configuration data is synced as-is since it contains flat key-value pairs
 - Single nested objects like `multiple_redemptions` are flattened into the main program_meta table with prefixed column names
-- Arrays of simple strings like `auto_redemption_discounts` are converted to comma-separated values and stored in the program_meta table
+- Arrays (such as `auto_redemption_discounts`) are converted to comma-separated strings and stored in the program_meta table; all array elements must be string-convertible (i.e., support conversion via `str()`)
 - Arrays of objects like `redeemables` and `processing_priority_by_acquisition_type` are extracted into separate child tables with composite primary keys
 - Child tables include the parent foreign key `program_type` as part of their composite primary key to maintain referential integrity
 
