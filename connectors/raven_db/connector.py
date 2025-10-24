@@ -112,7 +112,7 @@ def schema(configuration: dict):
     ]
 
 
-def create_document_store(configuration: dict) -> DocumentStore:
+def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
     """Create and initialize a RavenDB DocumentStore using a base64-encoded PEM certificate.
 
     Deployment note:
