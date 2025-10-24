@@ -50,8 +50,7 @@ The connector requires the following configuration parameters:
 - `collection_name` (optional): Collection name to sync (defaults to "Orders")
 - `batch_size` (optional): Number of documents to fetch per batch (defaults to 100)
 
-**Important**:
-- The certificate must be provided as a base64-encoded PEM certificate string
+Important: The certificate must be provided as a base64-encoded PEM certificate string
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
