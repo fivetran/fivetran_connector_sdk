@@ -31,7 +31,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-
 ```json
 {
   "ravendb_urls": "<YOUR_RAVENDB_CLOUD_URL>",
