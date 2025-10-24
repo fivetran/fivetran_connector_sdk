@@ -69,7 +69,9 @@ Authorization: Token token=<location_key>, btoken=<business_key>
 The connector processes data using the following approach. Refer to the `sync_location_configuration`, `sync_program_meta`, `flatten_multiple_redemptions`, `upsert_program_meta`, `upsert_redeemables`, and `upsert_processing_priority` functions in `connector.py`:
 
 - Location configuration data is synced as-is since it contains flat key-value pairs
-- Program metadata contains nested structures that are handled as follows: single nested objects like `multiple_redemptions` are flattened into the main table with prefixed column names, arrays of simple strings like `auto_redemption_discounts` are converted to comma-separated values, and arrays of objects like `redeemables` and `processing_priority_by_acquisition_type` are extracted into separate tables with composite primary keys
+- Single nested objects like `multiple_redemptions` are flattened into the main program_meta table with prefixed column names
+- Arrays of simple strings like `auto_redemption_discounts` are converted to comma-separated values and stored in the program_meta table
+- Arrays of objects like `redeemables` and `processing_priority_by_acquisition_type` are extracted into separate child tables with composite primary keys
 - Child tables include the parent foreign key `program_type` as part of their composite primary key to maintain referential integrity
 
 ## Error handling
@@ -134,7 +136,6 @@ Contains loyalty program rules and settings with flattened multiple redemption c
 | `auto_redemption_discounts` | No |
 | `processing_priority_by_discount_type` | No |
 | `exclude_interoperability_strategy_between` | No |
-| `multiple_redemptions_*` | No |
 | `multiple_redemptions_enabled` | No |
 
 Note: Columns prefixed with `multiple_redemptions_` are flattened from the nested `multiple_redemptions` object.

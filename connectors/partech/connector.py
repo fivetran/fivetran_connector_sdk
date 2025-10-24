@@ -70,7 +70,7 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
 
-    log.warning("Example: API Source : Partech (Punchh) POS API Connector")
+    log.warning("Example: Source Connector: Partech (Punchh) POS API")
 
     base_url = configuration.get("base_url")
     location_key = configuration.get("location_key")
