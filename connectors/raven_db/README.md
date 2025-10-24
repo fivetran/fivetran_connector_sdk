@@ -64,9 +64,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector uses certificate-based authentication with RavenDB.
-- `certificate_base64`: A base64-encoded client certificate (PEM format)
-- The certificate is decoded at runtime and written to a temporary file for the RavenDB client
+The connector uses certificate-based authentication with RavenDB. The `certificate_base64` parameter contains a base64-encoded client certificate (PEM format), which is decoded at runtime and written to a temporary file for the RavenDB client.
 
 To obtain your certificate:
 1. Log in to your RavenDB [Cloud portal](https://cloud.ravendb.net/)
