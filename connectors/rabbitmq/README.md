@@ -35,9 +35,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 The configuration keys required for your connector are as follows:
 
-- `connection_url` (required): Full AMQP/AMQPS connection URL including credentials, host, and virtual host (see Authentication section for format examples)
-- `queues` (required): Comma-separated list of queue names to sync (for example: "orders,payments,notifications")
-- `batch_size` (optional): Number of messages to process per batch (defaults to 100)
+- `connection_url` (required) - Full AMQP/AMQPS connection URL including credentials, host, and virtual host (see Authentication section for format examples)
+- `queues` (required) - Comma-separated list of queue names to sync (for example: "orders,payments,notifications")
+- `batch_size` (optional) - Number of messages to process per batch (defaults to 100)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
