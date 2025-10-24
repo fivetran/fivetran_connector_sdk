@@ -57,6 +57,5 @@ jobs:
             try {
               await github.rest.issues.addLabels({ owner, repo, issue_number: prNumber, labels: [wanted] });
             } catch (e) {
-                throw e;
-              }
+              throw e;
             }
