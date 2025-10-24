@@ -1,0 +1,7 @@
+{
+  "druid_host": "<YOUR_DRUID_HOST>",
+  "druid_port": "<YOUR_DRUID_PORT>",
+  "schema_name": "<YOUR_SCHEMA_NAME>",
+  "incremental_column": "<YOUR_INCREMENTAL_COLUMN>",
+  "use_ssl": "<YOUR_SSL_OPTION>"
+}
