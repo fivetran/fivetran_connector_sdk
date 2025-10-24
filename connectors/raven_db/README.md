@@ -43,7 +43,7 @@ The connector requires the following configuration parameters:
 }
 ```
 
-**Configuration Parameters:**
+The connector requires the following configuration parameters:
 - `ravendb_urls` (required): Your RavenDB Cloud URL(s). For clusters, provide comma-separated URLs
 - `database_name` (required): Name of the RavenDB database to sync from
 - `certificate_base64` (required): Base64-encoded client certificate (PEM format)
