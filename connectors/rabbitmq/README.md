@@ -24,7 +24,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-The configuration keys required for your connector are as follows:
 
 ```json
 {
