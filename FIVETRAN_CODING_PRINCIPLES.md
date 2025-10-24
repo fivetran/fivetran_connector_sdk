@@ -45,13 +45,14 @@ All guidelines in this document derive from the following simple principles:
     - `fix(source_examples): added comments in the examples  ## Fix multiple existing examples`
 
 2. **Write a detailed PR description**, including:
-- Links to relevant tickets.
+- Links to relevant issues.
 - How the change was tested.
 - Any additional context useful to reviewers.
 
 3. **Review your own code** before submission:
 - Validate naming conventions, boundary conditions, and test coverage.
 - Feel free to use **GitHub Copilot** as a reviewer to catch basic issues early.
+- We also have an automated python standards linter configured, that you can use to adddres issues before requesting a human review.
 
 4. **Add comments in the diff** to highlight important logic or non-obvious changes.
 
@@ -61,13 +62,7 @@ All guidelines in this document derive from the following simple principles:
 
 ## **3. Preparing Code for PR Submission**
 
-To adhere to **Fivetran engineering standards**, follow this process:
-
-1. Write your `connector.py` solution (start from system-generated baselines if applicable).  
-2. Feed it to the **cursor agent `connector_sdk_template`** to generate `connector_test.py` following best practices.  
-3. Review generated revisions (e.g., ensure `fivetran debug` works).  
-4. Feed the project to **cursor agent `connector_sdk_readme`** to generate a consistent `README.md`.  
-5. Submit the PR.
+To adhere to **Fivetran engineering standards**, follow the 5 step [How to Contribute](./README.md#how-to-contribute) process from the README. 
 
 ---
 
