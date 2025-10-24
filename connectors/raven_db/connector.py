@@ -27,8 +27,6 @@ import base64
 import tempfile
 import os
 
-# Checkpoint every 1000 records
-__CHECKPOINT_INTERVAL = 1000
 __DEFAULT_BATCH_SIZE = 100
 __DEFAULT_COLLECTION_NAME = "Orders"
 __EARLIEST_TIMESTAMP = "1990-01-01T00:00:00.0000000Z"
@@ -121,12 +119,11 @@ def create_document_store(configuration: dict) -> DocumentStore:
     In the Fivetran runtime you cannot rely on local file paths being present. The
     certificate is therefore supplied as a base64 string in configuration, decoded
     at runtime, written to a transient temp PEM file, and referenced by the RavenDB
-    client. We never persist the certificate beyond process lifetime.
-
+    client. The caller is responsible for cleaning up the certificate file.
     Args:
         configuration: Connector configuration dict containing: ravendb_urls, database_name, certificate_base64.
     Returns:
-        An initialized DocumentStore instance ready for queries.
+        A tuple of (initialized DocumentStore instance, temporary certificate file path).
     """
     ravendb_urls = configuration.get("ravendb_urls")
     database_name = configuration.get("database_name")
@@ -158,7 +155,7 @@ def create_document_store(configuration: dict) -> DocumentStore:
         store.certificate_pem_path = temp_cert_path
         store.initialize()
         log.info(f"DocumentStore initialized for database '{database_name}'")
-        return store
+        return store, temp_cert_path
 
     except Exception as e:
         if temp_cert_path and os.path.exists(temp_cert_path):
@@ -451,9 +448,8 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
 
-    # Create RavenDB DocumentStore
-    store = create_document_store(configuration)
-
+    # Create RavenDB DocumentStore and get certificate path for cleanup
+    store, cert_path = create_document_store(configuration)
     try:
         # Extract configuration parameters
         collection_name = configuration.get("collection_name", __DEFAULT_COLLECTION_NAME)
@@ -475,6 +471,13 @@ def update(configuration: dict, state: dict):
     finally:
         # Always close the document store
         store.close()
+        # Clean up the temporary certificate file
+        if cert_path and os.path.exists(cert_path):
+            try:
+                os.unlink(cert_path)
+                log.info(f"Cleaned up temporary certificate file: {cert_path}")
+            except Exception as cleanup_err:
+                log.warning(f"Failed to remove temporary certificate file: {cleanup_err}")
 
 
 def save_state(new_last_modified):
