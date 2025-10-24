@@ -23,7 +23,6 @@ jobs:
               { max: 999, label: "size/XL" },
               { max: Infinity, label: "size/XXL" }
             ];
-            const IGNORE = ["yarn.lock","package-lock.json","docs/**","**/*.png"]; // globs
             const COUNT_DELETIONS = true;
 
             function sizeLabel(total) {
