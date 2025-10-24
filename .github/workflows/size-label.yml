@@ -1,4 +1,4 @@
-name: PR size label (first-party)
+name: PR size label
 on:
   pull_request:
 
@@ -18,7 +18,7 @@ jobs:
             const THRESHOLDS = [
               { max: 19,   label: "size/XS" },
               { max: 49,   label: "size/S"  },
-              { max: 99,  label: "size/M"  },
+              { max: 199,  label: "size/M"  },
               { max: 599,  label: "size/L"  },
               { max: 999, label: "size/XL" },
               { max: Infinity, label: "size/XXL" }
