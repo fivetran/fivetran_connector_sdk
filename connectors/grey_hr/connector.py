@@ -174,7 +174,7 @@ def make_api_request(
             result = handle_api_response(
                 response, url, headers, api_username, api_password, greythr_domain, attempt
             )
-            if result is not None or result == {}:
+            if result is not None:
                 return result
 
         except requests.exceptions.Timeout:
