@@ -184,7 +184,7 @@ def make_api_request(
         except requests.exceptions.RequestException as error:
             handle_request_exception(attempt, "Request", error)
             continue
-    return None
+    raise RuntimeError("API request failed after maximum retries")
 
 
 def handle_api_response(
