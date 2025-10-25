@@ -146,7 +146,7 @@ def get_access_token(api_username, api_password, greythr_domain):
         except requests.exceptions.RequestException as error:
             handle_request_exception(attempt, "Authentication", error)
             continue
-    return None
+    raise RuntimeError("Authentication failed after maximum retry attempts. Unable to obtain access token.")
 
 
 def make_api_request(
