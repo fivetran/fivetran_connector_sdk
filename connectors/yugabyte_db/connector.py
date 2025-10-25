@@ -78,6 +78,7 @@ def create_connection(configuration: dict):
         # Add SSL mode if connecting to cloud instance (hostname contains 'cloud')
         if "cloud" in configuration.get("host", ""):
             conn_params["sslmode"] = "require"
+            conn_params["connect_timeout"] = 30
             log.info("Using SSL connection for cloud instance")
 
         connection = psycopg2.connect(**conn_params)
