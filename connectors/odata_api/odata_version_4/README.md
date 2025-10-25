@@ -258,15 +258,15 @@ If your service uses different pagination patterns:
 ```python
 def _handle_pagination(self, initial_url: str, table: str = None, update_state: Dict = None):
     next_link = initial_url
-    
+
     while next_link:
-        current_page = self._make_request(url=next_link)
+        current_page = self.make_request(url=next_link)
         formatted_data = self._standardize_output(response=current_page)
-        
-        self._upsert_formatted_data(formatted_data=formatted_data, 
-                                              table=table, 
-                                              update_state=update_state)
-        
+
+        self._upsert_formatted_data(formatted_data=formatted_data,
+                                    table=table,
+                                    update_state=update_state)
+
         # Custom pagination format
         if "__next" in current_page:
             next_link = current_page["__next"]
