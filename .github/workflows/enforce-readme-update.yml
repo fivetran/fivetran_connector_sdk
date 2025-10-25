@@ -14,6 +14,15 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for proper diff
 
+      - name: Expose PR SHAs
+        run: |
+          echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+          echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+
+      - name: Ensure SHAs are fetched
+        run: |
+          git fetch --no-tags --prune origin $BASE_SHA $HEAD_SHA
+
       - name: Create check script
         id: create-script
         run: |
@@ -26,12 +35,12 @@ jobs:
           function getChangedFiles() {
             try {
               // Get the base branch (target) of the PR
-              const baseBranch = process.env.GITHUB_BASE_REF;
+              const baseSha = process.env.BASE_SHA;
               // Get current branch (source) of the PR
-              const headBranch = process.env.GITHUB_HEAD_REF;
+              const headSha = process.env.HEAD_SHA;
               
               // Use Git directly to get all changed files between branches
-              const gitDiff = execSync(`git diff --name-status origin/${baseBranch}...origin/${headBranch}`, 
+              const gitDiff = execSync(`git diff --name-status ${baseSha}...${headSha}`, 
                                       { encoding: 'utf-8' });
               
               // Parse the git diff output
@@ -48,10 +57,10 @@ jobs:
           // Check if a directory exists before our PR
           function directoryExistsInBase(dirPath) {
             try {
-              const baseBranch = process.env.GITHUB_BASE_REF;
+              const baseSha = process.env.BASE_SHA;
               // Check if this directory exists in the base branch
               const result = execSync(
-                `git ls-tree -d origin/${baseBranch} ${dirPath}`,
+                `git ls-tree -d ${baseSha} ${dirPath}`,
                 { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }
               );
               return result.trim() !== '';
@@ -142,7 +151,7 @@ jobs:
       - name: Debug information
         if: always()
         run: |
-          echo "Base Ref: $GITHUB_BASE_REF"
-          echo "Head Ref: $GITHUB_HEAD_REF"
+          echo "BASE_SHA: $BASE_SHA"
+          echo "HEAD_SHA: $HEAD_SHA"
           echo "Git Branches:"
           git branch -a
