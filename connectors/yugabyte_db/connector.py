@@ -28,7 +28,8 @@ from psycopg2.extras import RealDictCursor
 # Constants for database configuration
 __BATCH_SIZE = 100  # Number of records to fetch per batch
 __CHECKPOINT_INTERVAL = 1000  # Number of records between checkpoints
-__DEFAULT_START_DATE = "2024-01-01T00:00:00Z"  # Default starting point for incremental sync
+__DEFAULT_START_DATE = "1900-01-01T00:00:00Z"  # Default starting point for incremental sync
+__DEFAULT_PORT = 5433  # Default YugabyteDB port
 
 
 def normalize_record(record: dict):
@@ -51,21 +52,6 @@ def normalize_record(record: dict):
     return normalized
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing or invalid.
-    """
-    required_configs = ["host", "database", "user", "password"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-
-
 def create_connection(configuration: dict):
     """
     Create and return a connection to YugabyteDB.
@@ -79,7 +65,7 @@ def create_connection(configuration: dict):
     try:
         connection = psycopg2.connect(
             host=configuration.get("host"),
-            port=configuration.get("port", 5433),
+            port=configuration.get("port", __DEFAULT_PORT),
             database=configuration.get("database"),
             user=configuration.get("user"),
             password=configuration.get("password"),
@@ -167,6 +153,145 @@ def check_incremental_column(connection, schema_name: str, table_name: str):
         cursor.close()
 
 
+def update_latest_timestamp(record: dict, has_updated_at: bool, latest_timestamp: str):
+    """
+    Update the latest timestamp from a record for incremental sync tracking.
+    Args:
+        record: Database record dictionary.
+        has_updated_at: Whether the table has updated_at column.
+        latest_timestamp: Current latest timestamp as ISO string.
+    Returns:
+        Updated latest timestamp as ISO string.
+    """
+    if not has_updated_at or "updated_at" not in record or not record["updated_at"]:
+        return latest_timestamp
+
+    current_timestamp = record["updated_at"]
+    if isinstance(current_timestamp, datetime):
+        current_timestamp_str = current_timestamp.isoformat()
+    else:
+        current_timestamp_str = str(current_timestamp)
+
+    if current_timestamp_str > latest_timestamp:
+        return current_timestamp_str
+    return latest_timestamp
+
+
+def build_sync_query(schema_name: str, table_name: str, has_updated_at: bool):
+    """
+    Build SQL query for syncing table data.
+    Args:
+        schema_name: Name of the schema.
+        table_name: Name of the table to sync.
+        has_updated_at: Whether table has updated_at column for incremental sync.
+    Returns:
+        Tuple of (query_string, requires_timestamp_param).
+    """
+    from psycopg2 import sql
+
+    # Use psycopg2.sql for safe identifier quoting to prevent SQL injection
+    if has_updated_at:
+        query = sql.SQL(
+            "SELECT * FROM {}.{} WHERE updated_at > %s ORDER BY updated_at ASC"
+        ).format(sql.Identifier(schema_name), sql.Identifier(table_name))
+        return query, True
+    else:
+        query = sql.SQL("SELECT * FROM {}.{}").format(
+            sql.Identifier(schema_name), sql.Identifier(table_name)
+        )
+        return query, False
+
+
+def process_batch_records(batch: list, table_name: str):
+    """
+    Process and upsert a batch of records to the destination table.
+    Args:
+        batch: List of normalized records to upsert.
+        table_name: Name of the destination table.
+    """
+    for record_item in batch:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table=table_name, data=record_item)
+
+
+def checkpoint_if_needed(record_count: int, table_name: str, latest_timestamp: str, state: dict):
+    """
+    Checkpoint state if the record count has reached the checkpoint interval.
+    Args:
+        record_count: Current number of records processed.
+        table_name: Name of the table being synced.
+        latest_timestamp: Latest timestamp as ISO string.
+        state: State dictionary for checkpointing.
+    """
+    if record_count % __CHECKPOINT_INTERVAL == 0:
+        state[f"{table_name}_last_updated_at"] = latest_timestamp
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+        log.info(f"Checkpointed at {record_count} records for '{table_name}'")
+
+
+def execute_sync_query(cursor, query, has_updated_at: bool, last_updated_at: str, table_name: str):
+    """
+    Execute the sync query with appropriate parameters and logging.
+    Args:
+        cursor: Database cursor for query execution.
+        query: SQL query object to execute.
+        has_updated_at: Whether table supports incremental sync.
+        last_updated_at: ISO timestamp string of last sync.
+        table_name: Name of the table being synced.
+    """
+    if has_updated_at:
+        cursor.execute(query, (last_updated_at,))
+        log.info(f"Syncing table '{table_name}' incrementally from {last_updated_at}")
+    else:
+        cursor.execute(query)
+        log.info(f"Syncing table '{table_name}' (full sync - no updated_at column)")
+
+
+def process_record_stream(
+    cursor, table_name: str, has_updated_at: bool, last_updated_at: str, state: dict
+):
+    """
+    Process streaming records from database cursor with batching and checkpointing.
+    Args:
+        cursor: Database cursor with query results.
+        table_name: Name of the table being synced.
+        has_updated_at: Whether table supports incremental sync.
+        last_updated_at: ISO timestamp string of last sync.
+        state: State dictionary for checkpointing.
+    Returns:
+        Tuple of (record_count, latest_timestamp).
+    """
+    record_count = 0
+    latest_timestamp = last_updated_at
+    batch = []
+
+    for row in cursor:
+        record = dict(row)
+        normalized_record = normalize_record(record)
+        latest_timestamp = update_latest_timestamp(record, has_updated_at, latest_timestamp)
+        batch.append(normalized_record)
+
+        # Process batch when it reaches the defined size
+        if len(batch) >= __BATCH_SIZE:
+            process_batch_records(batch, table_name)
+            record_count += len(batch)
+            batch = []
+            checkpoint_if_needed(record_count, table_name, latest_timestamp, state)
+
+    # Process remaining records in batch
+    if batch:
+        process_batch_records(batch, table_name)
+        record_count += len(batch)
+
+    return record_count, latest_timestamp
+
+
 def sync_table(connection, schema_name: str, table_name: str, last_updated_at: str, state: dict):
     """
     Sync data from a single table with incremental support and proper checkpointing.
@@ -181,77 +306,21 @@ def sync_table(connection, schema_name: str, table_name: str, last_updated_at: s
     """
     has_updated_at = check_incremental_column(connection, schema_name, table_name)
 
+    # Build SQL query with safe identifier quoting
+    query, _ = build_sync_query(schema_name, table_name, has_updated_at)
+
     # Use server-side cursor with name for memory-efficient streaming
     cursor = connection.cursor(name=f"cursor_{table_name}", cursor_factory=RealDictCursor)
     cursor.itersize = __BATCH_SIZE  # Fetch records in batches from server
 
     try:
-        # Build query based on whether incremental sync is possible
-        if has_updated_at:
-            query = f"""
-                SELECT * FROM {schema_name}.{table_name}
-                WHERE updated_at > %s
-                ORDER BY updated_at ASC
-            """
-            cursor.execute(query, (last_updated_at,))
-            log.info(f"Syncing table '{table_name}' incrementally from {last_updated_at}")
-        else:
-            query = f"SELECT * FROM {schema_name}.{table_name}"
-            cursor.execute(query)
-            log.info(f"Syncing table '{table_name}' (full sync - no updated_at column)")
+        # Execute query with appropriate parameters
+        execute_sync_query(cursor, query, has_updated_at, last_updated_at, table_name)
 
-        record_count = 0
-        latest_timestamp = last_updated_at
-        batch = []
-
-        for row in cursor:
-            record = dict(row)
-
-            # Normalize data types before processing
-            normalized_record = normalize_record(record)
-
-            # Track latest timestamp for incremental sync using original datetime object
-            if has_updated_at and "updated_at" in record and record["updated_at"]:
-                current_timestamp = record["updated_at"]
-                # Compare datetime objects if available, else compare ISO strings
-                if isinstance(current_timestamp, datetime):
-                    current_timestamp_str = current_timestamp.isoformat()
-                else:
-                    current_timestamp_str = str(current_timestamp)
-
-                if current_timestamp_str > latest_timestamp:
-                    latest_timestamp = current_timestamp_str
-
-            batch.append(normalized_record)
-
-            # Process batch when it reaches the defined size
-            if len(batch) >= __BATCH_SIZE:
-                for record_item in batch:
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The first argument is the name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table=table_name, data=record_item)
-                record_count += len(batch)
-                batch = []
-
-                # Checkpoint at regular intervals for resumability
-                if record_count % __CHECKPOINT_INTERVAL == 0:
-                    state[f"{table_name}_last_updated_at"] = latest_timestamp
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(state)
-                    log.info(f"Checkpointed at {record_count} records for '{table_name}'")
-
-        # Process remaining records in batch
-        if batch:
-            for record_item in batch:
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=table_name, data=record_item)
-            record_count += len(batch)
+        # Process streaming records with batching and checkpointing
+        record_count, latest_timestamp = process_record_stream(
+            cursor, table_name, has_updated_at, last_updated_at, state
+        )
 
         log.info(f"Completed syncing '{table_name}': {record_count} records")
         return record_count, latest_timestamp
@@ -267,7 +336,6 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    validate_configuration(configuration)
     connection = None
     try:
         connection = create_connection(configuration)
@@ -278,7 +346,10 @@ def schema(configuration: dict):
         for table_name in tables:
             pk_columns = get_primary_key_columns(connection, schema_name, table_name)
 
-            table_def = {"table": table_name, "primary_key": pk_columns if pk_columns else None}
+            table_def = {
+                "table": table_name,
+                "primary_key": pk_columns if pk_columns else None,
+            }
             schema_definitions.append(table_def)
 
         log.info(f"Schema defined for {len(schema_definitions)} tables")
@@ -297,9 +368,8 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Example: Database Examples : YugabyteDB Connector")
+    log.warning("Example: Source Connector: YugabyteDB")
 
-    validate_configuration(configuration)
     connection = None
     try:
         connection = create_connection(configuration)
@@ -371,9 +441,6 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-
-    # Test the connector locally
     connector.debug(configuration=configuration)
