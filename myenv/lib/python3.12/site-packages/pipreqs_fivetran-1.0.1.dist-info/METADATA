@@ -1,0 +1,119 @@
+Metadata-Version: 2.3
+Name: pipreqs-fivetran
+Version: 1.0.1
+Summary: Pip requirements.txt generator based on imports in project
+License: Apache-2.0
+Keywords: pip,requirements,imports
+Author: Fivetran
+Author-email: developers@fivetran.com
+Requires-Python: >=3.9, <3.14
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Provides-Extra: dev
+Requires-Dist: coverage (>=7.3.2) ; extra == "dev"
+Requires-Dist: docopt (>=0.6.2)
+Requires-Dist: flake8 (>=6.1.0) ; extra == "dev"
+Requires-Dist: ipython (>=8.12.3)
+Requires-Dist: nbconvert (>=7.11.0)
+Requires-Dist: sphinx (>=7.2.6) ; (python_version >= "3.9") and (extra == "dev")
+Requires-Dist: tox (>=4.11.3) ; extra == "dev"
+Requires-Dist: yarg (>=0.1.9)
+Description-Content-Type: text/x-rst
+
+=============================================================================
+``pipreqs`` - Generate requirements.txt file for any project based on imports
+=============================================================================
+
+.. image:: https://github.com/fivetran/pipreqs/actions/workflows/tests.yml/badge.svg
+        :target: https://github.com/fivetran/pipreqs/actions/workflows/tests.yml
+
+
+.. image:: https://img.shields.io/pypi/v/pipreqs-fivetran.svg
+        :target: https://pypi.python.org/pypi/pipreqs-fivetran
+
+.. image:: https://img.shields.io/pypi/l/pipreqs-fivetran.svg
+        :target: https://pypi.python.org/pypi/pipreqs-fivetran
+
+
+
+Installation
+------------
+
+.. code-block:: sh
+
+    pip install pipreqs-fivetran
+
+Obs.: if you don't want support for jupyter notebooks, you can install pipreqs without the dependencies that give support to it.
+To do so, run:
+
+.. code-block:: sh
+
+    pip install --no-deps pipreqs-fivetran
+    pip install yarg==0.1.9 docopt==0.6.2
+
+Usage
+-----
+
+::
+
+    Usage:
+        pipreqs [options] [<path>]
+
+    Arguments:
+        <path>                The path to the directory containing the application files for which a requirements file
+                              should be generated (defaults to the current working directory)
+
+    Options:
+        --use-local           Use ONLY local package info instead of querying PyPI
+        --pypi-server <url>   Use custom PyPi server
+        --proxy <url>         Use Proxy, parameter will be passed to requests library. You can also just set the
+                              environments parameter in your terminal:
+                              $ export HTTP_PROXY="http://10.10.1.10:3128"
+                              $ export HTTPS_PROXY="https://10.10.1.10:1080"
+        --debug               Print debug information
+        --ignore <dirs>...    Ignore extra directories, each separated by a comma
+        --no-follow-links     Do not follow symbolic links in the project
+        --ignore-errors       Ignore errors while scanning files
+        --encoding <charset>  Use encoding parameter for file open
+        --savepath <file>     Save the list of requirements in the given file
+        --print               Output the list of requirements in the standard output
+        --force               Overwrite existing requirements.txt
+        --diff <file>         Compare modules in requirements.txt to project imports
+        --clean <file>        Clean up requirements.txt by removing modules that are not imported in project
+        --mode <scheme>       Enables dynamic versioning with <compat>, <gt> or <non-pin> schemes
+                              <compat> | e.g. Flask~=1.1.2
+                              <gt>     | e.g. Flask>=1.1.2
+                              <no-pin> | e.g. Flask
+        --scan-notebooks      Look for imports in jupyter notebook files.
+
+Example
+-------
+
+::
+
+    $ pipreqs /home/project/location
+    Successfully saved requirements file in /home/project/location/requirements.txt
+
+Contents of requirements.txt
+
+::
+
+    wheel==0.23.0
+    Yarg==0.1.9
+    docopt==0.6.2
+
+Why not pip freeze?
+-------------------
+
+- ``pip freeze`` only saves the packages that are installed with ``pip install`` in your environment.
+- ``pip freeze`` saves all packages in the environment including those that you don't use in your current project (if you don't have ``virtualenv``).
+- and sometimes you just need to create ``requirements.txt`` for a new project without installing modules.
+
