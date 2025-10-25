@@ -22,6 +22,9 @@ from fivetran_connector_sdk import Operations as op
 # For connecting to YugabyteDB using PostgreSQL-compatible driver
 import psycopg2
 
+# For safe SQL identifier quoting to prevent SQL injection
+from psycopg2 import sql
+
 # For dictionary cursor to get column names
 from psycopg2.extras import RealDictCursor
 
@@ -63,13 +66,21 @@ def create_connection(configuration: dict):
         Exception: if connection fails.
     """
     try:
-        connection = psycopg2.connect(
-            host=configuration.get("host"),
-            port=configuration.get("port", __DEFAULT_PORT),
-            database=configuration.get("database"),
-            user=configuration.get("user"),
-            password=configuration.get("password"),
-        )
+        # Build connection parameters
+        conn_params = {
+            "host": configuration.get("host"),
+            "port": configuration.get("port", __DEFAULT_PORT),
+            "database": configuration.get("database"),
+            "user": configuration.get("user"),
+            "password": configuration.get("password"),
+        }
+
+        # Add SSL mode if connecting to cloud instance (hostname contains 'cloud')
+        if "cloud" in configuration.get("host", ""):
+            conn_params["sslmode"] = "require"
+            log.info("Using SSL connection for cloud instance")
+
+        connection = psycopg2.connect(**conn_params)
         log.info("Successfully connected to YugabyteDB")
         return connection
     except psycopg2.Error as e:
@@ -187,8 +198,6 @@ def build_sync_query(schema_name: str, table_name: str, has_updated_at: bool):
     Returns:
         Tuple of (query_string, requires_timestamp_param).
     """
-    from psycopg2 import sql
-
     # Use psycopg2.sql for safe identifier quoting to prevent SQL injection
     if has_updated_at:
         query = sql.SQL(
