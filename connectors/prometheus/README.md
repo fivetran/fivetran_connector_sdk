@@ -36,11 +36,11 @@ The connector requires the following configuration parameters:
 ```json
 {
   "prometheus_url": "<YOUR_PROMETHEUS_SERVER_URL>",
-  "auth_type": "<AUTHENTICATION_TYPE_NONE_BASIC_OR_BEARER>",
+  "auth_type": "<AUTH_TYPE_NONE_BASIC_OR_BEARER>",
   "username": "<YOUR_USERNAME_FOR_BASIC_AUTH>",
   "password": "<YOUR_PASSWORD_FOR_BASIC_AUTH>",
   "bearer_token": "<YOUR_BEARER_TOKEN_FOR_BEARER_AUTH>",
-  "lookback_hours": "<INITIAL_SYNC_LOOKBACK_HOURS_DEFAULT_24>",
+  "lookback_hours": "<HOURS_TO_LOOKBACK_DEFAULT_24>",
   "metrics_filter": "<OPTIONAL_LIST_OF_METRIC_NAMES_TO_SYNC>"
 }
 ```
@@ -125,66 +125,26 @@ Response validation - All API responses are validated to ensure the status field
 
 ## Tables created
 
-The connector creates two tables in the destination:
+The connector creates the following tables in your destination:
 
-### metrics table
+### metrics
 
-```json
-{
-  "table": "metrics",
-  "primary_key": ["metric_name"],
-  "columns": {
-    "metric_name": "STRING",
-    "metric_type": "STRING",
-    "help_text": "STRING"
-  }
-}
-```
+This table contains metadata about each metric available in Prometheus.
 
-This table contains metadata about each metric available in Prometheus. The `metric_name` is the unique identifier, `metric_type` indicates whether the metric is a counter, gauge, histogram, or summary, and `help_text` provides a description of what the metric measures.
+- `metric_name` (STRING) - Primary key. Unique identifier for the metric.
+- `metric_type` (STRING) - Type of metric (counter, gauge, histogram, or summary).
+- `help_text` (STRING) - Description of what the metric measures.
 
-### time_series table
+### time_series
 
-```json
-{
-  "table": "time_series",
-  "primary_key": ["series_id", "timestamp"],
-  "columns": {
-    "series_id": "STRING",
-    "metric_name": "STRING",
-    "labels": "JSON",
-    "timestamp": "UTC_DATETIME",
-    "value": "DOUBLE"
-  }
-}
-```
+This table contains the actual time-series data points. Each row represents a single measurement at a specific point in time.
 
-This table contains the actual time-series data points. Each row represents a single measurement at a specific point in time. The `series_id` is a unique hash generated from the metric name and label combination. The `labels` column contains a JSON object with all label key-value pairs for that time series. The `timestamp` is when the measurement was taken, and `value` is the numeric metric value.
+- `series_id` (STRING) - Primary key. Unique hash generated from the metric name and label combination.
+- `metric_name` (STRING) - Name of the metric.
+- `labels` (JSON) - JSON object with all label key-value pairs for the time series.
+- `timestamp` (UTC_DATETIME) - Primary key. When the measurement was taken.
+- `value` (DOUBLE) - Numeric metric value.
 
-## Additional files
-
-The connector includes additional files for local testing:
-
-- **docker-compose.yml** - Docker Compose configuration to set up a local Prometheus instance with sample data generators for testing the connector
-- **prometheus.yml** - Prometheus server configuration defining scrape jobs and targets
-- **Dockerfile.mock** - Dockerfile for building the mock application container that generates test metrics
-- **mock_exporter.py** - Python script that exposes various Prometheus metrics (counters, gauges, histograms, summaries) simulating a real application for testing purposes
-
-To test this connector locally with Docker Compose:
-
-1. Navigate to the connector directory.
-
-2. Start the Prometheus stack with `docker-compose up -d`.
-
-3. Wait for all services to start (approximately 30 seconds).
-
-4. Verify Prometheus is running by opening http://localhost:9090 in your browser.
-
-5. Update your `configuration.json` with the local Prometheus URL and set auth_type to none.
-
-6. The mock application will automatically generate test metrics that Prometheus scrapes every 10 seconds.
-
-7. To stop the Prometheus stack, run `docker-compose down`. To stop and remove all data, run `docker-compose down -v`.
 
 ## Additional considerations
 
