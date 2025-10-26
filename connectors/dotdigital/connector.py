@@ -265,7 +265,12 @@ def _sync_contacts(
 ) -> None:
     """Extract and upsert contact records (v3 API)."""
     contacts_page_size = int(configuration.get("CONTACTS_PAGE_SIZE", 500))
-    contacts_cursor = (state.get("contacts_cursor") or configuration.get("CONTACTS_START_TIMESTAMP") or "1970-01-01T00:00:00Z")
+    if state.get("contacts_cursor"):
+        contacts_cursor = state.get("contacts_cursor")
+    elif configuration.get("CONTACTS_START_TIMESTAMP"):
+        contacts_cursor = configuration.get("CONTACTS_START_TIMESTAMP")
+    else:
+        contacts_cursor = "1970-01-01T00:00:00Z"
     list_id_filter = configuration.get("LIST_ID_FILTER")
     log.info("Syncing contacts (v3)...")
     max_seen_updated = contacts_cursor
