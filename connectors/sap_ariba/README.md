@@ -8,8 +8,7 @@ It maintains two tables:
 - `ORDER` – contains header-level purchase order metadata.
 - `ITEM` – contains detailed line-item records for each order.
 
-This example uses the **SAP Ariba Sandbox API** but can easily be configured for production environments.
-
+This example uses the SAP Ariba Sandbox API but can easily be configured for production environments.
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:

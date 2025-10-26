@@ -14,10 +14,10 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import required libraries
-import time
-from datetime import datetime, timezone
-import requests
-import json
+import time  # Provides time-related functions (e.g., sleep, timestamps)
+from datetime import datetime, timezone  # Handles date and time objects with timezone awareness
+import requests  # Enables sending HTTP requests to external APIs
+import json  # Handles JSON data serialization and deserialization
 
 # Constants
 __MAX_RETRIES = 3
@@ -34,8 +34,6 @@ __PAGE_OFFSET = "$skip"
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
-
-
 def schema(configuration: dict):
     return [
         {
@@ -55,18 +53,10 @@ def schema(configuration: dict):
 # See the technical reference documentation for more details on the update function
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 # The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
-
-
+# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
+# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
-    """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    Args:
-        configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-        state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-    """
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
@@ -91,13 +81,14 @@ def update(configuration: dict, state: dict):
 
 def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
     """
-    This function fetch all rows for a table with pagination
-    Arg: table_name: Name of the table to sync
-         params: API request parameters
-         headers: API request headers
-         state: State dictionary to track sync progress
-         allowed_columns: Dictionary of allowed columns for filtering
-         sync_start: Timestamp of the current sync start
+    Fetches all rows for a table using pagination.
+    Args:
+        table_name: Name of the table to sync.
+        params: API request parameters.
+        headers: API request headers.
+        state: State dictionary to track sync progress.
+        allowed_columns: Dictionary of allowed columns for filtering.
+        sync_start: Timestamp of the current sync start.
     """
     count = 0
     record_count = None
@@ -119,9 +110,8 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
             values["last_updated_at"] = sync_start
 
             # The 'upsert' operation is used to insert or update data in a table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-            # - The second argument is a dictionary containing the data to be upserted,
+            # The first argument is the name of the table to upsert the data into, in this case, "hello".
+            # The second argument is a dictionary containing the data to be upserted,
             op.upsert(table=table_name, data=values)
 
             if count % __CHECKPOINT_INTERVAL == 0:
@@ -140,7 +130,10 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
 def convert_to_iso(date_str):
     """
     Convert a date string to ISO 8601 format.
-    Args: param date_str:
+    Args:
+        date_str: Date string to convert to ISO 8601 format.
+    Returns:
+        The date string in ISO 8601 format, or the original string if conversion fails or input is None.
     """
     if not date_str:
         return None
@@ -154,8 +147,11 @@ def convert_to_iso(date_str):
 def filter_columns(record: dict, allowed_columns: dict) -> dict:
     """
     Filter the record to include only allowed columns and convert date fields to ISO format.
-    Args: param record:
-        :param allowed_columns:
+    Args:
+        record: Dictionary containing the record data to filter.
+        allowed_columns: Dictionary defining allowed columns and their data types.
+    Returns:
+        Dictionary containing only allowed columns with converted date fields.
     """
     filtered = {}
     for col in allowed_columns.keys():
@@ -171,11 +167,10 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
 def sync_orders(params, headers, state, sync_start):
     """
     This function fetches all rows for a table with pagination
-    Args: table_name: Name of the table to sync
-         params: API request parameters
-         headers: API request headers
-         state: State dictionary to track sync progress
-         sync_start: Timestamp of the current sync start
+    Args: params: API request parameters
+          headers: API request headers
+          state: State dictionary to track sync progress
+          sync_start: Timestamp of the current sync start
     """
     table_name = "order"
 
@@ -196,12 +191,11 @@ def sync_orders(params, headers, state, sync_start):
 
 def sync_items(params, headers, state, sync_start):
     """
-    This function fetches all rows for a table with pagination
-    Args: table_name: Name of the table to sync
-         params: API request parameters
-         headers: API request headers
-         state: State dictionary to track sync progress
-         sync_start: Timestamp of the current sync start
+    This function fetches all rows for the 'item' table with pagination
+    Args: params: API request parameters
+          headers: API request headers
+          state: State dictionary to track sync progress
+          sync_start: Timestamp of the current sync start
     """
     table_name = "item"
 
@@ -222,12 +216,15 @@ def sync_items(params, headers, state, sync_start):
 
 def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
     """
-    This is a Generic GET with retry and backoff
-    Args: endpoint: API endpoint to call
-         params: API request parameters
-         headers: API request headers
-         retries: Number of retries for failed requests
-         delay: Delay between retries
+    This is a generic GET request with retry and backoff logic.
+    Args:
+        endpoint: The API endpoint to call.
+        params: A dictionary of API request parameters.
+        headers: A dictionary of API request headers.
+        retries: The number of retries for failed requests.
+        delay: The delay (in seconds) between retries.
+    Returns:
+        JSON response from the API.
     """
     url = f"{__BASE_URL}{endpoint}"
     for attempt in range(1, retries + 1):
@@ -241,21 +238,23 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Rate limit hit. Retrying in {wait}s...")
                 time.sleep(wait)
             elif 400 <= response.status_code < 500:
-                raise Exception(f"Client error: {response.text}")
+                raise Exception(f"Client error: ({response.status_code}): {response.text}")
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
             else:
-                raise Exception(f"Error code: {response.status_code}")
+                raise Exception(f"Unexpected HTTP status code {response.status_code} for URL {url} with params {params}. Response body: {response.text}")
         except requests.RequestException as e:
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
-    raise Exception(f"Failed to fetch {url}")
+    raise Exception(f"Failed to fetch {url} after {retries} retries")
 
 
 def get_order_columns():
     """
     Define the order table columns and their data types.
+    Returns:
+        Dictionary mapping column names to their data types for the order table.
     """
     return {
         "documentNumber": "STRING",
@@ -282,6 +281,8 @@ def get_order_columns():
 def get_item_columns():
     """
     Define the item table columns and their data types.
+    Returns:
+        Dictionary mapping column names to their data types for the item table.
     """
     return {
         "documentNumber": "STRING",
