@@ -43,12 +43,7 @@ def _as_bool(val: Optional[str], default: bool = False) -> bool:
 
 def _now_utc_iso() -> str:
     """Return current UTC timestamp as RFC3339 string with trailing 'Z'."""
-    return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _normalize_utc(dt_str: Optional[str]) -> Optional[str]:
@@ -66,9 +61,7 @@ def _normalize_utc(dt_str: Optional[str]) -> Optional[str]:
 class RateLimitError(Exception):
     """Raised when API responds with HTTP 429 and requires backoff."""
 
-    def __init__(
-        self, reset_epoch: Optional[int] = None, message: str = "429 Too Many Requests"
-    ):
+    def __init__(self, reset_epoch: Optional[int] = None, message: str = "429 Too Many Requests"):
         super().__init__(message)
         self.reset_epoch = reset_epoch
 
@@ -76,13 +69,9 @@ class RateLimitError(Exception):
 class DotdigitalClient:
     """Lightweight HTTP client for Dotdigital APIs."""
 
-    def __init__(
-        self, api_user: str, api_password: str, region_id: Optional[str] = None
-    ) -> None:
+    def __init__(self, api_user: str, api_password: str, region_id: Optional[str] = None) -> None:
         """Initialize the API client with Basic Auth and region."""
-        token = base64.b64encode(f"{api_user}:{api_password}".encode("utf-8")).decode(
-            "ascii"
-        )
+        token = base64.b64encode(f"{api_user}:{api_password}".encode("utf-8")).decode("ascii")
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -122,9 +111,7 @@ class DotdigitalClient:
             reset_header = resp.headers.get("X-RateLimit-Reset") or resp.headers.get(
                 "x-ratelimit-reset"
             )
-            reset_epoch = (
-                int(reset_header) if reset_header and reset_header.isdigit() else None
-            )
+            reset_epoch = int(reset_header) if reset_header and reset_header.isdigit() else None
             raise RateLimitError(reset_epoch=reset_epoch)
         resp.raise_for_status()
 
@@ -293,9 +280,7 @@ def _sync_contacts(
     if list_id_filter:
         params["~listId"] = str(list_id_filter)
 
-    for item in client.get_seek_paged(
-        "/contacts/v3", params=params, limit=contacts_page_size
-    ):
+    for item in client.get_seek_paged("/contacts/v3", params=params, limit=contacts_page_size):
         identifiers = item.get("identifiers", {})
         email = (
             identifiers.get("email") or identifiers.get("Email")
@@ -308,9 +293,7 @@ def _sync_contacts(
             else None
         )
         created = _normalize_utc(item.get("created") or item.get("dateCreated"))
-        updated = (
-            _normalize_utc(item.get("updated") or item.get("dateUpdated")) or created
-        )
+        updated = _normalize_utc(item.get("updated") or item.get("dateUpdated")) or created
 
         row = {
             "contact_id": item.get("contactId"),
