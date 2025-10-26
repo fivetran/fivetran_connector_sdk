@@ -142,13 +142,6 @@ The following issues are **automatic blockers** for PR approval:
   import pandas as pd  # For CSV parsing and data transformation
   ```
 
-## Configuration Validation (BLOCKER if present)
-- **NO `validate_configuration()` function** when `configuration.json` exists
-  - SDK automatically validates required fields from configuration.json
-  - BLOCKER: Defining `validate_configuration()` function
-  - ACCEPTABLE: Validation logic only if no configuration.json (rare cases)
-- **In schema() function**: Configuration validation is acceptable if needed for schema generation
-
 ## Logging Guidelines (BLOCKER if wrong logger used)
 - **Only use SDK logging**: `from fivetran_connector_sdk import Logging as log`
   - BLOCKER: `print()` statements
@@ -367,7 +360,7 @@ if __name__ == "__main__":
 
 When reviewing Python connector code, systematically check:
 
-1. **SDK v2+ compliance**: No `yield`, no `validate_configuration()`, correct imports
+1. **SDK v2+ compliance**: No `yield`,correct imports
 2. **Memory safety**: Pagination/streaming for large datasets, no unbounded memory loading
 3. **State & checkpoints**: Proper state management, checkpoints after operations, frequent checkpointing
 4. **Error handling**: Specific exceptions, retry logic with backoff, fail fast on permanent errors
