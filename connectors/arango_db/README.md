@@ -83,7 +83,7 @@ The connector creates the following tables:
 |------------|------|-------------|-------------|
 | `AIRPORTS` | Document Collection | `_key` | Airport information including name, city, state, country, coordinates (lat, long), and VIP status. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved. |
 | `FLIGHTS` | Edge Collection | `_key` | Flight connections between airports (graph relationships). Includes ArangoDB graph fields (`_from`, `_to`) plus flight details like date, times, carrier, flight number, tail number, and distance. |
-| `POINTS_OF_INTEREST` | Document Collection | `_key` | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and last_edit timestamp. |
+| `POINTS_OF_INTEREST` | Document Collection | `_key` | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and `last_edit` timestamp. |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
