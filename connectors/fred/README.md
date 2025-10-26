@@ -35,15 +35,15 @@ The connector requires the following configuration parameters:
 {
   "api_key": "<YOUR_FRED_API_KEY>",
   "series_ids": "<COMMA_SEPARATED_SERIES_IDS>",
-  "sync_start_date": "<YYYY_MM_DD_FORMAT_DEFAULT_2020_01_01>"
+  "sync_start_date": "<YYYY-MM-DD_DEFAULT_2020-01-01>"
 }
 ```
 
 Configuration parameters:
 
-- `api_key` - Your FRED API key (32 character alphanumeric string)
-- `series_ids` - Comma-separated list of series IDs to sync (e.g., "GNPCA,UNRATE,CPIAUCSL")
-- `sync_start_date` - Optional start date for syncing observations in YYYY-MM-DD format (defaults to 2020-01-01)
+- `api_key`: Your FRED API key (32 character alphanumeric string)
+- `series_ids`: Comma-separated list of series IDs to sync (e.g., "GNPCA,UNRATE,CPIAUCSL")
+- `sync_start_date`: Optional start date for syncing observations in YYYY-MM-DD format (defaults to 2020-01-01)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
