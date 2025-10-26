@@ -1,0 +1,5 @@
+{
+    "api_key": "<YOUR_FRED_API_KEY>",
+    "series_ids": "<COMMA_SEPARATED_SERIES_IDS>",
+    "sync_start_date": "<YYYY_MM_DD_FORMAT_DEFAULT_2020_01_01>"
+}
