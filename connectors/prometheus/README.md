@@ -99,8 +99,13 @@ The connector processes data in two stages:
 
 Metrics metadata sync - The connector first fetches all available metric names from Prometheus using the `/api/v1/label/__name__/values` endpoint. For each metric, a record is created with the metric name. Note that metric type and help text are set to default values (unknown and empty string) rather than being fetched from the `/api/v1/targets/metadata` endpoint, as this endpoint is not universally available across all Prometheus deployments (e.g., Grafana Cloud). This data is upserted into the metrics table. Refer to the `sync_metrics_metadata()` function in connector.py.
 
-Time-series data sync - The connector fetches actual time-series data using range queries via the `/api/v1/query_range` endpoint. Each metric is queried separately with a configurable step duration (default 15 seconds). The results include metric labels, timestamps, and values which are processed into individual data points. Each data point is assigned a unique series identifier based on the metric name and label combination. Refer to the `generate_series_id()` function in connector.py. The data is upserted into the time_series table.
+Time-series data sync:
 
+- The connector fetches actual time-series data using range queries via the `/api/v1/query_range` endpoint.
+- Each metric is queried separately with a configurable step duration (default 15 seconds).
+- The results include metric labels, timestamps, and values, which are processed into individual data points.
+- Each data point is assigned a unique series identifier based on the metric name and label combination (refer to the `generate_series_id()` function in connector.py).
+- The data is upserted into the `time_series` table.
 For incremental syncs, the connector uses the `last_sync_timestamp` from state to query only new data since the last successful sync. For initial syncs, it uses a configurable lookback period (default 24 hours). Data is processed in batches with checkpointing every 1000 data points to ensure the sync can resume from the correct position if interrupted. Refer to the `sync_time_series_for_metrics()` function in connector.py.
 
 ## Error handling
