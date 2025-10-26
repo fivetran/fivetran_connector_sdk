@@ -1,15 +1,17 @@
 # Redis Connector Example
 
 ## Connector overview
-This connector syncs data from Redis to Fivetran for historical analytics, supporting both traditional key-value data and RedisTimeSeries time-series data with incremental synchronization. Designed for applications that use Redis with persistence (AOF/RDB) as their primary database for leaderboards, player profiles, real-time game state, and time-series metrics. The connector retrieves all key-value pairs including sorted sets (leaderboards), hashes (player profiles), counters, and TimeSeries keys, using Redis SCAN command for efficient, resumable synchronization with cursor-based pagination and state management.
+This connector syncs data from Redis to Fivetran for historical analytics. It supports both traditional key-value data and RedisTimeSeries time-series data with incremental synchronization.
+
+The connector is designed for applications that use Redis with persistence (AOF/RDB) as their primary database. It handles leaderboards, player profiles, real-time game state, and time-series metrics. The connector retrieves all key-value pairs including sorted sets (leaderboards), hashes (player profiles), counters, and TimeSeries keys. It uses the Redis SCAN command for efficient, resumable synchronization with cursor-based pagination and state management.
 
 The connector supports the following use cases:
-- Gaming leaderboards: Track historical leaderboard positions, analyze player progression, identify top performers over time
-- Player analytics: Aggregate player statistics, skill progression, engagement patterns, and retention metrics
-- Competitive balance: Analyze game difficulty, reward distribution, and competitive fairness
-- Real-time counters: Historical trends for views, likes, engagement metrics stored in Redis
-- Session analytics: User journey analysis when Redis stores session data with persistence enabled
-- Time-series metrics: Incremental sync of RedisTimeSeries data (IoT sensors, application metrics, financial data) using timestamp-based queries
+- Gaming leaderboards - Track historical leaderboard positions, analyze player progression, identify top performers over time
+- Player analytics - Aggregate player statistics, skill progression, engagement patterns, and retention metrics
+- Competitive balance - Analyze game difficulty, reward distribution, and competitive fairness
+- Real-time counters - Historical trends for views, likes, engagement metrics stored in Redis
+- Session analytics - User journey analysis when Redis stores session data with persistence enabled
+- Time-series metrics - Incremental sync of RedisTimeSeries data (IoT sensors, application metrics, financial data) using timestamp-based queries
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -75,7 +77,8 @@ The configuration keys required for your connector are as follows:
 - `key_pattern` (optional) - Pattern to match keys - supports wildcards (defaults to "*" for all keys)
 - `batch_size` (optional) - Number of keys to process per batch (defaults to 100)
 
-Key pattern examples:
+### Key pattern examples
+
 - `"*"` - All keys (for full database sync)
 - `"leaderboard:*"` - All leaderboard keys (e.g., "leaderboard:global", "leaderboard:weekly")
 - `"player:*:profile"` - All player profile hashes
@@ -96,9 +99,10 @@ The connector uses the `redis` library for connecting to and querying Redis data
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-The connector supports both local and cloud Redis deployments with flexible authentication:
+The connector supports both local and cloud Redis deployments with flexible authentication.
 
-Basic configuration (no password):
+### Basic configuration (no password)
+
 ```
 {
   "host": "<YOUR_REDIS_HOST>",
@@ -107,7 +111,8 @@ Basic configuration (no password):
 }
 ```
 
-Password-protected Redis:
+### Password-protected Redis
+
 ```
 {
   "host": "<YOUR_REDIS_HOST>",
