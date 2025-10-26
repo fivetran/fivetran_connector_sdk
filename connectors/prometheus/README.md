@@ -48,20 +48,20 @@ The connector requires the following configuration parameters:
 Configuration parameters:
 
 - `prometheus_url` - The base URL of your Prometheus server (e.g., http://localhost:9090)
-- `auth_type` - Authentication method: none, basic, or bearer
+- `auth_type` - Authentication method: none, basic, or bearer (optional, defaults to none)
 - `username` - Username for basic authentication (optional, only if auth_type is basic)
 - `password` - Password for basic authentication (optional, only if auth_type is basic)
 - `bearer_token` - Bearer token for token-based authentication (optional, only if auth_type is bearer)
 - `lookback_hours` - Number of hours to look back for initial sync (optional, defaults to 24)
-- `metrics_filter` - List of specific metric names to sync (optional, if omitted all metrics are synced)
+- `metrics_filter` - Comma-separated list or JSON array of specific metric names to sync (optional, if omitted all metrics are synced)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
-This connector uses only the standard library and packages pre-installed in the Fivetran environment. No additional dependencies are required.
+This connector uses only standard library packages and `requests`, which are pre-installed in the Fivetran environment. No additional dependencies are required, so no `requirements.txt` file is needed.
 
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment.
 
 ## Authentication
 
@@ -79,15 +79,15 @@ To configure authentication:
 
 3. If using basic authentication:
 
-   i. Obtain or create a username and password for your Prometheus server.
+   1. Obtain or create a username and password for your Prometheus server.
 
-   ii. Add the `username` and `password` fields to `configuration.json`.
+   2. Add the `username` and `password` fields to `configuration.json`.
 
 4. If using bearer token authentication:
 
-   i. Obtain a valid bearer token from your authentication provider.
+   1. Obtain a valid bearer token from your authentication provider.
 
-   ii. Add the `bearer_token` field to `configuration.json`.
+   2. Add the `bearer_token` field to `configuration.json`.
 
 5. For local testing with Docker Compose, use auth_type none as no authentication is configured by default.
 
@@ -97,7 +97,7 @@ The authentication logic is implemented in the `get_auth_headers()` function whi
 
 The connector processes data in two stages:
 
-Metrics metadata sync - The connector first fetches all available metric names from Prometheus using the `/api/v1/label/__name__/values` endpoint. For each metric, it retrieves metadata including the metric type (counter, gauge, histogram, summary) and help text from the `/api/v1/targets/metadata` endpoint. This data is upserted into the metrics table. Refer to the `sync_metrics_metadata()` function in connector.py.
+Metrics metadata sync - The connector first fetches all available metric names from Prometheus using the `/api/v1/label/__name__/values` endpoint. For each metric, a record is created with the metric name. Note that metric type and help text are set to default values (unknown and empty string) rather than being fetched from the `/api/v1/targets/metadata` endpoint, as this endpoint is not universally available across all Prometheus deployments (e.g., Grafana Cloud). This data is upserted into the metrics table. Refer to the `sync_metrics_metadata()` function in connector.py.
 
 Time-series data sync - The connector fetches actual time-series data using range queries via the `/api/v1/query_range` endpoint. Each metric is queried separately with a configurable step duration (default 15 seconds). The results include metric labels, timestamps, and values which are processed into individual data points. Each data point is assigned a unique series identifier based on the metric name and label combination. Refer to the `generate_series_id()` function in connector.py. The data is upserted into the time_series table.
 

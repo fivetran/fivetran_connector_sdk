@@ -224,7 +224,7 @@ def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
             if result is not None:
                 return result
 
-        except requests.Timeout as e:
+        except requests.Timeout:
             handle_retry_with_backoff(attempt, "Request timeout")
 
         except requests.RequestException as e:
@@ -253,38 +253,6 @@ def fetch_metric_names(prometheus_url: str, headers: dict) -> list[str]:
     metric_names = response_data.get("data", [])
     log.info(f"Fetched {len(metric_names)} metric names from Prometheus")
     return metric_names
-
-
-def fetch_metric_metadata(prometheus_url: str, headers: dict, metric_name: str) -> dict[str, str]:
-    """
-    Fetch metadata for a specific metric.
-    Args:
-        prometheus_url: Base URL of Prometheus server.
-        headers: Authentication headers.
-        metric_name: Name of the metric.
-    Returns:
-        Dictionary with metric_type and help_text.
-    """
-    url = build_prometheus_url(prometheus_url, "/api/v1/targets/metadata")
-    params = {"metric": metric_name}
-
-    try:
-        response_data = make_api_request(url, headers, params)
-
-        if response_data.get("status") == "success":
-            metadata_list = response_data.get("data", [])
-            if metadata_list:
-                first_entry = metadata_list[0]
-                return {
-                    "metric_type": first_entry.get("type", "unknown"),
-                    "help_text": first_entry.get("help", ""),
-                }
-    except RuntimeError as e:
-        # Metadata endpoint may not be available (e.g., Grafana Cloud)
-        # Log warning but continue without metadata
-        log.warning(f"Could not fetch metadata for {metric_name}: {str(e)}")
-
-    return {"metric_type": "unknown", "help_text": ""}
 
 
 def sync_metrics_metadata(prometheus_url: str, headers: dict) -> None:
@@ -450,8 +418,7 @@ def get_sync_time_range(state: dict, configuration: dict) -> tuple[datetime, dat
         start_time = datetime.fromisoformat(last_sync_timestamp.replace("Z", "+00:00"))
         log.info(f"Resuming incremental sync from {start_time.isoformat()}")
     else:
-        lookback_hours_str = configuration.get("lookback_hours", str(__DEFAULT_LOOKBACK_HOURS))
-        lookback_hours = int(lookback_hours_str)
+        lookback_hours = int(configuration.get("lookback_hours", __DEFAULT_LOOKBACK_HOURS))
         start_time = end_time - timedelta(hours=lookback_hours)
         log.info(
             f"Starting initial sync with {lookback_hours} hour lookback from {start_time.isoformat()}"
@@ -553,6 +520,9 @@ def update(configuration: dict, state: dict) -> None:
 
     metrics_filter = configuration.get("metrics_filter", [])
     if metrics_filter:
+        # Handle both string (comma-separated) and list formats
+        if isinstance(metrics_filter, str):
+            metrics_filter = [m.strip() for m in metrics_filter.split(",") if m.strip()]
         filtered_metrics = [m for m in metric_names if m in metrics_filter]
         log.info(f"Filtered to {len(filtered_metrics)} metrics based on configuration filter")
         metric_names = filtered_metrics
