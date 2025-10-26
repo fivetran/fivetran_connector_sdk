@@ -30,7 +30,6 @@ __DEFAULT_REGION = "r1"
 __BASE_URL_FMT = "https://{region}-api.dotdigital.com"
 __USER_AGENT = "fivetran-connector-sdk-dotdigital/1.0"
 __DEFAULT_TIMEOUT = 120
-__DEFAULT_MAX_RETRIES = 5
 __ACCOUNT_INFO_URL = "https://r1-api.dotdigital.com/v2/account-info"
 
 
@@ -121,7 +120,7 @@ class DotdigitalClient:
         path: str,
         params: Optional[Dict[str, Any]] = None,
         json_body: Optional[Dict[str, Any]] = None,
-        max_retries: int = __DEFAULT_MAX_RETRIES,
+        max_retries: int = 5,
     ) -> requests.Response:
         """Perform HTTP request with retry/backoff for 429 responses."""
         url = f"{self.base_url}{path}"
@@ -341,3 +340,16 @@ def _sync_campaigns(
 
 
 connector = Connector(update=update, schema=schema)
+
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+if __name__ == "__main__":
+
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
+    connector.debug(configuration=configuration)
