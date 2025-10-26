@@ -1,0 +1,1 @@
+python_arango==8.2.2
