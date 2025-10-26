@@ -56,7 +56,9 @@ To set up authentication:
 4. Ensure the user has `READ` permissions on the collections that need to be synced.
 
 ## Pagination
-The connector implements offset-based pagination using ArangoDB's `skip` and `limit` parameters. Each collection is synced in batches of 1,000 records (defined by `__CHECKPOINT_BATCH_SIZE`). The connector tracks the current offset in the state for each collection, allowing it to resume from the correct position after interruptions. Refer to the `sync_collection()` function in connector.py.
+The connector implements offset-based pagination using ArangoDB's `skip` and `limit` parameters. Each collection is synced in batches of 1,000 records (defined by `__CHECKPOINT_BATCH_SIZE`). 
+
+The connector tracks the current offset in the state for each collection, allowing it to resume from the correct position after interruptions. Refer to the `sync_collection()` function in `connector.py` for pagination logic details.
 
 ## Data handling
 The connector processes each ArangoDB collection independently and upserts documents as-is to the destination tables. 
