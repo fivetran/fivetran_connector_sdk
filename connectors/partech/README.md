@@ -42,7 +42,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 | Parameter | Description | Required |
 |-----------|-------------|----------|
-| `base_url` | The base URL of your Partech (Punchh) server. This can be your production server (e.g., `https://yourserver.punchh.com`) or the mock server for testing (`https://stoplight.io/mocks/punchh-api/dev-portal-pos/50283893`) | Yes |
+| `base_url` | The base URL of your Partech (Punchh) server. This can be your production server (e.g., `https://yourserver.punchh.com`) or a mock/test server URL for testing purposes | Yes |
 | `location_key` | Your location-specific API key obtained from Partech | Yes |
 | `business_key` | Your business-wide API key obtained from Partech | Yes |
 
