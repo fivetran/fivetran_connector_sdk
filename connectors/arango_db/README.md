@@ -3,7 +3,7 @@
 ## Connector overview
 This connector demonstrates how to sync data from ArangoDB, a native multi-model database that combines document, graph, and key-value capabilities.
 
-The connector syncs three collections from a travel dataset: airports (document collection), flights (edge collection for graph relationships), and points-of-interest (document collection). This example showcases ArangoDB's unique multi-model architecture and is ideal for use cases involving interconnected data like social networks, recommendation engines, and travel planning systems.
+The connector syncs three collections from a travel dataset: airports (document collection), flights (edge collection for graph relationships), and points-of-interest (document collection). This example showcases ArangoDB's unique multi-model architecture and is ideal for use cases involving interconnected data-like social networks, recommendation engines, and travel planning systems.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -46,23 +46,24 @@ python-arango
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-This connector uses username and password authentication to connect to ArangoDB. The credentials are specified in the configuration file and passed to the `ArangoClient.db()` method. Refer to the `connect_to_arangodb()` function in connector.py.
+This connector uses username and password authentication to connect to ArangoDB. The credentials are specified in the configuration file and passed with the `ArangoClient.db()` method. Refer to the `connect_to_arangodb()` function in connector.py.
 
 To set up authentication:
 
 1. Obtain your ArangoDB instance URL (either cloud-hosted or self-hosted).
-
 2. Create a database user with read permissions on the collections you want to sync.
-
 3. Provide the host URL, database name, username, and password in the `configuration.json` file.
-
 4. Ensure the user has `READ` permissions on the collections that need to be synced.
 
 ## Pagination
 The connector implements offset-based pagination using ArangoDB's `skip` and `limit` parameters. Each collection is synced in batches of 1,000 records (defined by `__CHECKPOINT_BATCH_SIZE`). The connector tracks the current offset in the state for each collection, allowing it to resume from the correct position after interruptions. Refer to the `sync_collection()` function in connector.py.
 
 ## Data handling
-The connector processes each ArangoDB collection independently and upserts documents as-is to the destination tables. Document collections (airports, points-of-interest) contain standard fields like name, location coordinates, and metadata. Edge collections (flights) include special ArangoDB fields (`_from`, `_to`) that define graph relationships between airports. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved in the destination for data lineage. The schema definition includes only the primary key (`_key`); Fivetran infers all other columns and data types automatically. Refer to the `schema()` and `sync_collection()` functions in connector.py.
+The connector processes each ArangoDB collection independently and upserts documents as-is to the destination tables. 
+
+Document collections (airports, points-of-interest) contain standard fields like name, location coordinates, and metadata. Edge collections (flights) include special ArangoDB fields (`_from`, `_to`) that define graph relationships between airports. 
+
+All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved in the destination for data lineage. The schema definition includes only the primary key (`_key`); Fivetran infers all other columns and data types automatically. Refer to the `schema()` and `sync_collection()` functions in `connector.py` for data handling details.
 
 ## Error handling
 The connector implements comprehensive error handling with the following strategies:
@@ -71,16 +72,16 @@ The connector implements comprehensive error handling with the following strateg
 - Each collection is synced independently, so a failure in one collection does not prevent others from syncing successfully
 - All errors are logged using the SDK's logging facility with appropriate severity levels
 
-Refer to the `connect_to_arangodb()`, `sync_collection()`, and `update()` functions in connector.py.
+Refer to the `connect_to_arangodb()`, `sync_collection()`, and `update()` functions in `connector.py` for error handling details.
 
 ## Tables created
 The connector creates the following tables:
 
 | Table Name | Type | Primary Key | Description |
 |------------|------|-------------|-------------|
-| `airports` | Document Collection | `_key` | Airport information including name, city, state, country, coordinates (lat, long), and VIP status. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved. |
-| `flights` | Edge Collection | `_key` | Flight connections between airports (graph relationships). Includes ArangoDB graph fields (`_from`, `_to`) plus flight details like date, times, carrier, flight number, tail number, and distance. |
-| `points_of_interest` | Document Collection | `_key` | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and last_edit timestamp. |
+| `AIRPORTS` | Document Collection | `_key` | Airport information including name, city, state, country, coordinates (lat, long), and VIP status. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved. |
+| `FLIGHTS` | Edge Collection | `_key` | Flight connections between airports (graph relationships). Includes ArangoDB graph fields (`_from`, `_to`) plus flight details like date, times, carrier, flight number, tail number, and distance. |
+| `POINTS_OF_INTEREST` | Document Collection | `_key` | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and last_edit timestamp. |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
