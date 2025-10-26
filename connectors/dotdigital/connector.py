@@ -16,6 +16,7 @@ The connector illustrates:
 """
 
 from __future__ import annotations
+import json
 
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional
@@ -264,11 +265,7 @@ def _sync_contacts(
 ) -> None:
     """Extract and upsert contact records (v3 API)."""
     contacts_page_size = int(configuration.get("CONTACTS_PAGE_SIZE", 500))
-    contacts_cursor = (
-        state.get("contacts_cursor")
-        or configuration.get("CONTACTS_START_TIMESTAMP")
-        or "1970-01-01T00:00:00Z"
-    )
+    contacts_cursor = (state.get("contacts_cursor") or configuration.get("CONTACTS_START_TIMESTAMP") or "1970-01-01T00:00:00Z")
     list_id_filter = configuration.get("LIST_ID_FILTER")
     log.info("Syncing contacts (v3)...")
     max_seen_updated = contacts_cursor
