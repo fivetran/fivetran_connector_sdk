@@ -23,11 +23,7 @@ from fivetran_connector_sdk import Operations as op
 
 # For connecting to ArangoDB database
 from arango import ArangoClient
-from arango.exceptions import (
-    ArangoServerError,
-    DatabaseCreateError,
-    ServerConnectionError,
-)
+from arango.exceptions import ArangoServerError, ServerConnectionError
 
 # Batch size for checkpointing during large collection syncs
 __CHECKPOINT_BATCH_SIZE = 1000
