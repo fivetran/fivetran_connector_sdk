@@ -12,7 +12,6 @@ import requests  # For making HTTP requests to the Iterate API
 import json  # For reading configuration from a JSON file
 import time  # For handling retries and delays
 from datetime import datetime, timezone  # For handling date and time operations
-from typing import Dict, Optional, Any  # For type hinting
 import re
 
 __BASE_URL = "https://coda.io/apis/v1" # Base URL for Coda API
@@ -20,14 +19,22 @@ __MAX_RETRIES = 3  # Number of retries for API calls
 __RETRY_DELAY = 2  # Initial delay between retries in seconds
 __EPOCH_START_DATE = "1970-01-01T00:00:00Z"  # Default start date if none provided
 __RECORDS_PER_PAGE = 1000  # Number of records to fetch per page
-__DOC_ID = "3E9J_txUuS" # Example Doc ID for testing, doc name: `Connector SDK Hackathon`
 __NEXT_SYNC_TOKEN = "next_sync_token"  # Placeholder for next sync token
 __LAST_UPDATED_AT = "last_updated_at"  # Placeholder for next sync token
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
 
 
 def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
-        """Generic GET with retry and backoff"""
+    """
+    Make a GET request to the Coda API with retries and exponential backoff.
+    Args: param endpoint: API endpoint to call
+          param params: Query parameters for the API call
+          param headers: Headers for the API call
+          param retries: Number of retries for the API call
+          param delay: Initial delay between retries in seconds
+    Returns: JSON response from the API
+    Raises: Exception if the API call fails after retries
+    """
         url = f"{__BASE_URL}{endpoint}"
         for attempt in range(1, retries + 1):
             try:
@@ -51,13 +58,22 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 time.sleep(delay * attempt)
         raise Exception(f"Failed to fetch {url} after {retries} retries")
 
-def sync_rows(table_name, params, headers, last_updated_at, state):
-    """Fetch all rows for a table with pagination"""
-    rows = []
+def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
+    """
+    Generic function to sync rows for a given table
+    Args: param table_name: Name of the table to sync
+          param params: Query parameters for the API call
+          param headers: Headers for the API call
+          param last_updated_at: Timestamp of the last update
+          param state: State dictionary to track sync progress
+          param doc_id: Coda document ID
+    Returns: Next sync token if available
+    Raises: Exception if the API call fails
+    """
     count = 0
     next_sync_token = None
     while True:
-        data = make_api_request(f"/docs/{__DOC_ID}/tables/{table_name}/rows", params=params, headers=headers)
+        data = make_api_request(f"/docs/{doc_id}/tables/{table_name}/rows", params=params, headers=headers)
 
         items = data.get("items", [])
         if not items:
@@ -74,10 +90,18 @@ def sync_rows(table_name, params, headers, last_updated_at, state):
             values["created_at"] = item.get("createdAt")
             values["updated_at"] = item.get("updatedAt")
 
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table=table_name, data=values)
 
             if count % __CHECKPOINT_INTERVAL == 0:
-                op.checkpoint(state) # for frequent checkpointing
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
 
         next_page = data.get("nextPageToken")
         if not next_page:
@@ -85,10 +109,17 @@ def sync_rows(table_name, params, headers, last_updated_at, state):
         params["pageToken"] = next_page
     return next_sync_token
 
-def sync_orders(params, headers, state, sync_start):
-    """Fetch all rows for a table with pagination"""
+def sync_orders(params, headers, state, sync_start, doc_id):
+    """
+    Sync orders table
+    Args: param params: parameters for the API call
+          param headers: headers for the API call
+          param state: state dictionary to track sync progress
+          param sync_start: sync start timestamp
+          param doc_id: document ID
+    """
     table_name = "order"
-    last_updated_at = last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
+    last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
 
     next_sync_token = state.get(table_name, {}).get(__NEXT_SYNC_TOKEN)
     if next_sync_token:
@@ -96,31 +127,46 @@ def sync_orders(params, headers, state, sync_start):
     if state.get(table_name) is None:
         state[table_name] = {}
 
-    next_sync_token = sync_rows(table_name, params, headers, last_updated_at, state)
+    next_sync_token = sync_rows(table_name, params, headers, last_updated_at, state, doc_id)
 
     if next_sync_token:
         state[table_name][__NEXT_SYNC_TOKEN] = next_sync_token
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 
-def sync_customer_feedback(params, headers, state, sync_start):
-    """Fetch all rows for a table with pagination"""
+def sync_customer_feedback(params, headers, state, sync_start, doc_id):
+    """
+    Sync customer_feedback table
+    Args: param params: parameters for the API call
+          param headers: headers for the API call
+          param state: state dictionary to track sync progress
+          param sync_start: sync start timestamp
+          param doc_id: document ID
+    """
     table_name = "customer_feedback"
-    last_updated_at = last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
+    last_updated_at = state.get(table_name, {}).get(__LAST_UPDATED_AT, __EPOCH_START_DATE)
 
     next_sync_token = state.get(table_name, {}).get(__NEXT_SYNC_TOKEN)
     if next_sync_token:
         params["nextSyncToken"] = next_sync_token
     if state.get(table_name) is None:
             state[table_name] = {}
-    next_sync_token = sync_rows(table_name, params, headers, last_updated_at, state)
+    next_sync_token = sync_rows(table_name, params, headers, last_updated_at, state, doc_id)
 
     if next_sync_token:
         state[table_name][__NEXT_SYNC_TOKEN] = next_sync_token
 
     state[table_name][__LAST_UPDATED_AT] = sync_start
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 def schema(configuration: dict):
@@ -152,8 +198,14 @@ def schema(configuration: dict):
             }
         ]
 
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync
+# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
-    """Define the update function, which is a required function, and is called by Fivetran during each sync."""
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     log.info("Starting sync from Coda API...")
@@ -164,18 +216,28 @@ def update(configuration: dict, state: dict):
 
     headers = {"Authorization": f"Bearer {api_token}"}
 
+    doc_id = configuration.get("doc_id")
+
     params = {}
     params["useColumnNames"] = "true"
     params["sortBy"] = "updatedAt" # this sorts the data in ascending order of updatedAt field
     params["pageSize"] = __RECORDS_PER_PAGE
 
-    sync_orders(params, headers, state, current_sync_start)
-    sync_customer_feedback(params, headers, state, current_sync_start)
+    sync_orders(params, headers, state, current_sync_start, doc_id)
+    sync_customer_feedback(params, headers, state, current_sync_start, doc_id)
 
-    # Checkpoint state if needed
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
 def to_snake_case(s: str) -> str:
+    """
+    Convert a string to snake_case.
+    Args: param s: Input string
+    Returns: Snake_case string
+    """
     # Replace spaces and hyphens with underscores
     s = re.sub(r'[\s\-]+', '_', s)
     # Convert CamelCase or mixed case to lowercase with underscores

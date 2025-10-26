@@ -1,3 +1,4 @@
 {
-  "api_token": "9e43c0da-4aaf-4aeb-9f61-176f0061d851"
+  "api_token": "<YOUR_CODA_API_TOKEN>",
+  "doc_id": "<YOUR_CODA_DOC_ID>"
 }
