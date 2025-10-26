@@ -29,6 +29,7 @@ __LAST_UPDATED_AT = "last_updated_at"
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
 __PAGE_OFFSET = "$skip"
 
+
 # Define the schema function which lets you configure the schema your connector delivers.
 # See the technical reference documentation for more details on the schema function:
 # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
@@ -243,7 +244,9 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
             else:
-                raise Exception(f"Unexpected HTTP status code {response.status_code} for URL {url} with params {params}. Response body: {response.text}")
+                raise Exception(
+                    f"Unexpected HTTP status code {response.status_code} for URL {url} with params {params}. Response body: {response.text}"
+                )
         except requests.RequestException as e:
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
