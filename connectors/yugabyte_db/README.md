@@ -32,25 +32,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Configuration file
 The connector requires database connection credentials to access YugabyteDB.
 
-```
+```json
 {
-  "host": "<YOUR_YUGABYTEDB_HOST>",
-  "port": "<YOUR_YUGABYTEDB_PORT_DEFAULT_5433>",
-  "database": "<YOUR_YUGABYTEDB_DATABASE_NAME>",
-  "user": "<YOUR_YUGABYTEDB_USERNAME>",
-  "password": "<YOUR_YUGABYTEDB_PASSWORD>",
-  "schema": "<YOUR_SCHEMA_NAME_DEFAULT_PUBLIC>"
+  "host": "<YOUR_YUGABYTEDB_HOST>",           // Required: Hostname or IP address of your YugabyteDB server
+  "port": "<YOUR_YUGABYTEDB_PORT>",           // Optional: Port number (default: 5433)
+  "database": "<YOUR_YUGABYTEDB_DATABASE_NAME>",  // Required: Name of the database to connect to
+  "user": "<YOUR_YUGABYTEDB_USERNAME>",       // Required: Username for database authentication
+  "password": "<YOUR_YUGABYTEDB_PASSWORD>",   // Required: Password for database authentication
+  "schema": "<YOUR_SCHEMA_NAME>",             // Optional: Database schema to sync (default: public)
+  "sslmode": "<YOUR_SSL_MODE>"                // Optional: SSL mode (require, prefer, allow, disable)
 }
 ```
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `host` | Yes | Hostname or IP address of your YugabyteDB server |
-| `port` | No | Port number for YugabyteDB connection (default: 5433) |
-| `database` | Yes | Name of the database to connect to |
-| `user` | Yes | Username for database authentication |
-| `password` | Yes | Password for database authentication |
-| `schema` | No | Database schema to sync tables from (default: public) |
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 

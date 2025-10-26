@@ -29,10 +29,11 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
 # Constants for database configuration
-__BATCH_SIZE = 100  # Number of records to fetch per batch
-__CHECKPOINT_INTERVAL = 1000  # Number of records between checkpoints
-__DEFAULT_START_DATE = "1900-01-01T00:00:00Z"  # Default starting point for incremental sync
-__DEFAULT_PORT = 5433  # Default YugabyteDB port
+__BATCH_SIZE = 100
+__CHECKPOINT_INTERVAL = 1000
+__DEFAULT_START_DATE = "1900-01-01T00:00:00Z"
+__DEFAULT_PORT = 5433
+__DEFAULT_SCHEMA = "public"
 
 
 def normalize_record(record: dict):
@@ -75,11 +76,11 @@ def create_connection(configuration: dict):
             "password": configuration.get("password"),
         }
 
-        # Add SSL mode if connecting to cloud instance (hostname contains 'cloud')
-        if "cloud" in configuration.get("host", ""):
-            conn_params["sslmode"] = "require"
-            conn_params["connect_timeout"] = 30
-            log.info("Using SSL connection for cloud instance")
+        # Add SSL mode if specified in configuration
+        sslmode = configuration.get("sslmode")
+        if sslmode:
+            conn_params["sslmode"] = sslmode
+            log.info(f"Using SSL mode: {sslmode}")
 
         connection = psycopg2.connect(**conn_params)
         log.info("Successfully connected to YugabyteDB")
@@ -349,17 +350,18 @@ def schema(configuration: dict):
     connection = None
     try:
         connection = create_connection(configuration)
-        schema_name = configuration.get("schema", "public")
+        schema_name = configuration.get("schema", __DEFAULT_SCHEMA)
         tables = get_table_list(connection, schema_name)
 
         schema_definitions = []
         for table_name in tables:
             pk_columns = get_primary_key_columns(connection, schema_name, table_name)
 
-            table_def = {
-                "table": table_name,
-                "primary_key": pk_columns if pk_columns else None,
-            }
+            table_def = {"table": table_name}
+            # Only include primary_key field if primary keys exist
+            if pk_columns:
+                table_def["primary_key"] = pk_columns
+
             schema_definitions.append(table_def)
 
         log.info(f"Schema defined for {len(schema_definitions)} tables")
@@ -383,7 +385,7 @@ def update(configuration: dict, state: dict):
     connection = None
     try:
         connection = create_connection(configuration)
-        schema_name = configuration.get("schema", "public")
+        schema_name = configuration.get("schema", __DEFAULT_SCHEMA)
         tables = get_table_list(connection, schema_name)
 
         total_records = 0
@@ -431,9 +433,6 @@ def update(configuration: dict, state: dict):
     except ValueError as e:
         log.severe(f"Configuration validation error: {e}")
         raise RuntimeError(f"Invalid configuration: {str(e)}")
-    except Exception as e:
-        log.severe(f"Unexpected error during sync: {e}")
-        raise RuntimeError(f"Sync error: {str(e)}")
     finally:
         if connection:
             try:
