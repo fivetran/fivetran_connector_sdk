@@ -14,7 +14,7 @@ import time  # For handling retries and delays
 from datetime import datetime, timezone  # For handling date and time operations
 import re
 
-__BASE_URL = "https://coda.io/apis/v1" # Base URL for Coda API
+__BASE_URL = "https://coda.io/apis/v1"  # Base URL for Coda API
 __MAX_RETRIES = 3  # Number of retries for API calls
 __RETRY_DELAY = 2  # Initial delay between retries in seconds
 __EPOCH_START_DATE = "1970-01-01T00:00:00Z"  # Default start date if none provided
@@ -58,6 +58,7 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
             time.sleep(delay * attempt)
     raise Exception(f"Failed to fetch {url} after {retries} retries")
 
+
 def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
     """
     Generic function to sync rows for a given table
@@ -73,7 +74,9 @@ def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
     count = 0
     next_sync_token = None
     while True:
-        data = make_api_request(f"/docs/{doc_id}/tables/{table_name}/rows", params=params, headers=headers)
+        data = make_api_request(
+            f"/docs/{doc_id}/tables/{table_name}/rows", params=params, headers=headers
+        )
 
         items = data.get("items", [])
         if not items:
@@ -108,6 +111,7 @@ def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
             break
         params["pageToken"] = next_page
     return next_sync_token
+
 
 def sync_orders(params, headers, state, sync_start, doc_id):
     """
@@ -156,7 +160,7 @@ def sync_customer_feedback(params, headers, state, sync_start, doc_id):
     if next_sync_token:
         params["nextSyncToken"] = next_sync_token
     if state.get(table_name) is None:
-            state[table_name] = {}
+        state[table_name] = {}
     next_sync_token = sync_rows(table_name, params, headers, last_updated_at, state, doc_id)
 
     if next_sync_token:
@@ -169,34 +173,36 @@ def sync_customer_feedback(params, headers, state, sync_start, doc_id):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
+
 def schema(configuration: dict):
     return [
-            {
-                "table": "order",  # Name of the table in the destination, required.
-                "primary_key": ["id"],  # Primary key column(s) for the table, optional.
-                "columns": {
-                    "id": "string",
-                    "region": "string",
-                    "rep": "string",
-                    "item": "string",
-                    "units": "double",
-                    "unit_cost": "double",
-                    "total": "double"
-                    }
+        {
+            "table": "order",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {
+                "id": "string",
+                "region": "string",
+                "rep": "string",
+                "item": "string",
+                "units": "double",
+                "unit_cost": "double",
+                "total": "double",
             },
-            {
-                "table": "customer_feedback",  # Name of the table in the destination, required.
-                "primary_key": ["id"],  # Primary key column(s) for the table, optional.
-                "columns": {
-                    "id": "string",
-                    "customer_id": "string",
-                    "first_name": "string",
-                    "last_name": "string",
-                    "email_address": "string",
-                    "number_of_complaints": "int"
-                    }
-            }
-        ]
+        },
+        {
+            "table": "customer_feedback",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "columns": {
+                "id": "string",
+                "customer_id": "string",
+                "first_name": "string",
+                "last_name": "string",
+                "email_address": "string",
+                "number_of_complaints": "int",
+            },
+        },
+    ]
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -220,7 +226,7 @@ def update(configuration: dict, state: dict):
 
     params = {}
     params["useColumnNames"] = "true"
-    params["sortBy"] = "updatedAt" # this sorts the data in ascending order of updatedAt field
+    params["sortBy"] = "updatedAt"  # this sorts the data in ascending order of updatedAt field
     params["pageSize"] = __RECORDS_PER_PAGE
 
     sync_orders(params, headers, state, current_sync_start, doc_id)
@@ -232,6 +238,7 @@ def update(configuration: dict, state: dict):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
+
 def to_snake_case(s: str) -> str:
     """
     Convert a string to snake_case.
@@ -239,9 +246,9 @@ def to_snake_case(s: str) -> str:
     Returns: Snake_case string
     """
     # Replace spaces and hyphens with underscores
-    s = re.sub(r'[\s\-]+', '_', s)
+    s = re.sub(r"[\s\-]+", "_", s)
     # Convert CamelCase or mixed case to lowercase with underscores
-    s = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s)
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
     return s.lower()
 
 
@@ -269,4 +276,3 @@ if __name__ == "__main__":
 # Note: Fivetran debug's performance is limited by your local machine's resources. Your connector will run faster in production.
 # read about production system resources at https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#systemresources
 # Oct 13, 2025 05:52:44 PM INFO: Fivetran-Tester-Process: Sync SUCCEEDED
-
