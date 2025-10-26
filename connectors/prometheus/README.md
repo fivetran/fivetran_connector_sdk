@@ -106,8 +106,13 @@ Time-series data sync:
 - The results include metric labels, timestamps, and values, which are processed into individual data points.
 - Each data point is assigned a unique series identifier based on the metric name and label combination (refer to the `generate_series_id()` function in connector.py).
 - The data is upserted into the `time_series` table.
-For incremental syncs, the connector uses the `last_sync_timestamp` from state to query only new data since the last successful sync. For initial syncs, it uses a configurable lookback period (default 24 hours). Data is processed in batches with checkpointing every 1000 data points to ensure the sync can resume from the correct position if interrupted. Refer to the `sync_time_series_for_metrics()` function in connector.py.
+The connector handles data sync and batching as follows:
 
+- Incremental syncs: Uses the `last_sync_timestamp` from state to query only new data since the last successful sync.
+- Initial syncs: Uses a configurable lookback period (default 24 hours) to fetch historical data.
+- Batching and checkpointing: Processes data in batches, checkpointing every 1000 data points to ensure the sync can resume from the correct position if interrupted.
+
+Refer to the `sync_time_series_for_metrics()` function in connector.py for implementation details.
 ## Error handling
 
 The connector implements comprehensive error handling:
