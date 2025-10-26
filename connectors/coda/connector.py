@@ -35,28 +35,28 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
     Returns: JSON response from the API
     Raises: Exception if the API call fails after retries
     """
-        url = f"{__BASE_URL}{endpoint}"
-        for attempt in range(1, retries + 1):
-            try:
-                log.info(f"Making API request to: {url} (Attempt {attempt})")
-                response = requests.get(url, params=params, headers=headers)
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 429:
-                    wait = delay * attempt
-                    log.warning(f"Rate limit hit. Retrying in {wait}s...")
-                    time.sleep(wait)
-                elif 400 <= response.status_code < 500:
-                    raise Exception(f"Client error {response.status_code}: {response.text}")
-                elif 500 <= response.status_code < 600:
-                    log.warning(f"Server error {response.status_code}, retrying...")
-                    time.sleep(delay * attempt)
-                else:
-                    raise Exception(f"Unexpected response: {response.status_code}")
-            except requests.RequestException as e:
-                log.severe(f"Network error: {e}")
+    url = f"{__BASE_URL}{endpoint}"
+    for attempt in range(1, retries + 1):
+        try:
+            log.info(f"Making API request to: {url} (Attempt {attempt})")
+            response = requests.get(url, params=params, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                wait = delay * attempt
+                log.warning(f"Rate limit hit. Retrying in {wait}s...")
+                time.sleep(wait)
+            elif 400 <= response.status_code < 500:
+                raise Exception(f"Client error {response.status_code}: {response.text}")
+            elif 500 <= response.status_code < 600:
+                log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
-        raise Exception(f"Failed to fetch {url} after {retries} retries")
+            else:
+                raise Exception(f"Unexpected response: {response.status_code}")
+        except requests.RequestException as e:
+            log.severe(f"Network error: {e}")
+            time.sleep(delay * attempt)
+    raise Exception(f"Failed to fetch {url} after {retries} retries")
 
 def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
     """
