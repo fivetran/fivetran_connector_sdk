@@ -21,7 +21,7 @@ import json
 
 # Constants
 __MAX_RETRIES = 3
-__RETRY_DELAY = 3 # seconds
+__RETRY_DELAY = 3  # seconds
 __BASE_URL = "https://sandbox.api.sap.com/ariba/api/purchase-orders/v1/sandbox/"
 __RECORDS_PER_PAGE = 100
 __EPOCH_START_DATE = "1970-01-01T00:00:00Z"
@@ -35,17 +35,21 @@ __PAGE_OFFSET = "$skip"
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 
+
 def schema(configuration: dict):
-    return [{
-    "table": "order", # Name of the table in the destination.
-    "primary_key": ["payload_id", "revision", "row_id"],
-    "columns": get_order_columns() # Define the columns and their data types.
-    },
-    {
-    "table": "item", # Name of the table in the destination.
-    "primary_key": ["document_number", "line_number", "row_id"],
-    "columns": get_item_columns() # Define the columns and their data types.
-    }]
+    return [
+        {
+            "table": "order",  # Name of the table in the destination.
+            "primary_key": ["payload_id", "revision", "row_id"],
+            "columns": get_order_columns(),  # Define the columns and their data types.
+        },
+        {
+            "table": "item",  # Name of the table in the destination.
+            "primary_key": ["document_number", "line_number", "row_id"],
+            "columns": get_item_columns(),  # Define the columns and their data types.
+        },
+    ]
+
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.
 # See the technical reference documentation for more details on the update function
@@ -54,6 +58,7 @@ def schema(configuration: dict):
 # - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
 # - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
 # The state dictionary is empty for the first sync or for any full re-sync
+
 
 def update(configuration: dict, state: dict):
     """
@@ -65,9 +70,9 @@ def update(configuration: dict, state: dict):
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
-    "APIKey": configuration.get("api_key"),
-    "Accept": "application/json",
-    "DataServiceVersion": "2.0"
+        "APIKey": configuration.get("api_key"),
+        "Accept": "application/json",
+        "DataServiceVersion": "2.0",
     }
 
     log.info("Starting sync from SAP Ariba API...")
@@ -82,6 +87,7 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
+
 
 def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
     """
@@ -144,6 +150,7 @@ def convert_to_iso(date_str):
     except Exception:
         return date_str  # fallback if it’s already ISO
 
+
 def filter_columns(record: dict, allowed_columns: dict) -> dict:
     """
     Filter the record to include only allowed columns and convert date fields to ISO format.
@@ -159,6 +166,7 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
         elif col in record:
             filtered[col] = record[col]
     return filtered
+
 
 def sync_orders(params, headers, state, sync_start):
     """
@@ -200,7 +208,7 @@ def sync_items(params, headers, state, sync_start):
     params[__PAGE_OFFSET] = 0
 
     if state.get(table_name) is None:
-            state[table_name] = {}
+        state[table_name] = {}
 
     sync_rows(table_name, params, headers, state, get_item_columns(), sync_start)
 
@@ -210,6 +218,7 @@ def sync_items(params, headers, state, sync_start):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
+
 
 def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
     """
@@ -243,56 +252,58 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
             time.sleep(delay * attempt)
     raise Exception(f"Failed to fetch {url}")
 
+
 def get_order_columns():
     """
     Define the order table columns and their data types.
     """
     return {
-    "documentNumber": "STRING",
-    "orderDate": "UTC_DATETIME",
-    "supplierName": "STRING",
-    "supplierANID": "STRING",
-    "buyerANID": "STRING",
-    "customerName": "STRING",
-    "systemId": "STRING",
-    "payloadId": "STRING",
-    "revision": "STRING",
-    "endpointId": "STRING",
-    "created": "UTC_DATETIME",
-    "status": "STRING",
-    "documentStatus": "STRING",
-    "amount": "DOUBLE",
-    "numberOfInvoices": "INT",
-    "invoiced_amount": "DOUBLE",
-    "company_code": "STRING",
-    "row_id": "INT"
+        "documentNumber": "STRING",
+        "orderDate": "UTC_DATETIME",
+        "supplierName": "STRING",
+        "supplierANID": "STRING",
+        "buyerANID": "STRING",
+        "customerName": "STRING",
+        "systemId": "STRING",
+        "payloadId": "STRING",
+        "revision": "STRING",
+        "endpointId": "STRING",
+        "created": "UTC_DATETIME",
+        "status": "STRING",
+        "documentStatus": "STRING",
+        "amount": "DOUBLE",
+        "numberOfInvoices": "INT",
+        "invoiced_amount": "DOUBLE",
+        "company_code": "STRING",
+        "row_id": "INT",
     }
+
 
 def get_item_columns():
     """
     Define the item table columns and their data types.
     """
     return {
-    "documentNumber": "STRING",
-    "lineNumber": "INT",
-    "quantity": "DOUBLE",
-    "unitOfMeasure": "STRING",
-    "supplierPart": "STRING",
-    "buyerPartId": "STRING",
-    "manufacturerPartId": "STRING",
-    "description": "STRING",
-    "itemShipToName": "STRING",
-    "itemShipToStreet": "STRING",
-    "itemShipToCity": "STRING",
-    "itemShipToState": "STRING",
-    "itemShipToPostalCode": "STRING",
-    "itemShipToCountry": "STRING",
-    "isoCountryCode": "STRING",
-    "itemShipToCode": "STRING",
-    "itemLocation": "STRING",
-    "requestedDeliveryDate": "UTC_DATETIME",
-    "requestedShipmentDate": "UTC_DATETIME",
-    "row_id": "INT"
+        "documentNumber": "STRING",
+        "lineNumber": "INT",
+        "quantity": "DOUBLE",
+        "unitOfMeasure": "STRING",
+        "supplierPart": "STRING",
+        "buyerPartId": "STRING",
+        "manufacturerPartId": "STRING",
+        "description": "STRING",
+        "itemShipToName": "STRING",
+        "itemShipToStreet": "STRING",
+        "itemShipToCity": "STRING",
+        "itemShipToState": "STRING",
+        "itemShipToPostalCode": "STRING",
+        "itemShipToCountry": "STRING",
+        "isoCountryCode": "STRING",
+        "itemShipToCode": "STRING",
+        "itemLocation": "STRING",
+        "requestedDeliveryDate": "UTC_DATETIME",
+        "requestedShipmentDate": "UTC_DATETIME",
+        "row_id": "INT",
     }
 
 
