@@ -1,10 +1,9 @@
 # SAP Ariba Purchase Orders Connector Example
 
 ## Connector overview
-The SAP Ariba Purchase Orders connector demonstrates how to use the Fivetran Connector SDK to extract **purchase order (PO)** and **line-item** data from the [SAP Ariba API](https://api.sap.com/api/api_purchase_orders/overview). It loads the data into a Fivetran destination for analytics and reporting.
+The SAP Ariba Purchase Orders connector demonstrates how to use the Fivetran Connector SDK to extract purchase order (PO) and line-item data from the [SAP Ariba API](https://api.sap.com/api/api_purchase_orders/overview). It loads the data into a Fivetran destination for analytics and reporting.
 
-The connector supports **incremental syncing** by maintaining timestamps in its internal state. It fetches new or modified purchase orders and items and marks processed rows with checkpoints for reliable continuation.
-
+The connector supports incremental syncing by maintaining timestamps in its internal state. It fetches new or modified purchase orders and items, and marks processed rows with checkpoints for reliable continuation.
 It maintains two tables:
 - `ORDER` – contains header-level purchase order metadata.
 - `ITEM` – contains detailed line-item records for each order.
@@ -25,7 +24,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Fetches purchase orders and line items from the SAP Ariba API.
-- Performs **incremental syncs** using internal timestamp checkpoints.
+- Performs incremental syncs using internal timestamp checkpoints
 - Supports pagination with `$skip` and `$top` query parameters.
 - Converts timestamps to ISO 8601 UTC format.
 - Retries automatically on network failures or rate limit errors.
@@ -40,9 +39,9 @@ The connector reads configuration settings from `configuration.json`, which defi
 }
 ```
 
-| Key | Required | Description |
-|-----|-----------|-------------|
-| `APIKey` | Yes | Your SAP Ariba API key for authentication. |
+| Key       | Required | Description |
+|-----------|-----------|-------------|
+| `api_key` | Yes | Your SAP Ariba API key for authentication. |
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -86,7 +85,7 @@ The connector implements the following error handling:
 - `400–499`: Client-side errors (e.g., invalid key or malformed request) – connector logs and exits.
 - `429`: API rate limit exceeded – connector retries automatically using exponential backoff.
 - `500–599`: Server errors – connector retries after a short delay.
-- Network issues: Automatically retried up to 3 times.
+- Network issues: Automatically retried up to three times.
 - Invalid JSON or date parsing errors: Skipped gracefully and logged for review.
 
 
@@ -145,7 +144,7 @@ Primary key: `document_number`, `line_number`, `row_id`
 
 
 ## Additional considerations
-The example is intended for demonstration and educational purposes using the Fivetran Connector SDK.  
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 When adapting this connector for production:
 - Replace the Sandbox API URL with your tenant’s production endpoint.
 - Increase retry delay (`__RETRY_DELAY`) if you encounter rate limits.

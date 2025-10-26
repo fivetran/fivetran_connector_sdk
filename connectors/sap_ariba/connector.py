@@ -1,5 +1,5 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# It defines a simple 'update' method, which upserts GitHub repo traffic data from GitHub's API into a Fivetran connector.
+# This connector syncs SAP Ariba purchase orders using the SAP Ariba API.
+# It defines 'update' and 'schema' methods to fetch and upsert purchase order and item data into Fivetran destinations.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -58,7 +58,7 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
-    Arrgs:
+    Args:
         configuration: dictionary contains any secrets or payloads you configure when deploying the connector
         state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
     """
@@ -210,18 +210,6 @@ def sync_items(params, headers, state, sync_start):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
-
-def to_snake_case(s: str) -> str:
-    """
-    Convert a string to snake_case.
-    Args :param s: Input string
-          :return: Snake_case string
-    """
-    # Replace spaces and hyphens with underscores
-    s = re.sub(r'[\s\-]+', '_', s)
-    # Convert CamelCase or mixed case to lowercase with underscores
-    s = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s)
-    return s.lower()
 
 def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
     """
