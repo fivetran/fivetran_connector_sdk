@@ -123,8 +123,15 @@ def get_access_token(api_username, api_password, greythr_domain):
 
             if response.status_code == 200:
                 token_data = response.json()
+                access_token = token_data.get("access_token")
+
+                # Validate that access_token is present in the response
+                if not access_token:
+                    log.severe("Access token missing from authentication response")
+                    raise RuntimeError("Access token missing from authentication response")
+
                 log.info("Successfully obtained access token")
-                return token_data.get("access_token")
+                return access_token
 
             if response.status_code == 403:
                 log.severe("Authentication failed: Invalid API credentials")
@@ -146,7 +153,9 @@ def get_access_token(api_username, api_password, greythr_domain):
         except requests.exceptions.RequestException as error:
             handle_request_exception(attempt, "Authentication", error)
             continue
-    raise RuntimeError("Authentication failed after maximum retry attempts. Unable to obtain access token.")
+    raise RuntimeError(
+        "Authentication failed after maximum retry attempts. Unable to obtain access token."
+    )
 
 
 def make_api_request(
