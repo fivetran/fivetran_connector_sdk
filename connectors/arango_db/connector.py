@@ -6,13 +6,28 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+# For reading configuration from a JSON file
 import json
+
+# For type hints
 from typing import Any
 
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+# For connecting to ArangoDB database
 from arango import ArangoClient
+from arango.exceptions import (
+    ArangoServerError,
+    DatabaseCreateError,
+    ServerConnectionError,
+)
 
 # Batch size for checkpointing during large collection syncs
 __CHECKPOINT_BATCH_SIZE = 1000
@@ -64,9 +79,15 @@ def connect_to_arangodb(configuration: dict) -> Any:
 
         log.info(f"Successfully connected to ArangoDB database '{database_name}'")
         return database
+    except ServerConnectionError as e:
+        log.severe(f"Failed to connect to ArangoDB server: {e}")
+        raise RuntimeError(f"Failed to connect to ArangoDB server: {str(e)}")
+    except ArangoServerError as e:
+        log.severe(f"ArangoDB server error during connection: {e}")
+        raise RuntimeError(f"ArangoDB server error during connection: {str(e)}")
     except Exception as e:
-        log.severe(f"Failed to connect to ArangoDB: {e}")
-        raise RuntimeError(f"Failed to connect to ArangoDB: {str(e)}")
+        log.severe(f"Unexpected error connecting to ArangoDB: {e}")
+        raise RuntimeError(f"Unexpected error connecting to ArangoDB: {str(e)}")
 
 
 def get_collection_offset(state: dict, collection_name: str) -> int:
@@ -84,6 +105,9 @@ def fetch_batch(collection: Any, offset: int) -> list[dict[str, Any]]:
 def upsert_documents(table_name: str, documents: list[dict[str, Any]]) -> None:
     """Upsert documents to destination table."""
     for document in documents:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table=table_name, data=document)
 
 
@@ -98,6 +122,10 @@ def checkpoint_progress(
     """Save sync progress to state."""
     state_key = f"{collection_name}_offset"
     state[state_key] = offset
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
     log.info(
         f"Synced batch {batch_count} for '{collection_name}': {batch_size} documents (total: {total_synced})"
@@ -160,9 +188,14 @@ def sync_collection(database: Any, collection_name: str, table_name: str, state:
             f"Completed sync for collection '{collection_name}': {total_synced} documents total"
         )
         return state[f"{collection_name}_offset"]
+    except ArangoServerError as e:
+        log.severe(f"ArangoDB server error while syncing collection '{collection_name}': {e}")
+        raise RuntimeError(
+            f"ArangoDB server error while syncing collection '{collection_name}': {str(e)}"
+        )
     except Exception as e:
-        log.severe(f"Failed to sync collection '{collection_name}': {e}")
-        raise RuntimeError(f"Failed to sync collection '{collection_name}': {str(e)}")
+        log.severe(f"Unexpected error syncing collection '{collection_name}': {e}")
+        raise RuntimeError(f"Unexpected error syncing collection '{collection_name}': {str(e)}")
 
 
 def update(configuration: dict, state: dict) -> None:
