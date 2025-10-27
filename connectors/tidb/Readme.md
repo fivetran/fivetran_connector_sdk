@@ -26,18 +26,45 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```
 
 {
-"TIDB_HOST": "host.example.com",
-"TIDB_USER": "tidb_user",
-"TIDB_PASS": "tidb_password",
-"TIDB_PORT": "4000",
-"TIDB_DATABASE": "my_database",
-"TABLES_PRIMARY_KEY_COLUMNS": "{\"table1\":\"id1\",\"table2\":\"id2\"}",
-"VECTOR_TABLES_DATA": "{\"vector_table1\":{\"primary_key_column\":\"id3\",\"vector_column\":\"embedding\"}}"
+  "TIDB_HOST": "<YOUR_TIDB_HOST>",
+  "TIDB_USER": "<YOUR_TIDB_USERNAME>",
+  "TIDB_PASS": "<YOUR_TIDB_PASSWORD>",
+  "TIDB_PORT": "<YOUR_TIDB_PORT>",
+  "TIDB_DATABASE": "<YOUR_TIDB_DATABASE>",
+  "TABLES_PRIMARY_KEY_COLUMNS": "<JSON_STRING_OF_TABLE_TO_PRIMARY_KEY_MAPPING>",
+  "VECTOR_TABLES_DATA": "<JSON_STRING_OF_VECTOR_TABLE_CONFIGURATION>"
 }
 
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect credentials.
+
+### Configuration Details
+
+**TABLES_PRIMARY_KEY_COLUMNS**: A JSON object where keys are table names and values are the primary key column names.
+
+Example:
+```json
+{
+  "customers": "customer_id",
+  "products": "product_id",
+  "transactions": "transaction_id"
+}
+```
+
+**VECTOR_TABLES_DATA** (Optional): A JSON object for tables containing vector/embedding columns. Each table requires:
+- `primary_key_column`: The primary key column name
+- `vector_column`: The column containing vector data
+
+Example:
+```json
+{
+  "product_embeddings": {
+    "primary_key_column": "product_id",
+    "vector_column": "embedding_vector"
+  }
+}
+```
 
 ## Requirements file
 - `requirements.txt` lists third-party Python packages required by this example. Example content:
