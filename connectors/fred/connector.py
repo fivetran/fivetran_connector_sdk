@@ -153,7 +153,7 @@ def make_api_request(endpoint, params, api_key):
             handle_request_exception(attempt, f"Request to {endpoint}", error)
             continue
 
-    return None
+    raise RuntimeError(f"Request to {endpoint} failed after {__MAX_RETRIES} attempts.")
 
 
 def handle_api_response(response, url, attempt):
