@@ -22,7 +22,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Periodic checkpointing to ensure reliable sync resumption
 
 ## Configuration file
-The connector requires the following configuration parameters:
 
 ```json
 {
