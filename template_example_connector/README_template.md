@@ -2,6 +2,8 @@
 
 *Instructions: Every example added to the repository should have a comprehensive README.md to make it easy for users landing directly on the README to understand what the example does, how to configure it for their own use, and how to find more information about working with Connector SDK.*
 
+*For source examples, the top-level (H1) heading must be in the following format: "# <source-name> Connector Example" (e.g. "# GitHub Connector Example").*
+
 *To use the template, replace the italicized text with your own description. Non-italicized text is common to all READMEs and can be left as is.*
 
 *If a particular section is not relevant to your example (e.g. Error Handling \- your example doesn’t have any special error handling, Additional Files \- your example doesn’t have any additional files), delete that heading from the README.*
@@ -9,6 +11,18 @@
 *Notate what section relates to what function in the connector.py using the function name or specific line block. (e.g. Error Handling \- Refer to def handle_critical_error(error_message, error_details=None),  Pagination \- Refer to lines 150-175)*
 
 *Do not use Title Case for any heading level other than H1 (a single top-level heading with a single `#`).*
+*Do not use **bold** text anywhere except for UI elements controls like tabs, menus, buttons, fields, etc.*
+*Do not use nested bulleted lists for descriptions - write the description inline, for example, "- `mock\_api.py` – A simulated API for testing data retrieval."*
+*Use the following format for notes: "Note: note text"; omit the double quotes.*
+*Use numbered lists only where the order is important, for example, for a sequence of user actions. Every item in numbered lists should end with full stop.*
+*Complex sequences of user actions should use numbers for parent items and Roman notation for child items, with blank lines between the lines with Roman numerals.*
+*Use bulleted lists where the items are listed without any particular order or where alternatives are presented.*
+*Do not duplicate the content in several sections. For example, do not add a Schema Definition section since the Tables Created section should include schema-related information.*
+*Do create additional sections decribing example-specific areas if the sections present in this template do not cover them.*
+*Use hyphen (-) in bulleted lists instead of asterisk (*).*
+*Enclose file names in backticks, for example, `configuration.json`, `requirements.txt`, `connector.py`, `mock\_api`.*
+*Do not use emojis.*
+
 
 
 ## Connector overview
@@ -85,12 +99,12 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Additional files
-Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose.*
+*Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose.*
 
-- **mock\_api.py** – *A simulated API for testing data retrieval.*  
-- **users\_sync.py** – *Handles user data synchronization logic.*  
-- **api\_threading\_utils.py** – *Manages API request threading for performance optimization.*  
-- **constants.py** – *Stores constant values used throughout the connector.*
+- `mock\_api.py` – *A simulated API for testing data retrieval.*  
+- `users\_sync.py` – *Handles user data synchronization logic.*  
+- `api\_threading\_utils.py` – *Manages API request threading for performance optimization.*  
+- `constants.py` – *Stores constant values used throughout the connector.*
 
 
 ## Additional considerations
