@@ -22,7 +22,6 @@ __API_BASE = "https://api.people.ai"
 
 activity = "activity"
 __ACTIVITY_TYPES = ["participants"]
-# --- End of F821-Fixing Constants ---
 
 __MAX_RETRIES = 5
 __INITIAL_DELAY_SECONDS = 2
@@ -315,7 +314,6 @@ def sync_activity_type(
 
         offset += limit
 
-    # F541 fix: Corrected log message to be one f-string
     log.info(
         f"Completed sync for '{activity_type}'. Total records synced: {total}"
     )
@@ -383,8 +381,6 @@ def update(configuration: dict, state: dict):
     )
 
     for activity_type in __ACTIVITY_TYPES:
-        # E128 fix: This continuation line needs to be indented to align with
-        # the function call above it or the opening parenthesis.
         count = sync_activity_type(
             access_token=access_token,
             reauth_func=reauthenticate,  # Pass the reauth function
