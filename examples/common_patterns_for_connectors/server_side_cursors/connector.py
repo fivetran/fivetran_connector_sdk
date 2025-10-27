@@ -16,7 +16,7 @@ from fivetran_connector_sdk import Operations as op
 import json
 
 # Import typing for type hints
-from typing import Dict, Iterable, List
+from typing import List
 
 # Import datetime for handling date and time
 from datetime import datetime
@@ -90,8 +90,13 @@ def connect_to_database(configuration: dict):
 
 
 def _regular_client_cursor_stream(
-    connection, table_name: str, batch_size: int, last_updated: str
-) -> Iterable[List[Dict]]:
+    connection,
+    table_name: str,
+    batch_size: int,
+    last_updated: str,
+    state: dict,
+    last_updated_timestamp: datetime,
+):
     """
     Stream rows using a regular client-side cursor with explicit fetchmany() batching.
     Args:
@@ -99,6 +104,8 @@ def _regular_client_cursor_stream(
         table_name: The source table name.
         batch_size: Maximum rows per batch to keep memory bounded.
         last_updated: The last updated timestamp to filter rows.
+        state: A dictionary containing state information from previous runs.
+        last_updated_timestamp: The latest last_updated timestamp to update.
     Yields:
         An iterator over lists of row dictionaries (batches).
 
@@ -136,9 +143,14 @@ def _regular_client_cursor_stream(
         # The size of the result set buffered client-side may still be large depending on driver behavior
         cursor.execute(sql_query)
         columns = [col[0].lower() for col in cursor.description]
-        # Yield batches from cursor
-        yield from _fetch_batches_from_cursor(
-            cursor=cursor, columns=columns, batch_size=batch_size
+        # upsert batches from cursor
+        _fetch_batches_from_cursor(
+            cursor=cursor,
+            columns=columns,
+            batch_size=batch_size,
+            table_name=table_name,
+            state=state,
+            last_updated_timestamp=last_updated_timestamp,
         )
 
     finally:
@@ -176,28 +188,78 @@ def _setup_named_cursor(connection, table_name: str, batch_size: int, last_updat
     return cursor, columns
 
 
+def upsert_batch(batch, table_name, state, last_updated_timestamp):
+    """
+    Upsert a batch of data to the destination table.
+    Args:
+        batch: A list of dictionaries representing the data to be upserted.
+        table_name: The destination table name.
+        state: A dictionary containing state information from previous runs.
+        last_updated_timestamp: The latest last_updated timestamp to update.
+    """
+    # Upsert the current batch to destination table "employees" (example mapping).
+    for data in batch:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert(table=table_name, data=data)
+
+        # Update last_updated_timestamp if current row's last_updated is greater
+        row_last_updated = data.get("last_updated")
+        if row_last_updated and row_last_updated > last_updated_timestamp:
+            last_updated_timestamp = row_last_updated
+
+    # Save checkpoint after each batch
+    save_checkpoint(state=state, last_updated_timestamp=last_updated_timestamp)
+
+
 def _fetch_batches_from_cursor(
-    cursor, columns: List[str], batch_size: int
-) -> Iterable[List[Dict]]:
+    cursor,
+    columns: List[str],
+    batch_size: int,
+    table_name: str,
+    state: dict,
+    last_updated_timestamp: datetime,
+):
     """
     Helper to fetch batches from cursor and convert to dictionaries.
     Args:
         cursor: The named server-side cursor object.
         columns: List of column names in the result set.
         batch_size: Maximum rows per batch to keep memory bounded.
+        table_name: The destination table name.
+        state: A dictionary containing state information from previous runs.
+        last_updated_timestamp: The latest last_updated timestamp to update.
     Yields:
         An iterator over lists of row dictionaries (batches).
     """
+    count = 0
     while True:
         rows = cursor.fetchmany(batch_size)
         if not rows:
             break
-        yield [dict(zip(columns, row)) for row in rows]
+        data = [dict(zip(columns, row)) for row in rows]
+        # upsert the current batch and checkpoint
+        upsert_batch(
+            batch=data,
+            table_name=table_name,
+            state=state,
+            last_updated_timestamp=last_updated_timestamp,
+        )
+        count += len(data)
+
+    log.info(f"Total rows upserted from {table_name}: {count}")
 
 
 def _named_server_side_cursor_stream(
-    connection, table_name: str, batch_size: int, last_updated: str
-) -> Iterable[List[Dict]]:
+    connection,
+    table_name: str,
+    batch_size: int,
+    last_updated: str,
+    state: dict,
+    last_updated_timestamp: datetime,
+):
     """
     Stream rows using a server-side (named) cursor.
     Args:
@@ -205,6 +267,8 @@ def _named_server_side_cursor_stream(
         table_name: The source table name.
         batch_size: Maximum rows per batch to keep memory bounded.
         last_updated: The last updated timestamp to filter rows.
+        state: A dictionary containing state information from previous runs.
+        last_updated_timestamp: The latest last_updated timestamp to update in timestamp format.
     Yields:
         An iterator over lists of row dictionaries (batches).
 
@@ -236,9 +300,14 @@ def _named_server_side_cursor_stream(
             batch_size=batch_size,
             last_updated=last_updated,
         )
-        # Yield batches from cursor
-        yield from _fetch_batches_from_cursor(
-            cursor=cursor, columns=columns, batch_size=batch_size
+        # upsert batches from cursor
+        _fetch_batches_from_cursor(
+            cursor=cursor,
+            columns=columns,
+            batch_size=batch_size,
+            table_name=table_name,
+            state=state,
+            last_updated_timestamp=last_updated_timestamp,
         )
 
     except Exception as e:
@@ -252,9 +321,15 @@ def _named_server_side_cursor_stream(
                 raise RuntimeError(f"Failed to close named cursor: {str(e)}") from e
 
 
-def get_data_from_database(
-    connection, table_name: str, cursor_mode: str, batch_size: int, last_updated: str
-) -> Iterable[List[Dict]]:
+def fetch_and_upsert_data_from_database(
+    connection,
+    table_name: str,
+    cursor_mode: str,
+    batch_size: int,
+    last_updated: str,
+    state: dict,
+    last_updated_timestamp: datetime,
+):
     """
     Retrieve data from the PostgreSQL database in batches using the chosen cursor strategy.
     Args:
@@ -263,6 +338,8 @@ def get_data_from_database(
         cursor_mode: One of: 'CLIENT', 'NAMED', 'COPY'. Defaults to 'NAMED'.
         batch_size: Maximum rows per batch to keep memory bounded.
         last_updated: The last updated timestamp to filter rows.
+        state: A dictionary containing state information from previous runs.
+        last_updated_timestamp: The latest last_updated timestamp to update in timestamp format.
     Returns:
         An iterator over lists of row dictionaries (batches).
 
@@ -274,18 +351,22 @@ def get_data_from_database(
     log.info(f"Fetching data using {mode} cursor mode and {batch_size} batch size.")
 
     if mode == "CLIENT":
-        return _regular_client_cursor_stream(
+        _regular_client_cursor_stream(
             connection=connection,
             table_name=table_name,
             batch_size=batch_size,
             last_updated=last_updated,
+            state=state,
+            last_updated_timestamp=last_updated_timestamp,
         )
     elif mode == "NAMED":
-        return _named_server_side_cursor_stream(
+        _named_server_side_cursor_stream(
             connection=connection,
             table_name=table_name,
             batch_size=batch_size,
             last_updated=last_updated,
+            state=state,
+            last_updated_timestamp=last_updated_timestamp,
         )
     else:
         raise ValueError(
@@ -333,52 +414,6 @@ def save_checkpoint(state: dict, last_updated_timestamp: datetime):
     op.checkpoint(state)
 
 
-def upsert_data(connection, table_name: str, cursor_mode: str, batch_size: int, state: dict):
-    """
-    Upsert data from the source database to the destination table in batches.
-    Args:
-        connection: A connection object to the PostgreSQL database.
-        table_name: The source table name.
-        cursor_mode: The cursor mode to use for fetching data ('CLIENT' or 'NAMED').
-        batch_size: The number of rows to fetch per batch.
-        state: A dictionary containing state information from previous runs.
-    """
-    # Get the last updated timestamp from state or default to a very old date
-    last_updated = state.get("last_updated", "1990-01-01T00:00:00+00:00")
-    last_updated_timestamp = datetime.fromisoformat(last_updated)
-
-    count = 0
-    batch_count = 0
-    for batch in get_data_from_database(
-        connection=connection,
-        table_name=table_name,
-        cursor_mode=cursor_mode,
-        batch_size=batch_size,
-        last_updated=last_updated,
-    ):
-        # Upsert the current batch to destination table "employees" (example mapping).
-        for data in batch:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table=table_name, data=data)
-            count += 1
-
-            # Update last_updated_timestamp if current row's last_updated is greater
-            row_last_updated = data.get("last_updated")
-            if row_last_updated and row_last_updated > last_updated_timestamp:
-                last_updated_timestamp = row_last_updated
-
-        # Save checkpoint after each batch
-        save_checkpoint(state=state, last_updated_timestamp=last_updated_timestamp)
-
-        batch_count += 1
-        log.info(f"Upserted {batch_count} batch.")
-
-    log.info(f"Completed sync. Total rows upserted: {count}.")
-
-
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -399,17 +434,23 @@ def update(configuration: dict, state: dict):
     batch_size = int(configuration.get("batch_size", __DEFAULT_BATCH_SIZE))
     cursor_mode = configuration.get("cursor_mode", __DEFAULT_CURSOR_MODE)
 
+    # Get the last updated timestamp from state or default to a very old date
+    last_updated = state.get("last_updated", "1990-01-01T00:00:00+00:00")
+    last_updated_timestamp = datetime.fromisoformat(last_updated)
+
     # Connect to database
     connection = connect_to_database(configuration)
 
     try:
-        # Stream and upsert in controlled batches
-        upsert_data(
+        # fetch and upsert data from the source
+        fetch_and_upsert_data_from_database(
             connection=connection,
             table_name=table_name,
             cursor_mode=cursor_mode,
             batch_size=batch_size,
+            last_updated=last_updated,
             state=state,
+            last_updated_timestamp=last_updated_timestamp,
         )
     except Exception as e:
         # Preserve the original exception chain for better debugging

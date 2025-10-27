@@ -115,7 +115,7 @@ The `NAMED` mode uses a server-side (named) cursor for memory-efficient streamin
 - Uses explicit transaction management to ensure cursor validity throughout iteration
 
 
-The connector implements incremental data synchronization using a timestamp-based approach. Refer to the `upsert_data` function.
+The connector implements incremental data synchronization using a timestamp-based approach. Refer to the `update` function.
 
 The incremental sync process works as follows:
 1. Retrieves the `last_updated` timestamp from the state dictionary (defaults to `1990-01-01T00:00:00+00:00` for initial sync).
@@ -141,7 +141,7 @@ The connector implements comprehensive error handling to ensure reliability and 
 
 ## Tables created
 
-The connector creates a single table in the destination based on the `table_name` configuration parameter. For example, if `table_name` is set to `people`, the following table will be created:
+The connector creates a single table in the destination based on the `table_name` configuration parameter. For example, `table_name` is set to `people`, the following table will be created:
 
 ### `PEOPLE` 
 
