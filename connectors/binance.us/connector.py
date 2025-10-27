@@ -123,9 +123,7 @@ def make_authenticated_request(
                 )
                 log.severe("Please try one of the following solutions:")
                 log.severe("1. Use a VPN to connect from the US")
-                log.severe(
-                    "2. Contact Binance US support if you believe this is an error"
-                )
+                log.severe("2. Contact Binance US support if you believe this is an error")
                 raise RuntimeError(
                     "Geographic restriction: Binance US API not available in your location. Please use VPN."
                 )
@@ -148,16 +146,12 @@ def make_authenticated_request(
                 log.severe(
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
-                raise RuntimeError(
-                    f"API request failed: {response.status_code} - {response.text}"
-                )
+                raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
 
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRIES - 1:
                 delay = __BASE_DELAY * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds: {str(e)}"
-                )
+                log.warning(f"Request exception occurred, retrying in {delay} seconds: {str(e)}")
                 time.sleep(delay)
                 continue
             else:
@@ -194,9 +188,7 @@ def make_public_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
                 )
                 log.severe("Please try one of the following solutions:")
                 log.severe("1. Use a VPN to connect from the US")
-                log.severe(
-                    "2. Contact Binance US support if you believe this is an error"
-                )
+                log.severe("2. Contact Binance US support if you believe this is an error")
                 raise RuntimeError(
                     "Geographic restriction: Binance US API not available in your location. Please use VPN."
                 )
@@ -219,16 +211,12 @@ def make_public_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
                 log.severe(
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
-                raise RuntimeError(
-                    f"API request failed: {response.status_code} - {response.text}"
-                )
+                raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
 
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRIES - 1:
                 delay = __BASE_DELAY * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds: {str(e)}"
-                )
+                log.warning(f"Request exception occurred, retrying in {delay} seconds: {str(e)}")
                 time.sleep(delay)
                 continue
             else:
@@ -316,9 +304,7 @@ def fetch_wallet_details(api_key: str, api_secret: str, run_id: str) -> List[Dic
         List of wallet details and asset status data with run_id
     """
     log.info("Fetching wallet details and asset status from Binance US")
-    response = make_authenticated_request(
-        "/sapi/v1/capital/config/getall", api_key, api_secret
-    )
+    response = make_authenticated_request("/sapi/v1/capital/config/getall", api_key, api_secret)
 
     # Add run_id to each wallet detail record
     if isinstance(response, list):
@@ -359,9 +345,7 @@ def fetch_trade_history(
     if end_time:
         params["endTime"] = end_time
 
-    response = make_authenticated_request(
-        "/api/v3/myTrades", api_key, api_secret, params
-    )
+    response = make_authenticated_request("/api/v3/myTrades", api_key, api_secret, params)
     log.fine(json.dumps(response, indent=2))
 
     # Add run_id to each trade record
@@ -403,9 +387,7 @@ def fetch_order_history(
     if end_time:
         params["endTime"] = end_time
 
-    response = make_authenticated_request(
-        "/api/v3/allOrders", api_key, api_secret, params
-    )
+    response = make_authenticated_request("/api/v3/allOrders", api_key, api_secret, params)
 
     # Log the response
     log.fine(json.dumps(response, indent=2))
@@ -473,9 +455,7 @@ def update(configuration: dict, state: dict):
     try:
         # Fetch server time
         server_time_data = fetch_server_time(run_id)
-        op.upsert(
-            table="server_time", data=transform_data_for_fivetran(server_time_data)
-        )
+        op.upsert(table="server_time", data=transform_data_for_fivetran(server_time_data))
 
         # Checkpoint after server time
         op.checkpoint(state=state)
@@ -485,9 +465,7 @@ def update(configuration: dict, state: dict):
         exchange_info = fetch_exchange_info()
         for symbol_info in exchange_info.get("symbols", []):
             symbol_info["run_id"] = run_id
-            op.upsert(
-                table="exchange_info", data=transform_data_for_fivetran(symbol_info)
-            )
+            op.upsert(table="exchange_info", data=transform_data_for_fivetran(symbol_info))
 
         # Checkpoint after exchange info
         op.checkpoint(state=state)
@@ -498,13 +476,9 @@ def update(configuration: dict, state: dict):
         log.info(f"Processing {len(ticker_prices)} ticker price records")
         for i, ticker in enumerate(ticker_prices):
             try:
-                op.upsert(
-                    table="ticker_price", data=transform_data_for_fivetran(ticker)
-                )
+                op.upsert(table="ticker_price", data=transform_data_for_fivetran(ticker))
                 if i < 5:  # Log first 5 for debugging
-                    log.fine(
-                        f"Upserted ticker {i+1}: {ticker.get('symbol', 'unknown')}"
-                    )
+                    log.fine(f"Upserted ticker {i+1}: {ticker.get('symbol', 'unknown')}")
             except Exception as e:
                 log.warning(f"Failed to upsert ticker {i+1}: {str(e)}")
                 continue
@@ -523,9 +497,7 @@ def update(configuration: dict, state: dict):
                     "asset": balance.get("asset"),
                     "free": balance.get("free"),
                     "locked": balance.get("locked"),
-                    "total": str(
-                        float(balance.get("free", 0)) + float(balance.get("locked", 0))
-                    ),
+                    "total": str(float(balance.get("free", 0)) + float(balance.get("locked", 0))),
                     "accountType": account_info.get("accountType"),
                     "canTrade": account_info.get("canTrade"),
                     "canWithdraw": account_info.get("canWithdraw"),
@@ -609,9 +581,7 @@ def update(configuration: dict, state: dict):
 
                 # Update last sync time for this symbol
                 if trades:
-                    last_trade_sync[symbol] = max(
-                        int(trade.get("time", 0)) for trade in trades
-                    )
+                    last_trade_sync[symbol] = max(int(trade.get("time", 0)) for trade in trades)
 
                 # Checkpoint after each symbol's trade history
                 op.checkpoint(state=state)
@@ -623,9 +593,7 @@ def update(configuration: dict, state: dict):
 
         # Fetch order history for each symbol with balances
         try:
-            for (
-                symbol
-            ) in common_pairs:  # Limit to first 10 symbols to avoid rate limits
+            for symbol in common_pairs:  # Limit to first 10 symbols to avoid rate limits
                 try:
                     # Fetch order history with proper timestamp filtering
                     start_time = last_order_sync.get(symbol)
@@ -639,9 +607,7 @@ def update(configuration: dict, state: dict):
                     )
 
                     for order in orders:
-                        op.upsert(
-                            table="order", data=transform_data_for_fivetran(order)
-                        )
+                        op.upsert(table="order", data=transform_data_for_fivetran(order))
 
                     # Update last sync time for this symbol
                     if orders:
