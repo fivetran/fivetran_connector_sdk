@@ -340,7 +340,7 @@ def extract_document_id(document: Dict, index_uid: str) -> str:
     Extract document ID from document data.
     Args:
         document: The document dictionary
-        index_uid: The index UID for context
+        index_uid: The index UID for logging context
     Returns:
         The document ID as a string
     """
@@ -349,7 +349,11 @@ def extract_document_id(document: Dict, index_uid: str) -> str:
     elif "_id" in document:
         return str(document["_id"])
     else:
-        return str(hash(json.dumps(document, sort_keys=True)))
+        generated_id = str(hash(json.dumps(document, sort_keys=True)))
+        log.warning(
+            f"Document in index '{index_uid}' has no 'id' or '_id' field. Generated hash-based ID: {generated_id}"
+        )
+        return generated_id
 
 
 def flatten_document(document: Dict, prefix: str = "", separator: str = "_") -> Dict:
