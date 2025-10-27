@@ -1,0 +1,7 @@
+{
+  "aws_access_key_id": "AKIATWOH52HXXNKECXHR",
+  "aws_secret_access_key": "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",
+  "aws_region": "us-east-1",
+  "bucket": "complete-mdls-migration-2",
+  "prefix": "test_rest_api_2"
+}
