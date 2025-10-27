@@ -73,7 +73,7 @@ The connector requires the following configuration parameters:
 | Parameter | Description |
 |------------|-------------|
 | `prefix` | The S3 prefix (folder path) to filter objects. |
-| `page_size` | Number of objects to fetch per API call (default: 1000). |
+
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
