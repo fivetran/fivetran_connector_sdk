@@ -19,10 +19,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs time-series data from multiple QuestDB tables
+- Timestamp-based incremental sync - only fetches new records since last sync
 - Supports pagination for handling large datasets efficiently
 - Implements retry logic with exponential backoff for API rate limits and transient errors
 - Configurable batch size for optimized data retrieval
-- State management with checkpointing to support incremental syncs
+- State management with checkpointing to support resumable syncs
 - Optional HTTP Basic authentication support
 - Dynamic schema discovery based on table structure
 
@@ -37,7 +38,8 @@ The connector requires the following configuration parameters:
   "username": "<YOUR_QUESTDB_USERNAME_OPTIONAL>",
   "password": "<YOUR_QUESTDB_PASSWORD_OPTIONAL>",
   "tables": "<COMMA_SEPARATED_TABLE_NAMES_TO_SYNC>",
-  "batch_size": "<BATCH_SIZE_FOR_PAGINATION_DEFAULT_1000>"
+  "batch_size": "<BATCH_SIZE_FOR_PAGINATION_DEFAULT_1000>",
+  "timestamp_column": "<TIMESTAMP_COLUMN_NAME_DEFAULT_TIMESTAMP>"
 }
 ```
 
@@ -49,6 +51,7 @@ Configuration parameters:
 - `password` - QuestDB password for HTTP Basic authentication (optional)
 - `tables` - Comma-separated list of table names to sync (e.g., "sensor_data,market_ticks")
 - `batch_size` - Number of records to fetch per API request (defaults to 1000)
+- `timestamp_column` - Column name for timestamp-based incremental sync (defaults to "timestamp")
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -70,13 +73,23 @@ To set up authentication:
 
 The connector builds HTTP Basic authentication headers automatically when credentials are provided (refer to the `build_auth_header()` function).
 
+## Incremental Sync
+
+The connector implements **timestamp-based incremental sync** optimized for QuestDB's time-series capabilities:
+
+- **First sync**: Fetches all records ordered by timestamp column
+- **Subsequent syncs**: Only fetches records where `timestamp > last_synced_timestamp`
+- **State tracking**: Stores the maximum timestamp seen for each table (refer to the `sync_table_data()` function)
+- **Efficiency**: Avoids re-processing historical data on every sync
+- **Configurable**: Specify the timestamp column name via `timestamp_column` parameter (defaults to "timestamp")
+
 ## Pagination
 
-The QuestDB REST API does not natively support offset-based pagination, so the connector implements pagination using SQL LIMIT clauses. The connector handles pagination automatically:
+The connector implements pagination using SQL LIMIT clauses with incremental filtering:
 
 - Uses SQL `LIMIT offset,batch_size` syntax to fetch data in chunks (refer to the `sync_table_data()` function)
 - Configurable batch size via the `batch_size` configuration parameter
-- Tracks offset position per table in the connector state
+- Orders results by timestamp column for consistent incremental sync
 - Continues fetching pages until an empty result set is returned
 - Checkpoints state after processing every 5000 records to enable resumption
 
@@ -85,13 +98,15 @@ The QuestDB REST API does not natively support offset-based pagination, so the c
 The connector processes data in the following manner:
 
 1. Table iteration - Processes each table specified in the `tables` configuration parameter sequentially (refer to the `update()` function)
-2. Pagination loop - For each table, fetches data in batches using offset-based pagination (refer to the `sync_table_data()` function)
-3. Record transformation - Converts QuestDB response format to dictionary records with column names as keys
-4. Synthetic primary key - Adds `_fivetran_synced_key` field to each record as a unique identifier
-5. Upsert operation - Inserts or updates each record in the destination table
-6. State management - Tracks offset position per table and checkpoints progress regularly
+2. Incremental filtering - Queries only records with timestamp greater than last sync (refer to the `sync_table_data()` function)
+3. Pagination loop - For each table, fetches data in batches using offset-based pagination
+4. Record transformation - Converts QuestDB response format to dictionary records with column names as keys
+5. Timestamp tracking - Tracks the maximum timestamp value seen in each batch
+6. Unique primary key - Generates `_fivetran_synced_key` using format `{table}_{timestamp}_{row_index}` to ensure uniqueness
+7. Upsert operation - Inserts or updates each record in the destination table
+8. State management - Stores last synced timestamp per table and checkpoints progress regularly
 
-All data is upserted to the destination, and the connector maintains state per table to support resumable syncs.
+All data is upserted to the destination, and the connector maintains timestamp state per table to support true incremental syncs.
 
 ## Error handling
 

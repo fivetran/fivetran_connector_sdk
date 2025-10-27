@@ -203,9 +203,22 @@ def get_table_columns(configuration: dict, table_name: str) -> list:
         return []
 
 
+def get_timestamp_column(configuration: dict, table_name: str) -> str:
+    """
+    Get the timestamp column name for incremental sync.
+    Args:
+        configuration: Configuration dictionary.
+        table_name: Name of the table.
+    Returns:
+        Timestamp column name or 'timestamp' as default.
+    """
+    timestamp_col = configuration.get("timestamp_column", "timestamp")
+    return timestamp_col
+
+
 def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
     """
-    Sync data from a QuestDB table with pagination support.
+    Sync data from a QuestDB table with timestamp-based incremental sync.
     Args:
         configuration: Configuration dictionary.
         table_name: Name of the table to sync.
@@ -214,14 +227,25 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
         Number of records synced.
     """
     batch_size = int(configuration.get("batch_size", __BATCH_SIZE))
-    offset = state.get(f"{table_name}_offset", 0)
+    timestamp_col = get_timestamp_column(configuration, table_name)
+    last_timestamp = state.get(f"{table_name}_last_timestamp")
+    offset = 0
     total_records = 0
     records_since_checkpoint = 0
+    max_timestamp = last_timestamp
 
-    log.info(f"Starting sync for table {table_name}, offset: {offset}")
+    if last_timestamp:
+        log.info(f"Starting incremental sync for {table_name} from {last_timestamp}")
+    else:
+        log.info(f"Starting full sync for table {table_name}")
 
     while True:
-        query = f"SELECT * FROM {table_name} LIMIT {offset},{batch_size}"
+        if last_timestamp:
+            query = f"SELECT * FROM {table_name} WHERE {timestamp_col} > '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
+        else:
+            query = (
+                f"SELECT * FROM {table_name} ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
+            )
 
         try:
             response = execute_questdb_query(configuration, query)
@@ -234,16 +258,26 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
                 break
 
             column_names = [col["name"] for col in columns]
+            timestamp_idx = None
+            for idx, col_name in enumerate(column_names):
+                if col_name == timestamp_col:
+                    timestamp_idx = idx
+                    break
 
-            for row in dataset:
+            for row_idx, row in enumerate(dataset):
                 record = {}
+                row_timestamp = None
+
                 for idx, value in enumerate(row):
                     if idx < len(column_names):
                         record[column_names[idx]] = value
+                        if idx == timestamp_idx:
+                            row_timestamp = value
 
-                record["_fivetran_synced_key"] = (
-                    f"{table_name}_{offset + total_records % batch_size}"
-                )
+                record["_fivetran_synced_key"] = f"{table_name}_{row_timestamp}_{row_idx}"
+
+                if row_timestamp and (max_timestamp is None or row_timestamp > max_timestamp):
+                    max_timestamp = row_timestamp
 
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The first argument is the name of the destination table.
@@ -257,7 +291,8 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
 
             if records_since_checkpoint >= __CHECKPOINT_INTERVAL:
                 new_state = state.copy()
-                new_state[f"{table_name}_offset"] = offset
+                if max_timestamp:
+                    new_state[f"{table_name}_last_timestamp"] = max_timestamp
                 new_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
@@ -265,7 +300,7 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(new_state)
                 records_since_checkpoint = 0
-                log.info(f"Checkpointed at offset {offset} for table {table_name}")
+                log.info(f"Checkpointed at timestamp {max_timestamp} for {table_name}")
 
             if len(dataset) < batch_size:
                 log.info(f"Reached end of table {table_name}")
@@ -276,7 +311,8 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
             raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
 
     final_state = state.copy()
-    final_state[f"{table_name}_offset"] = 0
+    if max_timestamp:
+        final_state[f"{table_name}_last_timestamp"] = max_timestamp
     final_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -284,7 +320,7 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(final_state)
 
-    log.info(f"Completed sync for table {table_name}, total records: {total_records}")
+    log.info(f"Completed sync for {table_name}, total records: {total_records}")
     return total_records
 
 
