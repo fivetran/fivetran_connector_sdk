@@ -130,9 +130,9 @@ def update(configuration: dict, state: dict):
                 break
 
             # Warn if approaching API limit
-            if __MAX_SKIP <= current_skip < total_results:
+            if current_skip + len(results) > __MAX_SKIP and current_skip < total_results:
                 log.warning(
-                    f"API limit reached. Maximum skip value is {__MAX_SKIP}. Retrieved {records_processed} of {total_results} total records. Refine your search criteria to get specific records."
+                    f"API limit will be reached on the next iteration. Maximum skip value is {__MAX_SKIP}. Retrieved {records_processed} of {total_results} total records. Refine your search criteria to get specific records."
                 )
 
         # Final checkpoint at the end of sync
