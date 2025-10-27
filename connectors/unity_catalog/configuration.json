@@ -1,5 +1,5 @@
 {
-  "api_base": "https://adb-3043026989721781.1.azuredatabricks.net/",
-  "access_token": "dapi057ae963da4e80ca5c142851c2ac5803-3",
+  "api_base": "<BASE URL>",
+  "access_token": "<PAT>",
   "page_size": "100"
 }
