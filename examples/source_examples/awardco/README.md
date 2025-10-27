@@ -43,10 +43,10 @@ Configuration keys uploaded to Fivetran come from `configuration.json` (string v
 
 ```
 {
-  "api_key": "YOUR_API_KEY",
-  "base_url": "https://api.awardco.com",
-  "rate_limit": "1000",
-  "use_mock": "false"
+  "api_key": "<YOUR_AWADCO_API_KEY>",
+  "base_url": "<YOUR_AWADCO_BASE_URL>",
+  "rate_limit": ""<YOUR_AWADCO_RATE_LIMIT>",
+  "use_mock": "<TRUE_OR_FALSE>"
 }
 ```
 
