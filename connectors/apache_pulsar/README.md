@@ -56,7 +56,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector supports authentication using Apache Pulsar authentication tokens. For local standalone Pulsar instances, authentication is typically not required. For cloud or secured clusters, you can provide an authentication token in the `auth_token` configuration parameter. To obtain an authentication token, refer to your Pulsar provider's documentation (e.g., DataStax Astra Streaming, StreamNative Cloud).
 
 ## Pagination
-The connector processes messages in batches to prevent memory overflow. It reads up to `MAX_MESSAGES_PER_TOPIC` (default: 1000) messages per topic per sync. The connector uses a timeout mechanism (`READ_TIMEOUT_MS`, default: 5000ms) to detect when all available messages have been read. This approach ensures efficient memory usage while maintaining good throughput.
+The connector processes messages in batches to prevent memory overflow. It reads up to `__MAX_MESSAGES_PER_TOPIC` (default: 1000) messages per topic per sync. The connector uses a timeout mechanism (`__READ_TIMEOUT_MS`, default: 5000ms) to detect when all available messages have been read. This approach ensures efficient memory usage while maintaining good throughput.
 
 ## Data handling
 Each Pulsar message is parsed and transformed into a structured record before being upserted to the destination. The connector creates a separate table for each topic, with the table name normalized from the topic name (replacing hyphens and dots with underscores). Message payloads are parsed as JSON when possible; otherwise, they are stored as raw strings or base64-encoded data. Refer to the `parse_message` function in `connector.py`.
