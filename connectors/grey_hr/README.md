@@ -59,7 +59,7 @@ To obtain your API credentials:
 2. Navigate to the API settings section in the greytHR portal.
 3. Register your application to obtain an API username (client ID) and API password (client secret).
 4. Add these credentials to the `configuration.json` file along with your greytHR domain.
-5. The connector will automatically obtain and use an access token for all API requests.
+5. The connector automatically obtains and uses an access token for all API requests.
 
 ## Pagination
 The Employee endpoint uses offset-based pagination implemented in the `sync_employees()` function. The connector fetches employees page by page with a configurable page size (default: 100 records per page). The pagination continues until the `hasNext` field in the API response is `false`, indicating all pages have been retrieved.
