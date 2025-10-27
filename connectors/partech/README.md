@@ -48,7 +48,6 @@ Configuration parameters:
 | `location_key` | Your location-specific API key obtained from Partech. | Yes |
 | `business_key` | Your business-wide API key obtained from Partech. | Yes |
 
-
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Authentication
@@ -88,7 +87,7 @@ The connector implements robust error handling.
 - All errors are logged with appropriate severity levels before being raised
 - The connector checkpoints after each successful endpoint sync, allowing recovery from the last successful state
 
- Refer to the `make_api_request`, `handle_http_error`, and `handle_request_error` functions in `connector.py` for further details on how the connector handles errors.
+Refer to the `make_api_request`, `handle_http_error`, and `handle_request_error` functions in `connector.py` for further details on how the connector handles errors.
 
 ## Tables created
 
