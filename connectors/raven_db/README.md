@@ -89,7 +89,7 @@ The connector implements efficient pagination when retrieving data from RavenDB:
 - Uses RavenDB's `skip`/`take` pagination with configurable batch sizes
 - Default batch size is set to 100 documents but can be adjusted
 - Performs upserts one document at a time, avoiding excessive memory usage
-- Handles checkpointing every 1000 records to maintain state during long-running syncs
+- Handles checkpointing after each batch to maintain state during long-running syncs
 
 ## Data handling
 
