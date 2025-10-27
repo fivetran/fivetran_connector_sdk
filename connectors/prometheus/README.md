@@ -85,9 +85,11 @@ The authentication logic is implemented in the `get_auth_headers()` function whi
 
 ## Data handling
 
-The connector processes data in two stages:
+The connector processes data as follows:
 
-Metrics metadata sync - The connector first fetches all available metric names from Prometheus using the `/api/v1/label/__name__/values` endpoint. For each metric, a record is created with the metric name. Note that metric type and help text are set to default values (unknown and empty string) rather than being fetched from the `/api/v1/targets/metadata` endpoint, as this endpoint is not universally available across all Prometheus deployments (e.g., Grafana Cloud). This data is upserted into the metrics table. Refer to the `sync_metrics_metadata()` function in connector.py.
+Metrics metadata sync - The connector first fetches all available metric names from Prometheus using the `/api/v1/label/__name__/values` endpoint. For each metric, a record is created with the metric name. 
+
+Note: Metric type and help text are set to default values (unknown and empty string) rather than being fetched from the `/api/v1/targets/metadata` endpoint, as this endpoint is not universally available across all Prometheus deployments (e.g., Grafana Cloud). This data is upserted into the metrics table. Refer to the `sync_metrics_metadata()` function in connector.py.
 
 Time-series data sync:
 
@@ -96,23 +98,22 @@ Time-series data sync:
 - The results include metric labels, timestamps, and values, which are processed into individual data points.
 - Each data point is assigned a unique series identifier based on the metric name and label combination (refer to the `generate_series_id()` function in connector.py).
 - The data is upserted into the `time_series` table.
+
 The connector handles data sync and batching as follows:
 
 - Incremental syncs: Uses the `last_sync_timestamp` from state to query only new data since the last successful sync.
 - Initial syncs: Uses a configurable lookback period (default 24 hours) to fetch historical data.
 - Batching and checkpointing: Processes data in batches, checkpointing every 1000 data points to ensure the sync can resume from the correct position if interrupted.
 
-Refer to the `sync_time_series_for_metrics()` function in connector.py for implementation details.
+Refer to the `sync_time_series_for_metrics()` function in `connector.py` for implementation details.
 
 ## Error handling
 
 The connector implements comprehensive error handling:
 
-API request retry logic: All HTTP requests to Prometheus include automatic retry logic with exponential backoff. The connector retries up to 3 times for transient errors (timeouts and HTTP status codes 429, 500, 502, 503, 504). The retry delay doubles with each attempt, starting from 1 second. Non-retryable errors like authentication failures result in immediate failure. This is implemented in the `make_api_request()` function in connector.py.
-
-Specific exception handling - The connector catches specific exception types including `requests.Timeout` and `requests.RequestException` rather than generic exceptions. All errors are logged at the severe level with detailed error messages before raising RuntimeError to fail the sync.
-
-Response validation - All API responses are validated to ensure the status field is success before processing data. Invalid responses trigger errors with detailed information about what went wrong.
+- API request retry logic: All HTTP requests to Prometheus include automatic retry logic with exponential backoff. The connector retries up to 3 times for transient errors (timeouts and HTTP status codes 429, 500, 502, 503, 504). The retry delay doubles with each attempt, starting from 1 second. Non-retryable errors like authentication failures result in immediate failure. This is implemented in the `make_api_request()` function in `connector.py`.
+- Specific exception handling: The connector catches specific exception types including `requests.Timeout` and `requests.RequestException` rather than generic exceptions. All errors are logged at the severe level with detailed error messages before raising RuntimeError to fail the sync.
+- Response validation: All API responses are validated to ensure the status field is success before processing data. Invalid responses trigger errors with detailed information about what went wrong.
 
 ## Tables created
 
