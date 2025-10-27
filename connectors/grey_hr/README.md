@@ -76,7 +76,7 @@ Nested JSON objects are flattened using underscore notation (e.g., `employee.nam
 ## Error handling
 The connector implements comprehensive error handling with exponential backoff retry logic and automatic token refresh (refer to `get_access_token()` and `make_api_request()` functions):
 
-- Token refresh - HTTP 401 authentication errors automatically trigger token refresh and request retry
+- HTTP 401 authentication errors automatically trigger token refresh and request retry
 - Network timeouts and connection errors are retried up to three times with exponential backoff (2s, 4s, 8s)
 - HTTP 5xx server errors and 429 rate limit errors trigger automatic retries
 - HTTP 403 access forbidden errors fail immediately without retries
