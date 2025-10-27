@@ -18,12 +18,15 @@ from fivetran_connector_sdk import Operations as op
 
 # For connecting to RethinkDB database
 from rethinkdb import r
+from rethinkdb.errors import (
+    ReqlDriverError,
+    ReqlAuthError,
+    ReqlOpFailedError,
+    ReqlRuntimeError,
+)
 
 # For handling SSL and connection errors
 import ssl
-
-# For converting complex data types to JSON strings
-import json as json_module
 
 __CHECKPOINT_INTERVAL = 100  # Checkpoint after processing every 100 records
 
@@ -71,8 +74,14 @@ def connect_to_rethinkdb(configuration: dict):
         log.info(f"Successfully connected to RethinkDB at {host}:{port}, database: {database}")
         return conn
 
+    except ReqlAuthError as e:
+        log.severe(f"Authentication failed for RethinkDB: {str(e)}")
+        raise RuntimeError(f"Unable to authenticate with RethinkDB: {str(e)}")
+    except ReqlDriverError as e:
+        log.severe(f"Driver error connecting to RethinkDB: {str(e)}")
+        raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
     except Exception as e:
-        log.severe(f"Failed to connect to RethinkDB: {str(e)}")
+        log.severe(f"Unexpected error connecting to RethinkDB: {str(e)}")
         raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
 
 
@@ -89,8 +98,14 @@ def get_all_tables(conn, database: str) -> list:
         tables = r.db(database).table_list().run(conn)
         log.info(f"Found {len(tables)} tables in database: {', '.join(tables)}")
         return tables
+    except ReqlOpFailedError as e:
+        log.severe(f"Database operation failed while retrieving table list: {str(e)}")
+        raise RuntimeError(f"Error fetching table list: {str(e)}")
+    except ReqlDriverError as e:
+        log.severe(f"Driver error while retrieving table list: {str(e)}")
+        raise RuntimeError(f"Error fetching table list: {str(e)}")
     except Exception as e:
-        log.severe(f"Failed to retrieve table list: {str(e)}")
+        log.severe(f"Unexpected error retrieving table list: {str(e)}")
         raise RuntimeError(f"Error fetching table list: {str(e)}")
 
 
@@ -103,14 +118,24 @@ def get_table_primary_key(conn, database: str, table_name: str) -> list:
         table_name: Name of the table
     Returns:
         list: List containing primary key field name(s)
+    Note:
+        Defaults to 'id' if primary key cannot be determined. RethinkDB uses 'id' as the default primary key.
     """
     try:
         table_info = r.db(database).table(table_name).info().run(conn)
         primary_key = table_info.get("primary_key", "id")
         return [primary_key]
+    except ReqlOpFailedError as e:
+        log.warning(f"Table operation failed for {table_name}, defaulting to 'id': {str(e)}")
+        return ["id"]
+    except ReqlDriverError as e:
+        log.warning(
+            f"Driver error getting primary key for table {table_name}, defaulting to 'id': {str(e)}"
+        )
+        return ["id"]
     except Exception as e:
         log.warning(
-            f"Failed to get primary key for table {table_name}, defaulting to 'id': {str(e)}"
+            f"Unexpected error getting primary key for table {table_name}, defaulting to 'id': {str(e)}"
         )
         return ["id"]
 
@@ -155,8 +180,18 @@ def get_timestamp_field(conn, database: str, table_name: str):
         log.info(f"No timestamp field found for table {table_name}, will perform full sync")
         return None
 
+    except ReqlOpFailedError as e:
+        log.warning(
+            f"Table operation failed while detecting timestamp field for table {table_name}: {str(e)}"
+        )
+        return None
+    except ReqlDriverError as e:
+        log.warning(
+            f"Driver error while detecting timestamp field for table {table_name}: {str(e)}"
+        )
+        return None
     except Exception as e:
-        log.warning(f"Failed to detect timestamp field for table {table_name}: {str(e)}")
+        log.warning(f"Unexpected error detecting timestamp field for table {table_name}: {str(e)}")
         return None
 
 
@@ -173,10 +208,10 @@ def transform_record(record: dict) -> dict:
     for key, value in record.items():
         if isinstance(value, list):
             # Convert lists to JSON strings
-            transformed[key] = json_module.dumps(value) if value else None
+            transformed[key] = json.dumps(value) if value else None
         elif isinstance(value, dict):
             # Convert nested dictionaries to JSON strings
-            transformed[key] = json_module.dumps(value) if value else None
+            transformed[key] = json.dumps(value) if value else None
         else:
             # Keep primitive types as-is
             transformed[key] = value
@@ -273,8 +308,17 @@ def sync_table_data(conn, database: str, table_name: str, state: dict) -> int:
 
         return records_processed
 
+    except ReqlOpFailedError as e:
+        log.severe(f"Database operation failed while syncing table {table_name}: {str(e)}")
+        raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
+    except ReqlRuntimeError as e:
+        log.severe(f"Runtime error while syncing table {table_name}: {str(e)}")
+        raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
+    except ReqlDriverError as e:
+        log.severe(f"Driver error while syncing table {table_name}: {str(e)}")
+        raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
     except Exception as e:
-        log.severe(f"Error syncing table {table_name}: {str(e)}")
+        log.severe(f"Unexpected error syncing table {table_name}: {str(e)}")
         raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
 
 
