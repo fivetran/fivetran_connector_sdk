@@ -65,7 +65,7 @@ The connector implements comprehensive error handling strategies with exponentia
 ## Tables created
 The connector creates the following tables in your destination:
 
-### index table
+### INDEX
 
 | Column | Data Type | Description |
 |--------|-----------|-------------|
