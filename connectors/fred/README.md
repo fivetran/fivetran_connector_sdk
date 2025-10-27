@@ -57,7 +57,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 The FRED API uses API key authentication. To obtain your API key:
 
-1. Visit the FRED website at [https://fred.stlouisfed.org](https://fred.stlouisfed.org).
+1. Visit the [FRED website](https://fred.stlouisfed.org).
 2. Create an account or log in to your existing account.
 3. Navigate to **My Account > API Keys**.
 4. Click **Request API Key** and follow the prompts.
