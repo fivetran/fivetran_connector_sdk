@@ -39,7 +39,7 @@ The `configuration.json` file requires a single parameter: the complete API URL 
 
 ### Configuration parameters
 
-- `api_url` (required): Complete API URL generated from the NPPES API demo page. The URL should include your search criteria and the `limit` parameter (recommended: 200).
+- `api_url` (required): Complete API URL generated from the NPPES API demo page. The URL should include your search criteria and the `limit` parameter. The API supports a maximum limit of 200 results per request.
 
 Note: Ensure that the `configuration.json` file is not checked into version control if it contains any sensitive information.
 
@@ -49,7 +49,7 @@ To generate your API URL:
 
 1. Visit the [NPPES API Demo Page](https://npiregistry.cms.hhs.gov/demo-api).
 2. Enter your search criteria (provider name, location, taxonomy, etc.).
-3. Set the **Limit** parameter to 200 for optimal performance.
+3. Set the **Limit** parameter to 200 (the API's maximum allowed value).
 4. Click **Submit** to generate the API URL.
 5. Copy the complete URL from the demo interface.
 6. Paste it into the `configuration.json` file as the value for `api_url`.
@@ -76,7 +76,7 @@ The pagination logic works as follows:
 - It automatically appends or modifies the `skip` parameter for each page
 - The `skip` parameter starts at 0 and increments by the number of results returned
 - The maximum skip value allowed by the API is 1000
-- Each request returns a maximum of 200 results
+- Each request returns results based on the `limit` parameter in your API URL (API maximum: 200)
 - **API Limitation**: The API can return a maximum of 1,200 records total (6 pages × 200 results) per query
 - The connector continues fetching pages until no more results are returned or the max skip is reached
 - If your search criteria matches more than 1,200 providers, you will need to refine your search to get specific records
