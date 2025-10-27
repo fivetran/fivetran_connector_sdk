@@ -1,8 +1,11 @@
 """
 Binance US Connector for Fivetran SDK
-This connector fetches cryptocurrency data, wallet balances, trading history, and market information from Binance US API.
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+This connector fetches cryptocurrency data, wallet balances,
+trading history, and market information from Binance US API.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation for details
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices)
 """
 
 import json
@@ -26,9 +29,11 @@ __BINANCE_BASE_URL = "https://api.binance.us"
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
+    Validate the configuration dictionary to ensure it contains
+    all required parameters.
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
+        configuration: a dictionary that holds the configuration
+                       settings for the connector.
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
@@ -48,7 +53,9 @@ def create_signature(query_string: str, api_secret: str) -> str:
         The signature string
     """
     return hmac.new(
-        api_secret.encode("utf-8"), query_string.encode("utf-8"), hashlib.sha256
+        api_secret.encode("utf-8"),
+        query_string.encode("utf-8"),
+        hashlib.sha256,
     ).hexdigest()
 
 
@@ -119,7 +126,8 @@ def make_authenticated_request(
             elif response.status_code == 451:
                 # Geographic restriction error
                 log.severe(
-                    "Binance US API is not available in your current location due to geographic restrictions."
+                    "Binance US API is not available in your current "
+                    "location due to geographic restrictions."
                 )
                 log.severe("Please try one of the following solutions:")
                 log.severe("1. Use a VPN to connect from the US")
@@ -131,13 +139,16 @@ def make_authenticated_request(
                 if attempt < __MAX_RETRIES - 1:
                     delay = __BASE_DELAY * (2**attempt)
                     log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+                        f"Request failed with status {response.status_code}, "
+                        f"retrying in {delay} seconds "
+                        f"(attempt {attempt + 1}/{__MAX_RETRIES})"
                     )
                     time.sleep(delay)
                     continue
                 else:
                     log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
+                        f"Failed to fetch data after {__MAX_RETRIES} attempts. "
+                        f"Last status: {response.status_code} - {response.text}"
                     )
                     raise RuntimeError(
                         f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
@@ -146,7 +157,9 @@ def make_authenticated_request(
                 log.severe(
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
-                raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
+                raise RuntimeError(
+                    f"API request failed: {response.status_code} - " f"{response.text}"
+                )
 
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRIES - 1:
@@ -184,7 +197,8 @@ def make_public_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
             elif response.status_code == 451:
                 # Geographic restriction error
                 log.severe(
-                    "Binance US API is not available in your current location due to geographic restrictions."
+                    "Binance US API is not available in your current "
+                    "location due to geographic restrictions."
                 )
                 log.severe("Please try one of the following solutions:")
                 log.severe("1. Use a VPN to connect from the US")
@@ -196,13 +210,16 @@ def make_public_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
                 if attempt < __MAX_RETRIES - 1:
                     delay = __BASE_DELAY * (2**attempt)
                     log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+                        f"Request failed with status {response.status_code}, "
+                        f"retrying in {delay} seconds "
+                        f"(attempt {attempt + 1}/{__MAX_RETRIES})"
                     )
                     time.sleep(delay)
                     continue
                 else:
                     log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
+                        f"Failed to fetch data after {__MAX_RETRIES} attempts. "
+                        f"Last status: {response.status_code} - {response.text}"
                     )
                     raise RuntimeError(
                         f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
@@ -211,7 +228,9 @@ def make_public_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
                 log.severe(
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
-                raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
+                raise RuntimeError(
+                    f"API request failed: {response.status_code} - " f"{response.text}"
+                )
 
         except requests.exceptions.RequestException as e:
             if attempt < __MAX_RETRIES - 1:
