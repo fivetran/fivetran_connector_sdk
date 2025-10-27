@@ -18,10 +18,12 @@ jobs:
         run: |
           echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
           echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          echo "HEAD_REPO=${{ github.event.pull_request.head.repo.clone_url }}" >> $GITHUB_ENV
 
       - name: Ensure SHAs are fetched
         run: |
-          git fetch --no-tags --prune $BASE_SHA $HEAD_SHA
+          git fetch --no-tags --prune origin $BASE_SHA 
+          git fetch --no-tags --prune $HEAD_REPO $HEAD_SHA
 
       - name: Create check script
         id: create-script
@@ -153,5 +155,6 @@ jobs:
         run: |
           echo "BASE_SHA: $BASE_SHA"
           echo "HEAD_SHA: $HEAD_SHA"
+          echo "HEAD_REPO: $HEAD_REPO"
           echo "Git Branches:"
           git branch -a
