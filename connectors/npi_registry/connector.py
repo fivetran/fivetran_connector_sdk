@@ -112,19 +112,18 @@ def update(configuration: dict, state: dict):
                 process_provider_record(result)
                 records_processed += 1
 
-                # Checkpoint periodically to save progress
-                if records_processed % __CHECKPOINT_INTERVAL == 0:
-                    new_state = {"skip": current_skip}
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(new_state)
-                    log.info(f"Checkpoint saved at skip offset: {new_state['skip']}")
-
             # Move to next page
             current_skip += len(results)
 
+            # Checkpoint periodically to save progress
+            if records_processed % __CHECKPOINT_INTERVAL == 0:
+                new_state = {"skip": current_skip}
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(new_state)
+                log.info(f"Checkpoint saved at skip offset: {new_state['skip']}")
             # Check if we've reached the end of results
             if current_skip >= total_results:
                 log.info(f"Reached end of results. Total records processed: {records_processed}")
