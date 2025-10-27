@@ -40,24 +40,24 @@ The connector requires the following configuration parameters:
 }
 ```
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+Configuration parameters:
 
 | Parameter | Description | Required |
 |-----------|-------------|----------|
-| `base_url` | The base URL of your Partech (Punchh) server. This can be your production server (e.g., `https://yourserver.punchh.com`) or a mock/test server URL for testing purposes | Yes |
-| `location_key` | Your location-specific API key obtained from Partech | Yes |
-| `business_key` | Your business-wide API key obtained from Partech | Yes |
+| `base_url` | The base URL of your Partech (Punchh) server. This can be your production server (e.g., `https://yourserver.punchh.com`) or a mock/test server URL for testing purposes. | Yes |
+| `location_key` | Your location-specific API key obtained from Partech. | Yes |
+| `business_key` | Your business-wide API key obtained from Partech. | Yes |
+
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Authentication
 
 The connector uses custom token-based authentication. To obtain your credentials:
 
 1. Log in to your Partech (Punchh) account.
-
-2. Navigate to the API settings section for your business.
-
-3. Retrieve your location key and business key.
-
+2. Navigate to the **API settings** section for your business.
+3. Make a note of your location key and business key.
 4. Add both keys to the `configuration.json` file.
 
 The authentication header format used by the connector is:
@@ -68,7 +68,7 @@ Authorization: Token token=<location_key>, btoken=<business_key>
 
 ## Data handling
 
-The connector processes data using the following approach. Refer to the `sync_location_configuration`, `sync_program_meta`, `flatten_multiple_redemptions`, `upsert_program_meta`, `upsert_redeemables`, and `upsert_processing_priority` functions in `connector.py`:
+The connector processes data as follows:
 
 - Location configuration data is synced as-is since it contains flat key-value pairs
 - Single nested objects like `multiple_redemptions` are flattened into the main program_meta table with prefixed column names
@@ -76,9 +76,11 @@ The connector processes data using the following approach. Refer to the `sync_lo
 - Arrays of objects like `redeemables` and `processing_priority_by_acquisition_type` are extracted into separate child tables with composite primary keys
 - Child tables include the parent foreign key `program_type` as part of their composite primary key to maintain referential integrity
 
+Refer to the `sync_location_configuration`, `sync_program_meta`, `flatten_multiple_redemptions`, `upsert_program_meta`, `upsert_redeemables`, and `upsert_processing_priority` functions in the `connector.py` for further details on how the connector processes data.
+
 ## Error handling
 
-The connector implements robust error handling. Refer to the `make_api_request`, `handle_http_error`, and `handle_request_error` functions in `connector.py`:
+The connector implements robust error handling.
 
 - Client errors (4xx) fail immediately without retry as they indicate configuration or authentication issues
 - Server errors (5xx) trigger up to 3 retry attempts with exponential backoff (1s, 2s, 4s delays)
@@ -86,11 +88,13 @@ The connector implements robust error handling. Refer to the `make_api_request`,
 - All errors are logged with appropriate severity levels before being raised
 - The connector checkpoints after each successful endpoint sync, allowing recovery from the last successful state
 
+ Refer to the `make_api_request`, `handle_http_error`, and `handle_request_error` functions in `connector.py` for further details on how the connector handles errors.
+
 ## Tables created
 
 The connector creates the following tables in your destination:
 
-### location_configuration
+### LOCATION_CONFIGURATION
 
 Contains location-specific settings and display configurations.
 
@@ -111,7 +115,7 @@ Contains location-specific settings and display configurations.
 | `visits_mode` | No |
 | `multiple_redemption_on_location` | No |
 
-### program_meta
+### PROGRAM_META
 
 Contains loyalty program rules and settings with flattened multiple redemption configurations.
 
@@ -140,15 +144,15 @@ Contains loyalty program rules and settings with flattened multiple redemption c
 | `exclude_interoperability_strategy_between` | No |
 | `multiple_redemptions_enabled` | No |
 
-Note: Columns prefixed with `multiple_redemptions_` are flattened from the nested `multiple_redemptions` object.
+Note: The connector flattens columns prefixed with `multiple_redemptions_` from the nested `multiple_redemptions` object.
 
-### redeemable
+### REDEEMABLE
 
 Contains individual reward items that can be redeemed by customers.
 
 | Column | Primary Key |
 |--------|-------------|
-| `program_type` | Yes (FK from program_meta) |
+| `program_type` | Yes (foreign key from `PROGRAM_META`) |
 | `redeemable_id` | Yes |
 | `name` | No |
 | `description` | No |
@@ -157,13 +161,13 @@ Contains individual reward items that can be redeemed by customers.
 | `meta_data` | No |
 | `points_required_to_redeem` | No |
 
-### processing_priority_by_acquisition_type
+### PROCESSING_PRIORITY_BY_ACQUISITION_TYPE
 
 Contains priority rules for different discount acquisition types during redemption.
 
 | Column | Primary Key |
 |--------|-------------|
-| `program_type` | Yes (FK from program_meta) |
+| `program_type` | Yes (foreign key from `PROGRAM_META`) |
 | `code` | Yes |
 | `priority` | No |
 | `multiplication_factor` | No |
