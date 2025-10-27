@@ -58,7 +58,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Starting data sync from AwardCo API")
+    log.warning("Examples: Source Examples - Awardco")
 
     validate_configuration(configuration=configuration)
 
