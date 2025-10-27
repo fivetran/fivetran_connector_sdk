@@ -27,7 +27,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Checkpoint after each page and date window for reliable resumption
 
 ## Configuration file
-The connector requires the following configuration parameters:
 
 ```json
 {
