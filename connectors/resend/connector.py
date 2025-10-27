@@ -29,6 +29,7 @@ __BASE_URL = "https://api.resend.com"  # Base URL for Resend API
 __EMAILS_ENDPOINT = "/emails"  # Endpoint path for emails API
 __REQUEST_TIMEOUT_SECONDS = 30  # Timeout for API requests in seconds
 __CHECKPOINT_INTERVAL = 50  # Checkpoint after every 50 emails
+__RATE_LIMIT_DELAY_SECONDS = 0.6  # Delay between requests to respect 2 req/sec limit
 
 # Retry configuration constants
 __MAX_RETRIES = 5  # Maximum number of retry attempts for API requests
@@ -182,6 +183,7 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
     """
     Fetch and sync emails data from Resend API with incremental syncing support.
     This function handles pagination and checkpoints progress at regular intervals.
+    For incremental sync, it fetches all emails and stops when reaching previously synced emails.
 
     Args:
         headers: HTTP headers including authorization token
@@ -190,18 +192,24 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
     Returns:
         The last synced email ID for the next sync
     """
-    log.info("Starting emails sync")
+    if last_synced_email_id:
+        log.info(f"Starting incremental sync from last synced email ID: {last_synced_email_id}")
+    else:
+        log.info("Starting full sync (no previous state)")
 
     # Build the URL for emails endpoint
     url = f"{__BASE_URL}{__EMAILS_ENDPOINT}"
     params: dict = {}
 
     emails_synced_count = 0
-    last_email_id = last_synced_email_id
+    new_emails_count = 0
+    newest_email_id = None  # Track the newest (first) email ID from this sync
+    last_page_email_id = None  # Track last email ID on current page for pagination
     has_more_pages = True
+    found_last_synced = False
 
-    # Process emails in pages until no more data available
-    while has_more_pages:
+    # Process emails in pages until no more data available or we reach previously synced emails
+    while has_more_pages and not found_last_synced:
         try:
             response_data = fetch_emails_from_api(url, headers, params)
             emails = response_data.get("data", [])
@@ -209,7 +217,22 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
             log.info(f"Retrieved {len(emails)} emails from API")
 
             # Process each email in the current page
-            for email in emails:
+            for idx, email in enumerate(emails):
+                email_id = email.get("id")
+
+                # Track the first (newest) email ID from this sync
+                if idx == 0 and newest_email_id is None:
+                    newest_email_id = email_id
+                    log.info(f"Newest email ID in this sync: {newest_email_id}")
+
+                # Check if we've reached the last synced email (incremental sync)
+                if last_synced_email_id and email_id == last_synced_email_id:
+                    log.info(
+                        f"Reached previously synced email ID: {email_id}. Stopping incremental sync."
+                    )
+                    found_last_synced = True
+                    break
+
                 # Flatten the email data for table storage
                 flattened_email = flatten_dict(email)
 
@@ -219,18 +242,25 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
                 op.upsert(table="email", data=flattened_email)
 
                 emails_synced_count += 1
-                last_email_id = email.get("id")
+                new_emails_count += 1
+                last_page_email_id = email_id
 
                 # Checkpoint at regular intervals to save progress
                 if emails_synced_count % __CHECKPOINT_INTERVAL == 0:
-                    checkpoint_state = {"last_synced_email_id": last_email_id}
+                    checkpoint_state = {"last_synced_email_id": newest_email_id}
 
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
                     # Learn more about how and where to checkpoint by reading our best practices documentation
                     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                     op.checkpoint(checkpoint_state)
-                    log.info(f"Checkpointed at {emails_synced_count} emails")
+                    log.info(
+                        f"Checkpointed at {emails_synced_count} emails with newest ID: {newest_email_id}"
+                    )
+
+            # If we found the last synced email, stop pagination
+            if found_last_synced:
+                break
 
             # Check pagination - Resend uses has_more flag
             has_more_pages = response_data.get("has_more", False)
@@ -239,10 +269,13 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
                 log.info(f"No more emails to sync. Total synced: {emails_synced_count}")
                 break
 
-            # For pagination, use after parameter with the last email ID
+            # For pagination, use after parameter with the last email ID on this page
             if emails:
-                params["after"] = last_email_id
-                log.info(f"Fetching next page after email ID: {last_email_id}")
+                params["after"] = last_page_email_id
+                log.info(f"Fetching next page after email ID: {last_page_email_id}")
+
+                # Add delay between pagination requests to respect rate limits
+                time.sleep(__RATE_LIMIT_DELAY_SECONDS)
             else:
                 break
 
@@ -250,8 +283,9 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
             log.severe(f"Error syncing emails: {e}")
             raise
 
-    log.info(f"Email sync completed. Total emails synced: {emails_synced_count}")
-    return last_email_id
+    log.info(f"Email sync completed. Total new emails synced: {new_emails_count}")
+    # Return the newest email ID (first email from this sync) for next incremental sync
+    return newest_email_id if newest_email_id else last_synced_email_id
 
 
 # Create the connector object using the schema and update functions
