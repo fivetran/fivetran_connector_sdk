@@ -45,8 +45,8 @@ The connector requires the following configuration parameters in `configuration.
 {
   "api_key": "YOUR_CRYPTO_COM_API_KEY",
   "api_secret": "YOUR_CRYPTO_COM_API_SECRET",
-  "log": "true",
-  "hours_between_syncs": "12.0"
+  "log": "SHOULD_LOG_TO_LOCAL_FILE",
+  "hours_between_syncs": "DESIRED_HOURS_BETWEEN_FULL_SYNCS"
 }
 ```
 
@@ -61,19 +61,9 @@ The connector requires the following configuration parameters in `configuration.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Requirements file
-
-The `requirements.txt` file specifies the Python libraries required by the connector:
-
-```
-requests==2.32.4
-```
-
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
 ## Authentication
 
-The connector uses API key authentication with HMAC SHA256 signatures according to the [Crypto.com Exchange API v1 specification](https://exchange-docs.crypto.com/exchange/v1/rest-ws/index.html#common-api-reference) (Refer to `create_signature()` function, lines 349-401).
+The connector uses API key authentication with HMAC SHA256 signatures according to the [Crypto.com Exchange API v1 specification](https://exchange-docs.crypto.com/exchange/v1/rest-ws/index.html#common-api-reference) (Refer to `create_signature()` function).
 
 ### Obtaining API Credentials
 
@@ -89,7 +79,7 @@ The signature is created using: `HMAC-SHA256(api_secret, method + id + api_key +
 
 ## Pagination
 
-The connector handles pagination efficiently (Refer to `process_in_batches()` function, lines 129-167):
+The connector handles pagination efficiently (Refer to `process_in_batches()` function):
 
 - Public Endpoints – Fetched once per sync with time-based intervals - Refer to `should_sync_endpoint()` function
 - Private Endpoints – Always synced on every run - Refer to `update()` function private endpoints section
@@ -98,7 +88,7 @@ The connector handles pagination efficiently (Refer to `process_in_batches()` fu
 
 ## Data handling
 
-The connector processes and transforms data as follows (Refer to `schema()` function, lines 1341-1402):
+The connector processes and transforms data as follows (Refer to `schema()` function):
 
 - Schema Mapping – Maps API response fields to standardized table schemas - Refer to individual fetch functions (e.g., `fetch_instruments()`, `fetch_tickers()`)
 - Data Type Conversion – Automatically converts lists and dictionaries to JSON strings for Fivetran SDK compatibility - Refer to `clean_order_data()` function
@@ -108,7 +98,7 @@ The connector processes and transforms data as follows (Refer to `schema()` func
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (Refer to `make_authenticated_request` function, lines 404-606):
+The connector implements comprehensive error handling strategies (Refer to `make_authenticated_request` function):
 
 - Retry Logic – Exponential backoff for transient errors (up to 3 attempts) - Refer to `__MAX_RETRIES` constant and retry loop
 - Rate Limit Handling – Automatic retry with increasing delays for rate limit errors - Refer to `apply_rate_limit()` function
@@ -122,28 +112,23 @@ The connector implements comprehensive error handling strategies (Refer to `make
 The connector creates the following tables in your destination:
 
 ### Public data tables
-- `instrument` – Trading pairs and market information
-- `ticker` – Real-time market data and price statistics
-- `trade` – Recent trade execution data
-- `book` – Order book data (bids/asks)
-- `candlestick` – Historical OHLCV price data
+- `INSTRUMENT` – Trading pairs and market information
+- `TICKER` – Real-time market data and price statistics
+- `TRADE` – Recent trade execution data
+- `BOOK` – Order book data (bids/asks)
+- `CANDLESTICK` – Historical OHLCV price data
 
 ### Private data tables
-- `user_balance` – Account wallet balances and permissions
-- `open_order` – Currently active orders
-- `order_history` – Complete order history with incremental sync
-- `user_position` – Current trading positions (available but not actively synced)
+- `USER_BALANCE` – Account wallet balances and permissions
+- `OPEN_ORDER` – Currently active orders
+- `ORDER_HISTORY` – Complete order history with incremental sync
+- `USER_POSITION` – Current trading positions (available but not actively synced)
 
 ## Additional files
 
 Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose:
 
-- `connector.py.bak` – A backup copy of the connector implementation for version control and rollback purposes
-- `connector.py.old` – An older version of the connector implementation for reference and comparison
-- `curr.configuration.json` – Current configuration file with actual API credentials (not checked into version control)
 - `crypto_connector.log` – Log file generated when file logging is enabled in the configuration
-- `files/state.json` – State file used by the Fivetran SDK to track sync progress and checkpoint information
-- `files/warehouse.db` – Local SQLite database used by the Fivetran SDK for data warehousing during development and testing
 
 ## Additional considerations
 
