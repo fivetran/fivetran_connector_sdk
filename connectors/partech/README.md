@@ -2,7 +2,9 @@
 
 ## Connector overview
 
-This connector demonstrates how to sync location configuration and program metadata from the Partech (Punchh) Point of Sale (POS) API. Partech provides loyalty and engagement solutions for restaurants and retail businesses. The connector fetches location settings, program rules, redeemables (rewards), and redemption priority configurations, making this data available in your destination for analytics and reporting purposes.
+This connector demonstrates how to sync location configuration and program metadata from the Partech (previously Punchh) Point of Sale (POS) API. Partech provides loyalty and engagement solutions for restaurants and retail businesses. 
+
+The connector fetches location settings, program rules, redeemables (rewards), and redemption priority configurations, making this data available in your destination for analytics and reporting purposes.
 
 ## Requirements
 
