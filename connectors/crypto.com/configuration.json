@@ -1,4 +1,6 @@
 {
   "api_key": "YOUR_CRYPTO_COM_API_KEY",
-  "api_secret": "YOUR_CRYPTO_COM_API_SECRET"
+  "api_secret": "YOUR_CRYPTO_COM_API_SECRET",
+  "log": "SHOULD_LOG_TO_LOCAL_FILE",
+  "hours_between_syncs": "DESIRED_HOURS_BETWEEN_FULL_SYNCS"
 }
