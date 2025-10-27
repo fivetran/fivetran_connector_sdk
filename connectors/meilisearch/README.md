@@ -76,7 +76,7 @@ The connector creates the following tables in your destination:
 
 The `index` table contains metadata about each MeiliSearch index including its unique identifier, creation timestamp, last update timestamp, and configured primary key field name.
 
-### document table
+### DOCUMENT
 
 | Column | Data Type | Description |
 |--------|-----------|-------------|
