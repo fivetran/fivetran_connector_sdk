@@ -21,7 +21,7 @@ jobs:
 
       - name: Ensure SHAs are fetched
         run: |
-          git fetch --no-tags --prune origin $BASE_SHA $HEAD_SHA
+          git fetch --no-tags --prune $BASE_SHA $HEAD_SHA
 
       - name: Create check script
         id: create-script
