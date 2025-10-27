@@ -1,0 +1,5 @@
+{
+  "api_base": "https://<your-databricks-workspace-url>",
+  "access_token": "<DATABRICKS_PERSONAL_ACCESS_TOKEN>",
+  "page_size": 100
+}
