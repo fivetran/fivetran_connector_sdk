@@ -70,12 +70,13 @@ def update(configuration: dict, state: dict):
 
     headers = build_request_headers(api_key)
 
+    last_sync_timestamp = state.get("last_sync_timestamp")
     current_sync_timestamp = int(time.time() * 1000)
 
     try:
         sync_indexes(api_url, headers)
 
-        sync_documents_from_all_indexes(api_url, headers)
+        sync_documents_from_all_indexes(api_url, headers, last_sync_timestamp)
 
         new_state = {"last_sync_timestamp": current_sync_timestamp}
 
@@ -221,12 +222,16 @@ def sync_indexes(api_url: str, headers: Dict[str, str]):
     log.info(f"Synced {indexes_synced} indexes")
 
 
-def sync_documents_from_all_indexes(api_url: str, headers: Dict[str, str]):
+def sync_documents_from_all_indexes(
+    api_url: str, headers: Dict[str, str], last_sync_timestamp: Optional[int] = None
+):
     """
     Fetch documents from all indexes in MeiliSearch and sync them to the destination.
+    Supports incremental sync when documents have a last_updated field configured as filterable.
     Args:
         api_url: The base URL of the MeiliSearch instance
         headers: HTTP headers including authorization
+        last_sync_timestamp: Timestamp in milliseconds for incremental sync filtering
     """
     log.info("Starting documents sync from all indexes")
 
@@ -235,7 +240,7 @@ def sync_documents_from_all_indexes(api_url: str, headers: Dict[str, str]):
     for index in indexes:
         index_uid = index.get("uid")
         if index_uid:
-            sync_documents_for_index(api_url, headers, index_uid)
+            sync_documents_for_index(api_url, headers, index_uid, last_sync_timestamp)
 
 
 def fetch_all_indexes(api_url: str, headers: Dict[str, str]) -> List[Dict]:
@@ -268,13 +273,19 @@ def fetch_all_indexes(api_url: str, headers: Dict[str, str]) -> List[Dict]:
     return all_indexes
 
 
-def sync_documents_for_index(api_url: str, headers: Dict[str, str], index_uid: str):
+def sync_documents_for_index(
+    api_url: str,
+    headers: Dict[str, str],
+    index_uid: str,
+    last_sync_timestamp: Optional[int] = None,
+):
     """
     Fetch and sync documents from a specific MeiliSearch index.
     Args:
         api_url: The base URL of the MeiliSearch instance
         headers: HTTP headers including authorization
         index_uid: The unique identifier of the index
+        last_sync_timestamp: Timestamp in milliseconds for incremental sync filtering
     """
     log.info(f"Syncing documents from index: {index_uid}")
 
@@ -284,6 +295,10 @@ def sync_documents_for_index(api_url: str, headers: Dict[str, str], index_uid: s
 
     while True:
         payload = {"offset": offset, "limit": __PAGINATION_LIMIT}
+
+        if last_sync_timestamp:
+            last_updated_seconds = last_sync_timestamp // 1000
+            payload["filter"] = f"last_updated >= {last_updated_seconds}"
 
         try:
             response_data = make_api_request(url, headers, method="POST", json_payload=payload)
