@@ -163,7 +163,7 @@ def update(configuration: dict, state: dict):
 
         # Final checkpoint with the latest state only if we processed any records
         if new_created_at is not None:
-            checkpoint_sync_state_final(new_created_at, records_processed)
+            checkpoint_sync_state(new_created_at, records_processed, is_final=True)
         else:
             log.info("No new records to process. Sync completed without state update.")
 
@@ -212,13 +212,14 @@ def update_sync_cursor(user, current_cursor):
     return current_cursor
 
 
-def checkpoint_sync_state(cursor_value, records_processed):
+def checkpoint_sync_state(cursor_value, records_processed, is_final=False):
     """
     Checkpoint the current sync state.
 
     Args:
         cursor_value: The current cursor value to save.
         records_processed: Number of records processed so far.
+        is_final: Whether this is the final checkpoint (default: False).
     """
     checkpoint_state = {"last_created_at": cursor_value}
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -226,20 +227,11 @@ def checkpoint_sync_state(cursor_value, records_processed):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(checkpoint_state)
-    log.info(f"Checkpointed after processing {records_processed} records")
 
-
-def checkpoint_sync_state_final(cursor_value, records_processed):
-    """
-    Checkpoint the final sync state and log completion.
-
-    Args:
-        cursor_value: The final cursor value to save.
-        records_processed: Total number of records processed.
-    """
-    final_state = {"last_created_at": cursor_value}
-    op.checkpoint(final_state)
-    log.info(f"Sync completed. Total records processed: {records_processed}")
+    if is_final:
+        log.info(f"Sync completed. Total records processed: {records_processed}")
+    else:
+        log.info(f"Checkpointed after processing {records_processed} records")
 
 
 def fetch_users_paginated(api_key, last_created_at=None):

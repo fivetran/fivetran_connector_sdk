@@ -75,7 +75,7 @@ The pagination logic is implemented as a generator function to avoid loading all
 The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures.
 
 Main table flattening:
-- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `USERS` table using underscore notation
+- Nested JSON objects (e.g., `public_metadata`, `private_metadata`) are flattened into the main `USER` table using underscore notation
 - Example: `public_metadata.role` becomes the `public_metadata_role` column
 - Deeply nested objects use multiple underscores: `verification.error.code` becomes `verification_error_code`
 
