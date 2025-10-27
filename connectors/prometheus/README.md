@@ -113,6 +113,7 @@ The connector handles data sync and batching as follows:
 - Batching and checkpointing: Processes data in batches, checkpointing every 1000 data points to ensure the sync can resume from the correct position if interrupted.
 
 Refer to the `sync_time_series_for_metrics()` function in connector.py for implementation details.
+
 ## Error handling
 
 The connector implements comprehensive error handling:
