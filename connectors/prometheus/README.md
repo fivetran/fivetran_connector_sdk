@@ -2,9 +2,7 @@
 
 ## Connector overview
 
-This connector demonstrates how to sync metrics and time-series data from Prometheus, an open-source monitoring and alerting system. Prometheus is widely used for collecting and storing time-series data as metrics with millisecond precision timestamps. This connector extracts metric metadata and time-series data points, enabling users to analyze monitoring data in their destination warehouse.
-
-The connector syncs two primary tables: metrics metadata (containing information about available metrics) and time-series data points (containing the actual metric values with timestamps and labels). It supports incremental syncs based on timestamps, multiple authentication methods, and configurable metric filtering to manage high-cardinality data.
+This connector syncs metrics metadata and time series data from Prometheus, an open-source monitoring and alerting system. It syncs data with support for incremental syncs, multiple authentication methods (none, basic, bearer token), and configurable metric filtering. You need to provide your Prometheus server URL and optional authentication credentials for this example to work.
 
 ## Requirements
 
@@ -31,7 +29,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-The connector requires the following configuration parameters:
+The connector uses the following configuration parameters:
 
 ```json
 {
@@ -47,19 +45,19 @@ The connector requires the following configuration parameters:
 
 Configuration parameters:
 
-- `prometheus_url` - The base URL of your Prometheus server (e.g., http://localhost:9090)
-- `auth_type` - Authentication method: none, basic, or bearer (optional, defaults to none)
-- `username` - Username for basic authentication (optional, only if auth_type is basic)
-- `password` - Password for basic authentication (optional, only if auth_type is basic)
-- `bearer_token` - Bearer token for token-based authentication (optional, only if auth_type is bearer)
-- `lookback_hours` - Number of hours to look back for initial sync (optional, defaults to 24)
-- `metrics_filter` - Comma-separated list or JSON array of specific metric names to sync (optional, if omitted all metrics are synced)
+- `prometheus_url` (required) - The base URL of your Prometheus server (e.g., `http://localhost:9090`)
+- `auth_type` (optional, defaults to `none`) - Authentication method: `none`, `basic`, or `bearer`
+- `username` (required only if `auth_type` is basic) - Username for basic authentication
+- `password` (required only if `auth_type` is basic) - Password for basic authentication
+- `bearer_token` (required only if `auth_type` is bearer) - Bearer token for token-based authentication 
+- `lookback_hours` (optional, defaults to 24) - Number of hours to look back for initial sync
+- `metrics_filter` (optional) - Comma-separated list or JSON array of specific metric names to sync. If omitted, all metrics are synced.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
-This connector uses only standard library packages and `requests`, which are pre-installed in the Fivetran environment. No additional dependencies are required, so no `requirements.txt` file is needed.
+This connector uses only standard library packages and requests, which are pre-installed in the Fivetran environment. No additional dependencies are required, so no `requirements.txt` file is needed.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment.
 
@@ -74,22 +72,14 @@ This connector supports three authentication methods:
 To configure authentication:
 
 1. Determine which authentication method your Prometheus server requires.
-
-2. Set the `auth_type` field in `configuration.json` to none, basic, or bearer.
-
+2. Set the `auth_type` field in `configuration.json` to `none`, `basic`, or `bearer`.
 3. If using basic authentication:
-
-   1. Obtain or create a username and password for your Prometheus server.
-
-   2. Add the `username` and `password` fields to `configuration.json`.
-
+   - Obtain or create a username and password for your Prometheus server.
+   - Add the `username` and `password` fields to `configuration.json`.
 4. If using bearer token authentication:
-
-   1. Obtain a valid bearer token from your authentication provider.
-
-   2. Add the `bearer_token` field to `configuration.json`.
-
-5. For local testing with Docker Compose, use auth_type none as no authentication is configured by default.
+   - Obtain a valid bearer token from your authentication provider.
+   - Add the `bearer_token` field to `configuration.json`.
+5. For local testing with Docker Compose, use the none `auth_type` as no authentication is configured by default.
 
 The authentication logic is implemented in the `get_auth_headers()` function which builds the appropriate HTTP headers based on the configured authentication type.
 
@@ -126,9 +116,9 @@ Response validation - All API responses are validated to ensure the status field
 
 ## Tables created
 
-The connector creates the following tables in your destination:
+The connector creates the `METRICS` and `TIME_SERIES` tables in your destination.
 
-### metrics
+### METRICS
 
 This table contains metadata about each metric available in Prometheus.
 
@@ -136,9 +126,9 @@ This table contains metadata about each metric available in Prometheus.
 - `metric_type` (STRING) - Type of metric (counter, gauge, histogram, or summary).
 - `help_text` (STRING) - Description of what the metric measures.
 
-### time_series
+### TIME_SERIES
 
-This table contains the actual time-series data points. Each row represents a single measurement at a specific point in time.
+This table contains the actual time series data points. Each row represents a single measurement at a specific point in time.
 
 - `series_id` (STRING) - Primary key. Unique hash generated from the metric name and label combination.
 - `metric_name` (STRING) - Name of the metric.
