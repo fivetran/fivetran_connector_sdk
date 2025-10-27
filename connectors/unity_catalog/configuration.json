@@ -1,5 +1,5 @@
 {
-  "api_base": "https://<your-databricks-workspace-url>",
-  "access_token": "<DATABRICKS_PERSONAL_ACCESS_TOKEN>",
-  "page_size": 100
+  "api_base": "https://adb-3043026989721781.1.azuredatabricks.net/",
+  "access_token": "dapi057ae963da4e80ca5c142851c2ac5803-3",
+  "page_size": "100"
 }
