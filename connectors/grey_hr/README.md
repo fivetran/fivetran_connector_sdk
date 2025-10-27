@@ -19,7 +19,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Incremental syncing for Employee data based on lastModified timestamp
 - Incremental syncing for Leave Transactions and Attendance Insights with date-based state management
 - Automatic date windowing to handle greytHR's 31-day maximum date range limit
-- Pagination support for Employee endpoint with configurable page size
+- Pagination support for the Employee endpoint with configurable page size
 - Automatic flattening of nested JSON objects into destination table columns
 - Breakout tables for array data (leave transaction children, attendance metrics)
 - Exponential backoff retry logic for transient API errors
