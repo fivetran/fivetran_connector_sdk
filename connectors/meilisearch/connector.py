@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Example: API Connector : MeiliSearch Connector")
+    log.warning("Example: Source Examples - MeiliSearch")
 
     api_url = configuration.get("api_url")
     api_key = configuration.get("api_key")
