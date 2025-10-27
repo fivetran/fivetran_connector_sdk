@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Fivetran Connector SDK — Amazon S3 (Glacier-aware) Source
 Streams object metadata from a bucket/prefix, supports incremental sync by LastModified,
@@ -14,46 +13,45 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
-# --------------------------------------------------------------------
-# 🔐 Inline credentials (for demo only)
-# --------------------------------------------------------------------
-AWS_ACCESS_KEY_ID = "AKIATWOH52HXXNKECXHR"
-AWS_SECRET_ACCESS_KEY = "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"
-AWS_REGION = "us-east-1"
-AWS_SESSION_TOKEN = None
 
-# --------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------
 GLACIER_CLASSES = {
     "GLACIER", "DEEP_ARCHIVE",
     "GLACIER_IR", "GLACIER_FLEXIBLE_RETRIEVAL"
 }
 
-def _iso(dt):
+def iso(dt):
+    """Convert datetime or string to ISO 8601 UTC string, or return None."""
     if not dt:
         return None
     if isinstance(dt, str):
         return dt
     return dt.astimezone(timezone.utc).isoformat()
 
-def _now_iso():
+def now_iso():
+    """Get current time as ISO 8601 UTC string."""
     return datetime.now(timezone.utc).isoformat()
 
-def _make_s3_client(_: Dict[str, Any]):
-    """Create boto3 S3 client using inline credentials."""
+def make_s3_client(configuration: Dict[str, Any]):
+    """
+    Create boto3 S3 client using inline credentials.
+    Args: param configuration: Connector configuration dictionary.
+    Returns: S3 client object.
+    """
     session = boto3.session.Session(
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        aws_session_token=AWS_SESSION_TOKEN,
-        region_name=AWS_REGION,
+        aws_access_key_id=configuration.get("aws_access_key_id"),
+        aws_secret_access_key=configuration.get("aws_secret_access_key"),
+        aws_session_token=configuration.get("aws_access_token", ""),
+        region_name=configuration.get("aws_region"),
     )
     return session.client("s3", config=BotoConfig(retries={"max_attempts": 10, "mode": "standard"}))
 
-# --------------------------------------------------------------------
-# Schema
-# --------------------------------------------------------------------
-def schema(_: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+# Define the schema function, which lets you configure the schema your connector delivers.
+# See the technical reference documentation for more details on the schema function:
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+# The schema function takes one parameter:
+# - configuration: a dictionary that holds the configuration settings for the connector.
+def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [{
         "table": "s3_objects",
         "primary_key": ["key"],
@@ -68,17 +66,25 @@ def schema(_: Dict[str, Any]) -> List[Dict[str, Any]]:
         }
     }]
 
-# --------------------------------------------------------------------
-# Core iteration
-# --------------------------------------------------------------------
+
 def _iterate_objects(s3, bucket: str, prefix: str, page_size: int):
+    """
+    Iterate S3 objects in bucket/prefix, yielding metadata rows.
+    Handles Glacier restore status via head_object calls.
+    Args: param s3: S3 client object.
+          param bucket: S3 bucket name.
+          param prefix: S3 prefix to list.
+          param page_size: Number of objects to fetch per API call.
+    Yields: Dict[str, Any] — Object metadata row.
+    """
+
     kwargs = {"Bucket": bucket, "Prefix": prefix, "MaxKeys": page_size}
     while True:
         resp = s3.list_objects_v2(**kwargs)
         for o in resp.get("Contents", []):
             key = o["Key"]
             storage = o.get("StorageClass", "STANDARD")
-            lm = _iso(o.get("LastModified"))
+            lm = iso(o.get("LastModified"))
             row = {
                 "key": key,
                 "size": int(o.get("Size", 0)),
@@ -96,7 +102,7 @@ def _iterate_objects(s3, bucket: str, prefix: str, page_size: int):
                         exp = hdr.split('expiry-date="', 1)[1].split('"', 1)[0]
                         exp_dt = datetime.strptime(exp, "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=timezone.utc)
                         row["restore_status"] = "restored"
-                        row["restore_expiry"] = _iso(exp_dt)
+                        row["restore_expiry"] = iso(exp_dt)
                     else:
                         row["restore_status"] = "archived"
                 except ClientError as e:
@@ -108,14 +114,18 @@ def _iterate_objects(s3, bucket: str, prefix: str, page_size: int):
         else:
             break
 
-# --------------------------------------------------------------------
-# Update (main sync)
-# --------------------------------------------------------------------
+# Define the update function, which is a required function, and is called by Fivetran during each sync.
+# See the technical reference documentation for more details on the update function
+# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+# The function takes two parameters:
+# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
+# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
+# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     """
     List S3 objects, emit metadata rows, and checkpoint by last_modified.
     """
-    s3 = _make_s3_client(configuration)
+    s3 = make_s3_client(configuration)
     bucket = configuration.get("bucket")
     if not bucket:
         raise ValueError("Configuration must include 'bucket'")
@@ -130,29 +140,33 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         lm = row.get("last_modified")
         if watermark and lm and lm <= watermark:
             continue
+
+        # The 'upsert' operation is used to insert or update data in a table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+        # - The second argument is a dictionary containing the data to be upserted
         yield op.upsert("s3_objects", row)
         if lm and (not new_wm or lm > new_wm):
             new_wm = lm
 
-    yield op.checkpoint({"s3_objects": {"last_modified": new_wm or _now_iso()}})
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    yield op.checkpoint({"s3_objects": {"last_modified": new_wm or now_iso()}})
     log.info(f"Checkpoint saved for s3_objects.last_modified={new_wm}")
 
-# --------------------------------------------------------------------
-# Config Form
-# --------------------------------------------------------------------
-def configuration_form(_: Dict[str, Any]) -> List[Dict[str, Any]]:
-    return [
-        {"name": "bucket", "label": "Bucket", "required": True, "type": "string"},
-        {"name": "prefix", "label": "Prefix", "required": False, "type": "string"},
-        {"name": "page_size", "label": "Page Size", "required": False, "type": "integer", "default": 1000},
-    ]
 
-# --------------------------------------------------------------------
-# Connector
-# --------------------------------------------------------------------
+#This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Test it by using the `debug` command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    test_cfg = {"bucket": "complete-mdls-migration-2", "prefix": "test-new/google_sheets_glue_test/test_table"}
-
-    connector.debug()
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
+    connector.debug(configuration=configuration)

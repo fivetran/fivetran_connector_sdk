@@ -1,7 +1,7 @@
 {
-  "aws_access_key_id": "AKIATWOH52HXXNKECXHR",
-  "aws_secret_access_key": "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",
-  "aws_region": "us-east-1",
-  "bucket": "complete-mdls-migration-2",
-  "prefix": "test_rest_api_2"
+  "aws_access_key_id": "<YOUR_AWS_ACCESS_KEY_ID>",
+  "aws_secret_access_key": "<YOUR_AWS_SECRET_ACCESS_KEY>",
+  "aws_region": "<YOUR_AWS_REGION>",
+  "bucket": "<YOUR_S3_BUCKET_NAME>",
+  "prefix": "<OPTIONAL_S3_PREFIX>"
 }
