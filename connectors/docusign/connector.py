@@ -210,8 +210,17 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
             if len(envelopes) < params["count"]:
                 break
 
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
+                logger.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                break
+            else:
+                logger.severe(f"Failed to fetch envelopes with HTTP error: {exc}")
+                break
+
         except Exception as exc:
-            logger.severe(f"Failed to fetch envelopes: {exc}")
+            logger.severe(f"Failed to fetch envelopes: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
+            break
 
     logger.info(f"Fetched {len(all_envelopes)} envelopes")
     return all_envelopes
@@ -392,8 +401,17 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
             if len(templates) < params["count"]:
                 break
 
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
+                logger.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                break
+            else:
+                logger.severe(f"Failed to fetch templates with HTTP error: {exc}")
+                break
+
         except Exception as exc:
-            logger.severe(f"Failed to fetch templates: {exc}")
+            logger.severe(f"Failed to fetch templates: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
+            break
 
     return all_templates
 
