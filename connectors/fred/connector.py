@@ -147,12 +147,10 @@ def make_api_request(endpoint, params, api_key):
 
         except requests.exceptions.Timeout:
             handle_timeout_error(attempt, f"Request to {endpoint}")
-            continue
+
 
         except requests.exceptions.RequestException as error:
             handle_request_exception(attempt, f"Request to {endpoint}", error)
-            continue
-
     raise RuntimeError(f"Request to {endpoint} failed after {__MAX_RETRIES} attempts.")
 
 
