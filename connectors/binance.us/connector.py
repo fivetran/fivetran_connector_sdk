@@ -497,9 +497,9 @@ def update(configuration: dict, state: dict):
             try:
                 op.upsert(table="ticker_price", data=transform_data_for_fivetran(ticker))
                 if i < 5:  # Log first 5 for debugging
-                    log.fine(f"Upserted ticker {i+1}: {ticker.get('symbol', 'unknown')}")
+                    log.fine(f"Upserted ticker {i + 1}: {ticker.get('symbol', 'unknown')}")
             except Exception as e:
-                log.warning(f"Failed to upsert ticker {i+1}: {str(e)}")
+                log.warning(f"Failed to upsert ticker {i + 1}: {str(e)}")
                 continue
 
         # Checkpoint after ticker prices
