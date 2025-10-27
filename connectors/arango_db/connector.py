@@ -87,19 +87,38 @@ def connect_to_arangodb(configuration: dict) -> Any:
 
 
 def get_collection_offset(state: dict, collection_name: str) -> int:
-    """Get the sync offset for a collection from state."""
+    """
+    Get the sync offset for a collection from state.
+    Args:
+        state: State dictionary tracking sync progress.
+        collection_name: Name of the collection to get offset for.
+    Returns:
+        Current offset for the collection (0 if not found in state).
+    """
     state_key = f"{collection_name}_offset"
     return state.get(state_key, 0)
 
 
 def fetch_batch(collection: Any, offset: int) -> list[dict[str, Any]]:
-    """Fetch a batch of documents from collection."""
+    """
+    Fetch a batch of documents from collection.
+    Args:
+        collection: ArangoDB collection object to fetch documents from.
+        offset: Number of documents to skip for pagination.
+    Returns:
+        List of document dictionaries from the collection.
+    """
     cursor = collection.all(skip=offset, limit=__CHECKPOINT_BATCH_SIZE)
     return list(cursor)
 
 
 def upsert_documents(table_name: str, documents: list[dict[str, Any]]) -> None:
-    """Upsert documents to destination table."""
+    """
+    Upsert documents to destination table.
+    Args:
+        table_name: Name of the destination table to upsert into.
+        documents: List of document dictionaries to be upserted.
+    """
     for document in documents:
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
@@ -115,7 +134,16 @@ def checkpoint_progress(
     batch_size: int,
     total_synced: int,
 ) -> None:
-    """Save sync progress to state."""
+    """
+    Save sync progress to state.
+    Args:
+        state: State dictionary to update with sync progress.
+        collection_name: Name of the collection being synced.
+        offset: Current offset position in the collection.
+        batch_count: Sequential number of this batch.
+        batch_size: Number of documents in the current batch.
+        total_synced: Total number of documents synced so far.
+    """
     state_key = f"{collection_name}_offset"
     state[state_key] = offset
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -131,7 +159,17 @@ def checkpoint_progress(
 def sync_collection_batches(
     collection: Any, table_name: str, state: dict, collection_name: str, offset: int
 ) -> int:
-    """Sync collection in batches, returns total documents synced."""
+    """
+    Sync collection in batches, returns total documents synced.
+    Args:
+        collection: ArangoDB collection object to sync from.
+        table_name: Name of the destination table to sync to.
+        state: State dictionary to track and update sync progress.
+        collection_name: Name of the collection being synced.
+        offset: Starting offset position for syncing.
+    Returns:
+        Total number of documents synced from the collection.
+    """
     total_synced = 0
     batch_count = 0
 
