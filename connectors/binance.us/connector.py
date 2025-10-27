@@ -592,9 +592,15 @@ def update(configuration: dict, state: dict):
         # Fetch trade history for each symbol
         for symbol in common_pairs:  # Limit to first 10 symbols to avoid rate limits
             try:
-                # Skip trades for now
+                # Fetch trade history with proper timestamp filtering
+                start_time = last_trade_sync.get(symbol)
                 trades = fetch_trade_history(
-                    api_key, api_secret, symbol, run_id, start_time=None, limit=10
+                    api_key,
+                    api_secret,
+                    symbol,
+                    run_id,
+                    start_time=start_time,
+                    limit=1000,
                 )
                 log.fine(json.dumps(trades, indent=2))
 
@@ -621,10 +627,16 @@ def update(configuration: dict, state: dict):
                 symbol
             ) in common_pairs:  # Limit to first 10 symbols to avoid rate limits
                 try:
-                    # Skip orders for now
-                    orders = []  # fetch_order_history(
-                    #     api_key, api_secret, symbol, run_id, start_time=None, limit=1000
-                    # )
+                    # Fetch order history with proper timestamp filtering
+                    start_time = last_order_sync.get(symbol)
+                    orders = fetch_order_history(
+                        api_key,
+                        api_secret,
+                        symbol,
+                        run_id,
+                        start_time=start_time,
+                        limit=1000,
+                    )
 
                     for order in orders:
                         op.upsert(
