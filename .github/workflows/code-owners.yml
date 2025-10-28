@@ -1,6 +1,8 @@
 name: CODEOWNERS
 
 on:
+  pull_request_target:
+    types: [ opened, reopened, synchronize, ready_for_review, edited ]
   pull_request_review:
     types: [submitted, edited, dismissed]
 
@@ -22,41 +24,57 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install jq
         run: sudo apt-get install -y jq
 
       - name: Verify CODEOWNERS approval
         env:
-          FORK_SAFE_TOKEN: ${{ github.token }}
-          OPTIONAL_PAT: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
+          PAT: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
         run: |
-          AUTH_TOKEN="${FORK_SAFE_TOKEN:-}"
-          if [ -z "${AUTH_TOKEN}" ]; then
-            AUTH_TOKEN="${FORK_SAFE_TOKEN}"
-            echo "Using github.token"
-          else
-            echo "Using provided PAT"
-          fi
-          
-          if [ -z "${AUTH_TOKEN}" ]; then
-            echo "No authentication token available."
-            exit 1
-          fi
+          set -euo pipefail
           
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
+          AUTH_TOKEN="${PAT}"
           OWNER="${REPO%%/*}"
+          
+          api_get() {
+            local url="$1" out="$2"
+            local code
+            code=$(curl -sS -w '%{http_code}' -o "${out}" \
+              -H "Authorization: Bearer ${AUTH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${url}")
+            if [ "${code}" != "200" ]; then
+              echo "HTTP ${code} -> ${url}"
+              cat "${out}"
+              return 1
+            fi
+            return 0
+          }
 
           echo "Getting changed files..."
-          curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
-            | jq -r '.[].filename' > changed_files.txt
+          api_get "https://api.github.com/repos/${REPO}/pulls/${PR}/files?per_page=100" files.json
+          jq -e 'type=="array"' files.json >/dev/null || { echo "Unexpected files payload"; cat files.json; exit 1; }
+          jq -r '.[].filename' files.json > changed_files.txt
 
           echo "Getting approved reviewers..."
-          curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
-            | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u > approved_users.txt
+          api_get "https://api.github.com/repos/${REPO}/pulls/${PR}/reviews?per_page=100" reviews.json
+          jq -e 'type=="array"' reviews.json >/dev/null || { echo "Unexpected reviews payload"; cat reviews.json; exit 1; }
+          jq -r '
+            reverse
+            | (reduce .[] as $r ({}; if $r.state=="APPROVED" and .[$r.user.login] == null then .[$r.user.login]=1 else . end))
+            | keys[]' reviews.json | sort -u > approved_users.txt
+          
+          if [ ! -s approved_users.txt ]; then
+            echo "No approvals yet."
+            exit 1
+          fi
+          echo "Approvers:"
+          cat approved_users.txt
 
           echo "Parsing CODEOWNERS..."
           if [[ -f .github/CODEOWNERS ]]; then
@@ -143,5 +161,5 @@ jobs:
       - name: Debug information
         if: always()
         run: |
-          echo "Fork safe token: $FORK_SAFE_TOKEN"
-          echo "Optional PAT token: $OPTIONAL_PAT"
+          echo "Changed files:"; cat changed_files.txt || true
+          echo "Approved users:"; cat approved_users.txt || true
