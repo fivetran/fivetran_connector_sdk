@@ -1,16 +1,18 @@
 """Gumroad Connector for Fivetran Connector SDK.
 This connector fetches sales, products, and subscriber data from the Gumroad API and syncs it to the destination.
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # For reading configuration from a JSON file
 import json
 
 # For date manipulation and timestamp handling
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# For making HTTP requests to retry with exponential backoff
+# For implementing retry delays with exponential backoff
 import time
 
 # Import required classes from fivetran_connector_sdk
@@ -42,7 +44,8 @@ __API_BASE_URL = "https://api.gumroad.com/v2"
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This function is called at the start of the update method to ensure that the connector
+    has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
@@ -70,6 +73,7 @@ def schema(configuration: dict):
             "table": "product_variants",
             "primary_key": ["product_id", "variant_title", "option_name"],
         },
+        {"table": "payouts", "primary_key": ["id"]},
     ]
 
 
@@ -82,7 +86,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Example: Source Connector : Gumroad")
+    log.info("Starting Gumroad data sync")
 
     validate_configuration(configuration=configuration)
 
@@ -91,6 +95,7 @@ def update(configuration: dict, state: dict):
     sync_sales(access_token=access_token, state=state)
     sync_products(access_token=access_token, state=state)
     sync_subscribers(access_token=access_token, state=state)
+    sync_payouts(access_token=access_token, state=state)
 
 
 def sync_sales(access_token: str, state: dict):
@@ -137,10 +142,11 @@ def sync_sales(access_token: str, state: dict):
 
             if records_processed % __CHECKPOINT_INTERVAL == 0:
                 state["last_sales_sync"] = current_sync_time
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                # Save the progress by checkpointing the state. This is important for ensuring
+                # that the sync process can resume from the correct position in case of next
+                # sync or interruptions. Learn more about how and where to checkpoint by reading
+                # our best practices documentation (https://fivetran.com/docs/connectors/
+                # connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
                 log.info(f"Checkpointed after processing {records_processed} sales records")
 
@@ -149,10 +155,11 @@ def sync_sales(access_token: str, state: dict):
             break
 
     state["last_sales_sync"] = current_sync_time
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    # Save the progress by checkpointing the state. This is important for ensuring
+    # that the sync process can resume from the correct position in case of next
+    # sync or interruptions. Learn more about how and where to checkpoint by reading
+    # our best practices documentation (https://fivetran.com/docs/connectors/
+    # connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
     log.info(f"Completed sales sync with {records_processed} records")
 
@@ -190,10 +197,20 @@ def sync_products(access_token: str, state: dict):
 
         records_processed += 1
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        if records_processed % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring
+            # that the sync process can resume from the correct position in case of next
+            # sync or interruptions. Learn more about how and where to checkpoint by reading
+            # our best practices documentation (https://fivetran.com/docs/connectors/
+            # connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
+            log.info(f"Checkpointed after processing {records_processed} products")
+
+    # Save the progress by checkpointing the state. This is important for ensuring
+    # that the sync process can resume from the correct position in case of next
+    # sync or interruptions. Learn more about how and where to checkpoint by reading
+    # our best practices documentation (https://fivetran.com/docs/connectors/
+    # connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
     log.info(f"Completed products sync with {records_processed} records")
 
@@ -227,12 +244,79 @@ def sync_subscribers(access_token: str, state: dict):
             access_token=access_token, product_id=product_id
         )
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    # Save the progress by checkpointing the state. This is important for ensuring
+    # that the sync process can resume from the correct position in case of next
+    # sync or interruptions. Learn more about how and where to checkpoint by reading
+    # our best practices documentation (https://fivetran.com/docs/connectors/
+    # connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
     log.info(f"Completed subscribers sync with {total_subscribers} records")
+
+
+def sync_payouts(access_token: str, state: dict):
+    """
+    Sync payouts data from Gumroad API with incremental updates based on created_at timestamp.
+    Args:
+        access_token: The API access token for authentication.
+        state: The state dictionary containing the last sync timestamp.
+    """
+    last_payouts_sync = state.get("last_payouts_sync")
+    current_sync_time = datetime.utcnow().isoformat()
+
+    params = {"access_token": access_token, "include_upcoming": "true"}
+    if last_payouts_sync:
+        params["after"] = last_payouts_sync[:10]
+
+    page_key = None
+    records_processed = 0
+
+    while True:
+        if page_key:
+            params["page_key"] = page_key
+
+        response_data = make_api_request(endpoint="/payouts", params=params)
+
+        if not response_data.get("success"):
+            log.severe(f"Failed to fetch payouts: {response_data}")
+            break
+
+        payouts = response_data.get("payouts", [])
+        if not payouts:
+            log.info("No payouts data available")
+            break
+
+        for payout in payouts:
+            flattened_payout = flatten_payout(payout)
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="payouts", data=flattened_payout)
+
+            records_processed += 1
+
+            if records_processed % __CHECKPOINT_INTERVAL == 0:
+                state["last_payouts_sync"] = current_sync_time
+                # Save the progress by checkpointing the state. This is important for ensuring
+                # that the sync process can resume from the correct position in case of next
+                # sync or interruptions. Learn more about how and where to checkpoint by reading
+                # our best practices documentation (https://fivetran.com/docs/connectors/
+                # connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+                log.info(f"Checkpointed after processing {records_processed} payouts records")
+
+        page_key = response_data.get("next_page_key")
+        if not page_key:
+            break
+
+    state["last_payouts_sync"] = current_sync_time
+    # Save the progress by checkpointing the state. This is important for ensuring
+    # that the sync process can resume from the correct position in case of next
+    # sync or interruptions. Learn more about how and where to checkpoint by reading
+    # our best practices documentation (https://fivetran.com/docs/connectors/
+    # connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
+    log.info(f"Completed payouts sync with {records_processed} records")
 
 
 def fetch_product_subscribers(access_token: str, product_id: str) -> int:
@@ -474,6 +558,65 @@ def flatten_subscriber(subscriber: dict) -> dict:
     return flattened
 
 
+def flatten_payout(payout: dict) -> dict:
+    """
+    Flatten a payout record by extracting key fields.
+    Args:
+        payout: The payout dictionary from the API response.
+    Returns:
+        A flattened dictionary suitable for database insertion.
+    """
+    flattened = {
+        "id": payout.get("id"),
+        "amount": payout.get("amount"),
+        "currency": payout.get("currency"),
+        "status": payout.get("status"),
+        "created_at": payout.get("created_at"),
+        "processed_at": payout.get("processed_at"),
+        "payment_processor": payout.get("payment_processor"),
+        "bank_account_visual": payout.get("bank_account_visual"),
+        "paypal_email": payout.get("paypal_email"),
+    }
+
+    return flattened
+
+
+def should_retry_request(attempt: int, error_type: str, status_code=None) -> bool:
+    """
+    Determine if an API request should be retried based on the error type and attempt count.
+    Args:
+        attempt: The current attempt number (0-indexed).
+        error_type: Type of error encountered (status_code, timeout, connection).
+        status_code: HTTP status code if applicable.
+    Returns:
+        True if the request should be retried, False otherwise.
+    """
+    if attempt >= __MAX_RETRIES - 1:
+        return False
+
+    if error_type == "status_code":
+        return status_code in [429, 500, 502, 503, 504]
+
+    if error_type in ["timeout", "connection"]:
+        return True
+
+    return False
+
+
+def handle_retry_delay(attempt: int, error_message: str):
+    """
+    Handle the retry delay with exponential backoff and logging.
+    Args:
+        attempt: The current attempt number (0-indexed).
+        error_message: The error message to log.
+    """
+    delay = __BASE_DELAY_SECONDS * (2**attempt)
+    log.warning(
+        f"{error_message}, retrying in {delay} seconds " f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+    )
+    time.sleep(delay)
+
+
 def make_api_request(endpoint: str, params: dict) -> dict:
     """
     Make an API request to Gumroad with retry logic and exponential backoff.
@@ -493,50 +636,41 @@ def make_api_request(endpoint: str, params: dict) -> dict:
 
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            else:
+
+            if should_retry_request(attempt, "status_code", response.status_code):
+                handle_retry_delay(attempt, f"Request failed with status {response.status_code}")
+                continue
+
+            if response.status_code in [429, 500, 502, 503, 504]:
                 log.severe(
-                    f"API request failed with status {response.status_code}: {response.text}"
+                    f"Failed to fetch data after {__MAX_RETRIES} attempts. "
+                    f"Last status: {response.status_code} - {response.text}"
                 )
-                raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
+                raise RuntimeError(
+                    f"API returned {response.status_code} after "
+                    f"{__MAX_RETRIES} attempts: {response.text}"
+                )
+
+            log.severe(
+                f"API request failed with status {response.status_code}: " f"{response.text}"
+            )
+            raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
 
         except requests.Timeout as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Request timeout, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(delay)
+            if should_retry_request(attempt, "timeout"):
+                handle_retry_delay(attempt, "Request timeout")
                 continue
-            else:
-                log.severe(f"Request timeout after {__MAX_RETRIES} attempts")
-                raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts") from e
+
+            log.severe(f"Request timeout after {__MAX_RETRIES} attempts")
+            raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts") from e
 
         except requests.ConnectionError as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Connection error, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(delay)
+            if should_retry_request(attempt, "connection"):
+                handle_retry_delay(attempt, "Connection error")
                 continue
-            else:
-                log.severe(f"Connection error after {__MAX_RETRIES} attempts")
-                raise RuntimeError(f"Connection error after {__MAX_RETRIES} attempts") from e
+
+            log.severe(f"Connection error after {__MAX_RETRIES} attempts")
+            raise RuntimeError(f"Connection error after {__MAX_RETRIES} attempts") from e
 
     return {}
 
@@ -545,9 +679,12 @@ def make_api_request(endpoint: str, params: dict) -> dict:
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+# This is Python's standard entry method allowing your script to be run directly from
+# the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called
+# by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your
+# connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:

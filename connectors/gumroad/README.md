@@ -66,21 +66,23 @@ To set up authentication:
 
 The connector handles pagination automatically for endpoints that return paginated results. The Gumroad API uses a `page_key` parameter for pagination, where the response includes a `next_page_key` field indicating the key for the next page of results.
 
-The pagination logic is implemented in the `sync_sales()` and `fetch_product_subscribers()` functions. The connector continues fetching pages until no `next_page_key` is returned, indicating all data has been retrieved.
+The pagination logic is implemented in the `sync_sales()`, `sync_payouts()`, and `fetch_product_subscribers()` functions. The connector continues fetching pages until no `next_page_key` is returned, indicating all data has been retrieved.
 
 For subscribers, the connector sets `paginated=true` in the request to enable pagination with a 100-item limit per page.
 
 ## Data handling
 
-The connector processes data from three main Gumroad API endpoints:
+The connector processes data from four main Gumroad API endpoints:
 
-- **Sales endpoint**: Fetches transaction data with support for incremental syncing using the `after` parameter to filter by date. Nested objects like `card` and `affiliate` are flattened into top-level columns. Complex fields like `variants` and `custom_fields` are serialized as JSON strings.
+- Sales endpoint: Fetches transaction data with support for incremental syncing using the `after` parameter to filter by date. Nested objects like `card` and `affiliate` are flattened into top-level columns. Complex fields like `variants` and `custom_fields` are serialized as JSON strings.
 
-- **Products endpoint**: Retrieves all products for the authenticated user. Product variants are extracted into a separate `product_variants` table to enable analysis of pricing and options. Fields like `tags`, `custom_fields`, and `purchasing_power_parity_prices` are stored as JSON strings for flexibility.
+- Products endpoint: Retrieves all products for the authenticated user. Product variants are extracted into a separate `product_variants` table to enable analysis of pricing and options. Fields like `tags`, `custom_fields`, and `purchasing_power_parity_prices` are stored as JSON strings for flexibility.
 
-- **Subscribers endpoint**: Iterates through all products and fetches active subscribers for each. The connector handles pagination automatically and combines data from multiple products into a single subscribers table.
+- Subscribers endpoint: Iterates through all products and fetches active subscribers for each. The connector handles pagination automatically and combines data from multiple products into a single subscribers table.
 
-The flattening logic is handled by dedicated functions: `flatten_sale()`, `flatten_product()`, and `flatten_subscriber()`. These functions extract nested objects and convert complex data types to simple key-value pairs suitable for relational databases.
+- Payouts endpoint: Fetches payout data with support for incremental syncing using the `after` parameter to filter by date. Includes both completed and upcoming payouts, tracking payment processor information and bank account details.
+
+The flattening logic is handled by dedicated functions: `flatten_sale()`, `flatten_product()`, `flatten_subscriber()`, and `flatten_payout()`. These functions extract nested objects and convert complex data types to simple key-value pairs suitable for relational databases.
 
 ## Error handling
 
@@ -98,49 +100,13 @@ Non-retryable errors such as authentication failures (HTTP 401) or invalid reque
 
 The connector creates the following tables in the destination:
 
-### sales
-
-```json
-{
-  "table": "sales",
-  "primary_key": ["id"]
-}
-```
-
-Contains transaction and purchase data including customer information, product details, pricing, payment information, and subscription status. Nested objects like card details and affiliate information are flattened into columns with prefixes (e.g., `card_visual`, `affiliate_email`).
-
-### products
-
-```json
-{
-  "table": "products",
-  "primary_key": ["id"]
-}
-```
-
-Contains product information including name, description, pricing, URLs, sales metrics, and publication status. Complex fields like tags and custom fields are stored as JSON strings.
-
-### subscribers
-
-```json
-{
-  "table": "subscribers",
-  "primary_key": ["id"]
-}
-```
-
-Contains subscription data including subscriber details, product associations, subscription status, cancellation information, and license keys.
-
-### product_variants
-
-```json
-{
-  "table": "product_variants",
-  "primary_key": ["product_id", "variant_title", "option_name"]
-}
-```
-
-Contains product variant options with pricing differences and configuration. Uses a composite primary key combining product ID, variant title, and option name to uniquely identify each variant option.
+| Table Name | Primary Key | Description |
+|------------|-------------|-------------|
+| `sales` | `id` | Contains transaction and purchase data including customer information, product details, pricing, payment information, and subscription status. Nested objects like card details and affiliate information are flattened into columns with prefixes (e.g., `card_visual`, `affiliate_email`). |
+| `products` | `id` | Contains product information including name, description, pricing, URLs, sales metrics, and publication status. Complex fields like tags and custom fields are stored as JSON strings. |
+| `subscribers` | `id` | Contains subscription data including subscriber details, product associations, subscription status, cancellation information, and license keys. |
+| `product_variants` | `product_id`, `variant_title`, `option_name` | Contains product variant options with pricing differences and configuration. Uses a composite primary key combining product ID, variant title, and option name to uniquely identify each variant option. |
+| `payouts` | `id` | Contains payout information including amounts, currency, status (payable, completed, pending, failed), payment processor details, and timestamps. Tracks both completed payouts and upcoming payouts for the authenticated seller. |
 
 ## Additional considerations
 
