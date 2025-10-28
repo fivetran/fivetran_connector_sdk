@@ -203,7 +203,7 @@ def handle_response_status(response, attempt: int) -> dict:
     raise RuntimeError(f"API request failed with status {response.status_code}: {response.text}")
 
 
-def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
+def make_api_request(url: str, headers: dict, params: dict | None = None) -> dict:
     """
     Make HTTP request to Prometheus API with retry logic.
     Args:
