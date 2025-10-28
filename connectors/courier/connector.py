@@ -135,8 +135,6 @@ def flatten_nested_object(obj: dict, parent_key: str = "", separator: str = "_")
     Returns:
         Flattened dictionary.
     """
-    import json
-
     items = []
     for key, value in obj.items():
         new_key = f"{parent_key}{separator}{key}" if parent_key else key
