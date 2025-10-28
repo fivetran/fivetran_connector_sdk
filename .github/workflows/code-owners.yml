@@ -31,7 +31,7 @@ jobs:
           FORK_SAFE_TOKEN: ${{ github.token }}
           OPTIONAL_PAT: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
         run: |
-          AUTH_TOKEN="${OPTIONAL_PAT:-}"
+          AUTH_TOKEN="${FORK_SAFE_TOKEN:-}"
           if [ -z "${AUTH_TOKEN}" ]; then
             AUTH_TOKEN="${FORK_SAFE_TOKEN}"
             echo "Using github.token"
