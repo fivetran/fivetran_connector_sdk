@@ -38,7 +38,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-Configuration parameters:
+### Configuration parameters
 
 - `api_key`: Your FRED API key (32 character alphanumeric string)
 - `series_ids`: Comma-separated list of series IDs to sync (e.g., "GNPCA,UNRATE,CPIAUCSL")
