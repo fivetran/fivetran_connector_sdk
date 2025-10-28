@@ -459,7 +459,7 @@ def update(configuration: dict, state: dict):
 
         except Exception as e:
             log.severe(f"Failed to sync {endpoint_name}: {str(e)}")
-            raise RuntimeError(f"Failed to sync {endpoint_name}: {str(e)}")
+            raise
 
 
 # Create the connector object using the schema and update functions
