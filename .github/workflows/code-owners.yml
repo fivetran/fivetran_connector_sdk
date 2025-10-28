@@ -34,8 +34,6 @@ jobs:
         env:
           PAT: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
         run: |
-          set -euo pipefail
-          
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
           AUTH_TOKEN="${PAT}"
@@ -57,12 +55,12 @@ jobs:
           }
 
           echo "Getting changed files..."
-          api_get "https://api.github.com/repos/${REPO}/pulls/${PR}/files?per_page=100" files.json
+          api_get "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" files.json
           jq -e 'type=="array"' files.json >/dev/null || { echo "Unexpected files payload"; cat files.json; exit 1; }
           jq -r '.[].filename' files.json > changed_files.txt
 
           echo "Getting approved reviewers..."
-          api_get "https://api.github.com/repos/${REPO}/pulls/${PR}/reviews?per_page=100" reviews.json
+          api_get "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/reviews?per_page=100" reviews.json
           jq -e 'type=="array"' reviews.json >/dev/null || { echo "Unexpected reviews payload"; cat reviews.json; exit 1; }
           jq -r '
             reverse
