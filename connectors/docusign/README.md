@@ -62,7 +62,7 @@ To obtain credentials:
 
 Pagination is implemented for the two main API endpoints: `envelopes` and `templates`.
 
- Both functions use an offset-based pagination strategy. They send requests in a `while True` loop with a `count` of 100 and increment the `start_position` parameter by the number of records received in the previous call. The loop terminates when the API returns fewer records than the requested count, indicating the last page has been reached.
+Both functions use an offset-based pagination strategy. They send requests in a `while True` loop with a `count` of 100 and increment the `start_position` parameter by the number of records received in the previous call. The loop terminates when the API returns fewer records than the requested count, indicating the last page has been reached.
 
 ## Data handling
 
@@ -71,8 +71,8 @@ Data is processed within the `update` function and its various `fetch_*` helper 
 - Schema: The connector schema, including all tables and their primary keys, is defined in the `schema` function.
 - Type conversion: All data values are explicitly converted to strings (e.g., `str(envelope.get("status", ""))`) before being passed to `op.upsert` to ensure compatibility with the destination warehouse.
 - Data flattening: For the `audit_events` table , the nested `eventFields` array from the API response is flattened into top-level columns in the destination table.
-- Binary data: The `fetch_document_content` function downloads the binary content of documents. In the `update` function , this content is then Base64-encoded (`base64.b64encode`) and stored as a string in the `document_contents` table.
-- State management: The connector uses `state.get("last_sync_time", ...)` to fetch data incrementally. At the end of a successful sync, it checkpoints the new state using `op.checkpoint(new_state)` .
+- Binary data: The `fetch_document_content` function downloads the binary content of documents. In the `update` function , this content is then base64-encoded (`base64.b64encode`) and stored as a string in the `document_contents` table.
+- State management: The connector uses `state.get("last_sync_time", ...)` to fetch data incrementally. At the end of a successful sync, it checkpoints the new state using `op.checkpoint(new_state)`.
 
 ## Error handling
 
