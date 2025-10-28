@@ -102,20 +102,14 @@ def update(configuration: dict, state: dict):
     base_url = __BASE_URL_TEMPLATE.format(account_id=account_id, workspace_id=workspace_id)
     headers = build_headers(api_key)
 
-    try:
-        sync_flows(base_url, headers, state)
-        sync_deployments(base_url, headers, state)
-        sync_work_pools(base_url, headers, state)
-        sync_work_queues(base_url, headers, state)
-        sync_flow_runs(base_url, headers, state)
-        sync_task_runs(base_url, headers, state)
-        sync_artifacts(base_url, headers, state)
-        sync_variables(base_url, headers, state)
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync Prefect data: {str(e)}")
-
-
+    sync_flows(base_url, headers, state)
+    sync_deployments(base_url, headers, state)
+    sync_work_pools(base_url, headers, state)
+    sync_work_queues(base_url, headers, state)
+    sync_flow_runs(base_url, headers, state)
+    sync_task_runs(base_url, headers, state)
+    sync_artifacts(base_url, headers, state)
+    sync_variables(base_url, headers, state)
 def build_headers(api_key: str) -> dict:
     """
     Build HTTP headers for Prefect API requests.
