@@ -45,16 +45,16 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses Bearer token authentication to access the Better Stack Uptime API.
+This connector uses bearer token authentication to access the Better Stack Uptime API.
 
 To obtain your API key:
 
 1. Log in to your Better Stack account.
-2. Navigate to **Settings > API Tokens**.
+2. Navigate to **Settings** > **API Tokens**.
 3. Click **Create API Token**.
-4. Copy the generated token and add it to the `api_key` field in your `configuration.json` file.
+4. Make a note of the generated token and add it to the `api_key` field in your `configuration.json` file.
 
-The API key is passed in the Authorization header as a Bearer token (refer to the `get_headers()` function).
+The API key is passed in the Authorization header as a bearer token (refer to the `get_headers()` function).
 
 ## Pagination
 
@@ -93,15 +93,15 @@ The connector creates the following tables (refer to the `schema()` function):
 
 | Table Name | Primary Key | Description |
 |------------|-------------|-------------|
-| `monitors` | `id` | Website/API uptime monitors with configuration including URL, monitor type, check frequency, regions, and status |
-| `status_pages` | `id` | Public-facing status pages with company info, subdomain, custom domain, theme, and display settings |
-| `monitor_groups` | `id` | Logical groupings for monitors with name, sort order, team assignment, and pause status |
-| `heartbeats` | `id` | Cron job and scheduled task monitoring with period, grace time, alert settings, and heartbeat group assignment |
-| `heartbeat_groups` | `id` | Logical groupings for heartbeats with name, sort order, team assignment, and pause status |
-| `incidents` | `id` | Downtime and monitoring failure incidents with cause, timestamps, acknowledgment, resolution details, and alert settings |
-| `incident_monitor` | `incident_id`, `id` | Links incidents to their related monitors (child table with foreign key `incident_id`) |
-| `on_call_calendars` | `id` | On-call scheduling calendars with name, default status, and team assignment |
-| `on_call_users` | `on_call_calendar_id`, `id` | Links users to on-call calendars (child table with foreign key `on_call_calendar_id`) |
+| `MONITORS` | `id` | Website/API uptime monitors with configuration including URL, monitor type, check frequency, regions, and status |
+| `STATUS_PAGES` | `id` | Public-facing status pages with company info, subdomain, custom domain, theme, and display settings |
+| `MONITOR_GROUPS` | `id` | Logical groupings for monitors with name, sort order, team assignment, and pause status |
+| `HEARTBEATS` | `id` | Cron job and scheduled task monitoring with period, grace time, alert settings, and heartbeat group assignment |
+| `HEARTBEAT_GROUPS` | `id` | Logical groupings for heartbeats with name, sort order, team assignment, and pause status |
+| `INCIDENTS` | `id` | Downtime and monitoring failure incidents with cause, timestamps, acknowledgment, resolution details, and alert settings |
+| `INCIDENT_MONITOR` | `incident_id`, `id` | Links incidents to their related monitors (child table with foreign key `incident_id`) |
+| `ON_CALL_CALENDARS` | `id` | On-call scheduling calendars with name, default status, and team assignment |
+| `ON_CALL_USERS` | `on_call_calendar_id`, `id` | Links users to on-call calendars (child table with foreign key `on_call_calendar_id`) |
 
 ## Additional considerations
 
