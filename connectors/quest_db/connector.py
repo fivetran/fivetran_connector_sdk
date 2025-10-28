@@ -353,10 +353,10 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
 
     # Log sync type
     sync_type = "incremental" if last_timestamp else "full"
-    log.info(
-        f"Starting {sync_type} sync for {table_name}"
-        + (f" from {last_timestamp}" if last_timestamp else "")
-    )
+    log_message = f"Starting {sync_type} sync for {table_name}"
+    if last_timestamp:
+        log_message += f" from {last_timestamp}"
+    log.info(log_message)
 
     # Pagination loop
     while True:
