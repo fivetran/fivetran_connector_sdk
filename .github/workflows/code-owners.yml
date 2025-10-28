@@ -1,6 +1,8 @@
 name: CODEOWNERS
 
 on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
 
@@ -14,14 +16,16 @@ jobs:
       checks: write
 
     steps:
-      - name: Exit early for non-approved reviews
+      - name: Check if triggered by review and exit early for non-approved reviews
         if: github.event_name == 'pull_request_review' && github.event.review.state != 'approved'
         run: |
           echo "Skipping check — review is not an approval."
           exit 0
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout base branch (for CODEOWNERS)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Install jq
         run: sudo apt-get install -y jq
@@ -34,7 +38,18 @@ jobs:
           REPO="${{ github.repository }}"
           OWNER="${REPO%%/*}"
 
-          echo "Getting changed files..."
+          # Verify CODEOWNERS exists in base branch (checked out above)
+          echo "Parsing CODEOWNERS from base branch..."
+          if [[ -f .github/CODEOWNERS ]]; then
+            CODEOWNERS_FILE=".github/CODEOWNERS"
+          elif [[ -f CODEOWNERS ]]; then
+            CODEOWNERS_FILE="CODEOWNERS"
+          else
+            echo "No CODEOWNERS file found in base branch."
+            exit 1
+          fi
+
+          echo "Getting changed files from PR..."
           curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
             | jq -r '.[].filename' > changed_files.txt
@@ -43,16 +58,6 @@ jobs:
           curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
             | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u > approved_users.txt
-
-          echo "Parsing CODEOWNERS..."
-          if [[ -f .github/CODEOWNERS ]]; then
-            CODEOWNERS_FILE=".github/CODEOWNERS"
-          elif [[ -f CODEOWNERS ]]; then
-            CODEOWNERS_FILE="CODEOWNERS"
-          else
-            echo "No CODEOWNERS file found."
-            exit 1
-          fi
 
           MISSING_APPROVAL=0
 
