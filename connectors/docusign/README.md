@@ -52,6 +52,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector authenticates using an OAuth2 bearer token. The token is provided in `configuration.json` and used in the `get_docusign_headers` function to create the required `Authorization` header for all API requests.
 
+To obtain credentials:
 1.  Configure an OAuth integration within your DocuSign account (e.g., using JWT Grant or Authorization Code Grant).
 2.  Generate a valid `access_token`.
 3.  Find your `account_id` and correct `base_url` (e.g., `demo.docusign.net` or `na3.docusign.net`) from your DocuSign Admin panel.
