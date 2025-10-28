@@ -591,8 +591,11 @@ def sync_group_subscribers(headers: dict, group_id: str):
             if not cursor:
                 break
 
-        except Exception as e:
-            log.severe(f"Error syncing group subscribers for group {group_id}: {e}")
+        except requests.exceptions.RequestException as e:
+            log.severe(f"Network/API error syncing group subscribers for group {group_id}: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            log.severe(f"Data parsing error syncing group subscribers for group {group_id}: {e}")
             raise
 
     log.info(f"Synced {group_subscribers_synced} subscribers for group {group_id}")
