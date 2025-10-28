@@ -110,6 +110,8 @@ def update(configuration: dict, state: dict):
     sync_task_runs(base_url, headers, state)
     sync_artifacts(base_url, headers, state)
     sync_variables(base_url, headers, state)
+
+
 def build_headers(api_key: str) -> dict:
     """
     Build HTTP headers for Prefect API requests.
