@@ -482,10 +482,15 @@ def update(configuration: dict, state: dict):
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
+    except requests.exceptions.RequestException as e:
+        log.severe(f"Network/API error during sync: {e}")
+        raise
+    except ValueError as e:
+        log.severe(f"Value error during sync: {e}")
+        raise
     except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
-
-
+        log.severe(f"Unexpected error during sync: {e}")
+        raise
 def sync_groups(headers: dict, state: dict):
     """
     Fetch and sync groups data from MailerLite API.
