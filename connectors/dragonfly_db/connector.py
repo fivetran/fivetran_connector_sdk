@@ -28,6 +28,9 @@ from typing import Dict, List, Tuple
 # For deterministic hashing
 import hashlib
 
+# For implementing retry logic with exponential backoff
+import time
+
 # Checkpoint after processing every 1000 keys
 __CHECKPOINT_INTERVAL = 1000
 
@@ -48,6 +51,11 @@ __SOCKET_TIMEOUT_SEC = 30
 
 # Socket connection timeout in seconds
 __SOCKET_CONNECT_TIMEOUT_SEC = 30
+
+# Retry configuration for transient failures
+__MAX_RETRIES = 3
+__INITIAL_BACKOFF_SEC = 1
+__MAX_BACKOFF_SEC = 16
 
 
 def validate_configuration(configuration: dict):
@@ -79,14 +87,6 @@ def schema(configuration: dict):
         {
             "table": table_name,
             "primary_key": ["key"],
-            "columns": {
-                "key": "STRING",
-                "value": "STRING",
-                "data_type": "STRING",
-                "ttl": "INT",
-                "last_modified": "UTC_DATETIME",
-                "size": "INT",
-            },
         },
     ]
 
@@ -132,7 +132,8 @@ def build_connection_params(configuration: dict) -> dict:
 
 def create_dragonfly_client(configuration: dict):
     """
-    Create a DragonflyDB client using the provided configuration.
+    Create a DragonflyDB client using the provided configuration with retry logic.
+    Implements exponential backoff for transient connection failures.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
@@ -143,14 +144,39 @@ def create_dragonfly_client(configuration: dict):
     port = connection_params["port"]
     database = connection_params["db"]
 
-    try:
-        dragonfly_client = redis.Redis(**connection_params)
-        dragonfly_client.ping()
-        log.info(f"Successfully connected to DragonflyDB at {host}:{port}, database: {database}")
-        return dragonfly_client
-    except Exception as e:
-        log.severe(f"Failed to create DragonflyDB client: {e}")
-        raise RuntimeError(f"Failed to create DragonflyDB client: {str(e)}")
+    last_exception = None
+    backoff_time = __INITIAL_BACKOFF_SEC
+
+    for attempt in range(__MAX_RETRIES):
+        try:
+            dragonfly_client = redis.Redis(**connection_params)
+            dragonfly_client.ping()
+            log.info(
+                f"Successfully connected to DragonflyDB at {host}:{port}, database: {database}"
+            )
+            return dragonfly_client
+        except (redis.ConnectionError, redis.TimeoutError) as e:
+            last_exception = e
+            if attempt < __MAX_RETRIES - 1:
+                log.warning(
+                    f"Connection attempt {attempt + 1} failed: {e}. Retrying in {backoff_time}s..."
+                )
+                time.sleep(backoff_time)
+                backoff_time = min(backoff_time * 2, __MAX_BACKOFF_SEC)
+            else:
+                log.severe(
+                    f"Failed to create DragonflyDB client after {__MAX_RETRIES} attempts: {e}"
+                )
+        except redis.AuthenticationError as e:
+            log.severe(f"Authentication failed: {e}")
+            raise RuntimeError(f"Failed to create DragonflyDB client: {str(e)}")
+        except redis.RedisError as e:
+            log.severe(f"Redis error during client creation: {e}")
+            raise RuntimeError(f"Redis error during client creation: {str(e)}")
+
+    raise RuntimeError(
+        f"Failed to create DragonflyDB client after {__MAX_RETRIES} attempts: {str(last_exception)}"
+    )
 
 
 def close_dragonfly_client(dragonfly_client):
@@ -161,8 +187,10 @@ def close_dragonfly_client(dragonfly_client):
     """
     try:
         dragonfly_client.close()
-    except Exception as e:
+    except redis.RedisError as e:
         log.warning(f"Error closing DragonflyDB connection: {e}")
+    except (OSError, AttributeError) as e:
+        log.warning(f"Unexpected error closing connection: {e}")
 
 
 def is_timeseries_key(dragonfly_client, key: str) -> bool:
@@ -353,7 +381,7 @@ def scan_keys(
         cursor, keys = dragonfly_client.scan(cursor=cursor, match=pattern, count=count)
         log.info(f"Scanned {len(keys)} keys, next cursor: {cursor}")
         return cursor, keys
-    except Exception as e:
+    except redis.RedisError as e:
         log.severe(f"Failed to scan keys: {e}")
         raise RuntimeError(f"Failed to scan keys: {str(e)}")
 
@@ -552,8 +580,12 @@ def update(configuration: dict, state: dict):
 
         log.info(f"Successfully synced {total_records_processed} records from DragonflyDB")
 
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+    except redis.RedisError as e:
+        log.severe(f"Redis error during sync: {e}")
+        raise RuntimeError(f"Failed to sync data due to Redis error: {str(e)}")
+    except (ValueError, KeyError, TypeError) as e:
+        log.severe(f"Data processing error during sync: {e}")
+        raise RuntimeError(f"Failed to sync data due to processing error: {str(e)}")
     finally:
         close_dragonfly_client(dragonfly_client)
 

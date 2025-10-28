@@ -84,7 +84,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector supports flexible authentication options compatible with DragonflyDB deployments (refer to the `build_connection_params` function in [connector.py:88-124](connector.py#L88-L124)).
+The connector supports flexible authentication options compatible with DragonflyDB deployments (refer to the `build_connection_params` function in [connector.py](connector.py)).
 
 Basic configuration without authentication:
 ```json
@@ -127,7 +127,7 @@ SSL/TLS configuration:
 
 ## Pagination
 
-The connector implements the SCAN command for efficient, non-blocking key iteration (refer to the `scan_keys` function in [connector.py:233-255](connector.py#L233-L255)):
+The connector implements the SCAN command for efficient, non-blocking key iteration (refer to the `scan_keys` function in [connector.py](connector.py)):
 
 - Uses cursor-based iteration starting from cursor position 0
 - Processes keys in configurable batches (default 100 keys per SCAN operation)
@@ -142,10 +142,10 @@ The SCAN operation is memory-efficient, non-blocking, and allows other Dragonfly
 
 The connector performs comprehensive data extraction and transformation (refer to the following functions in [connector.py](connector.py)):
 
-- `get_key_info` ([connector.py:198-230](connector.py#L198-L230)) - Retrieves comprehensive information about a key
-- `extract_value_by_type` ([connector.py:162-195](connector.py#L162-L195)) - Handles type-specific value extraction
-- `process_batch` ([connector.py:258-279](connector.py#L258-L279)) - Processes batches of keys
-- `sync_dragonfly_data` ([connector.py:282-335](connector.py#L282-L335)) - Orchestrates the complete sync process
+- `get_key_info` - Retrieves comprehensive information about a key
+- `extract_value_by_type` - Handles type-specific value extraction
+- `process_batch` - Processes batches of keys
+- `sync_dragonfly_data` - Orchestrates the complete sync process
 
 Data handling workflow:
 
@@ -164,11 +164,11 @@ Data handling workflow:
 
 The connector implements comprehensive error handling strategies (refer to the following functions in [connector.py](connector.py)):
 
-- Connection validation (`create_dragonfly_client` [connector.py:127-147](connector.py#L127-L147)) - Tests DragonflyDB connectivity during client creation with ping operation, handles SSL configuration errors, raises RuntimeError on failure
-- Configuration validation (`validate_configuration` [connector.py:47-59](connector.py#L47-L59)) - Ensures required parameters (host, port) are present, raises ValueError for missing configuration
-- Key access errors (`get_key_info` [connector.py:198-230](connector.py#L198-L230)) - Handles expired or deleted keys gracefully during scanning, logs warnings for failed key access, returns error record instead of failing
-- Network timeouts (`build_connection_params` [connector.py:88-124](connector.py#L88-L124)) - Configured 30-second socket timeout for connection resilience
-- Connection cleanup (`update` function finally block [connector.py:376-377](connector.py#L376-L377)) - Ensures connections are properly closed even on errors using try-finally pattern
+- Connection validation with retry logic (`create_dragonfly_client`) - Tests DragonflyDB connectivity during client creation with ping operation, implements exponential backoff retry logic for transient failures (max 3 attempts), handles SSL configuration errors, raises RuntimeError on failure
+- Configuration validation (`validate_configuration`) - Ensures required parameters (host, port) are present, raises ValueError for missing configuration
+- Key access errors (`get_key_info`) - Handles expired or deleted keys gracefully during scanning, logs warnings for failed key access, returns error record instead of failing
+- Network timeouts (`build_connection_params`) - Configured 30-second socket timeout for connection resilience
+- Connection cleanup (`update` function finally block) - Ensures connections are properly closed even on errors using try-finally pattern
 
 ## Tables created
 
