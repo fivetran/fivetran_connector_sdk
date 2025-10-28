@@ -16,8 +16,8 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# For making HTTP requests to Resend API
-import requests
+# For making HTTP API requests (provided by SDK runtime)
+import requests  # For making HTTP API requests (provided by SDK runtime)
 
 # For handling time operations and timestamps
 import time
