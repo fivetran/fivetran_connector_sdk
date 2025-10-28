@@ -55,7 +55,7 @@ The connector uses Bearer token authentication with Resend API keys. To obtain y
 Note: Resend API keys are shown only once upon creation. Store them securely.
 
 ## Pagination
-The connector implements Resend's cursor-based pagination system using the `after` parameter. It processes emails in pages and uses the `has_more` flag to determine if additional pages exist. The connector uses the last email ID from each page to fetch subsequent pages. Refer to the `sync_emails` function in lines 178-280.
+The connector implements Resend's cursor-based pagination system using the `after` parameter. It processes emails in pages and uses the `has_more` flag to determine if additional pages exist. The connector uses the last email ID from each page to fetch subsequent pages. Refer to the `sync_emails` function.
 
 The Resend API returns emails sorted by creation date in descending order (newest first). This ordering is leveraged for efficient incremental syncing.
 
@@ -66,13 +66,13 @@ For the first sync, the connector fetches all emails using pagination and saves 
 
 Since the Resend API returns emails sorted newest-first without date filtering, the connector reads pages from newest to oldest, stops pagination when encountering a previously synced email, and only upserts new emails to prevent duplicates. This approach ensures efficient incremental syncing without fetching the entire dataset on each run.
 
-Refer to the `sync_emails` function in lines 178-280 for the implementation.
+Refer to the `sync_emails` function for the implementation.
 
 ## Data handling
-The connector processes email data from the `/emails` endpoint which contains email metadata including sender, recipients, subject, timestamps, and delivery status. All nested JSON structures are flattened using the `flatten_dict` function (refer to lines 38-65) to create optimal table schemas. Arrays are converted to JSON strings for storage.
+The connector processes email data from the `/emails` endpoint which contains email metadata including sender, recipients, subject, timestamps, and delivery status. All nested JSON structures are flattened using the `flatten_dict` function to create optimal table schemas. Arrays are converted to JSON strings for storage.
 
 ## Error handling
-The connector implements comprehensive error handling strategies. Refer to the `fetch_emails_from_api` function in lines 68-119:
+The connector implements comprehensive error handling strategies. Refer to the `fetch_emails_from_api` function:
 
 - HTTP timeout handling with 30-second timeouts
 - Rate limiting detection (HTTP 429) with exponential backoff retry logic
