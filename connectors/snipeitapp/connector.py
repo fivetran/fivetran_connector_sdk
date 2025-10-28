@@ -19,8 +19,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# For making HTTP API requests to Snipe-IT
-import requests
+import requests  # For making HTTP API requests to Snipe-IT
 
 # Maximum number of retry attempts for API requests
 __MAX_RETRIES = 3

@@ -63,11 +63,11 @@ To obtain your API token:
 
 ## Pagination
 
-The connector implements offset-based pagination to handle large datasets efficiently (refer to the `sync_table()` function, lines 172-268). Each API request fetches a configurable number of records (default 100) using the `limit` and `offset` parameters. The connector continues fetching pages until the API returns fewer records than the page size, indicating the end of the dataset. This approach ensures that all data is retrieved without loading entire datasets into memory.
+The connector implements offset-based pagination to handle large datasets efficiently (refer to the `sync_table()` function). Each API request fetches a configurable number of records (default 100) using the `limit` and `offset` parameters. The connector continues fetching pages until the API returns fewer records than the page size, indicating the end of the dataset. This approach ensures that all data is retrieved without loading entire datasets into memory.
 
 ## Data handling
 
-The connector processes data from the Snipe-IT API in the following manner (refer to the `flatten_record()` function, lines 369-401):
+The connector processes data from the Snipe-IT API in the following manner (refer to the `flatten_record()` function):
 
 - Nested JSON objects are flattened into single-level dictionaries with underscore-separated keys (e.g., `model.name` becomes `model_name`)
 - Arrays are converted to string representations as they should typically be handled in separate breakout tables
@@ -77,7 +77,7 @@ The connector processes data from the Snipe-IT API in the following manner (refe
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (refer to the `fetch_page()` function, lines 271-366):
+The connector implements comprehensive error handling strategies (refer to the `fetch_page()` function):
 
 - Retry logic with exponential backoff for transient errors (HTTP 429, 500, 502, 503, 504)
 - Maximum of 3 retry attempts with delays of 2, 4, and 8 seconds
@@ -89,137 +89,20 @@ The connector implements comprehensive error handling strategies (refer to the `
 
 ## Tables created
 
-The connector creates the following tables in your destination:
+The connector creates the following tables in your destination (refer to the `schema()` function):
 
-### hardware
-
-Primary asset/hardware items tracked in Snipe-IT.
-
-```json
-{
-  "table": "hardware",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `asset_tag`, `serial`, `name`, `model_id`, `model_name`, `status_label_id`, `status_label_name`, `category_id`, `category_name`, `manufacturer_id`, `manufacturer_name`, `supplier_id`, `location_id`, `location_name`, `created_at_datetime`, `updated_at_datetime`, `purchase_date_date`, `purchase_cost`
-
-### users
-
-Users who can be assigned assets or manage the system.
-
-```json
-{
-  "table": "users",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `username`, `email`, `first_name`, `last_name`, `employee_num`, `jobtitle`, `phone`, `department_id`, `department_name`, `company_id`, `company_name`, `activated`, `created_at_datetime`, `updated_at_datetime`
-
-### companies
-
-Companies that own or are associated with assets.
-
-```json
-{
-  "table": "companies",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `phone`, `email`, `assets_count`, `licenses_count`, `accessories_count`, `users_count`, `created_at_datetime`, `updated_at_datetime`
-
-### locations
-
-Physical locations where assets are deployed.
-
-```json
-{
-  "table": "locations",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `address`, `city`, `state`, `country`, `zip`, `assets_count`, `assigned_assets_count`, `users_count`, `created_at_datetime`, `updated_at_datetime`
-
-### categories
-
-Categories for organizing different types of assets.
-
-```json
-{
-  "table": "categories",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `category_type`, `assets_count`, `accessories_count`, `consumables_count`, `created_at_datetime`, `updated_at_datetime`
-
-### manufacturers
-
-Manufacturers of hardware assets.
-
-```json
-{
-  "table": "manufacturers",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `url`, `support_url`, `support_phone`, `support_email`, `assets_count`, `created_at_datetime`, `updated_at_datetime`
-
-### suppliers
-
-Suppliers from whom assets are purchased.
-
-```json
-{
-  "table": "suppliers",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `address`, `phone`, `email`, `contact`, `url`, `assets_count`, `licenses_count`, `created_at_datetime`, `updated_at_datetime`
-
-### models
-
-Asset models that define specific hardware configurations.
-
-```json
-{
-  "table": "models",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `model_number`, `manufacturer_id`, `manufacturer_name`, `category_id`, `category_name`, `eol`, `assets_count`, `created_at_datetime`, `updated_at_datetime`
-
-### status_labels
-
-Status labels that indicate the current state of assets (e.g., Ready to Deploy, In Use, Broken).
-
-```json
-{
-  "table": "status_labels",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `status_type`, `status_meta`, `assets_count`, `created_at_datetime`, `updated_at_datetime`
-
-### departments
-
-Organizational departments to which users and assets can be assigned.
-
-```json
-{
-  "table": "departments",
-  "primary_key": ["id"]
-}
-```
-
-Key columns: `id`, `name`, `company_id`, `company_name`, `users_count`, `created_at_datetime`, `updated_at_datetime`
+| Table | Description | Primary Key | Key Columns |
+|-------|-------------|-------------|-------------|
+| hardware | Primary asset/hardware items tracked in Snipe-IT | `id` | `id`, `asset_tag`, `serial`, `name`, `model_id`, `model_name`, `status_label_id`, `status_label_name`, `category_id`, `category_name`, `manufacturer_id`, `manufacturer_name`, `supplier_id`, `location_id`, `location_name`, `created_at_datetime`, `updated_at_datetime`, `purchase_date_date`, `purchase_cost` |
+| users | Users who can be assigned assets or manage the system | `id` | `id`, `username`, `email`, `first_name`, `last_name`, `employee_num`, `jobtitle`, `phone`, `department_id`, `department_name`, `company_id`, `company_name`, `activated`, `created_at_datetime`, `updated_at_datetime` |
+| companies | Companies that own or are associated with assets | `id` | `id`, `name`, `phone`, `email`, `assets_count`, `licenses_count`, `accessories_count`, `users_count`, `created_at_datetime`, `updated_at_datetime` |
+| locations | Physical locations where assets are deployed | `id` | `id`, `name`, `address`, `city`, `state`, `country`, `zip`, `assets_count`, `assigned_assets_count`, `users_count`, `created_at_datetime`, `updated_at_datetime` |
+| categories | Categories for organizing different types of assets | `id` | `id`, `name`, `category_type`, `assets_count`, `accessories_count`, `consumables_count`, `created_at_datetime`, `updated_at_datetime` |
+| manufacturers | Manufacturers of hardware assets | `id` | `id`, `name`, `url`, `support_url`, `support_phone`, `support_email`, `assets_count`, `created_at_datetime`, `updated_at_datetime` |
+| suppliers | Suppliers from whom assets are purchased | `id` | `id`, `name`, `address`, `phone`, `email`, `contact`, `url`, `assets_count`, `licenses_count`, `created_at_datetime`, `updated_at_datetime` |
+| models | Asset models that define specific hardware configurations | `id` | `id`, `name`, `model_number`, `manufacturer_id`, `manufacturer_name`, `category_id`, `category_name`, `eol`, `assets_count`, `created_at_datetime`, `updated_at_datetime` |
+| status_labels | Status labels that indicate the current state of assets (e.g., Ready to Deploy, In Use, Broken) | `id` | `id`, `name`, `status_type`, `status_meta`, `assets_count`, `created_at_datetime`, `updated_at_datetime` |
+| departments | Organizational departments to which users and assets can be assigned | `id` | `id`, `name`, `company_id`, `company_name`, `users_count`, `created_at_datetime`, `updated_at_datetime` |
 
 ## Additional considerations
 
