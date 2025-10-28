@@ -37,6 +37,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
+### Configuration parameters
 - `api_username` - Your greytHR API username (client ID) obtained from greytHR API registration
 - `api_password` - Your greytHR API password (client secret) obtained from greytHR API registration
 - `greythr_domain` - Your organization's greytHR domain (e.g., moxemo6127dato.greythr.com)
