@@ -6,6 +6,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 # For reading configuration from a JSON file
 import json
+from typing import Any
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -24,6 +25,12 @@ from urllib.parse import quote
 
 # For handling time operations and timestamps
 from datetime import datetime, timezone
+
+# For adding delays between retry attempts
+import time
+
+# For encoding authentication credentials
+import base64
 
 # Batch size for pagination
 __BATCH_SIZE = 1000
@@ -102,8 +109,6 @@ def build_auth_header(configuration: dict) -> dict:
     password = configuration.get("password")
 
     if username and password:
-        import base64
-
         credentials = f"{username}:{password}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         return {"Authorization": f"Basic {encoded_credentials}"}
@@ -111,7 +116,51 @@ def build_auth_header(configuration: dict) -> dict:
     return {}
 
 
-def execute_questdb_query(configuration: dict, query: str) -> dict:
+def handle_retry_logic(attempt: int, error_message: str):
+    """
+    Handle retry logic with exponential backoff.
+    Args:
+        attempt: Current attempt number.
+        error_message: Error message to log.
+    Raises:
+        RuntimeError: If max retries reached.
+    """
+    if attempt < __MAX_RETRIES - 1:
+        delay = __BASE_DELAY * (2**attempt)
+        log.warning(
+            f"{error_message}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+        )
+        time.sleep(delay)
+    else:
+        log.severe(f"{error_message} after {__MAX_RETRIES} attempts")
+        raise RuntimeError(f"{error_message} after {__MAX_RETRIES} attempts")
+
+
+def handle_response_status(response: requests.Response, attempt: int) -> Any | None:
+    """
+    Handle HTTP response status and return JSON if successful.
+    Args:
+        response: HTTP response object.
+        attempt: Current attempt number.
+    Returns:
+        JSON response if successful, None if should retry.
+    Raises:
+        RuntimeError: If response indicates permanent error or max retries reached.
+    """
+    if response.status_code == 200:
+        return response.json()
+
+    # Check if status code is retryable (rate limits and server errors)
+    if response.status_code in [429, 500, 502, 503, 504]:
+        handle_retry_logic(attempt, f"Request failed with status {response.status_code}")
+        return None
+
+    # Non-retryable error
+    log.severe(f"Query execution failed with status {response.status_code}: {response.text}")
+    raise RuntimeError(f"Query execution failed: {response.status_code} - {response.text}")
+
+
+def execute_questdb_query(configuration: dict, query: str) -> Any | None:
     """
     Execute a SQL query against QuestDB REST API with retry logic.
     Args:
@@ -128,61 +177,17 @@ def execute_questdb_query(configuration: dict, query: str) -> dict:
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT_SEC)
-
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    import time
-
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to execute query after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            else:
-                log.severe(
-                    f"Query execution failed with status {response.status_code}: {response.text}"
-                )
-                raise RuntimeError(
-                    f"Query execution failed: {response.status_code} - {response.text}"
-                )
+            result = handle_response_status(response, attempt)
+            if result is not None:
+                return result
 
         except requests.Timeout:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY * (2**attempt)
-                log.warning(
-                    f"Request timeout, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                import time
-
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Request timeout after {__MAX_RETRIES} attempts")
-                raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts")
+            handle_retry_logic(attempt, "Request timeout")
 
         except requests.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY * (2**attempt)
-                log.warning(
-                    f"Request exception: {str(e)}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                import time
+            handle_retry_logic(attempt, f"Request exception: {str(e)}")
 
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Request failed after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(f"Request failed: {str(e)}")
+    return None
 
 
 def get_table_columns(configuration: dict, table_name: str) -> list:
@@ -198,22 +203,134 @@ def get_table_columns(configuration: dict, table_name: str) -> list:
     try:
         response = execute_questdb_query(configuration, query)
         return response.get("columns", [])
-    except Exception as e:
+    except (RuntimeError, requests.RequestException, KeyError, ValueError) as e:
         log.warning(f"Failed to get columns for table {table_name}: {str(e)}")
         return []
 
 
-def get_timestamp_column(configuration: dict, table_name: str) -> str:
+def build_sync_query(
+    table_name: str, timestamp_col: str, last_timestamp: str | None, offset: int, batch_size: int
+) -> str:
     """
-    Get the timestamp column name for incremental sync.
+    Build SQL query for table sync with optional incremental filtering.
     Args:
-        configuration: Configuration dictionary.
-        table_name: Name of the table.
+        table_name: Name of the table to sync.
+        timestamp_col: Name of the timestamp column.
+        last_timestamp: Last synced timestamp for incremental sync, None for full sync.
+        offset: Offset for pagination.
+        batch_size: Number of records per batch.
     Returns:
-        Timestamp column name or 'timestamp' as default.
+        SQL query string.
     """
-    timestamp_col = configuration.get("timestamp_column", "timestamp")
-    return timestamp_col
+    if last_timestamp:
+        return f"SELECT * FROM {table_name} WHERE {timestamp_col} > '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
+    return f"SELECT * FROM {table_name} ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
+
+
+def find_timestamp_index(column_names: list, timestamp_col: str) -> int | None:
+    """
+    Find the index of timestamp column in column names list.
+    Args:
+        column_names: List of column names.
+        timestamp_col: Name of the timestamp column to find.
+    Returns:
+        Index of timestamp column or None if not found.
+    """
+    for idx, col_name in enumerate(column_names):
+        if col_name == timestamp_col:
+            return idx
+    return None
+
+
+def transform_row_to_record(
+    row: list, column_names: list, timestamp_idx: int | None, table_name: str, row_idx: int
+) -> tuple[dict, str | None]:
+    """
+    Transform a row from QuestDB response into a record dictionary.
+    Args:
+        row: Row data from QuestDB.
+        column_names: List of column names.
+        timestamp_idx: Index of timestamp column.
+        table_name: Name of the table.
+        row_idx: Row index for generating unique key.
+    Returns:
+        Tuple of (record dictionary, row timestamp value).
+    """
+    record = {}
+    row_timestamp = None
+
+    for idx, value in enumerate(row):
+        if idx < len(column_names):
+            record[column_names[idx]] = value
+            if idx == timestamp_idx:
+                row_timestamp = value
+
+    record["_fivetran_synced_key"] = f"{table_name}_{row_timestamp}_{row_idx}"
+    return record, row_timestamp
+
+
+def checkpoint_if_needed(
+    records_since_checkpoint: int, state: dict, table_name: str, max_timestamp: str | None
+) -> int:
+    """
+    Checkpoint state if threshold reached and return reset counter.
+    Args:
+        records_since_checkpoint: Number of records processed since last checkpoint.
+        state: Current state dictionary.
+        table_name: Name of the table being synced.
+        max_timestamp: Maximum timestamp seen so far.
+    Returns:
+        Reset counter (0 if checkpointed, unchanged otherwise).
+    """
+    if records_since_checkpoint >= __CHECKPOINT_INTERVAL:
+        new_state = state.copy()
+        if max_timestamp:
+            new_state[f"{table_name}_last_timestamp"] = max_timestamp
+        new_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(new_state)
+        log.info(f"Checkpointed at timestamp {max_timestamp} for {table_name}")
+        return 0
+    return records_since_checkpoint
+
+
+def process_batch(
+    dataset: list, columns: list, timestamp_col: str, table_name: str, max_timestamp: str | None
+) -> tuple[int, str | None]:
+    """
+    Process a batch of records and upsert to destination.
+    Args:
+        dataset: List of rows from QuestDB response.
+        columns: Column metadata from QuestDB response.
+        timestamp_col: Name of timestamp column.
+        table_name: Name of the table.
+        max_timestamp: Current maximum timestamp.
+    Returns:
+        Tuple of (number of records processed, new maximum timestamp).
+    """
+    column_names = [col["name"] for col in columns]
+    timestamp_idx = find_timestamp_index(column_names, timestamp_col)
+    records_processed = 0
+    new_max_timestamp = max_timestamp
+
+    for row_idx, row in enumerate(dataset):
+        record, row_timestamp = transform_row_to_record(
+            row, column_names, timestamp_idx, table_name, row_idx
+        )
+
+        if row_timestamp and (new_max_timestamp is None or row_timestamp > new_max_timestamp):
+            new_max_timestamp = row_timestamp
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table=table_name, data=record)
+        records_processed += 1
+
+    return records_processed, new_max_timestamp
 
 
 def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
@@ -227,89 +344,57 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
         Number of records synced.
     """
     batch_size = int(configuration.get("batch_size", __BATCH_SIZE))
-    timestamp_col = get_timestamp_column(configuration, table_name)
+    timestamp_col = configuration.get("timestamp_column", "timestamp")
     last_timestamp = state.get(f"{table_name}_last_timestamp")
     offset = 0
     total_records = 0
     records_since_checkpoint = 0
     max_timestamp = last_timestamp
 
-    if last_timestamp:
-        log.info(f"Starting incremental sync for {table_name} from {last_timestamp}")
-    else:
-        log.info(f"Starting full sync for table {table_name}")
+    # Log sync type
+    sync_type = "incremental" if last_timestamp else "full"
+    log.info(
+        f"Starting {sync_type} sync for {table_name}"
+        + (f" from {last_timestamp}" if last_timestamp else "")
+    )
 
+    # Pagination loop
     while True:
-        if last_timestamp:
-            query = f"SELECT * FROM {table_name} WHERE {timestamp_col} > '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
-        else:
-            query = (
-                f"SELECT * FROM {table_name} ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
-            )
+        query = build_sync_query(table_name, timestamp_col, last_timestamp, offset, batch_size)
 
         try:
             response = execute_questdb_query(configuration, query)
-
             columns = response.get("columns", [])
             dataset = response.get("dataset", [])
 
+            # Check if pagination complete
             if not dataset:
                 log.info(f"No more data to sync for table {table_name}")
                 break
 
-            column_names = [col["name"] for col in columns]
-            timestamp_idx = None
-            for idx, col_name in enumerate(column_names):
-                if col_name == timestamp_col:
-                    timestamp_idx = idx
-                    break
-
-            for row_idx, row in enumerate(dataset):
-                record = {}
-                row_timestamp = None
-
-                for idx, value in enumerate(row):
-                    if idx < len(column_names):
-                        record[column_names[idx]] = value
-                        if idx == timestamp_idx:
-                            row_timestamp = value
-
-                record["_fivetran_synced_key"] = f"{table_name}_{row_timestamp}_{row_idx}"
-
-                if row_timestamp and (max_timestamp is None or row_timestamp > max_timestamp):
-                    max_timestamp = row_timestamp
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=table_name, data=record)
-
-                total_records += 1
-                records_since_checkpoint += 1
-
+            # Process batch of records
+            batch_records, max_timestamp = process_batch(
+                dataset, columns, timestamp_col, table_name, max_timestamp
+            )
+            total_records += batch_records
+            records_since_checkpoint += batch_records
             offset += len(dataset)
 
-            if records_since_checkpoint >= __CHECKPOINT_INTERVAL:
-                new_state = state.copy()
-                if max_timestamp:
-                    new_state[f"{table_name}_last_timestamp"] = max_timestamp
-                new_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(new_state)
-                records_since_checkpoint = 0
-                log.info(f"Checkpointed at timestamp {max_timestamp} for {table_name}")
+            # Checkpoint if needed
+            records_since_checkpoint = checkpoint_if_needed(
+                records_since_checkpoint, state, table_name, max_timestamp
+            )
 
+            # Check if last page
             if len(dataset) < batch_size:
                 log.info(f"Reached end of table {table_name}")
                 break
 
-        except Exception as e:
+        except (RuntimeError, requests.RequestException, KeyError, ValueError, IndexError) as e:
             log.severe(f"Error syncing table {table_name}: {str(e)}")
             raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
 
+    # Final checkpoint
     final_state = state.copy()
     if max_timestamp:
         final_state[f"{table_name}_last_timestamp"] = max_timestamp
@@ -347,9 +432,9 @@ def update(configuration: dict, state: dict):
         try:
             records_synced = sync_table_data(configuration, table_name, state)
             log.info(f"Successfully synced {records_synced} records from table {table_name}")
-        except Exception as e:
+        except RuntimeError as e:
             log.severe(f"Failed to sync table {table_name}: {str(e)}")
-            raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
+            raise
 
 
 # Create the connector object using the schema and update functions
