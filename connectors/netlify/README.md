@@ -56,7 +56,7 @@ To obtain your Netlify API token:
 5. Optionally, select **Allow access to my SAML-based Netlify team** if needed.
 6. Select an expiration date for security purposes.
 7. Select **Generate token**.
-8. Copy the token to your clipboard and add it to the `configuration.json` file.
+8. Make a note of the token to your clipboard and add it to the `configuration.json` file.
 9. Store the token securely as you won't be able to access it again.
 
 ## Pagination
@@ -98,7 +98,7 @@ The connector creates four tables in the destination:
 | account_name | STRING | No |
 | account_slug | STRING | No |
 
-### deploy
+### DEPLOY
 
 | Column | Data Type | Primary Key |
 |--------|-----------|-------------|
@@ -119,7 +119,7 @@ The connector creates four tables in the destination:
 | review_url | STRING | No |
 | screenshot_url | STRING | No |
 
-### form
+### FORM
 
 | Column | Data Type | Primary Key |
 |--------|-------------|
@@ -131,7 +131,7 @@ The connector creates four tables in the destination:
 | fields | No |
 | created_at | No |
 
-### submission
+### SUBMISSION
 
 | Column | Primary Key |
 |--------|-------------|
