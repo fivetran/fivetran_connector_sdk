@@ -49,8 +49,8 @@ This connector uses personal access token (PAT) authentication to access the Net
 
 To obtain your Netlify API token:
 
-1. Log in to your Netlify account at [https://app.netlify.com](https://app.netlify.com).
-2. Navigate to **Applications > Personal access tokens**.
+1. Log in to your [Netlify account](https://app.netlify.com).
+2. Navigate to **Applications** > **Personal access tokens**.
 3. Select **New access token**.
 4. Enter a descriptive name for the token.
 5. Optionally, select **Allow access to my SAML-based Netlify team** if needed.
@@ -65,17 +65,21 @@ The connector implements pagination for endpoints that return large datasets. Re
 
 ## Data handling
 
-The connector processes data from four main Netlify API endpoints and transforms the nested JSON responses into flattened table structures suitable for data warehousing. Single-level nested objects are flattened into the parent table, while complex nested structures like form fields and submission data are stored as JSON strings. Refer to the flattening functions: `flatten_site_record()`, `flatten_deploy_record()`, `flatten_form_record()`, and `flatten_submission_record()`.
+The connector processes data from four main Netlify API endpoints and transforms the nested JSON responses into flattened table structures suitable for data warehousing. Single-level nested objects are flattened into the parent table, while complex nested structures like form fields and submission data are stored as JSON strings. 
+
+Refer to the flattening functions `flatten_site_record()`, `flatten_deploy_record()`, `flatten_form_record()`, and `flatten_submission_record()` for more details.
 
 ## Error handling
 
-The connector implements comprehensive error handling with retry logic for transient errors. Refer to the `fetch_paginated_data()` and `fetch_data()` functions for error handling implementation. The connector retries failed requests up to 3 times with exponential backoff starting at 1 second. HTTP status codes 429, 500, 502, 503, and 504 are treated as retryable errors, while 404 responses return empty results and other 4xx errors fail immediately.
+The connector implements comprehensive error handling with retry logic for transient errors. It retries failed requests up to 3 times with exponential backoff starting at 1 second. HTTP status codes 429, 500, 502, 503, and 504 are treated as retryable errors, while 404 responses return empty results and other 4xx errors fail immediately.
+
+Refer to the `fetch_paginated_data()` and `fetch_data()` functions for error handling implementation details. 
 
 ## Tables created
 
 The connector creates four tables in the destination:
 
-### site
+### SITE
 
 | Column | Data Type | Primary Key |
 |--------|-----------|-------------|
