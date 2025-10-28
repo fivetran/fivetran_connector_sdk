@@ -92,14 +92,14 @@ The connector creates the following tables in your destination:
 
 | Table Name       | Primary Key | Description                                                          | Key Columns                                                                                                                            |
 |------------------|-------------|----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| **flow**         | `id`        | Stores workflow definitions and metadata                             | `id`, `created`, `updated`, `name`, `tags`, `labels`                                                                                   |
-| **deployment**   | `id`        | Stores deployment configurations with scheduling information         | `id`, `created`, `updated`, `name`, `flow_id`, `schedule`, `parameters`, `is_schedule_active`, `paused`                                |
-| **work_pool**    | `id`        | Stores work pool configurations for workflow execution environments  | `id`, `created`, `updated`, `name`, `type`, `description`, `is_paused`, `base_job_template`                                            |
-| **work_queue**   | `id`        | Stores work queue configurations for prioritizing workflow execution | `id`, `created`, `updated`, `name`, `description`, `priority`, `is_paused`, `concurrency_limit`, `work_pool_id`                        |
-| **flow_run**     | `id`        | Stores execution records of workflow runs                            | `id`, `created`, `updated`, `name`, `flow_id`, `deployment_id`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time` |
-| **task_run**     | `id`        | Stores execution records of individual tasks within flows            | `id`, `created`, `updated`, `name`, `flow_run_id`, `task_key`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time`  |
-| **artifact**     | `id`        | Stores output data and results from workflow executions              | `id`, `created`, `updated`, `key`, `type`, `description`, `data`, `flow_run_id`, `task_run_id`                                         |
-| **variable**     | `id`        | Stores workspace-level variables for configuration management        | `id`, `created`, `updated`, `name`, `value`, `tags`                                                                                    |
+| flow         | `id`        | Stores workflow definitions and metadata                             | `id`, `created`, `updated`, `name`, `tags`, `labels`                                                                                   |
+| deployment   | `id`        | Stores deployment configurations with scheduling information         | `id`, `created`, `updated`, `name`, `flow_id`, `schedule`, `parameters`, `is_schedule_active`, `paused`                                |
+| work_pool    | `id`        | Stores work pool configurations for workflow execution environments  | `id`, `created`, `updated`, `name`, `type`, `description`, `is_paused`, `base_job_template`                                            |
+| work_queue   | `id`        | Stores work queue configurations for prioritizing workflow execution | `id`, `created`, `updated`, `name`, `description`, `priority`, `is_paused`, `concurrency_limit`, `work_pool_id`                        |
+| flow_run     | `id`        | Stores execution records of workflow runs                            | `id`, `created`, `updated`, `name`, `flow_id`, `deployment_id`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time` |
+| task_run     | `id`        | Stores execution records of individual tasks within flows            | `id`, `created`, `updated`, `name`, `flow_run_id`, `task_key`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time`  |
+| artifact     | `id`        | Stores output data and results from workflow executions              | `id`, `created`, `updated`, `key`, `type`, `description`, `data`, `flow_run_id`, `task_run_id`                                         |
+| variable     | `id`        | Stores workspace-level variables for configuration management        | `id`, `created`, `updated`, `name`, `value`, `tags`                                                                                    |
 
 ## Additional considerations
 
