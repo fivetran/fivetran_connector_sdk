@@ -1,18 +1,20 @@
-# Binance US Connector
+# Binance.US Connector
 
 ## Connector overview
 
-The Binance US Connector is a comprehensive data integration solution that extracts cryptocurrency trading data, wallet information, and market data from the Binance US API. This connector provides real-time and historical data for cryptocurrency portfolio tracking, trading analysis, and market monitoring.
+The Binance.US connector is a comprehensive data integration solution that extracts cryptocurrency trading data, wallet information, and market data using the Binance.US API. This connector provides real-time and historical data for cryptocurrency portfolio tracking, trading analysis, and market monitoring.
 
-The connector fetches data from multiple Binance US API endpoints including:
-- Exchange Information (refer to `fetch_exchange_info()` function)
-- Market Data (refer to `fetch_ticker_prices()` function)  
-- Account Data (refer to `fetch_account_info()` and `fetch_wallet_details()` functions)
-- Trading History (refer to `fetch_trade_history()` function)
-- Order History (refer to `fetch_order_history()` function)
-- Server Time (refer to `fetch_server_time()` function)
+The connector fetches data from multiple Binance.US API endpoints including:
+- Exchange information (refer to the `fetch_exchange_info()` function)
+- Market data (refer to the `fetch_ticker_prices()` function)  
+- Account data (refer to the `fetch_account_info()` and `fetch_wallet_details()` functions)
+- Trading history (refer to the `fetch_trade_history()` function)
+- Order history (refer to the `fetch_order_history()` function)
+- Server time (refer to the `fetch_server_time()` function)
 
-This connector is designed for cryptocurrency traders, portfolio managers, and financial analysts who need comprehensive data from Binance US for analysis, reporting, and decision-making.
+This connector is designed for cryptocurrency traders, portfolio managers, and financial analysts who need comprehensive data from Binance.US for analysis, reporting, and decision-making.
+
+Note: Binance.US is only available to US residents.
 
 ## Requirements
 
@@ -49,8 +51,8 @@ The connector requires the following configuration parameters in the `configurat
 
 Configuration parameters:
 
-- api_key (required): Your Binance US API key for authentication
-- api_secret (required): Your Binance US API secret for request signing
+- api_key (required): Your Binance.US API key for authentication.
+- api_secret (required): Your Binance.US API secret for request signing.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -69,17 +71,17 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The Binance US Connector uses API key authentication with HMAC SHA256 signature verification. To obtain your API credentials:
+The Binance.US connector uses API key authentication with HMAC-SHA256 signature verification. To obtain your API credentials:
 
-1. Create a Binance US Account: Sign up at [binance.us](https://www.binance.us).
-2. Enable API Access: Go to Account → API Management.
-3. Create API Key: Generate a new API key and secret.
-4. Set Permissions: Configure the API key with appropriate permissions:
-   - Read Info: Required for account and balance information
-   - Enable Trading: Required for trade and order history (optional)
-   - Enable Withdrawals: Not required for this connector
-5. IP Restrictions: Consider setting IP restrictions for enhanced security.
-6. Update Configuration: Add your API key and secret to the `configuration.json` file.
+1. Log in to your [Binance.US account](https://www.binance.us/login).
+2. Go to **Account** > **API Management** and enable API access.
+3. Generate and make a note of the new API key and secret.
+4. Configure the API key with appropriate permissions:
+   - Read info: Required for account and balance information
+   - Enable trading: Required for trade and order history (optional)
+   - Enable withdrawals: Not required for this connector
+5. (Optional) Set IP restrictions for enhanced security.
+6. Add your API key and secret to the `configuration.json` file.
 
 Security best practices:
 
@@ -87,17 +89,16 @@ Security best practices:
 - Use IP restrictions when possible.
 - Regularly rotate your API keys.
 - Monitor API usage for unusual activity.
-- Note: Binance US is only available to US residents.
 
 ## Pagination
 
 The connector implements intelligent pagination and incremental syncing:
 
-- **Trade History**: Fetches trades in batches of 1000 records per symbol, using timestamp-based pagination
-- **Order History**: Retrieves orders in batches of 1000 records with timestamp filtering
-- **Incremental Sync**: Uses checkpoint state to track the last sync time for each data type
-- **Rate Limit Management**: Implements exponential backoff with up to 3 retry attempts
-- **Symbol Limiting**: Limits trade history fetching to the first 10 symbols with balances to avoid rate limits
+- Trade history: Fetches trades in batches of 1000 records per symbol, using timestamp-based pagination
+- Order history: Retrieves orders in batches of 1000 records with timestamp filtering
+- Incremental sync: Uses checkpoint state to track the last sync time for each data type
+- Rate limit management: Implements exponential backoff with up to 3 retry attempts
+- Symbol limiting: Limits trade history fetching to the first 10 symbols with balances to avoid rate limits
 
 ## Data handling
 
@@ -139,37 +140,37 @@ Error categories:
 
 The connector creates the following tables in your destination (refer to `schema()` function, lines 406-422):
 
-### exchange_info
+### EXCHANGE_INFO
 Contains information about all trading pairs and symbols available on Binance US (populated by `fetch_exchange_info()`, line 231).
 - Primary Key: symbol, run_id
 - Key Fields: symbol, baseAsset, quoteAsset, status, orderTypes, filters
 
-### ticker_price  
+### TICKER_PRICE  
 Contains 24-hour price change statistics for all trading pairs (populated by `fetch_ticker_prices()`, line 259).
 - Primary Key: symbol, run_id
 - Key Fields: symbol, priceChange, priceChangePercent, weightedAvgPrice, prevClosePrice, lastPrice
 
-### account_balance
+### ACCOUNT_BALANCE
 Contains wallet balance information for all assets in your account (populated by `fetch_account_info()`, line 281).
 - Primary Key: asset, run_id
 - Key Fields: asset, free, locked, total, accountType, canTrade, canWithdraw, canDeposit
 
-### wallet_details
+### WALLET_DETAILS
 Contains wallet details and asset status for all coins (populated by `fetch_wallet_details()`, line 297). This table tracks free, locked, frozen, and withdrawing balances for all supported assets on Binance US.
 - Primary Key: coin, run_id
 - Key Fields: coin, free, locked, frozen (renamed from freeze to avoid SQL keyword conflict), withdrawing, depositAllEnable, withdrawAllEnable, networkList
 
-### trade
+### TRADE
 Contains detailed information about all trades executed on your account (populated by `fetch_trade_history()`, line 319).
 - Primary Key: id, run_id
 - Key Fields: id, orderId, orderListId, price, qty, quoteQty, commission, commissionAsset, time, isBuyer
 
-### order
+### ORDER
 Contains information about all orders placed on your account (populated by `fetch_order_history()`, line 361).
 - Primary Key: orderId, run_id
 - Key Fields: orderId, symbol, orderListId, clientOrderId, price, origQty, executedQty, status, timeInForce, type
 
-### server_time
+### SERVER_TIME
 Contains the current server time from Binance US for synchronization purposes (populated by `fetch_server_time()`, line 241).
 - Primary Key: serverTime, run_id
 - Key Fields: serverTime
