@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector syncs workflow orchestration data from Prefect Cloud to your data warehouse using the Prefect Cloud REST API. It enables you to analyze workflow execution patterns, monitor pipeline health, and optimize data orchestration workflows. The connector supports incremental syncing of flows, deployments, flow runs, task runs, artifacts, and variables with automatic checkpointing for reliable data synchronization.
+This connector syncs workflow orchestration data from Prefect Cloud to your data warehouse using the Prefect Cloud REST API. It enables you to analyze workflow execution patterns, monitor pipeline health, and optimize data orchestration workflows. The connector supports incremental syncing of flows, deployments, work pools, work queues, flow runs, task runs, artifacts, and variables with automatic checkpointing for reliable data synchronization.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Retry logic with exponential backoff for transient API failures
 - Automatic checkpointing every 500 records to ensure data consistency
 - Flattening of nested JSON structures into relational tables
-- Support for six core Prefect resources: flows, deployments, flow runs, task runs, artifacts, and variables
+- Support for eight core Prefect resources: flows, deployments, work pools, work queues, flow runs, task runs, artifacts, and variables
 
 ## Configuration file
 
@@ -90,83 +90,16 @@ Refer to the `make_api_request()` function for detailed error handling implement
 
 The connector creates the following tables in your destination:
 
-### flows
-
-Stores workflow definitions and metadata.
-
-```json
-{
-  "table": "flows",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `name`, `tags`, `labels`
-
-### deployments
-
-Stores deployment configurations with scheduling information.
-
-```json
-{
-  "table": "deployments",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `name`, `flow_id`, `schedule`, `parameters`, `is_schedule_active`, `paused`
-
-### flow_runs
-
-Stores execution records of workflow runs.
-
-```json
-{
-  "table": "flow_runs",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `name`, `flow_id`, `deployment_id`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time`
-
-### task_runs
-
-Stores execution records of individual tasks within flows.
-
-```json
-{
-  "table": "task_runs",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `name`, `flow_run_id`, `task_key`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time`
-
-### artifacts
-
-Stores output data and results from workflow executions.
-
-```json
-{
-  "table": "artifacts",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `key`, `type`, `description`, `data`, `flow_run_id`, `task_run_id`
-
-### variables
-
-Stores configuration variables used across workflows.
-
-```json
-{
-  "table": "variables",
-  "primary_key": ["id"]
-}
-```
-
-Key columns include: `id`, `created`, `updated`, `name`, `value`, `tags`
+| Table Name       | Primary Key | Description                                                          | Key Columns                                                                                                                            |
+|------------------|-------------|----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **flow**         | `id`        | Stores workflow definitions and metadata                             | `id`, `created`, `updated`, `name`, `tags`, `labels`                                                                                   |
+| **deployment**   | `id`        | Stores deployment configurations with scheduling information         | `id`, `created`, `updated`, `name`, `flow_id`, `schedule`, `parameters`, `is_schedule_active`, `paused`                                |
+| **work_pool**    | `id`        | Stores work pool configurations for workflow execution environments  | `id`, `created`, `updated`, `name`, `type`, `description`, `is_paused`, `base_job_template`                                            |
+| **work_queue**   | `id`        | Stores work queue configurations for prioritizing workflow execution | `id`, `created`, `updated`, `name`, `description`, `priority`, `is_paused`, `concurrency_limit`, `work_pool_id`                        |
+| **flow_run**     | `id`        | Stores execution records of workflow runs                            | `id`, `created`, `updated`, `name`, `flow_id`, `deployment_id`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time` |
+| **task_run**     | `id`        | Stores execution records of individual tasks within flows            | `id`, `created`, `updated`, `name`, `flow_run_id`, `task_key`, `state_type`, `state_name`, `start_time`, `end_time`, `total_run_time`  |
+| **artifact**     | `id`        | Stores output data and results from workflow executions              | `id`, `created`, `updated`, `key`, `type`, `description`, `data`, `flow_run_id`, `task_run_id`                                         |
+| **variable**     | `id`        | Stores workspace-level variables for configuration management        | `id`, `created`, `updated`, `name`, `value`, `tags`                                                                                    |
 
 ## Additional considerations
 
