@@ -1,17 +1,23 @@
 # Redis Connector Example
 
 ## Connector overview
-This connector syncs data from Redis to Fivetran for historical analytics. It supports both traditional key-value data and RedisTimeSeries time-series data with incremental synchronization.
+This connector syncs data from Redis to Fivetran for historical analytics. It supports both traditional key-value data and RedisTimeSeries time series data with incremental synchronization.
 
-The connector is designed for applications that use Redis with persistence (AOF/RDB) as their primary database. It handles leaderboards, player profiles, real-time game state, and time-series metrics. The connector retrieves all key-value pairs including sorted sets (leaderboards), hashes (player profiles), counters, and TimeSeries keys. It uses the Redis SCAN command for efficient, resumable synchronization with cursor-based pagination and state management.
+The connector is designed for applications that use Redis with persistence (AOF/RDB) as their primary database. It handles leaderboards, player profiles, real-time game state, and time series metrics. The connector retrieves all key-value pairs including sorted sets (leaderboards), hashes (player profiles), counters, and TimeSeries keys. It uses the Redis SCAN command for efficient, resumable synchronization with cursor-based pagination and state management.
 
 The connector supports the following use cases:
-- Gaming leaderboards - Track historical leaderboard positions, analyze player progression, identify top performers over time
-- Player analytics - Aggregate player statistics, skill progression, engagement patterns, and retention metrics
-- Competitive balance - Analyze game difficulty, reward distribution, and competitive fairness
-- Real-time counters - Historical trends for views, likes, engagement metrics stored in Redis
-- Session analytics - User journey analysis when Redis stores session data with persistence enabled
-- Time-series metrics - Incremental sync of RedisTimeSeries data (IoT sensors, application metrics, financial data) using timestamp-based queries
+- Gaming leaderboards - Track historical leaderboard positions, analyze player progression, identify top performers over time.
+- Real-time analytics platforms - Aggregate player statistics, skill progression, engagement patterns, and retention metrics.
+- Competitive balance - Analyze game difficulty, reward distribution, and competitive fairness.
+- Real-time counters - Historical trends for views, likes, engagement metrics stored in Redis.
+- Session analytics - User journey analysis when Redis stores session data with persistence enabled.
+- Time series metrics - Incremental sync of RedisTimeSeries data (IoT sensors, application metrics, financial data) using timestamp-based queries.
+
+Note: This connector is designed for scenarios where Redis is used as a persistent database (not cache).
+
+This connector is NOT suitable for:
+- Redis used purely as cache layer (use source database connector instead)
+- Ephemeral session stores with no persistence
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -37,16 +43,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - SSL/TLS connection support for secure communication
 - Password authentication for protected Redis instances
 
-## When to use this connector
-This connector is designed for scenarios where Redis is used as a persistent database (not cache):
-- Gaming platforms storing leaderboards, player stats, achievements
-- Real-time analytics platforms with Redis Streams or persistent counters
-- Applications with Redis persistence enabled (AOF or RDB snapshots)
-- Redis is the source of truth (data not duplicated in another database)
-
-This connector is NOT suitable for:
-- Redis used purely as cache layer (use source database connector instead)
-- Ephemeral session stores with no persistence
 
 ## Configuration file
 The configuration keys required for your connector are as follows:
@@ -125,26 +121,26 @@ The connector supports both local and cloud Redis deployments with flexible auth
 Note: Redis Cloud and other managed services typically require both username (usually "default") and password. The connector automatically handles SSL/TLS when connecting to cloud providers.
 
 ## Pagination
-The connector implements Redis SCAN command for efficient, non-blocking key iteration. Refer to the `scan_redis_keys` function in `connector.py` which handles pagination with the following approach:
+The connector implements Redis' `SCAN` command for efficient, non-blocking key iteration. Refer to the `scan_redis_keys` function in `connector.py` which handles pagination with the following approach:
 
 - Uses cursor-based iteration starting from cursor position 0
-- Processes keys in configurable batches (default 100 keys per SCAN operation)
+- Processes keys in configurable batches (default 100 keys per `SCAN` operation)
 - Returns next cursor position for resuming iteration
 - Cursor = 0 indicates scan completion
 - Implements checkpointing every 1000 keys in the `sync_redis_data` function
 - State tracking allows resumption from last cursor position after interruptions
 
-The SCAN operation is memory-efficient, non-blocking, and allows other Redis operations to continue during data extraction.
+The `SCAN` operation is memory-efficient, non-blocking, and allows other Redis operations to continue during data extraction.
 
 ## Data handling
 The connector performs comprehensive data extraction and transformation.
 
-1. Key discovery - Uses SCAN command with optional pattern filtering to discover matching keys (`scan_redis_keys`)
-2. Type detection - Identifies Redis data type for each key (string, hash, list, set, zset, timeseries) using `is_timeseries_key`
-3. Value extraction - Retrieves values using type-specific Redis commands (strings via GET, hashes via HGETALL converted to JSON objects, lists via LRANGE converted to JSON arrays, sets via SMEMBERS converted to JSON arrays, sorted sets via ZRANGE with scores as [member, score] pairs, TimeSeries via TS.RANGE querying only new data points since last sync)
-4. Metadata collection - Gathers TTL (Time To Live), size, and timestamp for each key
-5. Upsert operations - All records are upserted to handle both new and updated keys
-6. Incremental sync for TimeSeries - Tracks last synced timestamp per key in state to enable incremental data fetching
+- Key discovery - Uses `SCAN` command with optional pattern filtering to discover matching keys (`scan_redis_keys`)
+- Type detection - Identifies Redis data type for each key (string, hash, list, set, zset, timeseries) using `is_timeseries_key`
+- Value extraction - Retrieves values using type-specific Redis commands (strings via `GET`, hashes via `HGETALL` converted to JSON objects, lists via `LRANGE` converted to JSON arrays, sets via `SMEMBERS` converted to JSON arrays, sorted sets via `ZRANGE` with scores as [member, score] pairs, TimeSeries via `TS.RANGE` querying only new data points since last sync)
+- Metadata collection - Gathers TTL (Time To Live), size, and timestamp for each key
+- Upsert operations - All records are upserted to handle both new and updated keys
+- Incremental sync for TimeSeries - Tracks last synced timestamp per key in state to enable incremental data fetching
 
 The `update` function orchestrates the complete sync process with state management and error handling, coordinated by `sync_redis_data`.
 
@@ -152,14 +148,14 @@ The `update` function orchestrates the complete sync process with state manageme
 The connector implements comprehensive error handling strategies. Refer to the following functions in `connector.py`:
 
 - Connection validation (`create_redis_client`): Tests Redis connectivity during client creation with ping operation, handles SSL configuration errors
-- Configuration validation (`validate_configuration`): Ensures required parameters (host, port) are present
+- Configuration validation (`validate_configuration`): Ensures required parameters (host and port) are present
 - Key access errors (`get_redis_value_info`): Handles expired or deleted keys gracefully during scanning, logs warnings for failed key access
 - Network timeouts: Configured 30-second socket timeout for connection resilience
 - Connection cleanup (`update` function finally block): Ensures Redis connections are properly closed even on errors
 - TimeSeries errors (`get_timeseries_range`): Catches and logs failures when querying TimeSeries data, returns empty list instead of crashing
 
 ## Tables created
-The connector creates a table in the destination based on your configuration (configurable via `table_name` parameter, defaults to `redis_data`):
+The connector creates a table in the destination based on your configuration (configurable via `table_name` parameter, defaults to `REDIS_DATA`):
 
 | Column        | Type         | Description                                                         |
 |---------------|--------------|---------------------------------------------------------------------|
