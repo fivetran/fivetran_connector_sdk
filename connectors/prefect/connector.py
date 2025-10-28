@@ -211,7 +211,11 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
 
 
 def fetch_paginated_data(
-    base_url: str, endpoint: str, headers: dict, cursor_field: str, cursor_value: str = None
+    base_url: str,
+    endpoint: str,
+    headers: dict,
+    cursor_field: str,
+    cursor_value: str = None,
 ) -> list:
     """
     Fetch paginated data from Prefect API using filter endpoint.
