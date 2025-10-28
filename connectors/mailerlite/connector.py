@@ -366,8 +366,8 @@ def sync_paginated_data(
 
             page, cursor = update_pagination_state(pagination_type, page, cursor, next_cursor)
 
-        except Exception as e:
-            log.severe(f"Error syncing {table_name}: {e}")
+        except requests.RequestException as e:
+            log.severe(f"API request error syncing {table_name}: {e}")
             raise
 
     if enable_incremental:
