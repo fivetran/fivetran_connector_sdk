@@ -23,7 +23,7 @@ import requests
 import time
 from datetime import datetime
 
-# For type hints
+# For type hints to support optional function parameters
 from typing import Optional
 
 __BASE_URL = "https://connect.mailerlite.com/api"
@@ -144,6 +144,164 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
     )
 
 
+def should_sync_record(record: dict, last_sync_timestamp: Optional[int]) -> bool:
+    """
+    Determine if a record should be synced based on its updated_at timestamp.
+    Args:
+        record: The record to check
+        last_sync_timestamp: The timestamp of the last sync (None if first sync)
+    Returns:
+        True if the record should be synced, False otherwise
+    """
+    if not last_sync_timestamp:
+        return True
+
+    updated_at_str = record.get("updated_at")
+    if not updated_at_str:
+        return True
+
+    updated_at_ts = iso_to_timestamp(updated_at_str)
+    return updated_at_ts > last_sync_timestamp
+
+
+def update_max_timestamp(record: dict, current_max: Optional[int]) -> Optional[int]:
+    """
+    Update the maximum updated_at timestamp from a record.
+    Args:
+        record: The record to check
+        current_max: The current maximum timestamp (None if no max yet)
+    Returns:
+        The updated maximum timestamp
+    """
+    updated_at_str = record.get("updated_at")
+    if not updated_at_str:
+        return current_max
+
+    updated_at_ts = iso_to_timestamp(updated_at_str)
+    if not current_max or updated_at_ts > current_max:
+        return updated_at_ts
+
+    return current_max
+
+
+def update_pagination_params(params: dict, pagination_type: str, page: int, cursor: Optional[str]):
+    """
+    Update pagination parameters based on pagination type.
+    Args:
+        params: The request parameters dictionary to update
+        pagination_type: Type of pagination ('page' or 'cursor')
+        page: Current page number (for page-based pagination)
+        cursor: Current cursor value (for cursor-based pagination)
+    """
+    if pagination_type == "page":
+        params["page"] = page
+    elif pagination_type == "cursor" and cursor:
+        params["cursor"] = cursor
+
+
+def has_more_pages(response_data: dict, pagination_type: str) -> tuple[bool, Optional[str]]:
+    """
+    Check if there are more pages to fetch and return the next cursor if applicable.
+    Args:
+        response_data: The API response data
+        pagination_type: Type of pagination ('page' or 'cursor')
+    Returns:
+        Tuple of (has_more_pages, next_cursor)
+    """
+    if pagination_type == "page":
+        links = response_data.get("links", {})
+        return bool(links.get("next")), None
+    elif pagination_type == "cursor":
+        meta = response_data.get("meta", {})
+        next_cursor = meta.get("next_cursor")
+        return bool(next_cursor), next_cursor
+
+    return False, None
+
+
+def process_and_upsert_record(
+    record: dict,
+    table_name: str,
+    last_sync_timestamp: Optional[int],
+    enable_incremental: bool,
+    max_updated_at: Optional[int],
+) -> tuple[bool, Optional[int]]:
+    """
+    Process a single record and upsert it if it should be synced.
+    Args:
+        record: The record to process
+        table_name: The destination table name
+        last_sync_timestamp: The timestamp of the last sync
+        enable_incremental: Whether incremental sync is enabled
+        max_updated_at: The current maximum updated_at timestamp
+    Returns:
+        Tuple of (should_count_as_synced, updated_max_timestamp)
+    """
+    # Handle incremental sync filtering if enabled
+    if enable_incremental and not should_sync_record(record, last_sync_timestamp):
+        return False, max_updated_at
+
+    # Update max timestamp for incremental sync
+    if enable_incremental:
+        max_updated_at = update_max_timestamp(record, max_updated_at)
+
+    flattened_record = flatten_dict(record)
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table=table_name, data=flattened_record)
+    return True, max_updated_at
+
+
+def checkpoint_if_needed(
+    records_synced: int,
+    table_name: str,
+    state: dict,
+    enable_incremental: bool,
+    max_updated_at: Optional[int],
+):
+    """
+    Checkpoint state at regular intervals.
+    Args:
+        records_synced: Number of records synced so far
+        table_name: The destination table name
+        state: Current state dictionary
+        enable_incremental: Whether incremental sync is enabled
+        max_updated_at: The current maximum updated_at timestamp
+    """
+    if records_synced % __CHECKPOINT_INTERVAL == 0 and records_synced > 0:
+        state[f"{table_name}_synced"] = records_synced
+        if enable_incremental and max_updated_at:
+            state[f"max_{table_name}_updated_at"] = max_updated_at
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+
+
+def update_pagination_state(
+    pagination_type: str, page: int, cursor: Optional[str], next_cursor: Optional[str]
+) -> tuple[int, Optional[str]]:
+    """
+    Update pagination state for the next iteration.
+    Args:
+        pagination_type: Type of pagination ('page' or 'cursor')
+        page: Current page number
+        cursor: Current cursor value
+        next_cursor: Next cursor value from response
+    Returns:
+        Tuple of (updated_page, updated_cursor)
+    """
+    if pagination_type == "page":
+        return page + 1, cursor
+    elif pagination_type == "cursor":
+        return page, next_cursor
+    return page, cursor
+
+
 def sync_paginated_data(
     url: str,
     headers: dict,
@@ -179,10 +337,7 @@ def sync_paginated_data(
         log.info(f"Incremental sync - fetching {table_name} updated after {last_sync_timestamp}")
 
     while True:
-        if pagination_type == "page":
-            params["page"] = page
-        elif pagination_type == "cursor" and cursor:
-            params["cursor"] = cursor
+        update_pagination_params(params, pagination_type, page, cursor)
 
         try:
             response_data = make_api_request(url, headers, params)
@@ -192,53 +347,24 @@ def sync_paginated_data(
                 break
 
             for record in records:
-                # Handle incremental sync filtering if enabled
-                if enable_incremental:
-                    updated_at_str = record.get("updated_at")
-                    updated_at_ts = iso_to_timestamp(updated_at_str) if updated_at_str else 0
+                was_synced, max_updated_at = process_and_upsert_record(
+                    record, table_name, last_sync_timestamp, enable_incremental, max_updated_at
+                )
+                if was_synced:
+                    records_synced += 1
+                else:
+                    records_skipped += 1
 
-                    if (
-                        last_sync_timestamp
-                        and updated_at_ts
-                        and updated_at_ts <= last_sync_timestamp
-                    ):
-                        records_skipped += 1
-                        continue
-
-                    if updated_at_ts and (not max_updated_at or updated_at_ts > max_updated_at):
-                        max_updated_at = updated_at_ts
-
-                flattened_record = flatten_dict(record)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=table_name, data=flattened_record)
-                records_synced += 1
-
-            # Checkpoint at regular intervals
-            if records_synced % __CHECKPOINT_INTERVAL == 0:
-                state[f"{table_name}_synced"] = records_synced
-                if enable_incremental and max_updated_at:
-                    state[f"max_{table_name}_updated_at"] = max_updated_at
-
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
+            checkpoint_if_needed(
+                records_synced, table_name, state, enable_incremental, max_updated_at
+            )
 
             # Handle pagination continuation
-            if pagination_type == "page":
-                links = response_data.get("links", {})
-                if not links.get("next"):
-                    break
-                page += 1
-            elif pagination_type == "cursor":
-                meta = response_data.get("meta", {})
-                cursor = meta.get("next_cursor")
-                if not cursor:
-                    break
+            has_more, next_cursor = has_more_pages(response_data, pagination_type)
+            if not has_more:
+                break
+
+            page, cursor = update_pagination_state(pagination_type, page, cursor, next_cursor)
 
         except Exception as e:
             log.severe(f"Error syncing {table_name}: {e}")
@@ -288,13 +414,12 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: API Connector : MailerLite Connector")
 
