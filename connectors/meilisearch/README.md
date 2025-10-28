@@ -45,7 +45,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 The connector uses bearer token authentication with MeiliSearch API keys. To obtain your API key:
 
-1. For MeiliSearch Cloud, log in to your MeiliSearch Cloud account and navigate to the API Keys section.
+1. For [MeiliSearch Cloud](https://www.meilisearch.com/cloud), log in to your account and navigate to the API Keys section.
 2. For self-hosted MeiliSearch, access your instance configuration where the master key is defined.
 3. Copy the API key (master key or a search API key with appropriate permissions).
 4. Add the API key to your `configuration.json` file as the `api_key` parameter.
@@ -53,13 +53,33 @@ The connector uses bearer token authentication with MeiliSearch API keys. To obt
 The API key is included in the `Authorization` header as a bearer token for all API requests (refer to the `build_request_headers` function).
 
 ## Pagination
-The connector implements MeiliSearch's offset-based pagination system for both indexes and documents. It processes data in configurable batches of 100 records per request (controlled by the `__PAGINATION_LIMIT` constant). The pagination logic calculates when all records have been fetched by comparing the current offset plus fetched count against the total available records. Refer to the `sync_indexes` function and `sync_documents_for_index` function for implementation details.
+The connector implements MeiliSearch's offset-based pagination system for both indexes and documents:
+
+- Processes data in configurable batches of 100 records per request (controlled by the `__PAGINATION_LIMIT` constant)
+- Calculates when all records have been fetched by comparing the current offset plus fetched count against the total available records
+- Applies pagination to both index retrieval and document fetching
+
+Refer to the `sync_indexes` and `sync_documents_for_index` functions for implementation details.
 
 ## Data handling
-The connector processes data from two main MeiliSearch API endpoints. The `/indexes` endpoint provides index metadata including UID, creation timestamp, update timestamp, and primary key configuration. The `/indexes/{index_uid}/documents/fetch` endpoint retrieves documents from each index using POST requests. All nested JSON structures within documents are automatically flattened to create optimal table schemas for your destination (refer to the `flatten_document` function). Documents are enriched with `_index_uid` and `_document_id` fields to maintain relationships and ensure proper primary key handling.
+The connector processes data from two main MeiliSearch API endpoints:
+
+- The `/indexes` endpoint provides index metadata including UID, creation timestamp, update timestamp, and primary key configuration
+- The `/indexes/{index_uid}/documents/fetch` endpoint retrieves documents from each index using POST requests
+- All nested JSON structures within documents are automatically flattened to create optimal table schemas for your destination (refer to the `flatten_document` function)
+- Documents are enriched with `_index_uid` and `_document_id` fields to maintain relationships and ensure proper primary key handling
 
 ## Error handling
-The connector implements comprehensive error handling strategies with exponential backoff retry logic for transient failures. The `make_api_request` function handles HTTP timeouts with a 30-second timeout threshold, rate limiting with detection and automatic retry, and server errors with configurable retry attempts. Retries use exponential backoff starting at 1 second and doubling with each attempt up to a maximum of 5 retries. All errors are logged with appropriate severity levels without exposing sensitive information.
+The connector implements error handling through the `make_api_request` function, which catches specific exception types and applies retry logic where appropriate:
+
+- HTTP timeouts are handled with a 30-second timeout threshold
+- Rate limiting errors (HTTP 429) trigger automatic retry with exponential backoff
+- Server errors (HTTP 5xx) trigger automatic retry with exponential backoff
+- Exponential backoff starts at 1 second and doubles with each attempt up to a maximum of 5 retries
+- Other HTTP errors fail immediately without retry
+- All errors are logged at appropriate severity levels without exposing sensitive information
+
+The connector follows SDK best practices by allowing specific exceptions to propagate naturally rather than wrapping them in generic exception handlers.
 
 ## Tables created
 The connector creates the following tables in your destination:

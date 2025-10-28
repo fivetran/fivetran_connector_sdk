@@ -72,23 +72,33 @@ def update(configuration: dict, state: dict):
     headers = build_request_headers(api_key)
 
     last_sync_timestamp = state.get("last_sync_timestamp")
+    synced_indexes = state.get("synced_indexes", [])
     current_sync_timestamp = int(time.time() * 1000)
 
-    try:
-        sync_indexes(api_url, headers)
+    # Sync indexes first
+    sync_indexes(api_url, headers)
 
-        sync_documents_from_all_indexes(api_url, headers, last_sync_timestamp)
+    # Checkpoint after completing the index table sync
+    # This ensures we don't lose index sync progress if the sync fails during document processing
+    new_state = {
+        "last_sync_timestamp": last_sync_timestamp,
+        "synced_indexes": synced_indexes,
+        "indexes_synced": True,
+    }
+    op.checkpoint(new_state)
+    log.info("Checkpointed after completing index sync")
 
-        new_state = {"last_sync_timestamp": current_sync_timestamp}
+    # Sync documents from all indexes
+    sync_documents_from_all_indexes(api_url, headers, last_sync_timestamp, synced_indexes)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(new_state)
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+    # Final checkpoint after all syncs are complete
+    final_state = {
+        "last_sync_timestamp": current_sync_timestamp,
+        "synced_indexes": [],
+        "indexes_synced": False,
+    }
+    op.checkpoint(final_state)
+    log.info("Checkpointed after completing all syncs")
 
 
 def build_request_headers(api_key: str) -> Dict[str, str]:
@@ -189,42 +199,40 @@ def sync_indexes(api_url: str, headers: Dict[str, str]):
     indexes_synced = 0
 
     while True:
-        try:
-            response_data = make_api_request(url, headers, params=params)
-            indexes = response_data.get("results", [])
+        response_data = make_api_request(url, headers, params=params)
+        indexes = response_data.get("results", [])
 
-            for index in indexes:
-                index_data = {
-                    "uid": index.get("uid"),
-                    "created_at": index.get("createdAt"),
-                    "updated_at": index.get("updatedAt"),
-                    "primary_key": index.get("primaryKey"),
-                }
+        for index in indexes:
+            index_data = {
+                "uid": index.get("uid"),
+                "created_at": index.get("createdAt"),
+                "updated_at": index.get("updatedAt"),
+                "primary_key": index.get("primaryKey"),
+            }
 
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="index", data=index_data)
-                indexes_synced += 1
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="index", data=index_data)
+            indexes_synced += 1
 
-            total = response_data.get("total", 0)
-            current_offset = params["offset"]
-            fetched_count = len(indexes)
+        total = response_data.get("total", 0)
+        current_offset = params["offset"]
+        fetched_count = len(indexes)
 
-            if current_offset + fetched_count >= total:
-                break
+        if current_offset + fetched_count >= total:
+            break
 
-            params["offset"] += __PAGINATION_LIMIT
-
-        except Exception as e:
-            log.severe(f"Error syncing indexes: {e}")
-            raise
+        params["offset"] += __PAGINATION_LIMIT
 
     log.info(f"Synced {indexes_synced} indexes")
 
 
 def sync_documents_from_all_indexes(
-    api_url: str, headers: Dict[str, str], last_sync_timestamp: Optional[int] = None
+    api_url: str,
+    headers: Dict[str, str],
+    last_sync_timestamp: Optional[int] = None,
+    synced_indexes: List[str] = None,
 ):
     """
     Fetch documents from all indexes in MeiliSearch and sync them to the destination.
@@ -233,15 +241,35 @@ def sync_documents_from_all_indexes(
         api_url: The base URL of the MeiliSearch instance
         headers: HTTP headers including authorization
         last_sync_timestamp: Timestamp in milliseconds for incremental sync filtering
+        synced_indexes: List of index UIDs that have already been synced
     """
     log.info("Starting documents sync from all indexes")
+
+    if synced_indexes is None:
+        synced_indexes = []
 
     indexes = fetch_all_indexes(api_url, headers)
 
     for index in indexes:
         index_uid = index.get("uid")
         if index_uid:
+            # Skip indexes that have already been synced (for resumption after failure)
+            if index_uid in synced_indexes:
+                log.info(f"Skipping already synced index: {index_uid}")
+                continue
+
             sync_documents_for_index(api_url, headers, index_uid, last_sync_timestamp)
+
+            # Checkpoint after each index is fully synced
+            # This ensures we can resume from the next index if the sync fails
+            synced_indexes.append(index_uid)
+            checkpoint_state = {
+                "last_sync_timestamp": last_sync_timestamp,
+                "synced_indexes": synced_indexes,
+                "indexes_synced": True,
+            }
+            op.checkpoint(checkpoint_state)
+            log.info(f"Checkpointed after syncing index: {index_uid}")
 
 
 def fetch_all_indexes(api_url: str, headers: Dict[str, str]) -> List[Dict]:
@@ -301,37 +329,32 @@ def sync_documents_for_index(
             last_updated_seconds = last_sync_timestamp // 1000
             payload["filter"] = f"last_updated >= {last_updated_seconds}"
 
-        try:
-            response_data = make_api_request(url, headers, method="POST", json_payload=payload)
-            documents = response_data.get("results", [])
+        response_data = make_api_request(url, headers, method="POST", json_payload=payload)
+        documents = response_data.get("results", [])
 
-            for document in documents:
-                document_id = extract_document_id(document, index_uid)
+        for document in documents:
+            document_id = extract_document_id(document, index_uid)
 
-                flattened_document = flatten_document(document)
-                flattened_document["_index_uid"] = index_uid
-                flattened_document["_document_id"] = document_id
+            flattened_document = flatten_document(document)
+            flattened_document["_index_uid"] = index_uid
+            flattened_document["_document_id"] = document_id
 
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="document", data=flattened_document)
-                documents_synced += 1
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="document", data=flattened_document)
+            documents_synced += 1
 
-                if documents_synced % __CHECKPOINT_INTERVAL == 0:
-                    log.info(f"Processed {documents_synced} documents from index {index_uid}")
+            if documents_synced % __CHECKPOINT_INTERVAL == 0:
+                log.info(f"Processed {documents_synced} documents from index {index_uid}")
 
-            total = response_data.get("total", 0)
-            fetched_count = len(documents)
+        total = response_data.get("total", 0)
+        fetched_count = len(documents)
 
-            if offset + fetched_count >= total:
-                break
+        if offset + fetched_count >= total:
+            break
 
-            offset += __PAGINATION_LIMIT
-
-        except Exception as e:
-            log.severe(f"Error syncing documents from index {index_uid}: {e}")
-            raise
+        offset += __PAGINATION_LIMIT
 
     log.info(f"Synced {documents_synced} documents from index: {index_uid}")
 
