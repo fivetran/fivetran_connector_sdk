@@ -205,7 +205,7 @@ def is_timeseries_key(dragonfly_client, key: str) -> bool:
     try:
         key_type = dragonfly_client.type(key)
         return key_type.lower() in ["tsdb-type", "timeseries"]
-    except Exception as e:
+    except redis.ConnectionError as e:
         log.warning(f"The supplied key is not a timeseries key '{key}': {e}")
         return False
 
@@ -226,7 +226,7 @@ def get_timeseries_range(
     try:
         result = dragonfly_client.execute_command("TS.RANGE", key, from_timestamp, to_timestamp)
         return result if result else []
-    except Exception as e:
+    except redis.RedisError as e:
         log.warning(f"Failed to get TimeSeries range for key '{key}': {e}")
         return []
 
@@ -324,7 +324,7 @@ def compute_key_hash(dragonfly_client, key: str) -> str:
         value, _ = extract_value_by_type(dragonfly_client, key, key_type)
         hash_input = f"{key_type}:{value}"
         return hashlib.md5(hash_input.encode("utf-8")).hexdigest()
-    except Exception as e:
+    except redis.RedisError as e:
         log.warning(f"Failed to compute hash for key '{key}': {e}")
         return ""
 
@@ -352,7 +352,7 @@ def get_key_info(dragonfly_client, key: str) -> dict:
             "size": size,
         }
 
-    except Exception as e:
+    except redis.RedisError as e:
         log.warning(f"Failed to get info for key '{key}': {e}")
         return {
             "key": key,
@@ -522,8 +522,11 @@ def sync_dragonfly_data(
         total_keys_processed += batch_row_count
         all_current_key_hashes.update(batch_key_hashes)
 
-        if row_count % __CHECKPOINT_INTERVAL == 0 or cursor == 0:
-            save_state(cursor, current_sync_time, all_current_key_hashes, timeseries_state)
+        # Save the progress by checkpointing the state after every batch. This ensures that the sync process can resume
+        # from the correct position in case of next sync or interruptions, even if no new/modified keys are found.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        save_state(cursor, current_sync_time, all_current_key_hashes, timeseries_state)
 
         log.info(
             f"Completed batch {batch_count}: processed {batch_row_count} records, "
