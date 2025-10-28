@@ -141,14 +141,23 @@ def make_api_request(endpoint, params, api_key):
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+            # Validate response object before processing
+            response.raise_for_status()
             result = handle_api_response(response, url, attempt)
             if result is not None:
                 return result
 
+        except requests.exceptions.HTTPError as error:
+            # Handle HTTP errors (4xx, 5xx) through the response status code
+            if error.response is not None:
+                result = handle_api_response(error.response, url, attempt)
+                if result is not None:
+                    return result
+            else:
+                handle_request_exception(attempt, f"Request to {endpoint}", error)
+
         except requests.exceptions.Timeout:
             handle_timeout_error(attempt, f"Request to {endpoint}")
-
-
         except requests.exceptions.RequestException as error:
             handle_request_exception(attempt, f"Request to {endpoint}", error)
     raise RuntimeError(f"Request to {endpoint} failed after {__MAX_RETRIES} attempts.")
