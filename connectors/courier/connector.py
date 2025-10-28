@@ -562,28 +562,21 @@ def update(configuration: dict, state: dict):
 
     api_key = configuration.get("api_key")
 
-    try:
-        state = fetch_brands(api_key, state)
-        state = fetch_audiences(api_key, state)
-        state = fetch_audit_events(api_key, state)
-        state = fetch_lists(api_key, state)
-        state = fetch_messages(api_key, state)
-        state = fetch_notifications(api_key, state)
-        state = fetch_tenants(api_key, state)
+    state = fetch_brands(api_key, state)
+    state = fetch_audiences(api_key, state)
+    state = fetch_audit_events(api_key, state)
+    state = fetch_lists(api_key, state)
+    state = fetch_messages(api_key, state)
+    state = fetch_notifications(api_key, state)
+    state = fetch_tenants(api_key, state)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
-        log.info("Completed sync for all Courier API endpoints")
-
-    except Exception as e:
-        log.severe(f"Failed to sync data: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
-
-
+    log.info("Completed sync for all Courier API endpoints")
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
