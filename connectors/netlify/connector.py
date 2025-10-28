@@ -125,9 +125,9 @@ def update(configuration: dict, state: dict):
         sync_forms(api_token, state)
         sync_submissions(api_token, state)
 
-    except Exception as e:
+    except (requests.exceptions.RequestException, RuntimeError) as e:
         log.severe(f"Failed to sync data: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+        raise
 
 
 def process_records_with_pagination(
