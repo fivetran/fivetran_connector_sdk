@@ -577,6 +577,8 @@ def update(configuration: dict, state: dict):
     op.checkpoint(state)
 
     log.info("Completed sync for all Courier API endpoints")
+
+
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
