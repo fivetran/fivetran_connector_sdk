@@ -46,7 +46,7 @@ python-arango
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-This connector uses username and password authentication to connect to ArangoDB. The credentials are specified in the configuration file and passed with the `ArangoClient.db()` method. Refer to the `connect_to_arangodb()` function in connector.py.
+This connector uses username and password authentication to connect to ArangoDB. The credentials are specified in the configuration file and passed with the `ArangoClient.db()` method. Refer to the `connect_to_arangodb()` function in `connector.py`.
 
 To set up authentication:
 
@@ -56,9 +56,9 @@ To set up authentication:
 4. Ensure the user has `READ` permissions on the collections that need to be synced.
 
 ## Pagination
-The connector implements offset-based pagination using ArangoDB's `skip` and `limit` parameters. Each collection is synced in batches of 1,000 records (defined by `__CHECKPOINT_BATCH_SIZE`). 
+The connector implements offset-based pagination using ArangoDB's `skip` and `limit` parameters. Each collection is synced in batches of 1,000 records (defined by `__CHECKPOINT_BATCH_SIZE`).
 
-The connector tracks the current offset in the state for each collection, allowing it to resume from the correct position after interruptions. Refer to the `sync_collection()` function in `connector.py` for pagination logic details.
+The connector tracks the current offset in the state for each collection, allowing it to resume from the correct position after interruptions. Refer to the `sync_collection_batches()` function in `connector.py` for pagination logic details.
 
 ## Data handling
 The connector processes each ArangoDB collection independently and upserts documents as-is to the destination tables. 
@@ -79,11 +79,11 @@ Refer to the `connect_to_arangodb()`, `sync_collection()`, and `update()` functi
 ## Tables created
 The connector creates the following tables:
 
-| Table Name | Type | Primary Key | Description |
-|------------|------|-------------|-------------|
-| `AIRPORTS` | Document Collection | `_key` | Airport information including name, city, state, country, coordinates (lat, long), and VIP status. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved. |
-| `FLIGHTS` | Edge Collection | `_key` | Flight connections between airports (graph relationships). Includes ArangoDB graph fields (`_from`, `_to`) plus flight details like date, times, carrier, flight number, tail number, and distance. |
-| `POINTS_OF_INTEREST` | Document Collection | `_key` | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and `last_edit` timestamp. |
+| Table Name           | Type                | Primary Key | Description                                                                                                                                                                                         |
+|----------------------|---------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AIRPORTS`           | Document Collection | `_key`      | Airport information including name, city, state, country, coordinates (lat, long), and VIP status. All ArangoDB system fields (`_key`, `_id`, `_rev`) are preserved.                                |
+| `FLIGHTS`            | Edge Collection     | `_key`      | Flight connections between airports (graph relationships). Includes ArangoDB graph fields (`_from`, `_to`) plus flight details like date, times, carrier, flight number, tail number, and distance. |
+| `POINTS_OF_INTEREST` | Document Collection | `_key`      | Travel destination information including title, type, description, coordinates (latitude, longitude), URL, article, contact information (phone, email), and `last_edit` timestamp.                  |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

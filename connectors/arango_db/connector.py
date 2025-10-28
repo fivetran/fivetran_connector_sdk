@@ -99,33 +99,6 @@ def get_collection_offset(state: dict, collection_name: str) -> int:
     return state.get(state_key, 0)
 
 
-def fetch_batch(collection: Any, offset: int) -> list[dict[str, Any]]:
-    """
-    Fetch a batch of documents from collection.
-    Args:
-        collection: ArangoDB collection object to fetch documents from.
-        offset: Number of documents to skip for pagination.
-    Returns:
-        List of document dictionaries from the collection.
-    """
-    cursor = collection.all(skip=offset, limit=__CHECKPOINT_BATCH_SIZE)
-    return list(cursor)
-
-
-def upsert_documents(table_name: str, documents: list[dict[str, Any]]) -> None:
-    """
-    Upsert documents to destination table.
-    Args:
-        table_name: Name of the destination table to upsert into.
-        documents: List of document dictionaries to be upserted.
-    """
-    for document in documents:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table=table_name, data=document)
-
-
 def checkpoint_progress(
     state: dict,
     collection_name: str,
@@ -174,22 +147,28 @@ def sync_collection_batches(
     batch_count = 0
 
     while True:
-        documents = fetch_batch(collection, offset)
+        # Fetch cursor for current batch without materializing to list
+        cursor = collection.all(skip=offset, limit=__CHECKPOINT_BATCH_SIZE)
 
-        if not documents:
+        batch_size = 0
+        # Process documents directly from cursor to avoid loading entire batch into memory
+        for document in cursor:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table=table_name, data=document)
+            batch_size += 1
+
+        if batch_size == 0:
             break
 
-        upsert_documents(table_name, documents)
-
-        total_synced += len(documents)
-        offset += len(documents)
+        total_synced += batch_size
+        offset += batch_size
         batch_count += 1
 
-        checkpoint_progress(
-            state, collection_name, offset, batch_count, len(documents), total_synced
-        )
+        checkpoint_progress(state, collection_name, offset, batch_count, batch_size, total_synced)
 
-        if len(documents) < __CHECKPOINT_BATCH_SIZE:
+        if batch_size < __CHECKPOINT_BATCH_SIZE:
             break
 
     return total_synced
