@@ -1,13 +1,13 @@
 # Apache Druid Connector Example
 
 ## Connector overview
-The Apache Druid connector demonstrates how to use the Fivetran Connector SDK to extract data from **Apache Druid**, a distributed real-time analytics database, and load it into a Fivetran destination for analysis.
+This connector demonstrates how to use the Fivetran Connector SDK to sync data from Apache Druid, a distributed real-time analytics database, and load it into a Fivetran destination for analysis.
 
-This connector queries Druid’s **SQL API** to retrieve metadata and datasource contents. It supports both **incremental syncs** (based on a timestamp column such as `__time` or `updated_at`) and **full imports**, with optional checksum-based soft delete detection.
+This connector queries Druid’s SQL API to retrieve metadata and datasource contents. It supports both incremental syncs (based on a timestamp column such as `__time` or `updated_at`) and full imports, with optional checksum-based soft delete detection.
 
 The connector automatically discovers all datasources in the configured Druid schema and maps their columns to Fivetran-compatible data types.
 
-Use cases:
+The connector supports the following use cases:
 - Syncing metrics and dimensions from Druid datasources to a data warehouse.
 - Capturing schema metadata for analytical lineage tracking.
 - Running incremental or full refresh syncs of large Druid datasets.
@@ -46,26 +46,24 @@ The connector reads credentials and connection settings from `configuration.json
 }
 ```
 
-| Key | Required | Description |
-|-----|-----------|-------------|
-| `druid_host` | Yes | Hostname or IP address of the Druid router or coordinator. |
-| `druid_port` | No | Port number for the Druid SQL service (default: 8888). |
-| `schema_name` | No | Optional schema name for filtering datasources. |
-| `incremental_column` | No | Name of the incremental timestamp column (default: `__time`). |
-| `use_ssl` | No | Set to `true` to use HTTPS; defaults to HTTP if not provided. |
+Configuration paramaters:
 
+- `druid_host` (required) - Hostname or IP address of the Druid router or coordinator.
+- `druid_port` (optional) - Port number for the Druid SQL service (default: 8888).
+- `schema_name` (optional) - Optional schema name for filtering datasources.
+- `incremental_column` (optional) - Name of the incremental timestamp column (default: `__time`)
+- `use_ssl` (optional) - Set to `true` to use HTTPS; defaults to HTTP if not provided.
 
 Note: Do not check `configuration.json` into version control to prevent credential exposure.
 
 ## Authentication
-Authentication is handled by connecting anonymously.  
-The `normalize_host_and_make_base_url(configuration)` function creates the base URL.
+Authentication is handled by connecting anonymously. The `normalize_host_and_make_base_url(configuration)` function creates the base URL.
 
 ## Pagination
-Pagination is implemented using SQL’s `LIMIT` and `OFFSET` clauses.  
-Refer to `select_sql_for_table()` and `run_sql()` functions.
+Pagination is implemented using SQL’s `LIMIT` and `OFFSET` clauses. Refer to `select_sql_for_table()` and `run_sql()` functions.
 
-The connector queries data in chunks of **50,000 rows per batch** until all data has been retrieved. Incremental syncs also filter results using a timestamp condition such as:
+The connector queries data in chunks of 50,000 rows per batch until all data has been retrieved. Incremental syncs also filter results using a timestamp condition such as:
+
 ```
 WHERE "__time" > TIMESTAMP '<last_sync_value>'
 ORDER BY "__time"
@@ -81,7 +79,7 @@ Refer to the `update(configuration, state)` and `schema(configuration)` function
     - Runs either a full sync (`sync_full_sql`) or incremental sync (`sync_incremental_sql`).
     - Each retrieved row is upserted into Fivetran using `op.upsert(table, row)`.
     - State is checkpointed after each batch to preserve progress between runs.
-3. Column types are normalized via `map_druid_type_to_fivetran()` to ensure compatibility.
+3. The connector normalizes column types via `map_druid_type_to_fivetran()` to ensure compatibility.
 
 ## Error handling
 Refer to `run_sql()` and `get_datasources()` for request handling.
@@ -104,8 +102,8 @@ The connector dynamically replicates all datasources in the configured schema. E
 |--------|-------------|
 | `INFORMATION_SCHEMA.TABLES` | Metadata about all tables and datasources. |
 | `INFORMATION_SCHEMA.COLUMNS` | Metadata about all columns and their data types. |
-| `sales_data` | Example Druid datasource table with metrics and dimensions. |
-| `user_events` | Example datasource table for event tracking data. |
+| `SALES_DATA` | Example Druid datasource table with metrics and dimensions. |
+| `USER_EVENTS` | Example datasource table for event tracking data. |
 
 ### Data type mapping
 
