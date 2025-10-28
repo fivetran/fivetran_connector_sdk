@@ -23,22 +23,22 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-* Comprehensive application data: Complete application metadata including ancestry tracking, classification labels, memory usage, security properties, and configuration settings
-* Enhanced field schema management: Complete field definitions including audit tracking, help text, data copy settings, mode information, and all calculation capabilities
-* Table structure analysis: Table definitions, relationships, field mappings, and data organization
-* Records data extraction: Complete record-level data with field mappings, relationships, and intelligent timestamp handling
-* Advanced pagination metadata: Detailed pagination tracking with total records, field counts, skip/top parameters for optimal sync monitoring
-* Governance & compliance support: Application ancestry tracking, data classification labels, audit logging flags, and field-level governance metadata
-* Multi-application support: Extract data from multiple Quickbase applications simultaneously
-* Dynamic schema discovery: Automatic detection of application structure and field definitions with complete property capture
-* Intelligent timestamp handling: Preserves original API timestamps when available, falls back to processing time only when necessary
-* Incremental syncs: Efficient data updates with checkpoint-based state management and enhanced metadata tracking
-* Configurable table selection: Choose specific tables or sync entire applications
-* Error handling: Robust error handling with comprehensive logging and validation
-* Mock testing framework: Complete testing suite with Faker-generated realistic data
-* CI/CD integration: Automated deployment via GitHub Actions with comprehensive quality checks
-* Environment management: Secure credential management using GitHub Environments
-* Zero-downtime deployment: Seamless updates without service interruption
+- Comprehensive application data: Complete application metadata including ancestry tracking, classification labels, memory usage, security properties, and configuration settings
+- Enhanced field schema management: Complete field definitions including audit tracking, help text, data copy settings, mode information, and all calculation capabilities
+- Table structure analysis: Table definitions, relationships, field mappings, and data organization
+- Records data extraction: Complete record-level data with field mappings, relationships, and intelligent timestamp handling
+- Advanced pagination metadata: Detailed pagination tracking with total records, field counts, skip/top parameters for optimal sync monitoring
+- Governance & compliance support: Application ancestry tracking, data classification labels, audit logging flags, and field-level governance metadata
+- Multi-application support: Extract data from multiple Quickbase applications simultaneously
+- Dynamic schema discovery: Automatic detection of application structure and field definitions with complete property capture
+- Intelligent timestamp handling: Preserves original API timestamps when available, falls back to processing time only when necessary
+- Incremental syncs: Efficient data updates with checkpoint-based state management and enhanced metadata tracking
+- Configurable table selection: Choose specific tables or sync entire applications
+- Error handling: Robust error handling with comprehensive logging and validation
+- Mock testing framework: Complete testing suite with Faker-generated realistic data
+- CI/CD integration: Automated deployment via GitHub Actions with comprehensive quality checks
+- Environment management: Secure credential management using GitHub Environments
+- Zero-downtime deployment: Seamless updates without service interruption
 
 ## Configuration file
 
@@ -296,9 +296,9 @@ Key fields:
 
 The connector includes several additional files to support functionality and deployment:
 
-* `.github/workflows/deploy_connector.yaml` – Primary deployment mechanism: GitHub Actions workflow for automated deployment to Fivetran with comprehensive code quality checks, parameterized configuration, and secure credential management.
+- `.github/workflows/deploy_connector.yaml` – Primary deployment mechanism: GitHub Actions workflow for automated deployment to Fivetran with comprehensive code quality checks, parameterized configuration, and secure credential management.
 
-* `requirements.txt` – Python dependency specification for Quickbase API integration and connector requirements.
+- `requirements.txt` – Python dependency specification for Quickbase API integration and connector requirements.
 
 ## Additional considerations
 

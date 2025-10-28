@@ -10,10 +10,18 @@ and the Best Practices documentation:
 https://fivetran.com/docs/connectors/connector-sdk/best-practices
 """
 
+# For reading configuration from a JSON file
 import json
-from typing import Dict, List, Any
 
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+from typing import Dict, List, Any
 
 # Import helper modules
 from config import (
@@ -27,7 +35,14 @@ from data_processor import QuickBaseDataProcessor
 
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
-    """Define the schema for QuickBase connector tables."""
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+
     return [
         {
             "table": "application",
@@ -53,8 +68,17 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 
 
 def update(configuration: dict, state: dict) -> None:
-    """Main sync function for QuickBase connector."""
-    log.info("Starting QuickBase API connector sync")
+    """
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
+    log.warning("Example: Source example connector for QuickBase")
 
     try:
         # Parse and validate configuration
