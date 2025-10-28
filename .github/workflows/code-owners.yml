@@ -28,19 +28,33 @@ jobs:
 
       - name: Verify CODEOWNERS approval
         env:
-          AUTH_TOKEN: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
+          FORK_SAFE_TOKEN: ${{ github.token }}
+          OPTIONAL_PAT: ${{ secrets.PAT_FOR_CODEOWNER_CHECK }}
         run: |
+          AUTH_TOKEN="${OPTIONAL_PAT:-}"
+          if [ -z "${AUTH_TOKEN}" ]; then
+            AUTH_TOKEN="${FORK_SAFE_TOKEN}"
+            echo "Using github.token"
+          else
+            echo "Using provided PAT"
+          fi
+          
+          if [ -z "${AUTH_TOKEN}" ]; then
+            echo "No authentication token available."
+            exit 1
+          fi
+          
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REPO="${{ github.repository }}"
           OWNER="${REPO%%/*}"
 
           echo "Getting changed files..."
-          curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+          curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
             | jq -r '.[].filename' > changed_files.txt
 
           echo "Getting approved reviewers..."
-          curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+          curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
             | jq -r '.[] | select(.state == "APPROVED") | .user.login' | sort -u > approved_users.txt
 
@@ -85,7 +99,7 @@ jobs:
                   org="${username%%/*}"
                   echo "Checking team '$team' members from org '$org'..."
 
-                  response=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                  response=$(curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
                     "https://api.github.com/orgs/$org/teams/$team/members?per_page=100")
 
                   if echo "$response" | jq -e 'type == "array"' > /dev/null; then
@@ -125,3 +139,9 @@ jobs:
           else
             echo "All CODEOWNERS have approved."
           fi
+
+      - name: Debug information
+        if: always()
+        run: |
+          echo "Fork safe token: $FORK_SAFE_TOKEN"
+          echo "Optional PAT token: $OPTIONAL_PAT"
