@@ -491,6 +491,8 @@ def update(configuration: dict, state: dict):
     except Exception as e:
         log.severe(f"Unexpected error during sync: {e}")
         raise
+
+
 def sync_groups(headers: dict, state: dict):
     """
     Fetch and sync groups data from MailerLite API.
@@ -542,7 +544,7 @@ def sync_groups(headers: dict, state: dict):
 
             page += 1
 
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             log.severe(f"Error syncing groups: {e}")
             raise
 
