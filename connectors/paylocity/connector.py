@@ -88,8 +88,6 @@ def __get_config_bool(configuration: dict, key: str, default: bool) -> bool:
     return bool(value)
 
 
-
-
 def __calculate_wait_time(
     attempt: int, response_headers: dict, base_delay: int = 1, max_delay: int = 60
 ) -> int:
