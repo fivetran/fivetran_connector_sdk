@@ -54,15 +54,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 ## Requirements file
 
-The `requirements.txt` file specifies the Python libraries required by the connector. This connector uses only the standard library and pre-installed packages:
-
-```
-# Discord API Connector Requirements
-# Note: fivetran_connector_sdk and requests are pre-installed in the Fivetran environment
-
-# No additional dependencies required for basic Discord API integration
-# The connector uses only the standard library and pre-installed packages
-```
+The `requirements.txt` file specifies the Python libraries required by the connector. This connector uses only the standard library and pre-installed packages
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
