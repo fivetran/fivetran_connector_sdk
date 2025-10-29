@@ -655,7 +655,9 @@ def update(configuration: dict, state: dict):
             op.upsert(table="company", data=record)
 
         # Checkpoint after company data
-        op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "company"})
+        op.checkpoint(
+            {"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "company"}
+        )
 
         # Fetch locations data (if enabled)
         if enable_locations:
@@ -668,7 +670,12 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="location", data=record)
 
             # Checkpoint after locations data
-            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "location"})
+            op.checkpoint(
+                {
+                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                    "last_table": "location",
+                }
+            )
         else:
             log.info("Locations data fetching disabled")
 
@@ -683,7 +690,12 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="employee", data=record)
 
             # Checkpoint after employees data
-            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "employee"})
+            op.checkpoint(
+                {
+                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                    "last_table": "employee",
+                }
+            )
         else:
             log.info("Employees data fetching disabled")
 
@@ -698,7 +710,9 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="payroll", data=record)
 
             # Checkpoint after payrolls data
-            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "payroll"})
+            op.checkpoint(
+                {"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "payroll"}
+            )
         else:
             log.info("Payrolls data fetching disabled")
 
@@ -713,7 +727,12 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="pay_schedule", data=record)
 
             # Checkpoint after pay schedules data
-            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "pay_schedule"})
+            op.checkpoint(
+                {
+                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                    "last_table": "pay_schedule",
+                }
+            )
         else:
             log.info("Pay schedules data fetching disabled")
 
@@ -728,7 +747,12 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="company_benefit", data=record)
 
             # Checkpoint after company benefits data
-            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "company_benefit"})
+            op.checkpoint(
+                {
+                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                    "last_table": "company_benefit",
+                }
+            )
         else:
             log.info("Company benefits data fetching disabled")
 
