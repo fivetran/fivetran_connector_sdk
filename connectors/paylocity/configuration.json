@@ -1,14 +1,12 @@
 {
-  "client_id": "YOUR_PAYLOCITY_CLIENT_ID",
-  "client_secret": "YOUR_PAYLOCITY_CLIENT_SECRET",
-  "company_id": "YOUR_PAYLOCITY_COMPANY_ID",
-  "use_sandbox": "YOUR_PAYLOCITY_SANDBOX_FLAG",
-  "sync_frequency_hours": "YOUR_PAYLOCITY_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_PAYLOCITY_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_PAYLOCITY_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_PAYLOCITY_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_PAYLOCITY_RETRY_ATTEMPTS",
-  "enable_payroll": "YOUR_PAYLOCITY_ENABLE_PAYROLL_FLAG",
-  "active_employees_only": "YOUR_PAYLOCITY_ACTIVE_EMPLOYEES_ONLY_FLAG",
-  "enable_debug_logging": "YOUR_PAYLOCITY_ENABLE_DEBUG_LOGGING_FLAG"
+  "client_id": "<YOUR_PAYLOCITY_CLIENT_ID>",
+  "client_secret": "<YOUR_PAYLOCITY_CLIENT_SECRET>",
+  "company_id": "<YOUR_PAYLOCITY_COMPANY_ID>",
+  "use_sandbox": "<YOUR_PAYLOCITY_SANDBOX_FLAG>",
+  "initial_sync_days": "<YOUR_PAYLOCITY_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_PAYLOCITY_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_PAYLOCITY_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_PAYLOCITY_RETRY_ATTEMPTS>",
+  "enable_payroll": "<YOUR_PAYLOCITY_ENABLE_PAYROLL_FLAG>",
+  "active_employees_only": "<YOUR_PAYLOCITY_ACTIVE_EMPLOYEES_ONLY_FLAG>"
 }

@@ -17,14 +17,15 @@ Key features include:
 
 ## Requirements
 
-- Python ≥3.9 and ≤3.12 (compatible with Fivetran runtime environment)
-- Operating Systems: Windows 10+, macOS 13+, Linux distributions like Ubuntu 20.04+
-- Fivetran Connector SDK (automatically provided in Fivetran environment)
-- Valid Paylocity API credentials (client_id, client_secret, company_id)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
-For information on how to set up and run this connector, see our [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide).
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -42,24 +43,22 @@ Optional payroll data extraction with configurable enable/disable flag (refer to
 Comprehensive retry logic with exponential backoff for transient failures (refer to `execute_api_request` function). Specific handling for HTTP 429 rate limiting with Retry-After header support (refer to `__handle_rate_limit` function).
 
 ### Configuration validation
-Centralized parameter parsing with type validation and range checking (refer to `validate_configuration` function). Supports both string and boolean configuration parameters with intelligent defaults (refer to `__get_config_int` and `__get_config_bool` functions).
+Automatic configuration validation with built-in type checking and intelligent defaults (refer to `__get_config_int` and `__get_config_bool` functions).
 
 ## Configuration file
 
 ```json
 {
-  "client_id": "YOUR_PAYLOCITY_CLIENT_ID",
-  "client_secret": "YOUR_PAYLOCITY_CLIENT_SECRET",
-  "company_id": "YOUR_PAYLOCITY_COMPANY_ID",
-  "use_sandbox": "YOUR_PAYLOCITY_SANDBOX_FLAG",
-  "sync_frequency_hours": "YOUR_PAYLOCITY_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_PAYLOCITY_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_PAYLOCITY_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_PAYLOCITY_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_PAYLOCITY_RETRY_ATTEMPTS",
-  "enable_payroll": "YOUR_PAYLOCITY_ENABLE_PAYROLL_FLAG",
-  "active_employees_only": "YOUR_PAYLOCITY_ACTIVE_EMPLOYEES_ONLY_FLAG",
-  "enable_debug_logging": "YOUR_PAYLOCITY_ENABLE_DEBUG_LOGGING_FLAG"
+  "client_id": "<YOUR_PAYLOCITY_CLIENT_ID>",
+  "client_secret": "<YOUR_PAYLOCITY_CLIENT_SECRET>",
+  "company_id": "<YOUR_PAYLOCITY_COMPANY_ID>",
+  "use_sandbox": "<YOUR_PAYLOCITY_SANDBOX_FLAG>",
+  "initial_sync_days": "<YOUR_PAYLOCITY_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_PAYLOCITY_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_PAYLOCITY_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_PAYLOCITY_RETRY_ATTEMPTS>",
+  "enable_payroll": "<YOUR_PAYLOCITY_ENABLE_PAYROLL_FLAG>",
+  "active_employees_only": "<YOUR_PAYLOCITY_ACTIVE_EMPLOYEES_ONLY_FLAG>"
 }
 ```
 
@@ -71,25 +70,18 @@ Centralized parameter parsing with type validation and range checking (refer to 
 | `client_secret` | string | Yes | - | Paylocity OAuth2 client secret |
 | `company_id` | string | Yes | - | Paylocity company identifier |
 | `use_sandbox` | boolean | No | true | Use sandbox environment for testing |
-| `sync_frequency_hours` | integer | No | 4 | Hours between sync operations |
 | `initial_sync_days` | integer | No | 90 | Days of historical data for initial sync |
 | `max_records_per_page` | integer | No | 20 | Records per API request (Paylocity limit: 20) |
 | `request_timeout_seconds` | integer | No | 30 | HTTP request timeout in seconds |
 | `retry_attempts` | integer | No | 3 | Number of retry attempts for failed requests |
 | `enable_payroll` | boolean | No | false | Enable payroll data extraction |
 | `active_employees_only` | boolean | No | false | Sync only active employees |
-| `enable_debug_logging` | boolean | No | false | Enable detailed debug logging |
 
 ## Requirements file
 
-This connector uses the following dependencies that are automatically provided by the Fivetran environment:
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
-- `requests`: For making HTTP requests to Adyen APIs
-- `datetime`: For handling timestamps and date ranges
-- `json`: For parsing JSON responses and serializing complex objects
-- `typing`: For type hints and improved code readability
-
-The Fivetran environment provides these dependencies automatically, so you don't need to install them separately when deploying the connector.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
@@ -181,13 +173,4 @@ Note: Column types are automatically inferred by Fivetran core based on the data
 
 ## Additional considerations
 
-This connector serves as a template and may require modifications for your specific Paylocity configuration and data requirements. Always test thoroughly in a development environment before deploying to production.
-
-The connector implements several best practices:
-- Cognitive complexity optimization: All functions maintain complexity below 15 for maintainability
-- Memory-Safe processing: Generator-based data handling prevents out-of-memory issues
-- Production-Ready error handling: Comprehensive retry logic and rate limit management
-- OAuth2 security: Secure credential handling with automatic token refresh
-- Faker-Based testing: Realistic mock data generation for comprehensive testing scenarios
-
-For questions or issues, refer to the Fivetran Connector SDK documentation or contact your Paylocity administrator for API access and permissions.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

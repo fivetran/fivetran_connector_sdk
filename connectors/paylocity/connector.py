@@ -22,7 +22,7 @@ import requests
 # For handling dates and timestamps
 from datetime import datetime, timedelta, timezone
 
-# For handling JSON responses
+# For implementing delays in retry logic and rate limiting
 import time
 
 """ ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
@@ -88,58 +88,6 @@ def __get_config_bool(configuration: dict, key: str, default: bool) -> bool:
     return bool(value)
 
 
-def __validate_required_fields(configuration: dict):
-    """
-    Validate that all required configuration fields are present.
-    Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: If any required configuration parameter is missing.
-    """
-    required_fields = {
-        "client_id": "Paylocity client ID",
-        "client_secret": "Paylocity client secret",
-        "company_id": "Paylocity company identifier",
-    }
-
-    missing_fields = []
-    for field, description in required_fields.items():
-        if not configuration.get(field):
-            missing_fields.append(f"{field} ({description})")
-
-    if missing_fields:
-        raise ValueError(f"Missing required configuration: {', '.join(missing_fields)}")
-
-
-def __validate_numeric_ranges(configuration: dict):
-    """
-    Validate numeric configuration parameters are within acceptable ranges.
-    Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-    """
-    numeric_validations = [
-        ("request_timeout_seconds", 5, 300),
-        ("retry_attempts", 1, 10),
-        ("max_records_per_page", 1, 20),  # Paylocity limit is 20
-        ("initial_sync_days", 1, 365),
-    ]
-
-    for param, min_val, max_val in numeric_validations:
-        if param in configuration:
-            __get_config_int(configuration, param, min_val, min_val, max_val)
-
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: If any required configuration parameter is missing or invalid.
-    """
-    __validate_required_fields(configuration)
-    __validate_numeric_ranges(configuration)
 
 
 def __calculate_wait_time(
@@ -509,10 +457,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs.
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Starting Paylocity connector sync")
-
-    # Validate configuration
-    validate_configuration(configuration)
+    log.info("Starting Paylocity connector sync")
 
     # Extract configuration parameters
     client_id = str(configuration.get("client_id", ""))
@@ -532,6 +477,9 @@ def update(configuration: dict, state: dict):
         # Fetch employee data using generator (NO MEMORY ACCUMULATION)
         log.info("Fetching employee data...")
         employee_count = 0
+        records_processed_in_batch = 0
+        batch_size = __get_config_int(configuration, "max_records_per_page", 20)
+
         for employee_record in get_employees(
             access_token, company_id, last_sync_time, configuration
         ):
@@ -541,6 +489,14 @@ def update(configuration: dict, state: dict):
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="employees", data=employee_record)
             employee_count += 1
+            records_processed_in_batch += 1
+
+            # Checkpoint after each batch/page to save progress incrementally
+            if records_processed_in_batch >= batch_size:
+                current_state = {"last_sync_time": datetime.now(timezone.utc).isoformat(), "employees_processed": employee_count}
+                op.checkpoint(current_state)
+                log.info(f"Checkpointed after processing {employee_count} employee records")
+                records_processed_in_batch = 0
 
         log.info(f"Processed {employee_count} employee records")
 
@@ -548,6 +504,8 @@ def update(configuration: dict, state: dict):
         if enable_payroll:
             log.info("Fetching payroll data...")
             payroll_count = 0
+            payroll_records_processed_in_batch = 0
+
             for payroll_record in get_payroll_data(
                 access_token, company_id, last_sync_time, configuration
             ):
@@ -557,6 +515,14 @@ def update(configuration: dict, state: dict):
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="payroll", data=payroll_record)
                 payroll_count += 1
+                payroll_records_processed_in_batch += 1
+
+                # Checkpoint after each batch/page to save progress incrementally
+                if payroll_records_processed_in_batch >= batch_size:
+                    current_state = {"last_sync_time": datetime.now(timezone.utc).isoformat(), "employees_processed": employee_count, "payroll_processed": payroll_count}
+                    op.checkpoint(current_state)
+                    log.info(f"Checkpointed after processing {payroll_count} payroll records")
+                    payroll_records_processed_in_batch = 0
 
             log.info(f"Processed {payroll_count} payroll records")
 
