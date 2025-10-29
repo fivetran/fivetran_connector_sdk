@@ -24,7 +24,6 @@ import random
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 
-__INVALID_LITERAL_ERROR = "invalid literal"
 __GUSTO_API_ENDPOINT = "https://api.gusto-demo.com/v1"
 
 
@@ -77,93 +76,6 @@ def __get_config_bool(
 
     value = str(configuration.get(key, str(default))).lower()
     return value in ("true", "1", "yes", "on")
-
-
-def __validate_required_fields(configuration: dict) -> None:
-    """
-    Validate required configuration fields.
-    Args:
-        configuration: Configuration dictionary
-    Raises:
-        ValueError: If any required field is missing or empty
-    """
-    required_fields = {
-        "api_token": "API token cannot be empty",
-        "company_id": "Company ID cannot be empty",
-    }
-
-    for field, error_msg in required_fields.items():
-        if field not in configuration or not str(configuration.get(field, "")).strip():
-            raise ValueError(error_msg)
-
-
-def __validate_numeric_ranges(configuration: dict) -> None:
-    """
-    Validate numeric configuration parameters.
-    Args:
-        configuration: Configuration dictionary
-    Raises:
-        ValueError: If numeric values are out of range
-    """
-    numeric_validations = [
-        (
-            "sync_frequency_hours",
-            6,
-            1,
-            24,
-            "Sync frequency must be between 1 and 24 hours",
-        ),
-        (
-            "initial_sync_days",
-            90,
-            1,
-            730,
-            "Initial sync days must be between 1 and 730",
-        ),
-        (
-            "max_records_per_page",
-            50,
-            1,
-            100,
-            "Max records per page must be between 1 and 100",
-        ),
-        (
-            "request_timeout_seconds",
-            30,
-            5,
-            300,
-            "Request timeout must be between 5 and 300 seconds",
-        ),
-        (
-            "retry_attempts",
-            3,
-            1,
-            10,
-            "Retry attempts must be between 1 and 10",
-        ),
-    ]
-
-    for field, default, min_val, max_val, error_msg in numeric_validations:
-        try:
-            value = int(str(configuration.get(field, str(default))))
-            if value < min_val or value > max_val:
-                raise ValueError(error_msg)
-        except ValueError as e:
-            if __INVALID_LITERAL_ERROR in str(e):
-                raise ValueError(f"{field} must be a valid number")
-            raise
-
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    __validate_required_fields(configuration)
-    __validate_numeric_ranges(configuration)
 
 
 def __calculate_wait_time(
@@ -698,9 +610,6 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
     """
     log.warning("Starting Gusto API connector sync")
-
-    # Validate the configuration
-    validate_configuration(configuration=configuration)
 
     # Extract configuration parameters
     api_token = str(configuration.get("api_token", ""))

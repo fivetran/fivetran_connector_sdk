@@ -40,32 +40,32 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 PRODUCTION DEPLOYMENT GUIDANCE: For production deployments, ensure your API credentials are securely managed and never committed to version control. The `configuration.json` file should be excluded from your repository using `.gitignore`.
 
-The connector requires the following configuration keys. We recommend defining them in `configuration.json` for both development and production environments:
+The connector requires the following configuration parameters:
 
 ```json
 {
-  "api_token": "YOUR_GUSTO_API_TOKEN",
-  "company_id": "YOUR_COMPANY_ID",
-  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
-  "enable_employees": "YOUR_ENABLE_EMPLOYEES",
-  "enable_payrolls": "YOUR_ENABLE_PAYROLLS",
-  "enable_pay_schedules": "YOUR_ENABLE_PAY_SCHEDULES",
-  "enable_company_benefits": "YOUR_ENABLE_COMPANY_BENEFITS",
-  "enable_locations": "YOUR_ENABLE_LOCATIONS",
-  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
+  "api_token": "<YOUR_GUSTO_API_TOKEN>",
+  "company_id": "<YOUR_COMPANY_ID>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_employees": "<TRUE_OR_FALSE>",
+  "enable_payrolls": "<TRUE_OR_FALSE>",
+  "enable_pay_schedules": "<TRUE_OR_FALSE>",
+  "enable_company_benefits": "<TRUE_OR_FALSE>",
+  "enable_locations": "<TRUE_OR_FALSE>",
+  "enable_debug_logging": "<TRUE_OR_FALSE>"
 }
 ```
+
+Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
 Required configuration keys:
 - `api_token`: Gusto API access token for REST API access
 - `company_id`: Gusto company ID for data extraction scope
 
 Optional configuration keys:
-- `sync_frequency_hours`: Sync frequency in hours (1-24, default: 6)
 - `initial_sync_days`: Days of historical data for initial sync (1-730, default: 90)
 - `max_records_per_page`: Maximum records per API page (1-100, default: 50)
 - `request_timeout_seconds`: API request timeout in seconds (5-300, default: 30)
@@ -173,7 +173,7 @@ Data processing features:
 Data Flow:
 Gusto REST API → Requests Client → Dynamic Time Range Processing → Streaming Data Processing Functions → Data Mapping & Validation → Fivetran Operations → Data Warehouse Tables
 
-Refer to functions `get_time_range`, `__execute_api_request`, `__map_employee_data`, `__map_payroll_data`, and other mapping functions in `connector.py` for detailed data handling logic.
+Refer to functions `get_time_range`, `execute_api_request`, `__map_employee_data`, `__map_payroll_data`, and other mapping functions in `connector.py` for detailed data handling logic.
 
 ## Error handling
 
@@ -201,7 +201,7 @@ Error Handling Implementation:
 - State preservation: Checkpoint system maintains sync state across failures for resumable syncs
 - Graceful degradation: Partial sync capability with comprehensive error reporting
 
-Refer to functions `__validate_configuration`, `__execute_api_request`, `__calculate_wait_time`, and the main `update` function in `connector.py` for error handling implementation.
+Refer to functions `execute_api_request`, `__calculate_wait_time`, and the main `update` function in `connector.py` for error handling implementation.
 
 ## Tables created
 
@@ -331,45 +331,4 @@ The connector includes several additional files to support functionality, testin
 * `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
-
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code extensively with comprehensive mock testing, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-Important gusto limitations:
-- API rate limits apply based on your Gusto plan and usage
-- Historical data availability depends on your Gusto account settings
-- Some employee data may require specific permissions or Gusto plan features
-- Payroll data access may be limited during payroll processing periods
-- API pagination limits vary by endpoint (typically 25-100 records per page)
-
-We recommend reviewing these limitations with your Gusto account administrator to ensure it meets your data requirements and compliance needs.
-
-Performance considerations:
-- Large employee datasets may require longer initial sync times
-- Multiple API endpoints increase total API call volume
-- Historical payroll data syncs can be resource-intensive for companies with long payroll histories
-- We recommend using incremental syncs for production environments to optimize performance
-- Streaming architecture ensures memory efficiency regardless of dataset size
-
-Security best practices:
-- Use API tokens with minimal required permissions for your data needs
-- Regularly rotate API tokens for enhanced security
-- Monitor API usage and rate limits to maintain optimal performance
-- Implement proper credential management and never commit API tokens to version control
-- Review employee data access permissions to ensure compliance with privacy regulations
-
-Development and testing best practices:
-- Use the comprehensive mock testing framework for development without API credentials
-- Validate all configuration parameters before production deployment
-- Test incremental sync functionality with realistic time ranges
-- Monitor sync performance and adjust pagination settings as needed
-- Implement proper error handling and logging for better troubleshooting
-- Use debug logging during development and initial deployment phases
-
-## References
-
-- [Gusto Developer Portal](https://docs.gusto.com/)
-- [Gusto API Reference](https://docs.gusto.com/app-integrations/reference)
-- [Gusto Authentication Guide](https://docs.gusto.com/app-integrations/docs/authentication)
-- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-- [Fivetran Connector SDK Best Practices](https://fivetran.com/docs/connectors/connector-sdk/best-practices)
-- [Fivetran Connector SDK v2.0.0+ Migration Guide](https://fivetran.com/docs/connector-sdk/tutorials/removing-yield-usage)
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
