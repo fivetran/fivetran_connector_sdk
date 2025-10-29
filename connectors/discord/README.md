@@ -82,7 +82,7 @@ This connector uses Discord bot token authentication (Refer to `validate_configu
 
 ## Pagination
 
-The connector handles pagination automatically for all Discord API endpoints (Refer to `fetch_channel_messages` function, lines 167-186, and message processing logic, lines 543-587):
+The connector handles pagination automatically for all Discord API endpoints (Refer to `fetch_channel_messages` function):
 
 - Channels: Fetches all channels in a single request
 - Members: Uses Discord's member endpoint with 1000 member limit per request
