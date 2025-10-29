@@ -261,7 +261,9 @@ def update(configuration: dict, state: dict):
         process_paginated_endpoint(
             api_key, "/templates", "template", state, "", "", {"scopeType": "Personal"}
         )
-        process_paginated_endpoint(api_key, "/events", "event", state, "last_event_date", "date")
+        process_paginated_endpoint(
+            api_key, "/events", "event", state, "last_event_date", "EventDate"
+        )
         process_paginated_endpoint(api_key, "/statistics/campaigns", "campaign_statistic", state)
         process_paginated_endpoint(api_key, "/files", "file", state)
         process_paginated_endpoint(api_key, "/domains", "domain", state)
