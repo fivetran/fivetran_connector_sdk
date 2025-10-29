@@ -117,18 +117,18 @@ def make_api_request(url: str, api_key: str):
                 raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
 
 
-def fetch_checks(api_key: str, last_updated_timestamp: str):
+def fetch_checks(api_key: str):
     """
     Fetch all health checks from Healthchecks.io API.
     Retrieves the complete list of configured health checks with their current status.
+    Note: The API does not support incremental filtering, so this performs a full refresh.
     Args:
         api_key: The API key for authentication.
-        last_updated_timestamp: The timestamp from the last sync for incremental updates.
     Returns:
         List of check dictionaries containing health check data.
     """
     url = f"{__BASE_API_URL}/checks/"
-    log.info(f"Fetching checks from {url}")
+    log.info(f"Fetching all checks from {url} (full refresh)")
 
     response_data = make_api_request(url, api_key)
     checks = response_data.get("checks", [])
@@ -320,21 +320,25 @@ def update(configuration: dict, state: dict):
     Define the update function which lets you configure how your connector fetches data.
     See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+    Note: This connector performs a full refresh on each sync because the Healthchecks.io API
+    does not support timestamp-based filtering or pagination. The state is maintained for
+    checkpoint tracking but not used for incremental data filtering.
+
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
-        state: a dictionary that holds the state of the connector.
+        state: a dictionary that holds the state of the connector (unused due to API limitations).
     """
     log.warning("Example: Source Connector : Healthchecks.io")
 
     validate_configuration(configuration=configuration)
 
     api_key = configuration.get("api_key")
-    last_updated_timestamp = state.get("last_updated_timestamp")
 
     try:
         current_sync_timestamp = datetime.now(timezone.utc).isoformat()
 
-        checks = fetch_checks(api_key, last_updated_timestamp)
+        checks = fetch_checks(api_key)
 
         for check in checks:
             flattened_check = flatten_check_record(check)

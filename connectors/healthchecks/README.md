@@ -4,7 +4,9 @@
 
 This connector syncs health check monitoring data from Healthchecks.io to your data warehouse using the Fivetran Connector SDK. Healthchecks.io is a cron job and background task monitoring service that tracks whether scheduled jobs are running on time. This connector enables you to analyze health check performance, track uptime trends, identify reliability patterns, and integrate monitoring data with your broader data analytics infrastructure.
 
-The connector supports incremental syncing and retrieves data from four primary endpoints: health checks (monitors), pings (check-in events), flips (status changes), and integrations (notification channels). This allows you to build comprehensive dashboards for operational monitoring, SLA tracking, and incident analysis.
+The connector retrieves data from four primary endpoints: health checks (monitors), pings (check-in events), flips (status changes), and integrations (notification channels). This allows you to build comprehensive dashboards for operational monitoring, SLA tracking, and incident analysis.
+
+**Important Note**: This connector performs a full refresh on each sync because the Healthchecks.io API does not support timestamp-based filtering or pagination. State checkpointing is maintained for sync tracking purposes, but all data is fetched on every sync cycle.
 
 ## Requirements
 
@@ -20,11 +22,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Incremental syncing with state management for efficient data replication
+- Full data refresh on each sync (API does not support incremental filtering)
+- State management with checkpointing for sync tracking
 - Automatic retry logic with exponential backoff for transient API failures
 - Comprehensive data model covering checks, pings, status changes, and integrations
 - Flattened schema design for easy querying and analysis
-- Support for all Healthchecks.io Management API v3 endpoints
+- Support for key Healthchecks.io Management API v3 endpoints
 - Graceful error handling with detailed logging for troubleshooting
 
 ## Configuration file
@@ -58,9 +61,16 @@ To obtain your API key:
 
 Note: Healthchecks.io provides both read-write and read-only API keys. This connector requires a read-only key at minimum, though a read-write key will also work.
 
-## Pagination
+## API limitations
 
-The Healthchecks.io API does not implement traditional pagination for the endpoints used by this connector. The `/api/v3/checks/` endpoint returns all checks in a single response. For ping and flip history, the API returns the most recent events based on account limits (100 pings for free accounts, 1000 pings for paid accounts). The connector fetches all available data in each sync without pagination logic.
+The Healthchecks.io API has the following limitations that affect sync behavior:
+
+- **No incremental filtering**: The API does not support timestamp-based filtering (no `updated_at`, `modified_since`, or similar parameters)
+- **No pagination**: All endpoints return complete result sets in a single response
+- **Limited ping history**: API returns the most recent events based on account limits (100 pings for free accounts, 1000 pings for paid accounts)
+- **Full refresh required**: Due to the above limitations, the connector performs a full data refresh on each sync
+
+These limitations mean the connector is most suitable for accounts with modest data volumes (typically less than 100 health checks).
 
 ## Data handling
 
@@ -72,7 +82,7 @@ For parent-child relationships, the connector:
 - Maintains referential integrity using foreign keys (`check_uuid` in pings and flips tables)
 - Generates composite primary keys for child tables (`ping_id` and `flip_id`)
 
-The connector uses incremental syncing with timestamp-based state management to track the last successful sync. Each sync fetches all checks and their associated pings and flips, ensuring data consistency (refer to the `update()` function and state management logic).
+The connector maintains state with checkpointing to track sync progress. While the state timestamp is saved after each successful sync, it is not used for data filtering due to API limitations. Each sync performs a full refresh of all available data, with Fivetran's upsert operations handling data deduplication (refer to the `update()` function).
 
 ## Error handling
 
@@ -91,91 +101,75 @@ The connector creates four tables in your destination:
 
 ### checks
 
-```json
-{
-  "table": "checks",
-  "primary_key": ["uuid"],
-  "columns": {
-    "uuid": "STRING",
-    "name": "STRING",
-    "slug": "STRING",
-    "tags": "STRING",
-    "desc": "STRING",
-    "grace": "INT",
-    "n_pings": "INT",
-    "status": "STRING",
-    "started": "BOOLEAN",
-    "last_ping": "UTC_DATETIME",
-    "next_ping": "UTC_DATETIME",
-    "manual_resume": "BOOLEAN",
-    "methods": "STRING",
-    "subject": "STRING",
-    "subject_fail": "STRING",
-    "start_kw": "STRING",
-    "success_kw": "STRING",
-    "failure_kw": "STRING",
-    "filter_subject": "BOOLEAN",
-    "filter_body": "BOOLEAN",
-    "badge_url": "STRING",
-    "ping_url": "STRING",
-    "update_url": "STRING",
-    "pause_url": "STRING",
-    "resume_url": "STRING",
-    "channels": "STRING",
-    "timeout": "INT"
-  }
-}
-```
+Contains health check configurations and monitoring settings.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| uuid | STRING | Unique identifier for the health check |
+| name | STRING | Name of the health check |
+| slug | STRING | URL-friendly identifier |
+| tags | STRING | Space-separated list of tags |
+| desc | STRING | Description of the health check |
+| grace | INT | Grace period in seconds |
+| n_pings | INT | Total number of pings received |
+| status | STRING | Current status (up, down, paused, etc.) |
+| started | BOOLEAN | Whether the check has started |
+| last_ping | UTC_DATETIME | Timestamp of the last ping received |
+| next_ping | UTC_DATETIME | Expected timestamp of the next ping |
+| manual_resume | BOOLEAN | Whether manual resume is required |
+| methods | STRING | Comma-separated list of allowed HTTP methods |
+| subject | STRING | Email subject filter pattern |
+| subject_fail | STRING | Email subject filter pattern for failures |
+| start_kw | STRING | Keywords indicating check start |
+| success_kw | STRING | Keywords indicating success |
+| failure_kw | STRING | Keywords indicating failure |
+| filter_subject | BOOLEAN | Whether to filter by email subject |
+| filter_body | BOOLEAN | Whether to filter by email body |
+| badge_url | STRING | URL for the status badge |
+| ping_url | STRING | URL to send pings to |
+| update_url | STRING | URL for updating the check |
+| pause_url | STRING | URL for pausing the check |
+| resume_url | STRING | URL for resuming the check |
+| channels | STRING | Comma-separated list of integration channel IDs |
+| timeout | INT | Expected period in seconds |
 
 ### pings
 
-```json
-{
-  "table": "pings",
-  "primary_key": ["ping_id"],
-  "columns": {
-    "ping_id": "STRING",
-    "check_uuid": "STRING",
-    "n": "INT",
-    "type": "STRING",
-    "date": "UTC_DATETIME",
-    "scheme": "STRING",
-    "remote_addr": "STRING",
-    "method": "STRING",
-    "ua": "STRING",
-    "duration": "FLOAT"
-  }
-}
-```
+Contains check-in events for health checks.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| ping_id | STRING | Unique identifier for the ping (composite: check_uuid + date) |
+| check_uuid | STRING | Foreign key to the checks table |
+| n | INT | Sequential ping number |
+| type | STRING | Type of ping (success, fail, start, etc.) |
+| date | UTC_DATETIME | Timestamp when the ping was received |
+| scheme | STRING | Protocol used (http, https, email, etc.) |
+| remote_addr | STRING | IP address of the sender |
+| method | STRING | HTTP method used |
+| ua | STRING | User agent string |
+| duration | FLOAT | Duration in seconds (for success pings) |
 
 ### flips
 
-```json
-{
-  "table": "flips",
-  "primary_key": ["flip_id"],
-  "columns": {
-    "flip_id": "STRING",
-    "check_uuid": "STRING",
-    "timestamp": "UTC_DATETIME",
-    "up": "INT"
-  }
-}
-```
+Contains status change events for health checks.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| flip_id | STRING | Unique identifier for the status change (composite: check_uuid + timestamp) |
+| check_uuid | STRING | Foreign key to the checks table |
+| timestamp | UTC_DATETIME | When the status change occurred |
+| up | INT | Status after the flip (1 for up, 0 for down) |
 
 ### integrations
 
-```json
-{
-  "table": "integrations",
-  "primary_key": ["id"],
-  "columns": {
-    "id": "STRING",
-    "name": "STRING",
-    "kind": "STRING"
-  }
-}
-```
+Contains notification channel configurations.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the integration |
+| name | STRING | Name of the integration |
+| kind | STRING | Type of integration (email, slack, webhook, etc.) |
 
 ## Additional considerations
 
