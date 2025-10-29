@@ -589,6 +589,8 @@ def get_locations_data(
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -604,12 +606,14 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is called by Fivetran during each sync.
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
-    log.warning("Starting Gusto API connector sync")
+    log.info("Starting Gusto API connector sync")
 
     # Extract configuration parameters
     api_token = str(configuration.get("api_token", ""))
@@ -650,6 +654,9 @@ def update(configuration: dict, state: dict):
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="company", data=record)
 
+        # Checkpoint after company data
+        op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "company"})
+
         # Fetch locations data (if enabled)
         if enable_locations:
             log.info("Fetching locations data...")
@@ -659,6 +666,9 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="location", data=record)
+
+            # Checkpoint after locations data
+            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "location"})
         else:
             log.info("Locations data fetching disabled")
 
@@ -671,6 +681,9 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="employee", data=record)
+
+            # Checkpoint after employees data
+            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "employee"})
         else:
             log.info("Employees data fetching disabled")
 
@@ -683,6 +696,9 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="payroll", data=record)
+
+            # Checkpoint after payrolls data
+            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "payroll"})
         else:
             log.info("Payrolls data fetching disabled")
 
@@ -695,6 +711,9 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="pay_schedule", data=record)
+
+            # Checkpoint after pay schedules data
+            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "pay_schedule"})
         else:
             log.info("Pay schedules data fetching disabled")
 
@@ -707,6 +726,9 @@ def update(configuration: dict, state: dict):
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="company_benefit", data=record)
+
+            # Checkpoint after company benefits data
+            op.checkpoint({"last_sync_time": datetime.now(timezone.utc).isoformat(), "last_table": "company_benefit"})
         else:
             log.info("Company benefits data fetching disabled")
 
