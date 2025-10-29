@@ -43,7 +43,7 @@ The connector requires the following configuration parameters in `configuration.
 
 ### Configuration parameters
 
-- `bot_token` (required): Your Discord bot token (with or without the "bot" prefix - the connector ads it automatically if missing)
+- `bot_token` (required): Your Discord bot token (with or without the "bot" prefix - the connector adds it automatically if missing)
 - `sync_all_guilds` (optional): Specifies whether to sync all guilds the bot has access to (default: "true")
 - `guild_ids` (optional): Comma-separated list of specific guild IDs to sync (default: "" - sync all)
 - `exclude_guild_ids` (optional): Comma-separated list of guild IDs to exclude (default: "" - exclude none)
