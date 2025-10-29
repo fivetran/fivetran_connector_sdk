@@ -35,7 +35,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "base_url": "<YOUR_SNIPEIT_BASE_URL>"
 }
 ```
-
+### Configuration parameters
 - `api_token` - The Bearer token for authenticating with the Snipe-IT API
 - `base_url` - The base URL of your Snipe-IT instance (e.g., `https://your-instance.snipeitapp.com`)
 
