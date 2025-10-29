@@ -16,10 +16,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
-Example: import pandas, boto3, etc.
-Add comment for each import to explain its purpose for users to follow.
-"""
 # For making HTTP requests to DocuSign API
 import requests
 
@@ -34,6 +30,11 @@ import time
 
 # For random number generation (jitter in retries)
 import random
+
+""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
+Example: import pandas, boto3, etc.
+Add comment for each import to explain its purpose for users to follow.
+"""
 
 # Private constants (use __ prefix)
 __INVALID_LITERAL_ERROR = "invalid literal"
@@ -577,11 +578,9 @@ def update(configuration: dict, state: dict):
         document_count = 0
 
         for record in get_envelopes(access_token, account_id, {}, last_sync_time, configuration):
-            if (
-                "envelope_id" in record
-                and "recipient_type" not in record
-                and "document_id" not in record
-            ):
+            _process_envelope = "envelope_id" in record and "recipient_type" not in record
+            process_envelope = _process_envelope and "document_id" not in record
+            if process_envelope:
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
