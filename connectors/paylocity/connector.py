@@ -491,7 +491,10 @@ def update(configuration: dict, state: dict):
 
             # Checkpoint after each batch/page to save progress incrementally
             if records_processed_in_batch >= batch_size:
-                current_state = {"last_sync_time": datetime.now(timezone.utc).isoformat(), "employees_processed": employee_count}
+                current_state = {
+                    "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                    "employees_processed": employee_count,
+                }
                 op.checkpoint(current_state)
                 log.info(f"Checkpointed after processing {employee_count} employee records")
                 records_processed_in_batch = 0
@@ -517,7 +520,11 @@ def update(configuration: dict, state: dict):
 
                 # Checkpoint after each batch/page to save progress incrementally
                 if payroll_records_processed_in_batch >= batch_size:
-                    current_state = {"last_sync_time": datetime.now(timezone.utc).isoformat(), "employees_processed": employee_count, "payroll_processed": payroll_count}
+                    current_state = {
+                        "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                        "employees_processed": employee_count,
+                        "payroll_processed": payroll_count,
+                    }
                     op.checkpoint(current_state)
                     log.info(f"Checkpointed after processing {payroll_count} payroll records")
                     payroll_records_processed_in_batch = 0
