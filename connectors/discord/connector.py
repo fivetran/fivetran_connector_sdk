@@ -35,8 +35,6 @@ from fivetran_connector_sdk import Operations as op
 
 
 # Constants for API configuration and rate limiting
-# USERS CAN MODIFY: Adjust these values based on your Discord API usage
-# patterns and data volume
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
 __RATE_LIMIT_DELAY = 1  # Additional delay when rate limited
