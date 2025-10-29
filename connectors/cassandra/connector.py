@@ -17,6 +17,7 @@ from dateutil import parser
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 
+__CONST=1
 
 def create_cassandra_session(configuration: dict):
     """
