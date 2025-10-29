@@ -1,7 +1,7 @@
 {
-  "api_key": "YOUR_ADYEN_API_KEY",
-  "merchant_account": "YOUR_MERCHANT_ACCOUNT",
-  "environment": "test",
+  "api_key": "<YOUR_ADYEN_API_KEY>",
+  "merchant_account": "<YOUR_MERCHANT_ACCOUNT>",
+  "environment": "<test_or_live>",
   "enable_payments": "true",
   "enable_modifications": "true",
   "enable_webhooks": "true",

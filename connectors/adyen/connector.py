@@ -25,92 +25,13 @@ from datetime import datetime, timedelta, timezone
 
 # For random number generation in retry logic
 import random
+
+# For adding delays in retry logic
 import time
 
 # Private constants (use __ prefix)
-__INVALID_LITERAL_ERROR = "invalid literal"
 __API_ENDPOINT_CHECKOUT = "https://checkout-test.adyen.com/v71"
 __API_ENDPOINT_MANAGEMENT = "https://management-test.adyen.com/v3"
-__API_ENDPOINT_RECURRING = "https://pal-test.adyen.com/pal/servlet/Recurring/v68"
-__API_ENDPOINT_WEBHOOKS = "https://management-test.adyen.com/v3"
-
-
-def __get_config_int(configuration, key, default, min_val=None, max_val=None):
-    """
-    Centralized configuration parameter parsing with validation.
-    This function safely extracts integer configuration values with bounds checking.
-    Args:
-        configuration: Configuration dictionary
-        key: Configuration key to extract
-        default: Default value if key is missing or invalid
-        min_val: Minimum allowed value (optional)
-        max_val: Maximum allowed value (optional)
-    Returns:
-        int: Validated configuration value
-    """
-    try:
-        value = int(configuration.get(key, default))
-        if min_val is not None and value < min_val:
-            log.warning(f"Config {key}={value} below minimum {min_val}, using {min_val}")
-            return min_val
-        if max_val is not None and value > max_val:
-            log.warning(f"Config {key}={value} above maximum {max_val}, using {max_val}")
-            return max_val
-        return value
-    except (ValueError, TypeError) as e:
-        log.warning(f"Invalid config {key}: {e}, using default {default}")
-        return default
-
-
-def __validate_required_fields(configuration):
-    """
-    Validate required fields using dictionary mapping approach.
-    This function checks that all mandatory configuration parameters are present.
-    Args:
-        configuration: Configuration dictionary to validate
-    Raises:
-        ValueError: If any required field is missing
-    """
-    required_fields = {
-        "api_key": "Adyen API key is required for authentication",
-        "merchant_account": "Merchant account identifier is required",
-    }
-
-    for field, error_msg in required_fields.items():
-        if not configuration.get(field):
-            raise ValueError(error_msg)
-
-
-def __validate_numeric_ranges(configuration):
-    """
-    Validate numeric parameters using iteration pattern.
-    This function ensures numeric configuration values are within acceptable ranges.
-    Args:
-        configuration: Configuration dictionary to validate
-    """
-    numeric_validations = [
-        ("max_records_per_page", 1, 1000),
-        ("request_timeout_seconds", 1, 300),
-        ("retry_attempts", 1, 10),
-        ("initial_sync_days", 1, 365),
-    ]
-
-    for key, min_val, max_val in numeric_validations:
-        if key in configuration:
-            __get_config_int(configuration, key, 100, min_val, max_val)
-
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    __validate_required_fields(configuration)
-    __validate_numeric_ranges(configuration)
 
 
 def __calculate_wait_time(attempt, response_headers, base_delay=1, max_delay=60):
@@ -200,8 +121,8 @@ def execute_api_request(endpoint, api_key, params=None, configuration=None, requ
     url = f"{base_url}{endpoint}"
     headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
 
-    timeout = __get_config_int(configuration, "request_timeout_seconds", 30)
-    retry_attempts = __get_config_int(configuration, "retry_attempts", 3)
+    timeout = int(configuration.get("request_timeout_seconds", 30))
+    retry_attempts = int(configuration.get("retry_attempts", 3))
 
     for attempt in range(retry_attempts):
         try:
@@ -241,7 +162,7 @@ def get_time_range(last_sync_time=None, configuration=None):
     if last_sync_time:
         start_time = last_sync_time
     else:
-        initial_sync_days = __get_config_int(configuration, "initial_sync_days", 90)
+        initial_sync_days = int(configuration.get("initial_sync_days", 90))
         start_time = (datetime.now(timezone.utc) - timedelta(days=initial_sync_days)).isoformat()
 
     return {"start": start_time, "end": end_time}
@@ -350,7 +271,7 @@ def get_payments_data(api_key, merchant_account, last_sync_time=None, configurat
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = "/payments"
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
+    max_records = int(configuration.get("max_records_per_page", 100))
 
     # For Adyen, we'll simulate payment data retrieval
     # In real implementation, this would use Adyen's reporting API or webhook logs
@@ -391,7 +312,7 @@ def get_modifications_data(api_key, merchant_account, last_sync_time=None, confi
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = "/modifications"
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
+    max_records = int(configuration.get("max_records_per_page", 100))
 
     request_data = {
         "merchantAccount": merchant_account,
@@ -429,7 +350,7 @@ def get_webhooks_data(api_key, merchant_account, last_sync_time=None, configurat
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = "/webhooks/logs"
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
+    max_records = int(configuration.get("max_records_per_page", 100))
 
     params = {
         "merchantAccount": merchant_account,
@@ -478,9 +399,6 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Adyen API Connector: Starting sync")
-
-    # Validate the configuration to ensure it contains all required values
-    validate_configuration(configuration=configuration)
 
     # Extract configuration parameters as required
     api_key = str(configuration.get("api_key", ""))

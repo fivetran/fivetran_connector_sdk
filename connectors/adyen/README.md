@@ -10,8 +10,11 @@ Key features include support for multiple data types (payments, modifications, w
 
 ## Requirements
 
-- Python ≥3.9 and ≤3.12
-- Compatible with Windows 10+, macOS 13+, Linux distributions like Ubuntu 20.04+
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -25,26 +28,26 @@ To set up and run this connector, follow the [Connector SDK Setup Guide](https:/
 - Incremental sync: Supports time-based incremental syncing to fetch only new data since last sync
 - Memory efficiency: Uses generator-based streaming to process large datasets without memory accumulation
 - Error handling: Implements comprehensive retry logic with exponential backoff for rate limiting and network issues (refer to `execute_api_request` function)
-- Configuration validation: Centralized parameter validation with helpful error messages (refer to `validate_configuration` function)
+- Configuration validation: Automatic configuration validation provided by the Fivetran SDK
 - Data quality: Automatic field mapping and type conversion with JSON serialization for complex objects
 
 ## Configuration file
 
 ```json
 {
-  "api_key": "YOUR_ADYEN_API_KEY",
-  "merchant_account": "YOUR_MERCHANT_ACCOUNT",
-  "environment": "YOUR_ENVIRONMENT",
-  "enable_payments": "YOUR_ENABLE_PAYMENTS",
-  "enable_modifications": "YOUR_ENABLE_MODIFICATIONS",
-  "enable_webhooks": "YOUR_ENABLE_WEBHOOKS",
-  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
-  "enable_incremental_sync": "YOUR_INCREMENTAL_SYNC",
-  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
+  "api_key": "<YOUR_ADYEN_API_KEY>",
+  "merchant_account": "<YOUR_MERCHANT_ACCOUNT>",
+  "environment": "<YOUR_ENVIRONMENT>",
+  "enable_payments": "<YOUR_ENABLE_PAYMENTS>",
+  "enable_modifications": "<YOUR_ENABLE_MODIFICATIONS>",
+  "enable_webhooks": "<YOUR_ENABLE_WEBHOOKS>",
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```
 
@@ -142,7 +145,7 @@ The connector implements comprehensive error handling patterns with separated co
 - Rate limiting: Handles HTTP 429 responses with automatic retry using exponential backoff and jitter (refer to `__handle_rate_limit` function)
 - Network errors: Implements retry logic for transient network issues with configurable attempts (refer to `__handle_request_error` function)
 - Authentication errors: Provides clear error messages for invalid API credentials
-- Data validation: Validates configuration parameters with helpful error messages before execution (refer to `validate_configuration` function)
+- Data validation: Automatic configuration parameter validation provided by the Fivetran SDK
 - API timeouts: Configurable request timeouts with automatic retry for timeout errors
 
 The error handling logic is modularized into focused helper functions to maintain low cognitive complexity while providing robust error recovery capabilities.
