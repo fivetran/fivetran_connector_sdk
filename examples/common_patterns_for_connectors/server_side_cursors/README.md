@@ -1,5 +1,5 @@
 # Server-Side Cursors Example Connector
-test
+
 ## Connector overview
 
 This example demonstrates how to fetch data from a PostgreSQL database using different cursor strategies to minimize memory usage and optimize performance for large datasets. The connector showcases two cursor approaches:
