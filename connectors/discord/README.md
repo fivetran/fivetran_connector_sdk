@@ -37,7 +37,7 @@ The connector requires the following configuration parameters in `configuration.
 
 ```json
 {
-  "bot_token": "YOUR_BOT_TOKEN"
+  "bot_token": "YOUR_DISCORD_BOT_TOKEN"
 }
 ```
 
