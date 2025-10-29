@@ -74,7 +74,7 @@ To set up authentication:
 
 3. Configure the client:
 
-   i. Set **Client ID** to a descriptive name (e.g., fivetran-connector).
+   i. Set **Client ID** to a descriptive name (e.g., Fivetran-connector).
 
    ii. Set **Client Protocol** to openid-connect.
 
