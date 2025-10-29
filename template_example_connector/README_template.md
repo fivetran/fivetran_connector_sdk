@@ -73,7 +73,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 *Explain the authentication mechanism used to access the source (e.g., API Key, OAuth2) and provide steps to obtain necessary credentials.*
 
-TEsting
 ## Pagination
 *Describe how the connector handles pagination when retrieving data from the source.*
 
