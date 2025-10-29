@@ -20,16 +20,16 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- **Multi-guild support**: Automatically discovers and processes all guilds the bot has access to (Refer to `fetch_user_guilds` function, lines 140-150)
-- **Guild filtering**: Configure which guilds to sync with include/exclude lists (Refer to `filter_guilds` function, lines 153-198)
-- **Guild data**: Complete server information including settings, features, and metadata
-- **Channel management**: All channel types (text, voice, category, etc.) with permissions and settings
-- **Member analytics**: User profiles, roles, join dates, and activity status
-- **Message history**: Comprehensive message data with attachments, embeds, and reactions
-- **Incremental sync**: Efficient updates using message timestamps and state management (Refer to `process_single_guild` function, lines 463-588)
-- **Rate limit handling**: Intelligent retry logic with exponential backoff
-- **Error recovery**: Robust error handling with detailed logging
-- **AI/ML optimized**: Structured data perfect for community analysis and sentiment tracking
+- Multi-guild support: Automatically discovers and processes all guilds the bot has access to (Refer to `fetch_user_guilds` function, lines 140-150)
+- Guild filtering: Configure which guilds to sync with include/exclude lists (Refer to `filter_guilds` function, lines 153-198)
+- Guild data: Complete server information including settings, features, and metadata
+- Channel management: All channel types (text, voice, category, etc.) with permissions and settings
+- Member analytics: User profiles, roles, join dates, and activity status
+- Message history: Comprehensive message data with attachments, embeds, and reactions
+- Incremental sync: Efficient updates using message timestamps and state management (Refer to `process_single_guild` function, lines 463-588)
+- Rate limit handling: Intelligent retry logic with exponential backoff
+- Error recovery: Robust error handling with detailed logging
+- AI/ML optimized: Structured data perfect for community analysis and sentiment tracking
 
 ## Configuration file
 
@@ -64,29 +64,29 @@ This connector uses Discord bot token authentication (Refer to `validate_configu
 
 1. Create a Discord application:
    - Go to [Discord Developer Portal](https://discord.com/developers/applications).
-   - Click **New Application** and give it a name.
-   - Navigate to the **Bot** section in the left sidebar.
+   - Click New Application and give it a name.
+   - Navigate to the Bot section in the left sidebar.
 2. Create a bot:
-   - Click **Add Bot** if no bot exists.
+   - Click Add Bot if no bot exists.
    - Make a note of the bot token. 
    - Add the "Bot" prefix to your token: `Bot YOUR_TOKEN_HERE`
 3. Set bot permissions:
-   - In the Bot section, scroll down to **Privileged Gateway Intents**.
-   - Enable **Server Members Intent** (required for member data).
-   - Enable **Message Content Intent** (required for message content).
+   - In the Bot section, scroll down to Privileged Gateway Intents.
+   - Enable Server Members Intent (required for member data).
+   - Enable Message Content Intent (required for message content).
 4. Invite bot to server:
-   - Go to **OAuth2** > **URL Generator**.
-   - Select **bot** scope.
-   - Select the **Read Messages**, **Read Message History**, **View Channels**, and **Read Server Members** permissions:
+   - Go to OAuth2 > URL Generator.
+   - Select bot scope.
+   - Select the Read Messages, Read Message History, View Channels, and Read Server Members permissions:
    - Use the generated URL to invite the bot to your server.
 
 ## Pagination
 
 The connector handles pagination automatically for all Discord API endpoints (Refer to `fetch_channel_messages` function, lines 167-186, and message processing logic, lines 543-587):
 
-- **Channels**: Fetches all channels in a single request
-- **Members**: Uses Discord's member endpoint with 1000 member limit per request
-- **Messages**: Implements cursor-based pagination using message IDs for efficient incremental syncs
+- Channels: Fetches all channels in a single request
+- Members: Uses Discord's member endpoint with 1000 member limit per request
+- Messages: Implements cursor-based pagination using message IDs for efficient incremental syncs
 
 The connector processes data in batches and checkpoints progress every 50 records to ensure reliable sync resumption.
 
@@ -94,37 +94,37 @@ The connector processes data in batches and checkpoints progress every 50 record
 
 The connector processes and normalizes Discord data for optimal analysis (Refer to `process_guild_data`, `process_channel_data`, `process_member_data`, and `process_message_data` functions, lines 201-357):
 
-- **JSON Serialization**: Complex objects (mentions, attachments, embeds) are stored as JSON strings
-- **Timestamp Normalization**: All timestamps are converted to ISO format with UTC timezone
-- **Data Type Consistency**: Ensures consistent data types across all records
-- **Null Handling**: Gracefully handles missing or null values from the API
-- **Schema Evolution**: Automatically adapts to new Discord API fields
+- JSON Serialization: Complex objects (mentions, attachments, embeds) are stored as JSON strings
+- Timestamp Normalization: All timestamps are converted to ISO format with UTC timezone
+- Data Type Consistency: Ensures consistent data types across all records
+- Null Handling: Gracefully handles missing or null values from the API
+- Schema Evolution: Automatically adapts to new Discord API fields
 
 ### Data Processing Pipeline
 
-1. **Fetch**: Retrieve data from Discord API with rate limit handling
-2. **Normalize**: Convert Discord data format to Fivetran schema
-3. **Validate**: Ensure data integrity and required fields
-4. **Upsert**: Insert or update records in destination tables
-5. **Checkpoint**: Save sync state for incremental updates
+1. Fetch: Retrieve data from Discord API with rate limit handling
+2. Normalize: Convert Discord data format to Fivetran schema
+3. Validate: Ensure data integrity and required fields
+4. Upsert: Insert or update records in destination tables
+5. Checkpoint: Save sync state for incremental updates
 
 ## Error handling
 
 The connector implements comprehensive error handling strategies (Refer to `make_discord_request` function, lines 77-137):
 
-- **Rate Limiting**: Automatic retry with exponential backoff when rate limited
-- **Server Errors**: Retry logic for 5xx HTTP status codes
-- **Network Issues**: Timeout handling and connection error recovery
-- **Data Validation**: Graceful handling of malformed API responses
-- **State Recovery**: Checkpoint-based state management for sync resumption
+- Rate Limiting: Automatic retry with exponential backoff when rate limited
+- Server Errors: Retry logic for 5xx HTTP status codes
+- Network Issues: Timeout handling and connection error recovery
+- Data Validation: Graceful handling of malformed API responses
+- State Recovery: Checkpoint-based state management for sync resumption
 
 ### Error Types Handled
 
-- **429 Rate Limited**: Waits for retry-after header duration
-- **500-504 Server Errors**: Exponential backoff retry strategy
-- **Network Timeouts**: 30-second timeout with retry logic
-- **Invalid Responses**: JSON parsing error handling
-- **Missing Permissions**: Clear error messages for authentication issues
+- 429 Rate Limited: Waits for retry-after header duration
+- 500-504 Server Errors: Exponential backoff retry strategy
+- Network Timeouts: 30-second timeout with retry logic
+- Invalid Responses: JSON parsing error handling
+- Missing Permissions: Clear error messages for authentication issues
 
 ## Tables created
 
@@ -152,24 +152,24 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 
 ### Discord API Considerations
 
-- **Rate Limits**: Discord has strict rate limits; the connector implements intelligent retry logic
-- **Permissions**: Ensure your bot has necessary intents and permissions enabled
-- **Data Volume**: Large servers may require multiple sync runs for complete data extraction
-- **Message History**: Discord API limits message history; consider your message_limit setting
-- **Privacy**: Be mindful of Discord's Terms of Service and data privacy requirements
+- Rate Limits: Discord has strict rate limits; the connector implements intelligent retry logic
+- Permissions: Ensure your bot has necessary intents and permissions enabled
+- Data Volume: Large servers may require multiple sync runs for complete data extraction
+- Message History: Discord API limits message history; consider your message_limit setting
+- Privacy: Be mindful of Discord's Terms of Service and data privacy requirements
 
 ### Performance Optimization
 
-- **Batch Processing**: Data is processed in configurable batches for optimal performance
-- **Incremental Sync**: Only new/updated data is fetched on subsequent runs
-- **Memory Management**: Large datasets are processed without loading everything into memory
-- **Checkpointing**: Regular state saves ensure sync reliability and resumption
+- Batch Processing: Data is processed in configurable batches for optimal performance
+- Incremental Sync: Only new/updated data is fetched on subsequent runs
+- Memory Management: Large datasets are processed without loading everything into memory
+- Checkpointing: Regular state saves ensure sync reliability and resumption
 
 ### AI/ML Use Cases
 
 This connector is particularly well-suited for:
-- **Community Analytics**: Server growth, engagement patterns, and activity trends
-- **Sentiment Analysis**: Message content analysis and user sentiment tracking
-- **Moderation Insights**: Automated moderation and content policy analysis
-- **User Behavior**: Member activity patterns and interaction analysis
-- **Content Analysis**: Attachment and embed analysis for content categorization
+- Community Analytics: Server growth, engagement patterns, and activity trends
+- Sentiment Analysis: Message content analysis and user sentiment tracking
+- Moderation Insights: Automated moderation and content policy analysis
+- User Behavior: Member activity patterns and interaction analysis
+- Content Analysis: Attachment and embed analysis for content categorization
