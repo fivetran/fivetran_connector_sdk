@@ -10,9 +10,9 @@ Keycloak is an open-source identity and access management solution that provides
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-  - Windows: 10 or later (64-bit only)
-  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+   - Windows: 10 or later (64-bit only)
+   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -37,12 +37,12 @@ The connector requires the following configuration parameters:
 
 ```json
 {
-  "keycloak_url": "<YOUR_KEYCLOAK_SERVER_URL>",
-  "realm": "<YOUR_KEYCLOAK_REALM>",
-  "client_id": "<YOUR_CLIENT_ID>",
-  "client_secret": "<YOUR_CLIENT_SECRET>",
-  "sync_events": true,
-  "start_date": "<START_DATE_YYYY_MM_DD>"
+   "keycloak_url": "<YOUR_KEYCLOAK_SERVER_URL>",
+   "realm": "<YOUR_KEYCLOAK_REALM>",
+   "client_id": "<YOUR_CLIENT_ID>",
+   "client_secret": "<YOUR_CLIENT_SECRET>",
+   "sync_events": "<TRUE_OR_FALSE>",
+   "start_date": "<START_DATE_YYYY_MM_DD>"
 }
 ```
 
@@ -51,7 +51,7 @@ Configuration parameters:
 - `realm` - Keycloak realm name to sync data from (e.g., master, production, or your custom realm)
 - `client_id` - OAuth2 client ID for service account authentication
 - `client_secret` - OAuth2 client secret for service account authentication
-- `sync_events` - Boolean flag to enable/disable event syncing (default: true)
+- `sync_events` - String value "true" or "false" to enable/disable event syncing (default: "true")
 - `start_date` - Start date for incremental event sync in YYYY-MM-DD format (e.g., 2024-01-01)
 
 Note: Ensure that the [configuration.json](configuration.json) file is not checked into version control to protect sensitive information.
@@ -149,81 +149,123 @@ The connector creates the following tables in your destination:
 
 Main table containing Keycloak user data with flattened access fields.
 
-Primary key: `id`
-
-Key columns: id, username, email, first_name, last_name, enabled, created_timestamp, access_manage_group_membership, access_view, access_map_roles, access_impersonate, access_manage
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the user |
+| username | STRING | Username for authentication |
+| email | STRING | User's email address |
+| first_name | STRING | User's first name |
+| last_name | STRING | User's last name |
+| enabled | BOOLEAN | Whether the user account is enabled |
+| created_timestamp | UTC_DATETIME | When the user was created |
+| access_manage_group_membership | BOOLEAN | Permission to manage group membership |
+| access_view | BOOLEAN | Permission to view user details |
+| access_map_roles | BOOLEAN | Permission to map roles |
+| access_impersonate | BOOLEAN | Permission to impersonate user |
+| access_manage | BOOLEAN | Permission to manage user |
 
 ### user_attribute
 
 Breakout table for user attributes (key-value pairs).
 
-Primary key: `user_id`, `attribute_key`
-
-Key columns: user_id, attribute_key, attribute_value
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | STRING | Foreign key to the user table |
+| attribute_key | STRING | Name of the attribute |
+| attribute_value | STRING | Value of the attribute |
 
 ### user_realm_role
 
 Breakout table for user realm role assignments.
 
-Primary key: `user_id`, `role_name`
-
-Key columns: user_id, role_name
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | STRING | Foreign key to the user table |
+| role_name | STRING | Name of the assigned realm role |
 
 ### user_required_action
 
 Breakout table for user required actions.
 
-Primary key: `user_id`, `required_action`
-
-Key columns: user_id, required_action
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | STRING | Foreign key to the user table |
+| required_action | STRING | Action required from the user (e.g., VERIFY_EMAIL, UPDATE_PASSWORD) |
 
 ### group
 
 Table containing Keycloak group data.
 
-Primary key: `id`
-
-Key columns: id, name, path
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the group |
+| name | STRING | Name of the group |
+| path | STRING | Full path of the group in the hierarchy |
 
 ### group_member
 
 Breakout table for group membership relationships.
 
-Primary key: `group_id`, `user_id`
-
-Key columns: group_id, user_id
+| Column | Type | Description |
+|--------|------|-------------|
+| group_id | STRING | Foreign key to the group table |
+| user_id | STRING | Foreign key to the user table |
 
 ### role
 
 Table containing realm roles.
 
-Primary key: `id`
-
-Key columns: id, name, description, composite, client_role
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the role |
+| name | STRING | Name of the role |
+| description | STRING | Description of the role |
+| composite | BOOLEAN | Whether this is a composite role |
+| client_role | BOOLEAN | Whether this is a client-specific role |
 
 ### client
 
 Table containing OAuth/OIDC client applications.
 
-Primary key: `id`
-
-Key columns: id, client_id, name, description, enabled, public_client, protocol, base_url
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the client |
+| client_id | STRING | Client ID used in OAuth flows |
+| name | STRING | Display name of the client |
+| description | STRING | Description of the client application |
+| enabled | BOOLEAN | Whether the client is enabled |
+| public_client | BOOLEAN | Whether this is a public client |
+| protocol | STRING | Authentication protocol (e.g., openid-connect) |
+| base_url | STRING | Base URL of the client application |
 
 ### event
 
 Table containing authentication events.
 
-Primary key: `id`
-
-Key columns: id, time, type, user_id, session_id, ip_address, client_id
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the event (composite: timestamp + type + user_id) |
+| time | UTC_DATETIME | When the event occurred |
+| type | STRING | Type of authentication event (e.g., LOGIN, LOGOUT, LOGIN_ERROR) |
+| user_id | STRING | ID of the user associated with the event |
+| session_id | STRING | Session identifier |
+| ip_address | STRING | IP address of the client |
+| client_id | STRING | ID of the client application |
 
 ### admin_event
 
 Table containing administrative events for audit trails.
 
-Primary key: `id`
-
-Key columns: id, time, operation_type, resource_type, resource_path, auth_realm_id, auth_client_id, auth_user_id
+| Column | Type | Description |
+|--------|------|-------------|
+| id | STRING | Unique identifier for the admin event (composite: timestamp + operation + resource) |
+| time | UTC_DATETIME | When the admin event occurred |
+| operation_type | STRING | Type of operation (CREATE, UPDATE, DELETE, ACTION) |
+| resource_type | STRING | Type of resource modified (USER, GROUP, ROLE, CLIENT, etc.) |
+| resource_path | STRING | Path to the modified resource |
+| auth_realm_id | STRING | Realm ID of the authenticated admin |
+| auth_client_id | STRING | Client ID used by the admin |
+| auth_user_id | STRING | User ID of the admin who performed the action |
 
 ## Additional files
 
