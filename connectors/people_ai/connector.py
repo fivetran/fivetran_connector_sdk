@@ -1,3 +1,27 @@
+"""
+This example shows how to pull activity and participant data from the People.ai API
+and load it into a destination using the Fivetran Connector SDK.
+
+This Fivetran Connector uses the People.ai service to retrieve records from the
+`/v0/public/activities` and `/v0/public/activities/{type}` endpoints. This connector demonstrates:
+- OAuth2 authentication using the client credentials flow to retrieve an access token.
+- Automatic token refresh (reauthentication) when a 401 Unauthorized error is encountered.
+- Resilient API calls with exponential backoff and retries for transient network or 5xx server errors.
+- Incremental data ingestion using pagination and upserts into destination tables.
+- Schema definition with two destination tables (`activity` and `participants`) using composite keys.
+
+The connector defines a robust retry strategy with reauthentication support, ensuring consistent
+data delivery even under intermittent API failures. It also renames fields such as `subject` to
+`api_subject` to prevent naming conflicts within destination schemas.
+
+Refer to People.ai API documentation (https://api-docs.people.ai/) for more details.
+See the Fivetran Connector SDK Technical Reference
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and Best Practices
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices)
+for implementation guidance.
+"""
+
 from __future__ import annotations
 
 # The unused imports 'Sequence' and 'Literal' have been removed.
@@ -104,10 +128,7 @@ def get_page(
             headers = {"Authorization": f"Bearer {current_token}"}
 
             try:
-                r = requests.get(
-                    url, headers=headers,
-                    params=params, timeout=timeout
-                )
+                r = requests.get(url, headers=headers, params=params, timeout=timeout)
                 r.raise_for_status()
                 payload = r.json()
 
@@ -121,9 +142,7 @@ def get_page(
 
                 # --- Handle 401 (Unauthorized) ---
                 if status_code == 401:
-                    log.warning(
-                        f"Received 401 Client Error at offset {offset}."
-                    )
+                    log.warning(f"Received 401 Client Error at offset {offset}.")
                     break  # Break inner loop to trigger re-auth attempt
 
                 # --- Handle 502/5xx (Server/Gateway Errors) ---
@@ -132,9 +151,7 @@ def get_page(
                         # Exponential backoff calculation:
                         # BASE_DELAY * (2^attempt)
                         delay = __INITIAL_DELAY_SECONDS * (2**attempt)
-                        log.warning(
-                            f"Received {status_code}. Retrying... "
-                        )
+                        log.warning(f"Received {status_code}. Retrying... ")
                         time.sleep(delay)
                         continue  # Continue inner loop for another request
                     else:
@@ -147,9 +164,7 @@ def get_page(
 
                 # --- Handle other HTTP errors (e.g., 400, 404) ---
                 else:
-                    log.error(
-                        f"Received unrecoverable HTTP error {status_code}"
-                    )
+                    log.error(f"Received unrecoverable HTTP error {status_code}")
                     raise e
 
             except requests.exceptions.RequestException as e:
@@ -215,10 +230,7 @@ def sync_base_activities(
         except requests.exceptions.HTTPError as e:
             # The retry logic is now inside get_page,
             # so an error here means it failed permanently
-            log.error(
-                f"Permanent failure fetching base activities"
-                f" at offset {offset}: {e}"
-            )
+            log.error(f"Permanent failure fetching base activities" f" at offset {offset}: {e}")
             break
 
         if not page:
@@ -270,17 +282,11 @@ def sync_activity_type(
     while True:
         try:
             # Pass the reauth_func
-            page = get_page(
-                access_token, reauth_func, activity_type,
-                limit=limit, offset=offset
-            )
+            page = get_page(access_token, reauth_func, activity_type, limit=limit, offset=offset)
         except requests.exceptions.HTTPError as e:
             # The retry logic is now inside get_page,
             # so an error here means it failed permanently
-            log.error(
-                f"Permanent failure fetching {activity_type}"
-                f" at offset {offset}: {e}"
-            )
+            log.error(f"Permanent failure fetching {activity_type}" f" at offset {offset}: {e}")
             break
 
         if not page:
@@ -314,9 +320,7 @@ def sync_activity_type(
 
         offset += limit
 
-    log.info(
-        f"Completed sync for '{activity_type}'. Total records synced: {total}"
-    )
+    log.info(f"Completed sync for '{activity_type}'. Total records synced: {total}")
     return total
 
 
@@ -375,10 +379,7 @@ def update(configuration: dict, state: dict):
 
     # 3. Sync only the specific activity type
     # endpoints defined in __ACTIVITY_TYPES
-    log.info(
-        f"\nStarting sync for the {len(__ACTIVITY_TYPES)} "
-        "specific activity type(s)."
-    )
+    log.info(f"\nStarting sync for the {len(__ACTIVITY_TYPES)} " "specific activity type(s).")
 
     for activity_type in __ACTIVITY_TYPES:
         count = sync_activity_type(
@@ -390,10 +391,7 @@ def update(configuration: dict, state: dict):
         )
         total_records_synced += count
 
-    log.info(
-        f"\n--- All tables synced. Total records processed: "
-        f"{total_records_synced} ---"
-    )
+    log.info(f"\n--- All tables synced. Total records processed: " f"{total_records_synced} ---")
 
 
 # This creates the connector object
@@ -406,21 +404,15 @@ if __name__ == "__main__":
         with open("configuration.json", "r") as f:
             configuration = json.load(f)
 
-        if (
-            not configuration.get("api_key")
-            or configuration.get("api_key") == "YOUR_CLIENT_ID"
-        ):
-            log.warning(
-                "Please update configuration.json "
-                "with actual api_key and api_secret."
-            )
+        check_config = (
+            not configuration.get("api_key") or configuration.get("api_key") == "YOUR_CLIENT_ID"
+        )
+        if check_config:
+            log.warning("Please update configuration.json " "with actual api_key and api_secret.")
 
         connector.debug(configuration=configuration)
 
     except FileNotFoundError:
-        log.error(
-            "Error: configuration.json not found. "
-            "Please create it for local testing."
-        )
+        log.error("Error: configuration.json not found. " "Please create it for local testing.")
     except Exception as e:
         log.error(f"An unexpected error occurred during debug execution: {e}")
