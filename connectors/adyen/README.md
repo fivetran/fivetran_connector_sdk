@@ -209,15 +209,4 @@ Sample columns:
 
 ## Additional considerations
 
-This connector is an example implementation designed to demonstrate best practices for integrating with payment APIs using the Fivetran Connector SDK. While it provides a solid foundation, you should customize it based on your specific Adyen integration requirements.
-
-Key considerations for production use:
-- Ensure your Adyen API credentials have appropriate permissions for the data you want to sync
-- Configure rate limiting and retry parameters based on your API usage patterns
-- Test thoroughly with your specific Adyen account setup before deploying to production
-- Monitor webhook delivery and consider webhook validation for security
-- Review data retention and compliance requirements for payment data in your region
-
-The connector demonstrates cognitive complexity optimization patterns, memory-efficient streaming, and comprehensive error handling that can be applied to other payment processor integrations. All functions maintain complexity scores below 15 through systematic use of helper functions and separation of concerns.
-
-For questions or issues with this connector, refer to the Fivetran Connector SDK documentation or contact your Adyen integration team for API-specific guidance.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
