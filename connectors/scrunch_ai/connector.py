@@ -141,15 +141,9 @@ def flatten_response(rec: dict) -> dict:
         "brand_position": rec.get("brand_position"),
         "response_text": rec.get("response_text"),
         # lists → scalars
-        "tags": (
-            __LIST_JOINER.join(rec.get("tags", []))
-            if rec.get("tags")
-            else None
-        ),
+        "tags": (__LIST_JOINER.join(rec.get("tags", [])) if rec.get("tags") else None),
         "key_topics": (
-            __LIST_JOINER.join(rec.get("key_topics", []))
-            if rec.get("key_topics")
-            else None
+            __LIST_JOINER.join(rec.get("key_topics", [])) if rec.get("key_topics") else None
         ),
         "competitors_present": (
             __LIST_JOINER.join(rec.get("competitors_present", []))
@@ -193,29 +187,21 @@ def get_all_responses(start_date, end_date, token, brand_id):
                     f"Fetching responses (offset={offset}, attempt "
                     f"{attempt + 1}/{MAX_RETRIES})..."
                 )
-                response = get_responses(
-                    start_date, end_date, offset, token, brand_id
-                )
+                response = get_responses(start_date, end_date, offset, token, brand_id)
                 break  # Success, exit retry loop
 
             except requests.exceptions.RequestException as e:
-                log.warning(
-                    f"Error fetching responses on attempt {attempt + 1}: {e}"
-                )
+                log.warning(f"Error fetching responses on attempt {attempt + 1}: {e}")
                 if attempt < MAX_RETRIES - 1:
                     wait_time = INITIAL_BACKOFF * (2**attempt)
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    log.error(
-                        "Max retries reached while fetching responses. Failing"
-                    )
+                    log.error("Max retries reached while fetching responses. Failing")
                     raise  # re-raise the last exception
 
         if response is None:
-            raise ConnectionError(
-                "Failed to fetch responses after all retries."
-            )
+            raise ConnectionError("Failed to fetch responses after all retries.")
 
         total = response.get("total")
         items = response.get("items", [])
@@ -277,11 +263,7 @@ def get_scrunch_performance(start_date, end_date, token, brand_id):
     ]
     fields_param = ",".join(fields)
 
-    query_params = (
-        f"?start_date={start_date}"
-        f"&end_date={end_date}"
-        f"&fields={fields_param}"
-    )
+    query_params = f"?start_date={start_date}" f"&end_date={end_date}" f"&fields={fields_param}"
 
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -366,8 +348,7 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
     for attempt in range(MAX_RETRIES):
         try:
             log.info(
-                "Fetching competitor performance (attempt "
-                f"{attempt + 1}/{MAX_RETRIES})..."
+                "Fetching competitor performance (attempt " f"{attempt + 1}/{MAX_RETRIES})..."
             )
             response = requests.get(base_url, headers=headers, params=params)
             response.raise_for_status()
@@ -383,9 +364,7 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
                 raise
 
     if response is None:
-        raise ConnectionError(
-            "Failed to fetch competitor performance after all retries."
-        )
+        raise ConnectionError("Failed to fetch competitor performance after all retries.")
 
     data = response.json()  # list[dict]
 
@@ -421,15 +400,11 @@ def update(configuration: dict, state: dict):
 
     if "response_start_date" not in state:
         # Historical: 7-day initial historical sync
-        response_start_date = (
-            datetime.now() - relativedelta(days=7)
-        ).strftime("%Y-%m-%d")
+        response_start_date = (datetime.now() - relativedelta(days=7)).strftime("%Y-%m-%d")
     else:
         # Incremental: 2-day lookback from the previous end date
-        response_start_date = (
-            datetime.strptime(state.get("response_start_date"), "%Y-%m-%d")
-            - relativedelta(days=2)
-        ).strftime("%Y-%m-%d")
+        saved_state = datetime.strptime(state.get("response_start_date"), "%Y-%m-%d")
+        response_start_date = (saved_state - relativedelta(days=2)).strftime("%Y-%m-%d")
 
     end_date = datetime.now().strftime("%Y-%m-%d")
 
