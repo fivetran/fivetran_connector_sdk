@@ -236,6 +236,9 @@ def fetch_shipments_page(
                 log.severe(f"Failed to fetch shipments after {__MAX_RETRIES} attempts: {str(e)}")
                 raise RuntimeError(f"Failed to fetch shipments: {str(e)}")
 
+    # This should never be reached due to the exception handling above, but added for type safety
+    raise RuntimeError("Failed to fetch shipments: Maximum retries exceeded")
+
 
 def flatten_nested_object(parent_obj: dict, key: str, prefix: str = "") -> dict:
     """
