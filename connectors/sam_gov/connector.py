@@ -622,17 +622,12 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is called by Fivetran during each sync.
-    This function fetches opportunities data from SAM.gov API with pagination support
-    and incremental sync capability.
-
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
-        configuration: A dictionary containing connection details for SAM.gov API
-        state: A dictionary containing state information from previous runs
-               The state dictionary is empty for the first sync or for any full re-sync
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
 
     log.info("SAM.gov Opportunities Connector: Starting sync")
