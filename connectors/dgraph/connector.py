@@ -904,12 +904,12 @@ def parse_schema_types(schema_text: str):
     for line in lines:
         stripped = line.strip()
 
-        # Look for type definitions
-        if (
-            stripped.startswith("type ")
-            and not stripped.startswith("type Query")
-            and not stripped.startswith("type Mutation")
-        ):
+        # Look for type definitions (excluding Query and Mutation)
+        is_type_def = stripped.startswith("type ")
+        is_query_or_mutation = stripped.startswith("type Query") or stripped.startswith(
+            "type Mutation"
+        )
+        if is_type_def and not is_query_or_mutation:
             if current_type:
                 # Save previous type
                 types.append(
