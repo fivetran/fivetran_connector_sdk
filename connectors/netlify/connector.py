@@ -383,15 +383,13 @@ def process_site_child_records_non_paginated(
             record_count += 1
 
             if record_count % __CHECKPOINT_INTERVAL == 0:
-                state[state_key] = record_timestamp
+                last_timestamp = update_timestamp(last_timestamp, record_timestamp)
+                state[state_key] = last_timestamp
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
                 # Learn more about how and where to checkpoint by reading our best practices documentation
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
-
-            last_timestamp = update_timestamp(last_timestamp, record_timestamp)
-
     if last_timestamp:
         state[state_key] = last_timestamp
 
