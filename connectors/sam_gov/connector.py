@@ -510,12 +510,9 @@ def fetch_opportunities_page(
 
 def schema(configuration: dict):
     """
-    Define the schema function which configures the schema for SAM.gov opportunities data.
-    This includes the main opportunities table and breakout tables for arrays.
-
+    Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
