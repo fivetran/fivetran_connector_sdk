@@ -186,7 +186,7 @@ These guidelines ensure all Fivetran examples and code reviews are:
 - High quality
 - Easy to understand
 - Consistent with best practices.
-- Collaborative and maintainable.
+- Collaborative and maintainable
 
 Following these principles leads to faster reviews, cleaner merges, and more resilient code.
 
