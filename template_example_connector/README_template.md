@@ -29,6 +29,14 @@
 *Provide a detailed overview of the connector, including its functionality, the data source it connects to, and the use cases it addresses.*
 
 
+## Accreditation
+*The connectors contributed by third parties should include an accreditation section to credit the contributor. If this is a Fivetran-authored example, delete this section.*
+
+This example was contributed by [Contributor Name/Organization](link-to-profile-or-website).
+
+*Optionally, add a brief note about the contributor's expertise or the context in which this connector was developed.*
+
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
@@ -105,14 +113,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 - `users\_sync.py` – *Handles user data synchronization logic.*  
 - `api\_threading\_utils.py` – *Manages API request threading for performance optimization.*  
 - `constants.py` – *Stores constant values used throughout the connector.*
-
-
-## Accreditation
-*The connectors contributed by third parties should include an accreditation section to credit the contributor.*
-
-This example was contributed by [Contributor Name/Organization](link-to-profile-or-website).
-
-*Optionally, add a brief note about the contributor's expertise or the context in which this connector was developed.*
 
 
 ## Additional considerations
