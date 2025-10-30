@@ -94,7 +94,7 @@ To set up authentication:
 
    i. Go to the **Credentials** tab.
 
-   ii. Copy the **Client Secret** and add it to your [configuration.json](configuration.json) file.
+   ii. Copy the **Client Secret** and add it to your `configuration.json` file.
 
 6. Assign required roles:
 
