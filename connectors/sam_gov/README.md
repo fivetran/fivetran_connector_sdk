@@ -75,15 +75,6 @@ Sync 3: [11/01/2025 - 10/30/2025] (30-day overlap from 12/01) → Captures recen
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Requirements file
-The connector requires the `requests` library for making HTTP calls to the SAM.gov API.
-
-```
-requests
-```
-
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, only declare additional dependencies in your `requirements.txt`.
-
 ## Authentication
 The SAM.gov API uses API key authentication. To obtain an API key:
 
