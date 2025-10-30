@@ -761,21 +761,19 @@ def update(configuration: dict, state: dict):
             current_offset += len(opportunities)
             total_records_processed += len(opportunities)
 
-            # Checkpoint at regular intervals to track progress
-            if records_processed_this_run % __CHECKPOINT_INTERVAL == 0:
-                checkpoint_state = {
-                    "last_offset": current_offset,
-                    "total_records_processed": total_records_processed,
-                    "last_sync_time": datetime.now().isoformat(),
-                }
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(checkpoint_state)
-                log.info(
-                    f"Checkpointed at offset {current_offset}, processed {total_records_processed} total"
-                )
+            # Save the progress by checkpointing the state after processing each page. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            checkpoint_state = {
+                "last_offset": current_offset,
+                "total_records_processed": total_records_processed,
+                "last_sync_time": datetime.now().isoformat(),
+            }
+            op.checkpoint(checkpoint_state)
+            log.info(
+                f"Checkpointed at offset {current_offset}, processed {total_records_processed} total"
+            )
 
             # Check if we've processed all available records
             if current_offset >= total_records:
