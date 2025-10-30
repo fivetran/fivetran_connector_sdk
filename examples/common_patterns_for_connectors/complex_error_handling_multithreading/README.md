@@ -265,8 +265,6 @@ The connector creates the `USER` table:
 
 ### Utility classes
 - `CircuitBreaker`: Implements circuit breaker pattern
-- `RetryableError`: Custom exception for retryable errors
-
 
 ## Key learning points
 

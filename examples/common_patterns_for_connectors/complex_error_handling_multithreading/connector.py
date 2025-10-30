@@ -35,12 +35,6 @@ __processing_lock = threading.Lock()
 __PARALLELISM = 4
 
 
-class RetryableError(Exception):
-    """Custom exception for errors that should trigger a retry."""
-
-    pass
-
-
 class CircuitBreaker:
     """
     Circuit breaker pattern implementation to prevent cascading failures.
