@@ -30,7 +30,7 @@ from typing import Dict, List, Any  # For type hints to improve code clarity
 __BASE_URL = "https://api.sam.gov/opportunities/v2/search"
 __DEFAULT_PAGE_SIZE = 1000  # Maximum allowed by API
 __CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
-__DATE_FORMAT = "%m/%d/%Y"  # SAM.gov API date format
+__DATE_FORMAT_STRING = "%m/%d/%Y"  # SAM.gov API date format string
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_BASE = 2  # Base delay for exponential backoff (seconds)
 
@@ -54,8 +54,8 @@ def validate_configuration(configuration: dict):
 
     # Validate date format and range
     try:
-        posted_from_date = datetime.strptime(configuration["posted_from"], __DATE_FORMAT)
-        posted_to_date = datetime.strptime(configuration["posted_to"], __DATE_FORMAT)
+        posted_from_date = datetime.strptime(configuration["posted_from"], __DATE_FORMAT_STRING)
+        posted_to_date = datetime.strptime(configuration["posted_to"], __DATE_FORMAT_STRING)
 
         # Check that posted_to is after posted_from
         if posted_to_date <= posted_from_date:
@@ -677,20 +677,20 @@ def update(configuration: dict, state: dict):
         incremental_window_days = int(configuration.get("incremental_window_days", "30"))
 
         # Calculate new window with overlap to capture updates
-        last_posted_to_date = datetime.strptime(last_posted_to, __DATE_FORMAT)
+        last_posted_to_date = datetime.strptime(last_posted_to, __DATE_FORMAT_STRING)
         posted_from_date = last_posted_to_date - timedelta(days=incremental_window_days)
-        posted_from = posted_from_date.strftime(__DATE_FORMAT)
+        posted_from = posted_from_date.strftime(__DATE_FORMAT_STRING)
 
         # Use current date as end date
         posted_to_date = datetime.now()
-        posted_to = posted_to_date.strftime(__DATE_FORMAT)
+        posted_to = posted_to_date.strftime(__DATE_FORMAT_STRING)
 
         # Check if window exceeds 1-year API limit
         date_diff = posted_to_date - posted_from_date
         if date_diff.days > 365:
             # Adjust to 365-day window (API maximum)
             posted_to_date = posted_from_date + timedelta(days=365)
-            posted_to = posted_to_date.strftime(__DATE_FORMAT)
+            posted_to = posted_to_date.strftime(__DATE_FORMAT_STRING)
             date_diff = posted_to_date - posted_from_date  # Recalculate after adjustment
             log.warning(
                 f"Date range exceeded 1-year limit. Adjusted to: {posted_from} to {posted_to} "
@@ -739,7 +739,7 @@ def update(configuration: dict, state: dict):
                     # Validate that we have the required notice_id
                     if not opportunity.get("noticeId"):
                         log.warning(
-                            f"Skipping opportunity {i+1} at offset {current_offset}: missing noticeId"
+                            f"Skipping opportunity {i + 1} at offset {current_offset}: missing noticeId"
                         )
                         continue
 

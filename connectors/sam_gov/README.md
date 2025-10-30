@@ -28,9 +28,9 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 
 ```json
 {
-  "api_key": "YOUR_SAM_GOV_API_KEY",
-  "posted_from": "01/01/2023",
-  "posted_to": "12/31/2023",
+  "api_key": "<YOUR_SAM_GOV_API_KEY>",
+  "posted_from": "<MM/DD/YYYY_START_DATE>",
+  "posted_to": "<MM/DD/YYYY_END_DATE_WITHIN_ONE_YEAR>",
   "sync_mode": "initial",
   "incremental_window_days": "30"
 }
