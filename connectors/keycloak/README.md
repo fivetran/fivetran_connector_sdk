@@ -54,7 +54,7 @@ Configuration parameters:
 - `sync_events` - String value "true" or "false" to enable/disable event syncing (default: "true")
 - `start_date` - Start date for incremental event sync in YYYY-MM-DD format (e.g., 2024-01-01)
 
-Note: Ensure that the [configuration.json](configuration.json) file is not checked into version control to protect sensitive information.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
