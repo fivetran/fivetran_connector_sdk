@@ -122,14 +122,14 @@ The connector creates four tables in the destination:
 ### FORM
 
 | Column | Data Type | Primary Key |
-|--------|-------------|
-| id | Yes |
-| site_id | No |
-| name | No |
-| paths | No |
-| submission_count | No |
-| fields | No |
-| created_at | No |
+|--------|-----------|-------------|
+| id | STRING | Yes |
+| site_id | STRING | No |
+| name | STRING | No |
+| paths | STRING | No |
+| submission_count | INTEGER | No |
+| fields | STRING | No |
+| created_at | UTC_DATETIME | No |
 
 ### SUBMISSION
 
