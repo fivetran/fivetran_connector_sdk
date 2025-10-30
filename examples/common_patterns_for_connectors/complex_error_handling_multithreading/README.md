@@ -14,7 +14,7 @@ This pagination and multithreading strategy is useful when:
 - You want to build resilient connectors that handle transient failures gracefully
 - You need detailed error tracking and monitoring capabilities
 
-This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
+Note: This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
 
 ## Requirements
@@ -32,16 +32,16 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 ### Pagination
-- Demonstrates handling of `next_page_url` pagination logic
+- Handles `next_page_url` pagination logic
 - Tracks sync position using the `updatedAt` timestamp
 - Automatically follows next-page links across paginated API responses
 - Uses `op.checkpoint()` to safely store progress after each page
 
 ### Multithreading
 - Processes records in parallel using `ThreadPoolExecutor` for improved performance
-- Configurable number of worker threads (default: 4, recommended: 4-8)
-- Thread-safe state management with proper locking mechanisms
-- Efficient resource utilization with bounded thread pools
+- Supports a configurable number of worker threads (default: 4, recommended: 4-8)
+- Offers thread-safe state management with proper locking mechanisms
+- Efficiently utilizes resources with bounded thread pools
 
 ### Comprehensive error handling
 - Circuit Breaker Pattern: Prevents cascading failures by opening the circuit when too many errors occur
