@@ -184,7 +184,7 @@ This is a great place to start to learn our coding practices through templated e
 
 These guidelines ensure all Fivetran examples and code reviews are:
 - High quality
-- Easy to understand.
+- Easy to understand
 - Consistent with best practices.
 - Collaborative and maintainable.
 
