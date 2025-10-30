@@ -6,14 +6,6 @@ This connector demonstrates how to sync employee data, payroll information, and 
 
 The Paylocity connector integrates with Paylocity's Human Capital Management (HCM) platform to extract employee demographics, payroll data, benefits information, and other HR-related data. It supports incremental synchronization, handles OAuth2 authentication with token refresh, and implements streaming data processing to efficiently handle large datasets without memory accumulation issues.
 
-Key features include:
-- OAuth2 Client Credentials authentication with automatic token management
-- Memory-efficient streaming data processing using Python generators
-- Comprehensive error handling with exponential backoff and retry logic
-- Configurable pagination with nextToken-based traversal (20 records per page limit)
-- Incremental sync support with timestamp-based cursors
-- Cognitive complexity optimization with helper function extraction
-
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -105,9 +97,9 @@ Note: The connector automatically handles OAuth2 token refresh (1-hour expiratio
 
 Paylocity uses nextToken-based pagination with a maximum of 20 records per request. The connector implements streaming pagination to process large datasets efficiently:
 
-Token-based pagination with automatic page traversal (refer to `get_employees` function)
-Generator-based processing prevents memory accumulation for large employee datasets
-Processes pages sequentially while yielding individual records for immediate processing
+- Token-based pagination with automatic page traversal (refer to `get_employees` function)
+- Generator-based processing prevents memory accumulation for large employee datasets
+- Processes pages sequentially while yielding individual records for immediate processing
 
 Example pagination flow:
 1. Request first page with `limit=20`.
@@ -145,7 +137,7 @@ The connector implements comprehensive error handling across multiple categories
 Timeout handling with configurable retry attempts (refer to the `__handle_request_error` function). Exponential backoff with jitter prevents the "thundering herd" problem, where many failed requests retry at the same time and overwhelm the server.
 
 ### Configuration errors
-Parameter validation with descriptive error messages (refer to `__get_config_int` and `__get_config_bool` functions). Range checking for numeric parameters prevents invalid API requests.
+Parameter validation with descriptive error messages (refer to the `__get_config_int` and the `__get_config_bool` functions). Range checking for numeric parameters prevents invalid API requests.
 
 ## Tables created
 
@@ -165,13 +157,11 @@ Note: Column types are automatically inferred by Fivetran core based on the data
 
 ## Additional files
 
-### Testing framework
-- `test_connector.py`: Comprehensive unit test suite using faker library for realistic mock data generation
-- `faker_mock/mock_data_generator.py`: Faker-based data generator creating realistic employee and payroll data with proper relationships
-- `debug_connector.py`: Interactive debugging framework with multiple test scenarios including rate limiting, performance testing, and data quality analysis
+The connector includes several additional files to support functionality, testing, and deployment:
 
-### Deployment
-- `.github/workflows/deploy_connector.yaml`: Automated GitHub Actions deployment pipeline with secret management and environment configuration
+- `requirements.txt` – Python dependency specification for Paylocity API integration and connector requirements including faker for mock testing, if required.
+
+- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 
