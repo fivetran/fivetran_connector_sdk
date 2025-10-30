@@ -133,20 +133,20 @@ The connector creates four tables in the destination:
 
 ### SUBMISSION
 
-| Column | Primary Key |
-|--------|-------------|
-| id | Yes |
-| number | No |
-| email | No |
-| name | No |
-| first_name | No |
-| last_name | No |
-| company | No |
-| summary | No |
-| body | No |
-| data | No |
-| created_at | No |
-| site_url | No |
+| Column      | Data Type     | Primary Key |
+|-------------|--------------|-------------|
+| id          | STRING       | Yes         |
+| number      | INTEGER      | No          |
+| email       | STRING       | No          |
+| name        | STRING       | No          |
+| first_name  | STRING       | No          |
+| last_name   | STRING       | No          |
+| company     | STRING       | No          |
+| summary     | STRING       | No          |
+| body        | STRING       | No          |
+| data        | JSON         | No          |
+| created_at  | UTC_DATETIME | No          |
+| site_url    | STRING       | No          |
 
 ## Additional considerations
 
