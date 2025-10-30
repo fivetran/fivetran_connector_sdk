@@ -1,744 +1,552 @@
-# Complex Error Handling with Multi-Threading Example for Fivetran Connector SDK
-# This example demonstrates advanced error handling strategies in multi-threaded environments
-# using a playground API approach for testing and iteration.
+# This example demonstrates how to implement next-page-url pagination with multithreading for REST APIs,
+# including comprehensive error handling strategies for concurrent operations.
+# It fetches user data from a paginated API while processing records in parallel with robust error handling.
+# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
+# See the Technical Reference documentation
+# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+
+# Import requests to make HTTP calls to API
+import requests as rq
 
 # Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
 
-# Import required libraries for multi-threading and error handling
-import requests
-import json
-import time
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
+# Import threading and concurrency utilities
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from threading import Lock, Event
-from queue import Queue, Empty
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
-from enum import Enum
-import traceback
-from contextlib import contextmanager
-import random
-from datetime import datetime, timedelta
-
-# Playground API base URL - uses a mock API service for testing
-PLAYGROUND_API_BASE = "https://jsonplaceholder.typicode.com"
-
-# Configuration constants with default values
-DEFAULT_MAX_WORKERS = 3
-DEFAULT_ERROR_THRESHOLD_PER_THREAD = 5
-DEFAULT_TOTAL_ERROR_THRESHOLD = 15
-DEFAULT_API_TIMEOUT_SECONDS = 30
-DEFAULT_ENABLE_CIRCUIT_BREAKER = True
-DEFAULT_RETRY_STRATEGY = "exponential_backoff"
-DEFAULT_MAX_RETRIES = 3
-
-# Configuration validation constants
-MIN_MAX_WORKERS = 1
-MAX_MAX_WORKERS = 20
-MIN_ERROR_THRESHOLD = 1
-MIN_TIMEOUT_SECONDS = 5
-MAX_TIMEOUT_SECONDS = 300
-
-# Configuration key names
-CONFIG_MAX_WORKERS = "max_workers"
-CONFIG_ERROR_THRESHOLD_PER_THREAD = "error_threshold_per_thread"
-CONFIG_TOTAL_ERROR_THRESHOLD = "total_error_threshold"
-CONFIG_API_TIMEOUT_SECONDS = "api_timeout_seconds"
-CONFIG_ENABLE_CIRCUIT_BREAKER = "enable_circuit_breaker"
-CONFIG_RETRY_STRATEGY = "retry_strategy"
-CONFIG_MAX_RETRIES = "max_retries"
-
-# Valid retry strategies
-VALID_RETRY_STRATEGIES = ["exponential_backoff", "fixed_interval", "linear_backoff"]
+import time
+from typing import Dict, List, Optional, Tuple
+from collections import defaultdict
 
 
-# Error handling enums and classes
-class ErrorSeverity(Enum):
-    LOW = 1
-    MEDIUM = 2
-    HIGH = 3
-    CRITICAL = 4
+# Global variables for error tracking and thread safety
+__error_stats = defaultdict(int)
+__error_stats_lock = threading.Lock()
+__processing_lock = threading.Lock()
+__PARALLELISM = 4
 
 
-class RetryStrategy(Enum):
-    EXPONENTIAL_BACKOFF = 1
-    FIXED_INTERVAL = 2
-    LINEAR_BACKOFF = 3
+class RetryableError(Exception):
+    """Custom exception for errors that should trigger a retry."""
+
+    pass
 
 
-@dataclass
-class ErrorRecord:
-    """Record to track errors during processing"""
+class CircuitBreaker:
+    """
+    Circuit breaker pattern implementation to prevent cascading failures.
+    When too many errors occur, the circuit "opens" and stops making requests temporarily.
+    """
 
-    thread_id: str
-    table_name: str
-    record_id: Optional[str] = None
-    error_type: str = ""
-    error_message: str = ""
-    severity: ErrorSeverity = ErrorSeverity.LOW
-    timestamp: datetime = field(default_factory=datetime.now)
-    retry_count: int = 0
-    stack_trace: str = ""
-
-
-@dataclass
-class ThreadMetrics:
-    """Metrics tracking for each thread"""
-
-    thread_id: str
-    start_time: datetime = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    records_processed: int = 0
-    errors_encountered: int = 0
-    retries_attempted: int = 0
-
-
-class ErrorHandler:
-    """Centralized error handling with thread safety"""
-
-    def __init__(self, max_errors_per_thread: int = 10, max_total_errors: int = 100):
-        self.max_errors_per_thread = max_errors_per_thread
-        self.max_total_errors = max_total_errors
-        self.error_records: List[ErrorRecord] = []
-        self.error_lock = Lock()
-        self.thread_errors: Dict[str, int] = {}
-        self.shutdown_event = Event()
-
-    def should_continue_processing(self, thread_id: str) -> bool:
-        """Check if processing should continue based on error thresholds"""
-        with self.error_lock:
-            thread_error_count = self.thread_errors.get(thread_id, 0)
-            total_errors = len(self.error_records)
-
-            if self.shutdown_event.is_set():
-                return False
-
-            if thread_error_count >= self.max_errors_per_thread:
-                log.warning(
-                    f"Thread {thread_id} exceeded max errors ({self.max_errors_per_thread})"
-                )
-                return False
-
-            if total_errors >= self.max_total_errors:
-                log.severe(
-                    f"Total errors exceeded threshold ({self.max_total_errors}). Initiating shutdown."
-                )
-                self.shutdown_event.set()
-                return False
-
-        return True
-
-    def record_error(self, error: ErrorRecord) -> None:
-        """Thread-safe error recording"""
-        with self.error_lock:
-            self.error_records.append(error)
-            self.thread_errors[error.thread_id] = self.thread_errors.get(error.thread_id, 0) + 1
-
-            log.warning(
-                f"Error recorded - Thread: {error.thread_id}, Table: {error.table_name}, "
-                f"Type: {error.error_type}, Severity: {error.severity.name}"
-            )
-
-            if error.severity == ErrorSeverity.CRITICAL:
-                log.severe(f"Critical error encountered: {error.error_message}")
-                self.shutdown_event.set()
-
-    def get_error_summary(self) -> Dict[str, Any]:
-        """Get comprehensive error summary"""
-        with self.error_lock:
-            total_errors = len(self.error_records)
-            errors_by_severity = {severity: 0 for severity in ErrorSeverity}
-            errors_by_table = {}
-            errors_by_type = {}
-
-            for error in self.error_records:
-                errors_by_severity[error.severity] += 1
-                errors_by_table[error.table_name] = errors_by_table.get(error.table_name, 0) + 1
-                errors_by_type[error.error_type] = errors_by_type.get(error.error_type, 0) + 1
-
-            return {
-                "total_errors": total_errors,
-                "errors_by_severity": {s.name: count for s, count in errors_by_severity.items()},
-                "errors_by_table": errors_by_table,
-                "errors_by_type": errors_by_type,
-                "thread_errors": dict(self.thread_errors),
-            }
-
-
-class RetryableAPIClient:
-    """API client with intelligent retry logic and circuit breaker pattern"""
-
-    def __init__(
-        self,
-        base_url: str,
-        max_retries: int = 3,
-        retry_strategy: RetryStrategy = RetryStrategy.EXPONENTIAL_BACKOFF,
-    ):
-        self.base_url = base_url
-        self.max_retries = max_retries
-        self.retry_strategy = retry_strategy
-        self.session = requests.Session()
-
-        # Circuit breaker settings - can be made configurable if needed
-        self.failure_threshold = 5
-        self.recovery_timeout = 60  # seconds
+    def __init__(self, failure_threshold: int = 5, timeout: int = 60):
+        self.failure_threshold = failure_threshold
+        self.timeout = timeout
         self.failure_count = 0
         self.last_failure_time = None
-        self.circuit_open = False
-        self.circuit_lock = Lock()
+        self.state = "closed"  # closed, open, half_open
+        self.lock = threading.Lock()
 
-    def _calculate_delay(self, attempt: int) -> float:
-        """Calculate retry delay based on strategy"""
-        if self.retry_strategy == RetryStrategy.EXPONENTIAL_BACKOFF:
-            return min(60, (2**attempt) + random.uniform(0, 1))
-        elif self.retry_strategy == RetryStrategy.FIXED_INTERVAL:
-            return 5.0
-        elif self.retry_strategy == RetryStrategy.LINEAR_BACKOFF:
-            return min(30, attempt * 2 + random.uniform(0, 1))
-
-    def _is_retryable_error(self, response: requests.Response) -> bool:
-        """Determine if an HTTP error is retryable"""
-        # Retry on server errors and rate limiting
-        return response.status_code in [408, 429, 500, 502, 503, 504]
-
-    def _update_circuit_breaker(self, success: bool) -> None:
-        """Update circuit breaker state"""
-        with self.circuit_lock:
-            if success:
-                self.failure_count = 0
-                self.circuit_open = False
-            else:
-                self.failure_count += 1
-                if self.failure_count >= self.failure_threshold:
-                    self.circuit_open = True
-                    self.last_failure_time = time.time()
-
-    def _check_circuit_breaker(self) -> bool:
-        """Check if circuit breaker allows requests"""
-        with self.circuit_lock:
-            if not self.circuit_open:
-                return True
-
-            # Check if we can attempt recovery
-            if (
-                self.last_failure_time
-                and time.time() - self.last_failure_time > self.recovery_timeout
-            ):
-                self.circuit_open = False
-                self.failure_count = 0
-                log.info("Circuit breaker attempting recovery")
-                return True
-
-            return False
-
-    def get(self, endpoint: str, params: dict = None, timeout: int = None) -> dict:
-        """Make HTTP GET request with retry logic and circuit breaker"""
-        if not self._check_circuit_breaker():
-            raise Exception("Circuit breaker is open - too many failures")
-
-        url = f"{self.base_url}{endpoint}"
-        last_exception = None
-
-        # Use default timeout if none provided
-        if timeout is None:
-            timeout = DEFAULT_API_TIMEOUT_SECONDS
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                response = self.session.get(url, params=params, timeout=timeout)
-
-                if response.ok:
-                    self._update_circuit_breaker(success=True)
-                    return response.json()
-
-                if not self._is_retryable_error(response):
-                    # Non-retryable error
-                    self._update_circuit_breaker(success=False)
-                    raise requests.RequestException(
-                        f"HTTP {response.status_code}: {response.text}"
-                    )
-
-                # Retryable error
-                if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
-                    log.warning(
-                        f"Retrying request to {url} in {delay:.2f}s (attempt {attempt + 1})"
-                    )
-                    time.sleep(delay)
-                    continue
+    def call(self, func, *args, **kwargs):
+        """Execute a function with circuit breaker protection."""
+        with self.lock:
+            if self.state == "open":
+                if time.time() - self.last_failure_time > self.timeout:
+                    log.info("Circuit breaker: Transitioning to half-open state")
+                    self.state = "half_open"
                 else:
-                    self._update_circuit_breaker(success=False)
-                    raise requests.RequestException(f"Max retries exceeded for {url}")
+                    raise Exception("Circuit breaker is OPEN - too many failures detected")
 
-            except requests.exceptions.RequestException as e:
-                last_exception = e
-                if attempt < self.max_retries:
-                    delay = self._calculate_delay(attempt)
-                    log.warning(f"Request failed, retrying in {delay:.2f}s: {str(e)}")
-                    time.sleep(delay)
-                else:
-                    self._update_circuit_breaker(success=False)
-                    raise e
-
-        if last_exception:
-            raise last_exception
-
-
-class ThreadSafeDataProcessor:
-    """Thread-safe data processing with monitoring"""
-
-    def __init__(self, error_handler: ErrorHandler, configuration: dict):
-        self.error_handler = error_handler
-        self.configuration = configuration
-
-        # Get retry strategy from configuration
-        retry_strategy_name = configuration[CONFIG_RETRY_STRATEGY]
-        retry_strategy = RetryStrategy.EXPONENTIAL_BACKOFF  # default
-        if retry_strategy_name == "fixed_interval":
-            retry_strategy = RetryStrategy.FIXED_INTERVAL
-        elif retry_strategy_name == "linear_backoff":
-            retry_strategy = RetryStrategy.LINEAR_BACKOFF
-
-        self.api_client = RetryableAPIClient(
-            base_url=PLAYGROUND_API_BASE,
-            max_retries=configuration[CONFIG_MAX_RETRIES],
-            retry_strategy=retry_strategy,
-        )
-        self.metrics: Dict[str, ThreadMetrics] = {}
-        self.metrics_lock = Lock()
-
-    def _get_thread_id(self) -> str:
-        """Get unique thread identifier"""
-        return f"thread-{threading.current_thread().ident}"
-
-    def _initialize_thread_metrics(self) -> None:
-        """Initialize metrics for current thread"""
-        thread_id = self._get_thread_id()
-        with self.metrics_lock:
-            if thread_id not in self.metrics:
-                self.metrics[thread_id] = ThreadMetrics(thread_id=thread_id)
-
-    def _update_metrics(
-        self, records_processed: int = 0, errors: int = 0, retries: int = 0
-    ) -> None:
-        """Update thread metrics"""
-        thread_id = self._get_thread_id()
-        with self.metrics_lock:
-            if thread_id in self.metrics:
-                self.metrics[thread_id].records_processed += records_processed
-                self.metrics[thread_id].errors_encountered += errors
-                self.metrics[thread_id].retries_attempted += retries
-
-    def _finalize_thread_metrics(self) -> None:
-        """Finalize metrics for current thread"""
-        thread_id = self._get_thread_id()
-        with self.metrics_lock:
-            if thread_id in self.metrics:
-                self.metrics[thread_id].end_time = datetime.now()
-
-    @contextmanager
-    def error_context(self, table_name: str, record_id: str = None):
-        """Context manager for error handling"""
-        thread_id = self._get_thread_id()
         try:
-            yield
-        except requests.RequestException as e:
-            error = ErrorRecord(
-                thread_id=thread_id,
-                table_name=table_name,
-                record_id=record_id,
-                error_type="RequestException",
-                error_message=str(e),
-                severity=ErrorSeverity.MEDIUM,
-                stack_trace=traceback.format_exc(),
-            )
-            self.error_handler.record_error(error)
-            self._update_metrics(errors=1)
-            raise
-        except json.JSONDecodeError as e:
-            error = ErrorRecord(
-                thread_id=thread_id,
-                table_name=table_name,
-                record_id=record_id,
-                error_type="JSONDecodeError",
-                error_message=str(e),
-                severity=ErrorSeverity.LOW,
-                stack_trace=traceback.format_exc(),
-            )
-            self.error_handler.record_error(error)
-            self._update_metrics(errors=1)
-            raise
+            result = func(*args, **kwargs)
+            with self.lock:
+                if self.state == "half_open":
+                    log.info("Circuit breaker: Request successful, closing circuit")
+                    self.state = "closed"
+                    self.failure_count = 0
+            return result
         except Exception as e:
-            error = ErrorRecord(
-                thread_id=thread_id,
-                table_name=table_name,
-                record_id=record_id,
-                error_type=type(e).__name__,
-                error_message=str(e),
-                severity=ErrorSeverity.HIGH,
-                stack_trace=traceback.format_exc(),
-            )
-            self.error_handler.record_error(error)
-            self._update_metrics(errors=1)
-            raise
-
-    def process_users_table(self) -> None:
-        """Process users data from playground API"""
-        self._initialize_thread_metrics()
-        thread_id = self._get_thread_id()
-
-        try:
-            log.info(f"Thread {thread_id} starting users processing")
-
-            with self.error_context("users"):
-                timeout = self.configuration[CONFIG_API_TIMEOUT_SECONDS]
-                users_data = self.api_client.get("/users", timeout=timeout)
-
-            for user in users_data:
-                if not self.error_handler.should_continue_processing(thread_id):
-                    log.warning(f"Thread {thread_id} stopping due to error threshold")
-                    break
-
-                try:
-                    with self.error_context("users", str(user.get("id"))):
-                        # Simulate data transformation and validation
-                        processed_user = {
-                            "id": user["id"],
-                            "name": user["name"],
-                            "username": user["username"],
-                            "email": user["email"],
-                            "address": json.dumps(user.get("address", {})),
-                            "phone": user.get("phone", ""),
-                            "website": user.get("website", ""),
-                            "company": json.dumps(user.get("company", {})),
-                            "processed_at": datetime.now().isoformat(),
-                        }
-
-                        # Upsert to Fivetran
-                        op.upsert("users", processed_user)
-                        self._update_metrics(records_processed=1)
-
-                except Exception as e:
-                    log.warning(f"Failed to process user {user.get('id')}: {str(e)}")
-                    # Continue with next record
-                    continue
-
-            log.info(f"Thread {thread_id} completed users processing")
-
-        finally:
-            self._finalize_thread_metrics()
-
-    def process_posts_table(self) -> None:
-        """Process posts data from playground API"""
-        self._initialize_thread_metrics()
-        thread_id = self._get_thread_id()
-
-        try:
-            log.info(f"Thread {thread_id} starting posts processing")
-
-            with self.error_context("posts"):
-                timeout = self.configuration[CONFIG_API_TIMEOUT_SECONDS]
-                posts_data = self.api_client.get("/posts", timeout=timeout)
-
-            for post in posts_data:
-                if not self.error_handler.should_continue_processing(thread_id):
-                    log.warning(f"Thread {thread_id} stopping due to error threshold")
-                    break
-
-                try:
-                    with self.error_context("posts", str(post.get("id"))):
-                        # Simulate data transformation
-                        processed_post = {
-                            "id": post["id"],
-                            "user_id": post["userId"],
-                            "title": post["title"],
-                            "body": post["body"],
-                            "word_count": len(post["body"].split()),
-                            "processed_at": datetime.now().isoformat(),
-                        }
-
-                        op.upsert("posts", processed_post)
-                        self._update_metrics(records_processed=1)
-
-                except Exception as e:
-                    log.warning(f"Failed to process post {post.get('id')}: {str(e)}")
-                    continue
-
-            log.info(f"Thread {thread_id} completed posts processing")
-
-        finally:
-            self._finalize_thread_metrics()
-
-    def process_comments_table(self) -> None:
-        """Process comments data from playground API"""
-        self._initialize_thread_metrics()
-        thread_id = self._get_thread_id()
-
-        try:
-            log.info(f"Thread {thread_id} starting comments processing")
-
-            with self.error_context("comments"):
-                timeout = self.configuration[CONFIG_API_TIMEOUT_SECONDS]
-                comments_data = self.api_client.get("/comments", timeout=timeout)
-
-            for comment in comments_data:
-                if not self.error_handler.should_continue_processing(thread_id):
-                    log.warning(f"Thread {thread_id} stopping due to error threshold")
-                    break
-
-                try:
-                    with self.error_context("comments", str(comment.get("id"))):
-                        processed_comment = {
-                            "id": comment["id"],
-                            "post_id": comment["postId"],
-                            "name": comment["name"],
-                            "email": comment["email"],
-                            "body": comment["body"],
-                            "processed_at": datetime.now().isoformat(),
-                        }
-
-                        op.upsert("comments", processed_comment)
-                        self._update_metrics(records_processed=1)
-
-                except Exception as e:
-                    log.warning(f"Failed to process comment {comment.get('id')}: {str(e)}")
-                    continue
-
-            log.info(f"Thread {thread_id} completed comments processing")
-
-        finally:
-            self._finalize_thread_metrics()
-
-    def get_metrics_summary(self) -> Dict[str, Any]:
-        """Get comprehensive metrics summary"""
-        with self.metrics_lock:
-            total_records = sum(m.records_processed for m in self.metrics.values())
-            total_errors = sum(m.errors_encountered for m in self.metrics.values())
-            total_retries = sum(m.retries_attempted for m in self.metrics.values())
-
-            thread_summaries = {}
-            for thread_id, metrics in self.metrics.items():
-                duration = None
-                if metrics.end_time:
-                    duration = (metrics.end_time - metrics.start_time).total_seconds()
-
-                thread_summaries[thread_id] = {
-                    "records_processed": metrics.records_processed,
-                    "errors_encountered": metrics.errors_encountered,
-                    "retries_attempted": metrics.retries_attempted,
-                    "duration_seconds": duration,
-                    "records_per_second": (
-                        metrics.records_processed / duration if duration and duration > 0 else 0
-                    ),
-                }
-
-            return {
-                "total_records_processed": total_records,
-                "total_errors": total_errors,
-                "total_retries": total_retries,
-                "thread_count": len(self.metrics),
-                "thread_summaries": thread_summaries,
-            }
+            with self.lock:
+                self.failure_count += 1
+                self.last_failure_time = time.time()
+                if self.failure_count >= self.failure_threshold:
+                    log.severe(
+                        f"Circuit breaker: Opening circuit after {self.failure_count} failures"
+                    )
+                    self.state = "open"
+            raise e
 
 
-def get_config_value(configuration: dict, key: str, default_value: Any) -> Any:
-    """Get configuration value with fallback to default"""
-    return configuration.get(key, default_value)
+# Global circuit breaker instance
+circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=60)
 
 
-def validate_configuration(configuration: dict) -> None:
-    """Validate configuration parameters"""
-    # Apply defaults for missing configuration keys
-    configuration.setdefault(CONFIG_MAX_WORKERS, DEFAULT_MAX_WORKERS)
-    configuration.setdefault(CONFIG_ERROR_THRESHOLD_PER_THREAD, DEFAULT_ERROR_THRESHOLD_PER_THREAD)
-    configuration.setdefault(CONFIG_TOTAL_ERROR_THRESHOLD, DEFAULT_TOTAL_ERROR_THRESHOLD)
-    configuration.setdefault(CONFIG_API_TIMEOUT_SECONDS, DEFAULT_API_TIMEOUT_SECONDS)
-    configuration.setdefault(CONFIG_ENABLE_CIRCUIT_BREAKER, DEFAULT_ENABLE_CIRCUIT_BREAKER)
-    configuration.setdefault(CONFIG_RETRY_STRATEGY, DEFAULT_RETRY_STRATEGY)
-    configuration.setdefault(CONFIG_MAX_RETRIES, DEFAULT_MAX_RETRIES)
-
-    # Validate ranges
-    max_workers = configuration[CONFIG_MAX_WORKERS]
-    if (
-        not isinstance(max_workers, int)
-        or max_workers < MIN_MAX_WORKERS
-        or max_workers > MAX_MAX_WORKERS
-    ):
-        raise ValueError(
-            f"{CONFIG_MAX_WORKERS} must be an integer between {MIN_MAX_WORKERS} and {MAX_MAX_WORKERS}"
-        )
-
-    error_threshold_per_thread = configuration[CONFIG_ERROR_THRESHOLD_PER_THREAD]
-    if (
-        not isinstance(error_threshold_per_thread, int)
-        or error_threshold_per_thread < MIN_ERROR_THRESHOLD
-    ):
-        raise ValueError(
-            f"{CONFIG_ERROR_THRESHOLD_PER_THREAD} must be an integer >= {MIN_ERROR_THRESHOLD}"
-        )
-
-    total_error_threshold = configuration[CONFIG_TOTAL_ERROR_THRESHOLD]
-    if not isinstance(total_error_threshold, int) or total_error_threshold < MIN_ERROR_THRESHOLD:
-        raise ValueError(
-            f"{CONFIG_TOTAL_ERROR_THRESHOLD} must be an integer >= {MIN_ERROR_THRESHOLD}"
-        )
-
-    api_timeout = configuration[CONFIG_API_TIMEOUT_SECONDS]
-    if (
-        not isinstance(api_timeout, int)
-        or api_timeout < MIN_TIMEOUT_SECONDS
-        or api_timeout > MAX_TIMEOUT_SECONDS
-    ):
-        raise ValueError(
-            f"{CONFIG_API_TIMEOUT_SECONDS} must be an integer between {MIN_TIMEOUT_SECONDS} and {MAX_TIMEOUT_SECONDS}"
-        )
-
-    retry_strategy = configuration[CONFIG_RETRY_STRATEGY]
-    if retry_strategy not in VALID_RETRY_STRATEGIES:
-        raise ValueError(
-            f"{CONFIG_RETRY_STRATEGY} must be one of: {', '.join(VALID_RETRY_STRATEGIES)}"
-        )
-
-    max_retries = configuration[CONFIG_MAX_RETRIES]
-    if not isinstance(max_retries, int) or max_retries < 0:
-        raise ValueError(f"{CONFIG_MAX_RETRIES} must be a non-negative integer")
-
-
-def schema(configuration: dict) -> List[Dict[str, Any]]:
-    """Define schema for playground API tables"""
+def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
-            "table": "users",
+            "table": "user",
             "primary_key": ["id"],
             "columns": {
-                "id": "LONG",
-                "name": "STRING",
-                "username": "STRING",
-                "email": "STRING",
-                "address": "JSON",
-                "phone": "STRING",
-                "website": "STRING",
-                "company": "JSON",
-                "processed_at": "UTC_DATETIME",
-            },
-        },
-        {
-            "table": "posts",
-            "primary_key": ["id"],
-            "columns": {
-                "id": "LONG",
-                "user_id": "LONG",
-                "title": "STRING",
-                "body": "STRING",
-                "word_count": "LONG",
-                "processed_at": "UTC_DATETIME",
-            },
-        },
-        {
-            "table": "comments",
-            "primary_key": ["id"],
-            "columns": {
-                "id": "LONG",
-                "post_id": "LONG",
+                "id": "STRING",
                 "name": "STRING",
                 "email": "STRING",
-                "body": "STRING",
-                "processed_at": "UTC_DATETIME",
+                "address": "STRING",
+                "company": "STRING",
+                "job": "STRING",
+                "updatedAt": "UTC_DATETIME",
+                "createdAt": "UTC_DATETIME",
             },
-        },
+        }
     ]
 
 
-def update(configuration: dict, state: dict) -> None:
-    """Main update function with multi-threading and complex error handling"""
-    log.info("Starting multi-threaded sync with complex error handling")
+def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    This implementation uses multithreading to process paginated API data with comprehensive error handling.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
 
-    # Validate configuration
-    validate_configuration(configuration)
-
-    # Initialize error handler and data processor
-    error_handler = ErrorHandler(
-        max_errors_per_thread=configuration[CONFIG_ERROR_THRESHOLD_PER_THREAD],
-        max_total_errors=configuration[CONFIG_TOTAL_ERROR_THRESHOLD],
+    log.warning(
+        "Example: Common Patterns For Connectors - Complex Error Handling with Multithreading"
     )
 
-    data_processor = ThreadSafeDataProcessor(error_handler, configuration)
+    print(
+        "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
+        "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
+    )
+    base_url = "http://127.0.0.1:5001/pagination/next_page_url"
 
-    # Define processing tasks
-    processing_tasks = [
-        ("users", data_processor.process_users_table),
-        ("posts", data_processor.process_posts_table),
-        ("comments", data_processor.process_comments_table),
-    ]
+    # Retrieve the cursor from the state to determine the current position in the data sync.
+    # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
+    cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
 
-    max_workers = configuration[CONFIG_MAX_WORKERS]
-    start_time = time.time()
+    # Get parallelism from global variable
+    max_workers = __PARALLELISM
+    log.info(f"Using {max_workers} worker threads for parallel processing")
 
-    # Execute tasks in parallel
-    with ThreadPoolExecutor(
-        max_workers=max_workers, thread_name_prefix="FivetranWorker"
-    ) as executor:
-        log.info(f"Submitting {len(processing_tasks)} tasks to {max_workers} worker threads")
+    params = {
+        "order_by": "updatedAt",
+        "order_type": "asc",
+        "updated_since": cursor,
+        "per_page": 50,
+    }
 
-        # Submit all tasks
-        future_to_table = {
-            executor.submit(task_func): table_name for table_name, task_func in processing_tasks
-        }
+    current_url = base_url  # Start with the base URL and initial params
 
-        # Process completed tasks
-        completed_tasks = 0
-        for future in as_completed(future_to_table):
-            table_name = future_to_table[future]
-            completed_tasks += 1
+    # Process the paginated API with multithreading
+    sync_items_parallel(current_url, params, state, max_workers)
 
+    # Log final error statistics
+    log_error_statistics()
+
+
+def sync_items_parallel(current_url: str, params: dict, state: dict, max_workers: int):
+    """
+    The sync_items_parallel function handles the retrieval and processing of paginated API data using multithreading.
+    It performs the following tasks:
+        1. Fetches pages from the API sequentially to respect pagination order
+        2. Processes records from each page in parallel using a thread pool
+        3. Implements comprehensive error handling for network failures and data issues
+        4. Maintains thread-safe state updates
+        5. Uses circuit breaker pattern to prevent cascading failures
+    Args:
+        current_url: The URL to the API endpoint, which may be updated with the next page's URL during pagination.
+        params: A dictionary of query parameters to be sent with the API request.
+        state: A dictionary representing the current state of the sync, including the last 'updatedAt' timestamp.
+        max_workers: Maximum number of worker threads for parallel processing.
+    """
+    more_data = True
+    page_count = 0
+
+    while more_data:
+        page_count += 1
+        try:
+            # Fetch the current page with retry logic and circuit breaker
+            response_page = get_api_response_with_retry(current_url, params, max_retries=3)
+
+            # Process the items from this page in parallel
+            items = response_page.get("data", [])
+            if not items:
+                log.info("No more items to process, ending pagination")
+                more_data = False
+                break
+
+            log.info(
+                f"Processing page {page_count} with {len(items)} items using {max_workers} workers"
+            )
+
+            # Process items in parallel with error handling
+            process_items_parallel(items, state, max_workers)
+
+            # Check if we should continue pagination
+            current_url, more_data, params = should_continue_pagination(
+                current_url, params, response_page
+            )
+
+            # Save the progress by checkpointing the state after each page.
+            # This is important for ensuring that the sync process can resume from the correct position.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
+
+        except Exception as e:
+            log.severe(f"Fatal error processing page {page_count}", e)
+            # Record error and re-raise to fail the sync
+            with __error_stats_lock:
+                __error_stats["fatal_page_errors"] += 1
+            raise
+
+
+def process_items_parallel(items: List[dict], state: dict, max_workers: int):
+    """
+    Process a list of items in parallel using ThreadPoolExecutor with comprehensive error handling.
+    This function demonstrates:
+        1. Parallel processing of records with bounded thread pool
+        2. Individual error handling for each record (fail gracefully, continue processing)
+        3. Thread-safe state management
+        4. Error categorization and statistics tracking
+    Args:
+        items: List of items to process
+        state: State dictionary for tracking sync progress
+        max_workers: Maximum number of worker threads
+    """
+    successful_items = 0
+    failed_items = 0
+
+    # Use ThreadPoolExecutor for parallel processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all items for processing
+        future_to_item = {executor.submit(process_single_item, item): item for item in items}
+
+        # Process results as they complete
+        for future in as_completed(future_to_item):
+            item = future_to_item[future]
             try:
-                future.result()  # This will raise any exception from the task
-                log.info(
-                    f"Successfully completed processing for table: {table_name} "
-                    f"({completed_tasks}/{len(processing_tasks)})"
-                )
+                # Get the result (will raise exception if processing failed)
+                updated_at = future.result()
+
+                # Thread-safe state update
+                with __processing_lock:
+                    # Update the state with the latest timestamp
+                    if "last_updated_at" not in state or updated_at > state["last_updated_at"]:
+                        state["last_updated_at"] = updated_at
+
+                successful_items += 1
+
             except Exception as e:
-                log.severe(f"Task failed for table {table_name}: {str(e)}")
+                failed_items += 1
+                item_id = item.get("id", "unknown")
+                log.warning(f"Failed to process item {item_id}: {str(e)}")
+                with __error_stats_lock:
+                    __error_stats["failed_items"] += 1
 
-    # Calculate total processing time
-    total_time = time.time() - start_time
+    log.info(f"Batch processing complete: {successful_items} successful, {failed_items} failed")
 
-    # Generate comprehensive summary
-    error_summary = error_handler.get_error_summary()
-    metrics_summary = data_processor.get_metrics_summary()
 
-    log.info(f"Multi-threaded sync completed in {total_time:.2f} seconds")
-    log.info(f"Processing Summary: {json.dumps(metrics_summary, indent=2)}")
-    log.info(f"Error Summary: {json.dumps(error_summary, indent=2)}")
+def process_single_item(item: dict) -> str:
+    """
+    Process a single item with validation and error handling.
+    This function demonstrates:
+        1. Data validation before processing
+        2. Retry logic for transient failures
+        3. Proper error categorization
+    Args:
+        item: The item to process
+    Returns:
+        The updatedAt timestamp of the processed item
+    Raises:
+        Exception: If item processing fails after retries
+    """
+    try:
+        # Validate required fields
+        if "id" not in item:
+            raise ValueError("Item missing required 'id' field")
 
-    # Update state with processing information
-    state.update(
+        if "updatedAt" not in item:
+            raise ValueError(f"Item {item['id']} missing required 'updatedAt' field")
+
+        # Attempt to upsert with retry logic
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # The 'upsert' operation inserts the data into the destination.
+                # This is thread-safe as the SDK handles internal synchronization.
+                op.upsert(table="user", data=item)
+
+                # Log success for first item as a sample
+                if item == item:  # Simplified check for logging
+                    log.fine(f"Successfully processed item: {item['id']}")
+
+                return item["updatedAt"]
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    # Wait before retry with exponential backoff
+                    wait_time = (2**attempt) * 0.1
+                    time.sleep(wait_time)
+                    log.fine(f"Retrying item {item['id']} after error: {str(e)}")
+                else:
+                    # Final attempt failed
+                    raise
+
+    except ValueError as e:
+        # Data validation errors - log and re-raise
+        log.warning(f"Data validation error: {str(e)}")
+        with __error_stats_lock:
+            __error_stats["validation_errors"] += 1
+        raise
+    except Exception as e:
+        # Other errors - log and re-raise
+        log.warning(f"Error processing item: {str(e)}")
+        with __error_stats_lock:
+            __error_stats["processing_errors"] += 1
+        raise
+
+
+def get_api_response_with_retry(current_url: str, params: dict, max_retries: int = 3) -> dict:
+    """
+    The get_api_response_with_retry function sends an HTTP GET request with retry logic and circuit breaker.
+    It performs the following tasks:
+        1. Implements exponential backoff retry strategy
+        2. Uses circuit breaker to prevent cascading failures
+        3. Handles different types of HTTP errors appropriately
+        4. Provides detailed error logging
+    Args:
+        current_url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+        max_retries: Maximum number of retry attempts for failed requests.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    Raises:
+        Exception: If all retry attempts fail or circuit breaker is open.
+    """
+    for attempt in range(max_retries):
+        try:
+            # Use circuit breaker to protect against cascading failures
+            response_page = circuit_breaker.call(get_api_response, current_url, params)
+            return response_page
+
+        except rq.exceptions.Timeout as e:
+            log.warning(f"Request timeout on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            with __error_stats_lock:
+                __error_stats["timeout_errors"] += 1
+
+            if attempt < max_retries - 1:
+                # Exponential backoff: wait 1s, 2s, 4s, etc.
+                wait_time = 2**attempt
+                log.info(f"Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+            else:
+                log.severe(f"Max retries exceeded for URL: {current_url}")
+                raise
+
+        except rq.exceptions.ConnectionError as e:
+            log.warning(f"Connection error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            with __error_stats_lock:
+                __error_stats["connection_errors"] += 1
+
+            if attempt < max_retries - 1:
+                wait_time = 2**attempt
+                log.info(f"Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+            else:
+                log.severe(f"Max retries exceeded due to connection errors")
+                raise
+
+        except rq.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response else None
+
+            # Handle rate limiting (429) with longer backoff
+            if status_code == 429:
+                retry_after = int(e.response.headers.get("Retry-After", 60))
+                log.warning(f"Rate limited (429), waiting {retry_after} seconds")
+                with __error_stats_lock:
+                    __error_stats["rate_limit_errors"] += 1
+                time.sleep(retry_after)
+                if attempt < max_retries - 1:
+                    continue
+                else:
+                    raise
+
+            # Handle server errors (5xx) with retry
+            elif status_code and 500 <= status_code < 600:
+                log.warning(f"Server error {status_code} on attempt {attempt + 1}/{max_retries}")
+                with __error_stats_lock:
+                    __error_stats["server_errors"] += 1
+
+                if attempt < max_retries - 1:
+                    wait_time = 2**attempt
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+            # Client errors (4xx) except 429 - don't retry
+            else:
+                log.severe(f"HTTP error {status_code}: {str(e)}")
+                with __error_stats_lock:
+                    __error_stats["client_errors"] += 1
+                raise
+
+        except Exception as e:
+            # Unexpected errors
+            log.severe(f"Unexpected error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            with __error_stats_lock:
+                __error_stats["unexpected_errors"] += 1
+
+            if attempt < max_retries - 1:
+                wait_time = 2**attempt
+                time.sleep(wait_time)
+            else:
+                raise
+
+    # Should not reach here, but just in case
+    raise Exception(f"Failed to fetch data after {max_retries} attempts")
+
+
+def should_continue_pagination(
+    current_url: str, params: dict, response_page: dict
+) -> Tuple[str, bool, dict]:
+    """
+    The should_continue_pagination function checks whether pagination should continue based on the presence of a
+    next page URL in the API response.
+    It performs the following tasks:
+        1. Retrieves the URL for the next page of data using the get_next_page_url_from_response function.
+        2. If a next page URL is found, updates the current URL to this new URL and clears the existing query parameters,
+        as they are included in the next URL.
+        3. If no next page URL is found, sets the flag to end the pagination process.
+
+    Api response looks like:
         {
-            "last_sync_time": datetime.now().isoformat(),
-            "processing_time_seconds": total_time,
-            "total_records_processed": metrics_summary["total_records_processed"],
-            "total_errors": error_summary["total_errors"],
-            "sync_status": (
-                "completed_with_errors" if error_summary["total_errors"] > 0 else "completed"
-            ),
+          "data": [
+            {"id": "c8fda876-6869-4aae-b989-b514a8e45dc6", "name": "Mark Taylor", ... },
+            {"id": "3910cbb0-27d4-47f5-9003-a401338eff6e", "name": "Alan Taylor", ... }
+            ...
+          ],
+          "total_items": 200,
+          "page": 1,
+          "per_page": 10,
+          "next_page_url": "http://127.0.0.1:5001/pagination/next_page_url?page=2&per_page=10&order_by=updatedAt&order_type=asc"
+          }
         }
-    )
+    For real API example you can refer Drift's Account Listing API: https://devdocs.drift.com/docs/listing-accounts
+    Args:
+        current_url: The current URL being used to fetch data from the API. It will be updated if a next page URL is found.
+        params: A dictionary of query parameters used in the API request. It will be cleared if a next page URL is found.
+        response_page: A dictionary representing the parsed JSON response from the API.
+    Returns:
+        current_url: The updated URL for the next page, or the same URL if no next page URL is found.
+        has_more_pages: A boolean indicating whether there are more pages to retrieve.
+        params: The updated or cleared query parameters for the next API request.
+    """
+    has_more_pages = True
 
-    # Checkpoint final state
-    op.checkpoint(state)
+    # Check if there is a next page URL in the response to continue the pagination
+    next_page_url = get_next_page_url_from_response(response_page)
 
-    # Raise exception if critical errors occurred
-    if error_handler.shutdown_event.is_set():
-        raise Exception("Sync terminated due to critical errors or error thresholds exceeded")
+    if next_page_url:
+        current_url = next_page_url
+        params = {}  # Clear params since the next URL contains the query params
+        log.fine(f"Continuing to next page: {current_url}")
+    else:
+        has_more_pages = False  # End pagination if there is no 'next' URL in the response.
+        log.info("No next_page_url found, pagination complete")
+
+    return current_url, has_more_pages, params
 
 
-# Create connector
+def get_api_response(current_url: str, params: dict) -> dict:
+    """
+    The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
+    It performs the following tasks:
+        1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
+        2. Makes the API request using the 'requests' library, passing the URL and parameters.
+        3. Parses the JSON response from the API and returns it as a dictionary.
+    Args:
+        current_url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    Raises:
+        requests.exceptions.HTTPError: For HTTP error responses
+        requests.exceptions.Timeout: For request timeouts
+        requests.exceptions.ConnectionError: For connection issues
+    """
+    log.fine(f"Making API call to url: {current_url} with params: {params}")
+
+    # Set reasonable timeout to prevent hanging requests
+    timeout = 30
+
+    response = rq.get(current_url, params=params, timeout=timeout)
+    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
+    response_page = response.json()
+    return response_page
+
+
+def get_next_page_url_from_response(response_page: dict) -> Optional[str]:
+    """
+    The get_next_page_url_from_response function extracts the URL for the next page of data from the API response.
+    Args:
+        response_page: A dictionary representing the parsed JSON response from the API.
+    Returns:
+         The URL for the next page if it exists, otherwise None.
+    """
+    return response_page.get("next_page_url")
+
+
+def log_error_statistics():
+    """
+    Log comprehensive error statistics collected during the sync.
+    This helps with monitoring and debugging connector behavior.
+    """
+    if __error_stats:
+        log.warning("Error Statistics Summary:")
+        with __error_stats_lock:
+            for error_type, count in __error_stats.items():
+                log.warning(f"  {error_type}: {count}")
+    else:
+        log.info("No errors encountered during sync")
+
+
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Debug execution
+# Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
+# be run directly from the command line or IDE 'run' button. This is useful for debugging while you write your code.
+# Note this method is not called by Fivetran when executing your connector in production. Please test using the
+# Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
+    # your IDE.
+    connector.debug()
 
-    connector.debug(configuration=configuration)
+# Resulting table:
+# ┌───────────────────────────────────────┬───────────────┬────────────────────────┬──────────────────────────┬───────────────────────────┐
+# │                 id                    │      name     │         job            │        updatedAt         │        createdAt          │
+# │               string                  │     string    │       string           │      timestamp with UTC  │      timestamp with UTC   │
+# ├───────────────────────────────────────┼───────────────┼────────────────────────┼──────────────────────────┼───────────────────────────┤
+# │ c8fda876-6869-4aae-b989-b514a8e45dc6  │ Mark Taylor   │   Pilot, airline       │ 2024-09-22T19:35:41Z     │ 2024-09-22T18:50:06Z      │
+# │ 3910cbb0-27d4-47f5-9003-a401338eff6e  │ Alan Taylor   │   Dispensing optician  │ 2024-09-22T20:28:11Z     │ 2024-09-22T19:58:38Z      │
+# ├───────────────────────────────────────┴───────────────┴────────────────────────┴──────────────────────────┴───────────────────────────┤
+# │  2 rows                                                                                                                     5 columns │
+# └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

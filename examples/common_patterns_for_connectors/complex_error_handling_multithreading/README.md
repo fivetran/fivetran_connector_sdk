@@ -1,371 +1,309 @@
-# Complex Error Handling with Multi-Threading Example
+# Complex Error Handling with Multithreading Connector Example
 
-This example demonstrates advanced error handling strategies in multi-threaded environments using the Fivetran Connector SDK. It provides a comprehensive framework for building robust, fault-tolerant connectors that can handle API failures, network issues, and processing errors gracefully.
+## Connector overview
+This example demonstrates how to implement next-page URL-based pagination for REST APIs with multithreading and comprehensive error handling strategies. The connector fetches records from a paginated API, processes them in parallel using multiple threads, and implements robust error handling mechanisms to ensure reliability and resilience.
 
-## 🎯 Key Features
+This example combines three important patterns:
+- Pagination: Uses next-page URL pagination to fetch all records from the API
+- Multithreading: Processes records in parallel for improved performance
+- Error Handling: Implements circuit breaker, retry logic, error categorization, and graceful degradation
 
-### Advanced Error Handling
-- **Centralized Error Management**: Thread-safe error collection and analysis
-- **Error Classification**: Severity-based error categorization (LOW, MEDIUM, HIGH, CRITICAL)
-- **Intelligent Thresholds**: Per-thread and global error limits with automatic shutdown
-- **Comprehensive Error Tracking**: Full error context including stack traces and retry counts
+This pagination and multithreading strategy is useful when:
+- The API includes the full URL for the next page in each response
+- You need to process large volumes of data efficiently
+- You want to build resilient connectors that handle transient failures gracefully
+- You need detailed error tracking and monitoring capabilities
 
-### Multi-Threading Architecture
-- **ThreadPoolExecutor**: Efficient parallel processing with configurable worker pools
-- **Thread Safety**: All shared resources protected with proper locking mechanisms
-- **Graceful Degradation**: Individual thread failures don't crash the entire sync
-- **Real-time Monitoring**: Per-thread metrics and performance tracking
+This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
-### Resilient API Client
-- **Circuit Breaker Pattern**: Automatic failure detection and recovery
-- **Intelligent Retry Logic**: Multiple retry strategies (exponential, fixed, linear backoff)
-- **Request Timeout Handling**: Configurable timeouts with proper error handling
-- **Rate Limit Management**: Built-in handling for API rate limiting
 
-### Production-Ready Features
-- **Comprehensive Logging**: Detailed logging at all levels with context
-- **Performance Metrics**: Processing rates, error rates, and timing information
-- **State Management**: Proper checkpointing for resume capability
-- **Configuration Validation**: Input validation with clear error messages
+## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-## 📋 Prerequisites
 
-- Python 3.7+
-- Fivetran Connector SDK
-- Internet connection (uses JSONPlaceholder API for testing)
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## 🚀 Quick Start
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Features
 
-2. **Configure the connector:**
-   Edit `configuration.json` with your desired settings:
-   ```json
-   {
-     "max_workers": 3,
-     "error_threshold_per_thread": 5,
-     "total_error_threshold": 15,
-     "api_timeout_seconds": 30,
-     "enable_circuit_breaker": true,
-     "retry_strategy": "exponential_backoff",
-     "max_retries": 3
-   }
-   ```
+### Pagination
+- Demonstrates handling of `next_page_url` pagination logic
+- Tracks sync position using the `updatedAt` timestamp
+- Automatically follows next-page links across paginated API responses
+- Uses `op.checkpoint()` to safely store progress after each page
 
-3. **Test the connector:**
-   ```bash
-   python connector.py
-   ```
+### Multithreading
+- Processes records in parallel using `ThreadPoolExecutor` for improved performance
+- Configurable number of worker threads (default: 4, recommended: 4-8)
+- Thread-safe state management with proper locking mechanisms
+- Efficient resource utilization with bounded thread pools
 
-4. **Deploy with Fivetran CLI:**
-   ```bash
-   fivetran connector test
-   fivetran connector deploy
-   ```
+### Comprehensive error handling
+- Circuit Breaker Pattern: Prevents cascading failures by opening the circuit when too many errors occur
+- Retry Logic with Exponential Backoff: Automatically retries failed requests with increasing wait times
+- Error Categorization: Tracks different types of errors (timeouts, connection errors, rate limits, validation errors)
+- Graceful Degradation: Individual record failures don't stop the entire sync
+- Rate Limit Handling: Respects API rate limits with proper backoff
+- Thread-Safe Error Statistics: Collects and reports error metrics across all threads
+- Timeout Protection: Prevents hanging requests with configurable timeouts
+- Data Validation: Validates required fields before processing
 
-## ⚙️ Configuration Options
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_workers` | int | 3 | Number of concurrent processing threads (1-20) |
-| `error_threshold_per_thread` | int | 5 | Maximum errors per thread before stopping |
-| `total_error_threshold` | int | 15 | Maximum total errors before sync termination |
-| `api_timeout_seconds` | int | 30 | HTTP request timeout in seconds |
-| `enable_circuit_breaker` | bool | true | Enable circuit breaker pattern |
-| `retry_strategy` | string | "exponential_backoff" | Retry strategy: exponential_backoff, fixed_interval, linear_backoff |
-| `max_retries` | int | 3 | Maximum retry attempts per request |
+## Configuration file
+This example supports optional configuration for parallelism:
 
-## 🏗️ Architecture Overview
-
-### Error Handling Components
-
-#### ErrorHandler Class
-Manages all error-related functionality with thread safety:
-- Error collection and categorization
-- Thread-specific error counting
-- Global error threshold monitoring
-- Shutdown coordination across threads
-
-#### RetryableAPIClient Class
-Provides resilient HTTP communication:
-- Circuit breaker implementation
-- Multiple retry strategies
-- Intelligent error classification
-- Connection pooling and reuse
-
-#### ThreadSafeDataProcessor Class
-Coordinates data processing across threads:
-- Thread metrics collection
-- Error context management
-- Data transformation and validation
-- Fivetran integration
-
-### Threading Model
-
-```
-Main Thread
-├── ThreadPoolExecutor (max_workers=3)
-│   ├── Worker Thread 1: process_users_table()
-│   ├── Worker Thread 2: process_posts_table()
-│   └── Worker Thread 3: process_comments_table()
-├── ErrorHandler (shared, thread-safe)
-├── Metrics Collection (shared, thread-safe)
-└── State Management
-```
-
-## 📊 Data Sources
-
-This example uses [JSONPlaceholder](https://jsonplaceholder.typicode.com/) as a playground API, which provides:
-
-- **Users**: `/users` - User profile information
-- **Posts**: `/posts` - Blog posts with metadata
-- **Comments**: `/comments` - Comment data with relationships
-
-The connector demonstrates realistic data processing patterns including:
-- Data transformation and enrichment
-- JSON field handling
-- Relationship mapping
-- Timestamp addition
-
-## 🔄 Multi-Process vs Multi-Threading Comparison
-
-### Multi-Threading (This Example)
-**✅ Advantages:**
-- Shared memory space for efficient data sharing
-- Lower overhead for thread creation/destruction
-- Built-in synchronization primitives (locks, events)
-- Ideal for I/O-bound operations (API calls)
-- Better for error coordination across workers
-
-**❌ Disadvantages:**
-- Python GIL limitations for CPU-bound tasks
-- Potential for race conditions if not properly synchronized
-- Shared state complexity
-
-**🎯 Best Use Cases:**
-- API-heavy connectors with network I/O
-- Moderate data volume processing
-- Complex error handling requirements
-- Shared configuration and state
-
-### Multi-Processing Alternative
-**✅ Advantages:**
-- True parallelism for CPU-bound operations
-- Process isolation prevents cascading failures
-- Better scalability for compute-intensive tasks
-- No GIL limitations
-
-**❌ Disadvantages:**
-- Higher memory overhead (separate memory spaces)
-- Complex inter-process communication
-- Serialization overhead for data sharing
-- More complex error coordination
-
-**🎯 Best Use Cases:**
-- CPU-intensive data transformation
-- Large dataset processing
-- Independent task processing
-- Maximum fault isolation required
-
-### Recommendation Matrix
-
-| Scenario | Threading | Processing |
-|----------|-----------|------------|
-| API calls + light processing | ✅ **Recommended** | ❌ Overkill |
-| Heavy data transformation | ⚠️ Limited by GIL | ✅ **Recommended** |
-| Mixed workloads | ✅ Good balance | ⚠️ Complex setup |
-| Error handling complexity | ✅ **Easier** | ❌ More complex |
-| Memory constraints | ✅ **Lower usage** | ❌ Higher usage |
-
-## 📈 Performance Monitoring
-
-The connector provides comprehensive metrics:
-
-### Thread Metrics
-- Records processed per thread
-- Error count per thread
-- Processing rate (records/second)
-- Thread execution duration
-
-### Error Analytics
-- Error distribution by severity
-- Error patterns by table/endpoint
-- Retry success rates
-- Circuit breaker activations
-
-### Sample Output
 ```json
 {
-  "processing_summary": {
-    "total_records_processed": 600,
-    "total_errors": 3,
-    "total_retries": 7,
-    "thread_count": 3,
-    "thread_summaries": {
-      "thread-123": {
-        "records_processed": 200,
-        "errors_encountered": 1,
-        "duration_seconds": 45.2,
-        "records_per_second": 4.42
-      }
-    }
-  },
-  "error_summary": {
-    "total_errors": 3,
-    "errors_by_severity": {
-      "LOW": 1,
-      "MEDIUM": 2,
-      "HIGH": 0,
-      "CRITICAL": 0
-    },
-    "errors_by_table": {
-      "users": 1,
-      "posts": 2
-    }
+  "parallelism": 4
+}
+```
+
+- `parallelism`: Number of worker threads to use for parallel processing (optional, defaults to 4)
+
+For production connectors, `configuration.json` might also contain API tokens, initial cursors, or filters to narrow down API results.
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
+
+## Requirements file
+This connector requires the following Python dependencies:
+
+```
+requests
+```
+
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
+
+## Authentication
+This connector does not use authentication.
+
+In real-world scenarios, modify `get_api_response()` to add `Authorization` headers or include API keys in query parameters.
+
+
+## Pagination
+Pagination is based on the next_page_url key provided in the API response:
+```json
+{
+  "data": [],
+  "next_page_url": "https://api.example.com/page=2"
+}
+```
+- The initial request includes `updated_since`, `order_by`, and `per_page`
+- If `next_page_url` is present, it is used as the next request's endpoint
+- Query parameters are cleared because they're already embedded in the `next_page_url`
+- Pages are fetched sequentially to maintain order, but records within each page are processed in parallel
+
+Pagination continues until no `next_page_url` is returned.
+
+
+## Multithreading architecture
+
+### Thread pool configuration
+- Uses `ThreadPoolExecutor` with configurable worker threads
+- Default: 4 workers (recommended: 4-8 for production)
+- Each page of records is processed in parallel
+- Thread-safe operations with proper locking
+
+### Processing flow
+1. Page Fetching: Pages are fetched sequentially to maintain order
+2. Parallel Processing: Records within each page are processed concurrently
+3. State Management: Thread-safe state updates ensure consistency
+4. Error Isolation: Individual record failures don't affect other records
+
+### Thread safety considerations
+- `processing_lock`: Protects state dictionary updates
+- `error_stats_lock`: Protects error statistics tracking
+- Circuit breaker has internal locking for state management
+- SDK operations (upsert, checkpoint) are thread-safe by design
+
+
+## Error handling strategies
+
+### 1. Circuit breaker pattern
+The connector implements a circuit breaker with three states:
+- Closed (normal): Requests flow through normally
+- Open (failed): Too many errors detected, requests blocked temporarily
+- Half-Open (testing): Testing if service has recovered
+
+Configuration:
+- Failure threshold: 5 consecutive failures trigger circuit opening
+- Timeout: 60 seconds before attempting recovery
+
+### 2. Retry logic with exponential backoff
+Failed requests are automatically retried with increasing wait times:
+- Attempt 1: Immediate
+- Attempt 2: Wait 1 second
+- Attempt 3: Wait 2 seconds
+- Attempt 4: Wait 4 seconds
+
+### 3. Error categorization
+The connector tracks and reports different error types:
+- Timeout Errors: Request took too long to complete
+- Connection Errors: Network connectivity issues
+- Rate Limit Errors: API rate limits exceeded (429 status)
+- Server Errors: API server issues (5xx status)
+- Client Errors: Request errors (4xx status except 429)
+- Validation Errors: Data validation failures
+- Processing Errors: Errors during record processing
+- Fatal Page Errors: Unrecoverable page-level errors
+
+### 4. Rate limit handling
+Special handling for HTTP 429 (Too Many Requests):
+- Respects `Retry-After` header from API
+- Default wait time: 60 seconds if header not present
+- Automatic retry after waiting
+
+### 5. Graceful degradation
+- Individual record failures are logged but don't stop the sync
+- Page-level errors are retried with backoff
+- Failed records are tracked in error statistics
+- Sync continues processing other records
+
+### 6. Data validation
+Each record is validated before processing:
+- Required field checks (id, updatedAt)
+- Type validation
+- Validation errors are categorized separately
+
+### 7. Timeout protection
+All API requests have a 30-second timeout to prevent hanging:
+- Prevents infinite waiting
+- Triggers retry logic on timeout
+- Tracked in timeout error statistics
+
+
+## Data handling
+- The connector fetches user records from each page sequentially
+- Records within each page are processed in parallel using thread pool
+- Each record is validated before processing
+- Each row is passed to `op.upsert()` for syncing into the `USER` table
+- The `state["last_updated_at"]` field is updated with thread-safe locking
+- `op.checkpoint()` is called after each page to persist the cursor
+
+
+## Error reporting
+At the end of each sync, the connector logs comprehensive error statistics:
+```
+Error Statistics Summary:
+  timeout_errors: 3
+  rate_limit_errors: 1
+  failed_items: 5
+  validation_errors: 2
+```
+
+This helps with:
+- Monitoring connector health
+- Identifying systemic issues
+- Debugging failures
+- Performance tuning
+
+
+## Performance considerations
+
+### Thread configuration
+- Recommended: 4-8 worker threads for production
+- Default: 4 workers (good balance for most use cases)
+- Important: More threads ≠ better performance
+  - Higher thread counts can increase overhead
+  - May trigger rate limits more frequently
+  - Can exhaust system resources
+
+### Memory management
+- Records are processed as they arrive (streaming)
+- No large data structures held in memory
+- Thread pool size bounds concurrent operations
+
+### Checkpoint strategy
+- State is checkpointed after each page
+- Allows resuming from last successful page
+- Minimizes data re-processing on failures
+
+
+## Tables created
+The connector creates the `USER` table:
+
+```
+{
+  "table": "user",
+  "primary_key": ["id"],
+  "columns": {
+    "id": "STRING",
+    "name": "STRING",
+    "email": "STRING",
+    "address": "STRING",
+    "company": "STRING",
+    "job": "STRING",
+    "updatedAt": "UTC_DATETIME",
+    "createdAt": "UTC_DATETIME"
   }
 }
 ```
 
-## 🛠️ Error Scenarios & Testing
 
-### Simulated Error Conditions
-1. **Network Timeouts**: Random API timeouts to test retry logic
-2. **Rate Limiting**: HTTP 429 responses with backoff testing
-3. **Server Errors**: 5xx responses to validate circuit breaker
-4. **Data Corruption**: Invalid JSON responses for parsing error handling
-5. **Thread Failures**: Individual thread crashes and recovery
+## Code structure
 
-### Testing Strategies
-```python
-# Test error thresholds
-config = {
-    "max_workers": 5,
-    "error_threshold_per_thread": 2,  # Low threshold for testing
-    "total_error_threshold": 8
-}
+### Main functions
+- `update()`: Entry point, orchestrates pagination and parallel processing
+- `sync_items_parallel()`: Handles paginated API calls and parallel processing
+- `process_items_parallel()`: Manages thread pool for processing records
+- `process_single_item()`: Processes individual records with validation and retry
 
-# Test circuit breaker
-config = {
-    "enable_circuit_breaker": True,
-    "failure_threshold": 3,  # Trigger after 3 failures
-    "recovery_timeout": 30   # 30-second recovery window
-}
+### Error handling functions
+- `get_api_response_with_retry()`: API calls with retry logic and circuit breaker
+- `get_api_response()`: Basic API call with timeout
+- `log_error_statistics()`: Reports error metrics
 
-# Test retry strategies
-config = {
-    "retry_strategy": "exponential_backoff",
-    "max_retries": 5,
-    "base_delay": 1.0
-}
-```
+### Pagination functions
+- `should_continue_pagination()`: Determines if more pages exist
+- `get_next_page_url_from_response()`: Extracts next page URL
 
-## 🔧 Customization Guide
+### Utility classes
+- `CircuitBreaker`: Implements circuit breaker pattern
+- `RetryableError`: Custom exception for retryable errors
 
-### Adding New Tables
-```python
-def process_albums_table(self) -> None:
-    """Process albums data from playground API"""
-    self._initialize_thread_metrics()
-    thread_id = self._get_thread_id()
 
-    try:
-        with self.error_context("albums"):
-            albums_data = self.api_client.get("/albums")
+## Key learning points
 
-        for album in albums_data:
-            if not self.error_handler.should_continue_processing(thread_id):
-                break
+1. Multithreading in Connectors: How to safely use threads for parallel processing
+2. Error Handling Patterns: Circuit breaker, retry, exponential backoff
+3. Thread Safety: Proper use of locks for shared state
+4. Graceful Degradation: Continue processing despite individual failures
+5. Error Monitoring: Track and report different error types
+6. Resource Management: Bounded thread pools and timeouts
+7. Resilience: Build connectors that handle transient failures
 
-            with self.error_context("albums", str(album.get("id"))):
-                processed_album = {
-                    "id": album["id"],
-                    "user_id": album["userId"],
-                    "title": album["title"],
-                    "processed_at": datetime.now().isoformat()
-                }
 
-                op.upsert("albums", processed_album)
-                self._update_metrics(records_processed=1)
-    finally:
-        self._finalize_thread_metrics()
-```
+## Testing recommendations
 
-### Custom Error Handling
-```python
-class CustomErrorHandler(ErrorHandler):
-    def handle_business_logic_error(self, error_data: dict) -> None:
-        """Handle domain-specific errors"""
-        if error_data.get("error_code") == "DUPLICATE_RECORD":
-            # Handle duplicates gracefully
-            log.info(f"Skipping duplicate record: {error_data}")
-            return
+1. Test with Various Error Scenarios:
+   - Network timeouts
+   - Connection failures
+   - Rate limiting
+   - Invalid data
+   - Server errors
 
-        # Escalate other business errors
-        super().record_error(ErrorRecord(
-            thread_id=self._get_thread_id(),
-            error_type="BusinessLogicError",
-            error_message=error_data.get("message", "Unknown business error"),
-            severity=ErrorSeverity.MEDIUM
-        ))
-```
+2. Test Thread Safety:
+   - Run with different thread counts
+   - Verify state consistency
+   - Check for race conditions
 
-### Alternative APIs
-Replace the JSONPlaceholder API with your target API:
-```python
-# Update base URL
-PLAYGROUND_API_BASE = "https://api.yourdomain.com"
+3. Test Circuit Breaker:
+   - Trigger circuit opening with repeated failures
+   - Verify circuit closes after recovery
+   - Check behavior in half-open state
 
-# Update authentication
-class AuthenticatedAPIClient(RetryableAPIClient):
-    def __init__(self, base_url: str, api_key: str):
-        super().__init__(base_url)
-        self.session.headers.update({"Authorization": f"Bearer {api_key}"})
-```
+4. Monitor Error Statistics:
+   - Verify all error types are tracked
+   - Check error counts are accurate
+   - Confirm logging is comprehensive
 
-## 🚨 Production Considerations
 
-### Security
-- Store API credentials in Fivetran secrets, not configuration
-- Implement proper authentication token refresh
-- Use HTTPS endpoints only
-- Validate all input data
+## Additional considerations
 
-### Performance
-- Monitor memory usage in multi-threaded environments
-- Implement connection pooling for HTTP clients
-- Use streaming for large data sets
-- Consider data compression for network efficiency
-
-### Reliability
-- Implement health checks for external dependencies
-- Set up monitoring and alerting
-- Plan for graceful degradation scenarios
-- Test disaster recovery procedures
-
-### Scalability
-- Profile memory usage under load
-- Test with realistic data volumes
-- Monitor thread contention and lock usage
-- Plan for horizontal scaling if needed
-
-## 📚 Additional Resources
-
-- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connectors/connector-sdk)
-- [Python Threading Best Practices](https://docs.python.org/3/library/threading.html)
-- [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
-- [Error Handling Strategies](https://docs.python.org/3/tutorial/errors.html)
-
-## 🤝 Contributing
-
-This example is designed to be educational and extensible. Consider:
-- Adding support for additional retry strategies
-- Implementing more sophisticated circuit breaker logic
-- Adding support for different API authentication methods
-- Creating specialized error handlers for specific use cases
-
-## 📄 License
-
-This example is provided under the same license as the Fivetran Connector SDK.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
