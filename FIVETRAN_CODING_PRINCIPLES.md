@@ -116,7 +116,7 @@ This is a great place to start to learn our coding practices through templated e
 ### 5.2 Demonstrate one core concept
 
 - Each example should focus on one SDK feature or pattern (e.g., incremental sync, schema discovery, error handling).
-- Split complex connectors into multiple examples.
+- Where possible, split complex connectors into multiple examples.
 
 
 
@@ -127,56 +127,47 @@ This is a great place to start to learn our coding practices through templated e
 - Keep the `update()` method short — use smaller helper methods.
 
 
-### 5.4 Use a clear, self-contained folder
 
-- Use descriptive names like `incremental_sync_example` or `dynamic_schema_example`.
-- Include a simple `README.md` describing:
-  - What the example does.
-  - How to run it.
-
-
-
-### 5.5 Minimal dependencies
+### 5.4 Minimal dependencies
 
 - Include only necessary dependencies.
 - Pin dependency versions in `requirements.txt`, `pyproject.toml`, or `poetry.lock`.
 
 
-### 5.6 Code organization
+
+### 5.5 Code organization
+Good code organization and clarity is a balance of this list. Do your best to adhere to each point below. 
 
 - Keep the code easy to read and navigate.
 - Use good naming instead of excessive commenting.
 - Follow established commenting conventions:
   - Explain the example’s purpose.
   - Explain helper functions with inline comments.
-  - Avoid monolithic `update` functions — split logic into helpers.
 
 
 
-### 5.7 Logging
+### 5.6 Logging
 
 - Log key steps at info level (e.g., `"Fetching page X"`).
-- Avoid logs inside loops or spammy debug logs.
+- Avoid logs inside loops.
 - Add logs for warnings and severe issues.
 
 
-### 5.8 Error handling
+
+### 5.7 Error handling
 
 - Catch and raise meaningful, specific exceptions.
-- Avoid generic exception handling.
 - If demonstrating error handling, highlight it in the `README.md`.
 
 
-### 5.9 Testing (optional but encouraged)
+
+### 5.8 Testing (optional but encouraged)
 
 - Include a basic test file (e.g., `test_connector.py`).
 - Use `pytest` or similar for validation.
 - Mock external API calls so examples run without real credentials.
 
-### 5.10 Document known limitations
 
-- Note any unhandled edge cases.
-- Provide guidance for contributors on how to extend or enhance the example.
 
 ---
 
