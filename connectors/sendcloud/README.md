@@ -35,7 +35,7 @@ The connector requires the following configuration parameters:
   "username": "<YOUR_SENDCLOUD_API_USERNAME>",
   "password": "<YOUR_SENDCLOUD_API_PASSWORD>",
   "start_date": "<YYYY-MM-DD_FORMAT_EXAMPLE_2023-01-01>",
-  "use_mock_server": false
+  "use_mock_server": "<TRUE_OR_FALSE_DEFAULT_FALSE>"
 }
 ```
 
@@ -55,7 +55,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses HTTP Basic Authentication to connect to the Sendcloud API. The credentials are specified in the configuration file and encoded as Base64 in the Authorization header (refer to the [get_auth_header()](connector.py#L61-L72) function).
+This connector uses HTTP Basic Authentication to connect to the Sendcloud API. The credentials are specified in the configuration file and encoded as Base64 in the Authorization header (refer to the `get_auth_header()` function in [connector.py](connector.py)).
 
 To set up authentication:
 
@@ -67,13 +67,13 @@ To set up authentication:
 
 ## Pagination
 
-The connector implements cursor-based pagination to handle large datasets efficiently (refer to the [update()](connector.py#L671-L750) function and [determine_next_cursor()](connector.py#L636-L668) helper function).
+The connector implements cursor-based pagination to handle large datasets efficiently (refer to the `update()` and `determine_next_cursor()` functions in [connector.py](connector.py)).
 
 The Sendcloud API returns pagination metadata in the response with a next_cursor field. The connector extracts this cursor and uses it in subsequent requests to fetch the next page. If the API does not provide an explicit cursor and the page is full, the connector generates a cursor using the encode_cursor function as a fallback mechanism. Pagination continues until no more records are returned or the API indicates there are no more pages.
 
 ## Data handling
 
-The connector processes shipment data through multiple stages (refer to the [flatten_shipment_data()](connector.py#L283-L320) and [process_shipment_arrays()](connector.py#L323-L507) functions):
+The connector processes shipment data through multiple stages (refer to the `flatten_shipment_data()` and `process_shipment_arrays()` functions in [connector.py](connector.py)):
 
 - Main shipment fields are flattened into the primary shipments table
 - Nested single objects (addresses, prices, delivery dates) are flattened into the same table with prefixed column names
@@ -83,7 +83,7 @@ The connector processes shipment data through multiple stages (refer to the [fla
 
 ## Error handling
 
-The connector implements comprehensive error handling with automatic retry logic (refer to the [fetch_shipments_page()](connector.py#L136-L203) function):
+The connector implements comprehensive error handling with automatic retry logic (refer to the `fetch_shipments_page()` function in [connector.py](connector.py)):
 
 - HTTP errors with status codes 400, 401, 403, 404 are treated as permanent failures and fail immediately without retry
 - Transient errors (500, 502, 503, 504, timeouts, connection errors) trigger exponential backoff retry logic up to 3 attempts

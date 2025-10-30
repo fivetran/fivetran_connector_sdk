@@ -113,7 +113,7 @@ def decode_cursor(cursor: str) -> dict:
         decoded = base64.b64decode(cursor).decode()
         try:
             log.info(f"Decoded cursor: {cursor} -> {decoded}")
-        except:
+        except Exception:
             pass  # Log not available outside Fivetran context
 
         # Parse the query string (e.g., "o=10&r=0&p=20")
@@ -126,7 +126,7 @@ def decode_cursor(cursor: str) -> dict:
     except Exception as e:
         try:
             log.warning(f"Failed to decode cursor {cursor}: {e}")
-        except:
+        except Exception:
             pass  # Log not available outside Fivetran context
         return {}
 
@@ -150,7 +150,7 @@ def encode_cursor(offset: int = 0, reverse: int = 0, position: int = 0) -> str:
     encoded = base64.b64encode(query_string.encode()).decode()
     try:
         log.info(f"Encoded cursor: {query_string} -> {encoded}")
-    except:
+    except Exception:
         pass  # Log not available outside Fivetran context
     return encoded
 
@@ -190,13 +190,13 @@ def fetch_shipments_page(
             response.raise_for_status()
 
             json_response = response.json()
-            log.info(f"Fetched data from API")
+            log.info("Fetched data from API")
 
             # Log pagination information for debugging
             if "next_cursor" in json_response:
-                log.info(f"API provided next_cursor")
+                log.info("API provided next_cursor")
             if "pagination" in json_response:
-                log.info(f"API provided pagination info")
+                log.info("API provided pagination info")
 
             return json_response
 
@@ -461,6 +461,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "link": document.get("link"),
                 "size": document.get("size"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="parcel_document", data=doc_data)
 
         # Process parcel items
@@ -488,6 +491,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "item_material_content": item.get("material_content"),
                 "item_intended_use": item.get("intended_use"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="parcel_item", data=item_data)
 
             # Process item properties
@@ -503,6 +509,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                         prop_value
                     ),  # Convert to string to handle different data types
                 }
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table="item_property", data=prop_data)
 
         # Process label notes
@@ -514,6 +523,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "note_order": i,
                 "note_text": note,
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="parcel_label_note", data=note_data)
 
     # Process shipment errors
@@ -527,6 +539,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
             "error_title": error.get("title"),
             "error_detail": error.get("detail"),
         }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="shipment_error", data=error_data)
 
     # Process customs declarations (if present)
@@ -535,6 +550,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
         declarations = customs.get("additional_declaration_statements", [])
         for declaration in declarations:
             decl_data = {"shipment_id": shipment_id, "declaration_text": declaration}
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="customs_declaration", data=decl_data)
 
         # Process tax numbers
@@ -550,6 +568,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "tax_country_code": tax.get("country_code"),
                 "tax_number": tax.get("value"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="customs_tax_number", data=tax_data)
 
         # Process receiver tax numbers
@@ -562,6 +583,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "tax_country_code": tax.get("country_code"),
                 "tax_number": tax.get("value"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="customs_tax_number", data=tax_data)
 
         # Process importer of record tax numbers
@@ -574,6 +598,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
                 "tax_country_code": tax.get("country_code"),
                 "tax_number": tax.get("value"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="customs_tax_number", data=tax_data)
 
 
@@ -637,7 +664,7 @@ def normalize_shipments_response(shipments):
     if isinstance(shipments, dict):
         try:
             log.info("Mock API returned single shipment object, wrapped in list")
-        except:
+        except Exception:
             pass  # Log not available outside Fivetran context
         return [shipments]
     elif isinstance(shipments, list):
@@ -645,7 +672,7 @@ def normalize_shipments_response(shipments):
     else:
         try:
             log.warning(f"Unexpected data type: {type(shipments)}, returning empty list")
-        except:
+        except Exception:
             pass  # Log not available outside Fivetran context
         return []
 
@@ -714,7 +741,7 @@ def determine_next_cursor(response_data, shipments_count, page_count):
         has_more_pages = True
         try:
             log.info(f"Generated cursor for next page: offset={next_offset}")
-        except:
+        except Exception:
             pass  # Log not available outside Fivetran context
 
     return has_more_pages, next_cursor
