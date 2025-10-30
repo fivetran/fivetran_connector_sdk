@@ -24,7 +24,7 @@ from fivetran_connector_sdk import Operations as op
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from collections import defaultdict
 
 
@@ -367,7 +367,7 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
                 log.info(f"Waiting {wait_time} seconds before retry...")
                 time.sleep(wait_time)
             else:
-                log.severe(f"Max retries exceeded due to connection errors")
+                log.severe("Max retries exceeded due to connection errors.")
                 raise
 
         except rq.exceptions.HTTPError as e:
