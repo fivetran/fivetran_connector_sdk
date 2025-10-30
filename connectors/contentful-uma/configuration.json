@@ -1,0 +1,15 @@
+{
+  "access_token": "<YOUR_CONTENTFUL_ACCESS_TOKEN>",
+  "organization_id": "<YOUR_ORGANIZATION_ID>",
+  "use_eu_region": "<YOUR_USE_EU_REGION>",
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_organization_memberships": "<YOUR_ENABLE_ORGANIZATION_MEMBERSHIPS>",
+  "enable_team_memberships": "<YOUR_ENABLE_TEAM_MEMBERSHIPS>",
+  "enable_space_memberships": "<YOUR_ENABLE_SPACE_MEMBERSHIPS>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+}
