@@ -63,7 +63,9 @@ class CircuitBreaker:
                     log.info("Circuit breaker: Transitioning to half-open state")
                     self.state = "half_open"
                 else:
-                    raise Exception("Circuit breaker is OPEN - too many failures detected")
+                    raise Exception(
+                        "Circuit breaker is open due to too many failures. Waiting for timeout."
+                    )
 
         try:
             result = func(*args, **kwargs)
