@@ -107,5 +107,13 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 - `constants.py` – *Stores constant values used throughout the connector.*
 
 
+## Accreditation
+*The connectors contributed by third parties should include an accreditation section to credit the contributor.*
+
+This example was contributed by [Contributor Name/Organization](link-to-profile-or-website).
+
+*Optionally, add a brief note about the contributor's expertise or the context in which this connector was developed.*
+
+
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
