@@ -449,6 +449,8 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
         )
 
         # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="shipment_parcel", data=parcel_data)
 
         # Process parcel documents
