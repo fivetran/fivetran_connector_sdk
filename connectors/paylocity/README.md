@@ -23,21 +23,21 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 The connector implements several key features for robust data synchronization:
 
 ### Authentication management
-OAuth2 Client Credentials flow with automatic token refresh (refer to `get_access_token` function). Supports both sandbox and production environments with environment-specific endpoints.
+OAuth2 client credentials flow with automatic token refresh (refer to the `get_access_token` function). Supports both sandbox and production environments with environment-specific endpoints.
 
 ### Data extraction
-Memory-efficient employee data fetching using streaming generators (refer to `get_employees` function). Includes comprehensive employee demographics, position information, compensation data, and contact details.
+Memory-efficient employee data fetching using streaming generators (refer to the `get_employees` function). Includes comprehensive employee demographics, position information, compensation data, and contact details.
 
-Optional payroll data extraction with configurable enable/disable flag (refer to `get_payroll_data` function). Processes pay periods, gross/net pay calculations, deductions, and tax information.
+Optional payroll data extraction with configurable enable/disable flag (refer to the `get_payroll_data` function). Processes pay periods, gross/net pay calculations, deductions, and tax information.
 
 ### Error handling
-Comprehensive retry logic with exponential backoff for transient failures (refer to `execute_api_request` function). Specific handling for HTTP 429 rate limiting with Retry-After header support (refer to `__handle_rate_limit` function).
+Comprehensive retry logic with exponential backoff for transient failures (refer to the `execute_api_request` function). Specific handling for HTTP 429 rate limiting with Retry-After header support (refer to the `__handle_rate_limit` function).
 
 ### Configuration validation
-Automatic configuration validation with built-in type checking and intelligent defaults (refer to `__get_config_int` and `__get_config_bool` functions).
+Automatic configuration validation with built-in type checking and intelligent defaults (refer to the `__get_config_int` and `__get_config_bool` functions).
 
 ### Rate limiting and timeout handling
-Production-ready rate limiting with automatic retry on HTTP 429 responses (refer to `__handle_rate_limit` function). Configurable request timeouts prevent indefinite blocking on slow API responses.
+Production-ready rate limiting with automatic retry on HTTP 429 responses (refer to the `__handle_rate_limit` function). Configurable request timeouts prevent indefinite blocking on slow API responses.
 
 ## Configuration file
 
@@ -110,11 +110,11 @@ Example pagination flow:
 ## Data handling
 
 ### Memory efficiency
-The connector uses Python generators throughout the data pipeline to prevent memory accumulation (refer to `get_employees` and `get_payroll_data` functions). This approach allows processing of large employee datasets without memory overflow issues.
+The connector uses Python generators throughout the data pipeline to prevent memory accumulation (refer to the `get_employees` and `get_payroll_data` functions). This approach allows processing of large employee datasets without memory overflow issues.
 
-Recommended approach: `for employee in get_employees(): op.upsert()` - processes records immediately without accumulating them in memory.
+The recommended approach is to use `for employee in get_employees(): op.upsert()`, which processes records immediately without accumulating them in memory.
 
-Avoid: `employees = get_all_employees()` - loads all records into memory at once, which can cause memory issues with large datasets.
+Avoid using `employees = get_all_employees()`. This loads all records into memory at once, which can cause memory issues with large datasets.
 
 ### Field mapping
 Employee data is mapped from Paylocity's API format to normalized database columns (refer to the `__map_employee_data` function). Nested objects are flattened, and all timestamps are converted to UTC format for consistency.
@@ -160,7 +160,6 @@ Note: Column types are automatically inferred by Fivetran core based on the data
 The connector includes several additional files to support functionality, testing, and deployment:
 
 - `requirements.txt` – Python dependency specification for Paylocity API integration and connector requirements including faker for mock testing, if required.
-
 - `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
