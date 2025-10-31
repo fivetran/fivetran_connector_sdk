@@ -259,17 +259,6 @@ The connector creates the `USER` table:
 ### Utility classes
 - `CircuitBreaker`: Implements circuit breaker pattern
 
-## Key learning points
-
-1. Multithreading in Connectors: How to safely use threads for parallel processing
-2. Error Handling Patterns: Circuit breaker, retry, exponential backoff
-3. Thread Safety: Proper use of locks for shared state
-4. Graceful Degradation: Continue processing despite individual failures
-5. Error Monitoring: Track and report different error types
-6. Resource Management: Bounded thread pools and timeouts
-7. Resilience: Build connectors that handle transient failures
-
-
 ## Testing recommendations
 
 1. Test with various error scenarios:
