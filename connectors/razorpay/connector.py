@@ -22,9 +22,6 @@ import requests
 # For handling dates and timestamps
 from datetime import datetime, timedelta, timezone
 
-# For type hints to improve code readability
-from typing import Dict, List, Any, Optional
-
 # For implementing delays in retry logic and rate limiting
 import time
 
