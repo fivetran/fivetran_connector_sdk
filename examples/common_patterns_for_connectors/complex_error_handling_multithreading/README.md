@@ -62,7 +62,7 @@ This example supports optional configuration for parallelism:
   "parallelism": 4
 }
 ```
-
+Configuration parameter:
 - `parallelism`: Number of worker threads to use for parallel processing (optional, defaults to 4)
 
 For production connectors, `configuration.json` might also contain API tokens, initial cursors, or filters to narrow down API results.
