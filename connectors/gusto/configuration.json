@@ -1,0 +1,14 @@
+{
+  "api_token": "<YOUR_GUSTO_API_TOKEN>",
+  "company_id": "<YOUR_COMPANY_ID>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_employees": "<TRUE_OR_FALSE>",
+  "enable_payrolls": "<TRUE_OR_FALSE>",
+  "enable_pay_schedules": "<TRUE_OR_FALSE>",
+  "enable_company_benefits": "<TRUE_OR_FALSE>",
+  "enable_locations": "<TRUE_OR_FALSE>",
+  "enable_debug_logging": "<TRUE_OR_FALSE>"
+}
