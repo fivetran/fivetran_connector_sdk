@@ -119,7 +119,7 @@ Pagination continues until no `next_page_url` is returned.
 - SDK operations (upsert, checkpoint) are thread-safe by design
 
 
-## Error handling strategies
+## Error handling
 
 ### 1. Circuit breaker pattern
 The connector implements a circuit breaker with three states:
