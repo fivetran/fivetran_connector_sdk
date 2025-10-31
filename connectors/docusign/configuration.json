@@ -1,0 +1,12 @@
+{
+  "access_token": "YOUR_DOCUSIGN_ACCESS_TOKEN",
+  "account_id": "YOUR_DOCUSIGN_ACCOUNT_ID",
+  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
+  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
+  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
+  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
+  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
+  "enable_templates": "YOUR_ENABLE_TEMPLATES",
+  "enable_incremental_sync": "YOUR_ENABLE_INCREMENTAL_SYNC",
+  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
+}
