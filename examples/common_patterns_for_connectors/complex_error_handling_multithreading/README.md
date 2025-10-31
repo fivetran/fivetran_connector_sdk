@@ -205,10 +205,7 @@ This helps with:
 ### Thread configuration
 - Recommended: 4-8 worker threads for production
 - Default: 4 workers (good balance for most use cases)
-- Important: More threads ≠ better performance
-  - Higher thread counts can increase overhead
-  - May trigger rate limits more frequently
-  - Can exhaust system resources
+Note: More threads don't necessarily provide better performance. Higher thread counts can increase overhead, trigger rate limits more frequently and exhaust system resources.
 
 ### Memory management
 - Records are processed as they arrive (streaming)
@@ -275,24 +272,24 @@ The connector creates the `USER` table:
 
 ## Testing recommendations
 
-1. Test with Various Error Scenarios:
+1. Test with various error scenarios:
    - Network timeouts
    - Connection failures
    - Rate limiting
    - Invalid data
    - Server errors
 
-2. Test Thread Safety:
+2. Test thread safety:
    - Run with different thread counts
    - Verify state consistency
    - Check for race conditions
 
-3. Test Circuit Breaker:
+3. Test circuit breaker:
    - Trigger circuit opening with repeated failures
    - Verify circuit closes after recovery
    - Check behavior in half-open state
 
-4. Monitor Error Statistics:
+4. Monitor error statistics:
    - Verify all error types are tracked
    - Check error counts are accurate
    - Confirm logging is comprehensive

@@ -358,14 +358,14 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
             log.warning(f"Request timeout on attempt {attempt + 1}/{max_retries}: {str(e)}")
             with __ERROR_STATS_LOCK:
                 __ERROR_STATS["timeout_errors"] += 1
-            if sleep_for_attempt(attempt, current_url, max_retries) == False:
+            if sleep_for_attempt(attempt, current_url, max_retries) is False:
                 raise
 
         except rq.exceptions.ConnectionError as e:
             log.warning(f"Connection error on attempt {attempt + 1}/{max_retries}: {str(e)}")
             with __ERROR_STATS_LOCK:
                 __ERROR_STATS["connection_errors"] += 1
-            if sleep_for_attempt(attempt, current_url, max_retries) == False:
+            if sleep_for_attempt(attempt, current_url, max_retries) is False:
                 raise
 
         except rq.exceptions.HTTPError as e:
@@ -388,7 +388,7 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
                 log.warning(f"Server error {status_code} on attempt {attempt + 1}/{max_retries}")
                 with __ERROR_STATS_LOCK:
                     __ERROR_STATS["server_errors"] += 1
-                if sleep_for_attempt(attempt, current_url, max_retries) == False:
+                if sleep_for_attempt(attempt, current_url, max_retries) is False:
                     raise
 
             # Client errors (4xx) except 429 - don't retry
