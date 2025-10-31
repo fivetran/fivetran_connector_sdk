@@ -1,11 +1,13 @@
-# This example demonstrates how to implement next-page-url pagination with multithreading for REST APIs,
-# including comprehensive error handling strategies for concurrent operations.
-# It fetches user data from a paginated API while processing records in parallel with robust error handling.
-# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
-# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
-# See the Technical Reference documentation
-# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This example demonstrates how to implement next-page-url pagination with multithreading for REST APIs,
+including comprehensive error handling strategies for concurrent operations.
+It fetches user data from a paginated API while processing records in parallel with robust error handling.
+THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+(https://pypi.org/project/fivetran-api-playground/) TO RUN.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
 # Import requests to make HTTP calls to API
 import requests as rq
@@ -20,19 +22,32 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import threading and concurrency utilities
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
+# Import time for retry check
 import time
+
+# Import to parse configuration
+import json
+
+# Import concurrency utilities
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Imported threading for multiprocessing
+import threading
+
+# For initilisation of required arguments in
 from typing import List, Optional, Tuple
 from collections import defaultdict
 
 
 # Global variables for error tracking and thread safety
-__error_stats = defaultdict(int)
-__error_stats_lock = threading.Lock()
-__processing_lock = threading.Lock()
+__ERROR_STATS = defaultdict(int)
+__ERROR_STATS_LOCK = threading.Lock()
+__PROCESSING_LOCK = threading.Lock()
 __PARALLELISM = 4
+__BASE_URL = "http://127.0.0.1:5001/pagination/next_page_url"
+__PER_PAGE = 50
+__MAX_RETRIES = 3
+__ITEM_MAX_RETRIES = 2
 
 
 class CircuitBreaker:
@@ -82,7 +97,7 @@ class CircuitBreaker:
 
 
 # Global circuit breaker instance
-circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=60)
+__CIRCUIT_BREAKER = CircuitBreaker(failure_threshold=5, timeout=60)
 
 
 def schema(configuration: dict):
@@ -127,28 +142,27 @@ def update(configuration: dict, state: dict):
         "Example: Common Patterns For Connectors - Complex Error Handling with Multithreading"
     )
 
-    print(
+    log.warning(
         "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
         "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
     )
-    base_url = "http://127.0.0.1:5001/pagination/next_page_url"
 
     # Retrieve the cursor from the state to determine the current position in the data sync.
     # If the cursor is not present in the state, start from the beginning of time ('0001-01-01T00:00:00Z').
     cursor = state.get("last_updated_at", "0001-01-01T00:00:00Z")
 
-    # Get parallelism from global variable
-    max_workers = __PARALLELISM
+    # Get parallelism from global variable if not present in configuration
+    max_workers = int(configuration.get("parallelism", __PARALLELISM))
     log.info(f"Using {max_workers} worker threads for parallel processing")
 
     params = {
         "order_by": "updatedAt",
         "order_type": "asc",
         "updated_since": cursor,
-        "per_page": 50,
+        "per_page": __PER_PAGE,
     }
 
-    current_url = base_url  # Start with the base URL and initial params
+    current_url = __BASE_URL  # Start with the base URL and initial params
 
     # Process the paginated API with multithreading
     sync_items_parallel(current_url, params, state, max_workers)
@@ -179,7 +193,9 @@ def sync_items_parallel(current_url: str, params: dict, state: dict, max_workers
         page_count += 1
         try:
             # Fetch the current page with retry logic and circuit breaker
-            response_page = get_api_response_with_retry(current_url, params, max_retries=3)
+            response_page = get_api_response_with_retry(
+                current_url, params, max_retries=__MAX_RETRIES
+            )
 
             # Process the items from this page in parallel
             items = response_page.get("data", [])
@@ -209,8 +225,8 @@ def sync_items_parallel(current_url: str, params: dict, state: dict, max_workers
         except Exception as e:
             log.severe(f"Fatal error processing page {page_count}", e)
             # Record error and re-raise to fail the sync
-            with __error_stats_lock:
-                __error_stats["fatal_page_errors"] += 1
+            with __ERROR_STATS_LOCK:
+                __ERROR_STATS["fatal_page_errors"] += 1
             raise
 
 
@@ -243,7 +259,7 @@ def process_items_parallel(items: List[dict], state: dict, max_workers: int):
                 updated_at = future.result()
 
                 # Thread-safe state update
-                with __processing_lock:
+                with __PROCESSING_LOCK:
                     # Update the state with the latest timestamp
                     if "last_updated_at" not in state or updated_at > state["last_updated_at"]:
                         state["last_updated_at"] = updated_at
@@ -254,8 +270,8 @@ def process_items_parallel(items: List[dict], state: dict, max_workers: int):
                 failed_items += 1
                 item_id = item.get("id", "unknown")
                 log.warning(f"Failed to process item {item_id}: {str(e)}")
-                with __error_stats_lock:
-                    __error_stats["failed_items"] += 1
+                with __ERROR_STATS_LOCK:
+                    __ERROR_STATS["failed_items"] += 1
 
     log.info(f"Batch processing complete: {successful_items} successful, {failed_items} failed")
 
@@ -283,17 +299,12 @@ def process_single_item(item: dict) -> str:
             raise ValueError(f"Item {item['id']} missing required 'updatedAt' field")
 
         # Attempt to upsert with retry logic
-        max_retries = 2
+        max_retries = __ITEM_MAX_RETRIES
         for attempt in range(max_retries):
             try:
                 # The 'upsert' operation inserts the data into the destination.
                 # This is thread-safe as the SDK handles internal synchronization.
                 op.upsert(table="user", data=item)
-
-                # Log success for first item as a sample
-                if item == item:  # Simplified check for logging
-                    log.fine(f"Successfully processed item: {item['id']}")
-
                 return item["updatedAt"]
 
             except Exception as e:
@@ -309,14 +320,14 @@ def process_single_item(item: dict) -> str:
     except ValueError as e:
         # Data validation errors - log and re-raise
         log.warning(f"Data validation error: {str(e)}")
-        with __error_stats_lock:
-            __error_stats["validation_errors"] += 1
+        with __ERROR_STATS_LOCK:
+            __ERROR_STATS["validation_errors"] += 1
         raise
     except Exception as e:
         # Other errors - log and re-raise
         log.warning(f"Error processing item: {str(e)}")
-        with __error_stats_lock:
-            __error_stats["processing_errors"] += 1
+        with __ERROR_STATS_LOCK:
+            __ERROR_STATS["processing_errors"] += 1
         raise
 
 
@@ -340,34 +351,21 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
     for attempt in range(max_retries):
         try:
             # Use circuit breaker to protect against cascading failures
-            response_page = circuit_breaker.call(get_api_response, current_url, params)
+            response_page = __CIRCUIT_BREAKER.call(get_api_response, current_url, params)
             return response_page
 
         except rq.exceptions.Timeout as e:
             log.warning(f"Request timeout on attempt {attempt + 1}/{max_retries}: {str(e)}")
-            with __error_stats_lock:
-                __error_stats["timeout_errors"] += 1
-
-            if attempt < max_retries - 1:
-                # Exponential backoff: wait 1s, 2s, 4s, etc.
-                wait_time = 2**attempt
-                log.info(f"Waiting {wait_time} seconds before retry...")
-                time.sleep(wait_time)
-            else:
-                log.severe(f"Max retries exceeded for URL: {current_url}")
+            with __ERROR_STATS_LOCK:
+                __ERROR_STATS["timeout_errors"] += 1
+            if sleep_for_attempt(attempt, current_url, max_retries) == False:
                 raise
 
         except rq.exceptions.ConnectionError as e:
             log.warning(f"Connection error on attempt {attempt + 1}/{max_retries}: {str(e)}")
-            with __error_stats_lock:
-                __error_stats["connection_errors"] += 1
-
-            if attempt < max_retries - 1:
-                wait_time = 2**attempt
-                log.info(f"Waiting {wait_time} seconds before retry...")
-                time.sleep(wait_time)
-            else:
-                log.severe("Max retries exceeded due to connection errors.")
+            with __ERROR_STATS_LOCK:
+                __ERROR_STATS["connection_errors"] += 1
+            if sleep_for_attempt(attempt, current_url, max_retries) == False:
                 raise
 
         except rq.exceptions.HTTPError as e:
@@ -377,8 +375,8 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
             if status_code == 429:
                 retry_after = int(e.response.headers.get("Retry-After", 60))
                 log.warning(f"Rate limited (429), waiting {retry_after} seconds")
-                with __error_stats_lock:
-                    __error_stats["rate_limit_errors"] += 1
+                with __ERROR_STATS_LOCK:
+                    __ERROR_STATS["rate_limit_errors"] += 1
                 time.sleep(retry_after)
                 if attempt < max_retries - 1:
                     continue
@@ -388,36 +386,37 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
             # Handle server errors (5xx) with retry
             elif status_code and 500 <= status_code < 600:
                 log.warning(f"Server error {status_code} on attempt {attempt + 1}/{max_retries}")
-                with __error_stats_lock:
-                    __error_stats["server_errors"] += 1
-
-                if attempt < max_retries - 1:
-                    wait_time = 2**attempt
-                    time.sleep(wait_time)
-                else:
+                with __ERROR_STATS_LOCK:
+                    __ERROR_STATS["server_errors"] += 1
+                if sleep_for_attempt(attempt, current_url, max_retries) == False:
                     raise
 
             # Client errors (4xx) except 429 - don't retry
             else:
                 log.severe(f"HTTP error {status_code}: {str(e)}")
-                with __error_stats_lock:
-                    __error_stats["client_errors"] += 1
+                with __ERROR_STATS_LOCK:
+                    __ERROR_STATS["client_errors"] += 1
                 raise
 
         except Exception as e:
             # Unexpected errors
             log.severe(f"Unexpected error on attempt {attempt + 1}/{max_retries}: {str(e)}")
-            with __error_stats_lock:
-                __error_stats["unexpected_errors"] += 1
-
-            if attempt < max_retries - 1:
-                wait_time = 2**attempt
-                time.sleep(wait_time)
-            else:
-                raise
+            with __ERROR_STATS_LOCK:
+                __ERROR_STATS["unexpected_errors"] += 1
 
     # Should not reach here, but just in case
     raise Exception(f"Failed to fetch data after {max_retries} attempts")
+
+
+def sleep_for_attempt(attempt, current_url, max_retries):
+    if attempt < max_retries - 1:
+        wait_time = 2**attempt
+        log.info(f"Waiting {wait_time} seconds before retry...")
+        time.sleep(wait_time)
+        return True
+    else:
+        log.severe(f"Max retries exceeded for URL: {current_url}")
+        return False
 
 
 def should_continue_pagination(
@@ -515,16 +514,16 @@ def log_error_statistics():
     Log comprehensive error statistics collected during the sync.
     This helps with monitoring and debugging connector behavior.
     """
-    if __error_stats:
+    if __ERROR_STATS:
         log.warning("Error Statistics Summary:")
-        with __error_stats_lock:
-            for error_type, count in __error_stats.items():
+        with __ERROR_STATS_LOCK:
+            for error_type, count in __ERROR_STATS.items():
                 log.warning(f"  {error_type}: {count}")
     else:
         log.info("No errors encountered during sync")
 
 
-# This creates the connector object that will use the update and schema functions defined in this connector.py file.
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
@@ -532,9 +531,11 @@ connector = Connector(update=update, schema=schema)
 # Note this method is not called by Fivetran when executing your connector in production. Please test using the
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
-    # your IDE.
-    connector.debug()
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
 
 # Resulting table:
 # ┌───────────────────────────────────────┬───────────────┬────────────────────────┬──────────────────────────┬───────────────────────────┐
