@@ -83,7 +83,7 @@ In real-world scenarios, modify `get_api_response()` to add `Authorization` head
 
 
 ## Pagination
-Pagination is based on the next_page_url key provided in the API response:
+Pagination is based on the `next_page_url` key provided in the API response:
 ```json
 {
   "data": [],
