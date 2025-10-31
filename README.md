@@ -43,6 +43,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 These connectors are ready to use out of the box, requiring minimal modifications to get started.
 
+- [act_web_api] (https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/act_web_api) - This is an example of how to connect to an Act! Premium for Web API instance and sync data from 6 endpoints, contacts, companies, opportunities, activities, activity_types, and products.
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
@@ -205,6 +206,7 @@ There are several examples available under `/examples`:
 </details>
 
 <details class="details-heading" open="open">
+
 <summary><h3>Workflows</h3></summary>
 
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
