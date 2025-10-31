@@ -121,7 +121,7 @@ Pagination continues until no `next_page_url` is returned.
 
 ## Error handling
 
-### 1. Circuit breaker pattern
+### Circuit breaker pattern
 The connector implements a circuit breaker with three states:
 - Closed (normal): Requests flow through normally
 - Open (failed): Too many errors detected, requests blocked temporarily
@@ -131,14 +131,14 @@ Configuration:
 - Failure threshold: 5 consecutive failures trigger circuit opening
 - Timeout: 60 seconds before attempting recovery
 
-### 2. Retry logic with exponential backoff
+### Retry logic with exponential backoff
 Failed requests are automatically retried with increasing wait times:
 - Attempt 1: Immediate
 - Attempt 2: Wait 1 second
 - Attempt 3: Wait 2 seconds
 - Attempt 4: Wait 4 seconds
 
-### 3. Error categorization
+### Error categorization
 The connector tracks and reports different error types:
 - Timeout Errors: Request took too long to complete
 - Connection Errors: Network connectivity issues
@@ -149,25 +149,25 @@ The connector tracks and reports different error types:
 - Processing Errors: Errors during record processing
 - Fatal Page Errors: Unrecoverable page-level errors
 
-### 4. Rate limit handling
+### Rate limit handling
 Special handling for HTTP 429 (Too Many Requests):
 - Respects `Retry-After` header from API
 - Default wait time: 60 seconds if header not present
 - Automatic retry after waiting
 
-### 5. Graceful degradation
+### Graceful degradation
 - Individual record failures are logged but don't stop the sync
 - Page-level errors are retried with backoff
 - Failed records are tracked in error statistics
 - Sync continues processing other records
 
-### 6. Data validation
+### Data validation
 Each record is validated before processing:
 - Required field checks (id, updatedAt)
 - Type validation
 - Validation errors are categorized separately
 
-### 7. Timeout protection
+### Timeout protection
 All API requests have a 30-second timeout to prevent hanging:
 - Prevents infinite waiting
 - Triggers retry logic on timeout
