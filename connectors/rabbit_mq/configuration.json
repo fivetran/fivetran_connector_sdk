@@ -1,0 +1,11 @@
+{
+  "host": "<YOUR_RABBITMQ_HOST>",
+  "port": "<YOUR_RABBITMQ_PORT>",
+  "virtual_host": "<YOUR_RABBITMQ_VIRTUAL_HOST>",
+  "username": "<YOUR_RABBITMQ_USERNAME>",
+  "password": "<YOUR_RABBITMQ_PASSWORD>",
+  "use_ssl": "<YOUR_USE_SSL_OPTION>",
+  "queues": "<YOUR_RABBITMQ_QUEUES_COMMA_SEPARATED>",
+  "auto_ack": "<YOUR_AUTO_ACK_OPTION>",
+  "message_ttl_hours": "<YOUR_MESSAGE_TTL_IN_HOURS>"
+}
