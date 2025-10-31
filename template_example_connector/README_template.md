@@ -30,11 +30,13 @@
 
 
 ## Accreditation
-*The connectors contributed by third parties should include an accreditation section to credit the contributor. If this is a Fivetran-authored example, delete this section.*
+*The connectors contributed by third parties may include an accreditation section to credit the contributor. If this is a Fivetran-authored example, delete this section.*
 
 This example was contributed by [Contributor Name/Organization](link-to-profile-or-website).
 
 *Optionally, add a brief note about the contributor's expertise or the context in which this connector was developed.*
+
+*If the contributor prefers to remain anonymous, use: "This example was contributed by an anonymous community member."*
 
 
 ## Requirements
