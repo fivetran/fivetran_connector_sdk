@@ -1,3 +1,4 @@
+local_code_edits/
 fivetran_sdk/
 dist/
 src/fivetran_custom_sdk.egg-info/

@@ -1,24 +1,61 @@
-import pandas as pd
+"""
+This connector demonstrates how to fetch data from PRAW (Python Reddit API Wrapper) API and upsert it into destination using the Fivetran Connector SDK.
+You need to have your reddit app credentials for this connector to work.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+
+# For reading configuration from a JSON file
 import json
+
+# Import praw api library
 import praw
+
+# Importing datetime library to handle all datetime records to convert them to Epoch to maintain consistency across different timezones
 import datetime
 import time
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 
-def iso_to_epoch(last_sync_time):
+def iso_to_epoch(last_sync_time: str):
+    """
+    Converts ISO format datetime string to a Unix timestamp.    This function is converting timestamp of last_sync_time to epoch for system time consistency for each record.
+    This function ensures system time consistency for each record.
+    Args:
+        last_sync_time: String in ISO 8601 format from the dictionary state.
+    Raises:
+        ValueError: if any required parameter last_sync_time is missing or invalid.
+    """
     if not last_sync_time:
-        return 0
+        raise ValueError("Missing requirement args/parameter: last_sync_time")
+
     try:
         dt = datetime.datetime.fromisoformat(last_sync_time)
         return int(dt.timestamp())
-    except Exception:
-        return 0
+    except Exception as e:
+        raise ValueError(
+            f"Incorrect datetime format for last_sync_time: {last_sync_time}"
+        ) from e
 
 
 def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
     required_configs = ["subreddits", "client_id", "client_secret", "user_agent"]
     for key in required_configs:
         if key not in configuration:
@@ -26,18 +63,32 @@ def validate_configuration(configuration: dict):
 
 
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
-            "table": "reddit_data",
-            "primary_key": ["id"],
+            "table": "posts_data",
+            "primary_key": ["post_id"],
             "columns": {
-                "id": "INT",
                 "post_id": "STRING",
                 "post_text": "STRING",
                 "post_author": "STRING",
+                # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+            },
+        },
+        {
+            "table": "comments_data",
+            "primary_key": ["comment_id"],
+            "columns": {
                 "comment_id": "STRING",
                 "comment_text": "STRING",
                 "comment_author": "STRING",
+                # For any columns whose names are not provided here, e.g. id, their data types will be inferred
             },
         },
     ]
@@ -46,11 +97,36 @@ def schema(configuration: dict):
 def fetch_reddit_posts_and_comments(
     subreddit_str, reddit_creds, last_sync_epoch, batch_size=100, sleep_sec=2
 ):
+    """
+    def create_reddit_client(required_configs):
+
+        WIP : 1) create client 2) gets the subreddits list from config
+            3) for a topic in subreddit list, get the posts add to the posts table, reset posts list.
+            4) Do same for comments.
+
+        Create and return an authenticated Reddit client.
+        This function will use the validated config parameters needed to setup/create the reddit client.
+        Args:
+            required_configs: List of reddit parameters needed by PRAW API, validated by Validate_Configuration method above.
+        Raises:
+            RunTimeError: if failed to create reddit client.
+
+        try:
+            return praw.Reddit(
+                client_id=required_configs["client_id"],
+                client_secret=required_configs["client_secret"],
+                user_agent=required_configs["user_agent"],
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to create Reddit client:{e}")
+    """
+
     reddit = praw.Reddit(
         client_id=reddit_creds["client_id"],
         client_secret=reddit_creds["client_secret"],
         user_agent=reddit_creds["user_agent"],
     )
+
     all_posts_with_comments = []
     max_epoch_batch = last_sync_epoch
 
@@ -145,7 +221,6 @@ def update(configuration: dict, state: dict):
             subreddit_str, reddit_creds, last_sync_epoch, batch_size=100, sleep_sec=2
         )
         records = flatten_posts_with_comments(posts_and_comments)
-        pd.DataFrame(records).to_csv("reddit_data_export.csv", index=False)
         for record in records:
             op.upsert(table="reddit_data", data=record)
 

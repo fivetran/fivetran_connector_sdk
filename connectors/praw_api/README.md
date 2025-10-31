@@ -18,11 +18,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 
 ## Features
-* Connects to Reddit via PRAW (Python Reddit API Wrapper) using OAuth2 authentication.
-* Retrieves posts and comments from one or more subreddits.
-* Supports incremental syncs using post timestamp checkpoints.
-* Fetches subreddit data in API rate‑limited batches to prevent throttling and ensure stable syncs.
-* Flattens nested Reddit data into structured relational format.
+- Connects to Reddit via PRAW (Python Reddit API Wrapper) using OAuth2 authentication.
+- Retrieves posts and comments from one or more subreddits.
+- Supports incremental syncs using post timestamp checkpoints.
+- Fetches subreddit data in API rate‑limited batches to prevent throttling and ensure stable syncs.
+- Flattens nested Reddit data into structured relational format.
 
 ## Configuration file
 
@@ -30,16 +30,16 @@ You can add multiple subreddits in the same string.
 
 ```
 {
-  "subreddits": "AskReddit,Python",
-  "client_id": "YOUR_CLIENT_ID",
-  "client_secret": "YOUR_CLIENT_SECRET",
-  "user_agent": "YOUR_APP_USER_AGENT"
+  "subreddits": "<YOUR_SUBREDDITS_SEPARATED_BY_COMMA>",
+  "client_id": "<YOUR_CLIENT_ID>",
+  "client_secret": "<YOUR_CLIENT_SECRET>",
+  "user_agent": "<YOUR_APP_USER_AGENT>"
 }
 ```
-* subreddits: Comma-separated list of subreddit names to extract data from.
-* client_id: Reddit API client ID for OAuth2 authentication.
-* client_secret: Reddit API client secret for OAuth2 authentication.
-* user_agent: User agent string required by Reddit API for identification.
+- subreddits: Comma-separated list of subreddit names to extract data from.
+- client_id: Reddit API client ID for OAuth2 authentication.
+- client_secret: Reddit API client secret for OAuth2 authentication.
+- user_agent: User agent string required by Reddit API for identification.
 
 Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
@@ -54,9 +54,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 PRAW requires OAuth2-style authentication via Reddit developer credentials.
 To create credentials:
-* Log in to https://www.reddit.com/prefs/apps
-* Create a new application (choose script type)
-* Copy the client ID, client secret, and define a user agent
+- Log in to https://www.reddit.com/prefs/apps
+- Create a new application (choose script type)
+- Copy the client ID, client secret, and define a user agent
 
 Insert these credentials into configuration.json.
 
@@ -65,9 +65,9 @@ PRAW manages pagination internally via the limit parameter when retrieving subre
 
 ## Data handling
 The connector performs the following transformations:
-* Retrieves posts newer than the last sync epoch.
-* Extracts both post data and associated comments.
-* Flattens data into relational form for CSV export and table upsert.
+- Retrieves posts newer than the last sync epoch.
+- Extracts both post data and associated comments.
+- Flattens data into relational form for CSV export and table upsert.
 * Writes data using Operations.upsert() for incremental schema updates.
 ```
 Schema definition: 
