@@ -1,0 +1,9 @@
+# Core dependencies for Fivetran connector
+structlog>=23.0.0
+google-cloud-storage>=2.0.0
+google-cloud-bigquery>=3.0.0
+tenacity>=8.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-mock>=3.0.0
