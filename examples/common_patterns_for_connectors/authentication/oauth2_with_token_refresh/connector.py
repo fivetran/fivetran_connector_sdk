@@ -186,10 +186,7 @@ def update(configuration: dict, state: dict):
     state["last_updated_at"] = curr_time
     op.checkpoint(state)
 
-    log.info(
-        "Completed the update process. Total duration of sync(in s): "
-        + str(time.time() - curr_time)
-    )
+    log.info("Completed the update process. Total duration(in s): " + str(time.time() - curr_time))
 
 
 def get_data(method, params, headers, configuration, body=None):
