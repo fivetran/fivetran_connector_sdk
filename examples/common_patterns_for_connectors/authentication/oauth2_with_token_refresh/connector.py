@@ -187,7 +187,7 @@ def update(configuration: dict, state: dict):
     op.checkpoint(state)
 
     log.info(
-        f"Completed the update process. Total duration of sync(in s): "
+        "Completed the update process. Total duration of sync(in s): "
         + str(time.time() - curr_time)
     )
 
@@ -204,7 +204,7 @@ def get_data(method, params, headers, configuration, body=None):
     elif method == "companies":
         response = requests.get(COMPANY_URL, params=params, headers=headers)
     else:
-        log.severe(f"Failed to fetch data. Method: " + method)
+        log.severe("Failed to fetch data. Method: " + method)
         raise Exception("Unknown method")
 
     if response.ok:
