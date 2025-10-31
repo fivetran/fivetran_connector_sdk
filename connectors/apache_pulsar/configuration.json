@@ -1,0 +1,7 @@
+{
+  "service_url": "<YOUR_PULSAR_SERVICE_URL>",
+  "tenant": "<YOUR_TENANT>",
+  "namespace": "<YOUR_NAMESPACE>",
+  "topics": "<YOUR_TOPICS_COMMA_SEPARATED>",
+  "auth_token": "<YOUR_AUTH_TOKEN_IF_REQUIRED>"
+}
