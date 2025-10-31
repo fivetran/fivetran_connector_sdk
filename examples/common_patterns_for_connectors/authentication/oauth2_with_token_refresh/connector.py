@@ -1,14 +1,16 @@
-# Hubspot OAuth2.0 with refresh token Sample API Connector for Fivetran
+"""
+Hubspot OAuth2.0 with refresh token Sample API Connector for Fivetran
 
-# This module implements a connector for syncing data from the Hubspot API.
-# NOTE: Hubspot connector is already present in Fivetran, and can be directly created
-#     from the dashboard. Please do not use this as an alternative
-# It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
-# NOTE: We do not support programmatically updating refresh token currently.
-#     If the refresh token is updates, it has to be updated manually on the fivetran dashboard after deployment.
-#     Check readme file for more information on generating refresh token.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+This module implements a connector for syncing data from the Hubspot API.
+NOTE: Hubspot connector is already present in Fivetran, and can be directly created
+    from the dashboard. Please do not use this as an alternative
+It is an example of using OAuth 2.0 client credentials flow, and the refresh of Access token from the provided refresh token.
+NOTE: We do not support programmatically updating refresh token currently.
+    If the refresh token is updates, it has to be updated manually on the fivetran dashboard after deployment.
+    Check readme file for more information on generating refresh token.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+"""
 
 # imported constants from same directory
 from constants import (
@@ -33,13 +35,13 @@ import urllib
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
 # Global variables for
-ACCESS_TOKEN = ""
-REFRESH_TIME = 0
+__ACCESS_TOKEN = ""
+__REFRESH_TIME = 0
 
 
 def get_access_token(configuration: dict):
-    global ACCESS_TOKEN
-    global REFRESH_TIME
+    global __ACCESS_TOKEN
+    global __REFRESH_TIME
 
     param_dict = {
         "grant_type": "refresh_token",
@@ -59,8 +61,8 @@ def get_access_token(configuration: dict):
         # Updating ACCESS TOKEN and REFRESH TIME which is the epoch time in seconds when the ACCESS TOKEN will expire.
         # Note: We currently do not support programmatically updating refresh token.
         #     if required, It has to be updated manually on the fivetran dashboard after deployment.
-        ACCESS_TOKEN = data["access_token"]
-        REFRESH_TIME = int(data["expires_in"]) + time.time()
+        __ACCESS_TOKEN = data["access_token"]
+        __REFRESH_TIME = int(data["expires_in"]) + time.time()
         return
     else:
         log.severe(f"Failed to obtain access token: {response.text}")
@@ -68,9 +70,17 @@ def get_access_token(configuration: dict):
         raise Exception("Failed to obtain access token")
 
 
-def sync_contacts(configuration, cursor, state):
-    # this is a custom function, meant to process the contacts
-    # this processed data is then sent to fivetran
+def sync_contacts(configuration, cursor):
+    """
+    This is a custom function, meant to process the contacts
+    This processed data is then sent to fivetran
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        cursor: a timestamp to query the current
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
     def process_record(raw_contact):
         contact = {}
         contact["vid"] = raw_contact["vid"]
@@ -85,7 +95,7 @@ def sync_contacts(configuration, cursor, state):
         return contact
 
     has_more = True
-    params = {"count": CONTACTS_RESPONSE_LIMIT}
+    params = {"count": CONTACTS_RESPONSE_LIMIT, "cursor": cursor}
     while has_more:
         data = get_data("contacts", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -101,8 +111,15 @@ def sync_contacts(configuration, cursor, state):
                 op.upsert("contacts", process_record(contact))
 
 
-def sync_companies(configuration, cursor, state):
-    # this is a custom function, meant to process the company record
+def sync_companies(configuration, cursor):
+    """
+    This is a custom function, meant to process the company records.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+
     def process_record(raw_company):
         company = {}
         company["companyId"] = raw_company["companyId"]
@@ -111,7 +128,7 @@ def sync_companies(configuration, cursor, state):
         return company
 
     has_more = True
-    params = {"properties": "name", "limit": COMPANY_RESPONSE_LIMIT}
+    params = {"properties": "name", "limit": COMPANY_RESPONSE_LIMIT, "cursor": cursor}
     while has_more:
         data = get_data("companies", params, {}, configuration)
         # Checking if more data is available, setting the required offset for the next request
@@ -141,14 +158,17 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: dictionary contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
     validate_configuration(configuration)
     curr_time = time.time()
 
@@ -157,9 +177,9 @@ def update(configuration: dict, state: dict):
     cursor = state["last_updated_at"] if "last_updated_at" in state else "0001-01-01T00:00:00Z"
     log.info(f"Starting update process. Initial state: {cursor}")
 
-    # Yeilds all the required data from individual methods, and pushes them into the connector upsert function
-    sync_contacts(configuration, cursor, state)
-    sync_companies(configuration, cursor, state)
+    # Fetches all the required data from individual methods, and pushes them into the connector upsert function
+    sync_contacts(configuration, cursor)
+    sync_companies(configuration, cursor)
 
     # Save the final checkpoint by updating the state with the current time
     state["last_updated_at"] = curr_time
@@ -172,14 +192,12 @@ def update(configuration: dict, state: dict):
 
 
 def get_data(method, params, headers, configuration, body=None):
-    global ACCESS_TOKEN
-    global REFRESH_TIME
     # This checks the refresh time set while fetching the last access token
     # if REFRESH TIME is less than the current time, it means the ACCESS TOKEN is expired and need a refresh
-    if REFRESH_TIME < time.time():
+    if __REFRESH_TIME < time.time():
         get_access_token(configuration)
 
-    headers["authorization"] = "Bearer " + ACCESS_TOKEN
+    headers["authorization"] = "Bearer " + __ACCESS_TOKEN
     if method == "contacts":
         response = requests.get(CONTACTS_URL, params=params, headers=headers)
     elif method == "companies":
@@ -197,12 +215,14 @@ def get_data(method, params, headers, configuration, body=None):
         raise Exception("Failed to obtain access token")
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "contacts",
