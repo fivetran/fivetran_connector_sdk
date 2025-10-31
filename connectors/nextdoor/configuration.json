@@ -1,0 +1,13 @@
+{
+  "api_key": "<YOUR_NEXTDOOR_API_KEY>",
+  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>",
+  "enable_cities_sync": "<ENABLE_CITIES_SYNC>",
+  "enable_states_sync": "<ENABLE_STATES_SYNC>",
+  "enable_city_posts_sync": "<ENABLE_CITY_POSTS_SYNC>",
+  "enable_state_posts_sync": "<ENABLE_STATE_POSTS_SYNC>",
+  "max_pages_per_state": "<MAX_PAGES_PER_STATE>",
+  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+}
