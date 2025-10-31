@@ -1,0 +1,14 @@
+{
+  "api_key": "<YOUR_COUNTLY_API_KEY>",
+  "app_id": "<YOUR_COUNTLY_APP_ID>",
+  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
+  "enable_apps_sync": "<ENABLE_APPS_SYNC>",
+  "enable_groups_sync": "<ENABLE_GROUPS_SYNC>",
+  "enable_users_sync": "<ENABLE_USERS_SYNC>",
+  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+}
