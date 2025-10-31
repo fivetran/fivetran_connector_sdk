@@ -1,0 +1,151 @@
+# Goshippo Connector Example
+
+## Connector overview
+This connector syncs shipment data from Goshippo, a multi-carrier shipping API platform. The connector fetches shipment information including addresses, rates, parcels, and status information from the Goshippo API and replicates it to your Fivetran destination. The connector implements incremental synchronization based on the shipment's `object_updated` timestamp, ensuring efficient data replication and minimizing API usage.
+
+## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## Features
+- Incremental sync based on shipment update timestamps
+- Automatic pagination handling for large datasets
+- Retry logic with exponential backoff for transient errors
+- Checkpoint state management for resumable syncs
+- Multi-table schema with proper relationships
+- Flattening of nested JSON objects into relational tables
+
+## Configuration file
+
+The connector requires the following configuration parameters:
+
+```
+{
+  "api_token": "<YOUR_GOSHIPPO_API_TOKEN>"
+}
+```
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
+## Requirements file
+
+This connector does not require any additional Python packages beyond those pre-installed in the Fivetran environment.
+
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
+## Authentication
+
+This connector uses API token authentication to access the Goshippo API. The API token is passed in the Authorization header as `ShippoToken <token>`.
+
+To obtain your API token:
+
+1. Log in to your Goshippo account.
+2. Go to **Settings > API**.
+3. Copy your API token (test or live mode).
+4. Add the token to the `configuration.json` file as the value for the `api_token` parameter.
+
+## Pagination
+
+The connector handles pagination automatically by processing shipments page by page. The Goshippo API returns a `next` URL containing a `page_token` parameter for cursor-based pagination. Each page request returns a maximum of 25 results (configurable up to 100). The connector extracts the page token from the next URL and continues fetching pages until no more results are returned or the `next` field in the response is null (refer to the `sync_shipments`, `fetch_shipments_page`, and `extract_page_token` functions).
+
+## Data handling
+
+The connector processes shipment data from the Goshippo API and transforms it into four relational tables. Nested JSON objects such as addresses are flattened into the parent shipments table with prefixed column names (e.g., `from_name`, `to_city`). Arrays of rates, parcels, and messages are extracted into separate child tables with foreign key relationships. The connector implements client-side filtering for incremental syncs based on the `object_updated` timestamp since the API does not support server-side filtering. The connector preserves all timestamp fields in ISO 8601 format and maintains data type integrity for numeric fields like amounts and weights (refer to the `flatten_shipment`, `process_rates`, `process_parcels`, and `process_messages` functions).
+
+## Error handling
+
+The connector implements comprehensive error handling including retry logic with exponential backoff for transient failures such as rate limiting (429), server errors (500-504), timeouts, and connection errors. The retry mechanism attempts up to 3 times with delays of 2s, 4s, and 8s respectively. Permanent errors such as authentication failures (401) and bad requests (400) fail immediately without retries. All errors are logged with appropriate severity levels using the Fivetran SDK logging (refer to the `fetch_shipments_page`, `handle_response_status`, `handle_request_exception`, and `calculate_retry_delay` functions).
+
+## Tables created
+
+The connector creates four tables in the destination:
+
+### shipments
+
+Main table containing shipment records with flattened address information.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| object_id | STRING | Primary key - unique identifier of the shipment |
+| object_created | UTC_DATETIME | Shipment creation timestamp |
+| object_updated | UTC_DATETIME | Shipment last update timestamp |
+| object_owner | STRING | Owner of the shipment |
+| status | STRING | Shipment status (QUEUED, SUCCESS, ERROR, etc.) |
+| metadata | STRING | Custom metadata attached to shipment |
+| shipment_date | UTC_DATETIME | Date shipment will be tendered to carrier |
+| test | BOOLEAN | Whether shipment is in test mode |
+| from_name | STRING | Sender name |
+| from_company | STRING | Sender company |
+| from_street1 | STRING | Sender street address |
+| from_city | STRING | Sender city |
+| from_state | STRING | Sender state/province |
+| from_zip | STRING | Sender postal code |
+| from_country | STRING | Sender country code |
+| from_phone | STRING | Sender phone number |
+| from_email | STRING | Sender email |
+| to_name | STRING | Recipient name |
+| to_company | STRING | Recipient company |
+| to_street1 | STRING | Recipient street address |
+| to_city | STRING | Recipient city |
+| to_state | STRING | Recipient state/province |
+| to_zip | STRING | Recipient postal code |
+| to_country | STRING | Recipient country code |
+| to_phone | STRING | Recipient phone number |
+| to_email | STRING | Recipient email |
+
+### shipment_rates
+
+Child table containing shipping rate options for each shipment.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| rate_object_id | STRING | Primary key - unique identifier of the rate |
+| shipment_object_id | STRING | Primary key & foreign key to shipments table |
+| amount | STRING | Rate amount |
+| currency | STRING | Currency code |
+| provider | STRING | Carrier provider name |
+| servicelevel_name | STRING | Service level name |
+| servicelevel_token | STRING | Service level token |
+| estimated_days | INTEGER | Estimated delivery days |
+| duration_terms | STRING | Delivery duration terms |
+| carrier_account | STRING | Carrier account ID |
+| object_created | UTC_DATETIME | Rate creation timestamp |
+
+### shipment_parcels
+
+Child table containing parcel/package details for each shipment.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| parcel_object_id | STRING | Primary key - unique identifier of the parcel |
+| shipment_object_id | STRING | Primary key & foreign key to shipments table |
+| length | STRING | Parcel length |
+| width | STRING | Parcel width |
+| height | STRING | Parcel height |
+| distance_unit | STRING | Unit for dimensions (in, cm) |
+| weight | STRING | Parcel weight |
+| mass_unit | STRING | Unit for weight (lb, kg) |
+| metadata | STRING | Custom metadata |
+| object_created | UTC_DATETIME | Parcel creation timestamp |
+| object_updated | UTC_DATETIME | Parcel last update timestamp |
+
+### shipment_messages
+
+Child table containing error and informational messages for each shipment.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| message_id | STRING | Primary key - unique identifier of the message |
+| shipment_object_id | STRING | Primary key & foreign key to shipments table |
+| source | STRING | Source of the message (e.g., carrier name, Shippo) |
+| code | STRING | Error or message code |
+| text | STRING | Message text content |
+
+## Additional considerations
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
