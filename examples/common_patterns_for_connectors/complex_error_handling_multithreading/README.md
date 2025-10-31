@@ -242,7 +242,7 @@ The connector creates the `USER` table:
 ```
 
 
-## Code structure
+## Functions
 
 ### Main functions
 - `update()`: Entry point, orchestrates pagination and parallel processing
