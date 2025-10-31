@@ -1,0 +1,14 @@
+{
+  "api_token": "<YOUR_EGNYTE_API_TOKEN>",
+  "domain": "<YOUR_EGNYTE_DOMAIN>",
+  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>", 
+  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>",
+  "enable_users": "<ENABLE_USERS>",
+  "enable_groups": "<ENABLE_GROUPS>",
+  "enable_notes": "<ENABLE_NOTES>",
+  "enable_bookmarks": "<ENABLE_BOOKMARKS>",
+  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+}
