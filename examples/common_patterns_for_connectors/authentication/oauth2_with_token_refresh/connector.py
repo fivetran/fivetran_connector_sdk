@@ -76,7 +76,7 @@ def sync_contacts(configuration, cursor):
     This processed data is then sent to fivetran
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
-        cursor: a timestamp to query the current
+        cursor: a timestamp to query the data after current cursor
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
@@ -116,6 +116,7 @@ def sync_companies(configuration, cursor):
     This is a custom function, meant to process the company records.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
+        cursor: a timestamp to query the data after current cursor
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
