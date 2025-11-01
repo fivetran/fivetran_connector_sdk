@@ -83,17 +83,17 @@ This approach prevents memory overflow when syncing large datasets and ensures r
 
 ## Data handling
 
-The connector implements true incremental sync with per-table state management. Refer to the `update` function (lines 118-182) and individual sync functions:
+The connector implements true incremental sync with per-table state management. Refer to the `update` function and individual sync functions:
 
 Sync operations:
-1. **Schema Metadata Sync** (`sync_schema_metadata`, lines 185-236) - Extracts GraphQL type definitions from admin API, performs full sync each time (small dataset)
-2. **Categories Sync** (`sync_categories`, lines 239-355) - Syncs product categories with incremental filter on updatedAt field
-3. **Attributes Sync** (`sync_attributes`, lines 357-451) - Syncs product attributes with incremental filter on updatedAt field
-4. **Products Sync** (`sync_products`, lines 454-591) - Syncs products with relationships, using incremental filter on updatedAt field
-5. **Reviews Sync** (`sync_reviews`, lines 594-711) - Syncs customer reviews with incremental filter on createdAt field
+1. **Schema Metadata Sync** (`sync_schema_metadata`) - Extracts GraphQL type definitions from admin API, performs full sync each time (small dataset)
+2. **Categories Sync** (`sync_categories`) - Syncs product categories with incremental filter on updatedAt field
+3. **Attributes Sync** (`sync_attributes`) - Syncs product attributes with incremental filter on updatedAt field
+4. **Products Sync** (`sync_products`) - Syncs products with relationships, using incremental filter on updatedAt field
+5. **Reviews Sync** (`sync_reviews`) - Syncs customer reviews with incremental filter on createdAt field
 
 Graph structure preservation:
-- All relationships are captured in a separate `relationships` table via the `create_edge_record` function (lines 714-736)
+- All relationships are captured in a separate `relationships` table via the `create_edge_record` function
 - Edge types include: BELONGS_TO_CATEGORY, RELATED_TO, HAS_ATTRIBUTE, REVIEWS_PRODUCT, WRITTEN_BY_USER, HAS_PARENT
 - Each edge has a composite ID: `{source_id}_{relationship_type}_{target_id}`
 - This enables graph reconstruction and relationship analysis in SQL
@@ -106,7 +106,7 @@ Data transformation:
 
 ## Error handling
 
-The connector implements comprehensive error handling with retry logic. Refer to the `execute_graphql_query` function (lines 739-816).
+The connector implements comprehensive error handling with retry logic. Refer to the `execute_graphql_query` function.
 
 Error handling strategies:
 - **Authentication errors (401, 403)**: Fail immediately without retry, log as severe error
