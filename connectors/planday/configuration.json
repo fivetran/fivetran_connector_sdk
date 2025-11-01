@@ -1,0 +1,10 @@
+{
+  "api_key": "<YOUR_PLANDAY_HR_API_KEY>",
+  "sync_frequency_hours": "<YOUR_PLANDAY_HR_API_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_PLANDAY_HR_API_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_PLANDAY_HR_API_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_PLANDAY_HR_API_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_PLANDAY_HR_API_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_PLANDAY_HR_API_ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_PLANDAY_HR_API_ENABLE_DEBUG_LOGGING>"
+}
