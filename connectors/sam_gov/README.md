@@ -43,7 +43,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 - `sync_mode`: Sync mode - "initial" for historical backfill or "incremental" for ongoing sync (optional, defaults to "initial")
 - `incremental_window_days`: Number of days to overlap in incremental syncs to capture updates (optional, defaults to "30")
 
-**Important Date Range Limitation:**
+### Important date range limitation
 - The date range between `posted_from` and `posted_to` cannot exceed 1 year (365 days)
 - This is a SAM.gov API limitation, not a connector limitation
 - The connector will validate this requirement and throw an error if exceeded
