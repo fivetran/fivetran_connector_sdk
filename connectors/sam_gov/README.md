@@ -60,7 +60,7 @@ The connector supports hybrid sliding window incremental sync:
 - Advances forward to current date, capturing new opportunities and updates
 - If date range exceeds 1 year, automatically chunks into 365-day windows
 
-**Overlap Window Strategy**:
+### Overlap window strategy
 - Default 30-day overlap ensures recent opportunity updates are captured
 - Configurable via `incremental_window_days` parameter
 - Smaller overlap (7 days) = more API-efficient but shorter update window
