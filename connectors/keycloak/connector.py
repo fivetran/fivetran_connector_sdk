@@ -311,21 +311,13 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
             # Process breakout tables for user attributes, roles, and required actions
             upsert_user_breakout_tables(user, user_id)
 
-        if synced_count % __CHECKPOINT_INTERVAL == 0 and synced_count > 0:
-            state["users_last_created_timestamp"] = max_created_timestamp
-            # Save the progress by checkpointing the state. This is important for ensuring that
-            # the sync process can resume from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(state)
-            log.info(f"Checkpointed after syncing {synced_count} new users")
-
         if len(users) < __PAGE_SIZE:
             log.info(f"Reached last page. Total synced: {synced_count} new users")
             break
 
         first_index += __PAGE_SIZE
 
+    # Update state once after loop completes with the final max_created_timestamp
     state["users_last_created_timestamp"] = max_created_timestamp
     log.info(
         f"User sync complete. Synced {synced_count} new users, skipped {record_count - synced_count} existing"
@@ -555,8 +547,9 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                 op.upsert(table="event", data=event_data)
                 record_count += 1
 
-            log.info(f"Synced {record_count} events")
+            # Update state once after loop completes with the final max_event_time
             state["events_last_time"] = max_event_time
+            log.info(f"Synced {record_count} events")
         else:
             log.info("No events found for the specified date range")
     except RuntimeError as e:
@@ -623,8 +616,9 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
                 op.upsert(table="admin_event", data=admin_event_data)
                 record_count += 1
 
-            log.info(f"Synced {record_count} admin events")
+            # Update state once after loop completes with the final max_admin_event_time
             state["admin_events_last_time"] = max_admin_event_time
+            log.info(f"Synced {record_count} admin events")
         else:
             log.info("No admin events found for the specified date range")
     except RuntimeError as e:
@@ -709,33 +703,26 @@ def update(configuration: dict, state: dict):
     sync_events_enabled = configuration.get("sync_events", "true").lower() == "true"
     start_date = configuration.get("start_date", "2024-01-01")
 
-    try:
-        token_manager = TokenManager(keycloak_url, realm, client_id, client_secret)
+    token_manager = TokenManager(keycloak_url, realm, client_id, client_secret)
 
-        state = sync_users(keycloak_url, realm, token_manager.get_headers(), state)
-        state = sync_groups(keycloak_url, realm, token_manager.get_headers(), state)
-        state = sync_roles(keycloak_url, realm, token_manager.get_headers(), state)
-        state = sync_clients(keycloak_url, realm, token_manager.get_headers(), state)
+    state = sync_users(keycloak_url, realm, token_manager.get_headers(), state)
+    state = sync_groups(keycloak_url, realm, token_manager.get_headers(), state)
+    state = sync_roles(keycloak_url, realm, token_manager.get_headers(), state)
+    state = sync_clients(keycloak_url, realm, token_manager.get_headers(), state)
 
-        if sync_events_enabled:
-            state = sync_events(
-                keycloak_url, realm, token_manager.get_headers(), state, start_date
-            )
-            state = sync_admin_events(
-                keycloak_url, realm, token_manager.get_headers(), state, start_date
-            )
+    if sync_events_enabled:
+        state = sync_events(keycloak_url, realm, token_manager.get_headers(), state, start_date)
+        state = sync_admin_events(
+            keycloak_url, realm, token_manager.get_headers(), state, start_date
+        )
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
-        log.info("Keycloak sync completed successfully")
-
-    except Exception as e:
-        log.severe(f"Failed to sync Keycloak data: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+    log.info("Keycloak sync completed successfully")
 
 
 # Create the connector object using the schema and update functions

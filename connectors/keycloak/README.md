@@ -10,9 +10,9 @@ Keycloak is an open-source identity and access management solution that provides
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-   - Windows: 10 or later (64-bit only)
-   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -41,8 +41,8 @@ The connector requires the following configuration parameters:
    "realm": "<YOUR_KEYCLOAK_REALM>",
    "client_id": "<YOUR_CLIENT_ID>",
    "client_secret": "<YOUR_CLIENT_SECRET>",
-   "sync_events": "<TRUE_OR_FALSE>",
-   "start_date": "<START_DATE_YYYY_MM_DD>"
+   "sync_events": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
+   "start_date": "<YYYY_MM_DD_FORMAT_EXAMPLE_2024_01_01>"
 }
 ```
 
@@ -69,44 +69,21 @@ This connector uses OAuth2 Client Credentials grant type to authenticate with th
 To set up authentication:
 
 1. Log in to your Keycloak Admin Console (e.g., http://localhost:8080/admin).
-
 2. Navigate to **Clients** and click **Create client**.
-
-3. Configure the client:
-
-   i. Set **Client ID** to a descriptive name (e.g., Fivetran-connector).
-
-   ii. Set **Client Protocol** to openid-connect.
-
-   iii. Click **Next**.
-
-4. Enable authentication options:
-
-   i. Enable **Client authentication**.
-
-   ii. Enable **Service accounts roles**.
-
-   iii. Disable **Standard flow** and **Direct access grants**.
-
-   iv. Click **Save**.
-
-5. Retrieve credentials:
-
-   i. Go to the **Credentials** tab.
-
-   ii. Copy the **Client Secret** and add it to your `configuration.json` file.
-
-6. Assign required roles:
-
-   i. Go to the **Service account roles** tab.
-
-   ii. Click **Assign role** and filter by clients.
-
-   iii. Select **realm-management** client.
-
-   iv. Assign the following roles: view-users, view-events, view-realm, view-clients, view-identity-providers.
-
-   v. Click **Assign**.
+3. Set **Client ID** to a descriptive name (e.g., Fivetran-connector).
+4. Set **Client Protocol** to openid-connect.
+5. Click **Next**.
+6. Enable **Client authentication**.
+7. Enable **Service accounts roles**.
+8. Disable **Standard flow** and **Direct access grants**.
+9. Click **Save**.
+10. Go to the **Credentials** tab.
+11. Copy the **Client Secret** and add it to your `configuration.json` file.
+12. Go to the **Service account roles** tab.
+13. Click **Assign role** and filter by clients.
+14. Select **realm-management** client.
+15. Assign the following roles: view-users, view-events, view-realm, view-clients, view-identity-providers.
+16. Click **Assign**.
 
 The connector will use these credentials to obtain access tokens via the `/realms/{realm}/protocol/openid-connect/token` endpoint and automatically refresh tokens as they expire during sync operations.
 
