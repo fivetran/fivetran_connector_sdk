@@ -111,10 +111,7 @@ def decode_cursor(cursor: str) -> dict:
     """
     try:
         decoded = base64.b64decode(cursor).decode()
-        try:
-            log.info(f"Decoded cursor: {cursor} -> {decoded}")
-        except Exception:
-            pass  # Log not available outside Fivetran context
+        log.info(f"Decoded cursor: {cursor} -> {decoded}")
 
         # Parse the query string (e.g., "o=10&r=0&p=20")
         params = {}
@@ -124,10 +121,7 @@ def decode_cursor(cursor: str) -> dict:
                 params[key] = value
         return params
     except Exception as e:
-        try:
-            log.warning(f"Failed to decode cursor {cursor}: {e}")
-        except Exception:
-            pass  # Log not available outside Fivetran context
+        log.warning(f"Failed to decode cursor {cursor}: {e}")
         return {}
 
 
@@ -148,10 +142,7 @@ def encode_cursor(offset: int = 0, reverse: int = 0, position: int = 0) -> str:
     """
     query_string = f"o={offset}&r={reverse}&p={position}"
     encoded = base64.b64encode(query_string.encode()).decode()
-    try:
-        log.info(f"Encoded cursor: {query_string} -> {encoded}")
-    except Exception:
-        pass  # Log not available outside Fivetran context
+    log.info(f"Encoded cursor: {query_string} -> {encoded}")
     return encoded
 
 
@@ -553,8 +544,12 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
     customs = shipment.get("customs_information", {})
     if customs:
         declarations = customs.get("additional_declaration_statements", [])
-        for declaration in declarations:
-            decl_data = {"shipment_id": shipment_id, "declaration_text": declaration}
+        for i, declaration in enumerate(declarations):
+            decl_data = {
+                "shipment_id": shipment_id,
+                "declaration_sequence": i,
+                "declaration_text": declaration,
+            }
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
@@ -641,7 +636,7 @@ def schema(configuration: dict):
         },
         {
             "table": "customs_declaration",
-            "primary_key": ["shipment_id", "declaration_text"],
+            "primary_key": ["shipment_id", "declaration_sequence"],
         },
         {
             "table": "customs_tax_number",
@@ -667,18 +662,12 @@ def normalize_shipments_response(shipments):
         List of shipment dictionaries.
     """
     if isinstance(shipments, dict):
-        try:
-            log.info("Mock API returned single shipment object, wrapped in list")
-        except Exception:
-            pass  # Log not available outside Fivetran context
+        log.info("Mock API returned single shipment object, wrapped in list")
         return [shipments]
     elif isinstance(shipments, list):
         return shipments
     else:
-        try:
-            log.warning(f"Unexpected data type: {type(shipments)}, returning empty list")
-        except Exception:
-            pass  # Log not available outside Fivetran context
+        log.warning(f"Unexpected data type: {type(shipments)}, returning empty list")
         return []
 
 
@@ -744,10 +733,7 @@ def determine_next_cursor(response_data, shipments_count, page_count):
         next_offset = page_count * __DEFAULT_PAGE_SIZE
         next_cursor = encode_cursor(offset=next_offset, reverse=0, position=next_offset)
         has_more_pages = True
-        try:
-            log.info(f"Generated cursor for next page: offset={next_offset}")
-        except Exception:
-            pass  # Log not available outside Fivetran context
+        log.info(f"Generated cursor for next page: offset={next_offset}")
 
     return has_more_pages, next_cursor
 
