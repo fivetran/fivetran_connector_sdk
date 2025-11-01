@@ -774,9 +774,10 @@ def sync_reviews(graphql_endpoint: str, api_key: str, state: dict):
             if len(reviews) < __PAGE_SIZE:
                 break
 
-        except Exception as e:
-            log.severe(f"Error syncing reviews at offset {offset}: {str(e)}")
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as e:
+            log.severe(f"Network error syncing reviews at offset {offset}: {str(e)}")
             raise
+        # Allow all other exceptions to propagate
 
     if max_created_at:
         state["reviews_last_updated"] = max_created_at
