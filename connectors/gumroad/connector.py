@@ -641,16 +641,7 @@ def make_api_request(endpoint: str, params: dict) -> dict:
                 handle_retry_delay(attempt, f"Request failed with status {response.status_code}")
                 continue
 
-            if response.status_code in [429, 500, 502, 503, 504]:
-                log.severe(
-                    f"Failed to fetch data after {__MAX_RETRIES} attempts. "
-                    f"Last status: {response.status_code} - {response.text}"
-                )
-                raise RuntimeError(
-                    f"API returned {response.status_code} after "
-                    f"{__MAX_RETRIES} attempts: {response.text}"
-                )
-
+            # Non-retryable status code error
             log.severe(
                 f"API request failed with status {response.status_code}: " f"{response.text}"
             )

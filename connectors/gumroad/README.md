@@ -102,11 +102,11 @@ The connector creates the following tables in the destination:
 
 | Table Name | Primary Key | Description |
 |------------|-------------|-------------|
-| `sales` | `id` | Contains transaction and purchase data including customer information, product details, pricing, payment information, and subscription status. Nested objects like card details and affiliate information are flattened into columns with prefixes (e.g., `card_visual`, `affiliate_email`). |
-| `products` | `id` | Contains product information including name, description, pricing, URLs, sales metrics, and publication status. Complex fields like tags and custom fields are stored as JSON strings. |
-| `subscribers` | `id` | Contains subscription data including subscriber details, product associations, subscription status, cancellation information, and license keys. |
-| `product_variants` | `product_id`, `variant_title`, `option_name` | Contains product variant options with pricing differences and configuration. Uses a composite primary key combining product ID, variant title, and option name to uniquely identify each variant option. |
-| `payouts` | `id` | Contains payout information including amounts, currency, status (payable, completed, pending, failed), payment processor details, and timestamps. Tracks both completed payouts and upcoming payouts for the authenticated seller. |
+| `sales` | `id` | Transaction and purchase data with customer and payment information. |
+| `products` | `id` | Product information including name, description, pricing, and sales metrics. |
+| `subscribers` | `id` | Subscription data with subscriber details and subscription status. |
+| `product_variants` | `product_id`, `variant_title`, `option_name` | Product variant options with pricing differences and configuration. |
+| `payouts` | `id` | Payout information including amounts, currency, status, and payment processor details. |
 
 ## Additional considerations
 
