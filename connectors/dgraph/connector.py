@@ -622,7 +622,7 @@ def sync_products(graphql_endpoint: str, api_key: str, state: dict):
             if len(products) < __PAGE_SIZE:
                 break
 
-        except Exception as e:
+        except (requests.HTTPError, requests.ConnectionError, requests.Timeout, ValueError) as e:
             log.severe(f"Error syncing products at offset {offset}: {str(e)}")
             raise
 
