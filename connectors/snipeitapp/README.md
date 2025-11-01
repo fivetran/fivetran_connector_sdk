@@ -32,8 +32,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_token": "<YOUR_SNIPE_IT_BEARER_TOKEN>",
-  "base_url": "<YOUR_SNIPEITAPP_BASE_URL>"
+  "base_url": "<YOUR_SNIPEIT_BASE_URL>"
 }
+```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
