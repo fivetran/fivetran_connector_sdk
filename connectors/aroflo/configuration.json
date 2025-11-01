@@ -1,0 +1,13 @@
+{
+  "api_key": "<YOUR_AROFLO_API_KEY>",
+  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>",
+  "enable_users_sync": "<ENABLE_USERS_SYNC>",
+  "enable_suppliers_sync": "<ENABLE_SUPPLIERS_SYNC>",
+  "enable_payments_sync": "<ENABLE_PAYMENTS_SYNC>",
+  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+}
