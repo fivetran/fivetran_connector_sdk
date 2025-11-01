@@ -1,7 +1,7 @@
 # n8n Connector Example
 
 ## Connector overview
-This connector syncs workflow automation data from n8n, including workflows, workflow executions, and credentials. It enables teams to analyze workflow performance, track execution history, monitor automation health, and understand credential usage patterns. The connector uses the n8n REST API to fetch data incrementally based on update timestamps and execution IDs, ensuring efficient synchronization of only new or modified data.
+This connector syncs workflow automation data from n8n, including workflows and workflow executions. It enables teams to analyze workflow performance, track execution history, and monitor automation health. The connector uses the n8n REST API to fetch data incrementally based on update timestamps and execution IDs, ensuring efficient synchronization of only new or modified data.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -16,11 +16,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 - Incremental sync of workflows based on update timestamps
 - Incremental sync of executions based on execution IDs
-- Incremental sync of credentials based on update timestamps
 - Automatic retry logic with exponential backoff for transient API errors
 - Pagination support for large datasets with configurable page sizes
 - Checkpoint strategy that saves progress every 100 records
 - Flattening of nested JSON objects for simplified analytics
+
+**Note**: Credentials are not synced as the n8n public API does not expose credential endpoints for security reasons.
 
 ## Configuration file
 The connector requires the following configuration parameters:
@@ -47,23 +48,21 @@ This connector uses API key authentication to access the n8n REST API. To obtain
 3. Click **Create an API key**.
 4. Choose a descriptive label for the key and set an expiration time.
 5. Copy the generated API key and add it to your `configuration.json` file.
-6. Ensure the API key has appropriate permissions to read workflows, executions, and credentials.
+6. Ensure the API key has appropriate permissions to read workflows and executions.
 
 Note: API keys are not available during free trials. You must upgrade to a paid plan to access the n8n API.
 
 ## Pagination
-The connector implements cursor-based pagination for all endpoints (refer to `fetch_workflows_page`, `fetch_executions_page_with_cursor`, and `fetch_credentials_page` functions). Each API request fetches up to 100 records per page using the `limit` and `cursor` parameters. The connector continues fetching pages until an empty response is received or the page contains fewer records than the limit, indicating the end of available data.
+The connector implements cursor-based pagination for all endpoints (refer to `fetch_workflows_page` and `fetch_executions_page_with_cursor` functions). Each API request fetches up to 100 records per page using the `limit` and `cursor` parameters. The connector continues fetching pages until an empty response is received or the page contains fewer records than the limit, indicating the end of available data.
 
 ## Data handling
-The connector processes data from three main n8n endpoints:
+The connector processes data from two main n8n endpoints:
 
 - **Workflows**: Fetches workflow definitions including name, active status, nodes, connections, and settings. Nested JSON objects such as nodes, connections, and settings are serialized to JSON strings for storage (refer to the `flatten_workflow` function).
 
 - **Executions**: Fetches workflow execution records including workflow ID, execution mode, status, timestamps, and execution data. Complex nested structures like execution data and waiting execution objects are serialized to JSON strings (refer to the `flatten_execution` function).
 
-- **Credentials**: Fetches credential metadata including name, type, and timestamps. Sensitive credential data is not included in the sync (refer to the `flatten_credential` function).
-
-The connector implements incremental sync logic by tracking the latest update timestamp for workflows and credentials, and the latest execution ID for executions.
+The connector implements incremental sync logic by tracking the latest update timestamp for workflows and the latest execution ID for executions.
 
 ## Error handling
 The connector implements comprehensive error handling with retry logic for transient failures (refer to the `make_api_request` function):

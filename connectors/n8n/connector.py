@@ -90,20 +90,22 @@ def update(configuration: dict, state: dict):
 
     last_workflow_update = state.get("last_workflow_update")
     last_execution_id = state.get("last_execution_id")
-    last_credential_update = state.get("last_credential_update")
 
     new_state = {
         "last_workflow_update": last_workflow_update,
         "last_execution_id": last_execution_id,
-        "last_credential_update": last_credential_update,
     }
 
     try:
-        new_workflow_update = sync_workflows(base_url, api_key, last_workflow_update)
+        new_workflow_update = sync_workflows(
+            base_url, api_key, last_workflow_update, last_execution_id
+        )
         if new_workflow_update:
             new_state["last_workflow_update"] = new_workflow_update
 
-        new_execution_id = sync_executions(base_url, api_key, last_execution_id)
+        new_execution_id = sync_executions(
+            base_url, api_key, last_execution_id, new_state["last_workflow_update"]
+        )
         if new_execution_id:
             new_state["last_execution_id"] = new_execution_id
 
@@ -123,13 +125,14 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync n8n data: {str(e)}")
 
 
-def sync_workflows(base_url: str, api_key: str, last_update: str):
+def sync_workflows(base_url: str, api_key: str, last_update: str, last_execution_id: str):
     """
     Sync workflow data from n8n API with pagination support.
     Args:
         base_url: The base URL of the n8n instance.
         api_key: The API key for authentication.
         last_update: The timestamp of the last workflow update from previous sync.
+        last_execution_id: The ID of the last execution (preserved in checkpoints).
     Returns:
         The latest workflow update timestamp encountered during this sync.
     """
@@ -162,8 +165,7 @@ def sync_workflows(base_url: str, api_key: str, last_update: str):
         if records_synced >= __CHECKPOINT_INTERVAL:
             temp_state = {
                 "last_workflow_update": latest_update,
-                "last_execution_id": None,
-                "last_credential_update": None,
+                "last_execution_id": last_execution_id,
             }
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
@@ -181,7 +183,9 @@ def sync_workflows(base_url: str, api_key: str, last_update: str):
     return latest_update
 
 
-def sync_executions(base_url: str, api_key: str, last_execution_id: str):
+def sync_executions(
+    base_url: str, api_key: str, last_execution_id: str, last_workflow_update: str
+):
     """
     Sync execution data from n8n API with cursor-based pagination.
     Executions are returned newest-first, so we stop when we reach
@@ -190,6 +194,7 @@ def sync_executions(base_url: str, api_key: str, last_execution_id: str):
         base_url: The base URL of the n8n instance.
         api_key: The API key for authentication.
         last_execution_id: The ID of the last execution from previous sync.
+        last_workflow_update: The timestamp of the last workflow update (preserved in checkpoints).
     Returns:
         The latest execution ID encountered during this sync.
     """
@@ -228,7 +233,7 @@ def sync_executions(base_url: str, api_key: str, last_execution_id: str):
         latest_execution_id = latest_id
 
         if records_synced >= __CHECKPOINT_INTERVAL:
-            checkpoint_execution_state(latest_execution_id)
+            checkpoint_execution_state(latest_execution_id, last_workflow_update)
             records_synced = 0
 
         if not next_cursor:
@@ -314,16 +319,16 @@ def update_latest_execution_id(execution_id: str, current_latest_id: str):
     return current_latest_id
 
 
-def checkpoint_execution_state(latest_execution_id: str):
+def checkpoint_execution_state(latest_execution_id: str, last_workflow_update: str):
     """
     Save execution sync progress by checkpointing the state.
     Args:
         latest_execution_id: The latest execution ID to checkpoint.
+        last_workflow_update: The timestamp of the last workflow update (preserved).
     """
     temp_state = {
-        "last_workflow_update": None,
+        "last_workflow_update": last_workflow_update,
         "last_execution_id": latest_execution_id,
-        "last_credential_update": None,
     }
     # Save the progress by checkpointing the state. This is
     # important for ensuring that the sync process can resume
@@ -333,64 +338,6 @@ def checkpoint_execution_state(latest_execution_id: str):
     # our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(temp_state)
-
-
-def sync_credentials(base_url: str, api_key: str, last_update: str):
-    """
-    Sync credential data from n8n API with pagination support.
-    Args:
-        base_url: The base URL of the n8n instance.
-        api_key: The API key for authentication.
-        last_update: The timestamp of the last credential update from previous sync.
-    Returns:
-        The latest credential update timestamp encountered during this sync.
-    """
-    log.info("Starting credentials sync")
-
-    cursor = 0
-    latest_update = last_update
-    records_synced = 0
-
-    while True:
-        credentials_data = fetch_credentials_page(base_url, api_key, cursor)
-
-        if not credentials_data or len(credentials_data) == 0:
-            break
-
-        for credential in credentials_data:
-            flattened_credential = flatten_credential(credential)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="credentials", data=flattened_credential)
-
-            records_synced += 1
-
-            credential_update = flattened_credential.get("updated_at")
-            if credential_update and (not latest_update or credential_update > latest_update):
-                latest_update = credential_update
-
-        if records_synced >= __CHECKPOINT_INTERVAL:
-            temp_state = {
-                "last_workflow_update": None,
-                "last_execution_id": None,
-                "last_credential_update": latest_update,
-            }
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(temp_state)
-            records_synced = 0
-
-        if len(credentials_data) < __PAGE_LIMIT:
-            break
-
-        cursor += __PAGE_LIMIT
-
-    log.info(f"Completed credentials sync with latest update: {latest_update}")
-    return latest_update
 
 
 def fetch_workflows_page(base_url: str, api_key: str, cursor: int):
@@ -433,27 +380,6 @@ def fetch_executions_page_with_cursor(base_url: str, api_key: str, cursor: str):
 
     response_data = make_api_request(url, headers, params)
     return response_data
-
-
-def fetch_credentials_page(base_url: str, api_key: str, cursor: int):
-    """
-    Fetch a single page of credentials from the n8n API with retry logic.
-    Args:
-        base_url: The base URL of the n8n instance.
-        api_key: The API key for authentication.
-        cursor: The pagination cursor offset.
-    Returns:
-        A list of credential objects from the API response.
-    """
-    url = f"{base_url}/api/v1/credentials"
-    headers = {"X-N8N-API-KEY": api_key}
-    params = {"limit": __PAGE_LIMIT}
-    # Only add cursor if it's not the first page
-    if cursor > 0:
-        params["cursor"] = cursor
-
-    response_data = make_api_request(url, headers, params)
-    return response_data.get("data", [])
 
 
 def make_api_request(url: str, headers: dict, params: dict):
@@ -618,24 +544,6 @@ def flatten_execution(execution: dict):
         ),
         "retry_of": execution.get("retryOf"),
         "retry_success_id": execution.get("retrySuccessId"),
-    }
-    return flattened
-
-
-def flatten_credential(credential: dict):
-    """
-    Flatten a credential object from the n8n API into a flat dictionary for database storage.
-    Args:
-        credential: The credential object from the API response.
-    Returns:
-        A flattened dictionary with all nested objects converted to dot notation.
-    """
-    flattened = {
-        "id": credential.get("id"),
-        "name": credential.get("name"),
-        "type": credential.get("type"),
-        "created_at": credential.get("createdAt"),
-        "updated_at": credential.get("updatedAt"),
     }
     return flattened
 
