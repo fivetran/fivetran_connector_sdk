@@ -48,7 +48,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 - This is a SAM.gov API limitation, not a connector limitation
 - The connector will validate this requirement and throw an error if exceeded
 
-**Sync Strategy:**
+### Sync strategy
 The connector supports hybrid sliding window incremental sync:
 
 **Initial Sync** (First Run):
