@@ -70,7 +70,7 @@ For local testing with Docker, authentication may be disabled by default in your
 
 ## Pagination
 
-The connector implements offset-based pagination using Dgraph's GraphQL `first` and `offset` parameters. Refer to the sync functions (lines 239-355 for categories, 357-451 for attributes, 454-591 for products, 594-711 for reviews).
+The connector implements offset-based pagination using Dgraph's GraphQL `first` and `offset` parameters. Refer to the `sync_categories`, `sync_attributes`, `sync_products`, and `sync_reviews` functions for implementation details.
 
 Pagination logic:
 - Each query fetches up to 100 records per page (configurable via the `__PAGE_SIZE` constant)
