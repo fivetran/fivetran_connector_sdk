@@ -29,7 +29,6 @@ from typing import Dict, List, Any  # For type hints to improve code clarity
 # Constants for SAM.gov API configuration and pagination
 __BASE_URL = "https://api.sam.gov/opportunities/v2/search"
 __DEFAULT_PAGE_SIZE = 1000  # Maximum allowed by API
-__CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
 __DATE_FORMAT_STRING = "%m/%d/%Y"  # SAM.gov API date format string
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_BASE = 2  # Base delay for exponential backoff (seconds)
