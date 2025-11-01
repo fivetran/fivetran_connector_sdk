@@ -210,8 +210,14 @@ def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
         else:
             log.warning("Unable to retrieve schema from Dgraph")
 
+    except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
+        log.severe(f"Network error syncing schema metadata: {str(e)}")
+        raise
+    except ValueError as e:
+        log.severe(f"JSON parsing error syncing schema metadata: {str(e)}")
+        raise
     except Exception as e:
-        log.severe(f"Error syncing schema metadata: {str(e)}")
+        log.severe(f"Unexpected error syncing schema metadata: {str(e)}")
         raise
 
 
