@@ -69,6 +69,7 @@ The Healthchecks.io API has the following limitations that affect sync behavior:
 - **No pagination**: All endpoints return complete result sets in a single response
 - **Limited ping history**: API returns the most recent events based on account limits (100 pings for free accounts, 1000 pings for paid accounts)
 - **Full refresh required**: Due to the above limitations, the connector performs a full data refresh on each sync
+- **No batch endpoints**: The API does not provide batch endpoints for fetching pings/flips across multiple checks
 
 These limitations mean the connector is most suitable for accounts with modest data volumes (typically less than 100 health checks).
 
@@ -139,7 +140,7 @@ Contains check-in events for health checks.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| ping_id | STRING | Unique identifier for the ping (composite: check_uuid + date) |
+| ping_id | STRING | Unique identifier for the ping (composite: check_uuid + n) |
 | check_uuid | STRING | Foreign key to the checks table |
 | n | INT | Sequential ping number |
 | type | STRING | Type of ping (success, fail, start, etc.) |

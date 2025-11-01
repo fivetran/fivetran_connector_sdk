@@ -76,6 +76,7 @@ def make_api_request(url: str, api_key: str):
         RuntimeError: If the API request fails after all retry attempts.
     """
     headers = get_headers(api_key)
+    last_error = None
 
     for attempt in range(__MAX_RETRIES):
         try:
@@ -105,6 +106,7 @@ def make_api_request(url: str, api_key: str):
                 raise RuntimeError(f"API returned {response.status_code}: {response.text}")
 
         except (requests.Timeout, requests.ConnectionError) as e:
+            last_error = e
             if attempt < __MAX_RETRIES - 1:
                 delay = __BASE_DELAY_SECONDS * (2**attempt)
                 log.warning(
@@ -115,6 +117,24 @@ def make_api_request(url: str, api_key: str):
             else:
                 log.severe(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
                 raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
+        except requests.RequestException as e:
+            last_error = e
+            if attempt < __MAX_RETRIES - 1:
+                delay = __BASE_DELAY_SECONDS * (2**attempt)
+                log.warning(
+                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
+                )
+                time.sleep(delay)
+                continue
+            else:
+                log.severe(f"Request exception after {__MAX_RETRIES} attempts: {str(e)}")
+                raise RuntimeError(f"Request exception after {__MAX_RETRIES} attempts: {str(e)}")
+
+    # Fallback: should never reach here, but ensures function always returns or raises
+    log.severe(
+        f"Unexpected: Exhausted all retry attempts without returning or raising. Last error: {last_error}"
+    )
+    raise RuntimeError(f"Failed to complete API request after {__MAX_RETRIES} attempts")
 
 
 def fetch_checks(api_key: str):
@@ -325,6 +345,15 @@ def update(configuration: dict, state: dict):
     does not support timestamp-based filtering or pagination. The state is maintained for
     checkpoint tracking but not used for incremental data filtering.
 
+    Performance Consideration (N+1 Query Pattern):
+    For each check, this connector makes 2 additional API requests to fetch pings and flips.
+    This results in (1 + N*2) total API calls, where N is the number of checks.
+    Example: 100 checks = 201 API calls (1 for checks + 100 for pings + 100 for flips).
+    The Healthchecks.io API does not provide batch endpoints for pings/flips, so this
+    sequential pattern is unavoidable. For accounts with many checks (>100), sync times
+    may be significant due to network latency and rate limiting. Each API call includes
+    retry logic with exponential backoff, which further increases sync duration on failures.
+
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector (unused due to API limitations).
@@ -335,68 +364,72 @@ def update(configuration: dict, state: dict):
 
     api_key = configuration.get("api_key")
 
-    try:
-        current_sync_timestamp = datetime.now(timezone.utc).isoformat()
+    current_sync_timestamp = datetime.now(timezone.utc).isoformat()
 
-        checks = fetch_checks(api_key)
+    checks = fetch_checks(api_key)
 
-        for check in checks:
-            flattened_check = flatten_check_record(check)
+    # Log performance warning for large datasets
+    expected_api_calls = (
+        1 + (len(checks) * 2) + 1
+    )  # 1 for checks, 2 per check (pings+flips), 1 for integrations
+    log.info(
+        f"Starting sync with {len(checks)} checks. Expected API calls: ~{expected_api_calls} "
+        f"(N+1 pattern: 1 checks + {len(checks)}*2 pings/flips + 1 integrations)"
+    )
 
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="checks", data=flattened_check)
+    for check in checks:
+        flattened_check = flatten_check_record(check)
 
-            check_uuid = check.get("uuid")
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="checks", data=flattened_check)
 
-            pings = fetch_check_pings(check_uuid, api_key)
-            for ping in pings:
-                flattened_ping = flatten_ping_record(ping, check_uuid)
+        check_uuid = check.get("uuid")
 
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="pings", data=flattened_ping)
-
-            flips = fetch_check_flips(check_uuid, api_key)
-            for flip in flips:
-                flattened_flip = flatten_flip_record(flip, check_uuid)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="flips", data=flattened_flip)
-
-        log.info(f"Completed syncing {len(checks)} checks")
-
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        new_state = {"last_updated_timestamp": current_sync_timestamp}
-        op.checkpoint(new_state)
-
-        integrations = fetch_integrations(api_key)
-        for integration in integrations:
-            flattened_integration = flatten_integration_record(integration)
+        pings = fetch_check_pings(check_uuid, api_key)
+        for ping in pings:
+            flattened_ping = flatten_ping_record(ping, check_uuid)
 
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="integrations", data=flattened_integration)
+            op.upsert(table="pings", data=flattened_ping)
 
-        log.info(f"Completed syncing {len(integrations)} integrations")
+        flips = fetch_check_flips(check_uuid, api_key)
+        for flip in flips:
+            flattened_flip = flatten_flip_record(flip, check_uuid)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="flips", data=flattened_flip)
+
+        # Checkpoint after each check is processed to save incremental progress.
+        # This ensures that if the sync is interrupted, already-processed checks won't be re-processed.
+        new_state = {
+            "last_updated_timestamp": current_sync_timestamp,
+            "last_processed_check_uuid": check_uuid,
+        }
         op.checkpoint(new_state)
 
-    except Exception as e:
-        log.severe(f"Failed to sync data: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+    log.info(f"Completed syncing {len(checks)} checks")
+
+    integrations = fetch_integrations(api_key)
+    for integration in integrations:
+        flattened_integration = flatten_integration_record(integration)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="integrations", data=flattened_integration)
+
+    log.info(f"Completed syncing {len(integrations)} integrations")
+
+    # Final checkpoint after all data (checks, pings, flips, and integrations) has been synced successfully.
+    # This ensures the sync is marked as complete only when all tables have been updated.
+    final_state = {"last_updated_timestamp": current_sync_timestamp}
+    op.checkpoint(final_state)
 
 
 # Create the connector object using the schema and update functions
