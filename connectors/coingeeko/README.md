@@ -57,7 +57,7 @@ The connector connects to the CoinGecko API and requires a configuration file in
   "api_key": "<YOUR_API_KEY>",
   "use_pro_api": "<YOUR_USE_PRO_API_OPTION>",
   "currency": "<YOUR_TARGET_CURRENCY>",
-  "coin_ids": "<YOUR_CURRENCY_IDs>",
+  "coin_ids": "<YOUR_COIN_IDS>",
   "sync_historical_data": "<YOUR_SYNC_HISTORICAL_DATA_OPTION>",
   "historical_days": "<YOUR_SYNC_HISTORICAL_DATA_DURATION>"
 }

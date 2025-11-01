@@ -1,5 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# This example demonstrates how to work with a Clickhouse database containing a large dataset and using clickhouse_connect.
+# This example demonstrates how to build a connector for the CoinGecko API, including handling large datasets and API pagination.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -16,8 +16,8 @@ from fivetran_connector_sdk import Operations as op
 import requests  # Used to make HTTP requests to external APIs like CoinGecko.
 import json      # Provides JSON serialization/deserialization (convert dict ↔ JSON string).
 import time      # Gives access to time-related functions like sleep and timestamps.
-from datetime import datetime, timezone, timedelta  # Used for date/time handling, time zone awareness, and time calculations.
-from typing import Dict, List, Optional, Any        # Provides type hints for dictionaries, lists, optional values, and generic objects.
+from datetime import datetime, timezone  # Used for date/time handling and time zone awareness.
+from typing import Dict, List, Any        # Provides type hints for dictionaries, lists, and generic objects.
 
 def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
@@ -154,7 +154,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
         # Sync coins list
         log.info("Syncing coins list")
-        yield from sync_coins_list(client, state)
+        sync_coins_list(client, state)
 
         # Get coin IDs to sync
         if not coin_ids:
@@ -165,22 +165,22 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
         # Sync market data for each coin
         log.info("Syncing coins markets data")
-        yield from sync_coins_markets(client, coin_ids, currency, state)
+        sync_coins_markets(client, coin_ids, currency, state)
 
         # Sync detailed coin information
         log.info("Syncing coin details")
-        yield from sync_coin_details(client, coin_ids, state)
+        sync_coin_details(client, coin_ids, state)
 
         # Sync historical data if enabled
         if sync_historical:
             log.info(f"Syncing historical data for last {historical_days} days")
-            yield from sync_historical_data(client, coin_ids, currency, historical_days, state)
+            sync_historical_data(client, coin_ids, currency, historical_days, state)
 
         log.info("Sync completed successfully")
 
     except Exception as e:
         log.severe(f"Sync failed: {str(e)}")
-        raise
+        raise e
 
 
 class CoinGeckoClient:
@@ -223,18 +223,40 @@ class CoinGeckoClient:
             response.raise_for_status()
             return response.json()
 
+        except requests.exceptions.Timeout:
+            log.warning(f"Timeout fetching {url}. Retrying in 10 seconds...")
+            time.sleep(10)
+            return self.make_request(endpoint, params)
+
+        except requests.exceptions.ConnectionError as e:
+            log.severe(f"Network connection error: {e}. Retrying in 20 seconds...")
+            time.sleep(20)
+            return self.make_request(endpoint, params)
+
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                log.warning("Rate limit hit, waiting 60 seconds")
+            status = e.response.status_code
+            if status == 429:
+                log.warning("Rate limit exceeded. Waiting 60 seconds before retrying.")
                 time.sleep(60)
                 return self.make_request(endpoint, params)
+            elif 500 <= status < 600:
+                log.warning(f"Server error {status}. Retrying in 15 seconds...")
+                time.sleep(15)
+                return self.make_request(endpoint, params)
+            elif status == 404:
+                log.warning(f"Endpoint not found: {url}")
+                return {}
             else:
-                log.severe(f"HTTP error: {e}")
+                log.severe(f"HTTP error {status}: {e.response.text}")
                 raise
 
+        except json.JSONDecodeError as e:
+            log.warning(f"Invalid JSON response for {url}: {e}")
+            return {}
+
         except Exception as e:
-            log.severe(f"Request failed: {e}")
-            raise
+            log.severe(f"Unexpected error in make_request: {type(e).__name__}: {e}")
+            raise e
 
     def get_coins_list(self) -> List[Dict]:
         """
@@ -314,7 +336,6 @@ def sync_coins_list(client: CoinGeckoClient, state: Dict[str, Any]):
     Sync the list of all coins
     Args: param client: CoinGecko API client
           param state: State dictionary
-    Returns: Yields upsert operations and checkpoint
     """
     table_name = 'coins_list'
 
@@ -337,7 +358,7 @@ def sync_coins_list(client: CoinGeckoClient, state: Dict[str, Any]):
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
-            yield op.upsert(table=table_name, data=row)
+            op.upsert(table=table_name, data=row)
 
         # Checkpoint
         new_state = {
@@ -355,11 +376,11 @@ def sync_coins_list(client: CoinGeckoClient, state: Dict[str, Any]):
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=state)
+        op.checkpoint(state=state)
 
     except Exception as e:
         log.severe(f"Failed to sync coins list: {e}")
-        raise
+        raise e
 
 
 def sync_coins_markets(client: CoinGeckoClient, coin_ids: List[str], currency: str, state: Dict[str, Any]):
@@ -369,7 +390,6 @@ def sync_coins_markets(client: CoinGeckoClient, coin_ids: List[str], currency: s
           param coin_ids: List of coin IDs to fetch market data for
           param currency: Currency to get market data in
         param state: State dictionary
-    Returns: Yields upsert operations and checkpoint
     """
     table_name = 'coins_markets'
 
@@ -418,7 +438,7 @@ def sync_coins_markets(client: CoinGeckoClient, coin_ids: List[str], currency: s
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted.
-                yield op.upsert(table=table_name, data=row)
+                op.upsert(table=table_name, data=row)
 
         new_state = {
             table_name: {
@@ -438,11 +458,11 @@ def sync_coins_markets(client: CoinGeckoClient, coin_ids: List[str], currency: s
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=state)
+        op.checkpoint(state=state)
 
     except Exception as e:
         log.severe(f"Failed to sync coins markets: {e}")
-        raise
+        raise e
 
 
 def sync_coin_details(client: CoinGeckoClient, coin_ids: List[str], state: Dict[str, Any]):
@@ -493,10 +513,16 @@ def sync_coin_details(client: CoinGeckoClient, coin_ids: List[str], state: Dict[
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
                 # - The second argument is a dictionary containing the data to be upserted.
-                yield op.upsert(table=table_name, data=row)
+                op.upsert(table=table_name, data=row)
 
+            except requests.exceptions.Timeout:
+                log.warning(f"Timeout fetching details for {coin_id}")
+                continue
+            except requests.exceptions.HTTPError as e:
+                log.warning(f"HTTP error for {coin_id}: {e}")
+                continue
             except Exception as e:
-                log.warning(f"Failed to fetch details for {coin_id}: {e}")
+                log.warning(f"Unexpected error for {coin_id}: {e}")
                 continue
 
         new_state = {
@@ -516,11 +542,11 @@ def sync_coin_details(client: CoinGeckoClient, coin_ids: List[str], state: Dict[
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=state)
+        op.checkpoint(state=state)
 
     except Exception as e:
         log.severe(f"Failed to sync coin details: {e}")
-        raise
+        raise e
 
 
 def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency: str,
@@ -532,7 +558,6 @@ def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency:
           param currency: Currency to get market data in
           param days: Number of days of historical data to fetch
           param state: State dictionary
-    Returns: Yields upsert operations and checkpoint
     """
     table_name = 'coin_market_chart'
     last_sync_date = state.get(table_name, {}).get('last_sync_date')
@@ -550,7 +575,7 @@ def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency:
                 now_utc = datetime.now(timezone.utc)
                 days_since_last = (now_utc - last_sync).days + 1
                 days_to_fetch = min(days_since_last, days)
-            except Exception as parse_err:
+            except (ValueError, TypeError) as parse_err:
                 log.warning(f"Could not parse last_sync_date '{last_sync_date}': {parse_err}")
                 days_to_fetch = days
         else:
@@ -574,7 +599,7 @@ def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency:
                             if ts_val > 1e12:
                                 ts_val = ts_val / 1000.0
                                 timestamp = datetime.fromtimestamp(ts_val, tz=timezone.utc).isoformat()
-                        except Exception as ts_err:
+                        except (ValueError, TypeError, OverflowError) as ts_err:
                             log.warning(f"Invalid timestamp for {coin_id}: {timestamp_ms} ({ts_err})")
                             continue
 
@@ -608,7 +633,7 @@ def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency:
                         # The op.upsert method is called with two arguments:
                         # - The first argument is the name of the table to upsert the data into.
                         # - The second argument is a dictionary containing the data to be upserted.
-                        yield op.upsert(table=table_name, data=row)
+                        op.upsert(table=table_name, data=row)
 
             except Exception as e:
                 log.warning(f"Failed to fetch historical data for {coin_id}: {e}")
@@ -633,11 +658,11 @@ def sync_historical_data(client: CoinGeckoClient, coin_ids: List[str], currency:
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        yield op.checkpoint(state=state)
+        op.checkpoint(state=state)
 
     except Exception as e:
         log.severe(f"Failed to sync historical data: {e}")
-        raise
+        raise e
 
 
 # Connector instance
