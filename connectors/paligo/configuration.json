@@ -1,0 +1,12 @@
+{
+  "username": "<YOUR_PALIGO_USERNAME>",
+  "api_key": "<YOUR_PALIGO_API_KEY>",
+  "base_url": "https://api.paligo.net/v1",
+  "sync_frequency_hours": "4",
+  "initial_sync_days": "90",
+  "max_records_per_page": "100",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "enable_incremental_sync": "true",
+  "enable_debug_logging": "false"
+}
