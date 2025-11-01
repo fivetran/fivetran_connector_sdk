@@ -158,7 +158,7 @@ def update(configuration: dict, state: dict):
 
     except Exception as e:
         log.severe(f"Failed to sync data from Dgraph: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+        raise RuntimeError(f"Failed to sync data: {str(e)}") from e
 
 
 def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
