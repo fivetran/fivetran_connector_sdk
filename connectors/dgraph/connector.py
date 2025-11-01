@@ -452,7 +452,7 @@ def sync_attributes(graphql_endpoint: str, api_key: str, state: dict):
             if len(attributes) < __PAGE_SIZE:
                 break
 
-        except Exception as e:
+        except (requests.RequestException, ValueError, KeyError) as e:
             log.severe(f"Error syncing attributes at offset {offset}: {str(e)}")
             raise
 
