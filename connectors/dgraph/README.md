@@ -73,10 +73,10 @@ For local testing with Docker, authentication may be disabled by default in your
 The connector implements offset-based pagination using Dgraph's GraphQL `first` and `offset` parameters. Refer to the sync functions (lines 239-355 for categories, 357-451 for attributes, 454-591 for products, 594-711 for reviews).
 
 Pagination logic:
-- Each query fetches up to 100 records per page (configurable via `__PAGE_SIZE` constant on line 43)
+- Each query fetches up to 100 records per page (configurable via the `__PAGE_SIZE` constant)
 - The `offset` parameter advances by the number of records returned in each batch
 - Pagination continues until fewer records than the page size are retrieved
-- State is checkpointed after every 500 records (configurable via `__CHECKPOINT_INTERVAL` on line 44)
+- State is checkpointed after every 500 records (configurable via the `__CHECKPOINT_INTERVAL` constant)
 - Per-table timestamp tracking enables true incremental sync
 
 This approach prevents memory overflow when syncing large datasets and ensures reliable recovery from interruptions.
