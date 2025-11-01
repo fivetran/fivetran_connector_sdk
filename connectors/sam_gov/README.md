@@ -36,7 +36,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 }
 ```
 
-**Configuration Parameters:**
+### Configuration parameters
 - `api_key`: Your SAM.gov public API key (required)
 - `posted_from`: Start date for initial sync in MM/dd/yyyy format (required for first sync)
 - `posted_to`: End date for initial sync in MM/dd/yyyy format (required for first sync)
