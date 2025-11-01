@@ -228,7 +228,7 @@ def sync_sites(api_token: str, state: dict):
     log.info(f"Completed sites sync: {record_count} records processed")
 
 
-def process_site_child_records_with_pagination(
+def process_site_child_records(
     endpoint_template: str,
     api_token: str,
     table_name: str,
@@ -236,9 +236,11 @@ def process_site_child_records_with_pagination(
     state: dict,
     flatten_function,
     timestamp_field: str,
+    child_records_paginated: bool,
 ):
     """
-    Generic function to process paginated child records for each site.
+    Generic function to process child records for each site.
+    Processes sites on-demand page-by-page without materializing all sites in memory.
     Args:
         endpoint_template: The API endpoint template with {site_id} placeholder.
         api_token: The API token for authentication.
@@ -247,55 +249,80 @@ def process_site_child_records_with_pagination(
         state: The state dictionary.
         flatten_function: Function to flatten API records.
         timestamp_field: The field name containing the record timestamp.
+        child_records_paginated: If True, child records are paginated; if False, fetched in single request.
     Returns:
         The number of records processed.
     """
-    sites = fetch_all_sites(api_token)
     initial_last_timestamp = state.get(state_key)
     last_timestamp = initial_last_timestamp
     record_count = 0
+    sites_page = 1
 
-    for site in sites:
-        site_id = site.get("id")
-        endpoint = endpoint_template.format(site_id=site_id)
-        page = 1
+    # Fetch and process sites page-by-page without materializing all sites in memory
+    while True:
+        sites = fetch_paginated_data(
+            endpoint="/sites",
+            api_token=api_token,
+            page=sites_page,
+            per_page=__PAGINATION_LIMIT,
+        )
 
-        while True:
-            records = fetch_paginated_data(
-                endpoint=endpoint,
-                api_token=api_token,
-                page=page,
-                per_page=__PAGINATION_LIMIT,
-            )
+        if not sites:
+            break
 
-            if not records:
-                break
+        # Process child records for each site in the current page
+        for site in sites:
+            site_id = site.get("id")
+            endpoint = endpoint_template.format(site_id=site_id)
 
-            for record in records:
-                record_timestamp = record.get(timestamp_field)
+            # Fetch child records based on pagination mode
+            if child_records_paginated:
+                # Child records are paginated - fetch page by page
+                page = 1
+                while True:
+                    records = fetch_paginated_data(
+                        endpoint=endpoint,
+                        api_token=api_token,
+                        page=page,
+                        per_page=__PAGINATION_LIMIT,
+                    )
 
-                if should_skip_record(initial_last_timestamp, record_timestamp):
+                    if not records:
+                        break
+
+                    record_count, last_timestamp = process_child_records_batch(
+                        records=records,
+                        initial_last_timestamp=initial_last_timestamp,
+                        last_timestamp=last_timestamp,
+                        record_count=record_count,
+                        flatten_function=flatten_function,
+                        timestamp_field=timestamp_field,
+                        table_name=table_name,
+                        state_key=state_key,
+                        state=state,
+                    )
+
+                    page += 1
+            else:
+                # Child records are not paginated - fetch all at once
+                records = fetch_data(endpoint=endpoint, api_token=api_token)
+
+                if not records:
                     continue
 
-                flattened_record = flatten_function(record)
+                record_count, last_timestamp = process_child_records_batch(
+                    records=records,
+                    initial_last_timestamp=initial_last_timestamp,
+                    last_timestamp=last_timestamp,
+                    record_count=record_count,
+                    flatten_function=flatten_function,
+                    timestamp_field=timestamp_field,
+                    table_name=table_name,
+                    state_key=state_key,
+                    state=state,
+                )
 
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=table_name, data=flattened_record)
-
-                record_count += 1
-
-                if record_count % __CHECKPOINT_INTERVAL == 0:
-                    last_timestamp = update_timestamp(last_timestamp, record_timestamp)
-                    state[state_key] = last_timestamp
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(state)
-
-            page += 1
+        sites_page += 1
 
     if last_timestamp:
         state[state_key] = last_timestamp
@@ -307,6 +334,60 @@ def process_site_child_records_with_pagination(
     op.checkpoint(state)
 
     return record_count
+
+
+def process_child_records_batch(
+    records: list,
+    initial_last_timestamp: Optional[str],
+    last_timestamp: Optional[str],
+    record_count: int,
+    flatten_function,
+    timestamp_field: str,
+    table_name: str,
+    state_key: str,
+    state: dict,
+):
+    """
+    Process a batch of child records.
+    Args:
+        records: List of child records to process.
+        initial_last_timestamp: The initial last synced timestamp from state.
+        last_timestamp: The current last timestamp being tracked.
+        record_count: The current count of processed records.
+        flatten_function: Function to flatten API records.
+        timestamp_field: The field name containing the record timestamp.
+        table_name: The destination table name.
+        state_key: The state dictionary key for tracking sync progress.
+        state: The state dictionary.
+    Returns:
+        Tuple of (updated_record_count, updated_last_timestamp).
+    """
+    for record in records:
+        record_timestamp = record.get(timestamp_field)
+
+        if should_skip_record(initial_last_timestamp, record_timestamp):
+            continue
+
+        flattened_record = flatten_function(record)
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table=table_name, data=flattened_record)
+
+        record_count += 1
+
+        last_timestamp = update_timestamp(last_timestamp, record_timestamp)
+
+        if record_count % __CHECKPOINT_INTERVAL == 0:
+            state[state_key] = last_timestamp
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
+
+    return record_count, last_timestamp
 
 
 def sync_deploys(api_token: str, state: dict):
@@ -318,7 +399,7 @@ def sync_deploys(api_token: str, state: dict):
     """
     log.info("Starting deploys sync")
 
-    record_count = process_site_child_records_with_pagination(
+    record_count = process_site_child_records(
         endpoint_template="/sites/{site_id}/deploys",
         api_token=api_token,
         table_name="deploy",
@@ -326,80 +407,10 @@ def sync_deploys(api_token: str, state: dict):
         state=state,
         flatten_function=flatten_deploy_record,
         timestamp_field="updated_at",
+        child_records_paginated=True,
     )
 
     log.info(f"Completed deploys sync: {record_count} records processed")
-
-
-def process_site_child_records_non_paginated(
-    endpoint_template: str,
-    api_token: str,
-    table_name: str,
-    state_key: str,
-    state: dict,
-    flatten_function,
-    timestamp_field: str,
-):
-    """
-    Generic function to process non-paginated child records for each site.
-    Args:
-        endpoint_template: The API endpoint template with {site_id} placeholder.
-        api_token: The API token for authentication.
-        table_name: The destination table name.
-        state_key: The state dictionary key for tracking sync progress.
-        state: The state dictionary.
-        flatten_function: Function to flatten API records.
-        timestamp_field: The field name containing the record timestamp.
-    Returns:
-        The number of records processed.
-    """
-    sites = fetch_all_sites(api_token)
-    initial_last_timestamp = state.get(state_key)
-    last_timestamp = initial_last_timestamp
-    record_count = 0
-
-    for site in sites:
-        site_id = site.get("id")
-        endpoint = endpoint_template.format(site_id=site_id)
-
-        records = fetch_data(endpoint=endpoint, api_token=api_token)
-
-        if not records:
-            continue
-
-        for record in records:
-            record_timestamp = record.get(timestamp_field)
-
-            if should_skip_record(initial_last_timestamp, record_timestamp):
-                continue
-
-            flattened_record = flatten_function(record)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table=table_name, data=flattened_record)
-
-            record_count += 1
-
-            if record_count % __CHECKPOINT_INTERVAL == 0:
-                last_timestamp = update_timestamp(last_timestamp, record_timestamp)
-                state[state_key] = last_timestamp
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-    if last_timestamp:
-        state[state_key] = last_timestamp
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
-
-    return record_count
 
 
 def sync_forms(api_token: str, state: dict):
@@ -411,7 +422,7 @@ def sync_forms(api_token: str, state: dict):
     """
     log.info("Starting forms sync")
 
-    record_count = process_site_child_records_non_paginated(
+    record_count = process_site_child_records(
         endpoint_template="/sites/{site_id}/forms",
         api_token=api_token,
         table_name="form",
@@ -419,6 +430,7 @@ def sync_forms(api_token: str, state: dict):
         state=state,
         flatten_function=flatten_form_record,
         timestamp_field="created_at",
+        child_records_paginated=False,
     )
 
     log.info(f"Completed forms sync: {record_count} records processed")
@@ -433,7 +445,7 @@ def sync_submissions(api_token: str, state: dict):
     """
     log.info("Starting submissions sync")
 
-    record_count = process_site_child_records_non_paginated(
+    record_count = process_site_child_records(
         endpoint_template="/sites/{site_id}/submissions",
         api_token=api_token,
         table_name="submission",
@@ -441,37 +453,10 @@ def sync_submissions(api_token: str, state: dict):
         state=state,
         flatten_function=flatten_submission_record,
         timestamp_field="created_at",
+        child_records_paginated=False,
     )
 
     log.info(f"Completed submissions sync: {record_count} records processed")
-
-
-def fetch_all_sites(api_token: str):
-    """
-    Fetch all sites from Netlify API.
-    Args:
-        api_token: The API token for authentication.
-    Returns:
-        A list of all sites.
-    """
-    all_sites = []
-    page = 1
-
-    while True:
-        sites = fetch_paginated_data(
-            endpoint="/sites",
-            api_token=api_token,
-            page=page,
-            per_page=__PAGINATION_LIMIT,
-        )
-
-        if not sites:
-            break
-
-        all_sites.extend(sites)
-        page += 1
-
-    return all_sites
 
 
 def fetch_paginated_data(endpoint: str, api_token: str, page: int, per_page: int):

@@ -20,6 +20,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 - Incremental data synchronization based on timestamp fields
 - Pagination support for large datasets
+- Memory-efficient on-demand processing of sites without loading all data into memory
 - Retry logic with exponential backoff for transient API errors
 - Checkpointing strategy to enable resume capability
 - Flattening of nested JSON objects for simplified table structures
