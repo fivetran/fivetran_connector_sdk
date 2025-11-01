@@ -52,7 +52,7 @@ This connector uses API key authentication to access the n8n REST API. To obtain
 Note: API keys are not available during free trials. You must upgrade to a paid plan to access the n8n API.
 
 ## Pagination
-The connector implements cursor-based pagination for all endpoints (refer to `fetch_workflows_page`, `fetch_executions_page`, and `fetch_credentials_page` functions). Each API request fetches up to 100 records per page using the `limit` and `cursor` parameters. The connector continues fetching pages until an empty response is received or the page contains fewer records than the limit, indicating the end of available data.
+The connector implements cursor-based pagination for all endpoints (refer to `fetch_workflows_page`, `fetch_executions_page_with_cursor`, and `fetch_credentials_page` functions). Each API request fetches up to 100 records per page using the `limit` and `cursor` parameters. The connector continues fetching pages until an empty response is received or the page contains fewer records than the limit, indicating the end of available data.
 
 ## Data handling
 The connector processes data from three main n8n endpoints:
