@@ -6,10 +6,13 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 # For reading configuration from a JSON file
 import json
+
 # For adding jitter to retry delays
 import random
+
 # For making HTTP requests to AroFlo API
 import requests
+
 # For implementing delays in retry logic and rate limiting
 import time
 
@@ -90,7 +93,7 @@ def __get_config_bool(configuration, key, default=False):
     """
     value = configuration.get(key, default)
     if isinstance(value, str):
-        return value.lower() in ('true', '1', 'yes', 'on')
+        return value.lower() in ("true", "1", "yes", "on")
     return bool(value)
 
 
@@ -112,7 +115,7 @@ def __calculate_wait_time(attempt, response_headers, base_delay=1, max_delay=60)
         return min(int(response_headers["Retry-After"]), max_delay)
 
     # Exponential backoff with jitter
-    wait_time = min(base_delay * (2 ** attempt), max_delay)
+    wait_time = min(base_delay * (2**attempt), max_delay)
     jitter = random.uniform(0.1, 0.3) * wait_time
     return wait_time + jitter
 
@@ -147,7 +150,9 @@ def __handle_request_error(attempt, retry_attempts, error, endpoint):
     """
     if attempt < retry_attempts - 1:
         wait_time = __calculate_wait_time(attempt, {})
-        log.warning(f"Request failed for {endpoint}: {str(error)}. Retrying in {wait_time:.1f} seconds...")
+        log.warning(
+            f"Request failed for {endpoint}: {str(error)}. Retrying in {wait_time:.1f} seconds..."
+        )
         time.sleep(wait_time)
     else:
         log.severe(f"All retry attempts failed for {endpoint}: {str(error)}")
@@ -213,7 +218,9 @@ def get_time_range(last_sync_time=None, configuration=None):
     if last_sync_time:
         start_time = last_sync_time
     else:
-        initial_sync_days = __get_config_int(configuration, "initial_sync_days", __DEFAULT_INITIAL_SYNC_DAYS)
+        initial_sync_days = __get_config_int(
+            configuration, "initial_sync_days", __DEFAULT_INITIAL_SYNC_DAYS
+        )
         start_time = (datetime.now(timezone.utc) - timedelta(days=initial_sync_days)).isoformat()
 
     return {"start": start_time, "end": end_time}
@@ -327,7 +334,9 @@ def get_users_data(api_key, last_sync_time=None, configuration=None):
         RuntimeError: If API requests fail after all retry attempts.
     """
     endpoint = "/users"
-    max_records = __get_config_int(configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000)
+    max_records = __get_config_int(
+        configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000
+    )
     time_range = get_time_range(last_sync_time, configuration)
 
     params = {
@@ -374,7 +383,9 @@ def get_suppliers_data(api_key, last_sync_time=None, configuration=None):
         RuntimeError: If API requests fail after all retry attempts.
     """
     endpoint = "/suppliers"
-    max_records = __get_config_int(configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000)
+    max_records = __get_config_int(
+        configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000
+    )
     time_range = get_time_range(last_sync_time, configuration)
 
     params = {
@@ -421,7 +432,9 @@ def get_payments_data(api_key, last_sync_time=None, configuration=None):
         RuntimeError: If API requests fail after all retry attempts.
     """
     endpoint = "/payments"
-    max_records = __get_config_int(configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000)
+    max_records = __get_config_int(
+        configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000
+    )
     time_range = get_time_range(last_sync_time, configuration)
 
     params = {
@@ -463,18 +476,9 @@ def schema(configuration: dict):
         list: List of table schema dictionaries with table names and primary keys.
     """
     return [
-        {
-            "table": "users",
-            "primary_key": ["id"]
-        },
-        {
-            "table": "suppliers",
-            "primary_key": ["id"]
-        },
-        {
-            "table": "payments",
-            "primary_key": ["id"]
-        }
+        {"table": "users", "primary_key": ["id"]},
+        {"table": "suppliers", "primary_key": ["id"]},
+        {"table": "payments", "primary_key": ["id"]},
     ]
 
 
@@ -494,7 +498,9 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters (SDK auto-validates required fields)
     api_key = __get_config_str(configuration, "api_key")
-    max_records_per_page = __get_config_int(configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000)
+    max_records_per_page = __get_config_int(
+        configuration, "max_records_per_page", __DEFAULT_PAGE_SIZE, 1, 1000
+    )
     enable_users = __get_config_bool(configuration, "enable_users_sync", True)
     enable_suppliers = __get_config_bool(configuration, "enable_suppliers_sync", True)
     enable_payments = __get_config_bool(configuration, "enable_payments_sync", True)
@@ -520,8 +526,10 @@ def update(configuration: dict, state: dict):
                 # Checkpoint every page/batch to save progress incrementally
                 if user_count % max_records_per_page == 0:
                     checkpoint_state = {
-                        "last_sync_time": record.get("updated_at", datetime.now(timezone.utc).isoformat()),
-                        "last_processed_users_page": page
+                        "last_sync_time": record.get(
+                            "updated_at", datetime.now(timezone.utc).isoformat()
+                        ),
+                        "last_processed_users_page": page,
                     }
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
@@ -549,8 +557,10 @@ def update(configuration: dict, state: dict):
                 # Checkpoint every page/batch to save progress incrementally
                 if supplier_count % max_records_per_page == 0:
                     checkpoint_state = {
-                        "last_sync_time": record.get("updated_at", datetime.now(timezone.utc).isoformat()),
-                        "last_processed_suppliers_page": page
+                        "last_sync_time": record.get(
+                            "updated_at", datetime.now(timezone.utc).isoformat()
+                        ),
+                        "last_processed_suppliers_page": page,
                     }
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
@@ -578,8 +588,10 @@ def update(configuration: dict, state: dict):
                 # Checkpoint every page/batch to save progress incrementally
                 if payment_count % max_records_per_page == 0:
                     checkpoint_state = {
-                        "last_sync_time": record.get("updated_at", datetime.now(timezone.utc).isoformat()),
-                        "last_processed_payments_page": page
+                        "last_sync_time": record.get(
+                            "updated_at", datetime.now(timezone.utc).isoformat()
+                        ),
+                        "last_processed_payments_page": page,
                     }
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
