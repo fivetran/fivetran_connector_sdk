@@ -66,7 +66,7 @@ The connector supports hybrid sliding window incremental sync:
 - Smaller overlap (7 days) = more API-efficient but shorter update window
 - Larger overlap (90 days) = captures more updates but uses more API calls
 
-**Example Progression**:
+### Example progression
 ```
 Initial Sync: [01/01/2024 - 12/31/2024] → State saves: last_posted_to = 12/31/2024
 Sync 2: [12/01/2024 - 10/30/2025] (30-day overlap) → Auto-chunked to [12/01/2024 - 12/01/2025]
