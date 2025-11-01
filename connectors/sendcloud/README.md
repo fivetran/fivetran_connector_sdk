@@ -45,7 +45,7 @@ Configuration parameters:
 - start_date: ISO date to begin synchronization in YYYY-MM-DD format (required)
 - use_mock_server: Set to "true" to use Stoplight mock server for testing, "false" for production API (optional, defaults to "false")
 
-Note: Ensure that the [configuration.json](configuration.json) file is not checked into version control to protect sensitive information.
+Note: Ensure that [configuration.json](configuration.json) file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
