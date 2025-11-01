@@ -1,0 +1,17 @@
+{
+  "client_id": "<YOUR_DENTALLY_CLIENT_ID>",
+  "client_secret": "<YOUR_DENTALLY_CLIENT_SECRET>",
+  "access_token": "<YOUR_DENTALLY_ACCESS_TOKEN>",
+  "refresh_token": "<YOUR_DENTALLY_REFRESH_TOKEN>",
+  "use_sandbox": "<YOUR_DENTALLY_USE_SANDBOX>",
+  "sync_frequency_hours": "<YOUR_DENTALLY_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_DENTALLY_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_DENTALLY_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_DENTALLY_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_DENTALLY_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_DENTALLY_ENABLE_INCREMENTAL_SYNC>",
+  "enable_rooms_sync": "<YOUR_DENTALLY_ENABLE_ROOMS_SYNC>",
+  "enable_sites_sync": "<YOUR_DENTALLY_ENABLE_SITES_SYNC>",
+  "enable_treatments_sync": "<YOUR_DENTALLY_ENABLE_TREATMENTS_SYNC>",
+  "enable_debug_logging": "<YOUR_DENTALLY_ENABLE_DEBUG_LOGGING>"
+}
