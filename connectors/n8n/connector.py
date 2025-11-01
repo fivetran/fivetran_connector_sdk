@@ -414,27 +414,6 @@ def fetch_workflows_page(base_url: str, api_key: str, cursor: int):
     return response_data.get("data", [])
 
 
-def fetch_executions_page(base_url: str, api_key: str, cursor: int):
-    """
-    Fetch a single page of executions from the n8n API with retry logic.
-    Args:
-        base_url: The base URL of the n8n instance.
-        api_key: The API key for authentication.
-        cursor: The pagination cursor offset.
-    Returns:
-        A list of execution objects from the API response.
-    """
-    url = f"{base_url}/api/v1/executions"
-    headers = {"X-N8N-API-KEY": api_key}
-    params = {"limit": __PAGE_LIMIT}
-    # Only add cursor if it's not the first page
-    if cursor > 0:
-        params["cursor"] = cursor
-
-    response_data = make_api_request(url, headers, params)
-    return response_data.get("data", [])
-
-
 def fetch_executions_page_with_cursor(base_url: str, api_key: str, cursor: str):
     """
     Fetch executions page using n8n's cursor-based pagination.
