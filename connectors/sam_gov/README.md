@@ -44,9 +44,10 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 - `incremental_window_days`: Number of days to overlap in incremental syncs to capture updates (optional, defaults to "30")
 
 ### Important date range limitation
-- The date range between `posted_from` and `posted_to` cannot exceed 1 year (365 days)
+- The date range between `posted_from` and `posted_to` must be less than 1 year (maximum 364 days)
 - This is a SAM.gov API limitation, not a connector limitation
-- The connector will validate this requirement and throw an error if exceeded
+- The connector will validate this requirement and throw an error if exceeded during initial sync
+- For incremental syncs exceeding this limit, the connector automatically chunks the date range into 364-day windows
 
 ### Sync strategy
 The connector supports hybrid sliding window incremental sync:
@@ -58,7 +59,7 @@ The connector supports hybrid sliding window incremental sync:
 **Incremental Sync** (Subsequent Runs):
 - Automatically calculates date window using `last_posted_to` from previous sync minus `incremental_window_days` overlap
 - Advances forward to current date, capturing new opportunities and updates
-- If date range exceeds 1 year, automatically chunks into 365-day windows
+- If date range exceeds 1 year, automatically chunks into 364-day windows
 
 ### Overlap window strategy
 - Default 30-day overlap ensures recent opportunity updates are captured
@@ -69,8 +70,8 @@ The connector supports hybrid sliding window incremental sync:
 ### Example progression
 ```
 Initial Sync: [01/01/2024 - 12/31/2024] → State saves: last_posted_to = 12/31/2024
-Sync 2: [12/01/2024 - 10/30/2025] (30-day overlap) → Auto-chunked to [12/01/2024 - 12/01/2025]
-Sync 3: [11/01/2025 - 10/30/2025] (30-day overlap from 12/01) → Captures recent data
+Sync 2: [12/01/2024 - 10/30/2025] (30-day overlap) → Auto-chunked to [12/01/2024 - 11/30/2025] (364 days)
+Sync 3: [11/01/2025 - 10/30/2025] (30-day overlap from 11/30) → Captures recent data
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -91,7 +92,7 @@ The connector implements pagination using the SAM.gov API's `limit` and `offset`
 - Page size: Maximum 1000 records per request
 - Pagination logic: Processes data page by page in a loop, tracking offset position
 - State management: Tracks `last_offset` and `total_records_processed` for resumable syncs
-- Checkpointing: Saves progress after each page of results to handle interruptions gracefully
+- Checkpointing: Saves progress every 100 records to handle interruptions gracefully
 
 ## Data handling
 The connector processes SAM.gov opportunity data through several transformation steps (refer to the `process_main_opportunity_record` and `process_breakout_tables` functions):
