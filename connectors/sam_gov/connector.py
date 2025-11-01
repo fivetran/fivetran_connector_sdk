@@ -463,8 +463,8 @@ def make_api_request_with_retry(url: str, params: Dict[str, Any]) -> Dict[str, A
             if attempt == __MAX_RETRIES - 1:
                 break
 
-            # Calculate exponential backoff delay
-            delay = __RETRY_DELAY_BASE**attempt
+            # Calculate exponential backoff delay (capped at 60 seconds)
+            delay = min(60, __RETRY_DELAY_BASE * (2**attempt))
             log.warning(f"API request failed on attempt {attempt + 1}/{__MAX_RETRIES}: {str(e)}")
             log.info(f"Retrying in {delay} seconds...")
             time.sleep(delay)
