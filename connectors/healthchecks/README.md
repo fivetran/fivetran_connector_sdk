@@ -109,7 +109,7 @@ Contains health check configurations and monitoring settings.
 | name | STRING | Name of the health check |
 | slug | STRING | URL-friendly identifier |
 | tags | STRING | Space-separated list of tags |
-| desc | STRING | Description of the health check |
+| description | STRING | Description of the health check |
 | grace | INT | Grace period in seconds |
 | n_pings | INT | Total number of pings received |
 | status | STRING | Current status (up, down, paused, etc.) |
