@@ -116,7 +116,7 @@ Error handling strategies:
 - **GraphQL errors**: Log warnings but continue processing if data is present
 - **Unexpected exceptions**: Log severe error and re-raise with context
 
-Configuration validation (`validate_configuration`, lines 62-79):
+Configuration validation (`validate_configuration`):
 - Ensures required fields (dgraph_url, api_key) are present
 - Validates URL format (must start with http:// or https://)
 - Raises ValueError with descriptive message for invalid configuration
