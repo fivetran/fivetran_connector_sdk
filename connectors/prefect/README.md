@@ -60,7 +60,7 @@ To obtain your API credentials:
 
 ## Pagination
 
-The connector implements pagination using the Prefect API filter endpoints with limit and offset parameters. Each API request fetches up to 100 records per page. The connector continues fetching pages until an empty response is received, indicating all available data has been retrieved. Pagination logic is implemented in the `fetch_paginated_data()` function.
+The connector implements pagination using the Prefect API filter endpoints with limit and offset parameters. Each API request fetches up to 100 records per page. Records are processed page-by-page to minimize memory usage, with each page being upserted immediately after fetching. The connector continues fetching pages until an empty response is received, indicating all available data has been retrieved. Pagination logic is implemented in the `fetch_and_process_paginated_data()` function.
 
 ## Data handling
 

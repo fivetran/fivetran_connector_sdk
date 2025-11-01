@@ -56,6 +56,20 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
+# Configuration mapping for different resource types
+# Each entry maps: table_name -> (endpoint, state_key)
+SYNC_CONFIGS = {
+    "flow": ("/flows/filter", "flow_last_updated"),
+    "deployment": ("/deployments/filter", "deployment_last_updated"),
+    "flow_run": ("/flow_runs/filter", "flow_run_last_updated"),
+    "task_run": ("/task_runs/filter", "task_run_last_updated"),
+    "artifact": ("/artifacts/filter", "artifact_last_updated"),
+    "work_pool": ("/work_pools/filter", "work_pool_last_updated"),
+    "work_queue": ("/work_queues/filter", "work_queue_last_updated"),
+    "variable": ("/variables/filter", "variable_last_updated"),
+}
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema
@@ -67,16 +81,7 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration
         settings for the connector.
     """
-    return [
-        {"table": "flow", "primary_key": ["id"]},
-        {"table": "deployment", "primary_key": ["id"]},
-        {"table": "flow_run", "primary_key": ["id"]},
-        {"table": "task_run", "primary_key": ["id"]},
-        {"table": "artifact", "primary_key": ["id"]},
-        {"table": "work_pool", "primary_key": ["id"]},
-        {"table": "work_queue", "primary_key": ["id"]},
-        {"table": "variable", "primary_key": ["id"]},
-    ]
+    return [{"table": table_name, "primary_key": ["id"]} for table_name in SYNC_CONFIGS]
 
 
 def update(configuration: dict, state: dict):
@@ -100,62 +105,24 @@ def update(configuration: dict, state: dict):
     workspace_id = configuration.get("workspace_id")
 
     base_url = __BASE_URL_TEMPLATE.format(account_id=account_id, workspace_id=workspace_id)
-    headers = build_headers(api_key)
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    sync_flows(base_url, headers, state)
-    sync_deployments(base_url, headers, state)
-    sync_work_pools(base_url, headers, state)
-    sync_work_queues(base_url, headers, state)
-    sync_flow_runs(base_url, headers, state)
-    sync_task_runs(base_url, headers, state)
-    sync_artifacts(base_url, headers, state)
-    sync_variables(base_url, headers, state)
-
-
-def build_headers(api_key: str) -> dict:
-    """
-    Build HTTP headers for Prefect API requests.
-    Args:
-        api_key: The API key for authentication.
-    Returns:
-        A dictionary containing HTTP headers.
-    """
-    return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
-
-def should_retry_request(attempt: int) -> bool:
-    """
-    Check if request should be retried based on attempt number.
-    Args:
-        attempt: Current attempt number (0-indexed).
-    Returns:
-        True if should retry, False otherwise.
-    """
-    return attempt < __MAX_RETRIES - 1
-
-
-def calculate_retry_delay(attempt: int) -> int:
-    """
-    Calculate exponential backoff delay for retry attempt.
-    Args:
-        attempt: Current attempt number (0-indexed).
-    Returns:
-        Delay in seconds.
-    """
-    return __BASE_DELAY_SECONDS * (2**attempt)
+    # Sync all resources defined in SYNC_CONFIGS
+    for table_name in SYNC_CONFIGS:
+        sync_resource(base_url, headers, state, table_name)
 
 
 def handle_retryable_error(attempt: int, error_message: str):
     """
-    Handle retryable errors with logging and delay.
+    Handle retryable errors with logging and delay using exponential backoff.
     Args:
-        attempt: Current attempt number.
+        attempt: Current attempt number (0-indexed).
         error_message: Error description for logging.
     Raises:
         RuntimeError: If max retries exceeded.
     """
-    if should_retry_request(attempt):
-        delay = calculate_retry_delay(attempt)
+    if attempt < __MAX_RETRIES - 1:
+        delay = __BASE_DELAY_SECONDS * (2**attempt)
         log.warning(
             f"{error_message}, retrying in {delay} seconds "
             f"(attempt {attempt + 1}/{__MAX_RETRIES})"
@@ -205,16 +172,24 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
             handle_retryable_error(attempt, "Connection error")
             continue
 
+    # This should never be reached due to handle_retryable_error raising
+    # RuntimeError on the last attempt, but adding for safety
+    raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
 
-def fetch_paginated_data(
+
+def fetch_and_process_paginated_data(
     base_url: str,
     endpoint: str,
     headers: dict,
     cursor_field: str,
-    cursor_value: str = None,
-) -> list:
+    cursor_value: str,
+    table_name: str,
+    state: dict,
+    state_key: str,
+):
     """
-    Fetch paginated data from Prefect API using filter endpoint.
+    Fetch paginated data from Prefect API and process it page by page.
+    This avoids loading all records into memory at once.
     Performs client-side incremental filtering based on cursor value.
     Args:
         base_url: Base URL for the Prefect API.
@@ -223,11 +198,14 @@ def fetch_paginated_data(
         cursor_field: Field name to use for incremental filtering.
         cursor_value: Cursor value from last sync for client-side
         filtering.
-    Returns:
-        List of records filtered by cursor value.
+        table_name: Name of the destination table.
+        state: State dictionary to track sync progress.
+        state_key: Key in state dict to store cursor value.
     """
-    all_records = []
     offset = 0
+    total_processed = 0
+    record_count = 0
+    max_updated = cursor_value
 
     while True:
         payload = {"limit": __BATCH_SIZE, "offset": offset}
@@ -243,25 +221,43 @@ def fetch_paginated_data(
             filtered_records = [
                 record for record in response_data if record.get(cursor_field, "") > cursor_value
             ]
-            all_records.extend(filtered_records)
             log.info(
                 f"Fetched {len(response_data)} records from {endpoint}, "
-                f"filtered to {len(filtered_records)} new records, "
-                f"total: {len(all_records)}"
+                f"filtered to {len(filtered_records)} new records"
             )
         else:
-            all_records.extend(response_data)
-            log.info(
-                f"Fetched {len(response_data)} records from {endpoint}, "
-                f"total: {len(all_records)}"
-            )
+            filtered_records = response_data
+            log.info(f"Fetched {len(response_data)} records from {endpoint}")
+
+        # Process records page by page
+        for record in filtered_records:
+            flattened_record = flatten_record(record)
+            op.upsert(table=table_name, data=flattened_record)
+
+            record_updated = record.get("updated")
+            if record_updated and (max_updated is None or record_updated > max_updated):
+                max_updated = record_updated
+
+            record_count += 1
+
+            if record_count % __CHECKPOINT_INTERVAL == 0:
+                state[state_key] = max_updated
+                op.checkpoint(state)
+                log.info(f"Checkpointed {table_name} at {record_count} records")
+
+        total_processed += len(filtered_records)
 
         if len(response_data) < __BATCH_SIZE:
             break
 
         offset += __BATCH_SIZE
 
-    return all_records
+    # Final checkpoint if there were any updates
+    if max_updated != state.get(state_key):
+        state[state_key] = max_updated
+        op.checkpoint(state)
+
+    log.info(f"Completed syncing {total_processed} {table_name}")
 
 
 def flatten_record(record: dict, prefix: str = "") -> dict:
@@ -288,178 +284,21 @@ def flatten_record(record: dict, prefix: str = "") -> dict:
     return flattened
 
 
-def process_records(table_name: str, records: list, state: dict, state_key: str):
+def sync_resource(base_url: str, headers: dict, state: dict, table_name: str):
     """
-    Process and upsert records with checkpointing.
-    Args:
-        table_name: Name of the destination table.
-        records: List of records to process.
-        state: State dictionary to track sync progress.
-        state_key: Key in state dict to store cursor value.
-    """
-    log.info(f"Syncing {len(records)} {table_name}")
-
-    record_count = 0
-    max_updated = state.get(state_key)
-
-    for record in records:
-        flattened_record = flatten_record(record)
-
-        # The 'upsert' operation is used to insert or update data
-        # in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record
-        # to be upserted.
-        op.upsert(table=table_name, data=flattened_record)
-
-        record_updated = record.get("updated")
-        if record_updated and (max_updated is None or record_updated > max_updated):
-            max_updated = record_updated
-
-        record_count += 1
-
-        if record_count % __CHECKPOINT_INTERVAL == 0:
-            state[state_key] = max_updated
-            # Save the progress by checkpointing the state. This is
-            # important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or
-            # interruptions.
-            # Learn more about how and where to checkpoint by reading
-            # our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(state)
-            log.info(f"Checkpointed {table_name} at {record_count} records")
-
-    if max_updated != state.get(state_key):
-        state[state_key] = max_updated
-        # Save the progress by checkpointing the state. This is
-        # important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or
-        # interruptions.
-        # Learn more about how and where to checkpoint by reading
-        # our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
-
-    log.info(f"Completed syncing {record_count} {table_name}")
-
-
-def sync_flows(base_url: str, headers: dict, state: dict):
-    """
-    Sync flows from Prefect API with incremental cursor based on
-    updated timestamp.
+    Generic function to sync any resource type from Prefect API with
+    incremental cursor based on updated timestamp.
     Args:
         base_url: Base URL for the Prefect API.
         headers: HTTP headers for authentication.
         state: State dictionary to track sync progress.
+        table_name: Name of the resource/table to sync.
     """
-    last_updated = state.get("flow_last_updated")
-    records = fetch_paginated_data(base_url, "/flows/filter", headers, "updated", last_updated)
-    process_records("flow", records, state, "flow_last_updated")
-
-
-def sync_deployments(base_url: str, headers: dict, state: dict):
-    """
-    Sync deployments from Prefect API with incremental cursor based
-    on updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("deployment_last_updated")
-    records = fetch_paginated_data(
-        base_url, "/deployments/filter", headers, "updated", last_updated
+    endpoint, state_key = SYNC_CONFIGS[table_name]
+    last_updated = state.get(state_key)
+    fetch_and_process_paginated_data(
+        base_url, endpoint, headers, "updated", last_updated, table_name, state, state_key
     )
-    process_records("deployment", records, state, "deployment_last_updated")
-
-
-def sync_flow_runs(base_url: str, headers: dict, state: dict):
-    """
-    Sync flow runs from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("flow_run_last_updated")
-    records = fetch_paginated_data(base_url, "/flow_runs/filter", headers, "updated", last_updated)
-    process_records("flow_run", records, state, "flow_run_last_updated")
-
-
-def sync_task_runs(base_url: str, headers: dict, state: dict):
-    """
-    Sync task runs from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("task_run_last_updated")
-    records = fetch_paginated_data(base_url, "/task_runs/filter", headers, "updated", last_updated)
-    process_records("task_run", records, state, "task_run_last_updated")
-
-
-def sync_artifacts(base_url: str, headers: dict, state: dict):
-    """
-    Sync artifacts from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("artifact_last_updated")
-    records = fetch_paginated_data(base_url, "/artifacts/filter", headers, "updated", last_updated)
-    process_records("artifact", records, state, "artifact_last_updated")
-
-
-def sync_work_pools(base_url: str, headers: dict, state: dict):
-    """
-    Sync work pools from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("work_pool_last_updated")
-    records = fetch_paginated_data(
-        base_url, "/work_pools/filter", headers, "updated", last_updated
-    )
-    process_records("work_pool", records, state, "work_pool_last_updated")
-
-
-def sync_work_queues(base_url: str, headers: dict, state: dict):
-    """
-    Sync work queues from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("work_queue_last_updated")
-    records = fetch_paginated_data(
-        base_url, "/work_queues/filter", headers, "updated", last_updated
-    )
-    process_records("work_queue", records, state, "work_queue_last_updated")
-
-
-def sync_variables(base_url: str, headers: dict, state: dict):
-    """
-    Sync variables from Prefect API with incremental cursor based on
-    updated timestamp.
-    Args:
-        base_url: Base URL for the Prefect API.
-        headers: HTTP headers for authentication.
-        state: State dictionary to track sync progress.
-    """
-    last_updated = state.get("variable_last_updated")
-    records = fetch_paginated_data(base_url, "/variables/filter", headers, "updated", last_updated)
-    process_records("variable", records, state, "variable_last_updated")
 
 
 # Create the connector object using the schema and update functions
