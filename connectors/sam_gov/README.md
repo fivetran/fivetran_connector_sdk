@@ -91,7 +91,7 @@ The connector implements pagination using the SAM.gov API's `limit` and `offset`
 - Page size: Maximum 1000 records per request
 - Pagination logic: Processes data page by page in a loop, tracking offset position
 - State management: Tracks `last_offset` and `total_records_processed` for resumable syncs
-- Checkpointing: Saves progress every 100 records to handle interruptions gracefully
+- Checkpointing: Saves progress after each page of results to handle interruptions gracefully
 
 ## Data handling
 The connector processes SAM.gov opportunity data through several transformation steps (refer to the `process_main_opportunity_record` and `process_breakout_tables` functions):
