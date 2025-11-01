@@ -31,7 +31,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ```json
 {
-  "api_token": "<YOUR_SNIPEITAPP_API_TOKEN>",
+  "api_token": "<YOUR_SNIPE_IT_BEARER_TOKEN>",
   "base_url": "<YOUR_SNIPEITAPP_BASE_URL>"
 }
 
