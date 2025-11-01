@@ -890,9 +890,7 @@ def execute_graphql_query(endpoint: str, query: str, api_key: str):
                 log.severe(f"HTTP error: {str(e)}")
                 raise
 
-        except Exception as e:
-            log.severe(f"Unexpected error executing query: {str(e)}")
-            raise
+        # Removed generic exception catch block to comply with SDK best practices.
 
     return None
 
