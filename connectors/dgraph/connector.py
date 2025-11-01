@@ -338,8 +338,11 @@ def sync_categories(graphql_endpoint: str, api_key: str, state: dict):
             if len(categories) < __PAGE_SIZE:
                 break
 
-        except Exception as e:
-            log.severe(f"Error syncing categories at offset {offset}: {str(e)}")
+        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
+            log.severe(f"Network error syncing categories at offset {offset}: {str(e)}")
+            raise
+        except ValueError as e:
+            log.severe(f"Parsing error syncing categories at offset {offset}: {str(e)}")
             raise
 
     # Update state with the most recent timestamp
