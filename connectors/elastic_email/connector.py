@@ -14,6 +14,9 @@ import requests
 # For retry delays
 import time
 
+# For type hints
+from typing import Optional
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -105,6 +108,10 @@ def make_request_with_retry(url: str, headers: dict, params: dict = None):
             else:
                 raise RuntimeError(f"Request failed after {__MAX_RETRIES} attempts: {str(e)}")
 
+    # This line should never be reached due to the exception handling above,
+    # but is included for type safety and to avoid implicit None returns
+    raise RuntimeError(f"Request failed after {__MAX_RETRIES} attempts")
+
 
 def flatten_dict(record: dict, parent_key: str = "", separator: str = "_") -> dict:
     """
@@ -135,7 +142,7 @@ def process_paginated_endpoint(
     state: dict,
     state_key: str = "",
     date_field: str = "",
-    extra_params: dict = None,  # type: ignore
+    extra_params: Optional[dict] = None,
 ):
     """
     Process a paginated API endpoint and sync data to destination.
