@@ -1,6 +1,6 @@
 import base64   # Provides functions for encoding and decoding data in Base64 format
 import asyncio  # Enables writing and running asynchronous I/O and concurrent code
-from typing import Any, Dict, List, Optional  # Provides type hints for generic, dictionary, list, and optional types
+from typing import Any, Dict, Optional  # Provides type hints for generic, dictionary, and optional types
 
 # For reading configuration from a JSON file
 import json
@@ -11,15 +11,19 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-import time  # For adding delays to avoid rate limits
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+
+from datetime import timezone  # Provides UTC timezone objects for datetime
 
 # Temporal SDK (async)
 from temporalio.client import Client
-from temporalio.service import ServiceClient, ConnectConfig, TLSConfig
+from temporalio.service import TLSConfig
 
 
 # ------------- Tables (SDK schema) -------------
-TABLES: Dict[str, Dict[str, Any]] = {
+__TABLES: Dict[str, Dict[str, Any]] = {
     "temporal_workflows": {
         "pk": ["workflow_id", "run_id"],
         "updated": "close_time_unix",  # used for incremental cursor; falls back to start_time if open
@@ -48,19 +52,21 @@ TABLES: Dict[str, Dict[str, Any]] = {
     # (Optional) You can add derived tables later (signals, activities, etc.) by parsing history.
 }
 
-# Define the schema function, which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.def schema(configuration: Dict[str, Any]):
 def schema(configuration):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     declared = []
-    for t, meta in TABLES.items():
+    for t, meta in __TABLES.items():
         declared.append(
             {
                 "table": t,
                 "primary_key": meta["pk"],
-                "column": meta["schema"],
+                "columns": meta["schema"],
             }
         )
     return declared
@@ -72,20 +78,23 @@ def get_cursor(state: Dict[str, Any], ns: str) -> int:
     """
     Get the per-namespace cursor from state.
     Defaults to 0 if not found.
-    Args: param state: state dict
-          param ns: namespace string
+    Args: 
+        state: state dict
+        ns: namespace string
     """
     try:
         return int((state or {}).get("cursors", {}).get("temporal_workflows", {}).get(ns, 0))
-    except Exception:
-        return 0
+    except (ValueError, TypeError) as err:
+        log.warning(f"Failed to convert value to integer: {type(err).__name__} - {err}")
+    return 0
 
 def set_cursor(state: Dict[str, Any], ns: str, value: int) -> Dict[str, Any]:
     """
     Set the per-namespace cursor in state.
-    Args: param state: state dict
-          param ns: namespace string
-          param value: new cursor value
+    Args: 
+        state: state dict
+        ns: namespace string
+        value: new cursor value
     """
     new_state = dict(state or {})
     cursors = dict(new_state.get("cursors", {}))
@@ -101,7 +110,7 @@ def load_bytes(s: Optional[str]) -> Optional[bytes]:
     """
     Load bytes from either raw string or base64-encoded string.
     Used for TLS certs/keys.
-    Args param s: input string
+    Args s: input string
     Returns: bytes or None
     """
     if not s:
@@ -161,9 +170,10 @@ async def list_workflows_since(client: Client, since_unix: int, page_size: int =
     """
     Iterate workflow executions using Visibility (Temporal search).
     Uses StartTime/CloseTime >= since_unix.
-    Args: param client: Temporal Client
-          param since_unix: cursor unix timestamp
-        param page_size: page size for listing
+    Args:
+        client: Temporal Client
+        since_unix: cursor unix timestamp
+        page_size: page size for listing
     """
     # Temporal Visibility query syntax:
     # - StartTime, CloseTime, ExecutionStatus, WorkflowId, WorkflowType, etc.
@@ -178,39 +188,26 @@ async def list_workflows_since(client: Client, since_unix: int, page_size: int =
     async for we in client.list_workflows(query=query, page_size=page_size):
         yield we
 
-
-def dt_to_iso(dt) -> Optional[str]:
-    """
-    Convert tz-aware datetime to UTC ISO format string.
-    Args: param dt: datetime
-    """
-    if not dt:
-        return None
-    # dt is aware; Temporal SDK returns tz-aware datetimes; convert to UTC ISO
-    return dt.astimezone(tz=time.tzutc() if hasattr(time, "tzutc") else None).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 def dt_to_unix(dt) -> Optional[int]:
     """
     Convert tz-aware datetime to unix timestamp (int).
-    Args: param dt: datetime
+    Args:
+        dt: datetime
     """
     if not dt:
         return None
     return int(dt.timestamp())
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     """
-    Main entrypoint called by Fivetran. Creates an event loop, connects to Temporal,
-    streams executions since last cursor, and upserts rows.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     namespace: str = configuration["namespace"]
     page_size: int = int(configuration.get("page_size", 1000))
@@ -269,7 +266,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             # The 'upsert' operation inserts the data into the destination.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table="temporal_workflows", data=row)
 
             if updated_cursor and updated_cursor > max_seen:
@@ -294,7 +291,8 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     def to_plain_dict(fields_obj) -> Optional[Dict[str, Any]]:
         """
         Convert Temporal payload maps (memo/search attributes) to plain JSONable dicts.
-        Args: param fields_obj: mapping[str] -> Payload or Value
+        Args:
+            fields_obj: mapping[str] -> Payload or Value
         """
         if not fields_obj:
             return None
@@ -319,7 +317,8 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         Safely convert an object to a dict for JSON serialization.
         Tries .to_dict(), dataclass asdict(), or json serialization.
         Fallbacks to str(obj) if all else fails.
-        Args param obj: input object
+        Args:
+            obj: input object
         Returns: dict or str
         """
         try:
@@ -331,6 +330,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             if is_dataclass(obj):
                 return asdict(obj)
         except Exception:
+            # Intentionally ignore exceptions here to allow fallback to the next serialization strategy.
             pass
         try:
             return json.loads(json.dumps(obj, default=str))
@@ -340,7 +340,8 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     def safe_b64(b: bytes) -> str:
         """
         Safely base64-encode bytes to ASCII string.
-        Args: param b: input bytes
+        Args:
+            b: input bytes
         Returns: base64 ASCII string
         """
         return base64.b64encode(b).decode("ascii")

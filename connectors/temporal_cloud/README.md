@@ -13,10 +13,10 @@ It supports **incremental synchronization** using the `close_time_unix` cursor a
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-- Operating System:
-    - Windows 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later
-    - Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
+- Operating system:
+   - Windows: 10 or later (64-bit only)
+   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 - Temporal Cloud account with **API key** or **mTLS certificates**
 - Access to Temporal Cloud endpoint (e.g., `<namespace_id>.<account_id>.tmprl.cloud:7233`)
 
@@ -35,7 +35,7 @@ Refer to the [Fivetran Connector SDK Setup Guide](https://fivetran.com/docs/conn
 - Supports incremental syncs using the `close_time_unix` field.
 - Converts Temporal datetime objects into UTC ISO 8601 strings.
 - Automatically manages **checkpointing** for resumable syncs.
-- Implements **retry logic** with backoff for transient connection errors.
+- Implements retry logic with backoff for transient connection errors.
 - Asynchronous data fetching for efficient performance.
 
 ---
@@ -121,7 +121,7 @@ The connector processes Temporal workflow execution data as follows:
       ```
 
 5. **Structured Attributes**
-    - Parses **search attributes** and **memo** fields into plain JSON structures for easy querying.
+    - Parses search attributes and memo fields into plain JSON structures for easy querying.
     - Encodes any binary data as Base64 strings.
 
 6. **Data Conversion**
@@ -133,11 +133,11 @@ The connector processes Temporal workflow execution data as follows:
 ## Error handling
 
 The connector implements comprehensive error handling for:
-- **Network timeouts** and retries with exponential backoff.
-- **Authentication errors** for invalid API keys or TLS certificates.
-- **Rate limits** using async I/O with controlled page size.
-- **Serialization errors** in memo or attribute payloads (logged as warnings).
-- **Partial failures** — logs the error but continues syncing other records.
+- Network timeouts and retries with exponential backoff.
+- Authentication errors for invalid API keys or TLS certificates.
+- Rate limits using async I/O with controlled page size.
+- Serialization errors in memo or attribute payloads (logged as warnings).
+- Partial failures — logs the error but continues syncing other records.
 
 All exceptions and retry attempts are logged using the Fivetran logging system.
 
