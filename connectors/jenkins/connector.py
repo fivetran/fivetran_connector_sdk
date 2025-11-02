@@ -3,14 +3,20 @@ Fivetran Connector SDK – Jenkins
 Pulls jobs, builds, and artifacts from the Jenkins REST API
 """
 
-import json
-import time
-from typing import Any, Dict, List, Optional, Tuple
-import requests
+import json       # Provides tools to encode and decode JSON data (parse API responses, write config)
+import time       # Gives access to time functions like sleep() and timestamps for rate limiting
+from typing import Any, Dict, List, Optional  # Supplies type hints for dictionaries, lists, optionals, and generic values
+import requests   # Handles HTTP requests for communicating with external APIs (e.g., CoinGecko endpoints)
 
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Operations as op
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 
 # -----------------------------
@@ -32,9 +38,9 @@ class JenkinsClient:
     def request(self, method: str, path: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Make an HTTP request with retries for rate limiting and server errors.
-        Args: param method: HTTP method (GET, POST, etc.)
-              param path: API endpoint path
-              param params: Query parameters
+        Args: method: HTTP method (GET, POST, etc.)
+              path: API endpoint path
+              params: Query parameters
         Returns: Parsed JSON response
         Raises: RuntimeError on failure after retries
         """
@@ -88,7 +94,7 @@ class JenkinsClient:
     def get_build_detail(self, build_url: str) -> Dict[str, Any]:
         """
         Get detailed information about a specific build.
-        Args: param build_url: URL of the Jenkins build
+        Args: build_url: URL of the Jenkins build
         Returns: Build detail dictionary
         """
         path = build_url.replace(self.base, "", 1) if build_url.startswith(self.base) else build_url
@@ -141,19 +147,21 @@ TABLES: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: Dict[str, Any]):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     declared = []
     for t, meta in TABLES.items():
         declared.append(
             {
                 "table": t,
                 "primary_key": meta["pk"],
-                "column": meta["schema"],
+                "columns": meta["schema"],
             }
         )
     return declared
@@ -161,22 +169,24 @@ def schema(configuration: Dict[str, Any]):
 def get_build_cursor(state: Dict[str, Any], job_name: str) -> int:
     """
     Get the build cursor (last processed timestamp in ms) for a specific job.
-    Args: param state: Connector state dictionary
-          param job_name: Name of the Jenkins job
+    Args: state: Connector state dictionary
+          job_name: Name of the Jenkins job
     Returns: Last processed timestamp in ms
     """
     try:
         return int((state or {}).get("cursors", {}).get("jenkins_builds", {}).get(job_name, 0))
-    except Exception:
+    except (ValueError, TypeError, KeyError) as err:
+        log.warning(
+            f"Failed to parse cursor for job '{job_name}'; defaulting to 0 — {type(err).__name__}: {err}")
         return 0
 
 
 def set_build_cursor(state: Dict[str, Any], job_name: str, value: int) -> Dict[str, Any]:
     """
     Set the build cursor (last processed timestamp in ms) for a specific job.
-    Args: param state: Connector state dictionary
-          param job_name: Name of the Jenkins job
-          param value: New last processed timestamp in ms
+    Args: state: Connector state dictionary
+          job_name: Name of the Jenkins job
+          value: New last processed timestamp in ms
     """
     new_state = dict(state or {})
     cursors = dict(new_state.get("cursors", {}))
@@ -191,21 +201,22 @@ def set_build_cursor(state: Dict[str, Any], job_name: str, value: int) -> Dict[s
 def to_seconds(ms: Optional[int]) -> Optional[int]:
     """
     Convert milliseconds to seconds.
-    Args param ms: Milliseconds
+    Args: ms: Milliseconds
     Returns: Seconds
     """
     if ms is None:
         return None
     try:
         return int(ms) // 1000
-    except Exception:
+    except (ValueError, TypeError) as err:
+        log.warning(f"Invalid timestamp value '{ms}': {type(err).__name__} - {err}")
         return None
 
 
 def fmt_utc_from_ms(ms: Optional[int]) -> Optional[str]:
     """
     Format milliseconds since epoch to ISO 8601 UTC string.
-    Args param ms: Milliseconds since epoch
+    Args: ms: Milliseconds since epoch
     Returns: ISO 8601 UTC string
     """
     s = to_seconds(ms)
@@ -214,14 +225,16 @@ def fmt_utc_from_ms(ms: Optional[int]) -> Optional[str]:
     # ISO 8601 without timezone suffix is okay; UTC expected by SDK type "UTC_DATETIME"
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(s))
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: Dict[str, Any], state: Dict[str, Any]):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
     base = configuration["base_url"]
     username = configuration["username"]
     api_token = configuration["api_token"]
@@ -241,7 +254,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         # The 'upsert' operation is used to insert or update data in a table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-        # - The second argument is a dictionary containing the data to be upserted,
+        # - The second argument is a dictionary containing the data to be upserted.
         op.upsert(table="jenkins_jobs", data=row)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -285,7 +298,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             # The 'upsert' operation is used to insert or update data in a table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table="jenkins_builds", data=row)
 
             if ts_ms > max_seen_ms:
@@ -345,7 +358,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
                 # The 'upsert' operation is used to insert or update data in a table.
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-                # - The second argument is a dictionary containing the data to be upserted,
+                # - The second argument is a dictionary containing the data to be upserted.
                 op.upsert(table="jenkins_artifacts", data=row)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

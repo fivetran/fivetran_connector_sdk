@@ -193,6 +193,6 @@ The connector creates three destination tables:
 - Incremental syncs depend on the `timestamp_ms` field to track new builds.
 - Jenkins instances with nested folders or pipelines may require additional traversal logic.
 - The connector can be extended to include build parameters, logs, or test results.
-- This example is designed for **educational and demonstration purposes** using the **Fivetran Connector SDK**.
+- This example is designed for educational and demonstration purposes using the Fivetran Connector SDK.
 
-For assistance or support, contact **Fivetran Support**.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
