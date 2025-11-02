@@ -73,13 +73,13 @@ To configure authentication:
 
 1. Determine which authentication method your Prometheus server requires.
 2. Set the `auth_type` field in `configuration.json` to `none`, `basic`, or `bearer`.
-3. If using basic authentication:
-   - Obtain or create a username and password for your Prometheus server.
-   - Add the `username` and `password` fields to `configuration.json`.
-4. If using bearer token authentication:
-   - Obtain a valid bearer token from your authentication provider.
-   - Add the `bearer_token` field to `configuration.json`.
-5. For local testing with Docker Compose, use the none `auth_type` as no authentication is configured by default.
+  - If using basic authentication:
+    1. Obtain or create a username and password for your Prometheus server.
+    2. Add the `username` and `password` fields to `configuration.json`.
+  - If using bearer token authentication:
+    1. Obtain a valid bearer token from your authentication provider.
+    2. Add the `bearer_token` field to `configuration.json`.
+3. For local testing with Docker Compose, use the none `auth_type` as no authentication is configured by default.
 
 The authentication logic is implemented in the `get_auth_headers()` function which builds the appropriate HTTP headers based on the configured authentication type.
 
