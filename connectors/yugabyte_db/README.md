@@ -46,12 +46,12 @@ The connector requires database connection credentials to access YugabyteDB.
 Configuration parameters:
 
 - `host` (required) - Hostname or IP address of your YugabyteDB server.
-- port (optional) - Port number (default: `5433`).
-- database (required) - Name of the database to connect to.
-- user (required) - Username for database authentication.
-- password (required) - Password for database authentication.
-- schema (optional) - Database schema to sync (default: `public`)
-- sslmode (optional) - SSL mode (possible values: `require`, `prefer`, `allow`, `disable`).
+- `port` (optional) - Port number (default: `5433`).
+- `database` (required) - Name of the database to connect to.
+- `user` (required) - Username for database authentication.
+- `password` (required) - Password for database authentication.
+- `schema` (optional) - Database schema to sync (default: `public`)
+- `sslmode` (optional) - SSL mode (possible values: `require`, `prefer`, `allow`, `disable`).
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
