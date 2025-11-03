@@ -4,7 +4,7 @@
 This connector syncs workspaces, repositories, and projects data from Bitbucket Cloud using the Bitbucket REST API v2.0. It provides comprehensive data extraction for organizational analysis, repository management, and project tracking. The connector implements memory-efficient streaming patterns to handle large datasets and includes robust error handling with exponential backoff retry logic for production reliability.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -41,17 +41,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```
 
 ### Configuration parameters
-- `username`: Your Bitbucket username for authentication
-- `app_password`: Bitbucket app password (not your account password)
-- `sync_frequency_hours`: How often to run full syncs (default: 4 hours)
-- `initial_sync_days`: Number of days of historical data to fetch on first sync (default: 90 days)
-- `max_records_per_page`: API pagination limit per request (1-100, default: 50)
-- `request_timeout_seconds`: HTTP request timeout (default: 30 seconds)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable timestamp-based incremental syncing (default: true)
-- `enable_repositories`: Sync repository data (default: true)
-- `enable_projects`: Sync project data (default: true)
-- `enable_debug_logging`: Enable detailed debug logging (default: false)
+- `username` (required): Your Bitbucket username for authentication
+- `app_password` (required): Bitbucket app password (not your account password)
+- `sync_frequency_hours` (optional): How often to run full syncs (default: 4 hours)
+- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync (default: 90 days)
+- `max_records_per_page` (optional): API pagination limit per request (1-100, default: 50)
+- `request_timeout_seconds` (optional): HTTP request timeout (default: 30 seconds)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (default: true)
+- `enable_repositories` (optional): Sync repository data (default: true)
+- `enable_projects` (optional): Sync project data (default: true)
+- `enable_debug_logging` (optional): Enable detailed debug logging (default: false)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -100,15 +100,6 @@ Sample columns include `uuid`, `name`, `full_name`, `slug`, `workspace_uuid`, `i
 Sample columns include `uuid`, `key`, `name`, `workspace_uuid`, `description`, `is_private`, `created_on`, `updated_on`, `synced_at`.
 
 Column types are automatically inferred by Fivetran based on the data content and structure.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Bitbucket API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
