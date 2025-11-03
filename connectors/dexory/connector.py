@@ -46,7 +46,7 @@ def validate_configuration(configuration: dict):
         ValueError: if any required configuration parameter is missing.
     """
     # Validate required configuration parameters
-    required_configs = ["site_name", "site_api_key", "base_url"]
+    required_configs = ["site_name", "site_api_key", "base_url", "customer"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -68,12 +68,12 @@ def convert_lists_to_strings(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_locations_url(
-    site: str, api_key: str, page_size: int, base_url: str, next_url: str = None
+    site: str, api_key: str, page_size: int, base_url: str, customer: str, next_url: str = None
 ) -> str:
     """Build the URL for fetching locations"""
     if next_url:
         return next_url
-    return f"{base_url}/customer-api/v1/locations?api_key={api_key}&customer=gxo&site={site}&page[size]={page_size}"
+    return f"{base_url}/customer-api/v1/locations?api_key={api_key}&customer={customer}&site={site}&page[size]={page_size}"
 
 
 def _should_retry_exception(exception: Exception, attempt: int, max_retries: int) -> bool:
@@ -143,12 +143,13 @@ def fetch_locations_with_retry(
     api_key: str,
     page_size: int,
     base_url: str,
+    customer: str,
     next_url: str = None,
     max_retries: int = __MAX_RETRIES,
     base_retry_delay: int = __BASE_RETRY_DELAY_SECONDS,
 ) -> Dict[str, Any]:
     """Fetch locations from Dexory API with pagination support and retry logic"""
-    url = _build_locations_url(site, api_key, page_size, base_url, next_url)
+    url = _build_locations_url(site, api_key, page_size, base_url, customer, next_url)
     return _make_api_request_with_retry(url, max_retries, base_retry_delay)
 
 
@@ -208,6 +209,7 @@ def _sync_locations_pages(
     api_key: str,
     page_size: int,
     base_url: str,
+    customer: str,
     max_pages: int,
     base_retry_delay: int,
 ) -> tuple[int, int]:
@@ -226,7 +228,7 @@ def _sync_locations_pages(
 
         # Fetch the current page (first page when next_url is None)
         response_data = fetch_locations_with_retry(
-            site_name, api_key, page_size, base_url, next_url, __MAX_RETRIES, base_retry_delay
+            site_name, api_key, page_size, base_url, customer, next_url, __MAX_RETRIES, base_retry_delay
         )
 
         # Process locations from current page
@@ -268,11 +270,12 @@ def update(configuration: dict, state: dict) -> None:
     site_name = configuration.get("site_name")
     api_key = configuration.get("site_api_key")
     base_url = configuration.get("base_url", __DEFAULT_BASE_URL)
+    customer = configuration.get("customer")
 
     log.info(
         f"Max pages: {__DEFAULT_MAX_PAGES}, Page size: {__DEFAULT_PAGE_SIZE}, Base retry delay: {__BASE_RETRY_DELAY_SECONDS}s"
     )
-    log.info(f"Syncing data for site: {site_name}")
+    log.info(f"Syncing data for site: {site_name}, customer: {customer}")
 
     try:
         page_count, location_count = _sync_locations_pages(
@@ -280,6 +283,7 @@ def update(configuration: dict, state: dict) -> None:
             api_key,
             __DEFAULT_PAGE_SIZE,
             base_url,
+            customer,
             __DEFAULT_MAX_PAGES,
             __BASE_RETRY_DELAY_SECONDS,
         )

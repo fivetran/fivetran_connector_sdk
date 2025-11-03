@@ -35,7 +35,8 @@ The connector requires the following configuration parameters in the configurati
 {
     "site_name": "<YOUR_SITE_NAME>",
     "site_api_key": "<YOUR_SITE_API_KEY>",
-    "base_url": "https://api.service.dexoryview.com"
+    "base_url": "https://api.service.dexoryview.com",
+    "customer": "<YOUR_CUSTOMER_NAME>"
 }
 ```
 
@@ -43,6 +44,7 @@ Configuration parameters:
 - `site_name` (required): The name of your Dexory site
 - `site_api_key` (required): Your Dexory API key for authentication
 - `base_url` (optional): The Dexory API base URL (default: `https://api.service.dexoryview.com`)
+- `customer` (required): Your Dexory customer name, which will be used to build the full URL 
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
