@@ -75,7 +75,7 @@ Faker
 Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. Do not declare them in `requirements.txt` to avoid conflicts.
 
 ## Authentication
-This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API.
+This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API. To obtain the API key, do the following:
 
 Steps
 1. Obtain an API key from your AwardCo administrator or developer portal.
