@@ -1,6 +1,4 @@
 """
-Accelo API Connector for Fivetran
-
 This module implements a connector for syncing data from the Accelo API.
 It handles OAuth2 authentication, rate limiting, and data synchronization for companies,
 invoices, payments, prospects, jobs, and staff.
@@ -10,9 +8,8 @@ It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
 
 Refer to the Multithreading Guidelines in api_threading_utils.py
-
-Author: Example submitted by our amazing community member Ahmed Zedan
-Date: 2024-09-20
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 import json
