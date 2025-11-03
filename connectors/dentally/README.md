@@ -4,7 +4,7 @@
 This connector syncs dental practice management data from Dentally's API including practice sites, treatment rooms, and treatment procedures. The connector demonstrates OAuth2 authentication, memory-efficient streaming patterns, and comprehensive error handling for dental practice management systems.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -15,10 +15,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Syncs practice sites, treatment rooms, and treatment procedures from Dentally API
-- OAuth2 authentication with automatic token refresh (refer to `refresh_access_token` function)
-- Page-based pagination with automatic page traversal (refer to `get_rooms_data`, `get_sites_data`, and `get_treatments_data` functions)
+- OAuth2 authentication with automatic token refresh (refer to the `refresh_access_token` function)
+- Page-based pagination with automatic page traversal (refer to the `get_rooms_data`, `get_sites_data`, and `get_treatments_data` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic
 - Supports both production and sandbox environments
 
