@@ -34,15 +34,24 @@ The connector requires database connection credentials to access YugabyteDB.
 
 ```json
 {
-  "host": "<YOUR_YUGABYTEDB_HOST>",           // Required: Hostname or IP address of your YugabyteDB server
-  "port": "<YOUR_YUGABYTEDB_PORT>",           // Optional: Port number (default: 5433)
-  "database": "<YOUR_YUGABYTEDB_DATABASE_NAME>",  // Required: Name of the database to connect to
-  "user": "<YOUR_YUGABYTEDB_USERNAME>",       // Required: Username for database authentication
-  "password": "<YOUR_YUGABYTEDB_PASSWORD>",   // Required: Password for database authentication
-  "schema": "<YOUR_SCHEMA_NAME>",             // Optional: Database schema to sync (default: public)
-  "sslmode": "<YOUR_SSL_MODE>"                // Optional: SSL mode (require, prefer, allow, disable)
+  "host": "<YOUR_YUGABYTEDB_HOST>",  
+  "port": "<YOUR_YUGABYTEDB_PORT>",  
+  "database": "<YOUR_YUGABYTEDB_DATABASE_NAME>",
+  "user": "<YOUR_YUGABYTEDB_USERNAME>",
+  "password": "<YOUR_YUGABYTEDB_PASSWORD>", 
+  "schema": "<YOUR_SCHEMA_NAME>",   
+  "sslmode": "<YOUR_SSL_MODE>"            
 }
 ```
+Configuration parameters:
+
+- `host` (required) - Hostname or IP address of your YugabyteDB server.
+- port (optional) - Port number (default: `5433`).
+- database (required) - Name of the database to connect to.
+- user (required) - Username for database authentication.
+- password (required) - Password for database authentication.
+- schema (optional) - Database schema to sync (default: `public`)
+- sslmode (optional) - SSL mode (possible values: `require`, `prefer`, `allow`, `disable`).
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -96,12 +105,12 @@ The connector dynamically replicates all tables found in the specified schema. E
 
 Table schemas are automatically inferred by Fivetran, with primary keys explicitly defined during schema discovery. For tables with an `updated_at` column, incremental syncing is enabled. Tables without this column perform full syncs on each run.
 
-The connector will create destination tables matching all tables found in your YugabyteDB schema. For example, if you have the following tables in your database:
+The connector creates destination tables matching all tables found in your YugabyteDB schema. For example, if you have the following tables in your database:
 
-- `devices` table with primary key `device_id` - Incremental sync enabled via `updated_at` column
-- `sensor_readings` table with primary key `reading_id` - Incremental sync enabled via `updated_at` column
-- `alerts` table with primary key `alert_id` - Incremental sync enabled via `updated_at` column
-- `maintenance_log` table with primary key `maintenance_id` - Incremental sync enabled via `updated_at` column
+- `DEVICES` table with primary key `device_id` - Incremental sync enabled via `updated_at` column
+- `SENSOR_READINGS` table with primary key `reading_id` - Incremental sync enabled via `updated_at` column
+- `ALERTS` table with primary key `alert_id` - Incremental sync enabled via `updated_at` column
+- `MAINTENANCE_LOG ` table with primary key `maintenance_id` - Incremental sync enabled via `updated_at` column
 
 These will be automatically discovered and replicated to your destination with the same table names and their detected primary keys.
 
