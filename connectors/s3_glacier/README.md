@@ -15,10 +15,10 @@ It supports AWS S3 Standard, Infrequent Access, and Glacier-compatible storage c
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-- Operating System:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 - Active **AWS account** with S3 access.
 - Appropriate IAM permissions to call:
     - `s3:ListBucket`
@@ -95,7 +95,7 @@ botocore==1.34.34
 
 ## Authentication
 
-The connector uses **AWS IAM credentials** for authentication. The credentials are read from the `configuration.json` file and used to initialize a `boto3` session.
+The connector uses AWS IAM credentials for authentication. The credentials are read from the `configuration.json` file and used to initialize a `boto3` session.
 
 It uses the following authentication flow:
 ```python
@@ -202,11 +202,10 @@ This connector replicates S3 object metadata into a single table named `s3_objec
 
 ## Additional considerations
 
-- The connector can be extended to include:
-    - Versioning support for S3 buckets with multiple object versions.
-    - Object deletion capture when versioning is enabled.
-    - Automatic Glacier restore initiation.
+- Versioning support - Can be extended to handle S3 buckets with multiple object versions.
+- Object deletion capture - Can capture deletions when versioning is enabled.
+- Automatic Glacier restore initiation - Can automatically initiate restores for Glacier objects.
 - Incremental syncs ensure efficiency for large datasets.
-- Designed for both **S3 Standard** and **Glacier** storage tiers.
+- Designed for both S3 Standard and Glacier storage tiers.
 
 For assistance, please contact **Fivetran Support**.
