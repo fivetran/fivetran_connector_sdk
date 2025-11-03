@@ -4,7 +4,7 @@
 This connector syncs user data, group information, notes, and bookmarks from Egnyte cloud storage platform. The connector fetches data from four primary endpoints: `/users` for user account information, `/groups` for team and permission groups, `/notes` for file and folder annotations, and `/bookmarks` for saved file shortcuts. Data is synchronized using OAuth2 authentication with automatic token refresh and supports both initial full syncs and incremental updates.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -27,32 +27,32 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_token": "<YOUR_EGNYTE_API_TOKEN>",
   "domain": "<YOUR_EGNYTE_DOMAIN>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_users": "<ENABLE_USERS>",
-  "enable_groups": "<ENABLE_GROUPS>",
-  "enable_notes": "<ENABLE_NOTES>",
-  "enable_bookmarks": "<ENABLE_BOOKMARKS>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_users": "<YOUR_ENABLE_USERS>",
+  "enable_groups": "<YOUR_ENABLE_GROUPS>",
+  "enable_notes": "<YOUR_ENABLE_NOTES>",
+  "enable_bookmarks": "<YOUR_ENABLE_BOOKMARKS>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```
 
 ### Configuration parameters
 - `api_token` (required): OAuth2 access token for Egnyte API authentication
 - `domain` (required): Your Egnyte domain name (e.g., "companyname" for companyname.egnyte.com)
-- `sync_frequency_hours`: Hours between sync runs (default: 4)
-- `initial_sync_days`: Days of historical data to sync initially (default: 90)
-- `max_records_per_page`: Records per API request page (1-1000, default: 100)
-- `request_timeout_seconds`: HTTP request timeout in seconds (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_users`: Enable user data synchronization (default: true)
-- `enable_groups`: Enable group data synchronization (default: true)
-- `enable_notes`: Enable notes data synchronization (default: true)
-- `enable_bookmarks`: Enable bookmarks data synchronization (default: true)
-- `enable_debug_logging`: Enable detailed debug logs (default: false)
+- `sync_frequency_hours` (optional): Hours between sync runs (default: 4)
+- `initial_sync_days` (optional): Days of historical data to sync initially (default: 90)
+- `max_records_per_page` (optional): Records per API request page (1-1000, default: 100)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_users` (optional): Enable user data synchronization (default: true)
+- `enable_groups` (optional): Enable group data synchronization (default: true)
+- `enable_notes` (optional): Enable notes data synchronization (default: true)
+- `enable_bookmarks` (optional): Enable bookmarks data synchronization (default: true)
+- `enable_debug_logging` (optional): Enable detailed debug logs (default: false)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -93,14 +93,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | BOOKMARKS | `id` | Saved file and folder shortcuts with creator details |
 
 Column types are automatically inferred by Fivetran. Sample columns include `username`, `email`, `first_name`, `last_name`, `role`, `active`, `display_name`, `member_count`, `path`, `note_text`, `author`, `creator`, `created_date`, and `modified_date`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Egnyte API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 
 ## Additional considerations
