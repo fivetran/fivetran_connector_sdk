@@ -4,7 +4,7 @@
 This connector syncs orders, payments, settlements, and refunds data from Razorpay's payment gateway API. It provides comprehensive financial transaction data for businesses using Razorpay for payment processing, enabling detailed analysis of payment flows, settlement patterns, and refund management.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -26,26 +26,26 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_key": "<YOUR_RAZORPAY_API_KEY>",
   "api_secret": "<YOUR_RAZORPAY_API_SECRET>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```
 
 ### Configuration parameters
-- `api_key`: Your Razorpay API key (required)
-- `api_secret`: Your Razorpay API secret (required)
-- `sync_frequency_hours`: How often to sync data in hours (default: 4)
-- `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
-- `max_records_per_page`: Records per API page (1-100, default: 100)
-- `request_timeout_seconds`: API request timeout (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable incremental sync with timestamps (default: true)
-- `enable_debug_logging`: Enable detailed debug logging (default: false)
+- `api_key` (required): Your Razorpay API key (required)
+- `api_secret` (required): Your Razorpay API secret (required)
+- `sync_frequency_hours` (optional): How often to sync data in hours (default: 4)
+- `initial_sync_days` (optional): Days of historical data to fetch on first sync (default: 90)
+- `max_records_per_page` (optional): Records per API page (1-100, default: 100)
+- `request_timeout_seconds` (optional): API request timeout (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_incremental_sync` (optional): Enable incremental sync with timestamps (default: true)
+- `enable_debug_logging` (optional): Enable detailed debug logging (default: false)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -84,14 +84,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | REFUNDS | `id` | Refund records linked to payments with amounts and status |
 
 Column types are automatically inferred by Fivetran. Sample columns include `amount`, `currency`, `status`, `created_at`, `method`, `email`, `contact`, `notes`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Razorpay API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 
 ## Additional considerations
