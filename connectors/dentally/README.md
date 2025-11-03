@@ -44,21 +44,21 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```
 
 **Configuration parameters:**
-- `client_id`: OAuth2 client ID from Dentally Developer Portal
-- `client_secret`: OAuth2 client secret from Dentally Developer Portal
-- `access_token`: OAuth2 access token for API authentication
-- `refresh_token`: OAuth2 refresh token for automatic token renewal
-- `use_sandbox`: Set to "true" for sandbox environment testing
-- `sync_frequency_hours`: How often to run sync (not used by connector logic)
-- `initial_sync_days`: Number of days to sync for initial historical data
-- `max_records_per_page`: Number of records per API request (1-100)
-- `request_timeout_seconds`: HTTP request timeout in seconds
-- `retry_attempts`: Number of retry attempts for failed requests
-- `enable_incremental_sync`: Enable timestamp-based incremental synchronization
-- `enable_rooms_sync`: Enable syncing of treatment room data
-- `enable_sites_sync`: Enable syncing of practice site data
-- `enable_treatments_sync`: Enable syncing of treatment procedure data
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
+- `client_id` (required): OAuth2 client ID from Dentally Developer Portal
+- `client_secret` (required): OAuth2 client secret from Dentally Developer Portal
+- `access_token` (required): OAuth2 access token for API authentication
+- `refresh_token` (required): OAuth2 refresh token for automatic token renewal
+- `use_sandbox` (optional): Set to "true" for sandbox environment testing
+- `sync_frequency_hours` (optional): How often to run sync (not used by connector logic)
+- `initial_sync_days` (optional): Number of days to sync for initial historical data
+- `max_records_per_page` (optional): Number of records per API request (1-100)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds
+- `retry_attempts` (optional): Number of retry attempts for failed requests
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization
+- `enable_rooms_sync` (optional): Enable syncing of treatment room data
+- `enable_sites_sync` (optional): Enable syncing of practice site data
+- `enable_treatments_sync` (optional): Enable syncing of treatment procedure data
+- `enable_debug_logging` (optional): Enable detailed logging for troubleshooting
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -90,21 +90,13 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - Parameter validation with descriptive error messages provides clear guidance for fixing setup issues
 
 ## Tables created
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| ROOMS | `id` | Treatment rooms and operatories in dental practices |
-| SITES | `id` | Dental practice locations and clinic information |
-| TREATMENTS | `id` | Dental procedures and treatment definitions |
+| Table | Primary Key | Description | Columns |
+|-------|-------------|-------------|---------|
+| ROOMS | `id` | Treatment rooms and operatories in dental practices | `id`, `name`, `room_number`, `equipment_type`, `site_id`, `status`, `created_at`, `updated_at`, `timestamp` |
+| SITES | `id` | Dental practice locations and clinic information | `id`, `name`, `address`, `phone`, `email`, `timezone`, `created_at`, `updated_at`, `timestamp` |
+| TREATMENTS | `id` | Dental procedures and treatment definitions | `id`, `name`, `code`, `category`, `description`, `default_fee`, `duration_minutes`, `created_at`, `updated_at`, `timestamp` |
 
-Column types are automatically inferred by Fivetran. Sample columns include `name`, `room_number`, `equipment_type`, `address`, `phone`, `email`, `treatment_code`, `category`, `default_fee`, `duration_minutes`, `created_at`, `updated_at`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Dentally API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
+Column types are automatically inferred by Fivetran. All tables include `created_at`, `updated_at`, and `timestamp` fields for tracking record creation, updates, and sync timestamps.
 
 
 ## Additional considerations
