@@ -46,8 +46,8 @@ The connector requires the following configuration parameters:
 ```
 
 Configuration parameters:
-- `dgraph_url` (required) - The base URL of your Dgraph instance (e.g., `http://localhost:8080` or `https://your-instance.dgraph.io`). Must start with `http://` or `https://`
-- `api_key` (required) - Authentication token for accessing the Dgraph API
+- `dgraph_url` (required) - The base URL of your Dgraph instance (e.g., `http://localhost:8080` or `https://your-instance.dgraph.io`). Must start with `http://` or `https://`.
+- `api_key` (required) - Authentication token for accessing the Dgraph API.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -62,9 +62,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 This connector uses API key authentication via the `X-Auth-Token` HTTP header. The authentication token is passed with every GraphQL request to both the `/graphql` and `/admin` endpoints.
 
 Configuration:
-1. Obtain an API key or auth token from your Dgraph instance
-2. Add the token to the `api_key` field in your `configuration.json` file
-3. The connector automatically handles authentication in all GraphQL requests
+1. Obtain an API key or auth token from your Dgraph instance.
+2. Add the token to the `api_key` field in your `configuration.json` file.
+3. The connector automatically handles authentication in all GraphQL requests.
 
 For local testing with Docker, authentication may be disabled by default in your Dgraph instance.
 
@@ -86,15 +86,15 @@ This approach prevents memory overflow when syncing large datasets and ensures r
 The connector implements true incremental sync with per-table state management. Refer to the `update` function and individual sync functions:
 
 Sync operations:
-1. **Schema Metadata Sync** (`sync_schema_metadata`) - Extracts GraphQL type definitions from admin API, performs full sync each time (small dataset)
-2. **Categories Sync** (`sync_categories`) - Syncs product categories with incremental filter on updatedAt field
-3. **Attributes Sync** (`sync_attributes`) - Syncs product attributes with incremental filter on updatedAt field
-4. **Products Sync** (`sync_products`) - Syncs products with relationships, using incremental filter on updatedAt field
-5. **Reviews Sync** (`sync_reviews`) - Syncs customer reviews with incremental filter on createdAt field
+1. Schema metadata sync (`sync_schema_metadata`) - Extracts GraphQL type definitions from admin API, performs full sync each time (small dataset)
+2. Categories sync (`sync_categories`) - Syncs product categories with incremental filter on `updatedAt` field
+3. Attributes sync (`sync_attributes`) - Syncs product attributes with incremental filter on `updatedAt` field
+4. Products sync (`sync_products`) - Syncs products with relationships, using incremental filter on `updatedAt` field
+5. Reviews sync (`sync_reviews`) - Syncs customer reviews with incremental filter on `createdAt` field
 
 Graph structure preservation:
 - All relationships are captured in a separate `relationships` table via the `create_edge_record` function
-- Edge types include: BELONGS_TO_CATEGORY, RELATED_TO, HAS_ATTRIBUTE, REVIEWS_PRODUCT, WRITTEN_BY_USER, HAS_PARENT
+- Edge types include: `BELONGS_TO_CATEGORY`, `RELATED_TO`, `HAS_ATTRIBUTE`, `REVIEWS_PRODUCT`, `WRITTEN_BY_USER`, `HAS_PARENT`
 - Each edge has a composite ID: `{source_id}_{relationship_type}_{target_id}`
 - This enables graph reconstruction and relationship analysis in SQL
 
@@ -109,12 +109,12 @@ Data transformation:
 The connector implements comprehensive error handling with retry logic. Refer to the `execute_graphql_query` function.
 
 Error handling strategies:
-- **Authentication errors (401, 403)**: Fail immediately without retry, log as severe error
-- **Bad requests (400)**: Fail immediately with detailed error message, no retry
-- **Server errors (5xx)**: Retry up to 5 times with exponential backoff (base 2 seconds, max 60 seconds)
-- **Network errors (timeout, connection)**: Retry with exponential backoff, configurable timeout (30 seconds default)
-- **GraphQL errors**: Log warnings but continue processing if data is present
-- **Unexpected exceptions**: Log severe error and re-raise with context
+- Authentication errors (401, 403): Fail immediately without retry, log as severe error
+- Bad requests (400): Fail immediately with detailed error message, no retry
+- Server errors (5xx): Retry up to 5 times with exponential backoff (base 2 seconds, max 60 seconds)
+- Network errors (timeout, connection): Retry with exponential backoff, configurable timeout (30 seconds default)
+- GraphQL errors: Log warnings but continue processing if data is present
+- Unexpected exceptions: Log severe error and re-raise with context
 
 Configuration validation (`validate_configuration`):
 - Ensures required fields (dgraph_url, api_key) are present
@@ -129,16 +129,16 @@ The connector creates the following tables in the destination warehouse:
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| `products` | `product_id` | Product catalog with SKU, name, price, and inventory status |
-| `categories` | `category_id` | Product categories with hierarchical parent relationships |
-| `attributes` | `attribute_id` | Product attributes for faceted search (brand, size, color, specs) |
-| `reviews` | `review_id` | Customer reviews with ratings and comments |
-| `relationships` | `edge_id` | Graph edges preserving all product relationships and recommendations |
-| `schema_metadata` | `type_name` | GraphQL schema type definitions with field counts |
+| `PRODUCTS` | `product_id` | Product catalog with SKU, name, price, and inventory status. |
+| `CATEGORIES` | `category_id` | Product categories with hierarchical parent relationships. |
+| `ATTRIBUTES` | `attribute_id` | Product attributes for faceted search (brand, size, color, specs). |
+| `REVIEWS` | `review_id` | Customer reviews with ratings and comments. |
+| `RELATIONSHIPS` | `edge_id` | Graph edges preserving all product relationships and recommendations. |
+| `SCHEMA_METADATA` | `type_name` | GraphQL schema type definitions with field counts. |
 
 ### Detailed column schemas
 
-#### products
+#### PRODUCTS
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -155,7 +155,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### categories
+#### CATEGORIES
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -167,7 +167,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### attributes
+#### ATTRIBUTES
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -179,7 +179,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### reviews
+#### REVIEWS
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -192,7 +192,7 @@ The connector creates the following tables in the destination warehouse:
 | `created_at` | UTC_DATETIME | Review creation timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### relationships
+#### RELATIONSHIPS
 
 This table preserves the graph structure by storing all edges/relationships between entities.
 
@@ -203,18 +203,18 @@ This table preserves the graph structure by storing all edges/relationships betw
 | `source_type` | STRING | Source node type (Product, Category, Review, etc.) |
 | `target_id` | STRING | Target node ID |
 | `target_type` | STRING | Target node type (Product, Category, Attribute, User, etc.) |
-| `relationship_type` | STRING | Relationship type (BELONGS_TO_CATEGORY, RELATED_TO, HAS_ATTRIBUTE, REVIEWS_PRODUCT, WRITTEN_BY_USER, HAS_PARENT) |
+| `relationship_type` | STRING | Relationship type (`BELONGS_TO_CATEGORY`, `RELATED_TO`, `HAS_ATTRIBUTE`, `REVIEWS_PRODUCT`, `WRITTEN_BY_USER`, `HAS_PARENT`) |
 | `created_at` | UTC_DATETIME | Edge creation timestamp |
 
 Example relationship types:
-- `BELONGS_TO_CATEGORY`: Product → Category
-- `RELATED_TO`: Product → Product (recommendations)
-- `HAS_ATTRIBUTE`: Product → Attribute
-- `REVIEWS_PRODUCT`: Review → Product
-- `WRITTEN_BY_USER`: Review → User
-- `HAS_PARENT`: Category → Category (hierarchy)
+- `BELONGS_TO_CATEGORY`: Product > Category
+- `RELATED_TO`: Product > Product (recommendations)
+- `HAS_ATTRIBUTE`: Product > Attribute
+- `REVIEWS_PRODUCT`: Review > Product
+- `WRITTEN_BY_USER`: Review > User
+- `HAS_PARENT`: Category > Category (hierarchy)
 
-#### schema_metadata
+#### SCHEMA_METADATA
 
 | Column | Type | Description |
 |--------|------|-------------|
