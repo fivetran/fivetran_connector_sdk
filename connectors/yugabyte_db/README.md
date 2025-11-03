@@ -50,7 +50,7 @@ Configuration parameters:
 - `database` (required) - Name of the database to connect to.
 - `user` (required) - Username for database authentication.
 - `password` (required) - Password for database authentication.
-- `schema` (optional) - Database schema to sync (default: `public`)
+- `schema` (optional) - Database schema to sync (default: `public`).
 - `sslmode` (optional) - SSL mode (possible values: `require`, `prefer`, `allow`, `disable`).
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
