@@ -2,13 +2,13 @@
 
 ## Connector overview
 
-This connector syncs projects, project resources, and teams data from Deltek ConceptShare API into your destination warehouse. The connector fetches comprehensive project management data including project details, associated resources (files, images, documents), and team information to provide complete visibility into your ConceptShare workspace.
+This connector syncs projects, project resources, and teams data from Deltek ConceptShare API into your destination. The connector fetches comprehensive project management data including project details, associated resources (files, images, documents), and team information to provide complete visibility into your ConceptShare workspace.
 
 The connector supports incremental synchronization using timestamp-based cursors, memory-efficient streaming for large datasets, and comprehensive error handling with automatic retry logic. It implements three main data endpoints: projects (with metadata, status, and ownership), project resources (files and assets), and teams (with member information and privacy settings).
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -21,11 +21,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs projects, project resources, and teams data from Deltek ConceptShare API
-- Bearer token authentication with secure credential handling (refer to `execute_api_request` function)
-- Offset-based pagination with automatic page traversal (refer to `get_projects`, `get_project_resources`, and `get_teams` functions)
+- Bearer token authentication with secure credential handling (refer to the `execute_api_request` function)
+- Offset-based pagination with automatic page traversal (refer to the `get_projects`, `get_project_resources`, and `get_teams` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets using generator patterns
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
-- Comprehensive error handling with exponential backoff retry logic (refer to `__handle_rate_limit` and `__handle_request_error` functions)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
+- Comprehensive error handling with exponential backoff retry logic (refer to the `__handle_rate_limit` and `__handle_request_error` functions)
 - Configurable sync parameters including page size, timeout settings, and retry attempts
 - Three dedicated data endpoints with specialized field mapping for each data type
 
@@ -48,14 +48,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ### Configuration parameters
 
 - `api_key` (required): Bearer token for authenticating with Deltek ConceptShare API
-- `base_url` (optional): API base URL, defaults to https://api.conceptshare.com/v1
-- `sync_frequency_hours` (optional): How often to run sync, defaults to 4 hours
-- `initial_sync_days` (optional): Historical data range for initial sync, defaults to 90 days
-- `max_records_per_page` (optional): Page size for API requests, defaults to 100 (range: 1-1000)
-- `request_timeout_seconds` (optional): HTTP request timeout, defaults to 30 seconds
-- `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to 3
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync, defaults to true
-- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to false
+- `base_url` (optional): API base URL, defaults to `https://api.conceptshare.com/v1`
+- `sync_frequency_hours` (optional): How often to run sync expressed in hours, defaults to `4`.
+- `initial_sync_days` (optional): Historical date range for the initial sync expressed in days, defaults to `90`.
+- `max_records_per_page` (optional): Page size for API requests, defaults to `100` (range: 1-1000)
+- `request_timeout_seconds` (optional): HTTP request timeout expressed in seconds, defaults to `30`.
+- `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to `3`.
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync, defaults to `true`.
+- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to `false`.
 
 ## Requirements file
 
@@ -66,9 +66,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 
 1. Log in to the [Deltek ConceptShare Developer Portal](https://api.conceptshare.com/v1).
-2. Navigate to API Settings or Developer section in your account settings.
+2. Navigate to **API Settings** or **Developer** section in your account settings.
 3. Generate a new API key or access token for your application.
-4. Make a note of the `api_key` (Bearer token) from your API settings.
+4. Make a note of the `api_key` (bearer token) from your API settings.
 5. Ensure your account has appropriate permissions to access projects, resources, and teams data.
 6. Use sandbox credentials for testing, production credentials for live syncing.
 
@@ -76,11 +76,11 @@ Note: The connector automatically handles Bearer token authentication. Credentia
 
 ## Pagination
 
-Offset-based pagination with automatic page traversal (refer to `get_projects`, `get_project_resources`, and `get_teams` functions). Generator-based processing prevents memory accumulation for large datasets. The connector processes pages sequentially while yielding individual records for immediate processing, automatically handling pagination until all data is retrieved.
+Offset-based pagination with automatic page traversal (refer to the `get_projects`, `get_project_resources`, and `get_teams` functions). Generator-based processing prevents memory accumulation for large datasets. The connector processes pages sequentially while yielding individual records for immediate processing, automatically handling pagination until all data is retrieved.
 
 ## Data handling
 
-Project, resource, and team data is mapped from Deltek ConceptShare's API format to normalized database columns (refer to the `__map_project_data`, `__map_project_resource_data`, and `__map_team_data` functions). Nested objects are flattened where appropriate, and all timestamps are converted to UTC format for consistency.
+Project, resource, and team data is mapped from the Deltek ConceptShare API format to normalized database columns (refer to the `__map_project_data`, `__map_project_resource_data`, and `__map_team_data` functions). Nested objects are flattened where appropriate, and all timestamps are converted to UTC format for consistency.
 
 Supports timestamp-based incremental synchronization using the `last_sync_time` state parameter (refer to the `get_time_range` function). Initial sync can be configured to fetch historical data up to 365 days. The connector uses memory-efficient streaming patterns to handle large datasets without memory accumulation issues.
 
@@ -95,28 +95,13 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| PROJECTS | `id` | Project information including metadata, status, and ownership |
-| PROJECT_RESOURCES | `id` | Files, images, and documents associated with projects |
-| TEAMS | `id` | Team information with member details and privacy settings |
+| Table | Primary Key | Description | Sample Columns |
+|-------|-------------|-------------|-------------|
+| `PROJECTS` | `id` | Project information including metadata, status, and ownership. | `id`, `name`, `description`, `status`, `created_date`, `modified_date`, `owner_id`, `owner_name`, `project_type`, `privacy_level`, `due_date`, `archived`, `synced_at` |
+| `PROJECT_RESOURCES` | `id` | Files, images, and documents associated with projects. | `id`, `project_id`, `resource_type`, `resource_name`, `file_name`, `file_size`, `version`, `uploaded_date`, `uploaded_by`, `status`, `url`, `mime_type`, `synced_at` |
+| `TEAMS` | `id` | Team information with member details and privacy settings. | `id`, `name`, `description`, `created_date`, `modified_date`, `owner_id`, `owner_name`, `member_count`, `privacy_level`, `synced_at` |
 
-Column types are automatically inferred by Fivetran. Sample columns include:
-
-**PROJECTS**: `id`, `name`, `description`, `status`, `created_date`, `modified_date`, `owner_id`, `owner_name`, `project_type`, `privacy_level`, `due_date`, `archived`, `synced_at`
-
-**PROJECT_RESOURCES**: `id`, `project_id`, `resource_type`, `resource_name`, `file_name`, `file_size`, `version`, `uploaded_date`, `uploaded_by`, `status`, `url`, `mime_type`, `synced_at`
-
-**TEAMS**: `id`, `name`, `description`, `created_date`, `modified_date`, `owner_id`, `owner_name`, `member_count`, `privacy_level`, `synced_at`
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Deltek ConceptShare API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
+Note: Column types are automatically inferred by Fivetran.
 
 ## Additional considerations
 
