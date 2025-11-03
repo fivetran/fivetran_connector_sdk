@@ -155,13 +155,6 @@ Sample columns include: `company_id`, `employee_id`, `pay_period_start`, `pay_pe
 
 Note: Column types are automatically inferred by Fivetran core based on the data types in the API responses. This approach reduces maintenance overhead and automatically adapts to API changes.
 
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Paylocity API integration and connector requirements including faker for mock testing, if required.
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 ## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
