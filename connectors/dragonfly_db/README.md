@@ -27,7 +27,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - High-performance data extraction leveraging DragonflyDB's multi-threaded architecture
 - Configurable key pattern filtering for targeted data extraction
 - Captures comprehensive metadata including TTL, data type, size, and timestamps
-- Implements cursor-based pagination using SCAN for memory-efficient processing
+- Implements cursor-based pagination using `SCAN` for memory-efficient processing
 - Resumable syncs with state management and checkpointing every 1000 records
 - Multi-database support for database numbers 0-15
 - SSL/TLS connection support for secure communication
@@ -130,7 +130,7 @@ SSL/TLS configuration:
 The connector implements the `SCAN` command for efficient, non-blocking key iteration (refer to the `scan_keys` function in [connector.py](connector.py)):
 
 - Uses cursor-based iteration starting from cursor position 0
-- Processes keys in configurable batches (default: 100 keys per SCAN operation)
+- Processes keys in configurable batches (default: 100 keys per `SCAN` operation)
 - Returns next cursor position for resuming iteration
 - Cursor = 0 indicates scan completion
 - Implements checkpointing every 1000 keys in the `sync_dragonfly_data` function
