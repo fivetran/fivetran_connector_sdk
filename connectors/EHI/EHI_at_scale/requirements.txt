@@ -1,5 +1,2 @@
-snowflake-connector-python>=3.5.0
-cryptography>=41.0.0
-pytds>=1.9.2
-psutil>=5.9.0
-python_tds==1.16.1
+pytds==1.9.2
+psutil==5.9.0
