@@ -53,29 +53,6 @@ __REAUTH_RETRY_COUNT = 1
 # --- End Configuration ---
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required
-    parameters.
-    This function is called at the start of the update method to ensure that
-    the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings
-                       for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-
-    # Define required configuration keys
-    required_configs = ["api_key", "api_secret"]
-
-    # Check for missing keys or empty values
-    for key in required_configs:
-        value = configuration.get(key)
-        if not value:
-            raise ValueError(f"Missing required configuration value: {key}")
-
-
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
     Define the schema function which configures
@@ -346,7 +323,6 @@ def update(configuration: dict, state: dict):
     It authenticates, then syncs the base 'activity' table
     and only the 'participants' activity type.
     """
-    validate_configuration(configuration)
 
     # Define a closure function for re-authentication to pass to sync functions
     api_key = configuration["api_key"]
