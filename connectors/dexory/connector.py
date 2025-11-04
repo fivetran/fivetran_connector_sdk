@@ -228,7 +228,14 @@ def _sync_locations_pages(
 
         # Fetch the current page (first page when next_url is None)
         response_data = fetch_locations_with_retry(
-            site_name, api_key, page_size, base_url, customer, next_url, __MAX_RETRIES, base_retry_delay
+            site_name,
+            api_key,
+            page_size,
+            base_url,
+            customer,
+            next_url,
+            __MAX_RETRIES,
+            base_retry_delay,
         )
 
         # Process locations from current page
