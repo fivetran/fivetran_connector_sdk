@@ -1,7 +1,7 @@
 # Egnyte API Connector Example
 
 ## Connector overview
-This connector syncs user data, group information, notes, and bookmarks from Egnyte cloud storage platform. The connector fetches data from four primary endpoints: `/users` for user account information, `/groups` for team and permission groups, `/notes` for file and folder annotations, and `/bookmarks` for saved file shortcuts. Data is synchronized using OAuth2 authentication with automatic token refresh and supports both initial full syncs and incremental updates.
+This connector syncs user data, group information, notes, and bookmarks from the Egnyte cloud storage platform. The connector fetches data from four primary endpoints: `/users` for user account information, `/groups` for team and permission groups, `/notes` for file and folder annotations, and `/bookmarks` for saved file shortcuts. Data is synchronized using OAuth2 authentication with automatic token refresh and supports both initial full syncs and incremental updates.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
@@ -83,7 +83,7 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 ## Tables created
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| USERS | `id` | User account information including roles and authentication details |
+| USERS | `id` | User account information, including roles and authentication details |
 | GROUPS | `id` | Team and permission groups with member counts |
 | NOTES | `id` | File and folder annotations with author and timestamp information |
 | BOOKMARKS | `id` | Saved file and folder shortcuts with creator details |
