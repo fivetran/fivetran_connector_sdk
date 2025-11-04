@@ -6,7 +6,6 @@ It is an example of multithreading the extraction of data from the source to imp
 Multithreading helps to make api calls in parallel to pull data faster.
 It is also an example of using OAuth 2.0 client credentials flow.
 Requires Accelo OAuth credentials to be passed in to work.
-
 Refer to the Multithreading Guidelines in api_threading_utils.py
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
@@ -180,7 +179,6 @@ def sync_entity(
         max_date_value = last_sync_unix
 
         def fetch_page(page):
-            nonlocal entities_received, max_date_value
             current_params = params.copy()
             current_params["_page"] = page
             try:
