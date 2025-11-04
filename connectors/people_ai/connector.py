@@ -39,7 +39,7 @@ import requests
 # Import Callable for reauth
 import Callable
 
-# Import Optional to annotate variables 
+# Import Optional to annotate variables
 # or return types that can be None
 import Optional
 
@@ -62,10 +62,10 @@ __REAUTH_RETRY_COUNT = 1
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
-    Define the schema function which lets you configure the schema 
+    Define the schema function which lets you configure the schema
     your connector delivers.
-    See the technical reference documentation 
-    for more details on the schema function: 
+    See the technical reference documentation
+    for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     """
     return [
@@ -82,7 +82,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 
 # The 'update' function will now need to pass a reauth function to get_page
 def get_page(
-    : str,
+    access_token: str,
     reauth_func: Callable[[], str],  # Added reauth function for 401 handling
     activity_type: Optional[str] = None,  # Made optional for base endpoint
     limit: int = 50,
@@ -316,8 +316,8 @@ def get_access_token(api_key: str, api_secret: str) -> str:
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure how your connector fetches data. 
-    See the technical reference documentation for more details on the update function: 
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     """
 
@@ -373,7 +373,7 @@ def update(configuration: dict, state: dict):
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-if name == "main":'
+if name == "main":
     try:
         with open("configuration.json", "r") as f:
             configuration = json.load(f)
