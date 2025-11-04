@@ -20,7 +20,7 @@ FEATURES:
 - Follows Fivetran best practices
 
 UPGRADE PATH FOR THE ENTERPRISE:
-This simple connector can be enhanced* with the following optimizations from {Git_Repo}/EHI_at_scale/connector.py:
+This simple connector can be enhanced* with the following optimizations from EHI_at_scale/connector.py:
 1. Adaptive Processing: Automatically adjust batch sizes based on table size
 2. Resource Monitoring: Monitor CPU/memory usage and adjust processing
 3. Connection Management: Handle timeouts and deadlocks gracefully
@@ -51,13 +51,10 @@ import pytds
 # For timestamp handling and timezone-aware operations
 from datetime import datetime, timezone
 
-# For type annotations in function signatures
-from typing import Dict, List, Any
-
-# Configuration constants
-BATCH_SIZE = 1000  # Process 1000 records at a time
-CHECKPOINT_INTERVAL = 5000  # Checkpoint every 5000 records
-MAX_TABLES = 10  # Limit to 10 tables for demonstration
+# Private constants - following Fivetran naming standards
+__BATCH_SIZE = 1000  # Process 1000 records at a time
+__CHECKPOINT_INTERVAL = 5000  # Checkpoint every 5000 records
+__MAX_TABLES = 10  # Limit to 10 tables for demonstration
 
 # UPGRADE TIP: For enterprise use, implement adaptive batch sizing:
 # SMALL_TABLE_THRESHOLD = 1000000  # 1M rows
@@ -70,7 +67,7 @@ MAX_TABLES = 10  # Limit to 10 tables for demonstration
 #     else:
 #         return 1000  # 1K for large tables
 
-def validate_configuration(configuration: dict):
+def _validate_configuration(configuration: dict) -> None:
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
     
@@ -81,18 +78,18 @@ def validate_configuration(configuration: dict):
         ValueError: If any required configuration parameter is missing.
     """
     required_configs = [
-        "MSSQL_SERVER", 
-        "MSSQL_DATABASE", 
-        "MSSQL_USER", 
-        "MSSQL_PASSWORD", 
-        "MSSQL_PORT"
+        "mssql_server", 
+        "mssql_database", 
+        "mssql_user", 
+        "mssql_password", 
+        "mssql_port"
     ]
     
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-def connect_to_mssql(configuration: dict):
+def _connect_to_mssql(configuration: dict):
     """
     Connect to Microsoft SQL Server using pytds.
     
@@ -113,20 +110,20 @@ def connect_to_mssql(configuration: dict):
     """
     try:
         conn = pytds.connect(
-            server=configuration["MSSQL_SERVER"],
-            database=configuration["MSSQL_DATABASE"],
-            user=configuration["MSSQL_USER"],
-            password=configuration["MSSQL_PASSWORD"],
-            port=int(configuration["MSSQL_PORT"]),
+            server=configuration["mssql_server"],
+            database=configuration["mssql_database"],
+            user=configuration["mssql_user"],
+            password=configuration["mssql_password"],
+            port=int(configuration["mssql_port"]),
             validate_host=False
         )
-        log.info(f"Successfully connected to MSSQL database: {configuration['MSSQL_DATABASE']}")
+        log.info(f"Successfully connected to MSSQL database: {configuration['mssql_database']}")
         return conn
     except Exception as e:
         log.severe(f"Failed to connect to MSSQL: {e}")
         raise
 
-def get_table_list(connection) -> List[str]:
+def _get_table_list(connection) -> list[str]:
     """
     Get list of tables from the database, limited to 10 tables.
     
@@ -180,7 +177,7 @@ def get_table_list(connection) -> List[str]:
         log.severe(f"Failed to get table list: {e}")
         raise
 
-def get_table_schema(connection, table_name: str) -> Dict[str, Any]:
+def _get_table_schema(connection, table_name: str) -> dict[str, str | list[str] | None]:
     """
     Get schema information for a specific table.
     
@@ -243,7 +240,7 @@ def get_table_schema(connection, table_name: str) -> Dict[str, Any]:
         log.warning(f"Failed to get schema for table {table_name}: {e}")
         return {"table": table_name, "primary_key": None, "columns": []}
 
-def get_table_data(connection, table_name: str, last_sync_time: str = None) -> List[Dict[str, Any]]:
+def _get_table_data(connection, table_name: str, last_sync_time: str = None) -> list[dict[str, str | int | float | None]]:
     """
     Get data from a table with optional incremental sync.
     
@@ -310,7 +307,7 @@ def get_table_data(connection, table_name: str, last_sync_time: str = None) -> L
         # Fetch data in batches
         data = []
         while True:
-            rows = cursor.fetchmany(BATCH_SIZE)
+            rows = cursor.fetchmany(__BATCH_SIZE)
             if not rows:
                 break
             
@@ -356,19 +353,19 @@ def schema(configuration: dict):
     log.info("Starting schema discovery...")
     
     # Validate configuration
-    validate_configuration(configuration)
+    _validate_configuration(configuration)
     
     # Connect to database
-    connection = connect_to_mssql(configuration)
+    connection = _connect_to_mssql(configuration)
     
     try:
         # Get list of tables
-        tables = get_table_list(connection)
+        tables = _get_table_list(connection)
         
         # Get schema for each table
         schemas = []
         for table_name in tables:
-            schema_info = get_table_schema(connection, table_name)
+            schema_info = _get_table_schema(connection, table_name)
             if schema_info:
                 schemas.append(schema_info)
         
@@ -400,14 +397,14 @@ def update(configuration: dict, state: dict):
     log.info("Starting data sync...")
     
     # Validate configuration
-    validate_configuration(configuration)
+    _validate_configuration(configuration)
     
     # Connect to database
-    connection = connect_to_mssql(configuration)
+    connection = _connect_to_mssql(configuration)
     
     try:
         # Get list of tables
-        tables = get_table_list(connection)
+        tables = _get_table_list(connection)
         
         # Process each table
         total_records = 0
@@ -419,10 +416,13 @@ def update(configuration: dict, state: dict):
             last_sync_time = state.get(table_name)
             
             # Get table data
-            table_data = get_table_data(connection, table_name, last_sync_time)
+            table_data = _get_table_data(connection, table_name, last_sync_time)
             
             # Process records
             records_processed = 0
+            error_count = 0
+            checkpoint_count = 0
+            
             for record in table_data:
                 try:
                     # Direct operation call without yield - easier to adopt
@@ -433,14 +433,20 @@ def update(configuration: dict, state: dict):
                     records_processed += 1
                     total_records += 1
                     
-                    # Checkpoint every CHECKPOINT_INTERVAL records
-                    if records_processed % CHECKPOINT_INTERVAL == 0:
-                        log.info(f"Checkpointing {table_name} after {records_processed} records")
+                    # Checkpoint every __CHECKPOINT_INTERVAL records
+                    if records_processed % __CHECKPOINT_INTERVAL == 0:
+                        checkpoint_count += 1
                         op.checkpoint(state)
                         
                 except Exception as e:
-                    log.warning(f"Error processing record in table {table_name}: {e}")
+                    error_count += 1
                     continue
+            
+            # Log summary after processing all records (outside the loop)
+            if checkpoint_count > 0:
+                log.info(f"Table {table_name}: {checkpoint_count} checkpoints completed")
+            if error_count > 0:
+                log.warning(f"Table {table_name}: {error_count} records failed to process")
             
             # UPGRADE TIP: For enterprise use, add table-level optimizations:
             # - Get table size and adjust processing strategy
