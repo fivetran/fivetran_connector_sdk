@@ -36,6 +36,13 @@ import time
 # Import requests to make HTTP calls to API
 import requests
 
+# Import Callable for reauth
+import Callable
+
+# Import Optional to annotate variables 
+# or return types that can be None
+import Optional
+
 # Import required classes from fivetran_connector_sdk.
 from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
@@ -55,10 +62,11 @@ __REAUTH_RETRY_COUNT = 1
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
-    Define the schema function which configures
-    the tables delivered by the connector.
-    Updated to only include the base 'activity' table
-    and the 'participants' table.
+    Define the schema function which lets you configure the schema 
+    your connector delivers.
+    See the technical reference documentation 
+    for more details on the schema function: 
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     """
     return [
         {
@@ -75,8 +83,8 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 # The 'update' function will now need to pass a reauth function to get_page
 def get_page(
     access_token: str,
-    reauth_func: callable,  # Added reauth function for 401 handling
-    activity_type: str | None = None,  # Made optional for base endpoint
+    reauth_func: Callable[[], str],  # Added reauth function for 401 handling
+    activity_type: Optional[str] = None,  # Made optional for base endpoint
     limit: int = 50,
     offset: int = 0,
     timeout: int = 30,
@@ -133,7 +141,7 @@ def get_page(
                         continue  # Continue inner loop for another request
                     else:
                         # Max retries reached
-                        log.error(
+                        log.severe(
                             f"Failed to fetch page after {__MAX_RETRIES + 1} "
                             f"due to {status_code} error."
                         )
@@ -141,7 +149,7 @@ def get_page(
 
                 # --- Handle other HTTP errors (e.g., 400, 404) ---
                 else:
-                    log.error(f"Received unrecoverable HTTP error {status_code}")
+                    log.severe(f"Received unrecoverable HTTP error {status_code}")
                     raise e
 
             except requests.exceptions.RequestException as e:
@@ -152,7 +160,7 @@ def get_page(
                     continue
                 else:
                     # Max retries reached
-                    log.error(
+                    log.severe(
                         f"Failed to fetch page after {__MAX_RETRIES + 1} "
                         "retries due to connection issues."
                     )
@@ -170,11 +178,11 @@ def get_page(
                 log.info("Token refreshed successfully. Retrying request.")
                 continue  # Continue outer loop with new token
             except Exception as e:
-                log.error(f"Failed to refresh token: {e}")
+                log.severe(f"Failed to refresh token: {e}")
                 raise e  # If re-auth fails, raise the exception
         else:
             # If 401 and max reauth retries reached
-            log.error(
+            log.severe(
                 f"Authentication failed after {__REAUTH_RETRY_COUNT + 1}"
                 " re-authentication attempts."
             )
@@ -207,7 +215,7 @@ def sync_base_activities(
         except requests.exceptions.HTTPError as e:
             # The retry logic is now inside get_page,
             # so an error here means it failed permanently
-            log.error(f"Permanent failure fetching base activities" f" at offset {offset}: {e}")
+            log.severe(f"Permanent failure fetching base activities" f" at offset {offset}: {e}")
             break
 
         if not page:
@@ -263,7 +271,7 @@ def sync_activity_type(
         except requests.exceptions.HTTPError as e:
             # The retry logic is now inside get_page,
             # so an error here means it failed permanently
-            log.error(f"Permanent failure fetching {activity_type}" f" at offset {offset}: {e}")
+            log.severe(f"Permanent failure fetching {activity_type}" f" at offset {offset}: {e}")
             break
 
         if not page:
@@ -338,7 +346,7 @@ def update(configuration: dict, state: dict):
     try:
         access_token = get_access_token(api_key, api_secret)
     except requests.exceptions.RequestException as e:
-        log.error(f"FATAL: Initial authentication failed: {e}")
+        log.severe(f"FATAL: Initial authentication failed: {e}")
         return  # Stop the sync
 
     total_records_synced = 0
@@ -389,6 +397,6 @@ if __name__ == "__main__":
         connector.debug(configuration=configuration)
 
     except FileNotFoundError:
-        log.error("Error: configuration.json not found. " "Please create it for local testing.")
+        log.severe("Error: configuration.json not found. " "Please create it for local testing.")
     except Exception as e:
-        log.error(f"An unexpected error occurred during debug execution: {e}")
+        log.severe(f"An unexpected error occurred during debug execution: {e}")
