@@ -185,6 +185,7 @@ def get_page(
             raise requests.exceptions.HTTPError(
                 "401 Client Error: Unauthorized (Max re-auth retries reached)"
             )
+    return []
 
 
 def sync_base_activities(
@@ -366,12 +367,13 @@ def update(configuration: dict, state: dict):
     log.info(f"\n--- All tables synced. Total records processed: " f"{total_records_synced} ---")
 
 
-# This creates the connector object
-# that will use the update and schema functions.
-connector = Connector(update=update, schema=schema)
-
+# Create the connector object using the schema and update functions
+# connector = Connector(update=update, schema=schema)
 # Check if the script is being run as the main module.
-if __name__ == "__main__":
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+if name == "main":'
     try:
         with open("configuration.json", "r") as f:
             configuration = json.load(f)
