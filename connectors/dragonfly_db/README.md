@@ -59,7 +59,7 @@ Configuration parameters:
 - `password` (optional) - DragonflyDB authentication password.
 - `database` (optional) - Database number 0-15 (defaults to `0`).
 - `ssl` (optional) - Enable SSL/TLS connection - `true` or `false` (defaults to `false`).
-- `table_name` (optional) - Destination table name (defaults to `DRAFONFLY_DATA`).
+- `table_name` (optional) - Destination table name (defaults to `dragonfly_data`).
 - `key_pattern` (optional) - Pattern to match keys - supports wildcards (defaults to `*` for all keys).
 - `batch_size` (optional) - Number of keys to process per batch (defaults to `100`).
 
