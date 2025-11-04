@@ -120,7 +120,7 @@ The connector implements comprehensive error handling with retry logic and detai
 Configuration validation errors:
 - Missing required fields (`api_key`, `posted_from`, `posted_to`)
 - Invalid date format (must be MM/dd/yyyy)
-- Date range exceeding 1 year
+- Date range exceeding one year
 
 API request errors with specific handling:
 - 401 Unauthorized - Invalid API key
