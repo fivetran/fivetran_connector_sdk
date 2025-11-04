@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-The EHI at Scale MSSQL Connector is an enterprise-grade solution specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. This connector can efficiently handle tables with 1+ billion rows without timeouts, prevents memory overflow through intelligent resource management, and provides comprehensive visibility into sync progress and performance.
+The EHI at Scale MSSQL Connector is an enterprise-grade solution specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. This connector can efficiently handle tables, prevents memory overflow through intelligent resource management, and provides comprehensive visibility into sync progress and performance.
 
 The connector automatically categorizes tables by size (small/medium/large) and applies different processing strategies for optimal performance. It includes advanced features like deadlock detection, automatic timeout recovery, resource monitoring with psutil, and multi-threaded processing with intelligent queue management.
 
