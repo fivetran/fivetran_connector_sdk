@@ -21,11 +21,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs vault accounts and cryptocurrency wallet data from Fireblocks API
-- Bearer token authentication with configurable API endpoints (refer to `execute_api_request` function)
-- Cursor-based pagination with automatic page traversal (refer to `get_vault_accounts` and `get_vault_wallets` functions)
+- Bearer token authentication with configurable API endpoints (see the `execute_api_request` function)
+- Cursor-based pagination with automatic page traversal (see the `get_vault_accounts` and `get_vault_wallets` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
-- Comprehensive error handling with exponential backoff retry logic (refer to `__handle_rate_limit` and `__handle_request_error` functions)
+- Incremental synchronization using timestamp-based cursors (see the `get_time_range` function)
+- Comprehensive error handling with exponential backoff retry logic (see the `__handle_rate_limit` and `__handle_request_error` functions)
 - Configurable batch sizes, timeouts, and retry attempts for optimal performance
 - Support for both vault accounts and vault wallets data synchronization
 
@@ -40,21 +40,19 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_vault_wallets": "<ENABLE_VAULT_WALLETS>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_vault_wallets": "<ENABLE_VAULT_WALLETS>"
 }
 ```
 
-**Configuration Parameters:**
-- `api_key`: Bearer token for Fireblocks API authentication
-- `sync_frequency_hours`: How often to run incremental syncs
-- `initial_sync_days`: Number of days of historical data to fetch on first sync
-- `max_records_per_page`: Batch size for API requests (1-1000)
-- `request_timeout_seconds`: HTTP request timeout in seconds
-- `retry_attempts`: Number of retry attempts for failed requests
-- `enable_incremental_sync`: Enable cursor-based incremental synchronization
-- `enable_vault_wallets`: Include vault wallets data in synchronization
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
+### Configuration Parameters
+- `api_key` (required): Bearer token for Fireblocks API authentication
+- `sync_frequency_hours` (optional): How often to run incremental syncs
+- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync
+- `max_records_per_page` (optional): Batch size for API requests (1-1000)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds
+- `retry_attempts` (optional): Number of retry attempts for failed requests
+- `enable_incremental_sync` (optional): Enable cursor-based incremental synchronization
+- `enable_vault_wallets` (optional): Include vault wallets data in synchronization
 
 ## Requirements file
 
@@ -74,20 +72,20 @@ Note: The connector uses Bearer token authentication with automatic retry handli
 
 ## Pagination
 
-Cursor-based pagination with automatic page traversal (refer to `get_vault_accounts` and `get_vault_wallets` functions). Generator-based processing prevents memory accumulation for large vault account and wallet datasets. Processes pages sequentially while yielding individual records for immediate processing.
+Cursor-based pagination with automatic page traversal (see the `get_vault_accounts` and `get_vault_wallets` functions). Generator-based processing prevents memory accumulation for large vault account and wallet datasets. Processes pages sequentially while yielding individual records for immediate processing.
 
-The connector uses the `before` and `after` cursor parameters provided by Fireblocks API to navigate through paginated results efficiently.
+The connector uses the `before` and `after` cursor parameters provided by the Fireblocks API to navigate through paginated results efficiently.
 
 ## Data handling
 
-Vault account and wallet data is mapped from Fireblocks API format to normalized database columns (refer to the `__map_vault_account_data` and `__map_vault_wallet_data` functions). Nested objects like asset arrays are serialized as JSON strings, and all timestamps are converted to UTC format for consistency.
+Vault account and wallet data is mapped from Fireblocks API format to normalized database columns (see the `__map_vault_account_data` and `__map_vault_wallet_data` functions). Nested objects like asset arrays are serialized as JSON strings, and all timestamps are converted to UTC format for consistency.
 
-Supports timestamp-based incremental synchronization using the `last_sync_time` state parameter (refer to the `get_time_range` function). Initial sync can be configured to fetch historical data up to 365 days using the `initial_sync_days` parameter.
+Supports timestamp-based incremental synchronization using the `last_sync_time` state parameter (see the `get_time_range` function). Initial sync can be configured to fetch historical data up to 365 days using the `initial_sync_days` parameter.
 
 ## Error handling
 
-- 429 Rate Limited: Automatic retry with Retry-After header support (refer to the `__handle_rate_limit` function)
-- Timeout handling with configurable retry attempts (refer to the `__handle_request_error` function)
+- 429 Rate Limited: Automatic retry with Retry-After header support (see the `__handle_rate_limit` function)
+- Timeout handling with configurable retry attempts (see the `__handle_request_error` function)
 - Exponential backoff with jitter prevents multiple clients from making requests at the same time
 - Parameter validation with descriptive error messages provides clear guidance for fixing setup issues
 - Authentication errors are logged with specific guidance for API key configuration
@@ -97,7 +95,7 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| VAULT_ACCOUNTS | `id` | Vault account information including names, settings, and associated assets |
+| VAULT_ACCOUNTS | `id` | Vault account information, including names, settings, and associated assets |
 | VAULT_WALLETS | `id` | Individual cryptocurrency wallet balances and blockchain details |
 
 **VAULT_ACCOUNTS columns include:** `id`, `name`, `hiddenOnUI`, `customerRefId`, `autoFuel`, `assets`, `timestamp`
@@ -105,14 +103,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 **VAULT_WALLETS columns include:** `id`, `vaultId`, `assetId`, `available`, `pending`, `staked`, `frozen`, `lockedAmount`, `blockHeight`, `blockHash`, `timestamp`
 
 Column types are automatically inferred by Fivetran. Asset information in VAULT_ACCOUNTS is stored as JSON for flexible querying of nested cryptocurrency data.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Fireblocks API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 
 ## Additional considerations

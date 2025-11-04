@@ -6,6 +6,5 @@
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_vault_wallets": "<ENABLE_VAULT_WALLETS>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_vault_wallets": "<ENABLE_VAULT_WALLETS>"
 }
