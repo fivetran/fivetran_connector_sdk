@@ -55,6 +55,85 @@ __REL_PRODUCT_ATTRIBUTE = "HAS_ATTRIBUTE"
 __REL_REVIEW_PRODUCT = "REVIEWS_PRODUCT"
 __REL_REVIEW_USER = "WRITTEN_BY_USER"
 
+# GraphQL query templates
+__SCHEMA_QUERY = """
+query {
+    getGQLSchema {
+        schema
+    }
+}
+"""
+
+__CATEGORY_QUERY_TEMPLATE = """
+query {{
+    queryCategory(first: {page_size}, offset: {offset}{filter}) {{
+        id
+        name
+        description
+        parentCategory {{
+            id
+        }}
+        createdAt
+        updatedAt
+    }}
+}}
+"""
+
+__ATTRIBUTE_QUERY_TEMPLATE = """
+query {{
+    queryAttribute(first: {page_size}, offset: {offset}{filter}) {{
+        id
+        name
+        value
+        unit
+        createdAt
+        updatedAt
+    }}
+}}
+"""
+
+__PRODUCT_QUERY_TEMPLATE = """
+query {{
+    queryProduct(first: {page_size}, offset: {offset}{filter}) {{
+        id
+        sku
+        name
+        description
+        price
+        inStock
+        category {{
+            id
+        }}
+        attributes {{
+            id
+        }}
+        relatedProducts {{
+            id
+        }}
+        createdAt
+        updatedAt
+    }}
+}}
+"""
+
+__REVIEW_QUERY_TEMPLATE = """
+query {{
+    queryReview(first: {page_size}, offset: {offset}{filter}) {{
+        id
+        rating
+        comment
+        product {{
+            id
+        }}
+        author {{
+            id
+            username
+        }}
+        createdAt
+    }}
+}}
+"""
+
 
 def validate_configuration(configuration: dict):
     """
@@ -63,7 +142,7 @@ def validate_configuration(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     required_configs = ["dgraph_url", "api_key"]
     for key in required_configs:
@@ -72,8 +151,15 @@ def validate_configuration(configuration: dict):
 
     # Validate URL format
     dgraph_url = configuration.get("dgraph_url", "")
+    if not dgraph_url or not dgraph_url.strip():
+        raise ValueError("dgraph_url cannot be empty")
     if not dgraph_url.startswith("http://") and not dgraph_url.startswith("https://"):
         raise ValueError("dgraph_url must start with http:// or https://")
+
+    # Validate API key is not empty
+    api_key = configuration.get("api_key", "")
+    if not api_key or not api_key.strip():
+        raise ValueError("api_key cannot be empty")
 
 
 def schema(configuration: dict):
@@ -168,16 +254,8 @@ def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
     """
     log.info("Syncing schema metadata from Dgraph")
 
-    query = """
-    query {
-        getGQLSchema {
-            schema
-        }
-    }
-    """
-
     try:
-        response = execute_graphql_query(admin_endpoint, query, api_key)
+        response = execute_graphql_query(admin_endpoint, __SCHEMA_QUERY, api_key)
 
         if response and "data" in response and "getGQLSchema" in response["data"]:
             schema_data = response["data"]["getGQLSchema"]
@@ -216,6 +294,105 @@ def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
     except Exception as e:
         log.severe(f"Unexpected error syncing schema metadata: {str(e)}")
         raise
+
+
+def sync_entity(
+    entity_name: str,
+    graphql_endpoint: str,
+    api_key: str,
+    state: dict,
+    state_key: str,
+    query_template: str,
+    process_fn,
+    timestamp_field: str = "updatedAt",
+):
+    """
+    Generalized function to sync entities with incremental sync support.
+    Args:
+        entity_name: The name of the entity being synced (e.g., "product", "category").
+        graphql_endpoint: The Dgraph GraphQL API endpoint URL.
+        api_key: The API key for authentication.
+        state: The state dictionary to track sync progress.
+        state_key: The key in the state dict for this entity's last sync timestamp.
+        query_template: The GraphQL query template string with placeholders.
+        process_fn: The function to process each batch of records.
+        timestamp_field: The field name to use for incremental filtering (default: "updatedAt").
+    """
+    log.info(f"Syncing {entity_name} with incremental filter")
+
+    last_updated = state.get(state_key)
+    filter_clause = ""
+
+    if last_updated:
+        log.info(f"Incremental sync: fetching {entity_name} updated after {last_updated}")
+        filter_clause = f', filter: {{ {timestamp_field}: {{ ge: "{last_updated}" }} }}'
+    else:
+        log.info(f"Initial sync: fetching all {entity_name}")
+
+    offset = 0
+    total_synced = 0
+    max_updated_at = last_updated
+
+    while True:
+        query = query_template.format(page_size=__PAGE_SIZE, offset=offset, filter=filter_clause)
+
+        try:
+            response = execute_graphql_query(graphql_endpoint, query, api_key)
+
+            if not response or "data" not in response:
+                log.warning(f"No data returned for {entity_name} at offset {offset}")
+                break
+
+            # Get the data using the query response key (e.g., "queryProduct", "queryCategory")
+            query_key = f"query{entity_name.replace('_', '').title()}"
+            if entity_name == "category":
+                query_key = "queryCategory"
+            elif entity_name == "attribute":
+                query_key = "queryAttribute"
+            elif entity_name == "product":
+                query_key = "queryProduct"
+            elif entity_name == "review":
+                query_key = "queryReview"
+
+            entities = response["data"].get(query_key, [])
+
+            if not entities:
+                break
+
+            # Process batch of entities
+            max_updated_at = process_fn(entities, max_updated_at)
+            total_synced += len(entities)
+
+            log.info(f"Processed {len(entities)} {entity_name} at offset {offset}")
+
+            offset += len(entities)
+
+            # Checkpoint after specified interval
+            if total_synced % __CHECKPOINT_INTERVAL == 0:
+                state[state_key] = max_updated_at
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+
+            if len(entities) < __PAGE_SIZE:
+                break
+
+        except (
+            requests.HTTPError,
+            requests.ConnectionError,
+            requests.Timeout,
+            ValueError,
+        ) as e:
+            log.severe(f"Error syncing {entity_name} at offset {offset}: {str(e)}")
+            raise
+
+    # Update state with the most recent timestamp
+    if max_updated_at:
+        state[state_key] = max_updated_at
+
+    log.info(f"Completed syncing {total_synced} {entity_name}")
 
 
 def process_categories_batch(categories: list, max_updated_at: str):
@@ -277,82 +454,16 @@ def sync_categories(graphql_endpoint: str, api_key: str, state: dict):
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
     """
-    log.info("Syncing categories with incremental filter")
-
-    last_updated = state.get("categories_last_updated")
-    filter_clause = ""
-
-    if last_updated:
-        # TRUE INCREMENTAL SYNC: Only fetch records updated since last sync
-        log.info(f"Incremental sync: fetching categories updated after {last_updated}")
-        filter_clause = f', filter: {{ updatedAt: {{ ge: "{last_updated}" }} }}'
-    else:
-        log.info("Initial sync: fetching all categories")
-
-    offset = 0
-    total_synced = 0
-    max_updated_at = last_updated
-
-    while True:
-        query = f"""
-        query {{
-            queryCategory(first: {__PAGE_SIZE}, offset: {offset}{filter_clause}) {{
-                id
-                name
-                description
-                parentCategory {{
-                    id
-                }}
-                createdAt
-                updatedAt
-            }}
-        }}
-        """
-
-        try:
-            response = execute_graphql_query(graphql_endpoint, query, api_key)
-
-            if not response or "data" not in response:
-                log.warning(f"No data returned for categories at offset {offset}")
-                break
-
-            categories = response["data"].get("queryCategory", [])
-
-            if not categories:
-                break
-
-            # Process batch of categories
-            max_updated_at = process_categories_batch(categories, max_updated_at)
-            total_synced += len(categories)
-
-            log.info(f"Processed {len(categories)} categories at offset {offset}")
-
-            offset += len(categories)
-
-            # Checkpoint after each page
-            if total_synced % __CHECKPOINT_INTERVAL == 0:
-                state["categories_last_updated"] = max_updated_at
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-
-            if len(categories) < __PAGE_SIZE:
-                break
-
-        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
-            log.severe(f"Network error syncing categories at offset {offset}: {str(e)}")
-            raise
-        except ValueError as e:
-            log.severe(f"Parsing error syncing categories at offset {offset}: {str(e)}")
-            raise
-
-    # Update state with the most recent timestamp
-    if max_updated_at:
-        state["categories_last_updated"] = max_updated_at
-
-    log.info(f"Completed syncing {total_synced} categories")
+    sync_entity(
+        entity_name="category",
+        graphql_endpoint=graphql_endpoint,
+        api_key=api_key,
+        state=state,
+        state_key="categories_last_updated",
+        query_template=__CATEGORY_QUERY_TEMPLATE,
+        process_fn=process_categories_batch,
+        timestamp_field="updatedAt",
+    )
 
 
 def process_attributes_batch(attributes: list, max_updated_at: str):
@@ -395,74 +506,16 @@ def sync_attributes(graphql_endpoint: str, api_key: str, state: dict):
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
     """
-    log.info("Syncing product attributes with incremental filter")
-
-    last_updated = state.get("attributes_last_updated")
-    filter_clause = ""
-
-    if last_updated:
-        log.info(f"Incremental sync: fetching attributes updated after {last_updated}")
-        filter_clause = f', filter: {{ updatedAt: {{ ge: "{last_updated}" }} }}'
-    else:
-        log.info("Initial sync: fetching all attributes")
-
-    offset = 0
-    total_synced = 0
-    max_updated_at = last_updated
-
-    while True:
-        query = f"""
-        query {{
-            queryAttribute(first: {__PAGE_SIZE}, offset: {offset}{filter_clause}) {{
-                id
-                name
-                value
-                unit
-                createdAt
-                updatedAt
-            }}
-        }}
-        """
-
-        try:
-            response = execute_graphql_query(graphql_endpoint, query, api_key)
-
-            if not response or "data" not in response:
-                log.warning(f"No data returned for attributes at offset {offset}")
-                break
-
-            attributes = response["data"].get("queryAttribute", [])
-
-            if not attributes:
-                break
-
-            # Process batch of attributes
-            max_updated_at = process_attributes_batch(attributes, max_updated_at)
-            total_synced += len(attributes)
-
-            log.info(f"Processed {len(attributes)} attributes at offset {offset}")
-
-            offset += len(attributes)
-
-            if total_synced % __CHECKPOINT_INTERVAL == 0:
-                state["attributes_last_updated"] = max_updated_at
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-
-            if len(attributes) < __PAGE_SIZE:
-                break
-
-        except (requests.RequestException, ValueError, KeyError) as e:
-            log.severe(f"Error syncing attributes at offset {offset}: {str(e)}")
-            raise
-
-    if max_updated_at:
-        state["attributes_last_updated"] = max_updated_at
-
-    log.info(f"Completed syncing {total_synced} attributes")
+    sync_entity(
+        entity_name="attribute",
+        graphql_endpoint=graphql_endpoint,
+        api_key=api_key,
+        state=state,
+        state_key="attributes_last_updated",
+        query_template=__ATTRIBUTE_QUERY_TEMPLATE,
+        process_fn=process_attributes_batch,
+        timestamp_field="updatedAt",
+    )
 
 
 def upsert_product_edges(product_id: str, product: dict):
@@ -554,85 +607,16 @@ def sync_products(graphql_endpoint: str, api_key: str, state: dict):
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
     """
-    log.info("Syncing products with incremental filter and relationships")
-
-    last_updated = state.get("products_last_updated")
-    filter_clause = ""
-
-    if last_updated:
-        log.info(f"Incremental sync: fetching products updated after {last_updated}")
-        filter_clause = f', filter: {{ updatedAt: {{ ge: "{last_updated}" }} }}'
-    else:
-        log.info("Initial sync: fetching all products")
-
-    offset = 0
-    total_synced = 0
-    max_updated_at = last_updated
-
-    while True:
-        query = f"""
-        query {{
-            queryProduct(first: {__PAGE_SIZE}, offset: {offset}{filter_clause}) {{
-                id
-                sku
-                name
-                description
-                price
-                inStock
-                category {{
-                    id
-                }}
-                attributes {{
-                    id
-                }}
-                relatedProducts {{
-                    id
-                }}
-                createdAt
-                updatedAt
-            }}
-        }}
-        """
-
-        try:
-            response = execute_graphql_query(graphql_endpoint, query, api_key)
-
-            if not response or "data" not in response:
-                log.warning(f"No data returned for products at offset {offset}")
-                break
-
-            products = response["data"].get("queryProduct", [])
-
-            if not products:
-                break
-
-            # Process batch of products
-            max_updated_at = process_products_batch(products, max_updated_at)
-            total_synced += len(products)
-
-            log.info(f"Processed {len(products)} products at offset {offset}")
-
-            offset += len(products)
-
-            if total_synced % __CHECKPOINT_INTERVAL == 0:
-                state["products_last_updated"] = max_updated_at
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-
-            if len(products) < __PAGE_SIZE:
-                break
-
-        except (requests.HTTPError, requests.ConnectionError, requests.Timeout, ValueError) as e:
-            log.severe(f"Error syncing products at offset {offset}: {str(e)}")
-            raise
-
-    if max_updated_at:
-        state["products_last_updated"] = max_updated_at
-
-    log.info(f"Completed syncing {total_synced} products")
+    sync_entity(
+        entity_name="product",
+        graphql_endpoint=graphql_endpoint,
+        api_key=api_key,
+        state=state,
+        state_key="products_last_updated",
+        query_template=__PRODUCT_QUERY_TEMPLATE,
+        process_fn=process_products_batch,
+        timestamp_field="updatedAt",
+    )
 
 
 def upsert_review_edges(review_id: str, product_id: str, author_id: str):
@@ -672,8 +656,8 @@ def process_reviews_batch(reviews: list, max_created_at: str):
             "review_id": review.get("id"),
             "rating": review.get("rating"),
             "comment": review.get("comment"),
-            "product_id": review.get("product", {}).get("id") if review.get("product") else None,
-            "author_id": review.get("author", {}).get("id") if review.get("author") else None,
+            "product_id": (review.get("product", {}).get("id") if review.get("product") else None),
+            "author_id": (review.get("author", {}).get("id") if review.get("author") else None),
             "author_username": (
                 review.get("author", {}).get("username") if review.get("author") else None
             ),
@@ -692,7 +676,9 @@ def process_reviews_batch(reviews: list, max_created_at: str):
 
         # Create edges for review relationships
         upsert_review_edges(
-            review_record["review_id"], review_record["product_id"], review_record["author_id"]
+            review_record["review_id"],
+            review_record["product_id"],
+            review_record["author_id"],
         )
 
     return max_created_at
@@ -706,84 +692,24 @@ def sync_reviews(graphql_endpoint: str, api_key: str, state: dict):
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
     """
-    log.info("Syncing reviews with incremental filter")
-
-    last_updated = state.get("reviews_last_updated")
-    filter_clause = ""
-
-    if last_updated:
-        log.info(f"Incremental sync: fetching reviews created after {last_updated}")
-        filter_clause = f', filter: {{ createdAt: {{ ge: "{last_updated}" }} }}'
-    else:
-        log.info("Initial sync: fetching all reviews")
-
-    offset = 0
-    total_synced = 0
-    max_created_at = last_updated
-
-    while True:
-        query = f"""
-        query {{
-            queryReview(first: {__PAGE_SIZE}, offset: {offset}{filter_clause}) {{
-                id
-                rating
-                comment
-                product {{
-                    id
-                }}
-                author {{
-                    id
-                    username
-                }}
-                createdAt
-            }}
-        }}
-        """
-
-        try:
-            response = execute_graphql_query(graphql_endpoint, query, api_key)
-
-            if not response or "data" not in response:
-                log.warning(f"No data returned for reviews at offset {offset}")
-                break
-
-            reviews = response["data"].get("queryReview", [])
-
-            if not reviews:
-                break
-
-            # Process batch of reviews
-            max_created_at = process_reviews_batch(reviews, max_created_at)
-            total_synced += len(reviews)
-
-            log.info(f"Processed {len(reviews)} reviews at offset {offset}")
-
-            offset += len(reviews)
-
-            if total_synced % __CHECKPOINT_INTERVAL == 0:
-                state["reviews_last_updated"] = max_created_at
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-
-            if len(reviews) < __PAGE_SIZE:
-                break
-
-        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as e:
-            log.severe(f"Network error syncing reviews at offset {offset}: {str(e)}")
-            raise
-        # Allow all other exceptions to propagate
-
-    if max_created_at:
-        state["reviews_last_updated"] = max_created_at
-
-    log.info(f"Completed syncing {total_synced} reviews")
+    sync_entity(
+        entity_name="review",
+        graphql_endpoint=graphql_endpoint,
+        api_key=api_key,
+        state=state,
+        state_key="reviews_last_updated",
+        query_template=__REVIEW_QUERY_TEMPLATE,
+        process_fn=process_reviews_batch,
+        timestamp_field="createdAt",
+    )
 
 
 def create_edge_record(
-    source_id: str, source_type: str, target_id: str, target_type: str, relationship_type: str
+    source_id: str,
+    source_type: str,
+    target_id: str,
+    target_type: str,
+    relationship_type: str,
 ):
     """
     Create an edge record for the relationships table to preserve graph structure.
