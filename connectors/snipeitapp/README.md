@@ -52,7 +52,7 @@ To obtain your API token:
 
 1. Log in to your Snipe-IT instance as an administrator.
 2. Navigate to your user profile settings.
-3. Click on **API Keys** or **Personal Access Tokens**.
+3. Click **API Keys** or **Personal Access Tokens**.
 4. Generate a new API token with appropriate permissions.
 5. Copy the token and add it to your `configuration.json` file.
 6. Ensure the token has read permissions for all resources you want to sync.
