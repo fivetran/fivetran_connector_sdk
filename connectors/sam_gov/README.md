@@ -118,7 +118,7 @@ Data transformation (refer to the `process_main_opportunity_record` function):
 The connector implements comprehensive error handling with retry logic and detailed error messages (refer to the `make_api_request`, `make_api_request_with_retry`, and `validate_configuration` functions):
 
 Configuration validation errors:
-- Missing required fields (api_key, posted_from, posted_to)
+- Missing required fields (`api_key`, `posted_from`, `posted_to`)
 - Invalid date format (must be MM/dd/yyyy)
 - Date range exceeding 1 year
 
