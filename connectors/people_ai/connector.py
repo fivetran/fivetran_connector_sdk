@@ -192,7 +192,7 @@ def get_page(
 
 
 def sync_base_activities(
-    access_token: str, reauth_func: callable, op: op, *, limit: int = 50
+    access_token: str, reauth_func: Callable[[], str], op: op, *, limit: int = 50
 ) -> int:
     """
     Handles the full pagination and upsert logic
@@ -229,13 +229,9 @@ def sync_base_activities(
             if "subject" in data_to_upsert:
                 data_to_upsert["api_subject"] = data_to_upsert.pop("subject")
 
-            # The 'upsert' operation is used to insert or update data in the
-            # destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data
-            #   into.
-            # - The second argument is a dictionary containing the data to be
-            #   upserted
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table=__ACTIVITY_TABLE, data=data_to_upsert)
 
         total += len(page)
@@ -250,7 +246,7 @@ def sync_base_activities(
 
 def sync_activity_type(
     access_token: str,
-    reauth_func: callable,
+    reauth_func: Callable[[], str],
     op: op,
     activity_type: str,
     *,
@@ -289,13 +285,9 @@ def sync_activity_type(
             ]:
                 data_to_upsert["api_subject"] = data_to_upsert.pop("subject")
 
-            # The 'upsert' operation is used to insert or update data in the
-            # destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data
-            #   into.
-            # - The second argument is a dictionary containing the data to be
-            #   upserted
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table=activity_type, data=data_to_upsert)
 
         total += len(page)
@@ -327,9 +319,9 @@ def get_access_token(api_key: str, api_secret: str) -> str:
 
 def update(configuration: dict, state: dict):
     """
-    The main sync function
-    It authenticates, then syncs the base 'activity' table
-    and only the 'participants' activity type.
+    Define the update function which lets you configure how your connector fetches data. 
+    See the technical reference documentation for more details on the update function: 
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     """
 
     # Define a closure function for re-authentication to pass to sync functions
