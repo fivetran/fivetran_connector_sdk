@@ -27,23 +27,20 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_token": "<YOUR_EGNYTE_API_TOKEN>",
   "domain": "<YOUR_EGNYTE_DOMAIN>",
-  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_users": "<YOUR_ENABLE_USERS>",
-  "enable_groups": "<YOUR_ENABLE_GROUPS>",
-  "enable_notes": "<YOUR_ENABLE_NOTES>",
-  "enable_bookmarks": "<YOUR_ENABLE_BOOKMARKS>",
-  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+  "max_records_per_page": "<RECORDS_PER_PAGE_1_TO_1000_DEFAULT_100>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_IN_SECONDS_DEFAULT_30>",
+  "retry_attempts": "<NUMBER_OF_RETRY_ATTEMPTS_DEFAULT_3>",
+  "enable_users": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
+  "enable_groups": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
+  "enable_notes": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
+  "enable_bookmarks": "<TRUE_OR_FALSE_DEFAULT_TRUE>"
 }
 ```
 
 ### Configuration parameters
 - `api_token` (required): OAuth2 access token for Egnyte API authentication
 - `domain` (required): Your Egnyte domain name (e.g., "companyname" for companyname.egnyte.com)
-- `sync_frequency_hours` (optional): Hours between sync runs (default: 4)
 - `initial_sync_days` (optional): Days of historical data to sync initially (default: 90)
 - `max_records_per_page` (optional): Records per API request page (1-1000, default: 100)
 - `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: 30)
@@ -52,7 +49,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - `enable_groups` (optional): Enable group data synchronization (default: true)
 - `enable_notes` (optional): Enable notes data synchronization (default: true)
 - `enable_bookmarks` (optional): Enable bookmarks data synchronization (default: true)
-- `enable_debug_logging` (optional): Enable detailed debug logs (default: false)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
