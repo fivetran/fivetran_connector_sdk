@@ -43,22 +43,23 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-**Configuration parameters:**
-- `client_id` (required): OAuth2 client ID from Dentally Developer Portal
-- `client_secret` (required): OAuth2 client secret from Dentally Developer Portal
-- `access_token` (required): OAuth2 access token for API authentication
-- `refresh_token` (required): OAuth2 refresh token for automatic token renewal
-- `use_sandbox` (optional): Set to "true" for sandbox environment testing
-- `sync_frequency_hours` (optional): How often to run sync (not used by connector logic)
-- `initial_sync_days` (optional): Number of days to sync for initial historical data
-- `max_records_per_page` (optional): Number of records per API request (1-100)
-- `request_timeout_seconds` (optional): HTTP request timeout in seconds
-- `retry_attempts` (optional): Number of retry attempts for failed requests
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization
-- `enable_rooms_sync` (optional): Enable syncing of treatment room data
-- `enable_sites_sync` (optional): Enable syncing of practice site data
-- `enable_treatments_sync` (optional): Enable syncing of treatment procedure data
-- `enable_debug_logging` (optional): Enable detailed logging for troubleshooting
+Configuration parameters:
+
+- `client_id` (required): OAuth2 client ID from the Dentally Developer Portal.
+- `client_secret` (required): OAuth2 client secret from the  Dentally Developer Portal.
+- `access_token` (required): OAuth2 access token for API authentication.
+- `refresh_token` (required): OAuth2 refresh token for automatic token renewal.
+- `use_sandbox` (optional): Set to `true` for sandbox environment testing.
+- `sync_frequency_hours` (optional): How often to run sync (not used by connector logic).
+- `initial_sync_days` (optional): Number of days to sync for initial historical data.
+- `max_records_per_page` (optional): Number of records per API request (1-100).
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds.
+- `retry_attempts` (optional): Number of retry attempts for failed requests.
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization.
+- `enable_rooms_sync` (optional): Enable syncing of treatment room data.
+- `enable_sites_sync` (optional): Enable syncing of practice site data.
+- `enable_treatments_sync` (optional): Enable syncing of treatment procedure data.
+- `enable_debug_logging` (optional): Enable detailed logging for troubleshooting.
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -97,7 +98,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | TREATMENTS | `id` | Dental procedures and treatment definitions | `id`, `name`, `code`, `category`, `description`, `default_fee`, `duration_minutes`, `created_at`, `updated_at`, `timestamp` |
 
 Column types are automatically inferred by Fivetran. All tables include `created_at`, `updated_at`, and `timestamp` fields for tracking record creation, updates, and sync timestamps.
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
