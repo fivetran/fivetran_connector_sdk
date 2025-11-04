@@ -28,6 +28,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
+The connector requires the following configuration parameters:
 
 ```json
 {
@@ -35,6 +36,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "base_url": "<YOUR_SNIPEIT_BASE_URL>"
 }
 ```
+
+### Configuration parameters
+
+- `api_token` (required): Your Snipe-IT Bearer token for API authentication with read permissions for all resources you want to sync
+- `base_url` (required): The base URL of your Snipe-IT instance (e.g., `https://your-snipeit-instance.com` for cloud or `http://localhost:8000` for self-hosted)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
