@@ -1,6 +1,5 @@
 {
   "api_key": "<YOUR_TICKETMASTER_API_KEY>",
-  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",

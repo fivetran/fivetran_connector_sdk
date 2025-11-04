@@ -31,17 +31,11 @@ import time
 # For random number generation
 import random
 
-""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
-Example: import pandas, boto3, etc.
-Add comment for each import to explain its purpose for users to follow.
-"""
 # Private constants (use __ prefix)
-__INVALID_LITERAL_ERROR = "invalid literal"
 __API_BASE_URL = "https://app.ticketmaster.com/discovery/v2"
 __DEFAULT_PAGE_SIZE = 100
 __MAX_PAGE_SIZE = 200
 __RATE_LIMIT_REQUESTS_PER_SECOND = 5
-__RATE_LIMIT_DAILY_REQUESTS = 5000
 
 
 def __get_config_int(
@@ -681,14 +675,14 @@ def get_classifications(api_key: str, configuration: Optional[Dict[str, Any]] = 
 
 def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Define the schema for destination tables and primary keys.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 
     Args:
-        configuration: Dictionary containing connector configuration values.
-
-    Returns:
-        List of table schema dictionaries with table name and primary key fields.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
+
     return [
         {"table": "events", "primary_key": ["id"]},
         {"table": "venues", "primary_key": ["id"]},
@@ -733,23 +727,19 @@ def _sync_data_type(
 
 def update(configuration: Dict[str, Any], state: Dict[str, Any]) -> None:
     """
-    Run a sync cycle, upserting records and checkpointing state.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
 
-    See the technical reference for details on the update function:
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
-        configuration: Connector configuration including credentials and options.
-        state: State dictionary from previous runs used for incremental sync.
-
-    Raises:
-        RuntimeError: If the sync process fails.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
     log.info("Starting Ticketmaster connector sync")
 
-    # Configuration is auto-validated by SDK when configuration.json exists
-
-    # Extract configuration parameters
+    # Validate the configuration to ensure it contains all required values.
     api_key = str(configuration.get("api_key", "")).strip()
     enable_events = __get_config_bool(configuration, "enable_events", True)
     enable_venues = __get_config_bool(configuration, "enable_venues", True)

@@ -44,13 +44,11 @@ Create a `configuration.json` file with the following structure:
 ```json
 {
   "api_key": "<YOUR_TICKETMASTER_API_KEY>",
-  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>",
   "enable_events": "<YOUR_ENABLE_EVENTS>",
   "enable_venues": "<YOUR_ENABLE_VENUES>",
   "enable_attractions": "<YOUR_ENABLE_ATTRACTIONS>",
@@ -61,17 +59,17 @@ Create a `configuration.json` file with the following structure:
 ### Configuration parameters
 
 - `api_key` (required) – Your Ticketmaster Discovery API v2 key. Obtain from [Ticketmaster Developer Portal](https://developer.ticketmaster.com/)
-- `sync_frequency_hours` – How often to run full syncs (1-168 hours, default: 4)
-- `initial_sync_days` – Historical data range for first sync (1-365 days, default: 90)
-- `max_records_per_page` – API pagination size (1-200 records, default: 100)
-- `request_timeout_seconds` – HTTP request timeout (1-300 seconds, default: 30)
-- `retry_attempts` – Number of retry attempts for failed requests (1-10, default: 3)
-- `enable_incremental_sync` – Enable time-based incremental sync (true/false, default: true)
-- `enable_debug_logging` – Enable detailed debug logs (true/false, default: false)
-- `enable_events` – Sync events data (true/false, default: true)
-- `enable_venues` – Sync venues data (true/false, default: true)
-- `enable_attractions` – Sync attractions data (true/false, default: true)
-- `enable_classifications` – Sync classifications data (true/false, default: true)
+- `initial_sync_days` (optional) – Historical data range for first sync (1-365 days, default: 90)
+- `max_records_per_page` (optional) – API pagination size (1-200 records, default: 100)
+- `request_timeout_seconds` (optional) – HTTP request timeout (1-300 seconds, default: 30)
+- `retry_attempts` (optional) – Number of retry attempts for failed requests (1-10, default: 3)
+- `enable_incremental_sync` (optional) – Enable time-based incremental sync (true/false, default: true)
+- `enable_events` (optional) – Sync events data (true/false, default: true)
+- `enable_venues` (optional) – Sync venues data (true/false, default: true)
+- `enable_attractions` (optional) – Sync attractions data (true/false, default: true)
+- `enable_classifications` (optional) – Sync classifications data (true/false, default: true)
+
+Note: Ensure that the 'configuration.json' file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -161,15 +159,6 @@ Sample columns: `id`, `name`, `type`, `url`, `locale`, `external_links` (JSON), 
 Primary key: `id`
 
 Sample columns: `id`, `name`, `segment_id`, `segment_name`, `genre_id`, `genre_name`, `sub_genre_id`, `sub_genre_name`, `synced_at`
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Ticketmaster Discovery API v2 integration and connector requirements.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
