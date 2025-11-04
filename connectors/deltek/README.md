@@ -34,26 +34,22 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_DELTEK_CONCEPTSHARE_API_KEY>",
-  "sync_frequency_hours": "<YOURSYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 ### Configuration parameters
 
 - `api_key` (required): Bearer token for authenticating with Deltek ConceptShare API
-- `sync_frequency_hours` (optional): How often to run sync expressed in hours, defaults to `4`.
 - `initial_sync_days` (optional): Historical date range for the initial sync expressed in days, defaults to `90`.
 - `max_records_per_page` (optional): Page size for API requests, defaults to `100` (range: 1-1000)
 - `request_timeout_seconds` (optional): HTTP request timeout expressed in seconds, defaults to `30`.
 - `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to `3`.
 - `enable_incremental_sync` (optional): Enable timestamp-based incremental sync, defaults to `true`.
-- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to `false`.
 
 ## Requirements file
 
