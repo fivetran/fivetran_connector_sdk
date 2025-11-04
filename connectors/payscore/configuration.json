@@ -1,12 +1,10 @@
 {
   "api_key": "<YOUR_PAYSCORE_API_KEY>",
-  "environment": "staging",
-  "sync_frequency_hours": "4",
-  "initial_sync_days": "90",
-  "max_records_per_page": "100",
-  "request_timeout_seconds": "30",
-  "retry_attempts": "3",
-  "enable_incremental_sync": "true",
-  "enable_debug_logging": "false",
-  "enable_screening_groups": "true"
+  "environment": "<YOUR_PAYSCORE_ENVIRONMENT>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_screening_groups": "<YOUR_ENABLE_SCREENING_GROUPS>"
 }

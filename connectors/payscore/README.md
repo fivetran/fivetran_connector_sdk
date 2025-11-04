@@ -36,7 +36,7 @@ Create a `configuration.json` file with the following parameters:
 ```json
 {
   "api_key": "<YOUR_PAYSCORE_API_KEY>",
-  "environment": "<YOUR_ENVIRONMENT_NAME (STAGING_OR_PRODUCTION)>",
+  "environment": "<YOUR_PAYSCORE_ENVIRONMENT>",
   "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
@@ -161,15 +161,6 @@ Contains organizational units for managing verification requests.
 | `member_count` | Number of members in the group |
 | `_fivetran_synced` | Fivetran sync timestamp |
 
- 
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-* `requirements.txt` – Python dependency specification for PayScore API integration and connector requirements.
-
-* `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

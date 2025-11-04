@@ -295,26 +295,30 @@ def get_screening_groups(
 
 
 def schema(configuration: dict) -> List[dict]:
-    """Define minimal schema - let Fivetran infer column types.
-
-    Args:
-        configuration: Configuration dictionary
-
-    Returns:
-        List of table definitions with primary keys only
     """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+
     return [
         {"table": "screening_group", "primary_key": ["id"]},
     ]
 
 
 def update(configuration: dict, state: dict):
-    """Main sync function - uses generators for memory efficiency.
-
-    Args:
-        configuration: Connector configuration
-        state: Current sync state
     """
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
     log.info("Starting PayScore connector sync")
 
     # Configuration is auto-validated by SDK when configuration.json exists
@@ -333,7 +337,7 @@ def update(configuration: dict, state: dict):
         # Base parameters for API requests
         base_params = {}
 
-        # Fetch screening groups using generator (NO MEMORY ACCUMULATION)
+        # Fetch screening groups using generator to prevent memory accumulation
         if enable_screening_groups:
             log.info("Fetching screening groups...")
             for record in get_screening_groups(
