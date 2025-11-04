@@ -1,11 +1,9 @@
 {
   "oauth_token": "<YOUR_XURRENT_OAUTH_TOKEN>",
   "account_id": "<YOUR_XURRENT_ACCOUNT_ID>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "initial_sync_days": "<NUMBER_OF_HISTORICAL_DAYS_DEFAULT_90>",
+  "max_records_per_page": "<RECORDS_PER_PAGE_1_TO_1000_DEFAULT_25>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_IN_SECONDS_DEFAULT_30>",
+  "retry_attempts": "<NUMBER_OF_RETRY_ATTEMPTS_DEFAULT_3>",
+  "enable_incremental_sync": "<TRUE_OR_FALSE_DEFAULT_TRUE>"
 }

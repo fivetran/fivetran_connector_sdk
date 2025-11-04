@@ -480,14 +480,11 @@ def get_projects(oauth_token, account_id, last_sync_time=None, configuration=Non
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
-
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": "organizations", "primary_key": ["id"]},
@@ -498,15 +495,13 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Xurrent API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting Xurrent API connector sync")
 

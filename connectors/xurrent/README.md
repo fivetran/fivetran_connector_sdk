@@ -4,7 +4,7 @@
 This connector synchronizes organizations, products, and projects data from the Xurrent API into your data warehouse. It fetches organizational structures, product catalogs, and project management data using OAuth2 authentication with automatic token refresh. The connector implements memory-efficient streaming patterns to handle large datasets and supports incremental synchronization using timestamp-based cursors for optimal performance.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -28,27 +28,24 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "oauth_token": "<YOUR_XURRENT_OAUTH_TOKEN>",
   "account_id": "<YOUR_XURRENT_ACCOUNT_ID>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 **Configuration parameters:**
-- `oauth_token`: OAuth Bearer token for API authentication (required)
-- `account_id`: Xurrent account identifier for X-Xurrent-Account header (required)
-- `base_url`: API base URL, defaults to https://api.xurrent.com/v1
-- `sync_frequency_hours`: How often to run sync in hours
-- `initial_sync_days`: Days of historical data to fetch on first sync (1-365)
-- `max_records_per_page`: Records per API request page (1-100, default: 25)
-- `request_timeout_seconds`: HTTP request timeout in seconds (10-300, default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (1-10, default: 3)
-- `enable_incremental_sync`: Enable timestamp-based incremental sync (true/false)
-- `enable_debug_logging`: Enable detailed debug logging (true/false)
+- `oauth_token` (required): OAuth Bearer token for API authentication
+- `account_id` (required): Xurrent account identifier for X-Xurrent-Account header
+- `sync_frequency_hours` (optional): How often to run sync in hours
+- `initial_sync_days` (optional): Days of historical data to fetch on first sync (1-365)
+- `max_records_per_page` (optional): Records per API request page (1-100, default: 25)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds (10-300, default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (1-10, default: 3)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync (true/false)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -91,15 +88,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 Column types are automatically inferred by Fivetran. Sample columns include `name`, `status`, `category`, `created_at`, `updated_at`, `manager_id`, `service_id`, `customer_id`.
 
 Organizations table includes parent-child relationships, manager assignments, and business unit associations. Products table contains brand information, service relationships, and support team assignments. Projects table tracks status, completion targets, and customer relationships.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Xurrent API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
