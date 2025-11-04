@@ -176,12 +176,12 @@ The connector creates a table in the destination based on your configuration (co
 
 | Column | Type | Description |
 |--------|------|-------------|
-| key | STRING | Key name (Primary Key) |
-| value | STRING | Value - JSON string for complex types (hashes, lists, sets, sorted sets) |
-| data_type | STRING | Data type: string, hash, list, set, or zset |
-| ttl | INT | Time to live in seconds (-1 = no expiry, -2 = expired/non-existent) |
-| last_modified | UTC_DATETIME | Timestamp when key was last processed by connector |
-| size | INT | Size metric - length for strings, count for collections |
+| `key` | STRING | Key name (Primary Key) |
+| `value` | STRING | Value - JSON string for complex types (hashes, lists, sets, sorted sets) |
+| `data_type` | STRING | Data type: string, hash, list, set, or zset |
+| `ttl` | INT | Time to live in seconds (-1 = no expiry, -2 = expired/non-existent) |
+| `last_modified` | UTC_DATETIME | Timestamp when key was last processed by connector |
+| `size` | INT | Size metric - length for strings, count for collections |
 
 The table uses `key` as the primary key, enabling upserts for handling updated values across syncs.
 
