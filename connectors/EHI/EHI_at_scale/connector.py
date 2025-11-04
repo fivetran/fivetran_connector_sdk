@@ -37,7 +37,7 @@ import os
 # For JSON data serialization and configuration parsing
 import json
 
-# For regular expressions used in certificate parsing
+# For regular expressions used in certificate parsing and pattern matching
 import re
 
 # For mathematical operations like ceiling calculations for partition sizing
@@ -95,93 +95,93 @@ except ImportError:
     PSUTIL_AVAILABLE = False
     log.warning("psutil not available - resource monitoring will be disabled")
 
-# CONFIGURATION CONSTANTS - ADAPTIVE PROCESSING THRESHOLDS
+# Private constants - ADAPTIVE PROCESSING THRESHOLDS
 # 
 # THRESHOLD OPTIMIZATION GUIDE:
 # These thresholds control how the connector adapts its processing strategy based on table size.
 # Adjust these values based on your specific environment and data characteristics:
 #
-# SMALL_TABLE_THRESHOLD (1M rows): Tables smaller than this are processed with maximum parallelism
-# LARGE_TABLE_THRESHOLD (50M rows): Tables larger than this are processed with minimal parallelism
+# __SMALL_TABLE_THRESHOLD (1M rows): Tables smaller than this are processed with maximum parallelism
+# __LARGE_TABLE_THRESHOLD (50M rows): Tables larger than this are processed with minimal parallelism
 # 
 # For AI/ML data pipelines:
-# - If your tables have many features (wide tables), consider reducing SMALL_TABLE_THRESHOLD
-# - If your data has high cardinality, consider increasing LARGE_TABLE_THRESHOLD
+# - If your tables have many features (wide tables), consider reducing __SMALL_TABLE_THRESHOLD
+# - If your data has high cardinality, consider increasing __LARGE_TABLE_THRESHOLD
 # - For time-series data, these thresholds work well as-is
 # - For sparse data, you may want to reduce thresholds by 50%
 
-BATCH_SIZE = 5000
-PARTITION_SIZE = 50000
-CHECKPOINT_INTERVAL = 1000000  # Checkpoint every 1 million records
-CONNECTION_TIMEOUT_HOURS = 3  # Reconnect after 3 hours
-MAX_RETRIES = 5
-BASE_RETRY_DELAY = 5
-MAX_RETRY_DELAY = 300  # 5 minutes max delay
+__BATCH_SIZE = 5000
+__PARTITION_SIZE = 50000
+__CHECKPOINT_INTERVAL = 1000000  # Checkpoint every 1 million records
+__CONNECTION_TIMEOUT_HOURS = 3  # Reconnect after 3 hours
+__MAX_RETRIES = 5
+__BASE_RETRY_DELAY = 5
+__MAX_RETRY_DELAY = 300  # 5 minutes max delay
 
 # Table size thresholds for adaptive processing
-SMALL_TABLE_THRESHOLD = 1000000  # 1M rows - adjust based on your data characteristics
-LARGE_TABLE_THRESHOLD = 50000000  # 50M rows - adjust based on your data characteristics
+__SMALL_TABLE_THRESHOLD = 1000000  # 1M rows - adjust based on your data characteristics
+__LARGE_TABLE_THRESHOLD = 50000000  # 50M rows - adjust based on your data characteristics
 
 # Resource monitoring thresholds (when psutil is available)
-MEMORY_THRESHOLD_HIGH = 80  # 80% memory usage triggers reduction
-MEMORY_THRESHOLD_CRITICAL = 90  # 90% memory usage triggers aggressive reduction
-CPU_THRESHOLD_HIGH = 85  # 85% CPU usage triggers thread reduction
-CPU_THRESHOLD_CRITICAL = 95  # 95% CPU usage triggers aggressive reduction
+__MEMORY_THRESHOLD_HIGH = 80  # 80% memory usage triggers reduction
+__MEMORY_THRESHOLD_CRITICAL = 90  # 90% memory usage triggers aggressive reduction
+__CPU_THRESHOLD_HIGH = 85  # 85% CPU usage triggers thread reduction
+__CPU_THRESHOLD_CRITICAL = 95  # 95% CPU usage triggers aggressive reduction
 
-# These queries are optimized for SQL Server and include Fivetran-specific fields.
+# Private queries - optimized for SQL Server and include Fivetran-specific fields.
 # Modify these queries to match your specific database schema and requirements.
 
 # Schema discovery queries
-SCHEMA_TABLE_LIST_QUERY = """
+__SCHEMA_TABLE_LIST_QUERY = """
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
 WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME IN ('table_1','table_2','table_3','table_4')
 """
 
-SCHEMA_TABLE_LIST_QUERY_DEBUG = """
+__SCHEMA_TABLE_LIST_QUERY_DEBUG = """
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
 WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME IN ('FLOWSHEET', 'ACTIONACTIVITY')
 """
 
-SCHEMA_PK_QUERY = """
+__SCHEMA_PK_QUERY = """
 SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
 WHERE TABLE_NAME = '{table}' AND CONSTRAINT_NAME LIKE '%PRIMARY%'
 """
 
-SCHEMA_COL_QUERY = """
+__SCHEMA_COL_QUERY = """
 SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
 WHERE TABLE_NAME = '{table}' AND TABLE_SCHEMA = 'dbo' 
 ORDER BY ORDINAL_POSITION
 """
 
-# Data extraction queries
-SRC_UPSERT_RECORDS = """
+# Private data extraction queries
+__SRC_UPSERT_RECORDS = """
 SELECT TGT.*, CAST(0 as bit) as _FIVETRAN_DELETED, CURRENT_TIMESTAMP as _FIVETRAN_SYNCED 
 FROM {tableName} TGT 
 WHERE _LastUpdatedInstant >= '{endDate}' and _LastUpdatedInstant <= '{startDate}'
 """
 
-SRC_DEL_RECORDS = """
+__SRC_DEL_RECORDS = """
 SELECT {joincol} FROM {tableName} inc 
 WHERE _LastUpdatedInstant >= '{endDate}' and _LastUpdatedInstant <= '{startDate}' and _IsDeleted = 1
 """
 
-SRC_VAL_RECORD_COUNT = """
+__SRC_VAL_RECORD_COUNT = """
 select count_big(*) from {tableName} where _IsDeleted = 0
 """
 
-SRC_FL_RECORDS = """
+__SRC_FL_RECORDS = """
 select *,CAST(0 as bit) as _FIVETRAN_DELETED, CURRENT_TIMESTAMP as _FIVETRAN_SYNCED 
 from {tableName} 
 where {indexkey} between '{lowerbound}' and '{upperbound}' and _IsDeleted=0
 """
 
-SRC_GEN_INDEX_COLUMN = """
+__SRC_GEN_INDEX_COLUMN = """
 SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
 WHERE TABLE_NAME = '{tableName}' and ordinal_position=1 and table_schema='dbo'
 """
 
-# Complex partitioning query for large table optimization
-SRC_GEN_INDEX_COLUMN_BOUNDS = """
+# Private complex partitioning query for large table optimization
+__SRC_GEN_INDEX_COLUMN_BOUNDS = """
 WITH full_count AS (SELECT COUNT_BIG(*) AS rcnt FROM {tableName}), 
 group_count AS (SELECT {indexkey}, COUNT_BIG(*) AS rcnt FROM {tableName} GROUP BY {indexkey}), 
 parent_counts AS (SELECT group_count.{indexkey}, group_count.rcnt, (SELECT rcnt FROM full_count) AS tcnt FROM group_count), 
@@ -199,10 +199,10 @@ SELECT threadgroup, min_ord1pk AS lowerbound, max_ord1pk AS upperbound, splitsiz
 FROM minmax ORDER BY threadgroup
 """
 
-# ERROR HANDLING PATTERNS
+# Private error handling patterns
 
-# Deadlock detection patterns
-DEADLOCK_PATTERNS = [
+# Private deadlock detection patterns
+__DEADLOCK_PATTERNS = [
     'deadlock',
     'lock timeout',
     'lock wait timeout',
@@ -213,8 +213,8 @@ DEADLOCK_PATTERNS = [
     'blocked by another transaction'
 ]
 
-# Connection timeout patterns
-TIMEOUT_PATTERNS = [
+# Private connection timeout patterns
+__TIMEOUT_PATTERNS = [
     'connection timeout',
     'connection reset',
     'connection lost',
@@ -239,40 +239,42 @@ class ConnectionManager:
     """
     
     def __init__(self, configuration: dict, table_size: int = 0):
-        self.configuration = configuration
-        self.table_size = table_size
-        self.connection_start_time = None
-        self.current_connection = None
-        self.current_cursor = None
-        self.lock = threading.Lock()
-        self.timeout_hours = get_adaptive_timeout(table_size)
+        self._configuration = configuration
+        self._table_size = table_size
+        self._connection_start_time = None
+        self._current_connection = None
+        self._current_cursor = None
+        self._lock = threading.Lock()
+        self._timeout_hours = _get_adaptive_timeout(table_size)
         
     def _is_connection_expired(self) -> bool:
         """Check if current connection has exceeded timeout limit."""
-        if not self.connection_start_time:
+        if not self._connection_start_time:
             return True
-        elapsed = datetime.now(timezone.utc) - self.connection_start_time
-        return elapsed.total_seconds() > (self.timeout_hours * 3600)
+        elapsed = datetime.now(timezone.utc) - self._connection_start_time
+        return elapsed.total_seconds() > (self._timeout_hours * 3600)
     
-    def _is_deadlock_error(self, error: Exception) -> bool:
+    @staticmethod
+    def _is_deadlock_error(error: Exception) -> bool:
         """Detect if error is related to deadlock or lock timeout."""
         error_str = str(error).lower()
-        return any(pattern in error_str for pattern in DEADLOCK_PATTERNS)
+        return any(pattern in error_str for pattern in __DEADLOCK_PATTERNS)
     
-    def _is_timeout_error(self, error: Exception) -> bool:
+    @staticmethod
+    def _is_timeout_error(error: Exception) -> bool:
         """Detect if error is related to connection timeout."""
         error_str = str(error).lower()
-        return any(pattern in error_str for pattern in TIMEOUT_PATTERNS)
+        return any(pattern in error_str for pattern in __TIMEOUT_PATTERNS)
     
     def _create_connection(self):
         """Create a new database connection."""
         try:
-            conn = connect_to_mssql(self.configuration)
-            self.current_connection = conn
-            self.current_cursor = conn.cursor()
-            self.connection_start_time = datetime.now(timezone.utc)
-            log.info(f"New database connection established at {self.connection_start_time}")
-            return conn, self.current_cursor
+            conn = _connect_to_mssql(self._configuration)
+            self._current_connection = conn
+            self._current_cursor = conn.cursor()
+            self._connection_start_time = datetime.now(timezone.utc)
+            log.info(f"New database connection established at {self._connection_start_time}")
+            return conn, self._current_cursor
         except Exception as e:
             log.severe(f"Failed to create database connection: {e}")
             raise
@@ -280,13 +282,13 @@ class ConnectionManager:
     def _close_connection(self):
         """Close current database connection."""
         try:
-            if self.current_cursor:
-                self.current_cursor.close()
-                self.current_cursor = None
-            if self.current_connection:
-                self.current_connection.close()
-                self.current_connection = None
-            self.connection_start_time = None
+            if self._current_cursor:
+                self._current_cursor.close()
+                self._current_cursor = None
+            if self._current_connection:
+                self._current_connection.close()
+                self._current_connection = None
+            self._connection_start_time = None
             log.info("Database connection closed")
         except Exception as e:
             log.warning(f"Error closing connection: {e}")
@@ -294,22 +296,22 @@ class ConnectionManager:
     @contextmanager
     def get_cursor(self):
         """Context manager for database cursor with automatic reconnection."""
-        with self.lock:
+        with self._lock:
             try:
                 # Check if connection is expired or doesn't exist
-                if self._is_connection_expired() or not self.current_connection:
+                if self._is_connection_expired() or not self._current_connection:
                     self._close_connection()
                     self._create_connection()
                 
-                yield self.current_cursor
+                yield self._current_cursor
                 
             except Exception as e:
                 # Handle deadlock and timeout errors
-                if self._is_deadlock_error(e):
+                if ConnectionManager._is_deadlock_error(e):
                     log.warning(f"Deadlock detected: {e}")
                     self._close_connection()
                     raise DeadlockError(f"Database deadlock: {e}")
-                elif self._is_timeout_error(e):
+                elif ConnectionManager._is_timeout_error(e):
                     log.warning(f"Connection timeout detected: {e}")
                     self._close_connection()
                     raise TimeoutError(f"Database timeout: {e}")
@@ -327,7 +329,7 @@ class TimeoutError(Exception):
 
 # UTILITY FUNCTIONS
 
-def safe_get_column_value(row, column_name: str, column_index: int = 0) -> Any:
+def _safe_get_column_value(row, column_name: str, column_index: int = 0):
     """
     Safely extract a column value from a cursor row, handling both dict and tuple formats.
     
@@ -345,7 +347,7 @@ def safe_get_column_value(row, column_name: str, column_index: int = 0) -> Any:
         log.warning(f"Error extracting column value: {e}, row type: {type(row)}, column_name: {column_name}, column_index: {column_index}")
         return None
 
-def safe_get_column_names(cursor) -> List[str]:
+def _safe_get_column_names(cursor) -> list[str]:
     """Safely extract column names from cursor description."""
     try:
         if hasattr(cursor, 'description') and cursor.description:
@@ -360,22 +362,18 @@ def safe_get_column_names(cursor) -> List[str]:
         log.warning(f"Error extracting column names: {e}")
         return []
 
-def safe_get_table_name(row, table_name_column: str = 'TABLE_NAME', table_name_index: int = 0) -> Optional[str]:
+def _safe_get_table_name(row, table_name_column: str = 'TABLE_NAME', table_name_index: int = 0) -> str | None:
     """Safely extract table name from a cursor row."""
-    try:
-        value = safe_get_column_value(row, table_name_column, table_name_index)
-        if value is None:
-            log.warning(f"Could not extract table name from row: {row}")
-            return None
-        return str(value)
-    except Exception as e:
-        log.warning(f"Error extracting table name: {e}")
+    value = _safe_get_column_value(row, table_name_column, table_name_index)
+    if value is None:
+        log.warning(f"Could not extract table name from row: {row}")
         return None
+    return str(value)
 
-def safe_get_column_name(row, column_name_column: str = 'COLUMN_NAME', column_name_index: int = 0) -> Optional[str]:
+def _safe_get_column_name(row, column_name_column: str = 'COLUMN_NAME', column_name_index: int = 0) -> str | None:
     """Safely extract column name from a cursor row."""
     try:
-        value = safe_get_column_value(row, column_name_column, column_name_index)
+        value = _safe_get_column_value(row, column_name_column, column_name_index)
         if value is None:
             log.warning(f"Could not extract column name from row: {row}")
             return None
@@ -384,10 +382,10 @@ def safe_get_column_name(row, column_name_column: str = 'COLUMN_NAME', column_na
         log.warning(f"Error extracting column name: {e}")
         return None
 
-def safe_get_row_count(row, row_count_column: str = 'ROW_COUNT', row_count_index: int = 1) -> int:
+def _safe_get_row_count(row, row_count_column: str = 'ROW_COUNT', row_count_index: int = 1) -> int:
     """Safely extract row count from a cursor row."""
     try:
-        value = safe_get_column_value(row, row_count_column, row_count_index)
+        value = _safe_get_column_value(row, row_count_column, row_count_index)
         if value is None:
             return 0
         return int(value) if value is not None else 0
@@ -398,26 +396,30 @@ def safe_get_row_count(row, row_count_column: str = 'ROW_COUNT', row_count_index
         log.warning(f"Error extracting row count: {e}")
         return 0
 
-def flatten_dict(prefix: str, d: Any, result: Dict[str, Any]) -> None:
+def __flatten_dict_value(prefix: str, value, result: dict[str, str | int | float | None]) -> None:
+    """Helper function to flatten a single value."""
+    if isinstance(value, dict):
+        if not value:
+            result[prefix] = 'N/A'
+        else:
+            for k, v in value.items():
+                new_key = f"{prefix}_{k}" if prefix else k
+                _flatten_dict(new_key, v, result)
+    elif isinstance(value, list):
+        result[prefix] = json.dumps(value) if value else 'N/A'
+    else:
+        result[prefix] = value if value is not None and value != "" else 'N/A'
+
+def _flatten_dict(prefix: str, d, result: dict[str, str | int | float | None]) -> None:
     """
     Flatten nested dictionary structures for database storage.
     
     This function is essential for AI/ML data that often contains nested structures
     like feature vectors, metadata, or complex JSON objects.
     """
-    if isinstance(d, dict):
-        if not d:
-            result[prefix] = 'N/A'
-        else:
-            for k, v in d.items():
-                new_key = f"{prefix}_{k}" if prefix else k
-                flatten_dict(new_key, v, result)
-    elif isinstance(d, list):
-        result[prefix] = json.dumps(d) if d else 'N/A'
-    else:
-        result[prefix] = d if d is not None and d != "" else 'N/A'
+    _flatten_dict_value(prefix, d, result)
 
-def generate_cert_chain(server: str, port: int) -> str:
+def _generate_cert_chain(server: str, port: int) -> str:
     """Generates a certificate chain file by fetching intermediate and root certificates."""
     proc = subprocess.run(
         ['openssl', 's_client', '-showcerts', '-connect', f'{server}:{port}'],
@@ -440,7 +442,7 @@ def generate_cert_chain(server: str, port: int) -> str:
     tmp.close()
     return tmp.name
 
-def connect_to_mssql(configuration: dict):
+def _connect_to_mssql(configuration: dict):
     """
     Connects to MSSQL using TDS with SSL cert chain.
     
@@ -448,9 +450,9 @@ def connect_to_mssql(configuration: dict):
     secure connections to SQL Server databases.
     """
     is_local = platform.system() == "Darwin"
-    server_key = "MSSQL_SERVER_DIR" if is_local else "MSSQL_SERVER"
-    cert_key = "MSSQL_CERT_SERVER_DIR" if is_local else "MSSQL_CERT_SERVER"
-    port_key = "MSSQL_PORT_DIR" if is_local else "MSSQL_PORT"
+    server_key = "mssql_server_dir" if is_local else "mssql_server"
+    cert_key = "mssql_cert_server_dir" if is_local else "mssql_cert_server"
+    port_key = "mssql_port_dir" if is_local else "mssql_port"
     server = configuration.get(server_key)
     cert_server = configuration.get(cert_key)
     port = configuration.get(port_key)
@@ -478,7 +480,7 @@ def connect_to_mssql(configuration: dict):
         else:
             if not cert_server or not port:
                 raise ValueError("Cannot generate cert chain: server or port missing")
-            cafile = generate_cert_chain(cert_server, int(port))
+            cafile = _generate_cert_chain(cert_server, int(port))
     else:
         if not cert_server or not port:
             raise ValueError("Cannot generate cert chain: server or port missing")
@@ -486,9 +488,9 @@ def connect_to_mssql(configuration: dict):
         
     conn = pytds.connect(
         server=server,
-        database=configuration["MSSQL_DATABASE"],
-        user=configuration["MSSQL_USER"],
-        password=configuration["MSSQL_PASSWORD"],
+        database=configuration["mssql_database"],
+        user=configuration["mssql_user"],
+        password=configuration["mssql_password"],
         port=port,
         cafile=cafile,
         validate_host=False
@@ -497,7 +499,7 @@ def connect_to_mssql(configuration: dict):
 
 # CONFIGURATION VALIDATION
 
-def validate_configuration(configuration: dict) -> None:
+def _validate_configuration(configuration: dict) -> None:
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
     
@@ -505,15 +507,15 @@ def validate_configuration(configuration: dict) -> None:
     before attempting to connect to the database.
     """
     required_configs = [
-        "MSSQL_DATABASE", "MSSQL_USER", "MSSQL_PASSWORD",
-        "MSSQL_SERVER", "MSSQL_PORT"
+        "mssql_database", "mssql_user", "mssql_password",
+        "mssql_server", "mssql_port"
     ]
     
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-def ensure_string_configuration(configuration: dict) -> dict:
+def _ensure_string_configuration(configuration: dict) -> dict:
     """
     Ensure all configuration values are strings, except for specific boolean flags.
     
@@ -537,7 +539,7 @@ def ensure_string_configuration(configuration: dict) -> dict:
 
 # ADAPTIVE PROCESSING FUNCTIONS
 
-def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, base_batch_size: int) -> Dict[str, Any]:
+def _get_adaptive_parameters_with_monitoring(table_size: int) -> dict[str, int | bool]:
     """
     Get adaptive parameters considering both table size and current resource pressure.
     
@@ -547,25 +549,23 @@ def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, 
     
     Args:
         table_size: Number of rows in the table
-        base_threads: Base thread count from configuration
-        base_batch_size: Base batch size from configuration
         
     Returns:
         Dictionary containing optimized processing parameters
     """
     # Get base adaptive parameters
-    partition_size = get_adaptive_partition_size(table_size)
-    batch_size = get_adaptive_batch_size(table_size)
-    threads = get_adaptive_threads(table_size)
-    queue_size = get_adaptive_queue_size(table_size)
-    checkpoint_interval = get_adaptive_checkpoint_interval(table_size)
+    partition_size = _get_adaptive_partition_size(table_size)
+    batch_size = _get_adaptive_batch_size(table_size)
+    threads = _get_adaptive_threads(table_size)
+    queue_size = _get_adaptive_queue_size(table_size)
+    checkpoint_interval = _get_adaptive_checkpoint_interval(table_size)
     
     # Apply resource monitoring adjustments
-    resource_status = monitor_resources()
+    resource_status = _monitor_resources()
     
     if resource_status['status'] == 'active':
         # Check if we need to reduce batch size due to memory pressure
-        should_reduce_batch, new_batch_size = should_reduce_batch_size(
+        should_reduce_batch, new_batch_size = _should_reduce_batch_size(
             resource_status['memory_usage'], batch_size
         )
         if should_reduce_batch:
@@ -573,7 +573,7 @@ def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, 
             log.info(f"Resource monitoring adjusted batch size to {batch_size:,} for table with {table_size:,} rows")
         
         # Check if we need to reduce threads due to CPU pressure
-        should_reduce_thread, new_threads = should_reduce_threads(
+        should_reduce_thread, new_threads = _should_reduce_threads(
             resource_status['cpu_percent'], threads
         )
         if should_reduce_thread:
@@ -594,7 +594,7 @@ def get_adaptive_parameters_with_monitoring(table_size: int, base_threads: int, 
         'resource_status': resource_status
     }
 
-def get_adaptive_partition_size(table_size: int) -> int:
+def _get_adaptive_partition_size(table_size: int) -> int:
     """
     Get optimal partition size based on table size.
     
@@ -605,14 +605,14 @@ def get_adaptive_partition_size(table_size: int) -> int:
     
     For AI/ML data with many features, consider reducing these values by 25%.
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
-        return PARTITION_SIZE  # 50K for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
-        return PARTITION_SIZE // 2  # 25K for medium tables
+    if table_size < __SMALL_TABLE_THRESHOLD:
+        return __PARTITION_SIZE  # 50K for small tables
+    elif table_size < __LARGE_TABLE_THRESHOLD:
+        return __PARTITION_SIZE // 2  # 25K for medium tables
     else:
-        return PARTITION_SIZE // 10  # 5K for large tables
+        return __PARTITION_SIZE // 10  # 5K for large tables
 
-def get_adaptive_batch_size(table_size: int) -> int:
+def _get_adaptive_batch_size(table_size: int) -> int:
     """
     Get optimal batch size based on table size.
     
@@ -623,14 +623,14 @@ def get_adaptive_batch_size(table_size: int) -> int:
     
     For wide tables with many columns, consider reducing these values by 50%.
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
-        return BATCH_SIZE  # 5K for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
-        return BATCH_SIZE // 2  # 2.5K for medium tables
+    if table_size < __SMALL_TABLE_THRESHOLD:
+        return __BATCH_SIZE  # 5K for small tables
+    elif table_size < __LARGE_TABLE_THRESHOLD:
+        return __BATCH_SIZE // 2  # 2.5K for medium tables
     else:
-        return BATCH_SIZE // 5  # 1K for large tables
+        return __BATCH_SIZE // 5  # 1K for large tables
 
-def get_adaptive_queue_size(table_size: int) -> int:
+def _get_adaptive_queue_size(table_size: int) -> int:
     """
     Get optimal queue size based on table size.
     
@@ -639,14 +639,14 @@ def get_adaptive_queue_size(table_size: int) -> int:
     - Medium tables (1M-50M rows): Medium queue to balance memory and speed
     - Large tables (50M+ rows): Smaller queue to prevent memory overflow
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
+    if table_size < __SMALL_TABLE_THRESHOLD:
         return 10000  # 10K for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
+    elif table_size < __LARGE_TABLE_THRESHOLD:
         return 5000  # 5K for medium tables
     else:
         return 1000  # 1K for large tables
 
-def get_adaptive_threads(table_size: int) -> int:
+def _get_adaptive_threads(table_size: int) -> int:
     """
     Get optimal thread count based on table size, capped at 4 threads.
     
@@ -657,14 +657,14 @@ def get_adaptive_threads(table_size: int) -> int:
     
     For databases with connection limits, consider reducing these values.
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
+    if table_size < __SMALL_TABLE_THRESHOLD:
         return 4  # 4 threads for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
+    elif table_size < __LARGE_TABLE_THRESHOLD:
         return 2  # 2 threads for medium tables
     else:
         return 1  # 1 thread for large tables to avoid overwhelming the DB
 
-def get_adaptive_timeout(table_size: int) -> int:
+def _get_adaptive_timeout(table_size: int) -> int:
     """
     Get adaptive timeout based on table size.
     
@@ -675,14 +675,14 @@ def get_adaptive_timeout(table_size: int) -> int:
     
     Adjust these values based on your network latency and database performance.
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
-        return CONNECTION_TIMEOUT_HOURS  # 3 hours for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
-        return CONNECTION_TIMEOUT_HOURS * 2  # 6 hours for medium tables
+    if table_size < __SMALL_TABLE_THRESHOLD:
+        return __CONNECTION_TIMEOUT_HOURS  # 3 hours for small tables
+    elif table_size < __LARGE_TABLE_THRESHOLD:
+        return __CONNECTION_TIMEOUT_HOURS * 2  # 6 hours for medium tables
     else:
-        return CONNECTION_TIMEOUT_HOURS * 4  # 12 hours for large tables
+        return __CONNECTION_TIMEOUT_HOURS * 4  # 12 hours for large tables
 
-def get_adaptive_checkpoint_interval(table_size: int) -> int:
+def _get_adaptive_checkpoint_interval(table_size: int) -> int:
     """
     Get adaptive checkpoint interval based on table size.
     
@@ -693,16 +693,16 @@ def get_adaptive_checkpoint_interval(table_size: int) -> int:
     
     More frequent checkpoints help with recovery but add overhead.
     """
-    if table_size < SMALL_TABLE_THRESHOLD:
-        return CHECKPOINT_INTERVAL  # 1M for small tables
-    elif table_size < LARGE_TABLE_THRESHOLD:
-        return CHECKPOINT_INTERVAL // 2  # 500K for medium tables
+    if table_size < __SMALL_TABLE_THRESHOLD:
+        return __CHECKPOINT_INTERVAL  # 1M for small tables
+    elif table_size < __LARGE_TABLE_THRESHOLD:
+        return __CHECKPOINT_INTERVAL // 2  # 500K for medium tables
     else:
-        return CHECKPOINT_INTERVAL // 10  # 100K for large tables
+        return __CHECKPOINT_INTERVAL // 10  # 100K for large tables
 
 # RESOURCE MONITORING FUNCTIONS
 
-def monitor_resources() -> Dict[str, Any]:
+def _monitor_resources() -> dict[str, str | float | bool]:
     """
     Monitor system resources and return current status.
     
@@ -729,10 +729,10 @@ def monitor_resources() -> Dict[str, Any]:
         disk_usage = (disk.used / disk.total) * 100
         
         # Determine resource pressure levels
-        memory_pressure = memory_usage > MEMORY_THRESHOLD_HIGH
-        memory_critical = memory_usage > MEMORY_THRESHOLD_CRITICAL
-        cpu_pressure = cpu_percent > CPU_THRESHOLD_HIGH
-        cpu_critical = cpu_percent > CPU_THRESHOLD_CRITICAL
+        memory_pressure = memory_usage > __MEMORY_THRESHOLD_HIGH
+        memory_critical = memory_usage > __MEMORY_THRESHOLD_CRITICAL
+        cpu_pressure = cpu_percent > __CPU_THRESHOLD_HIGH
+        cpu_critical = cpu_percent > __CPU_THRESHOLD_CRITICAL
         
         # Log resource status
         log.info(f"Resource Monitor: Memory {memory_usage:.1f}% ({memory_available_gb:.1f}GB available), "
@@ -766,7 +766,7 @@ def monitor_resources() -> Dict[str, Any]:
         log.warning(f"Resource monitoring failed: {e}")
         return {'status': 'error', 'error': str(e)}
 
-def should_reduce_batch_size(memory_usage: float, current_batch_size: int) -> Tuple[bool, int]:
+def _should_reduce_batch_size(memory_usage: float, current_batch_size: int) -> tuple[bool, int]:
     """
     Determine if batch size should be reduced based on memory pressure.
     
@@ -783,12 +783,12 @@ def should_reduce_batch_size(memory_usage: float, current_batch_size: int) -> Tu
     if not PSUTIL_AVAILABLE:
         return False, current_batch_size
     
-    if memory_usage > MEMORY_THRESHOLD_CRITICAL:
+    if memory_usage > __MEMORY_THRESHOLD_CRITICAL:
         # Critical memory pressure - reduce by 50%
         new_batch_size = max(current_batch_size // 2, 100)
         log.warning(f"CRITICAL MEMORY PRESSURE: Reducing batch size from {current_batch_size:,} to {new_batch_size:,} records")
         return True, new_batch_size
-    elif memory_usage > MEMORY_THRESHOLD_HIGH:
+    elif memory_usage > __MEMORY_THRESHOLD_HIGH:
         # High memory pressure - reduce by 25%
         new_batch_size = max(int(current_batch_size * 0.75), 100)
         log.info(f"HIGH MEMORY PRESSURE: Reducing batch size from {current_batch_size:,} to {new_batch_size:,} records")
@@ -796,7 +796,7 @@ def should_reduce_batch_size(memory_usage: float, current_batch_size: int) -> Tu
     
     return False, current_batch_size
 
-def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[bool, int]:
+def _should_reduce_threads(cpu_percent: float, current_threads: int) -> tuple[bool, int]:
     """
     Determine if thread count should be reduced based on CPU pressure.
     
@@ -813,12 +813,12 @@ def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[boo
     if not PSUTIL_AVAILABLE:
         return False, current_threads
     
-    if cpu_percent > CPU_THRESHOLD_CRITICAL:
+    if cpu_percent > __CPU_THRESHOLD_CRITICAL:
         # Critical CPU pressure - reduce to 1 thread
         new_threads = 1
         log.warning(f"CRITICAL CPU PRESSURE: Reducing threads from {current_threads} to {new_threads}")
         return True, new_threads
-    elif cpu_percent > CPU_THRESHOLD_HIGH:
+    elif cpu_percent > __CPU_THRESHOLD_HIGH:
         # High CPU pressure - reduce by 50%
         new_threads = max(current_threads // 2, 1)
         log.info(f"HIGH CPU PRESSURE: Reducing threads from {current_threads} to {new_threads}")
@@ -828,7 +828,7 @@ def should_reduce_threads(cpu_percent: float, current_threads: int) -> Tuple[boo
 
 # DATA PROCESSING FUNCTIONS
 
-def get_table_sizes(configuration: dict, conn_manager, tables: List[str]) -> Dict[str, int]:
+def get_table_sizes(conn_manager, tables: List[str]) -> Dict[str, int]:
     """
     Get row counts for all tables efficiently.
     
@@ -875,6 +875,20 @@ def get_table_sizes(configuration: dict, conn_manager, tables: List[str]) -> Dic
     
     return table_sizes
 
+def _categorize_table_by_size(row_count: int) -> str:
+    """Determine table category based on row count."""
+    if row_count < SMALL_TABLE_THRESHOLD:
+        return 'small'
+    elif row_count < LARGE_TABLE_THRESHOLD:
+        return 'medium'
+    return 'large'
+
+def _get_sort_key(categorized_item: Tuple[str, str, int]) -> Tuple[int, int]:
+    """Generate sort key for categorized table (category priority, row_count)."""
+    category_order = {'small': 0, 'medium': 1, 'large': 2}
+    _, category, row_count = categorized_item
+    return (category_order.get(category, 3), row_count)
+
 def categorize_and_sort_tables(tables: List[str], table_sizes: Dict[str, int]) -> List[Tuple[str, str, int]]:
     """
     Categorize tables by size and sort for optimal processing order.
@@ -885,23 +899,11 @@ def categorize_and_sort_tables(tables: List[str], table_sizes: Dict[str, int]) -
     Returns: List of tuples (table_name, category, row_count)
     Categories: 'small', 'medium', 'large'
     """
-    categorized = []
-    
-    for table in tables:
-        row_count = table_sizes.get(table, 0)
-        
-        if row_count < SMALL_TABLE_THRESHOLD:
-            category = 'small'
-        elif row_count < LARGE_TABLE_THRESHOLD:
-            category = 'medium'
-        else:
-            category = 'large'
-        
-        categorized.append((table, category, row_count))
-    
-    # Sort by category (small first, then medium, then large) and by row count within each category
-    categorized.sort(key=lambda x: ('small', 'medium', 'large').index(x[1]) * 1000000000 + x[2])
-    
+    categorized = [
+        (table, _categorize_table_by_size(table_sizes.get(table, 0)), table_sizes.get(table, 0))
+        for table in tables
+    ]
+    categorized.sort(key=_get_sort_key)
     return categorized
 
 def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> None:
@@ -934,7 +936,7 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
         log.info(f"\nMEDIUM TABLES ({len(medium_tables)} tables, 1M-50M rows each):")
         log.info("-" * 50)
         for i, (table, _, rows) in enumerate(medium_tables[:10]):  # Show first 10
-            log.info(f"  {i+1:2d}. {table:<40} {rows:>10,} rows")
+            log.info("  {:2d}. {:<40} {:>10,} rows".format(i+1, table, rows))
         if len(medium_tables) > 10:
             log.info(f"  ... and {len(medium_tables) - 10} more medium tables")
     
@@ -975,6 +977,40 @@ def display_processing_plan(categorized_tables: List[Tuple[str, str, int]]) -> N
 
 # SCHEMA DISCOVERY AND PROCESSING
 
+def _get_debug_flag(configuration: dict) -> bool:
+    """Extract and parse debug flag from configuration."""
+    raw_debug = configuration.get("debug", False)
+    return isinstance(raw_debug, str) and raw_debug.lower() == 'true'
+
+def _get_table_list(conn_manager: ConnectionManager, debug: bool) -> List[str]:
+    """Get list of tables from the database."""
+    with conn_manager.get_cursor() as cursor:
+        query = SCHEMA_TABLE_LIST_QUERY_DEBUG if debug else SCHEMA_TABLE_LIST_QUERY
+        cursor.execute(query)
+        return [safe_get_table_name(r) for r in cursor.fetchall() if safe_get_table_name(r)]
+
+def _get_table_schema(conn_manager: ConnectionManager, table: str) -> Optional[Dict[str, Any]]:
+    """Get schema information for a single table."""
+    try:
+        with conn_manager.get_cursor() as cursor:
+            cursor.execute(SCHEMA_PK_QUERY.format(table=table))
+            pk_rows = cursor.fetchall()
+            primary_keys = [safe_get_column_name(r) for r in pk_rows if safe_get_column_name(r)]
+            
+            cursor.execute(SCHEMA_COL_QUERY.format(table=table))
+            col_rows = cursor.fetchall()
+            columns = [safe_get_column_name(r) for r in col_rows if safe_get_column_name(r)]
+        
+        obj = {'table': table}
+        if primary_keys:
+            obj['primary_key'] = primary_keys
+        if columns:
+            obj['column'] = columns
+        return obj
+    except Exception as e:
+        log.warning(f"Error processing schema for table {table}: {e}")
+        return None
+
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
     Discover tables, columns, and primary keys.
@@ -989,43 +1025,20 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     Returns:
         List of table schema definitions with primary keys and columns
     """
-    # Ensure all configuration values are strings
     configuration = ensure_string_configuration(configuration)
-    
     validate_configuration(configuration)
     
-    raw_debug = configuration.get("debug", False)
-    debug = (isinstance(raw_debug, str) and raw_debug.lower() == 'true')
+    debug = _get_debug_flag(configuration)
     log.info(f"Debug mode: {debug}")
     
     conn_manager = ConnectionManager(configuration)
-    
-    with conn_manager.get_cursor() as cursor:
-        query = SCHEMA_TABLE_LIST_QUERY_DEBUG if debug else SCHEMA_TABLE_LIST_QUERY
-        cursor.execute(query)
-        tables = [safe_get_table_name(r) for r in cursor.fetchall() if safe_get_table_name(r)]
+    tables = _get_table_list(conn_manager, debug)
     
     result = []
     for table in tables:
-        try:
-            with conn_manager.get_cursor() as cursor:
-                cursor.execute(SCHEMA_PK_QUERY.format(table=table))
-                pk_rows = cursor.fetchall()
-                primary_keys = [safe_get_column_name(r) for r in pk_rows if safe_get_column_name(r)]
-                cursor.execute(SCHEMA_COL_QUERY.format(table=table))
-                col_rows = cursor.fetchall()
-                columns = [safe_get_column_name(r) for r in col_rows if safe_get_column_name(r)]
-            
-            obj = {'table': table}
-            if primary_keys:
-                obj['primary_key'] = primary_keys
-            if columns:
-                obj['column'] = columns
-            result.append(obj)
-            
-        except Exception as e:
-            log.warning(f"Error processing schema for table {table}: {e}")
-            continue
+        schema_info = _get_table_schema(conn_manager, table)
+        if schema_info:
+            result.append(schema_info)
     
     return result
 
@@ -1062,7 +1075,7 @@ def process_incremental_sync(table: str, configuration: dict, state: dict,
                 total_rows = 0
             
             # Use resource-aware adaptive parameters
-            adaptive_params = get_adaptive_parameters_with_monitoring(total_rows, 0, 0)
+            adaptive_params = get_adaptive_parameters_with_monitoring(total_rows)
             batch_size = adaptive_params['batch_size']
             checkpoint_interval = adaptive_params['checkpoint_interval']
             
@@ -1083,7 +1096,7 @@ def process_incremental_sync(table: str, configuration: dict, state: dict,
         
         cols = safe_get_column_names(cursor)
         if not cols:
-            log.error(f"No column information available for table {table} - skipping incremental sync")
+            log.severe(f"No column information available for table {table} - skipping incremental sync")
             return records_processed
             
         log.info(f"Processing {len(cols)} columns for table {table}: {cols[:5]}{'...' if len(cols) > 5 else ''}")
@@ -1175,7 +1188,7 @@ def process_full_load(table: str, configuration: dict, conn_manager: ConnectionM
             total_rows = 0
         
         # Use adaptive parameters with resource monitoring
-        adaptive_params = get_adaptive_parameters_with_monitoring(total_rows, threads, max_queue_size)
+        adaptive_params = get_adaptive_parameters_with_monitoring(total_rows)
         
         partition_size = adaptive_params['partition_size']
         batch_size = adaptive_params['batch_size']
@@ -1232,7 +1245,7 @@ def process_full_load(table: str, configuration: dict, conn_manager: ConnectionM
                     pc.execute(fl_q)
                     cols = safe_get_column_names(pc)
                     if not cols:
-                        log.error(f"No column information available for partition in table {table} - skipping partition")
+                        log.severe(f"No column information available for partition in table {table} - skipping partition")
                         break
                     
                     log.debug(f"Processing partition with {len(cols)} columns: {cols[:3]}{'...' if len(cols) > 3 else ''}")
@@ -1332,7 +1345,7 @@ def update(configuration: dict, state: dict):
     
     # Get table sizes and categorize them
     log.info("Analyzing table sizes for optimal processing order...")
-    table_sizes = get_table_sizes(configuration, initial_conn_manager, tables)
+    table_sizes = get_table_sizes(initial_conn_manager, tables)
     categorized_tables = categorize_and_sort_tables(tables, table_sizes)
     
     # Log processing strategy
