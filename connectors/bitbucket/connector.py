@@ -498,7 +498,6 @@ def update(configuration: dict, state: dict):
     username = __get_config_str(configuration, "username")
     app_password = __get_config_str(configuration, "app_password")
     max_records_per_page = __get_config_int(configuration, "max_records_per_page", 50, 1, 100)
-    enable_incremental = __get_config_bool(configuration, "enable_incremental_sync", True)
 
     # Get state for incremental sync
     last_sync_time = state.get("last_sync_time")
