@@ -551,34 +551,29 @@ def get_menus(api_key, store_id, params, last_sync_time=None, configuration=None
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
-
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": "stores", "primary_key": ["id"]},
-        {"table": "orders", "primary_key": ["id", "store_id"]},
-        {"table": "promotions", "primary_key": ["id", "store_id"]},
-        {"table": "menus", "primary_key": ["id", "store_id"]},
+        {"table": "orders", "primary_key": ["id"]},
+        {"table": "promotions", "primary_key": ["id"]},
+        {"table": "menus", "primary_key": ["id"]},
     ]
 
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Uber Eats API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting Uber Eats API connector sync")
 
@@ -594,22 +589,22 @@ def update(configuration: dict, state: dict):
         # Track record counts and processing
         record_counts = {"stores": 0, "orders": 0, "promotions": 0, "menus": 0}
 
-        # First, fetch all stores to get store IDs
-        log.info("Fetching stores data...")
-        stores = []
-        for record in get_stores(api_key, {}, last_sync_time, configuration):
+        # Process stores and their child resources (orders, promotions, menus) immediately
+        # to avoid memory accumulation from storing all stores in memory
+        log.info("Fetching stores data and processing child resources...")
+
+        for store_record in get_stores(api_key, {}, last_sync_time, configuration):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="stores", data=record)
+            op.upsert(table="stores", data=store_record)
             record_counts["stores"] += 1
-            stores.append(record)
 
             # Checkpoint every page/batch to save progress incrementally
             if record_counts["stores"] % max_records_per_page == 0:
                 checkpoint_state = {
-                    "last_sync_time": record.get(
+                    "last_sync_time": store_record.get(
                         "updated_at", datetime.now(timezone.utc).isoformat()
                     ),
                     "stores_processed": record_counts["stores"],
@@ -620,12 +615,10 @@ def update(configuration: dict, state: dict):
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(checkpoint_state)
 
-        # Fetch orders, promotions, and menus for each store
-        log.info(f"Fetching orders, promotions, and menus for {len(stores)} stores...")
-        for store in stores:
-            store_id = store.get("id")
+            # Process child resources for this store immediately to maintain memory efficiency
+            store_id = store_record.get("id")
             if not store_id:
-                log.warning(f"Skipping store without ID: {store}")
+                log.warning(f"Skipping store without ID: {store_record}")
                 continue
 
             # Fetch orders data for this store
@@ -730,7 +723,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
-# Create the Connector object
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.

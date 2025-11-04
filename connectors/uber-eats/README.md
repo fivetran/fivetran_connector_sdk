@@ -89,9 +89,9 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
 | STORES | `id` | Restaurant and store information including location, ratings, and operational details |
-| ORDERS | `id`, `store_id` | Order transaction data with payment details, delivery information, and status |
-| PROMOTIONS | `id`, `store_id` | Promotional campaigns and discount information with usage limits and validity periods |
-| MENUS | `id`, `store_id` | Menu items with pricing, availability, nutritional information, and customization options |
+| ORDERS | `id` | Order transaction data with payment details, delivery information, and status |
+| PROMOTIONS | `id` | Promotional campaigns and discount information with usage limits and validity periods |
+| MENUS | `id` | Menu items with pricing, availability, nutritional information, and customization options |
 
 Column types are automatically inferred by Fivetran. Sample columns include:
 
