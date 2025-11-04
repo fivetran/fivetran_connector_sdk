@@ -44,7 +44,7 @@ from fivetran_connector_sdk import Operations as op
 # --- Configuration ---
 __API_BASE = "https://api.people.ai"
 
-activity = "activity"
+__ACTIVITY_TABLE = "activity"
 __ACTIVITY_TYPES = ["participants"]
 
 __MAX_RETRIES = 5
@@ -251,7 +251,7 @@ def sync_base_activities(
             #   into.
             # - The second argument is a dictionary containing the data to be
             #   upserted
-            op.upsert(table=activity, data=data_to_upsert)
+            op.upsert(table=__ACTIVITY_TABLE, data=data_to_upsert)
 
         total += len(page)
 
