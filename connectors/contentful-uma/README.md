@@ -25,19 +25,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Configuration file
 ```json
 {
-  "access_token": "YOUR_CONTENTFUL_ACCESS_TOKEN",
-  "organization_id": "YOUR_ORGANIZATION_ID",
-  "use_eu_region": "false",
-  "sync_frequency_hours": "4",
-  "initial_sync_days": "90",
-  "max_records_per_page": "100",
-  "request_timeout_seconds": "30",
-  "retry_attempts": "3",
-  "enable_incremental_sync": "true",
-  "enable_organization_memberships": "true",
-  "enable_team_memberships": "true",
-  "enable_space_memberships": "true",
-  "enable_debug_logging": "false"
+  "access_token": "<YOUR_CONTENTFUL_ACCESS_TOKEN>",
+  "organization_id": "<YOUR_ORGANIZATION_ID>",
+  "use_eu_region": "<YOUR_USE_EU_REGION>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",  
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_organization_memberships": "<YOUR_ENABLE_ORGANIZATION_MEMBERSHIPS>",
+  "enable_team_memberships": "<YOUR_ENABLE_TEAM_MEMBERSHIPS>",
+  "enable_space_memberships": "<YOUR_ENABLE_SPACE_MEMBERSHIPS>"
 }
 ```
 
@@ -47,7 +45,6 @@ Required parameters:
 - `use_eu_region`: Set to "true" for EU region API endpoint
 
 Optional parameters:
-- `sync_frequency_hours`: How often to sync data (default: 4 hours)
 - `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
 - `max_records_per_page`: Records per API request (default: 100, max: 100)
 - `request_timeout_seconds`: HTTP request timeout (default: 30)
@@ -92,15 +89,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | SPACE_MEMBERSHIPS | `id` | Space membership relationships and access levels |
 
 Column types are automatically inferred by Fivetran. Sample columns include `email`, `first_name`, `last_name`, `activated`, `admin`, `created_at`, `updated_at`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Contentful User Management API integration and connector requirements.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
