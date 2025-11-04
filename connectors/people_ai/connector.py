@@ -30,7 +30,7 @@ from typing import Any, Dict, List
 # Import the json module to handle JSON data.
 import json
 
-# Import time module to handle time-related tasks, suchs as delays.
+# Import time module to handle time-related tasks, such as delays.
 import time
 
 # Import requests to make HTTP calls to API
