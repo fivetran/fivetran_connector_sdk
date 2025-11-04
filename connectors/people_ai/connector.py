@@ -82,7 +82,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 
 # The 'update' function will now need to pass a reauth function to get_page
 def get_page(
-    access_token: str,
+    : str,
     reauth_func: Callable[[], str],  # Added reauth function for 401 handling
     activity_type: Optional[str] = None,  # Made optional for base endpoint
     limit: int = 50,
@@ -100,9 +100,6 @@ def get_page(
         url += f"/{activity_type}"
 
     params: Dict[str, Any] = {"limit": limit, "offset": offset}
-
-    # Retry loop setup
-    current_token = access_token
 
     # Outer loop for re-authentication attempt on 401
     for reauth_attempt in range(__REAUTH_RETRY_COUNT + 1):
@@ -174,7 +171,6 @@ def get_page(
             try:
                 # Call the passed re-authentication function
                 current_token = reauth_func()
-                access_token = current_token  # Update the token
                 log.info("Token refreshed successfully. Retrying request.")
                 continue  # Continue outer loop with new token
             except Exception as e:
