@@ -6,7 +6,7 @@ This connector syncs data from Uber Eats API including stores, orders, promotion
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -31,27 +31,23 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_UBER_EATS_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 ### Configuration parameters
 
 - `api_key` (required): Your Uber Eats API authentication key
-- `base_url` (optional): Base URL for the Uber Eats API (defaults to `https://api.uber.com/v2/eats`)
-- `sync_frequency_hours` (optional): How often to run syncs in hours (default: 4)
 - `initial_sync_days` (optional): Number of days of historical data to fetch on first sync (default: 90)
 - `max_records_per_page` (optional): Maximum records per API request (default: 100, range: 1-1000)
 - `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: 30)
 - `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
 - `enable_incremental_sync` (optional): Enable incremental sync using timestamps (default: true)
-- `enable_debug_logging` (optional): Enable detailed debug logging (default: false)
 
 ## Requirements file
 
@@ -93,9 +89,9 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
 | STORES | `id` | Restaurant and store information including location, ratings, and operational details |
-| ORDERS | `id` | Order transaction data with payment details, delivery information, and status |
-| PROMOTIONS | `id` | Promotional campaigns and discount information with usage limits and validity periods |
-| MENUS | `id` | Menu items with pricing, availability, nutritional information, and customization options |
+| ORDERS | `id`, `store_id` | Order transaction data with payment details, delivery information, and status |
+| PROMOTIONS | `id`, `store_id` | Promotional campaigns and discount information with usage limits and validity periods |
+| MENUS | `id`, `store_id` | Menu items with pricing, availability, nutritional information, and customization options |
 
 Column types are automatically inferred by Fivetran. Sample columns include:
 
@@ -106,14 +102,6 @@ Column types are automatically inferred by Fivetran. Sample columns include:
 **PROMOTIONS table**: `id`, `store_id`, `name`, `description`, `promotion_type`, `discount_type`, `discount_value`, `minimum_order_value`, `maximum_discount`, `usage_limit`, `usage_count`, `is_active`, `start_date`, `end_date`, `terms_and_conditions`, `created_at`, `updated_at`, `synced_at`
 
 **MENUS table**: `id`, `store_id`, `name`, `description`, `category`, `price`, `currency`, `image_url`, `calories`, `allergens`, `ingredients`, `customizations`, `is_available`, `preparation_time`, `spice_level`, `created_at`, `updated_at`, `synced_at`
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Uber Eats API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 
