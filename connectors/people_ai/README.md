@@ -35,8 +35,8 @@ The `configuration.json` file provides API credentials required for authenticati
 
 ```json
 {
-  "api_key": "<your_api_key>",
-  "api_secret": "<your_api_secret>"
+  "api_key": "<YOUR_PEOPLE_AI_API_KEY>",
+  "api_secret": "<YOUR_PEOPLE_AI_API_SECRET>"
 }
 ```
 - `api_key`: Your People.ai API key (client ID).  
@@ -45,14 +45,6 @@ The `configuration.json` file provides API credentials required for authenticati
 ### Notes
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
-
-## Requirements file
-The `requirements.txt` file lists external libraries needed for this connector.
-
-Example content of `requirements.txt`:
-python-dotenv==1.1.1
-
-- `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
 
 ## Authentication
 - Type: OAuth2 Client Credentials  
@@ -112,8 +104,6 @@ Summary of tables replicated.
 - `requirements.txt` – Lists any third-party Python libraries required (e.g., `requests`).
 
 ## Additional considerations
-This connector provides a reference implementation for integrating with the People.ai API using the Fivetran Connector SDK.  
-While this code has been tested for common cases, Fivetran cannot guarantee compatibility with all API configurations or rate limits.  
-
-For troubleshooting or enhancements, consult the [Fivetran Connector SDK documentation](https://fivetran.com/docs/connectors/connector-sdk)  
-or contact Fivetran Support.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. 
+While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. 
+For inquiries, please reach out to our Support team.
