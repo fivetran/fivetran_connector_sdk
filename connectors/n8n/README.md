@@ -44,7 +44,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 This connector uses API key authentication to access the n8n REST API. To obtain an API key:
 
 1. Log in to your n8n instance (self-hosted or cloud).
-2. Navigate to **Settings > n8n API**.
+2. Navigate to **Settings** > **n8n API**.
 3. Click **Create an API key**.
 4. Choose a descriptive label for the key and set an expiration time.
 5. Copy the generated API key and add it to your `configuration.json` file.
