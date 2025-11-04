@@ -33,6 +33,11 @@ The connector requires the following configuration parameters:
 }
 ```
 
+### Configuration parameters
+
+- `base_url` (required): The base URL of your n8n instance (e.g., `https://your-n8n-instance.com` for cloud or `http://localhost:5678` for self-hosted)
+- `api_key` (required): Your n8n API key with read permissions for workflows and executions
+
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
