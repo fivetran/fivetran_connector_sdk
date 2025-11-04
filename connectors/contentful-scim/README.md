@@ -6,7 +6,7 @@ This connector syncs user and group data from Contentful's SCIM API including us
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -19,10 +19,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs user data and group information from Contentful SCIM API
-- Bearer token authentication with automatic error handling (refer to `execute_api_request` function)
-- SCIM 2.0 pagination with automatic page traversal (refer to `get_users` and `get_groups` functions)
+- Bearer token authentication with automatic error handling (refer to the `execute_api_request` function)
+- SCIM 2.0 pagination with automatic page traversal (refer to the `get_users` and `get_groups` functions)
 - Memory-efficient streaming prevents data accumulation for large user datasets
-- Incremental synchronization using SCIM lastModified filtering (refer to `get_time_range` function)
+- Incremental synchronization using SCIM lastModified filtering (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic
 - Support for user profiles and group metadata
 
@@ -42,12 +42,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-**Parameter descriptions:**
-- `bearer_token`: Personal Access Token from Contentful with organization admin rights
-- `org_id`: Contentful organization ID for SCIM API access
+Configuration parameters:
+
+- `bearer_token`: Your Contentful access token with organization admin rights.
+- `org_id`: Contentful organization ID for SCIM API access.
 - `sync_frequency_hours`: How often to run sync operations (4-24 hours recommended)
 - `initial_sync_days`: Days of historical data to fetch on first sync (up to 365)
-- `max_records_per_page`: Records per API request (1-1000, default 100)
+- `max_records_per_page`: Records per API request (1-1000, default `100`)
 - `request_timeout_seconds`: HTTP request timeout (10-60 seconds)
 - `retry_attempts`: Number of retry attempts for failed requests (1-5)
 - `enable_incremental_sync`: Use timestamp-based incremental sync for efficiency
@@ -62,8 +63,8 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 
 1. Log in to the [Contentful Developer Portal](https://www.contentful.com/developers/).
-2. Navigate to your organization settings and access management.
-3. Generate a Personal Access Token with organization admin or owner permissions.
+2. Navigate to organization settings and access management.
+3. Generate a personal access token with organization admin or owner permissions.
 4. Make a note of your organization ID from the Contentful organization settings.
 5. Retrieve your organization ID from Contentful administrators.
 6. Use sandbox organization credentials for testing, production credentials for live syncing.
@@ -72,7 +73,7 @@ Note: The connector automatically handles authentication token validation and pr
 
 ## Pagination
 
-SCIM 2.0 pagination with automatic page traversal (refer to `get_users` and `get_groups` functions). Generator-based processing prevents memory accumulation for large user datasets. Processes pages sequentially while yielding individual records for immediate processing using startIndex and count parameters.
+SCIM 2.0 pagination with automatic page traversal (refer to the `get_users` and `get_groups` functions). Generator-based processing prevents memory accumulation for large user datasets. Processes pages sequentially while yielding individual records for immediate processing using startIndex and count parameters.
 
 ## Data handling
 
