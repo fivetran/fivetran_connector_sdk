@@ -469,14 +469,11 @@ def get_projects(username, app_password, workspace_uuid, last_sync_time=None, co
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
-
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": "workspaces", "primary_key": ["uuid"]},
@@ -487,15 +484,13 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Bitbucket API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting Bitbucket API connector sync")
 
@@ -509,42 +504,27 @@ def update(configuration: dict, state: dict):
     last_sync_time = state.get("last_sync_time")
 
     try:
-        # Fetch workspaces using generator with incremental checkpointing
-        log.info("Fetching workspaces...")
+        # Initialize counters for all data types
         workspace_count = 0
-        workspace_uuids = []
+        repository_count = 0
+        project_count = 0
+        enable_repositories = __get_config_bool(configuration, "enable_repositories", True)
+        enable_projects = __get_config_bool(configuration, "enable_projects", True)
 
+        # Fetch workspaces and process related data immediately to avoid memory accumulation
+        log.info("Fetching workspaces...")
         for workspace in get_workspaces(username, app_password, last_sync_time, configuration):
+            workspace_uuid = workspace.get("uuid")
+
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="workspaces", data=workspace)
             workspace_count += 1
-            workspace_uuids.append(workspace["uuid"])
 
-            # Checkpoint every batch to save progress incrementally
-            if workspace_count % max_records_per_page == 0:
-                checkpoint_state = {
-                    "last_sync_time": workspace.get(
-                        "updated_on", datetime.now(timezone.utc).isoformat()
-                    ),
-                    "workspaces_processed": workspace_count,
-                }
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(checkpoint_state)
-
-        log.info(f"Fetched {workspace_count} workspaces")
-
-        # Fetch repositories for each workspace
-        if __get_config_bool(configuration, "enable_repositories", True):
-            log.info("Fetching repositories...")
-            repository_count = 0
-
-            for workspace_uuid in workspace_uuids:
+            # Process repositories for this workspace immediately to avoid memory accumulation
+            if enable_repositories:
                 for repository in get_repositories(
                     username, app_password, workspace_uuid, last_sync_time, configuration
                 ):
@@ -561,6 +541,7 @@ def update(configuration: dict, state: dict):
                             "last_sync_time": repository.get(
                                 "updated_on", datetime.now(timezone.utc).isoformat()
                             ),
+                            "workspaces_processed": workspace_count,
                             "repositories_processed": repository_count,
                         }
                         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -569,14 +550,8 @@ def update(configuration: dict, state: dict):
                         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                         op.checkpoint(checkpoint_state)
 
-            log.info(f"Fetched {repository_count} repositories")
-
-        # Fetch projects for each workspace
-        if __get_config_bool(configuration, "enable_projects", True):
-            log.info("Fetching projects...")
-            project_count = 0
-
-            for workspace_uuid in workspace_uuids:
+            # Process projects for this workspace immediately to avoid memory accumulation
+            if enable_projects:
                 for project in get_projects(
                     username, app_password, workspace_uuid, last_sync_time, configuration
                 ):
@@ -593,6 +568,7 @@ def update(configuration: dict, state: dict):
                             "last_sync_time": project.get(
                                 "updated_on", datetime.now(timezone.utc).isoformat()
                             ),
+                            "workspaces_processed": workspace_count,
                             "projects_processed": project_count,
                         }
                         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -601,6 +577,26 @@ def update(configuration: dict, state: dict):
                         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                         op.checkpoint(checkpoint_state)
 
+            # Checkpoint every batch to save progress incrementally
+            if workspace_count % max_records_per_page == 0:
+                checkpoint_state = {
+                    "last_sync_time": workspace.get(
+                        "updated_on", datetime.now(timezone.utc).isoformat()
+                    ),
+                    "workspaces_processed": workspace_count,
+                    "repositories_processed": repository_count,
+                    "projects_processed": project_count,
+                }
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(checkpoint_state)
+
+        log.info(f"Fetched {workspace_count} workspaces")
+        if enable_repositories:
+            log.info(f"Fetched {repository_count} repositories")
+        if enable_projects:
             log.info(f"Fetched {project_count} projects")
 
         # Final checkpoint with completion status
@@ -612,7 +608,7 @@ def update(configuration: dict, state: dict):
         op.checkpoint(final_state)
 
         log.info(
-            f"Sync completed successfully. Processed {workspace_count} workspaces, {repository_count if 'repository_count' in locals() else 0} repositories, {project_count if 'project_count' in locals() else 0} projects."
+            f"Sync completed successfully. Processed {workspace_count} workspaces, {repository_count} repositories, {project_count} projects."
         )
 
     except Exception as e:
