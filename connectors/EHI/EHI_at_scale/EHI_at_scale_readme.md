@@ -1,545 +1,260 @@
-# EHI at Scale - Electronic Health Information
+# EHI at Scale MSSQL Connector Example
 
 ## Connector overview
 
-This enhanced connector is specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. It can handle 1+ billion row tables without timeouts or hangs, prevents memory overflow on large datasets, has automati deadlock detection and timeout recovery, and provides visibility into your syncs' progress and status.
+The EHI at Scale MSSQL Connector is an enterprise-grade solution specifically designed to handle massive healthcare datasets (like EHR system data, for example Epic Caboodle) with intelligent table size categorization and adaptive processing strategies. This connector can efficiently handle tables with 1+ billion rows without timeouts, prevents memory overflow through intelligent resource management, and provides comprehensive visibility into sync progress and performance.
 
-### How it works
-The connector uses the following strategies to sync large datasets efficiently:
-- Automatically groups tables by size (small/medium/large). 
-- Uses different strategies for each table size category.
-- Processes small tables first for quick wins, and large tables last for safety.
-- Never exceeds 4 threads and adapts based on table size.
+The connector automatically categorizes tables by size (small/medium/large) and applies different processing strategies for optimal performance. It includes advanced features like deadlock detection, automatic timeout recovery, resource monitoring with psutil, and multi-threaded processing with intelligent queue management.
 
-### Processing strategy
-| Table Size | Threads | Batch Size | Timeout | Checkpoint |
-|------------|---------|------------|---------|------------|
-| < 1M rows | 4 | 5K | 3 hours | 1M records |
-| 1M-50M rows | 2 | 2.5K | 6 hours | 500K records |
-| 50M+ rows | 1 | 1K | 12 hours | 100K records |
+## Requirements
+
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- Microsoft SQL Server access with appropriate permissions
+- Network connectivity to the SQL Server instance
+- SSL certificates for secure database connections
+- Optional: psutil library for resource monitoring and automatic parameter adjustment
+
+## Getting started
+
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
-### Adaptive processing
-- Table Size Optimization: Automatically adjusts processing parameters based on table size
-- Resource Monitoring: Real-time system resource monitoring with automatic parameter adjustment (disabled)
-- Processing Order: Optimized table processing order (small → medium → large tables)
+- **Adaptive processing** - Automatically adjusts processing parameters based on table size and system resources
+- **Table categorization** - Intelligent grouping of tables into small (<1M rows), medium (1M-50M rows), and large (50M+ rows) categories
+- **Resource monitoring** - Real-time system resource monitoring with automatic parameter adjustment (requires psutil)
+- **Multi-threaded processing** - Parallel processing with up to 4 threads, automatically scaled based on table size
+- **Advanced error handling** - Deadlock detection, timeout recovery, and exponential backoff retry logic  
+- **Connection management** - Robust connection handling with automatic reconnection and adaptive timeouts
+- **SSL certificate support** - Automatic SSL certificate generation and validation for secure connections
+- **Memory optimization** - Intelligent memory usage optimization to prevent system resource exhaustion
+- **Progress visibility** - Detailed processing plans and real-time progress updates for large sync operations
 
-### Advanced capabilities
-- Incremental Sync: Efficient incremental synchronization with proper state management
-- Deadlock Handling: Automatic deadlock detection and recovery
-- Connection Management: Robust connection handling with automatic reconnection
-- Parallel Processing: Multi-threaded processing for large tables
-- Memory Management: Intelligent memory usage optimization
+## Configuration file
 
-### AI/ML optimizations
-- Schema Evolution: Handles dynamic schema changes common in AI/ML data
-- High-Volume Processing: Optimized for large datasets typical in ML pipelines
-- Feature Engineering: Efficient handling of wide tables with many features
-- Time-Series Data: Optimized processing for time-series data patterns
-
-## Architecture overview
-
-### System architecture diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           FIVETRAN CONNECTOR SDK                                │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CONNECTOR INTERFACE                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   Schema()      │  │   Update()      │  │   Configuration Validation      │  │
-│  │   Discovery     │  │   Processing    │  │   & String Conversion           │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        TABLE SIZE ANALYSIS ENGINE                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   get_table_    │  │   categorize_   │  │   display_processing_plan()     │  │
-│  │   sizes()       │  │   and_sort_     │  │   - Shows detailed breakdown    │  │
-│  │   - Single      │  │   tables()      │  │   - Groups by size category     │  │
-│  │   efficient     │  │   - Small       │  │   - Displays processing order   │  │
-│  │   query         │  │   - Medium      │  │   - Summary statistics          │  │
-│  │                 │  │   - Large       │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        ADAPTIVE PARAMETER ENGINE                                │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │  │
-│  │   partition_    │  │   batch_size()  │  │   threads()                     │  │
-│  │   size()        │  │   - 5K/2.5K/1K  │  │   - 4/2/1 threads               │  │
-│  │   - 50K/25K/5K  │  │   based on size │  │   based on size                 │  │
-│  │   based on size │  │                 │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   get_adaptive_ │  │   get_adaptive_ │  │   get_adaptive_                 │  │
-│  │   queue_size()  │  │   timeout()     │  │   checkpoint_interval()         │  │
-│  │   - 10K/5K/1K   │  │   - 3/6/12      │  │   - 1M/500K/100K records        │  │
-│  │   based on size │  │   hours         │  │   based on size                 │  │
-│  │                 │  │                 │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        CONNECTION MANAGEMENT                                    │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   Connection    │  │   Automatic     │  │   Error Detection               │  │
-│  │   Manager       │  │   Reconnection  │  │   - Deadlock patterns           │  │
-│  │   - Context     │  │   - Timeout     │  │   - Timeout patterns            │  │
-│  │   manager       │  │   based         │  │   - Custom exceptions           │  │
-│  │   - Thread-safe │  │   - Adaptive    │  │                                 │  │
-│  │   - Connection  │  │   timeouts      │  │                                 │  │
-│  │   pooling       │  │                 │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        PROCESSING STRATEGIES                                    │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   Small Tables  │  │   Medium Tables │  │   Large Tables                  │  │
-│  │   (<1M rows)    │  │   (1M-50M rows) │  │   (50M+ rows)                   │  │
-│  │   - 4 threads   │  │   - 2 threads   │  │   - 1 thread                    │  │
-│  │   - 5K batches  │  │   - 2.5K batches│  │   - 1K batches                  │  │
-│  │   - 50K parts   │  │   - 25K parts   │  │   - 5K parts                    │  │
-│  │   - Quick wins  │  │   - Balanced    │  │   - Safe processing             │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        DATA PROCESSING PIPELINE                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   Full Load     │  │   Incremental   │  │   Error Handling                │  │
-│  │   - Partitioned │  │   Sync          │  │   - Retry with backoff          │  │
-│  │   - Threaded    │  │   - Change      │  │   - State persistence           │  │
-│  │   - Queue-based │  │   detection     │  │   - Checkpointing               │  │
-│  │   - Batch proc  │  │   - Upsert/     │  │   - Progress tracking           │  │
-│  │                 │  │   Delete        │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        OUTPUT & VALIDATION                                      │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐  │
-│  │   Fivetran      │  │   Validation    │  │   Progress Logging              │  │
-│  │   Operations    │  │   Records       │  │   - Real-time updates           │  │
-│  │   - Upsert      │  │   - Count       │  │   - Processing status           │  │
-│  │   - Delete      │  │   validation    │  │   - Error reporting             │  │
-│  │   - Checkpoint  │  │   - Record      │  │   - Performance metrics         │  │
-│  │                 │  │   tracking      │  │                                 │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Processing flow architecture
-
-```
-START
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SCHEMA DISCOVERY                             │
-│  • Get table list from database                                 │
-│  • Discover columns and primary keys                            │
-│  • Validate configuration                                       │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    TABLE SIZE ANALYSIS                          │
-│  • Single efficient query for all table sizes                   │
-│  • Categorize: Small (<1M), Medium (1M-50M), Large (50M+)       │
-│  • Sort by category and size for optimal processing order       │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    PROCESSING PLAN DISPLAY                      │
-│  • Show detailed breakdown by category                          │
-│  • Display row counts and processing order                      │
-│  • Summary statistics and estimated processing time             │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SEQUENTIAL PROCESSING                        │
-│  • Process Small Tables First (Quick Wins)                      │
-│  • Then Medium Tables (Balanced Approach)                       │
-│  • Finally Large Tables (Safe Processing)                       │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    ADAPTIVE PROCESSING                          │
-│  • Small: 4 threads, 5K batches, 50K partitions                 │
-│  • Medium: 2 threads, 2.5K batches, 25K partitions              │
-│  • Large: 1 thread, 1K batches, 5K partitions                   │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    ERROR HANDLING & RECOVERY                    │
-│  • Deadlock detection and retry                                 │
-│  • Connection timeout handling                                  │
-│  • Exponential backoff with jitter                              │
-│  • State persistence and checkpointing                          │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    VALIDATION & OUTPUT                          │
-│  • Record count validation                                      │
-│  • Progress tracking and logging                                │
-│  • Fivetran operations (upsert, delete, checkpoint)             │
-└─────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-END
-```
-
-## Configuration
-
-### Available parameters
+The connector supports both required and optional configuration parameters for maximum flexibility:
 
 ```json
 {
-    "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
-    "mssql_cert_server": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
-    "mssql_post": "<YOUR_SQL_SERVER_PORT>",
-    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
-    "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
-    "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>",
-    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
-    "threads": "<YOUR_THREAD_COUNT>",
-    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
-    "max_retries": "<YOUR_MAX_RETRIES>",
-    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
-    "debug": "<YOUR_DEBUG_FLAG>"
-
+  "mssql_server": "<YOUR_MSSQL_SERVER>",
+  "mssql_cert_server": "<YOUR_MSSQL_CERT_SERVER>",
+  "mssql_port": "<YOUR_MSSQL_PORT>",
+  "mssql_database": "<YOUR_MSSQL_DATABASE>",
+  "mssql_user": "<YOUR_MSSQL_USER>",
+  "mssql_password": "<YOUR_MSSQL_PASSWORD>",
+  "cert": "<YOUR_SSL_CERTIFICATE>",
+  "threads": "<YOUR_THREAD_COUNT>",
+  "max_queue_size": "<YOUR_MAX_QUEUE_SIZE>",
+  "max_retries": "<YOUR_MAX_RETRIES>",
+  "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_SECONDS>",
+  "debug": "<YOUR_DEBUG_FLAG>"
 }
 ```
 
 ### Required parameters
 
-```json
-{
-    "mssql_server": "<YOUR_SQL_SERVER_HOST_NAME>",
-    "mssql_cert_server": "<YOUR_SQL_SERVER_CERTIFICATE_SERVER>",
-    "mssql_post": "<YOUR_SQL_SERVER_PORT>",
-    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
-    "mssql_user": "<YOUR_SQL_SERVER_DATABASE_USER>",
-    "mssql_password": "<YOUR_SQL_SERVER_USER_PASSWORD>"
-
-}
-```
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `MSSQL_SERVER` | SQL Server hostname or IP address | `server.healthcare.com` |
+| `MSSQL_CERT_SERVER` | Certificate server hostname for SSL | `cert-server.healthcare.com` |
+| `MSSQL_PORT` | SQL Server port number | `1433` |
+| `MSSQL_DATABASE` | Database name to connect to | `EpicCaboodle` |
+| `MSSQL_USER` | Database username | `fivetran_enterprise` |
+| `MSSQL_PASSWORD` | Database password | `secure_enterprise_password` |
 
 ### Optional parameters
 
-```json
-{
-    "cert": "<YOUR_SQL_SERVER_CERTIFICATE>",
-    "threads": "<YOUR_THREAD_COUNT>",
-    "max_queue_size": "<YOUR_MAX_QUEUE_SIZE",
-    "max_retries": "<YOUR_MAX_RETRIES>",
-    "retry_sleep_seconds": "<YOUR_RETRY_SLEEP_IN_SECONDS>",
-    "debug": "<YOUR_DEBUG_FLAG>"
-}
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `cert` | SSL certificate content (PEM) or path | Auto-generated | `-----BEGIN CERTIFICATE-----...` |
+| `threads` | Max threads for processing (capped at 4) | Adaptive | `4` |
+| `max_queue_size` | Maximum processing queue size | Adaptive | `10000` |
+| `max_retries` | Maximum retry attempts | `5` | `5` |
+| `retry_sleep_seconds` | Base retry delay in seconds | `5` | `5` |
+| `debug` | Enable debug logging | `false` | `true` |
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
+## Requirements file
+
+The `requirements.txt` file specifies the Python libraries required by the connector:
+
+```
+pytds==1.9.2
+requests
+psutil
 ```
 
-## Threshold optimization guide
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-### Table size thresholds
+## Authentication
 
-The connector uses adaptive processing based on table size thresholds:
+The connector uses SQL Server authentication with SSL certificate validation for secure connections. Authentication credentials are managed through the configuration file with support for automatic SSL certificate generation.
 
-- SMALL_TABLE_THRESHOLD (1M rows): Tables smaller than this use maximum parallelism
-- LARGE_TABLE_THRESHOLD (50M rows): Tables larger than this use minimal parallelism
+SSL certificate handling - Refer to `_connect_to_mssql()` and `_generate_cert_chain()` functions:
+- Automatic SSL certificate chain generation from DigiCert
+- Support for custom certificate content in PEM format
+- Certificate file path support for existing certificate files
+- Secure connection validation and error handling
 
-### AI/ML data adjustments
+Required database permissions:
+- SELECT permissions on all tables to be replicated
+- Access to INFORMATION_SCHEMA views for schema discovery
+- Access to sys.tables, sys.indexes, and sys.partitions for table size analysis
+- Network connectivity with SSL/TLS support
 
-For AI/ML data pipelines, consider these threshold adjustments:
+## Pagination
 
-- Wide Tables (many features): Reduce `SMALL_TABLE_THRESHOLD` by 25%
-- High Cardinality Data: Increase `LARGE_TABLE_THRESHOLD` by 50%
-- Sparse Data: Reduce both thresholds by 50%
-- Time-Series Data: Use default thresholds (work well as-is)
+The connector implements intelligent pagination and partitioning strategies that adapt based on table size and system resources.
 
-### Resource monitoring thresholds
+Adaptive batch processing - Refer to `_get_adaptive_batch_size()` function:
+- Small tables (<1M rows): 5,000 records per batch for maximum throughput
+- Medium tables (1M-50M rows): 2,500 records per batch for balanced performance
+- Large tables (50M+ rows): 1,000 records per batch for memory conservation
 
-When `psutil` is available, the connector monitors:
+Partitioning strategy - Refer to `_process_full_load()` and `__SRC_GEN_INDEX_COLUMN_BOUNDS` query:
+- Complex SQL-based partitioning for parallel processing
+- Dynamic partition sizing based on table characteristics
+- Thread-safe queue management for partition distribution
+- Intelligent partition bounds calculation for optimal load distribution
 
-- **Memory usage**: 
-  - High: 80% (triggers batch size reduction)
-  - Critical: 90% (triggers aggressive reduction)
-- **CPU usage**:
-  - High: 85% (triggers thread reduction)
-  - Critical: 95% (triggers aggressive reduction)
+Resource-aware pagination - Refer to `_get_adaptive_parameters_with_monitoring()` function:
+- Real-time memory usage monitoring with automatic batch size reduction
+- CPU usage monitoring with automatic thread count adjustment  
+- Dynamic parameter adjustment based on system resource pressure
 
-## Installation
+## Data handling
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+The connector employs sophisticated data handling strategies optimized for large-scale healthcare datasets.
 
-2. Configure your database connection in `config.json`
+Schema discovery - Refer to `schema()` and `__get_table_schema()` functions:
+- Comprehensive table and column discovery using INFORMATION_SCHEMA
+- Primary key detection and validation for data integrity
+- Column mapping with type preservation
+- Error-tolerant schema discovery with graceful degradation
 
-3. Test the connector:
-```bash
-fivetran debug --configuration config.json
-```
+Data processing strategies - Refer to `_process_incremental_sync()` and `_process_full_load()` functions:
+- **Incremental sync**: Timestamp-based change detection with upsert and delete operations
+- **Full load**: Partitioned parallel processing with intelligent queue management
+- **Hybrid approach**: Automatic selection between incremental and full load based on table state
 
-## Usage
+Data transformation and flattening - Refer to `_flatten_dict()` function:
+- Automatic flattening of nested dictionary structures for database storage
+- Null value handling with N/A substitution for empty values
+- JSON serialization for complex list structures
+- Type-safe data conversion with error handling
 
-### Basic usage
-
-```python
-from connector import connector
-
-# Test locally
-if __name__ == "__main__":
-    with open("config.json", 'r') as f:
-        configuration = json.load(f)
-    connector.debug(configuration=configuration)
-```
-
-## What to expect
-
-### Startup process
-```
-1. Schema Discovery - Gets list of all tables
-2. Table Size Analysis - Counts rows in each table (single efficient query)
-3. Categorization - Groups tables by size (small/medium/large)
-4. Processing Plan Display - Shows detailed breakdown of what will be processed
-5. Sequential Processing - Processes tables in optimal order
-```
-
-### Processing plan output
-```
-================================================================================
-SYNC PROCESSING PLAN
-================================================================================
-
-SMALL TABLES (200+ tables, <1M rows each):
---------------------------------------------------
-   1. `PATIENT`                                  10,100,444 rows
-   2. `VISIT`                                    10,555,777 rows
-   3. `ENCOUNTER`                                 6,888,122 rows
-   ... and 200+ more small tables
-
-MEDIUM TABLES (50 tables, 1M-50M rows each):
---------------------------------------------------
-   1. `COMPONENT`                        29,444,333 rows
-   2. `TESTCOMPONENT`                    28,555,478 rows
-   3. `ERROREVENT`                 27,333,896 rows
-   ... and 50 more medium tables
-
-LARGE TABLES (15 tables, 50M+ rows each):
---------------------------------------------------
-   1. `FLOWSHEETVALUE`                        1,644,444,333 rows
-   2. `USERLOGACTIVITY`               912,123,436 rows
-   3. `PATIENTACTION`                600,541,489 rows
-   ... and 15 more large tables
-
-================================================================================
-SUMMARY STATISTICS
-================================================================================
-Total tables: 265
-Total rows: 9,444,458,452
-Small tables: 200 tables, 2,456,789,123 rows (25.1%)
-Medium tables: 50 tables, 1,789,123,456 rows (12.6%)
-Large tables: 15 tables, 5,123,456,789 rows (62.3%)
-================================================================================
-```
-
-### Real-time progress updates
-```
-Processing table 1/265: `PATIENT` (small, 10,455,551 rows)
-Table `PATIENT`: 10,455,551 rows, 210 partitions, 4 threads, 10000 queue size, 50,000 partition size, 5,000 batch size, 1,000,000 checkpoint interval
-Successfully processed table `PATIENT`: 10,511,557 records
-Completed 1/265 tables. Next: `VISIT`
-
-Processing table 5/265: `LABRESULT` (medium, 29,123,456 rows)
-Table `LABRESULT`: 29,123,456 rows, 1,168 partitions, 2 threads, 5000 queue size, 25,000 partition size, 2,500 batch size, 500,000 checkpoint interval
-...
-```
-
-## Processing strategy
-
-### Table categorization
-
-The connector categorizes tables into three processing tiers:
-
-1. **Small Tables** (<1M rows)
-   - Maximum parallelism (4 threads)
-   - Large batch sizes (5K records)
-   - Quick processing priority
-
-2. **Medium Tables** (1M-50M rows)
-   - Moderate parallelism (2 threads)
-   - Medium batch sizes (2.5K records)
-   - Balanced resource usage
-
-3. **Large Tables** (50M+ rows)
-   - Single-threaded processing
-   - Small batch sizes (1K records)
-   - Memory-conservative approach
-
-### Processing order
-
-Tables are processed in optimal order:
-1. Small tables first (quick wins)
-2. Medium tables second (balanced processing)
-3. Large tables last (resource-intensive)
+Table categorization and processing order - Refer to `_categorize_and_sort_tables()` function:
+- Automatic table size analysis using efficient SQL queries
+- Processing order optimization: small → medium → large tables
+- Real-time processing plan display with detailed breakdowns
+- Progress tracking with completion percentages and estimates
 
 ## Error handling
 
-### Automatic recovery
+The connector implements enterprise-grade error handling with multiple layers of protection and recovery.
 
-- **Deadlock Detection**: Automatic detection and retry with exponential backoff
-- **Connection Timeouts**: Automatic reconnection with adaptive timeouts
-- **Resource Pressure**: Automatic parameter adjustment based on system resources
+Connection and timeout handling - Refer to `ConnectionManager` class:
+- Automatic deadlock detection using pattern matching
+- Connection timeout detection and recovery
+- Exponential backoff retry logic with jitter
+- Thread-safe connection management with context managers
 
-### Retry logic
+Error classification and recovery - Refer to `__DEADLOCK_PATTERNS` and `__TIMEOUT_PATTERNS`:
+- Deadlock error patterns: 'deadlock', 'lock timeout', 'transaction deadlock'
+- Timeout error patterns: 'connection timeout', 'network timeout', 'socket timeout'
+- Custom exception classes: `DeadlockError` and `TimeoutError` for specific handling
+- Automatic retry with different strategies based on error type
 
-- **Max Retries**: Configurable retry attempts (default: 5)
-- **Exponential Backoff**: Intelligent backoff with jitter
-- **Error Classification**: Different handling for different error types
+Resource management errors - Refer to `_monitor_resources()` and resource threshold constants:
+- Memory pressure detection with automatic batch size reduction
+- CPU pressure detection with automatic thread count reduction
+- System resource monitoring with psutil integration
+- Graceful degradation when resource monitoring is unavailable
 
-## Monitoring and validation
+State persistence and recovery - Refer to checkpoint operations throughout `update()` function:
+- Frequent checkpointing every 100K-1M records based on table size
+- State validation and consistency checks
+- Automatic recovery from interrupted sync operations
+- Transaction-safe state updates
 
-### Sync validation
+## Tables created
 
-The connector automatically creates validation records in the `CDK_VALIDATION` table:
+The connector creates comprehensive table structures in your destination:
 
-```sql
-SELECT * FROM CDK_VALIDATION 
-WHERE tablename = 'your_table_name' 
-ORDER BY datetime DESC;
-```
+**Replicated source tables**:
+- Dynamically named to match source table names
+- Complete column preservation with original data types
+- Primary key constraints maintained for data integrity
+- Support for complex nested data structures through flattening
 
-### Resource monitoring
+**VALIDATION table** - Contains detailed sync metadata and performance metrics:
+- `datetime` - ISO timestamp of validation record creation
+- `tablename` - Name of the processed table
+- `count` - Record count from source database validation
+- `records_processed` - Number of records actually processed by connector
+- `category` - Table size category (small/medium/large)
+- `processing_order` - Sequential order of table processing
 
-When `psutil` is available, the connector logs:
+**System monitoring tables** (when resource monitoring is enabled):
+- Real-time resource usage metrics
+- Processing performance statistics
+- Error frequency and recovery metrics
+- Parameter adjustment history
 
-- Memory usage percentage and available GB
-- CPU usage percentage
-- Disk usage percentage
-- Automatic parameter adjustments
+## Additional files
 
-## Key benefits for healthcare data
+The connector includes several additional files to modularize functionality:
 
-### Handles massive tables
-- `FLOWSHEETVALUE`: >1.9 billion rows processed safely
-- `USERACTIONLOG`: >900 million rows with optimized partitioning
-- `PATIENTACTION`: >800 million rows with adaptive batching
+- `config.json` – Local configuration file for testing and development
+- `warehouse.db` – DuckDB database file for local testing and validation
+- `requirements.txt` – Python dependencies specification
+- SSL certificate files (auto-generated) – Temporary certificate files for secure connections
 
-### Prevents timeouts and hangs
-- Adaptive Timeouts: 3 hours for small tables, 12 hours for large tables
-- Connection Management: Automatic reconnection and deadlock detection
-- Memory Management: Smaller batches and queues for large tables
+## Additional considerations
 
-### Optimized performance
-- Small Tables: Process quickly with 4 threads and large batches
-- Medium Tables: Balanced approach with 2 threads and moderate batches
-- Large Tables: Single-threaded to avoid overwhelming the database
+### Performance optimization for healthcare data
 
-## Advanced features
+Table size thresholds - Refer to `__SMALL_TABLE_THRESHOLD` and `__LARGE_TABLE_THRESHOLD` constants:
+- Default thresholds optimized for typical EHR database patterns
+- Small tables (<1M rows): Patient demographics, lookup tables, configuration data
+- Medium tables (1M-50M rows): Encounters, procedures, medications, lab results
+- Large tables (50M+ rows): Flowsheet values, user activity logs, audit trails
 
-### Automatic error recovery
-- Deadlock Detection: Pattern matching for deadlock errors
-- Timeout Handling: Connection timeout detection and recovery
-- Exponential Backoff: Intelligent retry with jitter
-- State Persistence: Resume from last successful checkpoint
+AI/ML data pipeline optimizations:
+- Wide tables with many features: Consider reducing small table threshold by 25%
+- High cardinality data: Consider increasing large table threshold by 50%
+- Sparse data patterns: Reduce both thresholds by 50% for optimal performance
+- Time-series data: Default thresholds work well for temporal healthcare data
 
-### Memory and resource management
-- Adaptive Queue Sizes: Prevents memory overflow on large tables
-- Connection Pooling: Efficient database connection management
-- Batch Processing: Optimized record processing based on table size
-- Checkpointing: Frequent state saves to prevent data loss
-- System Resource Monitoring: Adaptive batches for every table
+Resource monitoring and adaptive processing - Refer to resource threshold constants:
+- Memory thresholds: 80% triggers reduction, 90% triggers aggressive reduction
+- CPU thresholds: 85% triggers thread reduction, 95% triggers aggressive reduction
+- Automatic parameter adjustment prevents system resource exhaustion
+- Graceful degradation when psutil library is not available
 
-### Monitoring and validation
-- Progress Tracking: Real-time updates on processing status
-- Record Validation: Counts processed vs. expected records
-- Performance Metrics: Processing time and throughput tracking
-- Error Logging: Comprehensive error tracking and reporting
+### Enterprise deployment considerations
 
-## Best practices
+Security and compliance:
+- SSL/TLS encryption for all database connections
+- Certificate validation and secure credential management
+- Audit logging for compliance with healthcare regulations (HIPAA, HITECH)
+- Network security controls and firewall rule configuration
 
-### Performance optimization
+Monitoring and maintenance:
+- Comprehensive logging for operational monitoring and troubleshooting
+- Performance metrics tracking for optimization opportunities
+- Regular validation of sync completeness and data quality
+- Automated alerting for sync failures and performance degradation
 
-1. Monitor Resource Usage: Enable `psutil` for automatic optimization
-2. Adjust Thresholds: Fine-tune thresholds based on your data characteristics
-3. Use Debug Mode: Test with debug mode to understand processing behavior
-4. Monitor Logs: Review logs for optimization opportunities
+Scalability and reliability:
+- Horizontal scaling through multiple connector instances
+- Database connection pooling for high-throughput scenarios
+- Disaster recovery planning with state backup and restoration
+- Integration with enterprise monitoring and alerting systems
 
-### AI/ML data considerations
-
-1. Schema Evolution: The connector handles schema changes automatically
-2. Feature Engineering: Optimize for wide tables with many features
-3. Time-Series Optimization: Leverage built-in time-series optimizations
-4. Batch Processing: Use appropriate batch sizes for your data volume
-
-### Security
-
-1. SSL Certificates: Proper SSL certificate configuration
-2. Connection Security: Secure database connections
-3. Credential Management: Secure credential storage and handling
-
-## Troubleshooting
-
-### Common issues
-
-1. **Connection Failures**
-   - Verify server address and port
-   - Check SSL certificate configuration
-   - Ensure network connectivity
-
-2. **Memory Issues**
-   - Reduce batch sizes
-   - Enable resource monitoring
-   - Adjust table size thresholds
-
-3. **Performance Issues**
-   - Review processing logs
-   - Adjust thread counts
-   - Monitor resource usage
-
-### Debug mode
-
-Enable debug mode for detailed logging:
-
-```json
-{
-    "debug": "true"
-}
-```
-
-## Notes
-
-- Large Tables Take Time: Tables with 50M+ rows will process for hours, not minutes
-- Memory Usage: Large tables use smaller batches to prevent memory issues
-- Single Threading: Large tables use single-threading to avoid overwhelming the database
-- Frequent Checkpoints: Large tables checkpoint every 100K records for safety
-- Connection Timeouts: Large tables get longer connection timeouts (12 hours)
-- Resource Monitoring: Disabled, but adaptive processing based on table size is fully functional
-
-## Support
-
-For issues and questions:
-
-1. Review the [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-2. Check the [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
-3. Review connector logs for detailed error information
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
