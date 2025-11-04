@@ -94,6 +94,9 @@ def get_page(
     exponential backoff for 502/server errors
     and a token refresh attempt for 401 errors.
     """
+
+    current_token = access_token
+
     # Construct the URL: /activities or /activities/{type}
     url = f"{__API_BASE}/v0/public/activities"
     if activity_type:
@@ -368,25 +371,15 @@ def update(configuration: dict, state: dict):
 
 
 # Create the connector object using the schema and update functions
-# connector = Connector(update=update, schema=schema)
+connector = Connector(update=update, schema=schema)
+
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
-if name == "main":
-    try:
-        with open("configuration.json", "r") as f:
-            configuration = json.load(f)
-
-        check_config = (
-            not configuration.get("api_key") or configuration.get("api_key") == "YOUR_CLIENT_ID"
-        )
-        if check_config:
-            log.warning("Please update configuration.json " "with actual api_key and api_secret.")
-
-        connector.debug(configuration=configuration)
-
-    except FileNotFoundError:
-        log.severe("Error: configuration.json not found. " "Please create it for local testing.")
-    except Exception as e:
-        log.severe(f"An unexpected error occurred during debug execution: {e}")
+if __name__ == "main":
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
