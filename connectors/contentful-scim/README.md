@@ -93,18 +93,10 @@ Supports timestamp-based incremental synchronization using the `meta.lastModifie
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| USERS | `id` | User profile information and account status |
-| GROUPS | `id` | Group definitions and metadata |
+| USERS | `id` | User profile information and account status. |
+| GROUPS | `id` | Group definitions and metadata. |
 
 Column types are automatically inferred by Fivetran. Sample columns include `user_name`, `email`, `first_name`, `last_name`, `display_name`, `active`, `created`, `last_modified`, `member_count`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Contentful SCIM API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 
