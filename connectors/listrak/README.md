@@ -8,7 +8,7 @@ The connector provides comprehensive email marketing analytics by syncing subscr
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -33,27 +33,22 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_LISTRAK_API_KEY>",
-  "sync_frequency_hours": "4",
   "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 **Parameter descriptions:**
 
 - `api_key` (required): Your Listrak API authentication key
-- `base_url` (optional): Listrak API base URL, defaults to https://api.listrak.com/email/v1
-- `sync_frequency_hours` (optional): How often to run syncs, defaults to 4 hours
 - `initial_sync_days` (optional): Historical data range for initial sync, defaults to 90 days
 - `max_records_per_page` (optional): Number of records per API request, defaults to 100 (range: 1-1000)
 - `request_timeout_seconds` (optional): API request timeout, defaults to 30 seconds
 - `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to 3
 - `enable_incremental_sync` (optional): Enable timestamp-based incremental sync, defaults to true
-- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to false
 
 ## Requirements file
 
@@ -90,22 +85,67 @@ Supports timestamp-based incremental synchronization using table-specific `last_
 
 ## Tables created
 
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| CONTACTS | `contact_id` | Subscriber contact information and status |
-| CAMPAIGNS | `campaign_id` | Email campaign metadata and performance metrics |
-| EVENTS | `event_id` | Email interaction events including opens, clicks, and bounces |
+Column types are automatically inferred by Fivetran.
 
-Column types are automatically inferred by Fivetran. Sample columns include `email_address`, `first_name`, `last_name`, `subscription_status`, `campaign_name`, `subject_line`, `event_type`, `event_timestamp`, `user_agent`.
+### CONTACTS
 
-## Additional files
+**Primary Key:** `contact_id`
 
-The connector includes several additional files to support functionality, testing, and deployment:
+**Description:** Subscriber contact information and status
 
-- `requirements.txt` – Python dependency specification for Listrak API integration and connector requirements including faker for mock testing.
+**Columns:**
+- `contact_id` - Unique identifier for the contact
+- `email_address` - Contact email address
+- `first_name` - Contact first name
+- `last_name` - Contact last name
+- `subscription_status` - Subscription status (active, unsubscribed, bounced, etc.)
+- `created_date` - Date when contact was created
+- `updated_date` - Date when contact was last updated
+- `phone_number` - Contact phone number
+- `city` - Contact city
+- `state` - Contact state
+- `zip_code` - Contact zip code
+- `sync_timestamp` - Timestamp when record was synced
 
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
+### CAMPAIGNS
 
+**Primary Key:** `campaign_id`
+
+**Description:** Email campaign metadata and performance metrics
+
+**Columns:**
+- `campaign_id` - Unique identifier for the campaign
+- `campaign_name` - Campaign name
+- `subject_line` - Email subject line
+- `send_date` - Date when campaign was sent
+- `campaign_type` - Type of campaign
+- `status` - Campaign status
+- `recipients_count` - Number of recipients
+- `opens_count` - Number of email opens
+- `clicks_count` - Number of email clicks
+- `bounces_count` - Number of bounces
+- `created_date` - Date when campaign was created
+- `updated_date` - Date when campaign was last updated
+- `sync_timestamp` - Timestamp when record was synced
+
+### EVENTS
+
+**Primary Key:** `event_id`
+
+**Description:** Email interaction events including opens, clicks, bounces, and other email interactions
+
+**Columns:**
+- `event_id` - Unique identifier for the event
+- `contact_id` - Reference to contact (foreign key to CONTACTS table)
+- `campaign_id` - Reference to campaign (foreign key to CAMPAIGNS table)
+- `event_type` - Type of event (open, click, bounce, unsubscribe, spam_complaint, etc.)
+- `event_timestamp` - Timestamp when event occurred
+- `email_address` - Email address associated with the event
+- `user_agent` - User agent string from the event
+- `ip_address` - IP address from the event
+- `url` - URL associated with the event (for click events)
+- `metadata` - Additional event metadata as JSON string
+- `sync_timestamp` - Timestamp when record was synced
 
 ## Additional considerations
 

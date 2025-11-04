@@ -1,10 +1,8 @@
 {
   "api_key": "<YOUR_LISTRAK_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
