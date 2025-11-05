@@ -28,10 +28,6 @@ import time
 # For adding jitter to retry delays
 import random
 
-""" ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
-Example: import pandas, boto3, etc.
-Add comment for each import to explain its purpose for users to follow.
-"""
 # Private constants (use __ prefix)
 __API_ENDPOINT = "https://nextdoor.com/partner_api/v1"
 
@@ -199,29 +195,6 @@ def execute_api_request(endpoint, api_key, params=None, configuration=None):
             continue
 
     raise RuntimeError("Unexpected error in API request execution")
-
-
-def get_time_range(last_sync_time=None, configuration=None):
-    """
-    Generate time range for incremental or initial data synchronization.
-    This function creates start and end timestamps for API queries based on sync state.
-
-    Args:
-        last_sync_time: Timestamp of last successful sync (optional).
-        configuration: Configuration dictionary containing sync settings.
-
-    Returns:
-        dict: Dictionary containing 'start' and 'end' timestamps in ISO format.
-    """
-    end_time = datetime.now(timezone.utc).isoformat()
-
-    if last_sync_time:
-        start_time = last_sync_time
-    else:
-        initial_sync_days = __get_config_int(configuration, "initial_sync_days", 90)
-        start_time = (datetime.now(timezone.utc) - timedelta(days=initial_sync_days)).isoformat()
-
-    return {"start": start_time, "end": end_time}
 
 
 def __map_city_data(city_id):
@@ -416,15 +389,15 @@ def get_state_posts_data(api_key, state_ids, configuration=None):
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
+        configuration: a dictionary that holds the configuration settings for the connector.
 
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
     """
+
     return [
         {"table": "cities", "primary_key": ["id"]},
         {"table": "states", "primary_key": ["id"]},
@@ -434,19 +407,18 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Nextdoor API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting Nextdoor API connector sync")
 
-    # Extract configuration parameters (SDK auto-validates required fields)
+    # Validate the configuration to ensure it contains all required values.
     api_key = __get_config_str(configuration, "api_key")
     enable_cities = __get_config_bool(configuration, "enable_cities_sync", True)
     enable_states = __get_config_bool(configuration, "enable_states_sync", True)
@@ -567,7 +539,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync Nextdoor API data: {str(e)}")
 
 
-# Create connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.

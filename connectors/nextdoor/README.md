@@ -4,7 +4,7 @@
 This connector syncs city, state, and trending post data from the Nextdoor API. It fetches lists of cities and states that have popular post data, then retrieves trending posts for each location. The connector supports OAuth2 authentication and implements memory-efficient streaming to handle large datasets without accumulation issues. It includes comprehensive error handling with exponential backoff retry logic for rate limiting and network failures.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -27,7 +27,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_NEXTDOOR_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
@@ -35,14 +34,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "enable_states_sync": "<ENABLE_STATES_SYNC>",
   "enable_city_posts_sync": "<ENABLE_CITY_POSTS_SYNC>",
   "enable_state_posts_sync": "<ENABLE_STATE_POSTS_SYNC>",
-  "max_pages_per_state": "<MAX_PAGES_PER_STATE>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "max_pages_per_state": "<MAX_PAGES_PER_STATE>"
 }
 ```
 
 ### Configuration parameters
 - `api_key`: OAuth2 Bearer token for Nextdoor API authentication
-- `sync_frequency_hours`: How often to perform incremental syncs
 - `initial_sync_days`: Historical data range for initial sync (max 365 days)
 - `request_timeout_seconds`: HTTP request timeout in seconds
 - `retry_attempts`: Number of retry attempts for failed requests
@@ -51,7 +48,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - `enable_city_posts_sync`: Enable/disable city trending posts synchronization
 - `enable_state_posts_sync`: Enable/disable state trending posts synchronization
 - `max_pages_per_state`: Maximum pages to fetch per state for trending posts
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -102,14 +98,6 @@ Column types are automatically inferred by Fivetran. Sample columns include:
 - Cities: `id`, `city_id`, `has_popular_posts`, `sync_timestamp`
 - States: `id`, `state_id`, `state_name`, `has_popular_posts`, `sync_timestamp`
 - Trending Posts: `id`, `post_id`, `location_id`, `location_type`, `title`, `content`, `author`, `created_at`, `engagement_score`, `category`, `sync_timestamp`
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Nextdoor API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 
 ## Additional considerations
