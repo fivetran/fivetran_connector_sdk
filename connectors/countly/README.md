@@ -4,7 +4,7 @@
 This connector syncs analytics data from Countly including apps, groups, and user profiles. It fetches app information, group data, and detailed user profiles from Countly Analytics API. The connector supports incremental synchronization using timestamp-based cursors and implements memory-efficient streaming to handle large datasets without accumulation issues.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -27,32 +27,26 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_key": "<YOUR_COUNTLY_API_KEY>",
   "app_id": "<YOUR_COUNTLY_APP_ID>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
   "enable_apps_sync": "<ENABLE_APPS_SYNC>",
   "enable_groups_sync": "<ENABLE_GROUPS_SYNC>",
-  "enable_users_sync": "<ENABLE_USERS_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_users_sync": "<ENABLE_USERS_SYNC>"  
 }
 ```
 
-**Configuration parameters:**
-- `api_key`: Your Countly API key for authentication
-- `app_id`: Countly application identifier to fetch data for specific app
-- `sync_frequency_hours`: How often to run sync (default: 4 hours)
-- `initial_sync_days`: Days of historical data for initial sync (default: 90)
-- `max_records_per_page`: Records per API request page (default: 100, max: 1000)
-- `request_timeout_seconds`: HTTP request timeout (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable timestamp-based incremental sync (default: true)
-- `enable_apps_sync`: Include app data in sync (default: true)
-- `enable_groups_sync`: Include group data in sync (default: true)
-- `enable_users_sync`: Include user profile data in sync (default: true)
-- `enable_debug_logging`: Enable detailed debug logging (default: false)
+Note: Ensure that the 'configuration.json' file is not checked into version control to protect sensitive information.
+
+### Configuration parameters
+- `api_key` (required): Your Countly API key for authentication
+- `app_id` (required): Countly application identifier to fetch data for specific app
+- `max_records_per_page` (optional): Records per API request page (default: 100, max: 1000)
+- `request_timeout_seconds` (optional): HTTP request timeout (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_apps_sync` (optional): Include app data in sync (default: true)
+- `enable_groups_sync` (optional): Include group data in sync (default: true)
+- `enable_users_sync` (optional): Include user profile data in sync (default: true)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -91,12 +85,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 Column types are automatically inferred by Fivetran. Sample columns include `app_id`, `name`, `key`, `timezone`, `icon`, `metadata`, `created_at`, `updated_at`, `username`, `email`, `custom_data`, `session_count`, `total_session_duration`, `group_id`, `description`, `user_count`.
 
-## Additional files
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Countly API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

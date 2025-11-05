@@ -449,15 +449,14 @@ def get_users_data(api_key, params, last_sync_time=None, configuration=None):
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
-
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
+
     return [
         {"table": "apps", "primary_key": ["app_id"]},
         {"table": "groups", "primary_key": ["group_id"]},
@@ -467,32 +466,35 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Countly Analytics API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
     log.info("Starting Countly connector sync")
 
-    # Extract configuration parameters (SDK auto-validates required fields)
+    # Extract configuration parameters as required
     api_key = __get_config_str(configuration, "api_key")
     app_id = __get_config_str(configuration, "app_id")
     max_records_per_page = __get_config_int(configuration, "max_records_per_page", 100, 1, 1000)
-    enable_incremental = __get_config_bool(configuration, "enable_incremental_sync", True)
 
-    # Get state for incremental sync
+    # Get the state variable for the sync, if needed
     last_sync_time = state.get("last_sync_time")
 
     try:
+        # Initialize count variables to ensure they always exist
+        apps_count = 0
+        groups_count = 0
+        users_count = 0
+
         # Fetch apps data using generator with incremental checkpointing
         if __get_config_bool(configuration, "enable_apps_sync", True):
             log.info("Fetching apps data...")
-            apps_count = 0
             page = 1
 
             for record in get_apps_data(api_key, {}, last_sync_time, configuration):
@@ -521,7 +523,6 @@ def update(configuration: dict, state: dict):
         # Fetch groups data if enabled
         if __get_config_bool(configuration, "enable_groups_sync", True):
             log.info("Fetching groups data...")
-            groups_count = 0
 
             for record in get_groups_data(api_key, {}, last_sync_time, configuration):
                 # The 'upsert' operation is used to insert or update data in the destination table.
@@ -534,7 +535,6 @@ def update(configuration: dict, state: dict):
         # Fetch users data if enabled
         if __get_config_bool(configuration, "enable_users_sync", True):
             log.info("Fetching users data...")
-            users_count = 0
 
             for record in get_users_data(
                 api_key, {"app_id": app_id}, last_sync_time, configuration
@@ -555,12 +555,21 @@ def update(configuration: dict, state: dict):
         op.checkpoint(final_state)
 
         log.info(
-            f"Sync completed successfully. Processed {apps_count if 'apps_count' in locals() else 0} apps, {groups_count if 'groups_count' in locals() else 0} groups, {users_count if 'users_count' in locals() else 0} users."
+            f"Sync completed successfully. Processed {apps_count} apps, {groups_count} groups, {users_count} users."
         )
 
+    except requests.exceptions.RequestException as e:
+        log.severe(f"Sync failed due to API request error: {str(e)}")
+        raise RuntimeError(f"Failed to sync data due to API request error: {str(e)}")
+    except ValueError as e:
+        log.severe(f"Sync failed due to value error: {str(e)}")
+        raise RuntimeError(f"Failed to sync data due to value error: {str(e)}")
+    except KeyError as e:
+        log.severe(f"Sync failed due to missing key: {str(e)}")
+        raise RuntimeError(f"Failed to sync data due to missing key: {str(e)}")
     except Exception as e:
-        log.severe(f"Sync failed: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
+        log.severe(f"Sync failed due to unexpected error: {str(e)}")
+        raise RuntimeError(f"Failed to sync data due to unexpected error: {str(e)}")
 
 
 # Initialize connector instance
