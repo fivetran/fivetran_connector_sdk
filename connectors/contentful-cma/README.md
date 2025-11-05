@@ -30,27 +30,19 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "access_token": "<YOUR_CONTENTFUL_CMA_ACCESS_TOKEN>",
   "environment_id": "<YOUR_CONTENTFUL_ENVIRONMENT_ID>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "retry_attempts": "<RETRY_ATTEMPTS>"
 }
 ```
+
+Note: Ensure that the 'configuration.json' file is not checked into version control to protect sensitive information.
 
 ### Configuration parameters
 
 - `access_token` (required): Contentful Content Management API Personal Access Token
 - `environment_id` (optional): Contentful environment to sync from (defaults to "master")
-- `sync_frequency_hours` (optional): How often to run incremental syncs in hours
-- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync
-- `max_records_per_page` (optional): Number of records to fetch per API request (1-1000)
 - `request_timeout_seconds` (optional): HTTP request timeout in seconds
 - `retry_attempts` (optional): Number of retry attempts for failed requests
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization
-- `enable_debug_logging` (optional): Enable detailed debug logging
 
 ## Requirements file
 
@@ -90,14 +82,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | ORGANIZATIONS | `id` | Contentful organizations |
 
 Column types are automatically inferred by Fivetran. Sample columns include `name`, `created_at`, `updated_at`, `version`, `type`, `organization_id`, `default_locale`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Contentful CMA API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

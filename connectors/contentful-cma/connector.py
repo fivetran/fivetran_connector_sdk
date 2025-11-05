@@ -17,7 +17,7 @@ import requests
 import time
 
 # For handling dates and timestamps
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -229,29 +229,6 @@ def __map_organization_data(record):
     }
 
 
-def get_time_range(last_sync_time=None, configuration=None):
-    """
-    Generate time range for incremental or initial data synchronization.
-    This function creates start and end timestamps for API queries based on sync state.
-
-    Args:
-        last_sync_time: Timestamp of last successful sync (optional).
-        configuration: Configuration dictionary containing sync settings.
-
-    Returns:
-        dict: Dictionary containing 'start' and 'end' timestamps in ISO format.
-    """
-    end_time = datetime.now(timezone.utc).isoformat()
-
-    if last_sync_time:
-        start_time = last_sync_time
-    else:
-        initial_sync_days = __get_config_int(configuration, "initial_sync_days", 90)
-        start_time = (datetime.now(timezone.utc) - timedelta(days=initial_sync_days)).isoformat()
-
-    return {"start": start_time, "end": end_time}
-
-
 def get_spaces(access_token, configuration=None):
     """
     Fetch spaces using memory-efficient streaming approach.
@@ -302,15 +279,14 @@ def get_organizations(access_token, configuration=None):
 
 def schema(configuration: dict):
     """
-    Define database schema with table names and primary keys for the connector.
-    This function specifies the destination tables and their primary keys for Fivetran to create.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 
     Args:
-        configuration: Configuration dictionary (not used but required by SDK).
-
-    Returns:
-        list: List of table schema dictionaries with table names and primary keys.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
+
     return [
         {"table": "SPACES", "primary_key": ["id"]},
         {"table": "ORGANIZATIONS", "primary_key": ["id"]},
@@ -319,19 +295,17 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Contentful CMA API.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
     This function orchestrates the entire sync process using memory-efficient streaming patterns.
 
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting Contentful CMA connector sync")
 
-    # Extract configuration parameters (SDK auto-validates required fields)
+    # Validate the configuration to ensure it contains all required values.
     access_token = __get_config_str(configuration, "access_token")
 
     try:
@@ -348,6 +322,11 @@ def update(configuration: dict, state: dict):
             organizations_processed += 1
 
         log.info(f"Processed {organizations_processed} organizations")
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state={"organizations_processed": organizations_processed})
 
         # Fetch all spaces
         log.info("Fetching spaces...")
@@ -362,14 +341,19 @@ def update(configuration: dict, state: dict):
             spaces_processed += 1
 
         log.info(f"Processed {spaces_processed} spaces")
-
-        # Final checkpoint with completion status
-        final_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(final_state)
+        op.checkpoint(state={"spaces_processed": spaces_processed})
+
+        # Final checkpoint with completion status
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state={"last_sync_time": datetime.now(timezone.utc).isoformat()})
 
         log.info("Contentful CMA sync completed successfully")
 
@@ -378,7 +362,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync Contentful CMA data: {str(e)}")
 
 
-# Create the connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
