@@ -98,14 +98,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 Column types are automatically inferred by Fivetran. Sample columns include `name`, `email`, `phone`, `created_at`, `updated_at`, `company_id`, `external_id`, `verified`, `locked`, `website`, `domains`, `display_name`, `is_default`, `conversation_id`, `customer_id`, `channel`, `direction`, `body`, `status`, `message_type`.
 
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Kustomer API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 
