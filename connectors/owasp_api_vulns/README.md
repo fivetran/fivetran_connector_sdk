@@ -1,95 +1,111 @@
-# Fivetran Custom Connector SDK Repository
+# OWASP API Vulnerabilities Connector Example
 
-This repository contains custom Fivetran connectors developed using the Fivetran Connector SDK. Specifically, it hosts the `owasp_api_vulns` connector, which retrieves vulnerability data from the National Vulnerability Database (NVD) for API security analysis.
+## Connector overview
+This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination.
 
-This repository is primarily intended for local development, testing, and eventual deployment of custom connectors to a Fivetran account.
+## Requirements
+- Supported Python versions   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-## Connectors Included
+## Getting started
+Refer to the Connector SDK Setup Guide to get started.
 
-* **`connectors/owasp_api_vulns`**: A Fivetran connector designed to pull OWASP-related API vulnerability data from the NVD 2.0 API. This connector filters for relevant CWEs and ensures data quality by excluding unknown severity CVEs. For detailed information, configuration, and specific run/deployment instructions for this connector, please refer to its dedicated `README.md` file within its directory: [`./connectors/owasp_api_vulns/README.md`](./connectors/owasp_api_vulns/README.md).
+## Features
+- Fetches vulnerability data from the NVD 2.0 API.
+- Supports both full and incremental syncs based on the `lastModifiedDate` of CVEs.
+- Filters vulnerabilities by a configurable list of CWE IDs.
+- Includes an additional filter to only include CVEs with "api" in the description if the CWE doesn't match the primary list.
+- Skips CVEs with an "UNKNOWN" severity to ensure data quality.
+- Supports configurable logging levels (`standard` for summary logs, `debug` for verbose logs).
+- Creates two tables: `owasp_api_vulnerabilities` for the CVE data and `owasp_api_sync_log` for sync metadata.
 
-## Local Development and Testing with the Fivetran Connector SDK
+## Configuration file
+The connector requires the following configuration parameters in the `configuration.json` file.
 
-To set up and run connectors locally, the Fivetran Connector SDK provides a `fivetran debug` command. This section outlines the general process for setting up a local development environment.
+```json
+{
+  "api_key": "YOUR_NVD_API_KEY_HERE",
+  "force_full_sync": "false",
+  "write_temp_files": "false",
+  "logging_level": "standard",
+  "cwe_ids": "CWE-285,CWE-639,CWE-287,CWE-288,CWE-290"
+}
+```
 
-### Prerequisites
+- `api_key` - Your API key for the NVD 2.0 API.
+- `force_full_sync` - Set to `"true"` to ignore the saved state and perform a full re-sync. Defaults to `"false"`.
+- `write_temp_files` - Set to `"true"` to save the raw API responses to a local `raw_data` directory for debugging. Defaults to `"false"`.
+- `logging_level` - Set to `"standard"` for summary logging or `"debug"` for verbose, detailed logging. Defaults to `"debug"`.
+- `cwe_ids` - A comma-separated string of CWE IDs to filter the vulnerabilities. Defaults to a predefined list of OWASP-related CWEs.
 
-* Python 3.8+
-* `pip` (Python package installer)
-* Access to an NVD API key (for the `owasp_api_vulns` connector)
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### General Setup Steps
+## Requirements file
+This connector does not require any external Python libraries to be listed in `requirements.txt`.
 
-1.  **Clone this repository:**
-    Begin by cloning *this specific repository* to a local machine:
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-    ```bash
-    git clone [https://github.com/aksaha9/fivetran_connector_sdk.git](https://github.com/aksaha9/fivetran_connector_sdk.git)
-    cd fivetran_connector_sdk
+## Authentication
+This connector authenticates with the NVD 2.0 API using an API key. The key is provided in the `configuration.json` file and sent in the `apiKey` header of each request.
+
+To obtain an API key, you must register on the NVD website.
+
+## Pagination
+The connector handles pagination differently for full and incremental syncs, as detailed in the `update` function.
+- For full syncs, it uses the `startIndex` and `resultsPerPage` parameters to iterate through all available records in a `while` loop.
+- For incremental syncs, it fetches all records modified since the last sync in a single request, as pagination is not supported by the NVD API when using date range filters.
+
+## Data handling
+The connector fetches, processes, and delivers data to Fivetran as outlined in the `update` function.
+- It fetches CVE data from the NVD API based on the configured CWEs.
+- For incremental syncs, it uses the `last_sync_time` from the state to fetch only new or modified records.
+- It filters out records that have an "UNKNOWN" severity.
+- It processes the JSON response, transforms the data into a flat structure, and uses `op.upsert` to send records to the `owasp_api_vulnerabilities` and `owasp_api_sync_log` tables.
+- After each successful sync, it uses `op.checkpoint` to save the current timestamp, ensuring the next sync will resume from that point.
+
+## Error handling
+The connector implements several error-handling strategies within the `update` function.
+- It checks the HTTP status code of each API response. If the status is not 200, it logs a `severe` error with details from the response and stops processing for that CWE.
+- It wraps the JSON decoding process in a `try...except` block to catch `json.JSONDecodeError` and logs a `severe` error if the response is not valid JSON.
+- A general `try...except` block is used to catch any other exceptions during the API request and processing loop, logging a `severe` error to prevent the entire sync from failing.
+
+## Tables created
+The connector creates two tables in the destination, as defined in the `schema` function.
+
+1.  **`owasp_api_vulnerabilities`**: Stores the detailed vulnerability data.
+    ```json
+    {
+        "table": "owasp_api_vulnerabilities",
+        "primary_key": ["cve_id"],
+        "columns": {
+            "cve_id": "STRING",
+            "description": "STRING",
+            "published_date": "STRING",
+            "last_modified_date": "STRING",
+            "cwe_ids": "JSON",
+            "affected_libraries": "JSON",
+            "fixed_versions": "JSON",
+            "remediations": "JSON",
+            "severity": "STRING"
+        }
+    }
     ```
 
-2.  **Navigate to the Connector Directory:**
-    Change the current directory to the specific connector that needs to be run or tested. For the OWASP API Vulnerability Advisor, this path is:
-
-    ```bash
-    cd connectors/owasp_api_vulns
+2.  **`owasp_api_sync_log`**: Records metadata for each sync operation.
+    ```json
+    {
+        "table": "owasp_api_sync_log",
+        "primary_key": ["sync_datetime"],
+        "columns": {
+            "sync_datetime": "STRING",
+            "sync_type": "STRING",
+            "total_rows_upserted": "LONG"
+        }
+    }
     ```
 
-3.  **Prepare the Configuration File:**
-    Each connector requires a `configuration.json` file. An example template is usually provided (e.g., `configuration.json.example`).
-    * Copy the example file to `configuration_local_test.json`:
-        ```bash
-        cp configuration.json.example configuration_local_test.json
-        ```
-    * **Edit `configuration_local_test.json`**: Update placeholder values (e.g., `api_key` for the NVD API) with actual credentials and settings required for local testing. This file should be added to `.gitignore` to prevent accidental commits of sensitive information.
-
-4.  **Create and Activate a Python Virtual Environment:**
-    It is highly recommended to use a virtual environment to manage dependencies for each connector.
-
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
-    *(Note: The virtual environment name `.venv` is a common convention and is included in the `.gitignore` for this repository.)*
-
-5.  **Install Fivetran SDK Dependencies:**
-    Install the core Fivetran Connector SDK, which will automatically handle its own `grpcio` and `protobuf` dependencies.
-
-    ```bash
-    pip install fivetran-connector-sdk
-    ```
-
-6.  **Run the Connector in Debug Mode:**
-    Execute the connector using the `fivetran debug` command, pointing it to the local configuration file. This will simulate a Fivetran sync and output results to the console.
-
-    ```bash
-    fivetran debug --configuration configuration_local_test.json | tee local_output_files/run_log_$(date +%Y%m%d_%H%M%S).txt 2>&1
-    ```
-    *(Note: The `local_output_files/` directory is also typically ignored by Git.)*
-
-7.  **Deactivate the Virtual Environment:**
-    Once testing is complete, deactivate the virtual environment.
-
-    ```bash
-    deactivate
-    ```
-
-## Contributing to this Repository
-
-Contributions to enhance existing connectors or add new ones are welcome. Please ensure that:
-
-* New connectors are placed within the `connectors/` directory, following a clear naming convention.
-* Each connector includes its own `README.md` with specific configuration and usage instructions.
-* A `configuration.json.example` file is provided for any new connector.
-* All necessary Python dependencies are listed (if not already covered by `fivetran-connector-sdk`).
-* Pull requests include clear descriptions of the changes and any relevant test cases.
-
-## Author and Acknowledgement
-
-The `owasp_api_vulns` connector in this repository was created by **Ashish Kumar Saha**.
-
-This project was developed as part of a submission for the **AI Accelerate Hackathon 2025**, specifically for the **Fivetran Challenge**.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+## Additional considerations
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
