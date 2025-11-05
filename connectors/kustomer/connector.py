@@ -538,19 +538,19 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main synchronization function that fetches and processes data from the Kustomer API.
-    This function orchestrates the entire sync process using memory-efficient streaming patterns.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     Args:
-        configuration: Configuration dictionary containing API credentials and settings.
-        state: State dictionary containing sync cursors and checkpoints from previous runs.
-
-    Raises:
-        RuntimeError: If sync fails due to API errors or configuration issues.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
     log.info("Starting Kustomer API connector sync")
 
-    # Extract configuration parameters (SDK auto-validates required fields)
+    # Extract configuration parameters as required
     api_key = __get_config_str(configuration, "api_key")
     max_records_per_page = __get_config_int(configuration, "max_records_per_page", 100, 1, 1000)
     enable_incremental = __get_config_bool(configuration, "enable_incremental_sync", True)

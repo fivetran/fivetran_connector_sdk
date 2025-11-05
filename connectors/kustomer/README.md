@@ -6,7 +6,7 @@ This connector syncs customer experience data from the Kustomer API, including c
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -31,26 +31,22 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_KUSTOMER_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
-  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
+Note: Ensure that the 'configuration.json' file is not checked into version control to protect sensitive information.
+
 ### Configuration parameters
 
-- `api_key`: Bearer token from Kustomer API Keys settings
-- `sync_frequency_hours`: How often to run the sync (hours)
-- `initial_sync_days`: Historical data lookback period for first sync (days)
-- `max_records_per_page`: API page size for pagination (1-1000)
-- `request_timeout_seconds`: HTTP request timeout (seconds)
-- `retry_attempts`: Number of retry attempts for failed requests
-- `enable_incremental_sync`: Enable timestamp-based incremental sync
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
+- `api_key` (required): Bearer token from Kustomer API Keys settings
+- `max_records_per_page` (optional): API page size for pagination (1-1000)
+- `request_timeout_seconds` (optional): HTTP request timeout (seconds)
+- `retry_attempts` (optional): Number of retry attempts for failed requests
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync
 
 ## Requirements file
 
