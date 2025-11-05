@@ -81,13 +81,11 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 ## Tables created
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| ORGANIZATIONS | `id` | Organization hierarchy and management structure |
-| PRODUCTS | `id` | Product catalog with categories and support information |
-| PROJECTS | `id` | Project management data with status and timeline information |
+| ORGANIZATIONS | `id` | Organization hierarchy and management structure. The table includes parent-child relationships, manager assignments, and business unit associations.  |
+| PRODUCTS | `id` | Product catalog with categories and support information. The table contains brand information, service relationships, and support team assignments. |
+| PROJECTS | `id` | Project management data with status and timeline information. The table tracks status, completion targets, and customer relationships. |
 
 Column types are automatically inferred by Fivetran. Sample columns include `name`, `status`, `category`, `created_at`, `updated_at`, `manager_id`, `service_id`, and `customer_id`.
-
-Organizations table includes parent-child relationships, manager assignments, and business unit associations. Products table contains brand information, service relationships, and support team assignments. Projects table tracks status, completion targets, and customer relationships.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
