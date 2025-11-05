@@ -20,7 +20,7 @@ from fivetran_connector_sdk import Operations as op
 import requests
 
 # For handling dates and timestamps
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # For implementing delays in retry logic and rate limiting
 import time
