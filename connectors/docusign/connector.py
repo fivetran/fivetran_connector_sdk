@@ -1,8 +1,6 @@
-"""DocuSign eSignature API Connector for Fivetran.
-
+"""
 This connector extracts data from DocuSign eSignature API to enable
 analytics for Sales, Legal and other departments and teams.
-
 See the Technical Reference documentation:
 https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 and the Best Practices documentation:
@@ -10,10 +8,16 @@ https://fivetran.com/docs/connectors/connector-sdk/best-practices
 for details.
 """
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector, Operations as op, Logging as logger
 
-# For API calls to DocuSign
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 import requests
 # For handling date and time operations
 from datetime import datetime, timezone
@@ -23,25 +27,17 @@ from typing import Any, Dict, List, Optional
 import base64
 # For reading configuration from a JSON file
 import json
+# For handling retries and delays
+import time
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required
-    parameters for DocuSign API access.
-    This function is called at the start of the update method to ensure that the
-    connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings for
-        the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    # Validate required configuration parameters
-    required_configs = ["access_token", "base_url", "account_id"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+__DEFAULT_START_DATE = "2020-01-01T00:00:00.000Z"
+__REQUEST_TIMEOUT_SECONDS = 30
+__DOCUMENT_TIMEOUT_SECONDS = 60
+__BATCH_SIZE = 100
+__MAX_RETRIES = 3
+__RETRY_DELAY_SECONDS = 2
+__CHECKPOINT_INTERVAL = 10
 
 
 def schema(configuration: dict):
@@ -124,20 +120,36 @@ def get_base_url(configuration: dict) -> str:
 
 
 def make_api_request(
-    url: str, headers: Dict[str, str], params: Optional[Dict] = None
+    url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
-    Make a simple authenticated API request to DocuSign.
+    Make API request to Iterate with retry logic and exponential backoff.
     Args:
-        url: The URL to make the request to.
-        headers: A dictionary of HTTP headers.
-        params: Optional query parameters.
+        url: The API endpoint URL
+        headers: Request headers including authentication
+        params: Query parameters for the request
     Returns:
-        The JSON response as a dictionary.
+        Dictionary containing the API response
+    Raises:
+        RuntimeError: if API request fails after all retries
     """
-    response = requests.get(url, headers=headers, params=params, timeout=30)
-    response.raise_for_status()
-    return response.json()
+    for attempt in range(__MAX_RETRIES):
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            log.warning(f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}")
+            if attempt < __MAX_RETRIES - 1:
+                # Exponential backoff strategy
+                delay = __RETRY_DELAY_SECONDS * (2**attempt)
+                time.sleep(delay)
+            else:
+                raise RuntimeError(
+                    f"Failed to make API request after {__MAX_RETRIES} attempts: {str(e)}"
+                )
+
+    raise RuntimeError(f"Failed to make API request after {__MAX_RETRIES} attempts")
 
 
 def fetch_document_content(
@@ -157,19 +169,23 @@ def fetch_document_content(
     headers = {"Authorization": f"Bearer {configuration['access_token']}"}
     url = f"{base_url}/envelopes/{envelope_id}/documents/{document_id}"
 
-    try:
-        # Logic from the helper function is now directly here
-        response = requests.get(url, headers=headers, timeout=60)
-        # Increased timeout for larger files
-        response.raise_for_status()
-        # Will raise an error for 4xx/5xx responses
-        return response.content
-    except requests.exceptions.RequestException as exc:
-        # This specifically catches HTTP errors, timeouts, etc.
-        logger.warning(
-            f"Could not fetch content for document {document_id} in envelope {envelope_id}: {exc}"
-        )
-    return None
+    for attempt in range(__MAX_RETRIES):
+        try:
+            response = requests.get(url, headers=headers, timeout=__DOCUMENT_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            log.warning(f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}")
+            if attempt < __MAX_RETRIES - 1:
+                # Exponential backoff strategy
+                delay = __RETRY_DELAY_SECONDS * (2**attempt)
+                time.sleep(delay)
+            else:
+                raise RuntimeError(
+                    f"Failed to make API request after {__MAX_RETRIES} attempts: {str(e)}"
+                )
+
+    raise RuntimeError(f"Failed to make API request after {__MAX_RETRIES} attempts")
 
 
 def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -186,8 +202,8 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
     headers = get_docusign_headers(configuration)
 
     params = {
-        "from_date": state.get("last_sync_time", "2020-01-01T00:00:00.000Z"),
-        "count": 100,
+        "from_date": state.get("last_sync_time", __DEFAULT_START_DATE),
+        "count": __BATCH_SIZE,
     }
 
     all_envelopes: List[Dict[str, Any]] = []
@@ -212,17 +228,17 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
-                logger.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                log.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
                 break
             else:
-                logger.severe(f"Failed to fetch envelopes with HTTP error: {exc}")
+                log.severe(f"Failed to fetch envelopes with HTTP error: {exc}")
                 break
 
         except Exception as exc:
-            logger.severe(f"Failed to fetch envelopes: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
-            break
+            log.severe(f"Failed to fetch envelopes: {exc}")
+            raise RuntimeError(f"Failed to fetch envelopes: {exc}")
 
-    logger.info(f"Fetched {len(all_envelopes)} envelopes")
+    log.info(f"Fetched {len(all_envelopes)} envelopes")
     return all_envelopes
 
 
@@ -246,7 +262,7 @@ def fetch_audit_events(configuration: dict, envelope_id: str) -> List[Dict[str, 
             event["envelope_id"] = envelope_id
         return events
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch audit events for envelope {envelope_id}: {exc}"
         )
         return []
@@ -269,7 +285,7 @@ def fetch_envelope_notifications(
             n["envelope_id"] = envelope_id
         return notifications
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch notifications for envelope {envelope_id}: {exc}"
         )
         return []
@@ -301,7 +317,7 @@ def fetch_enhanced_recipients(
                 recipients.append(r)
         return recipients
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch enhanced recipients for envelope {envelope_id}: {exc}"
         )
         return []
@@ -335,7 +351,7 @@ def fetch_recipients_for_envelope(
 
         return recipients
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch recipients for envelope {envelope_id}: {exc}"
         )
         return []
@@ -360,7 +376,7 @@ def fetch_documents_for_envelope(
 
         return documents
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch documents for envelope {envelope_id}: {exc}"
         )
     return []
@@ -374,11 +390,11 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
     url = f"{base_url}/templates"
-    params = {"count": 100}
+    params = {"count": __BATCH_SIZE}
 
     all_templates: List[Dict[str, Any]] = []
     start_position = 0
-    last_sync_time = state.get("last_sync_time", "2000-01-01T00:00:00.000Z")
+    last_sync_time = state.get("last_sync_time", __BATCH_SIZE)
 
     while True:
         params["start_position"] = start_position
@@ -403,14 +419,14 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
-                logger.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                log.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
                 break
             else:
-                logger.severe(f"Failed to fetch templates with HTTP error: {exc}")
+                log.severe(f"Failed to fetch templates with HTTP error: {exc}")
                 break
 
         except Exception as exc:
-            logger.severe(f"Failed to fetch templates: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
+            log.severe(f"Failed to fetch templates: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
             break
 
     return all_templates
@@ -437,10 +453,259 @@ def fetch_custom_fields_for_envelope(
 
         return custom_fields
     except Exception as exc:
-        logger.warning(
+        log.warning(
             f"Could not fetch custom fields for envelope {envelope_id}: {exc}"
         )
     return []
+
+
+def _upsert_recipients(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert recipients for a given envelope.
+    """
+    recipients = fetch_recipients_for_envelope(configuration, envelope_id)
+    for r in recipients:
+        if r.get("recipientId"):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "recipients",
+                {
+                    "envelope_id": str(envelope_id),
+                    "recipient_id": str(r["recipientId"]),
+                    "name": str(r.get("name", "")),
+                    "email": str(r.get("email", "")),
+                    "status": str(r.get("status", "")),
+                    "type": str(r.get("recipient_type", "")),
+                    "routing_order": str(r.get("routingOrder", "0")),
+                },
+            )
+
+
+def _upsert_enhanced_recipients(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert enhanced recipients for a given envelope.
+    """
+    enhanced_recipients = fetch_enhanced_recipients(configuration, envelope_id)
+    for er in enhanced_recipients:
+        if er.get("recipientId"):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "enhanced_recipients",
+                {
+                    "envelope_id": str(envelope_id),
+                    "recipient_id": str(er["recipientId"]),
+                    "name": str(er.get("name", "")),
+                    "email": str(er.get("email", "")),
+                    "status": str(er.get("status", "")),
+                    "type": str(er.get("recipient_type", "")),
+                    "routing_order": str(er.get("routingOrder", 0)),
+                    "declined_reason": str(er.get("declinedReason", "")),
+                    "sent_timestamp": str(er.get("sentDateTime", "")),
+                    "signed_timestamp": str(er.get("signedDateTime", "")),
+                },
+            )
+
+
+def _upsert_audit_events(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert audit events for a given envelope.
+    """
+    audit_events = fetch_audit_events(configuration, envelope_id)
+    for event in audit_events:
+        # Flatten eventFields into a dict
+        flat_event = {
+            field["name"].lower(): str(field.get("value", ""))
+            for field in event.get("eventFields", [])
+        }
+
+        flat_event["envelope_id"] = envelope_id
+        # Use a combination of envelope_id + logTime as a surrogate primary key
+        flat_event["event_id"] = (
+            f"{envelope_id}_{flat_event.get('logtime', '')}"
+        )
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
+        op.upsert("audit_events", flat_event)
+
+
+def _upsert_envelope_notifications(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert envelope notifications for a given envelope.
+    """
+    notifications = fetch_envelope_notifications(configuration, envelope_id)
+    for n in notifications:
+        if n.get("notificationId"):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "envelope_notifications",
+                {
+                    "envelope_id": str(envelope_id),
+                    "notification_id": str(n.get("notificationId")),
+                    "notification_type": str(n.get("notificationType", "")),
+                    "scheduled_date": str(n.get("scheduledDate", "")),
+                    "sent_date": str(n.get("sentDate", "")),
+                },
+            )
+
+
+def _upsert_documents_and_content(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert documents and their content for a given envelope.
+    """
+    documents = fetch_documents_for_envelope(configuration, envelope_id)
+    for d in documents:
+        document_id = d.get("documentId")
+        if document_id:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "documents",
+                {
+                    "envelope_id": str(envelope_id),
+                    "document_id": str(document_id),
+                    "name": str(d.get("name", "")),
+                    "type": str(d.get("type", "")),
+                    "pages": str(d.get("pages", "0")),
+                },
+            )
+
+            log.info(
+                f"Fetching content for document {document_id} in envelope {envelope_id}"
+            )
+            content = fetch_document_content(
+                configuration, envelope_id, document_id
+            )
+            if content:
+                # Content is stored as a Base64 encoded string to handle binary data safely.
+                encoded_content = base64.b64encode(content).decode("utf-8")
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
+                op.upsert(
+                    "document_contents",
+                    {
+                        "envelope_id": str(envelope_id),
+                        "document_id": str(document_id),
+                        "content_base64": encoded_content,
+                    },
+                )
+
+
+def _upsert_custom_fields(configuration: dict, envelope_id: str):
+    """
+    Fetch and upsert custom fields for a given envelope.
+    """
+    custom_fields = fetch_custom_fields_for_envelope(
+        configuration, envelope_id
+    )
+    for f in custom_fields:
+        if f.get("name"):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "custom_fields",
+                {
+                    "envelope_id": str(envelope_id),
+                    "field_name": str(f["name"]),
+                    "value": str(f.get("value", "")),
+                    "type": str(f.get("fieldType", "")),
+                },
+            )
+
+
+def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
+    """
+    Process a single envelope and its related data.
+    """
+    envelope_id = envelope.get("envelopeId")
+    if not envelope_id:
+        log.warning("Skipping an envelope record due to missing envelopeId.")
+        return
+
+    processed_envelope = {
+        "envelope_id": str(envelope_id),
+        "status": str(envelope.get("status", "")),
+        "sent_timestamp": str(envelope.get("sentDateTime", "")),
+        "completed_timestamp": str(envelope.get("completedDateTime", "")),
+        "created_timestamp": str(envelope.get("createdDateTime", "")),
+        "last_modified_timestamp": str(envelope.get("statusChangedDateTime", "")),
+        "subject": str(envelope.get("emailSubject", "")),
+        "expire_after": str(envelope.get("expireAfter", "")),
+        "contract_cycle_time_hours": "",
+        "conversion_status": str(envelope.get("status", "")),
+    }
+
+    if envelope.get("status") == "completed":
+        sent_time = envelope.get("sentDateTime")
+        completed_time = envelope.get("completedDateTime")
+        if sent_time and completed_time:
+            try:
+                sent_dt = datetime.fromisoformat(sent_time.replace("Z", "+00:00"))
+                completed_dt = datetime.fromisoformat(
+                    completed_time.replace("Z", "+00:00")
+                )
+                cycle_time = (completed_dt - sent_dt).total_seconds() / 3600
+                processed_envelope["contract_cycle_time_hours"] = str(cycle_time)
+            except Exception as exc:
+                log.warning(
+                    f"Could not calculate cycle time for envelope {envelope_id}: {exc}"
+                )
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The op.upsert method is called with two arguments:
+    # - The first argument is the name of the table to upsert the data into.
+    # - The second argument is a dictionary containing the data to be upserted,
+    op.upsert("envelopes", processed_envelope)
+
+    # --- Fetch and Process Child Tables ---
+    _upsert_recipients(configuration, envelope_id)
+    _upsert_enhanced_recipients(configuration, envelope_id)
+    _upsert_audit_events(configuration, envelope_id)
+    _upsert_envelope_notifications(configuration, envelope_id)
+    _upsert_documents_and_content(configuration, envelope_id)
+    _upsert_custom_fields(configuration, envelope_id)
+
+
+def _process_templates(configuration: dict, state: Dict[str, Any]):
+    """
+    Fetch and process templates.
+    """
+    log.info("Fetching templates data...")
+    templates = fetch_templates(configuration, state)
+    for t in templates:
+        if t.get("templateId"):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted,
+            op.upsert(
+                "templates",
+                {
+                    "template_id": str(t["templateId"]),
+                    "name": str(t.get("name", "")),
+                    "description": str(t.get("description", "")),
+                    "created_timestamp": str(t.get("created", "")),
+                    "last_modified_timestamp": str(t.get("lastModified", "")),
+                    "shared": str(t.get("shared", "false")).lower(),
+                },
+            )
+    log.info(f"Upserted {len(templates)} templates")
 
 
 def update(configuration: dict, state: Dict[str, Any]):
@@ -455,234 +720,49 @@ def update(configuration: dict, state: Dict[str, Any]):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    logger.warning("DocuSign: eSignature API Connector")
-
-    # Validate the configuration to ensure it contains all required values.
-    validate_configuration(configuration=configuration)
+    log.warning("DocuSign: eSignature API Connector")
 
     try:
         if not state:
-            state = {"last_sync_time": "2000-01-01T00:00:00.000Z"}
+            state = {"last_sync_time": __DEFAULT_START_DATE}
 
         current_time = datetime.now(timezone.utc).isoformat()
 
         # --- Process Envelopes and Related Data ---
-        logger.info("Fetching envelopes data..." + current_time)
+        log.info("Fetching envelopes data..." + current_time)
         envelopes = fetch_envelopes(configuration, state)
 
-        for envelope in envelopes:
-            envelope_id = envelope.get("envelopeId")
-            if not envelope_id:
-                logger.warning(
-                    "Skipping an envelope record due to missing envelopeId."
-                )
-                continue
+        for i, envelope in enumerate(envelopes):
+            _process_envelope(configuration, envelope)
+            if (i + 1) % __CHECKPOINT_INTERVAL == 0:
+                log.info(f"Processed {i + 1} envelopes, checkpointing state.")
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
 
-            processed_envelope = {
-                "envelope_id": str(envelope_id),
-                "status": str(envelope.get("status", "")),
-                "sent_timestamp": str(envelope.get("sentDateTime", "")),
-                "completed_timestamp": str(
-                    envelope.get("completedDateTime", "")
-                ),
-                "created_timestamp": str(envelope.get("createdDateTime", "")),
-                "last_modified_timestamp": str(
-                    envelope.get("statusChangedDateTime", "")
-                ),
-                "subject": str(envelope.get("emailSubject", "")),
-                "expire_after": str(envelope.get("expireAfter", "")),
-                "contract_cycle_time_hours": "",
-                "conversion_status": str(envelope.get("status", "")),
-            }
-
-            if envelope.get("status") == "completed":
-                sent_time = envelope.get("sentDateTime")
-                completed_time = envelope.get("completedDateTime")
-                if sent_time and completed_time:
-                    try:
-                        sent_dt = datetime.fromisoformat(
-                            sent_time.replace("Z", "+00:00")
-                        )
-                        completed_dt = datetime.fromisoformat(
-                            completed_time.replace("Z", "+00:00")
-                        )
-                        cycle_time = (completed_dt - sent_dt).total_seconds() / 3600
-                        processed_envelope["contract_cycle_time_hours"] = str(
-                            cycle_time
-                        )
-                    except Exception as exc:
-                        logger.warning(
-                            f"Could not calculate cycle time for envelope {envelope_id}: {exc}"
-                        )
-
-            # The 'upsert' operation is used to insert or update data in the
-            # destination table.
-            op.upsert("envelopes", processed_envelope)
-
-            # --- Fetch and Process Child Tables ---
-
-            # Recipients
-            recipients = fetch_recipients_for_envelope(configuration, envelope_id)
-            for r in recipients:
-                if r.get("recipientId"):
-                    op.upsert(
-                        "recipients",
-                        {
-                            "envelope_id": str(envelope_id),
-                            "recipient_id": str(r["recipientId"]),
-                            "name": str(r.get("name", "")),
-                            "email": str(r.get("email", "")),
-                            "status": str(r.get("status", "")),
-                            "type": str(r.get("recipient_type", "")),
-                            "routing_order": str(r.get("routingOrder", "0")),
-                        },
-                    )
-
-            enhanced_recipients = fetch_enhanced_recipients(configuration, envelope_id)
-            for er in enhanced_recipients:
-                if er.get("recipientId"):
-                    op.upsert(
-                        "enhanced_recipients",
-                        {
-                            "envelope_id": str(envelope_id),
-                            "recipient_id": str(er["recipientId"]),
-                            "name": str(er.get("name", "")),
-                            "email": str(er.get("email", "")),
-                            "status": str(er.get("status", "")),
-                            "type": str(er.get("recipient_type", "")),
-                            "routing_order": str(er.get("routingOrder", 0)),
-                            "declined_reason": str(er.get("declinedReason", "")),
-                            "sent_timestamp": str(er.get("sentDateTime", "")),
-                            "signed_timestamp": str(er.get("signedDateTime", "")),
-                        },
-                    )
-
-            audit_events = fetch_audit_events(configuration, envelope_id)
-
-            for event in audit_events:
-                # Flatten eventFields into a dict
-                flat_event = {
-                    field["name"].lower(): str(field.get("value", ""))
-                    for field in event.get("eventFields", [])
-                }
-
-                flat_event["envelope_id"] = envelope_id
-                # Use a combination of envelope_id + logTime as a surrogate primary key
-                flat_event["event_id"] = (
-                    f"{envelope_id}_{flat_event.get('logtime', '')}"
-                )
-
-                op.upsert("audit_events", flat_event)
-
-            # Notifications
-            notifications = fetch_envelope_notifications(configuration, envelope_id)
-
-            for n in notifications:
-                if n.get("notificationId"):
-                    op.upsert(
-                        "envelope_notifications",
-                        {
-                            "envelope_id": str(envelope_id),
-                            "notification_id": str(n.get("notificationId")),
-                            "notification_type": str(n.get("notificationType", "")),
-                            "scheduled_date": str(n.get("scheduledDate", "")),
-                            "sent_date": str(n.get("sentDate", "")),
-                        },
-                    )
-
-            # Documents
-            documents = fetch_documents_for_envelope(configuration, envelope_id)
-            for d in documents:
-                document_id = d.get("documentId")
-                if document_id:
-                    op.upsert(
-                        "documents",
-                        {
-                            "envelope_id": str(envelope_id),
-                            "document_id": str(document_id),
-                            "name": str(d.get("name", "")),
-                            "type": str(d.get("type", "")),
-                            "pages": str(d.get("pages", "0")),
-                        },
-                    )
-
-                    logger.info(
-                        f"Fetching content for document {document_id} in envelope {envelope_id}"
-                    )
-                    content = fetch_document_content(
-                        configuration, envelope_id, document_id
-                    )
-                    if content:
-                        # Content is stored as a Base64 encoded string to handle binary data safely.
-                        encoded_content = base64.b64encode(content).decode("utf-8")
-                        op.upsert(
-                            "document_contents",
-                            {
-                                "envelope_id": str(envelope_id),
-                                "document_id": str(document_id),
-                                "content_base64": encoded_content,
-                            },
-                        )
-
-            # Custom Fields
-            custom_fields = fetch_custom_fields_for_envelope(
-                configuration, envelope_id
-            )
-            for f in custom_fields:
-                if f.get("name"):
-                    op.upsert(
-                        "custom_fields",
-                        {
-                            "envelope_id": str(envelope_id),
-                            "field_name": str(f["name"]),
-                            "value": str(f.get("value", "")),
-                            "type": str(f.get("fieldType", "")),
-                        },
-                    )
-
-        logger.info(
-            f"Processed {len(envelopes)} envelopes and their related data."
-        )
-
+        log.info(f"Processed {len(envelopes)} envelopes and their related data.")
         # --- Process Templates ---
-        logger.info("Fetching templates data...")
-        templates = fetch_templates(configuration, state)
-        for t in templates:
-            if t.get("templateId"):
-                op.upsert(
-                    "templates",
-                    {
-                        "template_id": str(t["templateId"]),
-                        "name": str(t.get("name", "")),
-                        "description": str(t.get("description", "")),
-                        "created_timestamp": str(t.get("created", "")),
-                        "last_modified_timestamp": str(t.get("lastModified", "")),
-                        "shared": str(t.get("shared", "false")).lower(),
-                    },
-                )
-        logger.info(f"Upserted {len(templates)} templates")
+        _process_templates(configuration, state)
 
         # Update state with the current sync time for the next run
         new_state = {"last_sync_time": str(current_time)}
-        # Save the progress by checkpointing the state. This is important for
-        # ensuring that the sync process can resume
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best
-        # practices documentation:
-        # https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
     except Exception as exc:
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync data: {str(exc)}")
 
-    logger.info("DocuSign connector update completed successfully")
+    log.info("DocuSign connector update completed successfully")
+
 
 # Create the connector object using the schema and update functions
-
-
 connector = Connector(update=update, schema=schema)
-
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
