@@ -162,6 +162,9 @@ def _process_location_data(location: Dict[str, Any]) -> None:
     expected_objects = location.get("expected_inventory_objects", [])
 
     # Upsert the location
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(table="location", data=processed_location)
 
     # Process expected inventory objects if they exist
@@ -187,6 +190,9 @@ def _process_expected_inventory_objects(
             obj["aisle"] = location_aisle
             obj["scan_date"] = location_scan_date
 
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="expected_inventory_object", data=obj)
 
 
