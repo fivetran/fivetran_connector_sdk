@@ -18,7 +18,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-  - Extracts core DocuSign resources such as envelopes and templates their related child objects.
+  - Extracts core DocuSign resources such as envelopes and templates and their related child objects.
   - Incremental sync based on timestamp tracking.
   - Pagination and performance: uses offset-based pagination with sensible batch sizes to efficiently iterate large result sets.
   - Resiliency and partial-failure handling: per-envelope sub-resource failures are logged and skipped so a single broken item does not stop the entire sync.
@@ -26,13 +26,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-The configuration for this connector is defined in `configuration.json`. It is validated at the beginning of the sync by the `validate_configuration` function.
+The configuration for this connector is defined in `configuration.json`.
 
 ```json
 {
-  "access_token": "YOUR_DOCUSIGN_OAUTH_ACCESS_TOKEN",
-  "base_url": "YOUR_DOCUSIGN_BASE_URL",
-  "account_id": "YOUR_DOCUSIGN_ACCOUNT_ID"
+  "access_token": "<YOUR_DOCUSIGN_OAUTH_ACCESS_TOKEN>",
+  "base_url": "<YOUR_DOCUSIGN_BASE_URL>",
+  "account_id": "<YOUR_DOCUSIGN_ACCOUNT_ID>"
 }
 ```
 Configuration parameters:
@@ -76,7 +76,6 @@ Data is processed within the `update` function and its various `fetch_*` helper 
 
 ## Error handling
 
-- Configuration validation: The `validate_configuration` function  runs at the start of every sync to ensure all required configuration keys (`access_token`, `base_url`, `account_id`) are present. It raises a `ValueError` if any are missing.
 - API request errors: The `make_api_request` function  uses `response.raise_for_status()` to automatically raise an exception for HTTP 4xx (client) or 5xx (server) errors.
 - Resilient child object fetching: All functions that fetch data for a *specific* envelope (e.g., `fetch_audit_events`, `fetch_document_content`, `fetch_recipients_for_envelope`) are wrapped in `try...except` blocks. If an API call for one envelope's sub-resource fails, the error is logged using `logger.warning` and an empty list or `None` is returned. This prevents a single failed document or recipient from stopping the entire sync.
 - Global error handling: The entire `update` function is wrapped in a `try...except Exception as e` block. Any unhandled exception will be caught and raised as a `RuntimeError`, which signals to Fivetran that the sync has failed.
