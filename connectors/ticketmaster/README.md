@@ -5,10 +5,10 @@
 This Fivetran connector syncs data from the Ticketmaster Discovery API v2, providing comprehensive access to events, venues, attractions, and classifications data. The connector is designed to handle large datasets efficiently using memory-optimized streaming patterns and implements robust error handling for production environments.
 
 The connector fetches data from four main Ticketmaster endpoints:
-- Events – Concert, sports, and entertainment events with detailed venue, pricing, and scheduling information
+- Events – Concerts, sports, and entertainment events with detailed venue, pricing, and scheduling information
 - Venues – Performance venues with location data, capacity, and facility details
 - Attractions – Artists, performers, teams, and entertainment acts with classification and external link information
-- Classifications – Event categorization data including segments, genres, and sub-genres
+- Classifications – Event categorization data, including segments, genres, and sub-genres
 
 Key features include intelligent rate limiting (5 requests/second, 5000/day), incremental sync capabilities for events, comprehensive error handling with exponential backoff, and memory-efficient processing using generator patterns to prevent out-of-memory issues with large datasets.
 
@@ -120,7 +120,7 @@ Data Types – The connector automatically handles data type conversion and vali
 
 The connector implements comprehensive error handling with specific strategies for different failure scenarios:
 
-API Authentication Errors (401) – Immediate failure with clear messaging in `execute_api_request` function. Invalid API keys are detected early to prevent unnecessary retries.
+API Authentication Errors (401) – Immediate failure with clear messaging in the `execute_api_request` function. Invalid API keys are detected early to prevent unnecessary retries.
 
 Rate Limiting (429) – Intelligent handling using `__handle_rate_limit` function with respect for `Retry-After` headers and exponential backoff with jitter via `__calculate_wait_time` function.
 
