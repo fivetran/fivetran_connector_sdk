@@ -1,10 +1,10 @@
 # Countly Connector Example
 
 ## Connector overview
-This connector syncs analytics data from Countly including apps, groups, and user profiles. It fetches app information, group data, and detailed user profiles from Countly Analytics API. The connector supports incremental synchronization using timestamp-based cursors and implements memory-efficient streaming to handle large datasets without accumulation issues.
+This connector syncs analytics data from Countly including apps, groups, and user profiles. It fetches app information, group data, and detailed user profiles from the Countly Analytics API. The connector supports incremental synchronization using timestamp-based cursors and implements memory-efficient streaming to handle large datasets without accumulation issues.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -14,11 +14,11 @@ This connector syncs analytics data from Countly including apps, groups, and use
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Syncs app information, groups, and user profiles from Countly Analytics API
-- API key authentication with automatic request retry handling (refer to `execute_api_request` function)
-- Offset-based pagination with automatic page traversal (refer to `get_apps_data`, `get_groups_data`, and `get_users_data` functions)
+- Syncs app information, groups, and user profiles from the Countly Analytics API
+- API key authentication with automatic request retry handling (refer to the `execute_api_request` function)
+- Offset-based pagination with automatic page traversal (refer to the `get_apps_data`, `get_groups_data`, and `get_users_data` functions)
 - Memory-efficient streaming prevents data accumulation for large analytics datasets
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic for rate limiting and network issues
 - Support for multiple data types including apps, groups, and user profiles with configurable sync options
 
@@ -41,12 +41,12 @@ Note: Ensure that the 'configuration.json' file is not checked into version cont
 ### Configuration parameters
 - `api_key` (required): Your Countly API key for authentication
 - `app_id` (required): Countly application identifier to fetch data for specific app
-- `max_records_per_page` (optional): Records per API request page (default: 100, max: 1000)
-- `request_timeout_seconds` (optional): HTTP request timeout (default: 30)
-- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
-- `enable_apps_sync` (optional): Include app data in sync (default: true)
-- `enable_groups_sync` (optional): Include group data in sync (default: true)
-- `enable_users_sync` (optional): Include user profile data in sync (default: true)
+- `max_records_per_page` (optional): Records per API request page (default: `100`, max: `1000`)
+- `request_timeout_seconds` (optional): HTTP request timeout (default: `30`)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: `3`)
+- `enable_apps_sync` (optional): Include app data in sync (default: `true`)
+- `enable_groups_sync` (optional): Include group data in sync (default: `true`)
+- `enable_users_sync` (optional): Include user profile data in sync (default: `true`)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -63,7 +63,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Note: The connector automatically handles API key authentication through query parameters. Credentials are never logged or exposed in plain text.
 
 ## Pagination
-Offset-based pagination with automatic page traversal (refer to `get_apps_data`, `get_groups_data`, and `get_users_data` functions). Generator-based processing prevents memory accumulation for large analytics datasets. Processes pages sequentially while yielding individual records for immediate processing.
+Offset-based pagination with automatic page traversal (refer to the `get_apps_data`, `get_groups_data`, and `get_users_data` functions). Generator-based processing prevents memory accumulation for large analytics datasets. Processes pages sequentially while yielding individual records for immediate processing.
 
 ## Data handling
 Analytics data is mapped from Countly's API format to normalized database columns (refer to the `__map_app_data`, `__map_group_data`, and `__map_user_data` functions). Nested objects like metadata are serialized as JSON, and all timestamps are converted to UTC format for consistency.
@@ -71,7 +71,7 @@ Analytics data is mapped from Countly's API format to normalized database column
 Supports timestamp-based incremental synchronization using the `last_sync_time` state parameter (refer to the `get_time_range` function). Initial sync can be configured to fetch historical data up to 365 days.
 
 ## Error handling
-- 429 Rate Limited: Automatic retry with exponential backoff and jitter (refer to the `__handle_rate_limit` function)
+- Automatic retry with exponential backoff and jitter (refer to the `__handle_rate_limit` function)
 - Timeout handling with configurable retry attempts (refer to the `__handle_request_error` function)
 - Exponential backoff with jitter prevents multiple clients from making requests at the same time
 - Parameter validation with descriptive error messages provides clear guidance for fixing setup issues
