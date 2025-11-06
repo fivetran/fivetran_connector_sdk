@@ -17,6 +17,11 @@ This example was contributed by community member Ahmed Zedan.
 API reference: [Accelo API Docs](https://api.accelo.com/docs/#introduction).
 
 
+## Accreditation
+
+This example was contributed by our amazing community member Ahmed Zedan
+
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
