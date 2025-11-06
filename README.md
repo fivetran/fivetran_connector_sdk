@@ -260,7 +260,7 @@ This repository is open source and intended specifically for Connector SDK examp
   - [Fivetran coding principles](https://github.com/fivetran/fivetran_connector_sdk/blob/main/FIVETRAN_CODING_PRINCIPLES.md)
 5. Open a pull request with a clear description of your changes.
   - If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag 
-  - If your're part of the Fivetran internal hackathon, please use the `hackathon` tag  
+  - If you're part of the Fivetran internal hackathon, please use the `hackathon` tag  
 
 ### What we're looking for
 
