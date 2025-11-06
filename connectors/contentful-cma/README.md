@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector syncs data from Contentful's Content Management API, including spaces and organizations. The connector provides comprehensive access to your Contentful content infrastructure, enabling analytics and reporting on your content management operations. It supports synchronization of organization and space data efficiently.
+This connector syncs data from Contentful's Content Management API, including spaces and organizations. The connector provides comprehensive access to your Contentful content infrastructure, enabling analytics and reporting on your content management operations. It supports the synchronization of organization and space data efficiently.
 
 ## Requirements
 
@@ -57,9 +57,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 3. Click **Settings** and select **CMA tokens** from the drop-down list.
 4. Click **Create personal access token**. The **Create personal access token** window is displayed.
 5. Enter a custom name for your personal access token and click **Generate**. Your personal access token is created.
-6. Copy your personal access token to clipboard and use it as the `access_token` in your configuration.
+6. Copy your personal access token to the clipboard and use it as the `access_token` in your configuration.
 
-Note: The connector automatically handles API rate limiting (7 requests per second default). Personal Access Tokens have the same rights as the account owner and never expire unless manually revoked.
+**Note:** The connector automatically handles API rate limiting (7 requests per second, by default). Personal Access Tokens have the same rights as the account owner and never expire unless manually revoked.
 
 ## Data handling
 
