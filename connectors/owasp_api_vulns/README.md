@@ -31,7 +31,7 @@ The connector requires the following configuration parameters in the `configurat
   "force_full_sync": "false",
   "write_temp_files": "false",
   "logging_level": "standard",
-  "cwe_ids": "CWE-285,CWE-639,CWE-287,CWE-288,CWE-290"
+  "cwe_ids": "CWE-285,CWE-639,CWE-287,CWE-288,CWE-290,CWE-294,CWE-301,CWE-302,CWE-303,CWE-304,CWE-306,CWE-307,CWE-521,CWE-798,CWE-269,CWE-400,CWE-770,CWE-642,CWE-918,CWE-16,CWE-209,CWE-598,CWE-20,CWE-73,CWE-200,CWE-79"
 }
 ```
 
