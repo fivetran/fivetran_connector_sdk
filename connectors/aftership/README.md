@@ -98,7 +98,7 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | Table | Primary Key | Description | Columns |
 |-------|-------------|-------------|-------------|
 | TRACKINGS | `id` | Package tracking information including status, checkpoints, and delivery details | `id`, `tracking_number`, `slug`, `active`, `customer_name`, `delivery_time`, `destination_country_iso3`, `expected_delivery`, `order_id`, `shipment_type`, `tag`, `checkpoints`, `timestamp` |
-| COURIERS | `slug` | Shipping carrier information including capabilities and configuration | slug`, `name`, `phone`, `web_url`, `required_fields`, `optional_fields`, `support_track`, `support_pickup`, `timestamp` |
+| COURIERS | `slug` | Shipping carrier information including capabilities and configuration | `slug`, `name`, `phone`, `web_url`, `required_fields`, `optional_fields`, `support_track`, `support_pickup`, `timestamp` |
 
 Column types are automatically inferred by Fivetran. Checkpoint information in TRACKINGS is stored as JSON for flexible querying of nested tracking event data.
 
