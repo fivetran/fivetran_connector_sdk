@@ -29,6 +29,16 @@
 *Provide a detailed overview of the connector, including its functionality, the data source it connects to, and the use cases it addresses.*
 
 
+## Accreditation
+*The connectors contributed by third parties may include an accreditation section to credit the contributor. If this is a Fivetran-authored example, delete this section.*
+
+This example was contributed by [Contributor Name/Organization](link-to-profile-or-website).
+
+*Optionally, add a brief note about the contributor's expertise or the context in which this connector was developed.*
+
+*If the contributor prefers to remain anonymous, use: "This example was contributed by an anonymous community member."*
+
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
