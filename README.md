@@ -186,6 +186,7 @@ There are several examples available under `/examples`:
   - [page_number](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/page_number) - This is a simple example for how to work with page-number-based pagination for a REST API.
 
 - [parallel_fetching_from_source](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/parallel_fetching_from_source) - This example shows how to fetch multiple files from an AWS S3 bucket in parallel and upsert them into destination using the Connector SDK. It uses the `concurrent.futures` module to create a thread pool and fetch files concurrently.
+- [complex_error_handling_multithreading](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/complex_error_handling_multithreading) - This example demonstrates how to implement next-page URL pagination with multithreading for parallel record processing. It includes comprehensive error handling strategies such as circuit breaker pattern, retry logic with exponential backoff, error categorization, graceful degradation, and thread-safe operations for building resilient connectors.
 - [priority_first_sync_for_high_volume_initial_syncs](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/priority_first_sync_for_high_volume_initial_syncs) - A priority-first sync (PFS), is very helpful for high-volume historical syncs. It is a sync strategy that prioritises fetching the most recent data first so that fresh data is ready for you to use more quickly. This is a simple example of how you could implement the priority-first sync strategy in a `connector.py` file for your connection.
 - [records_with_no_created_at_timestamp](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp) - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
 - [schema_from_database](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/schema_from_database) - This example shows how to extract tables (columns, data types, etc.) from a schema present in Snowflake database and use this to generate the connector schema. This approach ensures that the tables in your connector match those in your source database without having to manually define each field.
@@ -256,7 +257,11 @@ This repository is open source and intended specifically for Connector SDK examp
 2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
 3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
 4. Ensure your code works correctly and follows our coding standards.
+  - [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
+  - [Fivetran coding principles](https://github.com/fivetran/fivetran_connector_sdk/blob/main/FIVETRAN_CODING_PRINCIPLES.md)
 5. Open a pull request with a clear description of your changes.
+  - If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag 
+  - If you're part of the Fivetran internal hackathon, please use the `hackathon` tag  
 
 ### What we're looking for
 
@@ -269,7 +274,7 @@ This repository is open source and intended specifically for Connector SDK examp
 ### Getting started
 
 Before contributing, please:
-- Read through existing examples to understand our coding patterns
+- Read through existing [examples](#quickstart-examples) to understand our coding patterns
 - Run the setup script: `.github/scripts/setup-hooks.sh`
 - Follow the [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
 - Test your connector thoroughly before submitting
