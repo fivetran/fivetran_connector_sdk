@@ -263,6 +263,9 @@ def _fetch_and_process_cwe_data(cwe: str, base_url: str, headers: dict, params: 
             row = _process_vulnerability(vuln, cwe_ids_filter, is_debug_logging)
             
             if row:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table="owasp_api_vulnerabilities", data=row)
                 upserted_cve_ids.add(cve_id)
                 upsert_count_per_cwe += 1
@@ -287,6 +290,9 @@ def _finalize_sync(start_time: float, total_upserts: int, force_full_sync: bool)
 
     sync_datetime = datetime.datetime.utcnow().isoformat() + "+00:00"
     sync_type = "full" if force_full_sync else "incremental"
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(table="owasp_api_sync_log", data={
         "sync_datetime": sync_datetime,
         "sync_type": sync_type,
