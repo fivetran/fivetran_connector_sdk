@@ -427,7 +427,7 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
         except Exception as exc:
             log.severe(f"Failed to fetch templates: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
-            break
+            raise RuntimeError(f"Failed to fetch templates: {exc}")
 
     return all_templates
 
