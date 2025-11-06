@@ -34,27 +34,23 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_AFTERSHIP_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_couriers": "<ENABLE_COURIERS>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_couriers": "<ENABLE_COURIERS>"
 }
 ```
 
 Configuration parameters:
-- `api_key`: AfterShip API key for authentication
-- `sync_frequency_hours`: How often to run incremental syncs
-- `initial_sync_days`: Number of days of historical data to fetch on first sync
-- `max_records_per_page`: Batch size for API requests (1-200)
-- `request_timeout_seconds`: HTTP request timeout in seconds
-- `retry_attempts`: Number of retry attempts for failed requests
-- `enable_incremental_sync`: Enable timestamp-based incremental synchronization
-- `enable_couriers`: Include couriers data in synchronization
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
+- `api_key` (required): AfterShip API key for authentication
+- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync
+- `max_records_per_page` (optional): Batch size for API requests (1-200)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization (default: true)
+- `enable_couriers` (optional): Include couriers data in synchronization (default: true)
 
 ## Requirements file
 
