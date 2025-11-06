@@ -77,13 +77,62 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - Parameter validation with descriptive error messages provides clear guidance for fixing setup issues
 
 ## Tables created
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| APPS | `app_id` | App information including name, key, timezone, icon, and metadata |
-| GROUPS | `group_id` | Group information including name, description, user count, and metadata |
-| USERS | `user_id` | User profile data including demographics, custom attributes, and usage statistics |
 
-Column types are automatically inferred by Fivetran. Sample columns include `app_id`, `name`, `key`, `timezone`, `icon`, `metadata`, `created_at`, `updated_at`, `username`, `email`, `custom_data`, `session_count`, `total_session_duration`, `group_id`, `description`, `user_count`.
+### APPS
+**Primary Key:** `app_id`
+
+**Description:** App information including name, key, timezone, icon, and metadata
+
+**Columns:**
+- `app_id` (string): Unique identifier for the application
+- `name` (string): Application name
+- `key` (string): Application key/identifier
+- `timezone` (string): Application timezone setting
+- `created_at` (timestamp): Timestamp when the app was created
+- `updated_at` (timestamp): Timestamp when the app was last updated
+- `icon` (string): URL or path to the application icon
+- `metadata` (json): Additional metadata as JSON object
+- `processed_at` (timestamp): Timestamp when the record was processed by the connector
+
+### GROUPS
+**Primary Key:** `group_id`
+
+**Description:** Group information including name, description, user count, and metadata
+
+**Columns:**
+- `group_id` (string): Unique identifier for the group
+- `name` (string): Group name
+- `description` (string): Group description
+- `user_count` (integer): Number of users in the group
+- `created_at` (timestamp): Timestamp when the group was created
+- `updated_at` (timestamp): Timestamp when the group was last updated
+- `metadata` (json): Additional metadata as JSON object
+- `processed_at` (timestamp): Timestamp when the record was processed by the connector
+
+### USERS
+**Primary Key:** `user_id`
+
+**Description:** User profile data including demographics, custom attributes, and usage statistics
+
+**Columns:**
+- `user_id` (string): Unique identifier for the user
+- `app_id` (string): Application identifier the user belongs to
+- `device_id` (string): Device identifier associated with the user
+- `username` (string): User's display name
+- `email` (string): User's email address
+- `organization` (string): User's organization
+- `phone` (string): User's phone number
+- `picture` (string): URL or path to the user's profile picture
+- `gender` (string): User's gender
+- `byear` (integer): User's birth year
+- `custom_data` (json): Custom user attributes as JSON object
+- `first_seen` (timestamp): Timestamp when the user was first seen
+- `last_seen` (timestamp): Timestamp when the user was last seen
+- `session_count` (integer): Total number of sessions for the user
+- `total_session_duration` (integer): Total session duration in seconds
+- `processed_at` (timestamp): Timestamp when the record was processed by the connector
+
+**Note:** Column types are automatically inferred by Fivetran based on the data types returned from the API.
 
 
 ## Additional considerations
