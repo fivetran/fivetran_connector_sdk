@@ -14,7 +14,7 @@ This connector syncs user data, group information, notes, and bookmarks from the
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Syncs user accounts, groups, notes, and bookmarks from Egnyte API
+- Syncs user accounts, groups, notes, and bookmarks from the Egnyte API
 - OAuth2 authentication with automatic token refresh (refer to `execute_api_request` function)
 - Pagination-based data retrieval with automatic page traversal (refer to `get_users`, `get_groups`, `get_notes`, and `get_bookmarks` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets
