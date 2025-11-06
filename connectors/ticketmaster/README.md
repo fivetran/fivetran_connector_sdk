@@ -29,7 +29,7 @@ The connector provides the following key capabilities:
 
 - Memory-Efficient Data Processing – Uses generator-based streaming in `get_events`, `get_venues`, `get_attractions`, and `get_classifications` functions to prevent memory accumulation
 - Intelligent Rate Limiting – Automatic handling of Ticketmaster's 5 requests/second and 5000 requests/day limits with exponential backoff
-- Incremental Sync – Time-based incremental synchronization for events using `get_time_range` function with configurable lookback periods
+- Incremental Sync – Time-based incremental synchronization for events using the `get_time_range` function with configurable lookback periods
 - Comprehensive Error Handling – Robust retry logic in `execute_api_request` function with specific handling for authentication, rate limiting, and network errors
 - Configurable Data Selection – Enable/disable specific data types (events, venues, attractions, classifications) through configuration flags
 - Production-Ready Logging – Structured logging with appropriate levels for monitoring and debugging
