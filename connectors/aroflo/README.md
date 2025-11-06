@@ -42,16 +42,16 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ### Configuration parameters:
 - `api_key` (required): Your AroFlo API authentication key
-- `sync_frequency_hours` (optional): How often to run incremental syncs, defaults to 4 hours
-- `initial_sync_days` (optional): How many days of historical data to fetch on first sync, defaults to 90 days
-- `max_records_per_page` (optional): Number of records per API request, defaults to 100 (range: 1-1000)
-- `request_timeout_seconds` (optional): HTTP request timeout in seconds, defaults to 30
-- `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to 3
-- `enable_users_sync` (optional): Whether to sync users/employees data, defaults to true
-- `enable_suppliers_sync` (optional): Whether to sync suppliers data, defaults to true
-- `enable_payments_sync` (optional): Whether to sync payments data, defaults to true
-- `enable_incremental_sync` (optional): Whether to use incremental sync, defaults to true
-- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to false
+- `sync_frequency_hours` (optional): How often to run incremental syncs, defaults to `4` hours
+- `initial_sync_days` (optional): How many days of historical data to fetch on first sync, defaults to `90` days
+- `max_records_per_page` (optional): Number of records per API request, defaults to `100` (range: 1-1000)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds, defaults to `30`
+- `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to `3`
+- `enable_users_sync` (optional): Whether to sync users/employees data, defaults to `true`
+- `enable_suppliers_sync` (optional): Whether to sync suppliers data, defaults to `true`
+- `enable_payments_sync` (optional): Whether to sync payments data, defaults to `true`
+- `enable_incremental_sync` (optional): Whether to use incremental sync, defaults to `true`
+- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to `false`
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
