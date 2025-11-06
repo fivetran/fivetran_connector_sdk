@@ -4,6 +4,9 @@
 This example demonstrates a source connector that reads rows from a TiDB database and upserts them into the Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
 Use cases: Incremental sync of application tables, vector/embedding export for ML workflows, and incremental change capture for analytics.
 
+## Accreditation
+This example was contributed by [Nikhil Mankani](https://www.linkedin.com/in/nikhilmankani/).
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
@@ -18,7 +21,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Incremental replication driven by `created_at` timestamp.
 - Configurable table list and primary keys via `TABLES_PRIMARY_KEY_COLUMNS`.
 - Optional support for vector columns: Parse serialized embeddings into proper JSON lists via `VECTOR_TABLES_DATA`.
-- Robust error handling with per-table error markers stored into connector `state`.
+- Robust error handling with per-table error markers stored into the connector `state`.
 
 ## Configuration file
 - The connector expects a `configuration.json` file when running locally. Configuration keys consumed by this connector:
@@ -37,9 +40,19 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ```
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect credentials.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### Configuration Details
+### Configuration details
+
+**TIDB_HOST**: Hostname or IP address of the TiDB server.
+
+**TIDB_USER**: Username for TiDB connection.
+
+**TIDB_PASS**: Password for the TiDB user.
+
+**TIDB_PORT**: Port number for TiDB connection.
+
+**TIDB_DATABASE**: Name of your TiDB database.
 
 **TABLES_PRIMARY_KEY_COLUMNS**: A JSON object where keys are table names and values are the primary key column names.
 
@@ -71,7 +84,7 @@ Example:
 
 ```
 
-pytidb==0.0.11
+pytidb>=0.0.11
 certifi==2025.8.3
 
 ```
@@ -92,8 +105,8 @@ Not applicable. The connector issues simple `SELECT` queries against tables and 
 
 ## Error handling
 - Query-level failures (for example, missing `created_at` column) are logged, added to `state` under `{table_name}_last_error`, and the connector checkpoints state so operators can inspect errors without losing progress on other tables. See `fetch_and_upsert_data`.
-- Row-level failures are logged and a sample of the row is stored in state under `{table_name}_last_row_error_sample` for debugging. See `fetch_and_upsert_data` and `process_row`.
-- Connection-level failures are recorded in state under `last_connection_error`, and the exception is raised to allow the runtime to retry according to its backoff policy. See `create_tidb_connection` and `update`.
+- Row-level failures are logged, and a sample of the row is stored in state under `{table_name}_last_row_error_sample` for debugging. See `fetch_and_upsert_data` and `process_row`.
+- Connection-level failures are recorded in the state under `last_connection_error`, and the exception is raised to allow the runtime to retry according to its backoff policy. See `create_tidb_connection` and `update`.
 
 ## Tables created
 Summary of tables replicated depends on `TABLES_PRIMARY_KEY_COLUMNS` in `configuration.json`. The connector does not create destination tables automatically; the connector SDK runtime handles writing rows into destination tables according to this schema declaration.

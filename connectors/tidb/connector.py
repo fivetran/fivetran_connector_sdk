@@ -1,8 +1,8 @@
 """
-TiDB connector for Fivetran.
-
-This connector enables incremental data synchronization from TiDB databases,
+This example connector enables incremental data synchronization from TiDB databases,
 including support for vector embeddings stored as JSON columns.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # Import required classes from fivetran_connector_sdk
@@ -32,10 +32,10 @@ from datetime import datetime, timezone
 
 
 # Module-level constants
-TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
-REQUIRED_CONFIG_KEYS = TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]
-MAX_UPSERT_RETRIES = 3
-FALLBACK_TIMESTAMP = datetime(1990, 1, 1, tzinfo=timezone.utc)
+__TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
+__REQUIRED_CONFIG_KEYS = __TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]
+__MAX_UPSERT_RETRIES = 3
+__FALLBACK_TIMESTAMP = datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def validate_configuration(configuration: Dict[str, Any]):
@@ -48,7 +48,7 @@ def validate_configuration(configuration: Dict[str, Any]):
     Raises:
         ValueError: If any required configuration key is missing
     """
-    missing = [k for k in REQUIRED_CONFIG_KEYS if not configuration.get(k)]
+    missing = [k for k in __REQUIRED_CONFIG_KEYS if not configuration.get(k)]
     if missing:
         raise ValueError(f"Missing required configuration keys: {', '.join(missing)}")
 
@@ -119,14 +119,13 @@ def build_vector_schema_entry(table_name: str, table_data: Dict[str, Any]) -> Op
 
 
 def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Declare the destination schema expected by Fivetran.
+    """ 
+    Define the schema function which lets you configure the schema your connector delivers. 
+    See the technical reference documentation for more details on the schema function: 
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema 
     
-    Args:
-        configuration: Dictionary containing connector configuration
-        
-    Returns:
-        List of table schema definitions with table name and primary keys
+    Args: 
+        configuration: a dictionary that holds the configuration settings for the connector. 
     """
     tables_and_primary_key_columns = parse_json_config(configuration, "TABLES_PRIMARY_KEY_COLUMNS")
     
@@ -166,8 +165,8 @@ def parse_embedding_string_to_list(s: Optional[str]) -> Optional[List[float]]:
         parsed = json.loads(s)
         if isinstance(parsed, list):
             return [float(x) for x in parsed]
-    except Exception:
-        pass
+    except Exception as e:
+        log.info("Failed to parse embedding string as JSON: '%s' (error: %s)", s, e)
     
     # Fallback parse for bracketed CSV format
     try:
@@ -204,7 +203,7 @@ def parse_state_timestamp(timestamp_str: Optional[str]) -> datetime:
         Timezone-aware datetime object, or fallback datetime if parsing fails
     """
     if not timestamp_str:
-        return FALLBACK_TIMESTAMP
+        return __FALLBACK_TIMESTAMP
     
     try:
         parsed = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
@@ -213,7 +212,7 @@ def parse_state_timestamp(timestamp_str: Optional[str]) -> datetime:
         return parsed
     except Exception:
         log.info("Failed to parse state timestamp '%s', using fallback.", timestamp_str)
-        return FALLBACK_TIMESTAMP
+        return __FALLBACK_TIMESTAMP
 
 
 def normalize_timestamp_field(row_data: Dict[str, Any], field_name: str, table_name: str):
@@ -371,15 +370,18 @@ def attempt_upsert_with_retry(table_name: str, row_data: Dict[str, Any], row_id:
     Returns:
         True if upsert succeeded, False otherwise
     """
-    # Retry upsert operation up to MAX_UPSERT_RETRIES times
-    for attempt in range(1, MAX_UPSERT_RETRIES + 1):
+    # Retry upsert operation up to __MAX_UPSERT_RETRIES times
+    for attempt in range(1, __MAX_UPSERT_RETRIES + 1):
         try:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table=table_name, data=row_data)
             return True
         except Exception as upp_err:
             log.info("Upsert failed for table %s row %s (attempt %d): %s", table_name, row_id, attempt, upp_err)
-            if attempt >= MAX_UPSERT_RETRIES:
-                log.severe("Giving up on upsert for table %s row %s after %d attempts", table_name, row_id, MAX_UPSERT_RETRIES)
+            if attempt >= __MAX_UPSERT_RETRIES:
+                log.severe("Giving up on upsert for table %s row %s after %d attempts", table_name, row_id, __MAX_UPSERT_RETRIES)
     
     return False
 
@@ -453,6 +455,8 @@ def process_and_upsert_rows(rows: List[Dict[str, Any]], table_name: str, state: 
             try:
                 sample_key = f"{table_name}_last_row_error_sample"
                 state[sample_key] = json.dumps({k: str(v) for k, v in (list(row.items())[:10])})
+                # If storing the sample row fails (e.g., due to serialization issues), ignore the error.
+                # This is non-critical and should not interrupt processing of other rows.
             except Exception:
                 pass
     
@@ -504,6 +508,10 @@ def fetch_and_upsert_data(cursor: TiDBClient, table_name: str, state: Dict[str, 
         # Query execution failed, likely due to missing column
         log.severe("Failed to execute query for table %s: %s", table_name, e)
         state[f"{table_name}_last_error"] = str(e)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
         return
     
@@ -517,6 +525,10 @@ def fetch_and_upsert_data(cursor: TiDBClient, table_name: str, state: Dict[str, 
     
     # Checkpoint state to persist progress
     try:
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
     except Exception as chk_err:
         log.severe("Failed to checkpoint state after processing table %s: %s", table_name, chk_err)
@@ -536,7 +548,7 @@ def create_tidb_connection(configuration: Dict[str, Any]) -> TiDBClient:
         ValueError: If required connection parameters are missing
         Exception: If connection fails
     """
-    missing = [k for k in TIDB_CONNECTION_KEYS if not configuration.get(k)]
+    missing = [k for k in __TIDB_CONNECTION_KEYS if not configuration.get(k)]
     if missing:
         raise ValueError(f"Missing required TiDB configuration keys: {', '.join(missing)}")
     
@@ -620,6 +632,10 @@ def sync_regular_tables(connection: TiDBClient, tables: List[str], state: Dict[s
             log.severe("Unhandled error processing table %s: %s", table_name, t_err)
             state[f"{table_name}_last_error"] = str(t_err)
             try:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
             except Exception:
                 log.severe("Failed to checkpoint state after table-level error for %s", table_name)
@@ -650,6 +666,10 @@ def sync_vector_tables(connection: TiDBClient, vector_tables: List[str], state: 
             log.severe("Unhandled error processing vector table %s: %s", table_name, t_err)
             state[f"{table_name}_last_error"] = str(t_err)
             try:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
             except Exception:
                 log.severe("Failed to checkpoint state after vector-table error for %s", table_name)
@@ -670,13 +690,15 @@ def close_connection(connection: TiDBClient):
 
 
 def update(configuration: Dict[str, Any], state: Dict[str, Any]):
-    """
-    Main sync function called by Fivetran runtime.
-    
-    Args:
-        configuration: Dictionary containing connector configuration
-        state: State dictionary for incremental sync tracking
-    """
+    """ 
+    Define the update function, which is a required function, and is called by Fivetran during each sync. 
+    See the technical reference documentation for more details on the update function 
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update 
+    Args: 
+        configuration: A dictionary containing connection details 
+        state: A dictionary containing state information from previous runs 
+        The state dictionary is empty for the first sync or for any full re-sync 
+     """
     # Validate configuration early
     validate_configuration(configuration)
     
@@ -687,6 +709,10 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         log.severe("Could not connect to TiDB: %s", conn_err)
         state["last_connection_error"] = str(conn_err)
         try:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
         except Exception:
             log.severe("Failed to checkpoint state after connection error.")
@@ -706,22 +732,17 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     close_connection(connection)
 
 
-# Define connector instance
-connector = Connector(update=update, schema=schema)
+# Create the connector object using the schema and update functions 
+connector = Connector(update=update, schema=schema) 
+  
+# Check if the script is being run as the main module. 
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button. 
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production. 
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector. 
+if __name__ == "__main__": 
+    # Open the configuration.json file and load its contents 
+    with open("configuration.json", "r") as f: 
+        configuration = json.load(f) 
 
-
-if __name__ == "__main__":
-    """
-    Local debug entry point.
-    
-    Loads configuration from configuration.json and runs connector in debug mode.
-    """
-    try:
-        with open("configuration.json", "r") as f:
-            configuration = json.load(f)
-    except Exception as e:
-        log.severe("Failed to load configuration.json: %s", e)
-        raise
-    
-    # Test the connector locally
-    connector.debug(configuration=configuration)
+    # Test the connector locally 
+    connector.debug(configuration=configuration) 
