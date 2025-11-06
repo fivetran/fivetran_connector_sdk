@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 # For type hints to improve code readability
 from typing import Dict, Optional
 
-# For handling JSON data processing
+# For handling time delays in retry logic
 import time
 
 # For random number generation (jitter in retries)
@@ -37,7 +37,6 @@ Add comment for each import to explain its purpose for users to follow.
 """
 
 # Private constants (use __ prefix)
-__INVALID_LITERAL_ERROR = "invalid literal"
 __API_BASE_URL = "https://demo.docusign.net/restapi/v2.1"  # DocuSign demo environment
 __PROD_API_BASE_URL = "https://na1.docusign.net/restapi/v2.1"  # Production base URL
 
@@ -90,62 +89,6 @@ def __get_config_bool(configuration: dict, key: str, default: bool) -> bool:
     if isinstance(value, str):
         return value.lower() in ("true", "1", "yes", "on")
     return bool(value)
-
-
-def __validate_required_fields(configuration: dict):
-    """
-    Validate required fields using dictionary mapping approach.
-    This function checks that all required configuration fields are present.
-    Args:
-        configuration: Configuration dictionary to validate
-    Raises:
-        ValueError: if any required fields are missing
-    """
-    required_fields = {
-        "access_token": "DocuSign access token",
-        "account_id": "DocuSign account ID",
-    }
-
-    missing_fields = []
-    for field, description in required_fields.items():
-        if not configuration.get(field):
-            missing_fields.append(f"{field} ({description})")
-
-    if missing_fields:
-        raise ValueError(f"Missing required configuration fields: {', '.join(missing_fields)}")
-
-
-def __validate_numeric_ranges(configuration: dict):
-    """
-    Validate numeric parameters using iteration pattern.
-    This function validates numeric configuration parameters against their allowed ranges.
-    Args:
-        configuration: Configuration dictionary to validate
-    """
-    numeric_validations = [
-        ("sync_frequency_hours", 1, 24),
-        ("initial_sync_days", 1, 365),
-        ("max_records_per_page", 10, 1000),
-        ("request_timeout_seconds", 5, 300),
-        ("retry_attempts", 1, 10),
-    ]
-
-    for param, min_val, max_val in numeric_validations:
-        value = __get_config_int(configuration, param, min_val, min_val, max_val)
-        configuration[param] = str(value)  # Ensure it's stored back as string
-
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    __validate_required_fields(configuration)
-    __validate_numeric_ranges(configuration)
 
 
 def __calculate_wait_time(
@@ -351,7 +294,7 @@ def __map_recipient_data(
         "user_id": recipient.get("userId", ""),
         "client_user_id": recipient.get("clientUserId", ""),
         "require_id_lookup": recipient.get("requireIdLookup", ""),
-        "phone_number": recipient.get("phoneNumber", {}),
+        "phone_number": json.dumps(recipient.get("phoneNumber", {})),
         "tabs": json.dumps(recipient.get("tabs", {})),
         "custom_fields": json.dumps(recipient.get("customFields", {})),
         "synced_at": datetime.now(timezone.utc).isoformat(),
@@ -415,7 +358,6 @@ def __map_template_data(template: Dict, account_id: str) -> Dict:
 def get_envelopes(
     access_token: str,
     account_id: str,
-    params: Dict,
     last_sync_time: Optional[str] = None,
     configuration: Optional[Dict] = None,
 ):
@@ -426,7 +368,6 @@ def get_envelopes(
     Args:
         access_token: DocuSign API access token for authentication
         account_id: DocuSign account ID
-        params: Dictionary of query parameters for the API request
         last_sync_time: Optional timestamp for incremental sync
         configuration: Optional configuration dictionary
     Yields:
@@ -480,7 +421,6 @@ def get_envelopes(
 def get_templates(
     access_token: str,
     account_id: str,
-    params: Dict,
     last_sync_time: Optional[str] = None,
     configuration: Optional[Dict] = None,
 ):
@@ -491,7 +431,6 @@ def get_templates(
     Args:
         access_token: DocuSign API access token for authentication
         account_id: DocuSign account ID
-        params: Dictionary of query parameters for the API request
         last_sync_time: Optional timestamp for incremental sync
         configuration: Optional configuration dictionary
     Yields:
@@ -538,6 +477,7 @@ def schema(configuration: dict):
     Returns:
         A list of dictionaries defining table schemas with primary keys.
     """
+
     return [
         {"table": "envelopes", "primary_key": ["envelope_id"]},
         {"table": "recipients", "primary_key": ["recipient_id", "envelope_id"]},
@@ -553,13 +493,10 @@ def update(configuration: dict, state: dict):
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        state: A dictionary containing state information from previous runs. The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Starting DocuSign connector sync")
 
-    # Validate configuration
-    validate_configuration(configuration)
+    log.info("Starting DocuSign connector sync")
 
     # Extract configuration parameters
     access_token = str(configuration.get("access_token", ""))
@@ -577,7 +514,7 @@ def update(configuration: dict, state: dict):
         recipient_count = 0
         document_count = 0
 
-        for record in get_envelopes(access_token, account_id, {}, last_sync_time, configuration):
+        for record in get_envelopes(access_token, account_id, last_sync_time, configuration):
             _process_envelope = "envelope_id" in record and "recipient_type" not in record
             process_envelope = _process_envelope and "document_id" not in record
             if process_envelope:
@@ -611,7 +548,7 @@ def update(configuration: dict, state: dict):
             log.info("Fetching template data...")
             template_count = 0
             for record in get_templates(
-                access_token, account_id, {}, last_template_sync, configuration
+                access_token, account_id, last_template_sync, configuration
             ):
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The op.upsert method is called with two arguments:

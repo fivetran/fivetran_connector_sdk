@@ -1,6 +1,6 @@
 # DocuSign Connector Example
 
-This connector syncs data from DocuSign eSign REST API to your data warehouse, including envelopes, recipients, documents, and templates. The connector handles OAuth2 authentication, automatic pagination, incremental syncing, and memory-efficient processing for large datasets.
+This connector syncs data from the DocuSign eSign REST API to your destination, including envelopes, recipients, documents, and templates. The connector uses OAuth2 authentication, automatic pagination, incremental syncing, and memory-efficient processing for large datasets.
 
 ## Connector overview
 
@@ -11,19 +11,18 @@ Key capabilities include:
 - Recipient tracking: Detailed recipient information with signing status, delivery confirmations, and custom tabs
 - Document metadata: Document properties, signatures locations, and download references
 - Template synchronization: Template definitions, sharing settings, and folder organization
-- Incremental dync: Timestamp-based incremental updates to minimize API usage and sync time
+- Incremental sync: Timestamp-based incremental updates to minimize API usage and sync time
 - Memory efficiency: Generator-based processing prevents memory accumulation with large datasets
 
 ## Requirements
-
-- Python: 3.9, 3.10, 3.11, or 3.12
-- Operating System: Windows 10+, macOS 13+, Linux distributions like Ubuntu 20.04+
-- DocuSign Account: Valid DocuSign account with API access
-- OAuth2 Credentials: Access token with appropriate permissions for envelope and template access
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-
-Follow the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk#setupguide) to install Fivetran CLI and initialize your environment.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 
@@ -33,32 +32,24 @@ Follow the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/conn
 - Documents: Handled through `__map_document_data` function with signature location tracking
 - Templates: Synchronized using `get_templates` function for template management
 
-### Authentication & Security
+### Authentication and security
 The connector uses OAuth2 Bearer token authentication as implemented in the `execute_api_request` function. Access tokens are passed securely through configuration and validated on each API call.
 
 ### Pagination strategy
 DocuSign API uses offset-based pagination with `start_position` and `count` parameters. The connector implements automatic pagination in both `get_envelopes` and `get_templates` functions, processing pages sequentially until all data is retrieved.
 
-### Error handling & Reliability
-Comprehensive error handling is implemented through specialized helper functions:
-- Rate limiting: `__handle_rate_limit` function manages HTTP 429 responses with exponential backoff
-- Request errors: `__handle_request_error` function provides retry logic with configurable attempts
-- Authentication: Automatic detection and clear messaging for 401 unauthorized responses
-
 ## Configuration file
 
 ```json
 {
-  "access_token": "YOUR_DOCUSIGN_ACCESS_TOKEN",
-  "account_id": "YOUR_DOCUSIGN_ACCOUNT_ID",
-  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
-  "enable_templates": "YOUR_ENABLE_TEMPLATES",
-  "enable_incremental_sync": "YOUR_ENABLE_INCREMENTAL_SYNC",
-  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
+  "access_token": "<YOUR_DOCUSIGN_ACCESS_TOKEN>",
+  "account_id": "<YOUR_DOCUSIGN_ACCOUNT_ID>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_templates": "<YOUR_ENABLE_TEMPLATES>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
@@ -66,28 +57,18 @@ Comprehensive error handling is implemented through specialized helper functions
 
 - `access_token` (required): OAuth2 access token for DocuSign API authentication
 - `account_id` (required): DocuSign account ID for API requests
-- `base_url` (required): DocuSign API base URL (demo or production environment)
-- `sync_frequency_hours`: How often to sync data (1-24 hours, default: 4)
-- `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
-- `max_records_per_page`: Records per API call (10-1000, default: 100)
-- `request_timeout_seconds`: API request timeout (5-300 seconds, default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (1-10, default: 3)
-- `enable_templates`: Whether to sync template data (true/false, default: true)
-- `enable_incremental_sync`: Enable timestamp-based incremental syncing (true/false, default: true)
-- `enable_debug_logging`: Enable detailed logging for troubleshooting (true/false, default: false)
+- `initial_sync_days` (optional): Days of historical data for initial sync (1-365, default: 90)
+- `max_records_per_page` (optional): Records per API call (10-1000, default: 100)
+- `request_timeout_seconds` (optional): API request timeout (5-300 seconds, default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (1-10, default: 3)
+- `enable_templates` (optional): Whether to sync template data (true/false, default: true)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (true/false, default: true)
 
 ## Requirements file
 
-The `requirements.txt` file specifies the Python libraries required by the connector for Gusto API integration and data processing.
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
-Example content of `requirements.txt`:
-
-```
-requests>=2.28.0
-faker>=18.0.0
-```
-
-Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`. This connector uses the updated SDK version with streaming architecture patterns.
+Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
 
 ## Authentication
 
@@ -119,14 +100,14 @@ Pagination parameters are automatically calculated and the connector stops when 
 
 ## Data handling
 
-### Memory-Efficient processing
+### Memory-efficient processing
 The connector uses generator-based streaming to handle large datasets efficiently:
 
 - No memory accumulation: Data is yielded immediately rather than collected in lists
 - Individual record processing: Each record is processed and upserted immediately via generator patterns
 - Streaming architecture: Functions like `get_envelopes` and `get_templates` use `yield` statements
 
-### Field mapping and Transformation
+### Field mapping and transformation
 Data transformation is handled through dedicated mapping functions:
 
 - Envelope mapping: `__map_envelope_data` function standardizes envelope fields and handles nested objects
@@ -144,20 +125,21 @@ Incremental synchronization uses timestamp-based filtering implemented in the `g
 
 ## Error handling
 
-### Retry logic and Rate limiting
+### Retry logic and rate limiting
 The connector implements comprehensive error handling with specialized functions:
 
 - Exponential backoff: `__calculate_wait_time` function provides jitter-based delays for retries
-- Rate limit management: `__handle_rate_limit` function specifically handles HTTP 429 responses
-- Request error recovery: `__handle_request_error` function manages various request failures
+- Rate limit management: `__handle_rate_limit` function specifically handles HTTP 429 responses with exponential backoff
+- Request error recovery: `__handle_request_error` function provides retry logic with configurable attempts
+- Authentication: Automatic detection and clear messaging for 401 unauthorized responses
 
-### Error categories and Responses
+### Error categories and responses
 - Authentication errors (401): Clear messaging and immediate failure for invalid credentials
 - Rate limiting (429): Automatic retry with respect to `retry-after` headers
 - Network errors: Configurable retry attempts with exponential backoff
 - API errors (4xx/5xx): Appropriate error propagation with context information
 
-### Timeout and Connection Management
+### Timeout and connection management
 - Request timeouts: Configurable timeout values prevent hanging requests
 - Connection reuse: Efficient HTTP connection management through requests library
 - Graceful failures: Proper exception handling and cleanup on failures
@@ -166,53 +148,29 @@ The connector implements comprehensive error handling with specialized functions
 
 The connector creates four main tables with automatic column type inference:
 
-### envelopes
+### ENVELOPES
 Primary key: `envelope_id`
 
 Column types are automatically inferred by Fivetran based on data content. Sample columns include:
 - envelope_id, account_id, subject, status, created_date_time, sent_date_time, completed_date_time, sender_email, sender_name, custom_fields, notification, email_settings, synced_at
 
-### recipients
+### RECIPIENTS
 Primary key: `recipient_id`, `envelope_id`
 
 Column types are automatically inferred by Fivetran. Sample columns include:
 - recipient_id, envelope_id, account_id, recipient_type, email, name, status, routing_order, signed_date_time, delivered_date_time, tabs, custom_fields, synced_at
 
-### documents
+### DOCUMENTS
 Primary key: `document_id`, `envelope_id`
 
 Column types are automatically inferred by Fivetran. Sample columns include:
 - document_id, envelope_id, account_id, name, type, uri, order, pages, display, signature_locations, synced_at
 
-### templates
+### TEMPLATES
 Primary key: `template_id`
 
 Column types are automatically inferred by Fivetran. Sample columns include:
 - template_id, account_id, name, description, shared, uri, created, last_modified, last_modified_by, owner, folder_id, synced_at
 
-## Additional files
-
-### Testing Framework
-- `test_connector.py`: Comprehensive unit tests using faker-generated realistic mock data
-- `faker_mock/mock_data_generator.py`: DocuSignMockGenerator class for creating test data with proper relationships
-- `debug_connector.py`: Interactive debugging script with multiple test scenarios including rate limiting, authentication errors, and performance testing
-
-### Development tools
-- `requirements.txt`: Minimal dependencies focusing on testing libraries
-- `configuration.json`: Template configuration file with all available parameters
-- `faker_mock/`: Directory containing realistic mock data generation for testing
-
-### Testing capabilities
-The faker-based testing framework provides:
-- Realistic data generation: Proper envelope/recipient/document relationships
-- Scenario testing: Rate limiting, authentication errors, pagination edge cases
-- Performance validation: Memory usage testing with large datasets
-- Data quality analysis: Verification of data consistency and relationships
-
 ## Additional considerations
-
-The connector follows Fivetran Connector SDK best practices for production deployment. Key implementation features include cognitive complexity optimization with all functions maintaining complexity ratings below 15, memory-efficient streaming architecture preventing out-of-memory issues with large datasets, and comprehensive error handling with modular helper functions.
-
-Production deployment requires proper OAuth2 token management including refresh logic for long-running operations. The connector supports both DocuSign demo and production environments through configurable base URLs. For high-volume accounts, consider adjusting pagination size and implementing additional rate limiting respect.
-
-Monitor sync performance and adjust configuration parameters based on your DocuSign account's API limits and data volume. The connector's streaming architecture scales effectively for accounts with thousands of envelopes and documents.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
