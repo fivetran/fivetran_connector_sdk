@@ -42,26 +42,23 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-PRODUCTION DEPLOYMENT GUIDANCE: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
-
-The connector requires the following configuration keys. For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
+The connector requires the following configuration keys:
 
 ```json
 {
-  "user_token": "QB-USER-TOKEN your_token_here",
-  "realm_hostname": "your_company.quickbase.com",
-  "app_id": "your_app_id",
-  "table_ids": "table1,table2,table3",
-  "sync_frequency_hours": "4",
-  "initial_sync_days": "90",
-  "max_records_per_page": "1000",
-  "request_timeout_seconds": "30",
-  "retry_attempts": "3",
-  "enable_incremental_sync": "true",
-  "enable_fields_sync": "true",
-  "enable_records_sync": "true",
-  "date_field_for_incremental": "3",
-  "enable_debug_logging": "false"
+  "user_token": "<YOUR_QB_USER_TOKEN>",
+  "realm_hostname": "<YOUR_REALM_HOSTNAME>",
+  "app_id": "<YOUR_APP_ID>",
+  "table_ids": "<YOUR_COMMA_SEPARATED_TABLE_IDS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_fields_sync": "<YOUR_ENABLE_FIELDS_SYNC>",
+  "enable_records_sync": "<YOUR_ENABLE_RECORDS_SYNC>",
+  "date_field_for_incremental": "<YOUR_DATE_FIELD_FOR_INCREMENTAL>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```
 
@@ -72,7 +69,6 @@ Required configuration keys:
 
 Optional configuration keys:
 - `table_ids`: Comma-separated list of specific table IDs (empty = sync all tables)
-- `sync_frequency_hours`: Sync frequency in hours (1-24, default: 4)
 - `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
 - `max_records_per_page`: Maximum records per API request (1-1000, default: 1000)
 - `request_timeout_seconds`: API request timeout in seconds (default: 30)
@@ -208,7 +204,7 @@ Refer to functions `validate_configuration`, `execute_api_request`, and the main
 
 The connector creates the following tables for comprehensive Quickbase data analysis. Fivetran will automatically infer column types and structures from the data.
 
-### application
+### APPLICATION
 Primary table for application metadata and configuration information with complete governance support.
 
 Key fields:
@@ -227,7 +223,7 @@ Key fields:
 - `memory_info`: Memory usage information (JSON string with estMemory, estMemoryInclDependentApps)
 - `timestamp`: Data extraction timestamp (preserves API timestamp when available)
 
-### table
+### TABLE
 Table structure and metadata for application data organization.
 
 Key fields:
@@ -243,7 +239,7 @@ Key fields:
 - `default_sort_field_id`: Default sort field identifier
 - `timestamp`: Data extraction timestamp
 
-### field
+### FIELD
 Complete field definitions and metadata for comprehensive data schema analysis and governance.
 
 Key fields:
@@ -268,7 +264,7 @@ Key fields:
 - `audited`: Indicates if field is tracked in Quickbase Audit Logs
 - `timestamp`: Data extraction timestamp (preserves API timestamp when available)
 
-### record
+### RECORD
 Primary data table containing all record-level information with dynamic columns based on table structure and intelligent timestamp handling.
 
 Key fields:
@@ -276,7 +272,7 @@ Key fields:
 - `timestamp`: Data extraction timestamp (preserves record modification time when available)
 - `[field_name]`: Dynamic columns based on field definitions
 
-### sync_metadata
+### SYNC_METADATA
 Enhanced synchronization tracking and operational metadata with detailed pagination information for monitoring and troubleshooting.
 
 Key fields:
@@ -292,44 +288,5 @@ Key fields:
 - `top`: Maximum records requested per page
 - `timestamp`: Metadata extraction timestamp
 
-## Additional files
-
-The connector includes several additional files to support functionality and deployment:
-
-- `.github/workflows/deploy_connector.yaml` – Primary deployment mechanism: GitHub Actions workflow for automated deployment to Fivetran with comprehensive code quality checks, parameterized configuration, and secure credential management.
-
-- `requirements.txt` – Python dependency specification for Quickbase API integration and connector requirements.
-
 ## Additional considerations
-
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-Important quickbase limitations:
-- API rate limits apply based on subscription plan
-- User token permissions determine data access scope
-- Some features require specific Quickbase licenses
-- Historical data availability depends on application settings
-- API pagination limits (1000 records per page maximum)
-
-We recommend reviewing these limitations with your Quickbase administrator to ensure it meets your data requirements.
-
-Performance considerations:
-- Large applications may experience longer sync times
-- Multiple tables increase API calls
-- Historical data syncs can be resource-intensive
-- We recommend using incremental syncs for production environments to optimize performance
-
-Security best practices:
-- We recommend using user tokens with minimal required permissions
-- Consider regularly rotating user tokens for enhanced security
-- Monitor API usage and rate limits to maintain optimal performance
-- Implement proper error handling and logging for better troubleshooting
-
-GitHub actions workflow management:
-- Recommended production method: We recommend using GitHub Actions workflow for production deployments
-- Keep secrets and variables updated in GitHub repository settings
-- Use environment protection rules for production deployments
-- Monitor workflow execution logs for any deployment issues
-- Regularly review and update workflow permissions and access controls
-- Consider using branch protection rules to prevent unauthorized deployments
-- Manual deployment: Available for development, testing, and debugging, but we encourage using GitHub Actions for production

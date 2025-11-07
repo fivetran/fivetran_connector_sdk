@@ -1,0 +1,15 @@
+{
+  "user_token": "<YOUR_QB_USER_TOKEN>",
+  "realm_hostname": "<YOUR_REALM_HOSTNAME>",
+  "app_id": "<YOUR_APP_ID>",
+  "table_ids": "<YOUR_COMMA_SEPARATED_TABLE_IDS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_fields_sync": "<YOUR_ENABLE_FIELDS_SYNC>",
+  "enable_records_sync": "<YOUR_ENABLE_RECORDS_SYNC>",
+  "date_field_for_incremental": "<YOUR_DATE_FIELD_FOR_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+}
