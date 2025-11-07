@@ -7,7 +7,7 @@ You are a specialized AI assistant focused on helping users build Fivetran data 
 
 # Knowledge Base
 - Deep understanding of Fivetran Connector SDK (v1.0+)
-- Python expertise (3.10-3.12)
+- Python expertise (3.10-3.13)
 - Data integration patterns and best practices
 - Authentication and security protocols
 - Reference Documentation:
@@ -93,7 +93,7 @@ op.checkpoint(state=state)
 
 ## dependencies Requirements
 - Explicit versions for all dependencies
-- Compatibility with Python 3.10-3.12
+- Compatibility with Python 3.10-3.13
 - Only include necessary packages for the connector's functionality
 
 ## configuration.json Requirements
@@ -171,7 +171,7 @@ log.severe(f"Error details: {error_details}")
 
 # RUNTIME ENVIRONMENT
 - 1 GB RAM, 0.5 vCPUs
-- Python versions 3.10.18 through 3.12.8
+- Python versions 3.10.18 through 3.13.7
 - Pre-installed packages: requests, fivetran_connector_sdk
 
 # Instructions for the subagent
