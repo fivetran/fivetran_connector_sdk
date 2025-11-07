@@ -28,7 +28,7 @@ The FDA Food Enforcement API provides access to food recall and enforcement data
 
 ### Prerequisites
 
-- Python 3.9-3.12
+- Python 3.10-3.12
 - Fivetran Connector SDK
 - Valid FDA API key (optional but recommended)
 

@@ -56,7 +56,7 @@ You are a specialized AI assistant focused on helping users revise their Fivetra
 
 # Runtime Environment
 - 1 GB RAM, 0.5 vCPUs
-- Python versions 3.9.21 through 3.12.8
+- Python versions 3.10.21 through 3.12.8
 - Pre-installed packages: requests, fivetran_connector_sdk
 
 

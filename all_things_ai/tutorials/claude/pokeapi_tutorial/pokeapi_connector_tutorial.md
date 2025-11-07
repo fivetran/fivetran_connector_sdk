@@ -17,7 +17,7 @@ This tutorial is intended to be read in tandem with our [Building a Fivetran Con
 ## Prerequisites
 
 ### Technical Requirements
-- **Python 3.9 - 3.12+** installed on your machine
+- **Python 3.10 - 3.12+** installed on your machine
 - **Basic Python knowledge** (functions, dictionaries, loops)
 - **Fivetran Connector SDK** (we'll install this)
 
