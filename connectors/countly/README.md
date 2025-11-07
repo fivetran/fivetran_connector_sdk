@@ -78,12 +78,17 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
+The connector creates the `APPS`, `GROUPS`, and `USERS` tables. 
+
+Note: Column types are automatically inferred by Fivetran based on the data types returned from the API.
+
 ### APPS
-**Primary Key:** `app_id`
 
-**Description:** App information including name, key, timezone, icon, and metadata
+Primary key: `app_id`
 
-**Columns:**
+Table description: App information including name, key, timezone, icon, and metadata
+
+Columns:
 - `app_id` (string): Unique identifier for the application
 - `name` (string): Application name
 - `key` (string): Application key/identifier
@@ -95,11 +100,12 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - `processed_at` (timestamp): Timestamp when the record was processed by the connector
 
 ### GROUPS
-**Primary Key:** `group_id`
 
-**Description:** Group information including name, description, user count, and metadata
+Primary key: `group_id`
 
-**Columns:**
+Table description: Group information including name, description, user count, and metadata
+
+Columns:
 - `group_id` (string): Unique identifier for the group
 - `name` (string): Group name
 - `description` (string): Group description
@@ -110,11 +116,12 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - `processed_at` (timestamp): Timestamp when the record was processed by the connector
 
 ### USERS
-**Primary Key:** `user_id`
 
-**Description:** User profile data including demographics, custom attributes, and usage statistics
+Primary key: `user_id`
 
-**Columns:**
+Table description: User profile data including demographics, custom attributes, and usage statistics
+
+Columns:
 - `user_id` (string): Unique identifier for the user
 - `app_id` (string): Application identifier the user belongs to
 - `device_id` (string): Device identifier associated with the user
@@ -131,9 +138,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - `session_count` (integer): Total number of sessions for the user
 - `total_session_duration` (integer): Total session duration in seconds
 - `processed_at` (timestamp): Timestamp when the record was processed by the connector
-
-**Note:** Column types are automatically inferred by Fivetran based on the data types returned from the API.
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
