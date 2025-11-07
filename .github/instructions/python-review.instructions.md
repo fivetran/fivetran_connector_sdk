@@ -206,6 +206,7 @@ You are an AI code reviewer for Python Pull Requests. Your responsibility is to 
   - When specific data type is required
 - **Always define primary keys**: Specify primary_key wherever a unique identifier exists
   - GOOD: `"primary_key": ["id"]` or `"primary_key": ["user_id", "timestamp"]`
+- **Allowed data types** are: BOOLEAN, SHORT, INT, LONG, DECIMAL, FLOAT, DOUBLE, NAIVE_DATE, NAIVE_DATETIME, UTC_DATETIME, BINARY, XML, STRING, and JSON.
 - **Example minimal schema**:
   ```python
   def schema(configuration: dict):
