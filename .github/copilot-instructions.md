@@ -36,7 +36,7 @@ As of SDK v2.0.0 (August 2025), yield is NO LONGER USED:
 - Backward compatible: old v1 connectors still work, but new code must not use `yield`
 
 ## Runtime & Tooling
-- Python versions: 3.9-3.12 (3.13 experimental support)
+- Python versions: 3.10-3.12 (3.13 experimental support)
 - Pre-installed packages: `fivetran_connector_sdk` (latest), `requests` (latest) - NEVER declare in requirements.txt
 - Linting: `flake8` with `.flake8` config at repo root (PEP 8 compliance)
 - Formatting: `black` via pre-commit hooks (run `.github/scripts/setup-hooks.sh`)
@@ -72,23 +72,6 @@ When a PR adds/modifies a connector, verify:
    - Explicit versions: `pandas==2.0.3` not `pandas`
    - NEVER include `fivetran_connector_sdk` or `requests` (provided by runtime)
    - Prefer minimal dependencies; avoid heavyweight libraries for simple tasks
-
-# Review Response Format
-When requesting changes, Follow this exact format for each issue:
-1. Severity: BLOCKER (must fix before merge) or REQUEST_CHANGES (should improve)
-2. Issue: Clear description with examples
-3. Location: File path, line number, or function name
-4. Fix: Specific code example showing correct pattern
-5. Reference: Link to template, docs, or instruction file
-
-Example:
-```
-BLOCKER: Using deprecated yield pattern
-- Location: connector.py, line 45
-- Issue: yield op.upsert(table, data) uses deprecated v1 syntax
-- Fix: Remove yield: op.upsert(table, data)
-- Reference: SDK v2 changelog
-```
 
 # Additional Review Resources
 For detailed rules, reference:
