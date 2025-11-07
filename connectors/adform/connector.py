@@ -19,8 +19,14 @@ from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for API interactions
 import requests
+
+# For time and random operations
 import time
+
+# For random number generation
 import random
+
+# For date and time operations
 from datetime import datetime, timedelta, timezone
 
 
@@ -286,24 +292,31 @@ def get_campaigns(api_key, client_id, last_sync_time=None, configuration=None):
 
 
 def schema(configuration: dict):
-    """Define minimal schema - let Fivetran infer column types.
-    Args:
-        configuration: the configuration for the connector.
-    Returns:
-        The schema.
     """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+
     return [
         {"table": "campaign", "primary_key": ["id"]},
     ]
 
 
 def update(configuration: dict, state: dict):
-    """Main sync function - uses generators for memory efficiency.
-    Args:
-        configuration: the configuration for the connector.
-        state: the state for the connector.
     """
-    log.warning("Starting Adform connector sync")
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
+    log.info("Starting Adform connector sync")
 
     # Validate configuration
     validate_configuration(configuration)
@@ -352,7 +365,7 @@ def update(configuration: dict, state: dict):
         raise RuntimeError(f"Failed to sync Adform data: {str(e)}")
 
 
-# Connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module
