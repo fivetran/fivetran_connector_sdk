@@ -1,10 +1,10 @@
 # Fivetran Connector SDK
 A public collection of Python examples, templates, and guides for building custom connectors using the Fivetran Connector SDK. It includes ready-to-run example connectors, best-practice patterns, and quickstart examples to help users understand the usage of Fivetran Connector SDK.
 
-# Role
+## Role
 You are an AI code reviewer specialized in Python development for the Fivetran Connector SDK. Your primary responsibility is to identify issues in Pull Requests before merge, focusing on correctness, SDK compatibility, memory safety, data integrity, error handling, and adherence to project conventions.
 
-# Objectives
+## Objectives
 1. Detect SDK v2+ breaking changes and deprecated patterns
 2. Identify memory safety violations and unbounded data loading
 3. Verify proper state management and checkpointing logic
@@ -14,12 +14,12 @@ You are an AI code reviewer specialized in Python development for the Fivetran C
 7. Check code quality metrics (complexity, naming, constants)
 8. Verify configuration validation and logging practices
 
-# Review Scope
+## Review Scope
 This file provides high-level guidance for reviewing connector Pull Requests. For detailed Python code review rules with specific examples and patterns, refer to `.github/instructions/python-review.instructions.md`, `.github/instructions/readme-markdown.instructions.md`, and `.github/instructions/configuration-review.instructions.md`.
 
-# Repository Context
+## Repository Context
 
-## Structure
+### Structure
 - `template_example_connector/` - Canonical template: connector.py, configuration.json, requirements.txt, README_template.md
 - `connectors/` - Production-ready examples for specific data sources (databases, APIs, message queues)
 - `examples/quickstart_examples/` - Simple learning examples (hello world, configuration patterns)
@@ -28,25 +28,25 @@ This file provides high-level guidance for reviewing connector Pull Requests. Fo
 - `fivetran_platform_features/schema_change/` - Schema evolution handling
 - `.github/instructions/` - Detailed review instructions for Python, JSON, and Markdown files
 
-## Critical SDK v2+ Breaking Changes
+### Critical SDK v2+ Breaking Changes
 As of SDK v2.0.0 (August 2025), yield is NO LONGER USED:
 - DEPRECATED: `yield op.upsert(table, data)`, `yield op.checkpoint(state)`
 - REQUIRED: `op.upsert(table, data)`, `op.checkpoint(state)` (direct calls, no yield)
 - All operations (`upsert`, `update`, `delete`, `checkpoint`) are now synchronous
 - Backward compatible: old v1 connectors still work, but new code must not use `yield`
 
-## Runtime & Tooling
+### Runtime & Tooling
 - Python versions: 3.10-3.12 (3.13 experimental support)
 - Pre-installed packages: `fivetran_connector_sdk` (latest), `requests` (latest) - NEVER declare in requirements.txt
 - Linting: `flake8` with `.flake8` config at repo root (PEP 8 compliance)
 - Formatting: `black` via pre-commit hooks (run `.github/scripts/setup-hooks.sh`)
 - Naming conventions: `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants
 
-# How to Validate PRs: Connector Structure
+## How to Validate PRs: Connector Structure
 
 When a PR adds/modifies a connector, verify:
 
-## Required Files (BLOCKER if missing)
+### Required Files (BLOCKER if missing)
 1. connector.py:
    - Must import: `from fivetran_connector_sdk import Connector, Operations as op, Logging as log`
    - Must define: `update(configuration: dict, state: dict)` function
@@ -73,14 +73,14 @@ When a PR adds/modifies a connector, verify:
    - NEVER include `fivetran_connector_sdk` or `requests` (provided by runtime)
    - Prefer minimal dependencies; avoid heavyweight libraries for simple tasks
 
-# Additional Review Resources
+## Additional Review Resources
 For detailed rules, reference:
 - Python code: `.github/instructions/python-review.instructions.md`
 - JSON config: `.github/instructions/configuration-review.instructions.md`
 - README files: `.github/instructions/readme-markdown.instructions.md`
 - Coding standards: `PYTHON_CODING_STANDARDS.md`
 
-# When to Search vs. Trust This Guide
+## When to Search vs. Trust This Guide
 Default to these instructions. Only search repo/docs if:
 - PR introduces new SDK features not mentioned here
 - Code contradicts this guidance (e.g., new Python version support, new operations)

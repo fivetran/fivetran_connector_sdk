@@ -268,7 +268,7 @@ You are an AI code reviewer for Python Pull Requests. Your responsibility is to 
 
 ## Docstring and Comment Guidelines (BLOCKER if missing required docstrings)
 
-**1. Every function must have a docstring** following this format:
+**Every function must have a docstring** following this format:
 ```python
 def function_name(arg1, arg2):
     """
@@ -281,7 +281,7 @@ def function_name(arg1, arg2):
     """
 ```
 
-**2. Schema function docstring** (BLOCKER - must be exact):
+**Schema function docstring** (BLOCKER - must be exact):
 ```python
 def schema(configuration: dict):
     """
@@ -293,7 +293,7 @@ def schema(configuration: dict):
     """
 ```
 
-**3. Update function docstring** (BLOCKER - must be exact):
+**Update function docstring** (BLOCKER - must be exact):
 ```python
 def update(configuration: dict, state: dict):
     """
@@ -306,7 +306,7 @@ def update(configuration: dict, state: dict):
     """
 ```
 
-**4. Before EVERY `op.upsert()`** call:
+**Before EVERY `op.upsert()`** call:
 ```python
 # The 'upsert' operation is used to insert or update data in the destination table.
 # The first argument is the name of the destination table.
@@ -314,7 +314,7 @@ def update(configuration: dict, state: dict):
 op.upsert(table="table_name", data=record)
 ```
 
-**5. Before EVERY `op.checkpoint()`** call:
+**Before EVERY `op.checkpoint()`** call:
 ```python
 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
 # from the correct position in case of next sync or interruptions.
@@ -323,7 +323,7 @@ op.upsert(table="table_name", data=record)
 op.checkpoint(state)
 ```
 
-**6. At the end of connector.py**:
+**At the end of connector.py**:
 ```python
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
