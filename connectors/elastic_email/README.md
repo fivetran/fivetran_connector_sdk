@@ -53,9 +53,9 @@ This connector uses API key authentication to connect to the Elastic Email API. 
 To set up authentication:
 
 1. Log in to your Elastic Email account at https://app.elasticemail.com.
-2. Navigate to Settings and then API.
-3. Click on Create Additional API Key or use an existing key.
-4. Copy the API key value.
+2. Navigate to **Settings** and then **API**.
+3. Click on **Create Additional API Key** or use an existing key.
+4. Make a note of the API key value.
 5. Add the API key to your `configuration.json` file as the value for `api_key`.
 
 The connector validates that the API key is present during initialization. Refer to the `validate_configuration` function in [connector.py](connector.py).
@@ -94,19 +94,19 @@ The connector creates the following tables in the destination:
 
 | Table Name | Primary Key | Description |
 |------------|-------------|-------------|
-| campaign | name | Email marketing campaigns |
-| contact | email | Contact list with email addresses and metadata |
-| list | listName | Contact lists used for segmentation |
-| segment | name | Dynamic contact segments based on rules |
-| template | name | Email templates for campaigns |
-| event | transactionID | Email delivery events (sent, opened, clicked, bounced) |
-| campaign_statistic | name | Campaign performance statistics |
-| file | name | Uploaded files and attachments |
-| domain | domain | Verified sending domains |
-| suppression | email | All suppressed email addresses |
-| bounce | email | Bounced email addresses |
-| complaint | email | Spam complaint email addresses |
-| unsubscribe | email | Unsubscribed email addresses |
+| CAMPAIGN | name | Email marketing campaigns |
+| CONTACT | email | Contact list with email addresses and metadata |
+| LIST | listName | Contact lists used for segmentation |
+| SEGMENT | name | Dynamic contact segments based on rules |
+| TEMPLATE | name | Email templates for campaigns |
+| EVENT | transactionID | Email delivery events (sent, opened, clicked, bounced) |
+| CAMPAIGN_STATISTICS | name | Campaign performance statistics |
+| FILE | name | Uploaded files and attachments |
+| DOMAIN | domain | Verified sending domains |
+| SUPPRESSION | email | All suppressed email addresses |
+| BOUNCE | email | Bounced email addresses |
+| COMPLAINT | email | Spam complaint email addresses |
+| USUBSCRIBE | email | Unsubscribed email addresses |
 
 All table schemas are defined with primary keys only. Column data types are inferred by Fivetran based on the actual data. Nested objects are flattened with underscore-separated column names. Refer to the `schema` function in [connector.py](connector.py).
 
