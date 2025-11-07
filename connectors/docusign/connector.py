@@ -123,7 +123,7 @@ def make_api_request(
     url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
-    Make API request to Iterate with retry logic and exponential backoff.
+    Make API request to DocuSign with retry logic and exponential backoff.
     Args:
         url: The API endpoint URL
         headers: Request headers including authentication
@@ -173,7 +173,7 @@ def fetch_document_content(
         try:
             response = requests.get(url, headers=headers, timeout=__DOCUMENT_TIMEOUT_SECONDS)
             response.raise_for_status()
-            return response.json()
+            return response.content
         except requests.exceptions.RequestException as e:
             log.warning(f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}")
             if attempt < __MAX_RETRIES - 1:
@@ -379,7 +379,7 @@ def fetch_documents_for_envelope(
         log.warning(
             f"Could not fetch documents for envelope {envelope_id}: {exc}"
         )
-    return []
+        return []
 
 
 def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -394,7 +394,7 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
     all_templates: List[Dict[str, Any]] = []
     start_position = 0
-    last_sync_time = state.get("last_sync_time", __BATCH_SIZE)
+    last_sync_time = state.get("last_sync_time", __DEFAULT_START_DATE)
 
     while True:
         params["start_position"] = start_position
@@ -456,7 +456,7 @@ def fetch_custom_fields_for_envelope(
         log.warning(
             f"Could not fetch custom fields for envelope {envelope_id}: {exc}"
         )
-    return []
+        return []
 
 
 def _upsert_recipients(configuration: dict, envelope_id: str):
@@ -469,7 +469,7 @@ def _upsert_recipients(configuration: dict, envelope_id: str):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "recipients",
                 {
@@ -494,7 +494,7 @@ def _upsert_enhanced_recipients(configuration: dict, envelope_id: str):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "enhanced_recipients",
                 {
@@ -532,7 +532,7 @@ def _upsert_audit_events(configuration: dict, envelope_id: str):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
-        # - The second argument is a dictionary containing the data to be upserted,
+        # - The second argument is a dictionary containing the data to be upserted.
         op.upsert("audit_events", flat_event)
 
 
@@ -546,7 +546,7 @@ def _upsert_envelope_notifications(configuration: dict, envelope_id: str):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "envelope_notifications",
                 {
@@ -570,7 +570,7 @@ def _upsert_documents_and_content(configuration: dict, envelope_id: str):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "documents",
                 {
@@ -594,7 +594,7 @@ def _upsert_documents_and_content(configuration: dict, envelope_id: str):
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
+                # - The second argument is a dictionary containing the data to be upserted.
                 op.upsert(
                     "document_contents",
                     {
@@ -617,7 +617,7 @@ def _upsert_custom_fields(configuration: dict, envelope_id: str):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "custom_fields",
                 {
@@ -670,7 +670,7 @@ def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into.
-    # - The second argument is a dictionary containing the data to be upserted,
+    # - The second argument is a dictionary containing the data to be upserted.
     op.upsert("envelopes", processed_envelope)
 
     # --- Fetch and Process Child Tables ---
@@ -693,7 +693,7 @@ def _process_templates(configuration: dict, state: Dict[str, Any]):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(
                 "templates",
                 {
@@ -720,7 +720,7 @@ def update(configuration: dict, state: Dict[str, Any]):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("DocuSign: eSignature API Connector")
+    log.info("DocuSign: eSignature API Connector")
 
     try:
         if not state:
@@ -729,7 +729,7 @@ def update(configuration: dict, state: Dict[str, Any]):
         current_time = datetime.now(timezone.utc).isoformat()
 
         # --- Process Envelopes and Related Data ---
-        log.info("Fetching envelopes data..." + current_time)
+        log.info(f"Fetching envelopes data at {current_time}")
         envelopes = fetch_envelopes(configuration, state)
 
         for i, envelope in enumerate(envelopes):

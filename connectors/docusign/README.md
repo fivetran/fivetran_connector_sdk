@@ -31,7 +31,7 @@ The configuration for this connector is defined in `configuration.json`.
 ```json
 {
   "access_token": "<YOUR_DOCUSIGN_OAUTH_ACCESS_TOKEN>",
-  "base_url": "<YOUR_DOCUSIGN_BASE_URL>",
+  "base_url": "<YOUR_DOCUSIGN_API_BASE_URL>",
   "account_id": "<YOUR_DOCUSIGN_ACCOUNT_ID>"
 }
 ```
@@ -77,7 +77,7 @@ Data is processed within the `update` function and its various `fetch_*` helper 
 ## Error handling
 
 - API request errors: The `make_api_request` function  uses `response.raise_for_status()` to automatically raise an exception for HTTP 4xx (client) or 5xx (server) errors.
-- Resilient child object fetching: All functions that fetch data for a *specific* envelope (e.g., `fetch_audit_events`, `fetch_document_content`, `fetch_recipients_for_envelope`) are wrapped in `try...except` blocks. If an API call for one envelope's sub-resource fails, the error is logged using `logger.warning` and an empty list or `None` is returned. This prevents a single failed document or recipient from stopping the entire sync.
+- Resilient child object fetching: All functions that fetch data for a *specific* envelope (e.g., `fetch_audit_events`, `fetch_document_content`, `fetch_recipients_for_envelope`) are wrapped in `try...except` blocks. If an API call for one envelope's sub-resource fails, the error is logged using `log.warning` and an empty list or `None` is returned. This prevents a single failed document or recipient from stopping the entire sync.
 - Global error handling: The entire `update` function is wrapped in a `try...except Exception as e` block. Any unhandled exception will be caught and raised as a `RuntimeError`, which signals to Fivetran that the sync has failed.
 
 ## Tables created
