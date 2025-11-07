@@ -1,32 +1,30 @@
-"""Trustpilot API Connector for Fivetran Connector SDK.
+"""
+Trustpilot API Connector for Fivetran Connector SDK.
 
-This connector demonstrates how to fetch data from Trustpilot API and upsert it into destination using the Fivetran Connector SDK.
+This connector demonstrates how to fetch data from Trustpilot API and upsert it
+into destination using the Fivetran Connector SDK.
 Supports querying data from Reviews, Businesses, Categories, and Consumer APIs.
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
-# Import required libraries for API interactions
-import requests
-import time
+# Standard library imports
+import json
 import random
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 
-# For reading configuration from a JSON file
-import json
+# Third-party imports
+import requests
 
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
+# Fivetran SDK imports
+from fivetran_connector_sdk import Connector, Logging as log, Operations as op
 
-# For enabling Logs in your connector code
-from fivetran_connector_sdk import Logging as log
-
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
-from fivetran_connector_sdk import Operations as op
-
-__INVALID_LITERAL_ERROR = "invalid literal"
-__TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
+_INVALID_LITERAL_ERROR = "invalid literal"
+_TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
 
 
 def __get_config_int(
@@ -135,7 +133,7 @@ def __validate_numeric_ranges(configuration: dict) -> None:
             if value < min_val or value > max_val:
                 raise ValueError(error_msg)
         except ValueError as e:
-            if __INVALID_LITERAL_ERROR in str(e):
+            if _INVALID_LITERAL_ERROR in str(e):
                 raise ValueError(f"{field} must be a valid number")
             raise
 
@@ -208,7 +206,8 @@ def __handle_request_error(
     """
     if attempt == retry_attempts - 1:
         log.severe(
-            f"Failed to execute API request to {endpoint} after {retry_attempts} attempts: {str(error)}"
+            f"Failed to execute API request to {endpoint} after {retry_attempts} "
+            f"attempts: {str(error)}"
         )
         raise RuntimeError(f"API request failed after {retry_attempts} attempts: {str(error)}")
 
@@ -233,7 +232,7 @@ def execute_api_request(
     Returns:
         The response data from the API
     """
-    url = f"{__TRUSTPILOT_API_ENDPOINT}{endpoint}"
+    url = f"{_TRUSTPILOT_API_ENDPOINT}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     timeout = __get_config_int(configuration, "request_timeout_seconds", 30)
@@ -604,118 +603,167 @@ def schema(configuration: dict):
     ]
 
 
-def update(configuration: dict, state: dict):
-    """
-    Define the update function, which is called by Fivetran during each sync.
-    Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-    """
-    log.warning("Starting Trustpilot API connector sync")
+def _extract_configuration_params(configuration: dict) -> Dict[str, str]:
+    """Extract and validate configuration parameters."""
+    return {
+        "api_key": str(configuration.get("api_key", "")),
+        "business_unit_id": str(configuration.get("business_unit_id", "")),
+        "consumer_id": (
+            str(configuration.get("consumer_id", "")) if configuration.get("consumer_id") else ""
+        ),
+    }
 
-    # Validate the configuration
-    validate_configuration(configuration=configuration)
 
-    # Extract configuration parameters
-    api_key = str(configuration.get("api_key", ""))
-    business_unit_id = str(configuration.get("business_unit_id", ""))
-    consumer_id = (
-        str(configuration.get("consumer_id", "")) if configuration.get("consumer_id") else ""
-    )
+def _extract_feature_flags(configuration: dict) -> Dict[str, bool]:
+    """Extract feature flags from configuration."""
+    return {
+        "enable_consumer_reviews": (
+            str(configuration.get("enable_consumer_reviews", "true")).lower() == "true"
+        ),
+        "enable_invitation_links": (
+            str(configuration.get("enable_invitation_links", "true")).lower() == "true"
+        ),
+        "enable_categories": (
+            str(configuration.get("enable_categories", "true")).lower() == "true"
+        ),
+        "enable_debug_logging": (
+            str(configuration.get("enable_debug_logging", "false")).lower() == "true"
+        ),
+    }
 
-    # Get feature flags from configuration
-    enable_consumer_reviews = (
-        str(configuration.get("enable_consumer_reviews", "true")).lower() == "true"
-    )
-    enable_invitation_links = (
-        str(configuration.get("enable_invitation_links", "true")).lower() == "true"
-    )
-    enable_categories = str(configuration.get("enable_categories", "true")).lower() == "true"
-    enable_debug_logging = (
-        str(configuration.get("enable_debug_logging", "false")).lower() == "true"
-    )
 
-    # Get the state variable for the sync
-    last_sync_time = state.get("last_sync_time")
-
-    # Log sync type
+def _log_sync_info(
+    last_sync_time: Optional[str], configuration: dict, feature_flags: Dict[str, bool]
+):
+    """Log sync information and configuration details."""
     if last_sync_time:
         log.info(f"Incremental sync: fetching data since {last_sync_time}")
     else:
         initial_days = str(configuration.get("initial_sync_days", "90"))
         log.info(f"Initial sync: fetching all available data (last {initial_days} days)")
 
-    if enable_debug_logging:
+    if feature_flags["enable_debug_logging"]:
         log.info(
-            f"Configuration: consumer_reviews={enable_consumer_reviews}, invitation_links={enable_invitation_links}, categories={enable_categories}"
+            f"Configuration: consumer_reviews={feature_flags['enable_consumer_reviews']}, "
+            f"invitation_links={feature_flags['enable_invitation_links']}, "
+            f"categories={feature_flags['enable_categories']}"
         )
 
+
+def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict):
+    """Sync business unit data."""
+    log.info("Fetching business unit data...")
+    for record in get_business_data(api_key, business_unit_id, configuration):
+        op.upsert(table="business_unit", data=record)
+
+
+def _sync_reviews_data(
+    api_key: str, business_unit_id: str, last_sync_time: Optional[str], configuration: dict
+):
+    """Sync reviews data."""
+    log.info("Fetching reviews data...")
+    for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration):
+        op.upsert(table="review", data=record)
+
+
+def _sync_categories_data(api_key: str, configuration: dict, enable_categories: bool):
+    """Sync categories data if enabled."""
+    if enable_categories:
+        log.info("Fetching categories data...")
+        for record in get_categories_data(api_key, configuration):
+            op.upsert(table="category", data=record)
+    else:
+        log.info("Categories data fetching disabled")
+
+
+def _sync_consumer_reviews_data(
+    api_key: str,
+    consumer_id: str,
+    last_sync_time: Optional[str],
+    configuration: dict,
+    enable_consumer_reviews: bool,
+):
+    """Sync consumer reviews data if enabled."""
+    if enable_consumer_reviews and consumer_id:
+        log.info("Fetching consumer reviews data...")
+        for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
+            op.upsert(table="consumer_review", data=record)
+    elif enable_consumer_reviews and not consumer_id:
+        log.info("Consumer reviews data fetching disabled - no consumer_id provided")
+    else:
+        log.info("Consumer reviews data fetching disabled")
+
+
+def _sync_invitations_data(
+    api_key: str,
+    business_unit_id: str,
+    last_sync_time: Optional[str],
+    configuration: dict,
+    enable_invitation_links: bool,
+):
+    """Sync invitation links data if enabled."""
+    if enable_invitation_links:
+        log.info("Fetching invitation links data...")
+        for record in get_invitations_data(
+            api_key, business_unit_id, last_sync_time, configuration
+        ):
+            op.upsert(table="invitation_link", data=record)
+    else:
+        log.info("Invitation links data fetching disabled")
+
+
+def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is called by Fivetran during each sync.
+
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+    """
+    log.warning("Starting Trustpilot API connector sync")
+
     try:
-        # Fetch business unit data
-        log.info("Fetching business unit data...")
-        for record in get_business_data(api_key, business_unit_id, configuration):
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="business_unit", data=record)
+        # Validate the configuration
+        validate_configuration(configuration=configuration)
 
-        # Fetch reviews data
-        log.info("Fetching reviews data...")
-        for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration):
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="review", data=record)
+        # Extract configuration parameters and feature flags
+        config_params = _extract_configuration_params(configuration)
+        feature_flags = _extract_feature_flags(configuration)
+        last_sync_time = state.get("last_sync_time")
 
-        # Fetch categories data (if enabled)
-        if enable_categories:
-            log.info("Fetching categories data...")
-            for record in get_categories_data(api_key, configuration):
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table="category", data=record)
-        else:
-            log.info("Categories data fetching disabled")
+        # Log sync information
+        _log_sync_info(last_sync_time, configuration, feature_flags)
 
-        # Fetch consumer reviews data (if enabled and consumer_id is provided)
-        if enable_consumer_reviews and consumer_id:
-            log.info("Fetching consumer reviews data...")
-            for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table="consumer_review", data=record)
-        elif enable_consumer_reviews and not consumer_id:
-            log.info("Consumer reviews data fetching disabled - no consumer_id provided")
-        else:
-            log.info("Consumer reviews data fetching disabled")
-
-        # Fetch invitation links data (if enabled)
-        if enable_invitation_links:
-            log.info("Fetching invitation links data...")
-            for record in get_invitations_data(
-                api_key, business_unit_id, last_sync_time, configuration
-            ):
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # - The first argument is the name of the table to upsert the data into.
-                # - The second argument is a dictionary containing the data to be upserted,
-                op.upsert(table="invitation_link", data=record)
-        else:
-            log.info("Invitation links data fetching disabled")
+        # Sync all data sources
+        _sync_business_data(
+            config_params["api_key"], config_params["business_unit_id"], configuration
+        )
+        _sync_reviews_data(
+            config_params["api_key"],
+            config_params["business_unit_id"],
+            last_sync_time,
+            configuration,
+        )
+        _sync_categories_data(
+            config_params["api_key"], configuration, feature_flags["enable_categories"]
+        )
+        _sync_consumer_reviews_data(
+            config_params["api_key"],
+            config_params["consumer_id"],
+            last_sync_time,
+            configuration,
+            feature_flags["enable_consumer_reviews"],
+        )
+        _sync_invitations_data(
+            config_params["api_key"],
+            config_params["business_unit_id"],
+            last_sync_time,
+            configuration,
+            feature_flags["enable_invitation_links"],
+        )
 
         # Update state with the current sync time
         new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
-
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(new_state)
 
         log.info("Trustpilot API connector sync completed successfully")
@@ -729,8 +777,10 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# This is Python's standard entry method allowing your script to be run directly
+# from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not
+# called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents

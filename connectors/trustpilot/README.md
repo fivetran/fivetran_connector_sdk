@@ -1,4 +1,4 @@
-# Trustpilot API Connector
+# Trustpilot API Connector Example
 
 This connector provides comprehensive Trustpilot review and business data synchronization into your data warehouse for customer feedback analysis, reputation management, and business insights. It leverages Trustpilot's REST API to extract reviews, business information, categories, consumer reviews, and invitation links data for comprehensive customer experience analysis.
 
@@ -23,42 +23,37 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-* Comprehensive reviews data: Customer feedback, ratings, review text, verification status, and helpfulness metrics
-* Business intelligence: Business unit information, trust scores, review counts, and reputation metrics
-* Category management: Business categorization, hierarchical structure, and localized naming
-* Consumer reviews API: Individual consumer review history, verification status, and engagement tracking
-* Invitation management: Review invitation tracking, response rates, and campaign effectiveness
-* Cross-service correlation: Integrated analysis across all Trustpilot services for comprehensive insights
-* Dynamic time ranges: Intelligent data fetching based on sync type (initial vs incremental)
-* Incremental syncs: Efficient data updates with checkpoint-based state management
-* Configurable filtering: Business unit and time-based filtering for focused analysis
-* Error handling: Robust error handling with comprehensive logging and validation
-* CI/CD integration: Automated deployment via GitHub Actions with parameterized configuration
-* Environment management: Secure credential management using GitHub Environments
-* Zero-downtime deployment: Seamless updates without service interruption
+- Comprehensive reviews data: Customer feedback, ratings, review text, verification status, and helpfulness metrics
+- Business intelligence: Business unit information, trust scores, review counts, and reputation metrics
+- Category management: Business categorization, hierarchical structure, and localized naming
+- Consumer reviews API: Individual consumer review history, verification status, and engagement tracking
+- Invitation management: Review invitation tracking, response rates, and campaign effectiveness
+- Cross-service correlation: Integrated analysis across all Trustpilot services for comprehensive insights
+- Dynamic time ranges: Intelligent data fetching based on sync type (initial vs incremental)
+- Incremental syncs: Efficient data updates with checkpoint-based state management
+- Configurable filtering: Business unit and time-based filtering for focused analysis
+- Error handling: Robust error handling with comprehensive logging and validation
+- CI/CD integration: Automated deployment via GitHub Actions with parameterized configuration
+- Environment management: Secure credential management using GitHub Environments
+- Zero-downtime deployment: Seamless updates without service interruption
 
 ## Configuration file
 
-PRODUCTION DEPLOYMENT GUIDANCE: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
-
-The connector requires the following configuration keys. For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
-
 ```json
 {
-  "api_key": "YOUR_TRUSTPILOT_API_KEY",
-  "business_unit_id": "YOUR_BUSINESS_UNIT_ID",
-  "consumer_id": "YOUR_CONSUMER_ID",
-  "sync_frequency_hours": "YOUR_SYNC_FREQUENCY_HOURS",
-  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
-  "max_records_per_page": "YOUR_MAX_RECORDS_PER_PAGE",
-  "request_timeout_seconds": "YOUR_REQUEST_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
-  "enable_incremental_sync": "YOUR_ENABLE_INCREMENTAL_SYNC",
-  "enable_consumer_reviews": "YOUR_ENABLE_CONSUMER_REVIEWS",
-  "enable_invitation_links": "YOUR_ENABLE_INVITATION_LINKS",
-  "enable_categories": "YOUR_ENABLE_CATEGORIES",
-  "data_retention_days": "YOUR_DATA_RETENTION_DAYS",
-  "enable_debug_logging": "YOUR_ENABLE_DEBUG_LOGGING"
+  "api_key": "<YOUR_TRUSTPILOT_API_KEY>",
+  "business_unit_id": "<YOUR_BUSINESS_UNIT_ID>",
+  "consumer_id": "<YOUR_CONSUMER_ID>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_consumer_reviews": "<YOUR_ENABLE_CONSUMER_REVIEWS>",
+  "enable_invitation_links": "<YOUR_ENABLE_INVITATION_LINKS>",
+  "enable_categories": "<YOUR_ENABLE_CATEGORIES>",
+  "data_retention_days": "<YOUR_DATA_RETENTION_DAYS>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```
 
@@ -68,7 +63,6 @@ Required configuration keys:
 
 Optional configuration keys:
 - `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews (required only when `enable_consumer_reviews` is true)
-- `sync_frequency_hours`: Sync frequency in hours (1-24, default: 4)
 - `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
 - `max_records_per_page`: Maximum records per API page (1-100, default: 100)
 - `request_timeout_seconds`: API request timeout in seconds (default: 30)
@@ -82,15 +76,9 @@ Optional configuration keys:
 
 ## Requirements file
 
-The `requirements.txt` file specifies the Python libraries required by the connector for Trustpilot API integration and data processing.
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
-Example content of `requirements.txt`:
-
-```
-requests>=2.28.0
-```
-
-Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`. This connector uses the updated SDK version that does not require `yield` statements for operations.
+Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
 
 ## Authentication
 
@@ -130,27 +118,6 @@ The connector implements efficient data handling by:
 - Applying filters to focus on relevant data subsets
 
 Refer to functions `get_reviews_data`, `get_business_data`, `get_categories_data`, `get_consumers_data`, and `get_invitations_data` in `connector.py` for the data retrieval implementation.
-
-## Dynamic Time Range Management
-
-The connector intelligently manages data fetching based on sync type:
-
-### Initial sync
-- Time range: Last 90 days of data
-- Use case: First-time setup or full re-sync
-- Data volume: Comprehensive historical data for baseline analysis
-
-### Incremental sync
-- Time range: Data since last successful sync timestamp
-- Use case: Regular scheduled syncs
-- Data volume: Only new/changed data since last sync
-- Benefits: Faster sync times, reduced API calls, efficient resource usage
-
-### Implementation details
-- State management: Uses Fivetran's checkpoint system to track last sync time
-- Automatic detection: Automatically determines sync type based on state
-- Flexible queries: All API calls dynamically adjust time ranges
-- Logging: Clear indication of sync type and time ranges in logs
 
 ## Data handling
 
@@ -202,7 +169,7 @@ Refer to functions `validate_configuration`, `execute_api_request`, and the main
 
 The connector creates the following tables for comprehensive Trustpilot data analysis. Column types are automatically inferred by Fivetran based on the actual data structure and content.
 
-### review
+### REVIEW
 Primary table for customer reviews and feedback data with comprehensive review metadata.
 
 Primary key: `review_id`, `business_unit_id`
@@ -225,7 +192,7 @@ Sample columns (automatically inferred by Fivetran):
 - `reply_created_at` - Reply creation timestamp
 - `timestamp` - Data extraction timestamp
 
-### business_unit
+### BUSINESS_UNIT
 Business unit information and reputation metrics for comprehensive business analysis.
 
 Primary key: `business_unit_id`
@@ -244,7 +211,7 @@ Sample columns (automatically inferred by Fivetran):
 - `updated_at` - Business last update timestamp
 - `timestamp` - Data extraction timestamp
 
-### category
+### CATEGORY
 Business categories and hierarchical classification for business categorization analysis.
 
 Primary key: `category_id`
@@ -259,7 +226,7 @@ Sample columns (automatically inferred by Fivetran):
 - `updated_at` - Category last update timestamp
 - `timestamp` - Data extraction timestamp
 
-### consumer_review
+### CONSUMER_REVIEW
 Individual consumer review history and engagement data for customer analysis and segmentation.
 
 Primary key: `consumer_id`, `review_id`
@@ -289,7 +256,7 @@ Sample columns (automatically inferred by Fivetran):
 - `location_name` - Location name
 - `timestamp` - Data extraction timestamp
 
-### invitation_link
+### INVITATION_LINK
 Review invitation management and response tracking for campaign effectiveness analysis.
 
 Primary key: `invitation_id`, `business_unit_id`
@@ -307,44 +274,5 @@ Sample columns (automatically inferred by Fivetran):
 - `responded_at` - Customer response timestamp
 - `timestamp` - Data extraction timestamp
 
-## Additional files
-
-The connector includes several additional files to support functionality and deployment:
-
-* `.github/workflows/deploy_connector.yaml` – Primary deployment mechanism: GitHub Actions workflow for automated deployment to Fivetran with parameterized configuration and secure credential management.
-
-* `requirements.txt` – Python dependency specification for Trustpilot API integration and connector requirements.
-
 ## Additional considerations
-
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-Important Trustpilot limitations:
-- API rate limits apply to large accounts
-- Data retention varies by Trustpilot plan
-- Some features require specific Trustpilot licenses
-- Historical data availability depends on account settings
-- API pagination limits (100 results per page)
-
-We recommend reviewing these limitations with your Trustpilot account plan to ensure it meets your data requirements.
-
-Performance considerations:
-- Large accounts may experience longer sync times
-- Multiple API endpoints increase API calls
-- Historical data syncs can be resource-intensive
-- We recommend using incremental syncs for production environments to optimize performance
-
-Security best practices:
-- We recommend using API keys with minimal required permissions
-- Consider regularly rotating API keys for enhanced security
-- Monitor API usage and rate limits to maintain optimal performance
-- Implement proper error handling and logging for better troubleshooting
-
-GitHub actions workflow management:
-- Recommended production method: We recommend using GitHub Actions workflow for production deployments
-- Keep secrets and variables updated in GitHub repository settings
-- Use environment protection rules for production deployments
-- Monitor workflow execution logs for any deployment issues
-- Regularly review and update workflow permissions and access controls
-- Consider using branch protection rules to prevent unauthorized deployments
-- Manual deployment: Available for development, testing, and debugging, but we encourage using GitHub Actions for production
