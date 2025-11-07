@@ -49,7 +49,7 @@ This guide provides a structured approach to developing Fivetran connectors usin
 #### Step 2: Set Up Your Development Environment
 ```bash
 # Ensure you have the required tools
-python --version  # Should be 3.9-3.12
+python --version  # Should be 3.10-3.12
 pip install fivetran-connector-sdk
 ```
 
