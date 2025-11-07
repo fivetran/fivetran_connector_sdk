@@ -47,10 +47,10 @@ Configuration parameters:
 - `api_key` (required): AfterShip API key for authentication
 - `initial_sync_days` (optional): Number of days of historical data to fetch on first sync
 - `max_records_per_page` (optional): Batch size for API requests (1-200)
-- `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: 30)
-- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization (default: true)
-- `enable_couriers` (optional): Include couriers data in synchronization (default: true)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: `30`)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: `3`)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization (default: `true`)
+- `enable_couriers` (optional): Include couriers data in synchronization (default: `true`)
 
 ## Requirements file
 
@@ -96,7 +96,7 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | TRACKINGS | `id` | Package tracking information including status, checkpoints, and delivery details | `id`, `tracking_number`, `slug`, `active`, `customer_name`, `delivery_time`, `destination_country_iso3`, `expected_delivery`, `order_id`, `shipment_type`, `tag`, `checkpoints`, `timestamp` |
 | COURIERS | `slug` | Shipping carrier information including capabilities and configuration | `slug`, `name`, `phone`, `web_url`, `required_fields`, `optional_fields`, `support_track`, `support_pickup`, `timestamp` |
 
-Column types are automatically inferred by Fivetran. Checkpoint information in TRACKINGS is stored as JSON for flexible querying of nested tracking event data.
+Column types are automatically inferred by Fivetran. Checkpoint information in `TRACKINGS` is stored as JSON for flexible querying of nested tracking event data.
 
 ## Additional considerations
 
