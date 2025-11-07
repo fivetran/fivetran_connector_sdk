@@ -8,7 +8,7 @@ The connector uses bearer token authentication and implements automatic retry lo
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -21,11 +21,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs webhook configurations, saved searches, and tag definitions from Meltwater API
-- Bearer token authentication with automatic request header management (refer to `execute_api_request` function)
-- Offset-based pagination with automatic page traversal (refer to `get_hooks_data`, `get_searches_data`, and `get_tags_data` functions)
+- Bearer token authentication with automatic request header management (refer to the `execute_api_request` function)
+- Offset-based pagination with automatic page traversal (refer to the `get_hooks_data`, `get_searches_data`, and `get_tags_data` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets using generator patterns
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
-- Comprehensive error handling with exponential backoff retry logic (refer to `__handle_rate_limit` and `__handle_request_error` functions)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
+- Comprehensive error handling with exponential backoff retry logic (refer to the `__handle_rate_limit` and `__handle_request_error` functions)
 - Configurable data type selection with individual endpoint enablement controls
 - Robust pagination handling across all three endpoint types
 
@@ -47,19 +47,19 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-### Configuration parameters
+Configuration parameters:
 
-- `api_key`: Your Meltwater API authentication token (required)
-- `sync_frequency_hours`: How often to run incremental syncs (default: 4)
-- `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
-- `max_records_per_page`: Maximum records per API request (1-1000, default: 100)
-- `request_timeout_seconds`: HTTP request timeout in seconds (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable timestamp-based incremental synchronization (default: true)
-- `enable_debug_logging`: Enable detailed debug logging (default: false)
-- `enable_hooks`: Sync webhook configurations (default: true)
-- `enable_searches`: Sync saved search definitions (default: true)
-- `enable_tags`: Sync tag definitions (default: true)
+- `api_key` (required): Your Meltwater API authentication token 
+- `sync_frequency_hours`: How often to run incremental syncs (default: `4`)
+- `initial_sync_days`: Days of historical data to fetch on first sync (default: `90`)
+- `max_records_per_page`: Maximum records per API request (1-1000, default: `100`)
+- `request_timeout_seconds`: HTTP request timeout in seconds (default: `30`)
+- `retry_attempts`: Number of retry attempts for failed requests (default: `3`)
+- `enable_incremental_sync`: Enable timestamp-based incremental synchronization (default: `true`)
+- `enable_debug_logging`: Enable detailed debug logging (default: `false`)
+- `enable_hooks`: Sync webhook configurations (default: `true`)
+- `enable_searches`: Sync saved search definitions (default: `true`)
+- `enable_tags`: Sync tag definitions (default: `true`)
 
 ## Requirements file
 
@@ -83,7 +83,7 @@ Note: The connector automatically handles bearer token authentication by adding 
 
 ## Pagination
 
-Offset-based pagination with automatic page traversal (refer to `get_hooks_data`, `get_searches_data`, and `get_tags_data` functions). Generator-based processing prevents memory accumulation for large datasets. The connector processes pages sequentially while yielding individual records for immediate processing, supporting configurable page sizes from 1 to 1000 records per request.
+Offset-based pagination with automatic page traversal (refer to the `get_hooks_data`, `get_searches_data`, and `get_tags_data` functions). Generator-based processing prevents memory accumulation for large datasets. The connector processes pages sequentially while yielding individual records for immediate processing, supporting configurable page sizes from 1 to 1000 records per request.
 
 ## Data handling
 
@@ -102,28 +102,13 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| HOOKS | `id` | Webhook configurations and event subscriptions |
-| SEARCHES | `id` | Saved search definitions and query parameters |
-| TAGS | `id` | Tag definitions and categorization metadata |
+| Table | Primary Key | Description | Sample Columns |
+|-------|-------------|-------------|-------------|
+| HOOKS | `id` | Webhook configurations and event subscriptions | `id`, `name`, `url`, `status`, `created_at`, `updated_at`, `search_id`, `event_types`, `timestamp` |
+| SEARCHES | `id` | Saved search definitions and query parameters | `id`, `name`, `query`, `language`, `source_types`, `created_at`, `updated_at`, `is_active`, `tags`, `timestamp` |
+| TAGS | `id` | Tag definitions and categorization metadata | `id`, `name`, `description`, `color`, `created_at`, `updated_at`, `usage_count`, `category`, `timestamp` |
 
-Column types are automatically inferred by Fivetran. Sample columns include:
-
-**HOOKS table**: `id`, `name`, `url`, `status`, `created_at`, `updated_at`, `search_id`, `event_types`, `timestamp`
-
-**SEARCHES table**: `id`, `name`, `query`, `language`, `source_types`, `created_at`, `updated_at`, `is_active`, `tags`, `timestamp`
-
-**TAGS table**: `id`, `name`, `description`, `color`, `created_at`, `updated_at`, `usage_count`, `category`, `timestamp`
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Meltwater API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
+Column types are automatically inferred by Fivetran.
 
 ## Additional considerations
 
