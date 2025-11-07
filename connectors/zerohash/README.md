@@ -4,7 +4,7 @@
 This connector syncs participants, accounts, and assets data from the ZeroHash API. It demonstrates how to implement HMAC-SHA256 authentication, handle cryptocurrency and digital asset data, and process financial information using memory-efficient streaming patterns. The connector fetches participant information, account balances, and supported asset definitions from ZeroHash's certification environment.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -15,10 +15,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Syncs participants, accounts, and assets data from ZeroHash API
-- HMAC-SHA256 authentication with automatic signature generation (refer to `__generate_signature` function)
-- Memory-efficient streaming prevents data accumulation for large datasets (refer to `get_participants`, `get_accounts`, and `get_assets` functions)
-- Comprehensive error handling with exponential backoff retry logic (refer to `__handle_rate_limit` and `__handle_request_error` functions)
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- HMAC-SHA256 authentication with automatic signature generation (refer to the `__generate_signature` function)
+- Memory-efficient streaming prevents data accumulation for large datasets (refer to the `get_participants`, `get_accounts`, and `get_assets` functions)
+- Comprehensive error handling with exponential backoff retry logic (refer to the `__handle_rate_limit` and `__handle_request_error` functions)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Cryptocurrency and digital asset data processing with proper decimal handling
 
 ## Configuration file
@@ -35,9 +35,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-### Configuration parameters
-- `api_key`: Your ZeroHash API public key (required)
-- `secret_key`: Your ZeroHash API secret key for signing requests (required)
+Configuration parameters:
+
+- `api_key` (required): Your ZeroHash API public key 
+- `secret_key` (required): Your ZeroHash API secret key for signing requests 
 - `sync_frequency_hours`: How often to sync data in hours
 - `initial_sync_days`: Number of days to sync on first run
 - `request_timeout_seconds`: Timeout for API requests
@@ -82,15 +83,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | ASSETS | `id` | Supported cryptocurrency and digital asset definitions |
 
 Column types are automatically inferred by Fivetran. Sample columns include `email`, `participant_code`, `name`, `status`, `account_id`, `asset_symbol`, `balance`, `available_balance`, `symbol`, `decimals`, `minimum_amount`, `maximum_amount`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for ZeroHash API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
