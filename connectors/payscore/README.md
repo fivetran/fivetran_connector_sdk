@@ -25,7 +25,7 @@ The PayScore connector provides the following capabilities:
 - Memory-efficient processing: Implements streaming data processing using generators to handle large datasets without memory issues (refer to the `get_screening_groups`)
 - Comprehensive error handling: Robust retry logic for API failures, rate limiting, and network issues (refer to the `execute_api_request` function)
 - Flexible configuration: Configurable sync parameters, page sizes, and feature toggles
-- Production-ready architecture: Low cognitive complexity design with helper functions for maintainability (refer to the validation functions with `__` prefix)
+- Production-ready architecture: Low cognitive complexity design with helper functions for maintainability (refer to the validation functions with the `__` prefix)
 
 ## Configuration file
 
@@ -89,11 +89,11 @@ PayScore API uses page-based pagination with the following strategy (refer to th
 - Automatic traversal: The connector automatically handles pagination without manual intervention
 
 Example pagination flow:
-1. Start with page 1.
-2. Fetch data with configured page size.
-3. Process records individually using generators.
-4. Continue to next page if more data exists.
-5. Stop when empty response or last page reached.
+1. Starts with page 1.
+2. Fetches data with configured page size.
+3. Processes records individually using generators.
+4. Continues to next page if more data exists.
+5. Stops when empty response or last page reached.
 
 ## Data handling
 
@@ -120,13 +120,13 @@ The connector implements comprehensive error handling with modular design (refer
 
 Retry logic:
 - Exponential backoff: Automatic retry with increasing delays for transient failures
-- Configurable attempts: Maximum retry attempts configurable via `retry_attempts` parameter
+- Configurable attempts: Maximum retry attempts configurable via the `retry_attempts` parameter
 - Jitter implementation: Adds randomness to prevent thundering herd problems
 
 Rate limiting:
 - HTTP 429 detection: Automatically detects rate limit responses
 - Retry-After headers: Respects API-provided retry delays
-- Graceful backoff: Waits appropriate time before retrying (refer to `__handle_rate_limit` function)
+- Graceful backoff: Waits appropriate time before retrying (refer to the `__handle_rate_limit` function)
 
 Error categories:
 - Authentication errors (401): Invalid API key, immediate failure with clear message
