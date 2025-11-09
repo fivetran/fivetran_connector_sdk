@@ -136,9 +136,7 @@ The connector creates the following tables in the destination warehouse:
 | `RELATIONSHIPS` | `edge_id` | Graph edges preserving all product relationships and recommendations. |
 | `SCHEMA_METADATA` | `type_name` | GraphQL schema type definitions with field counts. |
 
-### Detailed column schemas
-
-#### PRODUCTS
+### PRODUCTS
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -155,7 +153,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### CATEGORIES
+### CATEGORIES
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -167,7 +165,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### ATTRIBUTES
+### ATTRIBUTES
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -179,7 +177,7 @@ The connector creates the following tables in the destination warehouse:
 | `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### REVIEWS
+### REVIEWS
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -192,7 +190,7 @@ The connector creates the following tables in the destination warehouse:
 | `created_at` | UTC_DATETIME | Review creation timestamp (used for incremental sync) |
 | `synced_at` | UTC_DATETIME | Sync timestamp from connector |
 
-#### RELATIONSHIPS
+### RELATIONSHIPS
 
 This table preserves the graph structure by storing all edges/relationships between entities.
 
@@ -214,7 +212,7 @@ Example relationship types:
 - `WRITTEN_BY_USER`: Review > User
 - `HAS_PARENT`: Category > Category (hierarchy)
 
-#### SCHEMA_METADATA
+### SCHEMA_METADATA
 
 | Column | Type | Description |
 |--------|------|-------------|
