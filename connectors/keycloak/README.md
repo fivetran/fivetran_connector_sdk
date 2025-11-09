@@ -82,7 +82,7 @@ To set up authentication:
 12. Go to the **Service account roles** tab.
 13. Click **Assign role** and filter by clients.
 14. Select **realm-management** client.
-15. Assign the following roles: view-users, view-events, view-realm, view-clients, view-identity-providers.
+15. Assign the following roles: view-users, view-events, view-realm, view-clients.
 16. Click **Assign**.
 
 The connector uses these credentials to obtain access tokens via the `/realms/{realm}/protocol/openid-connect/token` endpoint and automatically refreshes tokens as they expire during sync operations.
