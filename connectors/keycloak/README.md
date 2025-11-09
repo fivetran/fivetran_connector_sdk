@@ -2,10 +2,7 @@
 
 ## Connector overview
 
-This connector syncs identity and access management data from the Keycloak Admin API to enable security analytics, compliance reporting, and user behavior analysis. The connector extracts users, groups, roles, clients, authentication events, and admin events from a Keycloak realm and delivers them to your destination through Fivetran.
-
-Keycloak is an open-source identity and access management solution that provides authentication, authorization, and user management capabilities. This connector enables organizations to centralize their IAM data for security monitoring, compliance auditing, user lifecycle analytics, and multi-tenant SaaS operations.
-
+Keycloak is an open-source identity and access management solution that provides authentication, authorization, and user management capabilities. This connector syncs identity and access management data from the Keycloak Admin API to enable security analytics, compliance reporting, and user behavior analysis. It extracts users, groups, roles, clients, authentication events, and admin events from a Keycloak realm and delivers them to your destination through Fivetran, enabling organizations to centralize their IAM data for security monitoring, compliance auditing, user lifecycle analytics, and multi-tenant SaaS operations.
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
