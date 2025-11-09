@@ -311,14 +311,23 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
             # Process breakout tables for user attributes, roles, and required actions
             upsert_user_breakout_tables(user, user_id)
 
+        # Update state with current progress and checkpoint after each page
+        state["users_last_created_timestamp"] = max_created_timestamp
+        # Save the progress by checkpointing the state. This is important for ensuring that
+        # the sync process can resume from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+        log.info(
+            f"Checkpointed after page {first_index // __PAGE_SIZE + 1}: synced {synced_count} new users so far"
+        )
+
         if len(users) < __PAGE_SIZE:
             log.info(f"Reached last page. Total synced: {synced_count} new users")
             break
 
         first_index += __PAGE_SIZE
 
-    # Update state once after loop completes with the final max_created_timestamp
-    state["users_last_created_timestamp"] = max_created_timestamp
     log.info(
         f"User sync complete. Synced {synced_count} new users, skipped {record_count - synced_count} existing"
     )
@@ -547,8 +556,16 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                 op.upsert(table="event", data=event_data)
                 record_count += 1
 
-            # Update state once after loop completes with the final max_event_time
-            state["events_last_time"] = max_event_time
+                # Update state incrementally and checkpoint periodically
+                state["events_last_time"] = max_event_time
+                if record_count % __CHECKPOINT_INTERVAL == 0:
+                    # Save the progress by checkpointing the state. This is important for ensuring that
+                    # the sync process can resume from the correct position in case of next sync or interruptions.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                    op.checkpoint(state)
+                    log.info(f"Checkpointed after syncing {record_count} events")
+
             log.info(f"Synced {record_count} events")
         else:
             log.info("No events found for the specified date range")
@@ -616,8 +633,16 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
                 op.upsert(table="admin_event", data=admin_event_data)
                 record_count += 1
 
-            # Update state once after loop completes with the final max_admin_event_time
-            state["admin_events_last_time"] = max_admin_event_time
+                # Update state incrementally and checkpoint periodically
+                state["admin_events_last_time"] = max_admin_event_time
+                if record_count % __CHECKPOINT_INTERVAL == 0:
+                    # Save the progress by checkpointing the state. This is important for ensuring that
+                    # the sync process can resume from the correct position in case of next sync or interruptions.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                    op.checkpoint(state)
+                    log.info(f"Checkpointed after syncing {record_count} admin events")
+
             log.info(f"Synced {record_count} admin events")
         else:
             log.info("No admin events found for the specified date range")
