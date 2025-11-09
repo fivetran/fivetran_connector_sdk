@@ -64,7 +64,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses OAuth2 Client Credentials grant type to authenticate with the Keycloak Admin API. A dedicated service account with specific view permissions is required.
+This connector uses the OAuth2 Client Credentials grant type to authenticate with the Keycloak Admin API. A dedicated service account with specific view permissions is required.
 
 To set up authentication:
 
