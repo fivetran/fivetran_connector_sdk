@@ -58,8 +58,8 @@ The connector supports hybrid sliding window incremental sync:
 
 **Incremental Sync** (Subsequent Runs):
 - Automatically calculates date window using `last_posted_to` from previous sync minus `incremental_window_days` overlap
-- Advances forward to current date, capturing new opportunities and updates
-- If date range exceeds one year, automatically chunks into 364-day windows
+- Advances to the current date, capturing new opportunities and updates
+- If the date range exceeds one year, automatically chunks into 364-day windows
 
 ### Overlap window strategy
 - Default 30-day overlap ensures recent opportunity updates are captured
