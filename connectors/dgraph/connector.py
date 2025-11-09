@@ -187,7 +187,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Production: Dgraph E-Commerce Catalog Connector")
+    log.warning("Example: Source Examples - Dgraph E-Commerce Catalog Connector")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
