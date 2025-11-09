@@ -1,22 +1,22 @@
 """Bright Data API client wrapper and search functionality."""
 
+import os
 import time
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import quote_plus
 
 import requests
+from dotenv import load_dotenv
 from requests import Response
 from requests.exceptions import RequestException
 
 from brightdata import bdclient
 from fivetran_connector_sdk import Logging as log
 
-BRIGHT_DATA_BASE_URL = "https://api.brightdata.com"
-BRIGHT_DATA_REQUEST_URL = f"{BRIGHT_DATA_BASE_URL}/request"
-BRIGHT_DATA_SCRAPER_TRIGGER_URL = f"{BRIGHT_DATA_BASE_URL}/datasets/v3/trigger"
-BRIGHT_DATA_SCRAPER_DOWNLOAD_URL = (
-    f"{BRIGHT_DATA_BASE_URL}/datasets/v3/download/{{snapshot_id}}"
-)
+load_dotenv()
+BRIGHT_DATA_BASE_URL = os.getenv("BRIGHT_DATA_BASE_URL")
+
+
 DEFAULT_SERP_ZONE = "serp_api1"
 DEFAULT_TIMEOUT_SECONDS = 120
 RETRY_STATUS_CODES = {408, 429, 500, 502, 503, 504}
@@ -123,7 +123,7 @@ def perform_search(
         while attempt <= retries:
             try:
                 response = requests.post(
-                    BRIGHT_DATA_REQUEST_URL,
+                    f"{BRIGHT_DATA_BASE_URL}/request",
                     headers=headers,
                     json=payload,
                     timeout=timeout,
@@ -283,7 +283,7 @@ def perform_scrape(
     poll_interval: int = 5,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Scrape URLs using Bright Data SDK.
+    Scrape URLs using Bright Data's Web Scraper REST API.
 
     Supports both single URL (string) and multiple URLs (list) for parallel processing.
     The SDK includes built-in retry logic with exponential backoff for robust error handling.
