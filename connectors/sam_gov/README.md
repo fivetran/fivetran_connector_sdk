@@ -1,7 +1,7 @@
 # SAM.gov Opportunities Connector Example
 
 ## Connector overview
-This connector fetches government contracting opportunities from the SAM.gov (System for Award Management) API. It replicates opportunity data including solicitations, awards, contact information, and related metadata. The connector supports incremental synchronization and handles large datasets through pagination. Data is organized into multiple tables with proper foreign key relationships to maintain referential integrity while providing a normalized structure for analysis.
+This connector fetches government contracting opportunities from the SAM.gov (System for Award Management) API. It replicates opportunity data, including solicitations, awards, contact information, and related metadata. The connector supports incremental synchronization and handles large datasets through pagination. Data is organized into multiple tables with proper foreign key relationships to maintain referential integrity while providing a normalized structure for analysis.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
