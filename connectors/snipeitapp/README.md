@@ -79,7 +79,7 @@ The connector processes data from the Snipe-IT API in the following manner (refe
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (refer to the `fetch_page()` function):
+The connector implements comprehensive error-handling strategies (refer to the `fetch_page()` function):
 
 - Retry logic with exponential backoff for transient errors (HTTP 429, 500, 502, 503, 504)
 - Maximum of 3 retry attempts with delays of 2, 4, and 8 seconds
