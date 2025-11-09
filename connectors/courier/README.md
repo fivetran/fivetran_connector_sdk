@@ -61,9 +61,9 @@ To obtain your API key:
 
 The connector implements different pagination strategies based on the endpoint (refer to individual fetch functions):
 
-- Cursor-based pagination - Used for the audiences endpoint. The connector processes pages sequentially using cursor tokens returned in the API response and checkpoints after each page (refer to the `fetch_audiences()` function).
-- Offset pagination - Used for messages, notifications, lists, brands, and audit events endpoints. These endpoints return paginated results with a `more` indicator in the paging object.
-
+- Cursor-based pagination – Used for the audiences, messages, and notifications endpoints. The connector processes pages sequentially using cursor tokens returned in the API response and checkpoints after each page (refer to the `fetch_audiences()`, `fetch_messages()`, and `fetch_notifications()` functions).
+- Next URL-based pagination – Used for the tenants endpoint. The connector follows the `next_url` field in the API response to retrieve subsequent pages (refer to the `fetch_tenants()` function).
+- Offset pagination – Used for lists, brands, and audit events endpoints. These endpoints return paginated results with a `more` indicator in the paging object.
 ## Data handling
 
 The connector processes data as follows:
