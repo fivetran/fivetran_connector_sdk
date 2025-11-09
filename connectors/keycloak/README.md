@@ -249,7 +249,7 @@ Table containing administrative events for audit trails.
 The connector includes the following additional files:
 
 - [docker-compose.yml](docker-compose.yml) - Docker Compose configuration for running Keycloak locally for development and testing
-- [populate_keycloak_data.py](populate_keycloak_data.py) - Script to populate Keycloak with test data including 250 users, 15 groups, 5 roles, and 10 clients to test pagination
+- [populate_keycloak_data.py](populate_keycloak_data.py) - Script to populate Keycloak with test data, including 250 users, 15 groups, 5 roles, and 10 clients to test pagination
 - [configuration_template.json](configuration_template.json) - Template configuration file with placeholder values for documentation
 
 ## Additional considerations
