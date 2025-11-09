@@ -133,7 +133,7 @@ API request errors with specific handling:
 
 Additional features:
 - Retry logic - Exponential backoff for transient errors (3 attempts maximum)
-- Individual record resilience - Failed records don't stop entire sync
+- Individual record resilience - Failed records don't stop the entire sync
 - Detailed logging - Comprehensive error tracking for troubleshooting
 
 ## Tables created
