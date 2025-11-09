@@ -243,12 +243,7 @@ Table containing administrative events for audit trails.
 
 ## Additional files
 
-The connector includes the following additional files:
-
-- [docker-compose.yml](docker-compose.yml) - Docker Compose configuration for running Keycloak locally for development and testing
-- [populate_keycloak_data.py](populate_keycloak_data.py) - Script to populate Keycloak with test data, including 250 users, 15 groups, 5 roles, and 10 clients to test pagination
-- [configuration_template.json](configuration_template.json) - Template configuration file with placeholder values for documentation
-
+The connector does not require any additional files beyond those included in this directory.
 ## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
