@@ -6,7 +6,7 @@ This connector syncs health check monitoring data from Healthchecks.io to your d
 
 The connector retrieves data from four primary endpoints: health checks (monitors), pings (check-in events), flips (status changes), and integrations (notification channels). This allows you to build comprehensive dashboards for operational monitoring, SLA tracking, and incident analysis.
 
-**Important Note**: This connector performs a full refresh on each sync because the Healthchecks.io API does not support timestamp-based filtering or pagination. State checkpointing is maintained for sync tracking purposes, but all data is fetched on every sync cycle.
+**Important**: This connector performs a full refresh on each sync because the Healthchecks.io API does not support timestamp-based filtering or pagination. State checkpointing is maintained for sync tracking purposes, but all data is fetched on every sync cycle.
 
 ## Requirements
 
