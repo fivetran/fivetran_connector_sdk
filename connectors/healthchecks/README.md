@@ -59,7 +59,7 @@ To obtain your API key:
 3. Copy your project-specific API key.
 4. Add the API key to your `configuration.json` file.
 
-Note: Healthchecks.io provides both read-write and read-only API keys. This connector requires a read-only key at minimum, though a read-write key will also work.
+**Note**: Healthchecks.io provides both read-write and read-only API keys. This connector requires a read-only key at a minimum, though a read-write key will also work.
 
 ## API limitations
 
