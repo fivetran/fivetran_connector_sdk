@@ -42,7 +42,7 @@ The connector requires the following configuration parameters:
    "client_id": "<YOUR_CLIENT_ID>",
    "client_secret": "<YOUR_CLIENT_SECRET>",
    "sync_events": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
-   "start_date": "<YYYY_MM_DD_FORMAT_EXAMPLE_2024_01_01>"
+   "start_date": "<YYYY_MM_DD_FORMAT_OPTIONAL_DEFAULTS_TO_30_DAYS_AGO>"
 }
 ```
 
@@ -52,7 +52,7 @@ Configuration parameters:
 - `client_id` - OAuth2 client ID for service account authentication
 - `client_secret` - OAuth2 client secret for service account authentication
 - `sync_events` - String value "true" or "false" to enable/disable event syncing (default: "true")
-- `start_date` - Start date for incremental event sync in YYYY-MM-DD format (e.g., 2024-01-01)
+- `start_date` - Start date for incremental event sync in YYYY-MM-DD format (e.g., 2024-01-01). If not specified, defaults to 30 days ago from the current date
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -101,8 +101,8 @@ The connector processes Keycloak data as follows:
 
 - **User records** - Flattens nested `access` object fields into parent table columns, creates breakout tables for `attributes`, `realmRoles`, and `requiredActions` arrays
 - **Group records** - Stores group metadata in parent table, creates breakout table for group member relationships
-- **Event records** - Converts millisecond timestamps to ISO 8601 format, generates synthetic IDs from timestamp, type, and user ID
-- **Admin event records** - Flattens `authDetails` nested object into parent table columns
+- **Event records** - Converts millisecond timestamps to ISO 8601 format, generates synthetic IDs from timestamp, type, user ID, session ID, and client ID
+- **Admin event records** - Flattens `authDetails` nested object into parent table columns, generates synthetic IDs from timestamp, operation type, resource type, and resource path
 
 All data types are automatically inferred by Fivetran based on the actual values encountered during sync. Only primary keys are explicitly defined in the schema to enable proper upsert behavior.
 
@@ -221,7 +221,7 @@ Table containing authentication events.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | STRING | Unique identifier for the event (composite: timestamp + type + user_id) |
+| id | STRING | Unique identifier for the event (composite: timestamp + type + user_id + session_id + client_id) |
 | time | UTC_DATETIME | When the event occurred |
 | type | STRING | Type of authentication event (e.g., LOGIN, LOGOUT, LOGIN_ERROR) |
 | user_id | STRING | ID of the user associated with the event |
@@ -235,7 +235,7 @@ Table containing administrative events for audit trails.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id | STRING | Unique identifier for the admin event (composite: timestamp + operation + resource) |
+| id | STRING | Unique identifier for the admin event (composite: timestamp + operation_type + resource_type + resource_path) |
 | time | UTC_DATETIME | When the admin event occurred |
 | operation_type | STRING | Type of operation (CREATE, UPDATE, DELETE, ACTION) |
 | resource_type | STRING | Type of resource modified (USER, GROUP, ROLE, CLIENT, etc.) |

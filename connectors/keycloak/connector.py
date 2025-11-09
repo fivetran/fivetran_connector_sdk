@@ -14,7 +14,7 @@ import requests
 import time
 
 # For date and time manipulation
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -532,7 +532,7 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                     event_time_str = None
 
                 event_data = {
-                    "id": f"{event.get('time')}_{event.get('type')}_{event.get('userId', 'unknown')}",
+                    "id": f"{event.get('time', 'unknown')}_{event.get('type', 'unknown')}_{event.get('userId', 'unknown')}_{event.get('sessionId', 'unknown')}_{event.get('clientId', 'unknown')}",
                     "time": event_time_str,
                     "type": event.get("type"),
                     "user_id": event.get("userId"),
@@ -600,7 +600,7 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
 
                 auth_details = event.get("authDetails", {})
                 admin_event_data = {
-                    "id": f"{event.get('time')}_{event.get('operationType')}_{event.get('resourceType', 'unknown')}",
+                    "id": f"{event.get('time', 'unknown')}_{event.get('operationType', 'unknown')}_{event.get('resourceType', 'unknown')}_{event.get('resourcePath', 'unknown')}",
                     "time": event_time_str,
                     "operation_type": event.get("operationType"),
                     "resource_type": event.get("resourceType"),
@@ -637,7 +637,10 @@ def schema(configuration: dict):
     """
     return [
         {"table": "user", "primary_key": ["id"]},
-        {"table": "user_attribute", "primary_key": ["user_id", "attribute_key"]},
+        {
+            "table": "user_attribute",
+            "primary_key": ["user_id", "attribute_key", "attribute_value"],
+        },
         {"table": "user_realm_role", "primary_key": ["user_id", "role_name"]},
         {"table": "user_required_action", "primary_key": ["user_id", "required_action"]},
         {"table": "group", "primary_key": ["id"]},
@@ -701,7 +704,10 @@ def update(configuration: dict, state: dict):
     client_id = configuration.get("client_id")
     client_secret = configuration.get("client_secret")
     sync_events_enabled = configuration.get("sync_events", "true").lower() == "true"
-    start_date = configuration.get("start_date", "2024-01-01")
+
+    # Default to 30 days ago if start_date not specified
+    default_start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    start_date = configuration.get("start_date", default_start_date)
 
     token_manager = TokenManager(keycloak_url, realm, client_id, client_secret)
 
