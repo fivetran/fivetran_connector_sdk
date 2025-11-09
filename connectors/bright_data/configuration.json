@@ -1,0 +1,10 @@
+{
+  "api_token": "8d6e4d1c20c89d26cd89a4a4e32bda872dbc1c0c39582c6a9c14ab978aa312cd",
+  "search_query": "",
+  "scrape_url": "https://www.linkedin.com/in/adomhamza, https://www.linkedin.com/in/albert-amoah",
+  "country": "us",
+  "search_engine": "google",
+  "data_format": "markdown",
+  "search_zone": "serp_api1",
+  "async_request": "true"
+}
