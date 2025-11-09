@@ -87,7 +87,7 @@ The connector maintains state with checkpointing to track sync progress. While t
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (refer to the `make_api_request()` function):
+The connector implements comprehensive error-handling strategies (refer to the `make_api_request()` function):
 
 - Automatic retry with exponential backoff for transient failures (HTTP 429, 500, 502, 503, 504)
 - Maximum of 3 retry attempts with delays of 1s, 2s, and 4s
