@@ -85,7 +85,7 @@ To set up authentication:
 15. Assign the following roles: view-users, view-events, view-realm, view-clients, view-identity-providers.
 16. Click **Assign**.
 
-The connector will use these credentials to obtain access tokens via the `/realms/{realm}/protocol/openid-connect/token` endpoint and automatically refresh tokens as they expire during sync operations.
+The connector uses these credentials to obtain access tokens via the `/realms/{realm}/protocol/openid-connect/token` endpoint and automatically refreshes tokens as they expire during sync operations.
 
 ## Pagination
 
