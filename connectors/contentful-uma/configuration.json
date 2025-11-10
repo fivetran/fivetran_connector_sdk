@@ -6,7 +6,6 @@
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
   "enable_organization_memberships": "<YOUR_ENABLE_ORGANIZATION_MEMBERSHIPS>",
   "enable_team_memberships": "<YOUR_ENABLE_TEAM_MEMBERSHIPS>",
   "enable_space_memberships": "<YOUR_ENABLE_SPACE_MEMBERSHIPS>"

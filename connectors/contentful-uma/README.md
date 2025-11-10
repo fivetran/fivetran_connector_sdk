@@ -28,28 +28,29 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "access_token": "<YOUR_CONTENTFUL_ACCESS_TOKEN>",
   "organization_id": "<YOUR_ORGANIZATION_ID>",
   "use_eu_region": "<YOUR_USE_EU_REGION>",
-  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",  
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
   "enable_organization_memberships": "<YOUR_ENABLE_ORGANIZATION_MEMBERSHIPS>",
   "enable_team_memberships": "<YOUR_ENABLE_TEAM_MEMBERSHIPS>",
   "enable_space_memberships": "<YOUR_ENABLE_SPACE_MEMBERSHIPS>"
 }
 ```
 
-Configuration parameters:
+Required parameters:
+- `access_token`: Content Management API token from Contentful
+- `organization_id`: The Contentful Organization ID to scope UMA API requests
+- `use_eu_region`: Set to "true" for EU region API endpoint
 
-- `access_token` (required): Content Management API token from Contentful
-- `organization_id` (required): The Contentful Organization ID to scope UMA API requests
-- `use_eu_region` (required): Set to "true" for EU region API endpoint
-- `initial_sync_days` (optional): Days of historical data to fetch on first sync (default: 90)
-- `max_records_per_page` (optional): Records per API request (default: 100, max: 100)
-- `request_timeout_seconds` (optional): HTTP request timeout (default: 30)
-- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync` (optional): Use timestamp-based incremental sync (default: true)
-- Feature toggles for each data type (all default: true)
+Optional parameters:
+- `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
+- `max_records_per_page`: Records per API request (default: 100, max: 100)
+- `request_timeout_seconds`: HTTP request timeout (default: 30)
+- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
+- `enable_organization_memberships`: Enable organization memberships (default: true)
+- `enable_team_memberships`: Enable team memberships (default: true)
+- `enable_space_memberships`: Enable space memberships (default: true)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -58,10 +59,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 1. Log in to the [Contentful web app](https://app.contentful.com).
-2. Navigate to **Settings** > **API keys**.
-3. Create a new **Content Management API** token or use an existing one.
+2. Navigate to **Settings > API keys**.
+3. Create a new Content Management API token or use an existing one.
 4. Make a note of the access token from your API key settings.
-5. Ensure your account has Premium/Enterprise access (required for the User Management API).
+5. Ensure your account has Premium/Enterprise access (required for User Management API).
 
 Note: The connector automatically handles token authentication with bearer token headers. Credentials are never logged or exposed in plain text.
 
@@ -80,14 +81,75 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - Parameter validation with descriptive error messages provides clear guidance for fixing setup issues
 
 ## Tables created
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| USERS | `id` | User personal information and account status |
-| ORGANIZATION_MEMBERSHIPS | `id` | Organization membership relationships and admin status |
-| TEAM_MEMBERSHIPS | `id` | Team membership relationships and permissions |
-| SPACE_MEMBERSHIPS | `id` | Space membership relationships and access levels |
 
-Column types are automatically inferred by Fivetran. Sample columns include `email`, `first_name`, `last_name`, `activated`, `admin`, `created_at`, `updated_at`.
+### USERS
+Primary key: `id`
+
+Description: User personal information and account status
+
+Columns:
+- `id` (string) - Unique user identifier
+- `email` (string) - User email address
+- `first_name` (string) - User's first name
+- `last_name` (string) - User's last name
+- `avatar_url` (string) - URL to user's avatar image
+- `activated` (boolean) - Whether the user account is activated
+- `sign_in_count` (integer) - Number of times the user has signed in
+- `confirmed` (boolean) - Whether the user account is confirmed
+- `created_at` (string) - ISO 8601 timestamp of when the user was created
+- `updated_at` (string) - ISO 8601 timestamp of when the user was last updated
+- `last_activity` (string) - ISO 8601 timestamp of the user's last activity
+- `timestamp` (string) - ISO 8601 timestamp of when the record was synced
+
+### ORGANIZATION_MEMBERSHIPS
+Primary key: `id`
+
+Description: Organization membership relationships and admin status
+
+Columns:
+- `id` (string) - Unique membership identifier
+- `type` (string) - Type of membership
+- `admin` (boolean) - Whether the user has admin privileges in the organization
+- `organization_membership_id` (string) - Organization membership identifier
+- `created_at` (string) - ISO 8601 timestamp of when the membership was created
+- `updated_at` (string) - ISO 8601 timestamp of when the membership was last updated
+- `email` (string) - User email address associated with the membership
+- `first_name` (string) - User's first name
+- `last_name` (string) - User's last name
+- `timestamp` (string) - ISO 8601 timestamp of when the record was synced
+
+### TEAM_MEMBERSHIPS
+Primary key: `id`
+
+Description: Team membership relationships and permissions
+
+Columns:
+- `id` (string) - Unique membership identifier
+- `type` (string) - Type of membership
+- `admin` (boolean) - Whether the user has admin privileges in the team
+- `team_membership_id` (string) - Team membership identifier
+- `organization_membership_id` (string) - Associated organization membership identifier
+- `created_at` (string) - ISO 8601 timestamp of when the membership was created
+- `updated_at` (string) - ISO 8601 timestamp of when the membership was last updated
+- `timestamp` (string) - ISO 8601 timestamp of when the record was synced
+
+### SPACE_MEMBERSHIPS
+Primary key: `id`
+
+Description: Space membership relationships and access levels
+
+Columns:
+- `id` (string) - Unique membership identifier
+- `type` (string) - Type of membership
+- `admin` (boolean) - Whether the user has admin privileges in the space
+- `space_id` (string) - Contentful space identifier
+- `user_id` (string) - User identifier associated with the membership
+- `created_at` (string) - ISO 8601 timestamp of when the membership was created
+- `updated_at` (string) - ISO 8601 timestamp of when the membership was last updated
+- `timestamp` (string) - ISO 8601 timestamp of when the record was synced
+
+_Note: Column types are automatically inferred by Fivetran based on the data values._
+
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

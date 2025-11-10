@@ -546,7 +546,6 @@ def update(configuration: dict, state: dict):
     # Extract configuration parameters (SDK auto-validates required fields)
     access_token = __get_config_str(configuration, "access_token")
     max_records_per_page = __get_config_int(configuration, "max_records_per_page", 100, 1, 100)
-    enable_incremental = __get_config_bool(configuration, "enable_incremental_sync", True)
 
     # Get state for incremental sync
     last_sync_time = state.get("last_sync_time")
