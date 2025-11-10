@@ -34,12 +34,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ```json
 {
-  "api_key": "<YOUR_ADFORM_API_KEY>",
-  "client_id": "<YOUR_CLIENT_ID>",
-  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "api_key"(required): "<YOUR_ADFORM_API_KEY>",
+  "client_id"(required): "<YOUR_CLIENT_ID>",
+  "initial_sync_days" (optional): "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page" (optional): "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds" (optional): "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts" (optional): "<YOUR_RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
@@ -65,30 +65,28 @@ Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-ins
 
 The connector uses Adform API keys for authentication with the Buyer API. Authentication is provided through:
 
-1. **API Keys**: Direct Adform API key in configuration
-2. **Client Access**: Client ID for data scope definition
+1. API key: Direct Adform API key in configuration
+2. Client access: Client ID for data scope definition
 
-**Required API Permissions:**
+Required API Permissions:
 - Buyer API access for querying campaign data
 - Client-level access for the specified client ID
-- Read permissions for campaigns
+- Read permissions for campaigns for Adform account administrator to ensure proper access levels.
 
-We recommend reviewing these permissions with your Adform account administrator to ensure proper access levels.
-
-**Steps to obtain credentials:**
-1. Go to your Adform account dashboard
-2. Navigate to Settings > API Keys
-3. Create a new API key with appropriate permissions
-4. **For Production**: We recommend adding credentials as GitHub secrets (see [Deployment](#deployment) section)
-5. **For Development**: You can add credentials to `configuration.json` (remember not to commit this file)
+Steps to obtain credentials:
+1. Go to your Adform account dashboard.
+2. Navigate to **Settings > API Keys**.
+3. Create a new API key with appropriate permissions.
+4. (For Production): We recommend adding credentials as GitHub secrets (see [Deployment](#deployment) section).
+5. (For Development): You can add credentials to `configuration.json` (remember not to commit this file).
 
 ## Pagination
 
 The connector handles data retrieval from Adform Buyer API with efficient pagination:
 
-- **Campaigns API**: Supports pagination for large campaign sets
-- **Data Volume Management**: Uses appropriate time ranges to manage data volume
-- **Incremental Syncs**: Implements incremental syncs to reduce data transfer
+- Campaigns API: Supports pagination for large campaign sets
+- Data volume management: Uses appropriate time ranges to manage data volume
+- Incremental sync: Implements incremental sync to reduce data transfer
 
 The connector implements efficient data handling by:
 - Processing complete API responses in memory
@@ -102,20 +100,20 @@ Refer to function `get_campaigns` in `connector.py` for the data retrieval imple
 
 The connector processes Adform data through several stages:
 
-1. **Data Extraction**: Direct Buyer API calls to Adform endpoints
-2. **Data Transformation**: Conversion of Adform API responses to structured table format
-3. **Schema Mapping**: Consistent data types and column naming across all tables
-4. **State Management**: Checkpoint-based incremental sync support
-5. **Error Handling**: Comprehensive error handling with logging and validation
+1. Data extraction: Direct Buyer API calls to Adform endpoints.
+2. Data transformation: Conversion of Adform API responses to structured table format.
+3. Schema mapping: Consistent data types and column naming across all tables.
+4. State management: Checkpoint-based incremental sync support.
+5. Error handling: Comprehensive error handling with logging and validation.
 
-**Data Processing Features:**
-- **Type Conversion**: Adform API responses converted to appropriate data types
-- **Default Values**: Missing dimensions populated with appropriate defaults
-- **Timestamp Handling**: ISO format timestamp conversion and period-based grouping
-- **Filtering**: Campaign and time-based filtering based on configuration
-- **Dynamic Time Ranges**: Intelligent time range selection for initial vs incremental syncs
+Data processing features:
+- Type conversion: Adform API responses converted to appropriate data types
+- Default values: Missing dimensions populated with appropriate defaults
+- Timestamp handling: ISO format timestamp conversion and period-based grouping
+- Filtering: Campaign and time-based filtering based on configuration
+- Dynamic time ranges: Intelligent time range selection for initial vs incremental syncs
 
-**Data Flow:**
+Data flow:
 Adform Buyer API → Requests Client → Dynamic Time Range Processing → Data Processing Functions → Fivetran Operations → Data Warehouse Tables
 
 Refer to functions `get_time_range`, `execute_api_request`, and `get_campaigns` in `connector.py` for detailed data handling logic.
@@ -124,35 +122,35 @@ Refer to functions `get_time_range`, `execute_api_request`, and `get_campaigns` 
 
 The connector implements comprehensive error handling strategies to ensure robust operation:
 
-**Configuration Validation Errors:**
-- **ValueError**: Missing required configuration values (`api_key`, `client_id`)
-- **ValueError**: Empty API key or client ID values
+Configuration validation errors:
+- ValueError: Missing required configuration values (`api_key`, `client_id`)
+- ValueError: Empty API key or client ID values
 
-**API Request Errors:**
-- **RequestException**: Handles network timeouts, connection errors, and HTTP failures
-- **RuntimeError**: Manages API request failures and query execution errors
+API request errors:
+- RequestException: Handles network timeouts, connection errors, and HTTP failures
+- RuntimeError: Manages API request failures and query execution errors
 
-**Sync Operation Errors:**
-- **RuntimeError**: Handles general sync failures with detailed error messages
-- **Logging**: Uses Fivetran's logging system with info and severe levels for comprehensive reporting
+Sync operation errors:
+- RuntimeError: Handles general sync failures with detailed error messages
+- Logging: Uses Fivetran's logging system with info and severe levels for comprehensive reporting
 
-**Error Handling Implementation:**
-- **Early Validation**: Configuration parameters validated before API calls
-- **Exception Propagation**: Errors are logged and re-raised for Fivetran to handle
-- **State Preservation**: Checkpoint system maintains sync state across failures
+Error handling implementation:
+- Early validation: Configuration parameters validated before API calls
+- Exception propagation: Errors are logged and re-raised for Fivetran to handle
+- State preservation: Checkpoint system maintains sync state across failures
 
 Refer to functions `validate_configuration`, `execute_api_request`, and the main `update` function in `connector.py` for error handling implementation.
 
 ## Tables created
 
-The connector creates the following table for Adform campaign data analysis. **Column types are automatically inferred by Fivetran** based on the actual data structure and content.
+The connector creates the following table for Adform campaign data analysis. _Column types are automatically inferred by Fivetran_ based on the actual data structure and content.
 
 ### CAMPAIGN
 Primary table for campaign information and configuration data with comprehensive campaign metadata.
 
-**Primary Key**: `id`
+Primary key: `id`
 
-**Sample Columns** (automatically inferred by Fivetran):
+Sample columns (automatically inferred by Fivetran):
 - `id` - Unique Adform campaign identifier
 - `client_id` - Adform client identifier
 - `name` - Campaign name
