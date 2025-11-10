@@ -57,12 +57,12 @@ DocuSign API uses offset-based pagination with `start_position` and `count` para
 
 - `access_token` (required): OAuth2 access token for DocuSign API authentication
 - `account_id` (required): DocuSign account ID for API requests
-- `initial_sync_days` (optional): Days of historical data for initial sync (1-365, default: 90)
-- `max_records_per_page` (optional): Records per API call (10-1000, default: 100)
-- `request_timeout_seconds` (optional): API request timeout (5-300 seconds, default: 30)
-- `retry_attempts` (optional): Number of retry attempts for failed requests (1-10, default: 3)
-- `enable_templates` (optional): Whether to sync template data (true/false, default: true)
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (true/false, default: true)
+- `initial_sync_days` (optional): Days of historical data for initial sync (1-365, default: `90`)
+- `max_records_per_page` (optional): Records per API call (10-1000, default: `100`)
+- `request_timeout_seconds` (optional): API request timeout (5-300 seconds, default: `30`)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (1-10, default: `3`)
+- `enable_templates` (optional): Whether to sync template data (true/false, default: `true`)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (true/false, default: `true`)
 
 ## Requirements file
 
@@ -74,13 +74,16 @@ Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-ins
 
 ### OAuth2 setup
 
-1. Create DocuSign developer account: Register at [DocuSign Developer Center](https://developers.docusign.com)
-2. Create integration key: Generate an integration key in the DocuSign Admin console
-3. Configure OAuth2: Set up OAuth2 application with appropriate scopes
-4. Generate access token: Use OAuth2 flow to obtain access token with required permissions
-5. Obtain account id: Retrieve your DocuSign account ID from the API or admin console
+1. Register at [DocuSign Developer Center](https://developers.docusign.com) to create a DocuSign developer account.
+2. Generate an integration key in the DocuSign Admin console.
+3. Set up OAuth2 application with appropriate scopes.
+4. Use OAuth2 flow to obtain access token with required permissions.
+5. Retrieve your DocuSign account ID from the API or admin console.
 
 ### Required permissions
+
+The following permissions are required:
+
 - `signature` scope for envelope access
 - `extended` scope for advanced envelope features
 - `impersonation` scope for account-level operations
