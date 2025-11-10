@@ -89,6 +89,8 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
+The connector creates the `CUSTOMERS`, `COMPANIES`, `BRANDS`, and `MESSAGES` tables.
+
 Column types are automatically inferred by Fivetran.
 
 ### CUSTOMERS
@@ -107,8 +109,6 @@ Column types are automatically inferred by Fivetran.
 | `locked` | Boolean | Indicates whether the customer account is locked. |
 | `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
 
-Primary key: `id`
-
 ### COMPANIES
 
 | Column | Type | Description |
@@ -122,8 +122,6 @@ Primary key: `id`
 | `domains` | String (JSON) | JSON array of company domain names. |
 | `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
 
-Primary key: `id`
-
 ### BRANDS
 
 | Column | Type | Description |
@@ -136,8 +134,6 @@ Primary key: `id`
 | `is_default` | Boolean | Indicates whether this is the default brand. |
 | `website_url` | String | Brand website URL. |
 | `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
-
-Primary key: `id`
 
 ### MESSAGES
 
@@ -154,8 +150,6 @@ Primary key: `id`
 | `status` | String | Message status (e.g., "sent", "delivered", "read"). |
 | `message_type` | String | Type of message (e.g., "text", "email", "note"). |
 | `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
-
-Primary key: `id`
 
 
 ## Additional considerations
