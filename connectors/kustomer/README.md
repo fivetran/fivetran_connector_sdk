@@ -40,13 +40,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 Note: Ensure that the 'configuration.json' file is not checked into version control to protect sensitive information.
 
-### Configuration parameters
+Configuration parameters:
 
-- `api_key` (required): Bearer token from Kustomer API Keys settings
-- `max_records_per_page` (optional): API page size for pagination (1-1000)
-- `request_timeout_seconds` (optional): HTTP request timeout (seconds)
-- `retry_attempts` (optional): Number of retry attempts for failed requests
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync
+- `api_key` (required): Bearer token from Kustomer API Keys settings.
+- `max_records_per_page` (optional): API page size for pagination (1-1000).
+- `request_timeout_seconds` (optional): HTTP request timeout expressed on seconds.
+- `retry_attempts` (optional): Number of retry attempts for failed requests.
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental sync.
 
 ## Requirements file
 
@@ -57,15 +57,15 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 
 1. Log in to the [Kustomer Developer Portal](https://developer.kustomer.com).
-2. Navigate to Settings > Security > API Keys in your Kustomer instance.
-3. Click "Create New API Key" to generate a new API token.
+2. Navigate to **Settings** > **Security** > **API Keys** in your Kustomer instance.
+3. Click **Create New API Key** to generate a new API token.
 4. Select an appropriate API role with read permissions for:
    - Customers
    - Companies
    - Brands
    - Messages
-5. Apply a descriptive label such as "Fivetran Connector".
-6. Copy the generated API key and use it as the `api_key` configuration parameter.
+5. Apply a descriptive label, such as "fivetran connector".
+6. Make a note of the generated API key and use it as the `api_key` configuration parameter.
 
 Note: The connector automatically handles Bearer token authentication with proper header formatting. API keys are never logged or exposed in plain text.
 
@@ -91,12 +91,14 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| CUSTOMERS | `id` | Customer personal information, contact details, and account status |
-| COMPANIES | `id` | Company information including domains, websites, and external references |
-| BRANDS | `id` | Brand configuration, display names, and website URLs |
-| MESSAGES | `id` | Message content, conversation threads, and communication channel data |
+| CUSTOMERS | `id` | Customer personal information, contact details, and account status. |
+| COMPANIES | `id` | Company information including domains, websites, and external references. |
+| BRANDS | `id` | Brand configuration, display names, and website URLs. |
+| MESSAGES | `id` | Message content, conversation threads, and communication channel data. |
 
-Column types are automatically inferred by Fivetran. Sample columns include `name`, `email`, `phone`, `created_at`, `updated_at`, `company_id`, `external_id`, `verified`, `locked`, `website`, `domains`, `display_name`, `is_default`, `conversation_id`, `customer_id`, `channel`, `direction`, `body`, `status`, `message_type`.
+Column types are automatically inferred by Fivetran. 
+
+Sample columns include `name`, `email`, `phone`, `created_at`, `updated_at`, `company_id`, `external_id`, `verified`, `locked`, `website`, `domains`, `display_name`, `is_default`, `conversation_id`, `customer_id`, `channel`, `direction`, `body`, `status`, `message_type`.
 
 
 ## Additional considerations
