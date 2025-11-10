@@ -1,10 +1,10 @@
 # Rotamaster API Connector Example
 
 ## Connector overview
-This connector syncs employee, team, and role data from Rotamaster API into your data warehouse. The connector fetches data from three core endpoints: `/api/People` for employee information including personal details and employment status, `/api/Team` for organizational team structure, and `/api/Role` for role definitions and hierarchies. It supports incremental synchronization using timestamp-based cursors and includes comprehensive filtering options for employee status (active, archived, suspended, deleted).
+This connector syncs employee, team, and role data from Rotamaster API into your destination. The connector fetches data from three core endpoints: `/api/People` for employee information including personal details and employment status, `/api/Team` for organizational team structure, and `/api/Role` for role definitions and hierarchies. It supports incremental synchronization using timestamp-based cursors and includes comprehensive filtering options for employee status (active, archived, suspended, deleted).
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -15,13 +15,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Syncs employee data, team information, and role definitions from Rotamaster API
-- Bearer token authentication with comprehensive error handling (refer to `execute_api_request` function)
-- Record-based pagination with configurable limits (refer to `get_people_data` function)
+- Bearer token authentication with comprehensive error handling (refer to the `execute_api_request` function)
+- Record-based pagination with configurable limits (refer to the `get_people_data` function)
 - Memory-efficient streaming prevents data accumulation for large employee datasets
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic
 - Configurable employee filtering by status (active, archived, suspended, deleted)
-- Rate limiting handling with automatic retry delays (refer to `__handle_rate_limit` function)
+- Rate limiting handling with automatic retry delays (refer to the `__handle_rate_limit` function)
 
 ## Configuration file
 ```json
@@ -90,9 +90,9 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 ## Tables created
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| PEOPLE | `id` | Employee personal information, employment details, and status |
-| TEAMS | `id` | Team and organizational group information |
-| ROLES | `id` | Role definitions and organizational hierarchy |
+| PEOPLE | `id` | Employee personal information, employment details, and status. |
+| TEAMS | `id` | Team and organizational group information. |
+| ROLES | `id` | Role definitions and organizational hierarchy. |
 
 Column types are automatically inferred by Fivetran. Sample columns include `first_name`, `last_name`, `email`, `employment_start_date`, `is_active`, `team_name`, `role_name`, `nominal_code`.
 
@@ -125,15 +125,6 @@ Column types are automatically inferred by Fivetran. Sample columns include `fir
 - `name`: Role name
 - `nominal_code`: Role nominal code (optional)
 - `sync_timestamp`: Record synchronization timestamp
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Rotamaster API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
