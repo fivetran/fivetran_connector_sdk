@@ -26,24 +26,20 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_key": "<YOUR_ZEROHASH_API_KEY>",
   "secret_key": "<YOUR_ZEROHASH_SECRET_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+  "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 ### Configuration parameters
-- `api_key`: Your ZeroHash API public key (required)
-- `secret_key`: Your ZeroHash API secret key for signing requests (required)
-- `sync_frequency_hours`: How often to sync data in hours
-- `initial_sync_days`: Number of days to sync on first run
-- `request_timeout_seconds`: Timeout for API requests
-- `retry_attempts`: Number of retry attempts for failed requests
-- `enable_incremental_sync`: Enable timestamp-based incremental syncing
-- `enable_debug_logging`: Enable detailed logging for troubleshooting
+- `api_key` (required): Your ZeroHash API public key (required)
+- `secret_key` (required): Your ZeroHash API secret key for signing requests (required)
+- `initial_sync_days` (optional): Number of days to sync on first run
+- `request_timeout_seconds` (optional): Timeout for API requests
+- `retry_attempts` (optional): Number of retry attempts for failed requests
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -81,15 +77,43 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | ACCOUNTS | `id` | Account balances and asset holdings for each participant |
 | ASSETS | `id` | Supported cryptocurrency and digital asset definitions |
 
-Column types are automatically inferred by Fivetran. Sample columns include `email`, `participant_code`, `name`, `status`, `account_id`, `asset_symbol`, `balance`, `available_balance`, `symbol`, `decimals`, `minimum_amount`, `maximum_amount`.
+### PARTICIPANTS table columns
+- `id` (Primary Key): Unique participant identifier
+- `email`: Participant email address
+- `participant_code`: Participant code identifier
+- `name`: Participant name
+- `type`: Participant type (CUSTOMER, BUSINESS, INDIVIDUAL)
+- `status`: Participant status (ACTIVE, PENDING, SUSPENDED)
+- `created_at`: Timestamp when participant was created
+- `updated_at`: Timestamp when participant was last updated
+- `timestamp`: Sync timestamp in UTC
 
-## Additional files
+### ACCOUNTS table columns
+- `id` (Primary Key): Unique account identifier
+- `account_id`: Account ID
+- `participant_id`: Associated participant identifier
+- `asset_symbol`: Cryptocurrency or asset symbol (e.g., BTC, ETH, USDC)
+- `balance`: Total account balance (stored as string for precision)
+- `available_balance`: Available balance for trading (stored as string for precision)
+- `status`: Account status (ACTIVE, FROZEN, etc.)
+- `created_at`: Timestamp when account was created
+- `updated_at`: Timestamp when account was last updated
+- `timestamp`: Sync timestamp in UTC
 
-The connector includes several additional files to support functionality, testing, and deployment:
+### ASSETS table columns
+- `id` (Primary Key): Unique asset identifier
+- `symbol`: Asset symbol (e.g., BTC, ETH, USDC)
+- `name`: Asset name (e.g., Bitcoin, Ethereum, USD Coin)
+- `type`: Asset type (CRYPTOCURRENCY, TOKEN, STABLECOIN, etc.)
+- `decimals`: Number of decimal places for the asset
+- `status`: Asset status (ACTIVE, INACTIVE, etc.)
+- `minimum_amount`: Minimum transaction amount (stored as string for precision)
+- `maximum_amount`: Maximum transaction amount (stored as string for precision)
+- `created_at`: Timestamp when asset was created
+- `updated_at`: Timestamp when asset was last updated
+- `timestamp`: Sync timestamp in UTC
 
-- `requirements.txt` – Python dependency specification for ZeroHash API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
+Column types are automatically inferred by Fivetran.
 
 
 ## Additional considerations
