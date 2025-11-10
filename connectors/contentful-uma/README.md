@@ -39,17 +39,16 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-Required parameters:
-- `access_token`: Content Management API token from Contentful
-- `organization_id`: The Contentful Organization ID to scope UMA API requests
-- `use_eu_region`: Set to "true" for EU region API endpoint
+Configuration parameters:
 
-Optional parameters:
-- `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
-- `max_records_per_page`: Records per API request (default: 100, max: 100)
-- `request_timeout_seconds`: HTTP request timeout (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Use timestamp-based incremental sync (default: true)
+- `access_token` (required): Content Management API token from Contentful
+- `organization_id` (required): The Contentful Organization ID to scope UMA API requests
+- `use_eu_region` (required): Set to "true" for EU region API endpoint
+- `initial_sync_days` (optional): Days of historical data to fetch on first sync (default: 90)
+- `max_records_per_page` (optional): Records per API request (default: 100, max: 100)
+- `request_timeout_seconds` (optional): HTTP request timeout (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_incremental_sync` (optional): Use timestamp-based incremental sync (default: true)
 - Feature toggles for each data type (all default: true)
 
 ## Requirements file
@@ -59,10 +58,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 1. Log in to the [Contentful web app](https://app.contentful.com).
-2. Navigate to Settings > API keys.
-3. Create a new Content Management API token or use an existing one.
+2. Navigate to **Settings** > **API keys**.
+3. Create a new **Content Management API** token or use an existing one.
 4. Make a note of the access token from your API key settings.
-5. Ensure your account has Premium/Enterprise access (required for User Management API).
+5. Ensure your account has Premium/Enterprise access (required for the User Management API).
 
 Note: The connector automatically handles token authentication with bearer token headers. Credentials are never logged or exposed in plain text.
 
