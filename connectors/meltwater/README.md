@@ -34,13 +34,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_MELTWATER_API_KEY>",
-  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<RETRY_ATTEMPTS>",
   "enable_incremental_sync": "<ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>",
   "enable_hooks": "<ENABLE_HOOKS>",
   "enable_searches": "<ENABLE_SEARCHES>",
   "enable_tags": "<ENABLE_TAGS>"
@@ -50,24 +48,18 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 Configuration parameters:
 
 - `api_key` (required): Your Meltwater API authentication token 
-- `sync_frequency_hours`: How often to run incremental syncs (default: `4`)
-- `initial_sync_days`: Days of historical data to fetch on first sync (default: `90`)
-- `max_records_per_page`: Maximum records per API request (1-1000, default: `100`)
-- `request_timeout_seconds`: HTTP request timeout in seconds (default: `30`)
-- `retry_attempts`: Number of retry attempts for failed requests (default: `3`)
-- `enable_incremental_sync`: Enable timestamp-based incremental synchronization (default: `true`)
-- `enable_debug_logging`: Enable detailed debug logging (default: `false`)
-- `enable_hooks`: Sync webhook configurations (default: `true`)
-- `enable_searches`: Sync saved search definitions (default: `true`)
-- `enable_tags`: Sync tag definitions (default: `true`)
+- `initial_sync_days` (optional) : Number of days to sync on first run (default: `90`)
+- `max_records_per_page` (optional): Maximum records per API request (1-1000, default: `100`)
+- `request_timeout_seconds` (optional): HTTP request timeout in seconds (default: `30`)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: `3`)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental synchronization (default: `true`)
+- `enable_hooks` (optional): Sync webhook configurations (default: `true`)
+- `enable_searches` (optional): Sync saved search definitions (default: `true`)
+- `enable_tags` (optional): Sync tag definitions (default: `true`)
 
 ## Requirements file
 
-This connector requires the `faker` package for comprehensive testing functionality.
-
-```
-faker
-```
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
