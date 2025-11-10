@@ -27,7 +27,7 @@ The FDA Drug API Connector provides access to comprehensive drug-related data fr
 
 ### Prerequisites
 
-- Python 3.9-3.12
+- Python 3.10-3.13
 - Fivetran Connector SDK
 - FDA API key (optional but recommended)
 
