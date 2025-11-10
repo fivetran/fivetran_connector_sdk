@@ -27,7 +27,7 @@ Fivetran Connector SDK allows you to code a custom data connector using Python a
 Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
 
 ## Requirements
-- Python version ≥3.9 and ≤3.12
+- Python version ≥3.10 and ≤3.13
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -257,11 +257,11 @@ This repository is open source and intended specifically for Connector SDK examp
 2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
 3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
 4. Ensure your code works correctly and follows our coding standards.
-  - [Python coding standards](./PYTHON_CODING_STANDARDS.md)
-  - [Fivetran coding principles](./FIVETRAN_CODING_PRINCIPLES.md)
+  - [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
+  - [Fivetran coding principles](https://github.com/fivetran/fivetran_connector_sdk/blob/main/FIVETRAN_CODING_PRINCIPLES.md)
 5. Open a pull request with a clear description of your changes.
   - If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag 
-  - If your're part of the Fivetran internal hackathon, please use the `hackathon` tag  
+  - If you're part of the Fivetran internal hackathon, please use the `hackathon` tag  
 
 ### What we're looking for
 
