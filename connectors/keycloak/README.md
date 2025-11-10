@@ -67,7 +67,7 @@ To set up authentication:
 
 1. Log in to your Keycloak Admin Console (e.g., http://localhost:8080/admin).
 2. Navigate to **Clients** and click **Create client**.
-3. Set **Client ID** to a descriptive name (e.g., Fivetran-connector).
+3. Set **Client ID** to a descriptive name (e.g., fivetran_connector).
 4. Set **Client Protocol** to openid-connect.
 5. Click **Next**.
 6. Enable **Client authentication**.
