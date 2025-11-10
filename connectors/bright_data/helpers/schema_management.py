@@ -1,9 +1,24 @@
 """Schema and fields management utilities."""
 
-from typing import Set
+from typing import List, Set
 
-import yaml
 from fivetran_connector_sdk import Logging as log
+
+
+def _build_yaml_lines(fields: List[str], table_name: str) -> str:
+    description = (
+        "Dynamically created table from Bright Data search results. "
+        "Fields are inferred from the API response structure."
+    )
+    lines = [
+        "tables:",
+        f"  {table_name}:",
+        f"    description: {description}",
+        "    fields:",
+    ]
+    for field in fields:
+        lines.append(f"      - {field}")
+    return "\n".join(lines) + "\n"
 
 
 def update_fields_yaml(fields: Set[str], table_name: str = "search_results") -> None:
@@ -16,20 +31,14 @@ def update_fields_yaml(fields: Set[str], table_name: str = "search_results") -> 
         fields: Set of field names discovered from search results
         table_name: Name of the table these fields belong to
     """
-    fields_data = {
-        "tables": {
-            table_name: {
-                "fields": sorted(list(fields)),
-                "description": "Dynamically created table from Bright Data search results. Fields are inferred from the API response structure.",
-            }
-        }
-    }
+    sorted_fields = sorted(list(fields))
+    yaml_content = _build_yaml_lines(sorted_fields, table_name)
 
     try:
         with open("fields.yaml", "w", encoding="utf-8") as yaml_file:
-            yaml.dump(fields_data, yaml_file, default_flow_style=False, sort_keys=False)
+            yaml_file.write(yaml_content)
         log.info(
             f"Updated fields.yaml with {len(fields)} fields for table '{table_name}'"
         )
-    except (IOError, yaml.YAMLError) as e:
+    except IOError as e:
         log.info(f"Warning: Could not update fields.yaml: {str(e)}")

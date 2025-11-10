@@ -129,3 +129,31 @@ def process_scrape_result(result: Any, url: str, result_index: int) -> Dict[str,
 
     # Merge base fields with flattened fields (base fields take precedence)
     return {**flattened, **base_fields}
+
+
+def process_unlocker_result(
+    result: Any, requested_url: str, result_index: int
+) -> Dict[str, Any]:
+    """
+    Process a single web unlocker result by flattening nested dictionaries.
+
+    Args:
+        result: Unlocker result dictionary returned by perform_web_unlocker
+        requested_url: The URL that was requested
+        result_index: Index of this result in the result set
+
+    Returns:
+        Flattened dictionary with all fields as top-level keys
+    """
+    base_fields = {
+        "requested_url": requested_url,
+        "result_index": result_index,
+        "position": result_index + 1,
+    }
+
+    if not isinstance(result, dict):
+        base_fields["raw_data"] = str(result)
+        return base_fields
+
+    flattened = flatten_dict(result)
+    return {**flattened, **base_fields}
