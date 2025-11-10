@@ -89,16 +89,73 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| CUSTOMERS | `id` | Customer personal information, contact details, and account status. |
-| COMPANIES | `id` | Company information including domains, websites, and external references. |
-| BRANDS | `id` | Brand configuration, display names, and website URLs. |
-| MESSAGES | `id` | Message content, conversation threads, and communication channel data. |
+Column types are automatically inferred by Fivetran.
 
-Column types are automatically inferred by Fivetran. 
+### CUSTOMERS
 
-Sample columns include `name`, `email`, `phone`, `created_at`, `updated_at`, `company_id`, `external_id`, `verified`, `locked`, `website`, `domains`, `display_name`, `is_default`, `conversation_id`, `customer_id`, `channel`, `direction`, `body`, `status`, `message_type`.
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Primary key. Unique customer identifier. |
+| `name` | String | Customer's full name. |
+| `email` | String | Customer's email address. |
+| `phone` | String | Customer's phone number. |
+| `created_at` | Timestamp | ISO 8601 timestamp when the customer record was created. |
+| `updated_at` | Timestamp | ISO 8601 timestamp when the customer record was last updated. |
+| `company_id` | String | Foreign key reference to the company the customer belongs to. |
+| `external_id` | String | External system identifier for the customer. |
+| `verified` | Boolean | Indicates whether the customer's information has been verified. |
+| `locked` | Boolean | Indicates whether the customer account is locked. |
+| `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
+
+Primary key: `id`
+
+### COMPANIES
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Primary key. Unique company identifier. |
+| `name` | String | Company name. |
+| `created_at` | Timestamp | ISO 8601 timestamp when the company record was created. |
+| `updated_at` | Timestamp | ISO 8601 timestamp when the company record was last updated. |
+| `external_id` | String | External system identifier for the company. |
+| `website` | String | Company website URL. |
+| `domains` | String (JSON) | JSON array of company domain names. |
+| `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
+
+Primary key: `id`
+
+### BRANDS
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Primary key. Unique brand identifier. |
+| `name` | String | Brand name. |
+| `created_at` | Timestamp | ISO 8601 timestamp when the brand record was created. |
+| `updated_at` | Timestamp | ISO 8601 timestamp when the brand record was last updated. |
+| `display_name` | String | Brand display name. |
+| `is_default` | Boolean | Indicates whether this is the default brand. |
+| `website_url` | String | Brand website URL. |
+| `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
+
+Primary key: `id`
+
+### MESSAGES
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Primary key. Unique message identifier. |
+| `conversation_id` | String | Foreign key reference to the conversation this message belongs to. |
+| `customer_id` | String | Foreign key reference to the customer who sent or received the message. |
+| `channel` | String | Communication channel (e.g., "email", "chat", "sms"). |
+| `direction` | String | Message direction: "inbound" or "outbound". |
+| `body` | String | Message content/body text. |
+| `created_at` | Timestamp | ISO 8601 timestamp when the message was created. |
+| `updated_at` | Timestamp | ISO 8601 timestamp when the message was last updated. |
+| `status` | String | Message status (e.g., "sent", "delivered", "read"). |
+| `message_type` | String | Type of message (e.g., "text", "email", "note"). |
+| `fetch_timestamp` | Timestamp | ISO 8601 timestamp when the record was fetched from the API. |
+
+Primary key: `id`
 
 
 ## Additional considerations
