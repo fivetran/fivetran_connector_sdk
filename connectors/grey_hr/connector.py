@@ -215,29 +215,86 @@ def handle_api_response(
         RuntimeError: If request fails permanently.
     """
     if response.status_code == 200:
-        return response.json()
+        return handle_success_response(response)
+    if response.status_code in [401, 403]:
+        return handle_auth_errors(
+            response, headers, api_username, api_password, greythr_domain, attempt
+        )
+    if response.status_code == 404:
+        return handle_client_errors(response, url)
+    if response.status_code in [429, 500, 502, 503, 504]:
+        return handle_retryable_errors(response, attempt)
+    return handle_unexpected_error(response)
 
+def handle_success_response(response):
+    """
+    Handle successful API response (HTTP 200).
+    Args:
+        response: HTTP response object.
+    Returns:
+        dict: JSON response.
+    """
+    return response.json()
+
+def handle_auth_errors(response, headers, api_username, api_password, greythr_domain, attempt):
+    """
+    Handle authentication errors (HTTP 401, 403).
+    Args:
+        response: HTTP response object.
+        headers: HTTP headers dictionary.
+        api_username: API username for token refresh.
+        api_password: API password for token refresh.
+        greythr_domain: greytHR domain for token refresh.
+        attempt: Current retry attempt number.
+    Returns:
+        None if token refresh is attempted, otherwise raises RuntimeError.
+    Raises:
+        RuntimeError: If authentication fails permanently.
+    """
     if response.status_code == 401:
         if handle_token_expiration(headers, api_username, api_password, greythr_domain, attempt):
             return None
         raise RuntimeError(f"Authentication failed: {response.text}")
-
     if response.status_code == 403:
         log.severe(f"Access forbidden: {response.text}")
         raise RuntimeError(f"Access forbidden: {response.text}")
 
-    if response.status_code == 404:
-        log.warning(f"Resource not found: {url}")
-        return {}
+def handle_client_errors(response, url):
+    """
+    Handle client errors (HTTP 404).
+    Args:
+        response: HTTP response object.
+        url: API endpoint URL.
+    Returns:
+        dict: Empty dictionary for not found.
+    """
+    log.warning(f"Resource not found: {url}")
+    return {}
 
-    if response.status_code in [429, 500, 502, 503, 504]:
-        handle_retryable_error(attempt, response.status_code, "API request")
-        return None
+def handle_retryable_errors(response, attempt):
+    """
+    Handle retryable errors (HTTP 429, 500, 502, 503, 504).
+    Args:
+        response: HTTP response object.
+        attempt: Current retry attempt number.
+    Returns:
+        None to indicate retry.
+    Raises:
+        RuntimeError: If maximum retries exceeded.
+    """
+    handle_retryable_error(attempt, response.status_code, "API request")
+    return None
 
+def handle_unexpected_error(response):
+    """
+    Handle unexpected API errors.
+    Args:
+        response: HTTP response object.
+    Raises:
+        RuntimeError: For unexpected errors.
+    """
     log.severe(f"Unexpected API error: {response.status_code} - {response.text}")
     raise RuntimeError(f"API error: {response.status_code} - {response.text}")
-
-
 def handle_retryable_error(attempt, status_code, operation_name):
     """
     Handle retryable HTTP errors with exponential backoff.
