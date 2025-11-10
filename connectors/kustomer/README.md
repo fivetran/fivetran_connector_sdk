@@ -19,10 +19,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Syncs customer data, company information, brand details, and message records from Kustomer APIs
-- Bearer token authentication with automatic API key validation (refer to `execute_api_request` function)
-- Page-based pagination with automatic page traversal (refer to `get_customers`, `get_companies`, `get_brands`, and `get_messages` functions)
+- Bearer token authentication with automatic API key validation (refer to the `execute_api_request` function)
+- Page-based pagination with automatic page traversal (refer to the `get_customers`, `get_companies`, `get_brands`, and `get_messages` functions)
 - Memory-efficient streaming prevents data accumulation for large datasets using generator patterns
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic for rate limits and network issues
 - Configurable sync parameters including page size, retry attempts, and timeout settings
 
@@ -71,7 +71,7 @@ Note: The connector automatically handles Bearer token authentication with prope
 
 ## Pagination
 
-Page-based pagination with automatic page traversal (refer to `get_customers`, `get_companies`, `get_brands`, and `get_messages` functions). Generator-based processing prevents memory accumulation for large datasets. Processes pages sequentially while yielding individual records for immediate processing. Supports configurable page sizes from 1-1000 records per page.
+Page-based pagination with automatic page traversal (refer to the `get_customers`, `get_companies`, `get_brands`, and `get_messages` functions). Generator-based processing prevents memory accumulation for large datasets. Processes pages sequentially while yielding individual records for immediate processing. Supports configurable page sizes from 1-1000 records per page.
 
 ## Data handling
 
