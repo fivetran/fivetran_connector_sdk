@@ -4,7 +4,7 @@
 This connector syncs participants, accounts, and assets data from the ZeroHash API. It demonstrates how to implement HMAC-SHA256 authentication, handle cryptocurrency and digital asset data, and process financial information using memory-efficient streaming patterns. The connector fetches participant information, account balances, and supported asset definitions from ZeroHash's certification environment.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -15,10 +15,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Syncs participants, accounts, and assets data from ZeroHash API
-- HMAC-SHA256 authentication with automatic signature generation (refer to `__generate_signature` function)
-- Memory-efficient streaming prevents data accumulation for large datasets (refer to `get_participants`, `get_accounts`, and `get_assets` functions)
-- Comprehensive error handling with exponential backoff retry logic (refer to `__handle_rate_limit` and `__handle_request_error` functions)
-- Incremental synchronization using timestamp-based cursors (refer to `get_time_range` function)
+- HMAC-SHA256 authentication with automatic signature generation (refer to the `__generate_signature` function)
+- Memory-efficient streaming prevents data accumulation for large datasets (refer to the `get_participants`, `get_accounts`, and `get_assets` functions)
+- Comprehensive error handling with exponential backoff retry logic (refer to the `__handle_rate_limit` and `__handle_request_error` functions)
+- Incremental synchronization using timestamp-based cursors (refer to the `get_time_range` function)
 - Cryptocurrency and digital asset data processing with proper decimal handling
 
 ## Configuration file
