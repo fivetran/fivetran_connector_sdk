@@ -8,7 +8,7 @@ A public collection of Python examples, templates, and guides for building custo
 - `fivetran_platform_features/schema_change/` – shows handling of schema/type changes.
 
 **Runtime & tooling (assume unless PR updates it)**
-- Python supported across 3.9–3.13
+- Python supported across 3.10–3.13
 - Linting: `flake8` with PEP 8 compliance.
 - Python standard coding and formatting guidelines are followed (snake_case for functions/variables, PascalCase for classes)
 
