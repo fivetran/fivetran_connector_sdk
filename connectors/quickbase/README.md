@@ -23,42 +23,28 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Comprehensive application data: Complete application metadata including ancestry tracking, classification labels, memory usage, security properties, and configuration settings
-- Enhanced field schema management: Complete field definitions including audit tracking, help text, data copy settings, mode information, and all calculation capabilities
-- Table structure analysis: Table definitions, relationships, field mappings, and data organization
-- Records data extraction: Complete record-level data with field mappings, relationships, and intelligent timestamp handling
-- Advanced pagination metadata: Detailed pagination tracking with total records, field counts, skip/top parameters for optimal sync monitoring
-- Governance & compliance support: Application ancestry tracking, data classification labels, audit logging flags, and field-level governance metadata
-- Multi-application support: Extract data from multiple Quickbase applications simultaneously
-- Dynamic schema discovery: Automatic detection of application structure and field definitions with complete property capture
-- Intelligent timestamp handling: Preserves original API timestamps when available, falls back to processing time only when necessary
-- Incremental syncs: Efficient data updates with checkpoint-based state management and enhanced metadata tracking
-- Configurable table selection: Choose specific tables or sync entire applications
-- Error handling: Robust error handling with comprehensive logging and validation
-- Mock testing framework: Complete testing suite with Faker-generated realistic data
-- CI/CD integration: Automated deployment via GitHub Actions with comprehensive quality checks
-- Environment management: Secure credential management using GitHub Environments
-- Zero-downtime deployment: Seamless updates without service interruption
+- **Application, table, field, and record data extraction**: Syncs comprehensive Quickbase application metadata, table structures, field definitions, and record-level data
+- **Incremental syncs**: Efficient data updates with checkpoint-based state management
+- **Multi-application support**: Extract data from multiple Quickbase applications simultaneously
+- **Dynamic schema discovery**: Automatic detection of application structure and field definitions
+- **Error handling**: Robust error handling with comprehensive logging and validation
 
 ## Configuration file
 
-The connector requires the following configuration keys:
-
 ```json
 {
-  "user_token": "<YOUR_QB_USER_TOKEN>",
-  "realm_hostname": "<YOUR_REALM_HOSTNAME>",
-  "app_id": "<YOUR_APP_ID>",
-  "table_ids": "<YOUR_COMMA_SEPARATED_TABLE_IDS>",
-  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
-  "enable_fields_sync": "<YOUR_ENABLE_FIELDS_SYNC>",
-  "enable_records_sync": "<YOUR_ENABLE_RECORDS_SYNC>",
-  "date_field_for_incremental": "<YOUR_DATE_FIELD_FOR_INCREMENTAL>",
-  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+  "user_token": "QB-USER-TOKEN your_token_here",
+  "realm_hostname": "your_company.quickbase.com",
+  "app_id": "your_app_id",
+  "table_ids": "table1,table2,table3",
+  "initial_sync_days": "90",
+  "max_records_per_page": "1000",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "enable_incremental_sync": "true",
+  "enable_fields_sync": "true",
+  "enable_records_sync": "true",
+  "date_field_for_incremental": "3",
 }
 ```
 
@@ -77,20 +63,12 @@ Optional configuration keys:
 - `enable_fields_sync`: Enable field metadata sync (true/false, default: true)
 - `enable_records_sync`: Enable record data sync (true/false, default: true)
 - `date_field_for_incremental`: Field ID for incremental sync filtering (default: 3)
-- `enable_debug_logging`: Enable debug logging (true/false, default: false)
 
 ## Requirements file
 
-The `requirements.txt` file specifies the Python libraries required by the connector for Quickbase API integration and data processing.
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
-Example content of `requirements.txt`:
-
-```
-requests>=2.31.0
-faker>=19.6.0
-```
-
-Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`. This connector uses the updated SDK version that does not require `yield` statements for operations.
+Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
 
 ## Authentication
 
@@ -131,27 +109,6 @@ The connector implements efficient data handling by:
 - Applying filters to focus on relevant data subsets
 
 Refer to functions `get_records_data`, `get_applications_data`, `get_tables_data`, and `get_fields_data` in `connector.py` for the data retrieval implementation.
-
-## Dynamic time range management
-
-The connector intelligently manages data fetching based on sync type:
-
-### Initial sync
-- Time range: Last 90 days of data
-- Use case: First-time setup or full re-sync
-- Data volume: Comprehensive historical data for baseline analysis
-
-### Incremental sync
-- Time range: Data since last successful sync timestamp
-- Use case: Regular scheduled syncs
-- Data volume: Only new/changed data since last sync
-- Benefits: Faster sync times, reduced API calls, efficient resource usage
-
-### Implementation details
-- State management: Uses Fivetran's checkpoint system to track last sync time
-- Automatic detection: Automatically determines sync type based on state
-- Flexible queries: All API calls dynamically adjust time ranges
-- Logging: Clear indication of sync type and time ranges in logs
 
 ## Data handling
 

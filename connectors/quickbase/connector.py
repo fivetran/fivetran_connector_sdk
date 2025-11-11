@@ -93,9 +93,6 @@ def update(configuration: dict, state: dict) -> None:
         sync_type = determine_sync_type(state, config.enable_incremental_sync)
         last_sync_time = state.get("last_sync_time")
 
-        if config.enable_debug_logging:
-            log.info(f"Sync type: {sync_type.value}, App ID: {config.app_id}")
-
         # Sync applications data
         app_data = api_client.get_application()
         if app_data:
