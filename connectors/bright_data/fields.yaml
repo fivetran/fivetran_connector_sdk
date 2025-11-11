@@ -1,19 +1,4 @@
 tables:
-  scrape_results:
-    description: Dynamically created table from Bright Data scrape results. Fields
-      are inferred from the API response structure.
-    fields:
-    - _fivetran_deleted
-    - _fivetran_synced
-    - images
-    - links
-    - position
-    - raw_length
-    - result_index
-    - text
-    - title
-    - type
-    - url
   unlocker_results:
     description: Dynamically created table 'unlocker_results' from Bright Data results.
       Fields are inferred from the API response structure.

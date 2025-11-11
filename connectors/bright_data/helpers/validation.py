@@ -15,13 +15,10 @@ def validate_configuration(configuration: dict) -> None:
         ValueError: If any required configuration parameter is missing.
     """
     # Check that at least one endpoint is configured
-    has_scrape = "scrape_url" in configuration and configuration.get("scrape_url")
     has_unlocker = "unlocker_url" in configuration and configuration.get("unlocker_url")
 
-    if not (has_scrape or has_unlocker):
-        raise ValueError(
-            "At least one of 'scrape_url' or 'unlocker_url' must be provided in configuration"
-        )
+    if not has_unlocker:
+        raise ValueError("unlocker_url must be provided in configuration")
 
     # Validate API token
     if "api_token" not in configuration or not configuration.get("api_token"):
