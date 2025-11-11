@@ -313,12 +313,14 @@ def fetch_audit_events(api_key: str, state: dict):
 
     log.info(f"Upserted {record_count} audit events, skipped {skipped_count} unchanged events")
 
-    # Checkpoint one final time if there are any remaining records since the last checkpoint
+    # Always update and checkpoint after processing all records
+    state["audit_events_last_timestamp"] = latest_timestamp
     if record_count % __CHECKPOINT_INTERVAL != 0:
-        state["audit_events_last_timestamp"] = latest_timestamp
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
-    else:
-        state["audit_events_last_timestamp"] = latest_timestamp
     return state
 
 
