@@ -8,7 +8,8 @@ from requests import Response
 
 load_dotenv()
 
-BRIGHT_DATA_BASE_URL = os.getenv("BRIGHT_DATA_BASE_URL")
+_DEFAULT_BASE_URL = "https://api.brightdata.com"
+BRIGHT_DATA_BASE_URL = os.getenv("BRIGHT_DATA_BASE_URL", _DEFAULT_BASE_URL)
 DEFAULT_SERP_ZONE = "serp_api1"
 DEFAULT_UNLOCKER_ZONE = "web_unlocker1"
 DEFAULT_TIMEOUT_SECONDS = 120
