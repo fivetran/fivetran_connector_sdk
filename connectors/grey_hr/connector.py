@@ -43,6 +43,21 @@ __REQUEST_TIMEOUT_SECONDS = 60
 __DEFAULT_SYNC_START_DATE = "1900-01-01"
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["api_username", "api_password", "greythr_domain"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -84,6 +99,9 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: SOURCE_EXAMPLES : GREYTHR_API_CONNECTOR")
+
+    # Validate the configuration to ensure all required fields are present
+    validate_configuration(configuration)
 
     api_username = configuration.get("api_username")
     api_password = configuration.get("api_password")
@@ -226,6 +244,7 @@ def handle_api_response(
         return handle_retryable_errors(response, attempt)
     return handle_unexpected_error(response)
 
+
 def handle_success_response(response):
     """
     Handle successful API response (HTTP 200).
@@ -235,6 +254,7 @@ def handle_success_response(response):
         dict: JSON response.
     """
     return response.json()
+
 
 def handle_auth_errors(response, headers, api_username, api_password, greythr_domain, attempt):
     """
@@ -259,6 +279,7 @@ def handle_auth_errors(response, headers, api_username, api_password, greythr_do
         log.severe(f"Access forbidden: {response.text}")
         raise RuntimeError(f"Access forbidden: {response.text}")
 
+
 def handle_client_errors(response, url):
     """
     Handle client errors (HTTP 404).
@@ -270,6 +291,7 @@ def handle_client_errors(response, url):
     """
     log.warning(f"Resource not found: {url}")
     return {}
+
 
 def handle_retryable_errors(response, attempt):
     """
@@ -285,6 +307,7 @@ def handle_retryable_errors(response, attempt):
     handle_retryable_error(attempt, response.status_code, "API request")
     return None
 
+
 def handle_unexpected_error(response):
     """
     Handle unexpected API errors.
@@ -295,6 +318,8 @@ def handle_unexpected_error(response):
     """
     log.severe(f"Unexpected API error: {response.status_code} - {response.text}")
     raise RuntimeError(f"API error: {response.status_code} - {response.text}")
+
+
 def handle_retryable_error(attempt, status_code, operation_name):
     """
     Handle retryable HTTP errors with exponential backoff.

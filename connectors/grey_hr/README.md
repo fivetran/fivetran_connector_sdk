@@ -33,15 +33,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "api_username": "<YOUR_GREYTHR_API_USERNAME>",
   "api_password": "<YOUR_GREYTHR_API_PASSWORD>",
   "greythr_domain": "<YOUR_GREYTHR_DOMAIN>",
-  "sync_start_date": "<SYNC_START_DATE_YYYY_MM_DD>"
+  "sync_start_date": "SYNC_START_DATE_YYYY-MM-DD"
 }
 ```
 
-### Configuration parameters
-- `api_username` - Your greytHR API username (client ID) obtained from greytHR API registration
-- `api_password` - Your greytHR API password (client secret) obtained from greytHR API registration
-- `greythr_domain` - Your organization's greytHR domain (e.g., moxemo6127dato.greythr.com)
-- `sync_start_date` - The starting date for syncing leave transactions and attendance data in YYYY-MM-DD format (e.g., 2020-01-01). If not provided, defaults to 1900-01-01
+`api_username` - Your greytHR API username (client ID) obtained from greytHR API registration
+`api_password` - Your greytHR API password (client secret) obtained from greytHR API registration
+`greythr_domain` - Your organization's greytHR domain (e.g., moxemo6127dato.greythr.com)
+`sync_start_date` - The starting date for syncing leave transactions and attendance data in YYYY-MM-DD format (e.g., 2020-01-01). If not provided, defaults to 1900-01-01
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
