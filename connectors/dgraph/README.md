@@ -125,100 +125,29 @@ All errors are logged using the SDK logging framework with appropriate severity 
 
 ## Tables created
 
-The connector creates the following tables in the destination warehouse:
+The connector creates the following tables in the destination warehouse. The SDK automatically infers column data types from the synced data.
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
-| `PRODUCTS` | `product_id` | Product catalog with SKU, name, price, and inventory status. |
-| `CATEGORIES` | `category_id` | Product categories with hierarchical parent relationships. |
-| `ATTRIBUTES` | `attribute_id` | Product attributes for faceted search (brand, size, color, specs). |
-| `REVIEWS` | `review_id` | Customer reviews with ratings and comments. |
-| `RELATIONSHIPS` | `edge_id` | Graph edges preserving all product relationships and recommendations. |
-| `SCHEMA_METADATA` | `type_name` | GraphQL schema type definitions with field counts. |
+| `product` | `product_id` | Product catalog with SKU, name, price, inventory status, and foreign key to category. Includes counts of related attributes and products. Contains timestamps for creation, updates, and sync tracking. |
+| `category` | `category_id` | Product categories with hierarchical parent relationships. Includes name, description, and timestamps for creation, updates, and sync tracking. |
+| `attribute` | `attribute_id` | Product attributes for faceted search including name, value, and optional units (e.g., brand, size, color, specs). Contains timestamps for creation, updates, and sync tracking. |
+| `review` | `review_id` | Customer reviews with ratings, comments, author information, and foreign key to product. Contains creation and sync timestamps. |
+| `relationship` | `edge_id` | Graph edges preserving all relationships between entities. Each edge contains source and target IDs/types, relationship type, and creation timestamp. |
+| `schema_metadata` | `type_name` | GraphQL schema type definitions extracted from Dgraph admin API. Includes field counts and extraction timestamps. |
 
-### PRODUCTS
+Relationship types in the `relationship` table:
+- `BELONGS_TO_CATEGORY`: Product → Category
+- `RELATED_TO`: Product → Product (recommendations)
+- `HAS_ATTRIBUTE`: Product → Attribute
+- `REVIEWS_PRODUCT`: Review → Product
+- `WRITTEN_BY_USER`: Review → User
+- `HAS_PARENT`: Category → Category (hierarchy)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `product_id` | STRING | Unique product identifier (primary key) |
-| `sku` | STRING | Stock keeping unit |
-| `name` | STRING | Product name |
-| `description` | STRING | Product description |
-| `price` | FLOAT | Product price |
-| `in_stock` | BOOLEAN | Inventory availability |
-| `category_id` | STRING | Foreign key to categories table |
-| `attributes_count` | INT | Number of associated attributes |
-| `related_products_count` | INT | Number of related products (recommendations) |
-| `created_at` | UTC_DATETIME | Product creation timestamp |
-| `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
-| `synced_at` | UTC_DATETIME | Sync timestamp from connector |
-
-### CATEGORIES
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `category_id` | STRING | Unique category identifier (primary key) |
-| `name` | STRING | Category name |
-| `description` | STRING | Category description |
-| `parent_category_id` | STRING | Parent category for hierarchical taxonomy |
-| `created_at` | UTC_DATETIME | Category creation timestamp |
-| `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
-| `synced_at` | UTC_DATETIME | Sync timestamp from connector |
-
-### ATTRIBUTES
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `attribute_id` | STRING | Unique attribute identifier (primary key) |
-| `name` | STRING | Attribute name (e.g., Brand, Size, Color) |
-| `value` | STRING | Attribute value (e.g., Apple, Large, Red) |
-| `unit` | STRING | Unit of measurement (e.g., GB, inches, oz) |
-| `created_at` | UTC_DATETIME | Attribute creation timestamp |
-| `updated_at` | UTC_DATETIME | Last update timestamp (used for incremental sync) |
-| `synced_at` | UTC_DATETIME | Sync timestamp from connector |
-
-### REVIEWS
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `review_id` | STRING | Unique review identifier (primary key) |
-| `rating` | INT | Star rating (1-5) |
-| `comment` | STRING | Review text/comment |
-| `product_id` | STRING | Foreign key to products table |
-| `author_id` | STRING | Reviewer user ID |
-| `author_username` | STRING | Reviewer username |
-| `created_at` | UTC_DATETIME | Review creation timestamp (used for incremental sync) |
-| `synced_at` | UTC_DATETIME | Sync timestamp from connector |
-
-### RELATIONSHIPS
-
-This table preserves the graph structure by storing all edges/relationships between entities.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `edge_id` | STRING | Unique edge identifier: `{source_id}_{relationship_type}_{target_id}` (primary key) |
-| `source_id` | STRING | Source node ID |
-| `source_type` | STRING | Source node type (Product, Category, Review, etc.) |
-| `target_id` | STRING | Target node ID |
-| `target_type` | STRING | Target node type (Product, Category, Attribute, User, etc.) |
-| `relationship_type` | STRING | Relationship type (`BELONGS_TO_CATEGORY`, `RELATED_TO`, `HAS_ATTRIBUTE`, `REVIEWS_PRODUCT`, `WRITTEN_BY_USER`, `HAS_PARENT`) |
-| `created_at` | UTC_DATETIME | Edge creation timestamp |
-
-Example relationship types:
-- `BELONGS_TO_CATEGORY`: Product > Category
-- `RELATED_TO`: Product > Product (recommendations)
-- `HAS_ATTRIBUTE`: Product > Attribute
-- `REVIEWS_PRODUCT`: Review > Product
-- `WRITTEN_BY_USER`: Review > User
-- `HAS_PARENT`: Category > Category (hierarchy)
-
-### SCHEMA_METADATA
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `type_name` | STRING | GraphQL type name (primary key) |
-| `field_count` | INT | Number of fields defined in the type |
-| `extracted_at` | UTC_DATETIME | Schema extraction timestamp |
+Incremental sync fields:
+- Products, categories, and attributes use `updated_at` for incremental filtering
+- Reviews use `created_at` for incremental filtering (reviews are typically immutable)
+- All tables include `synced_at` timestamps for audit tracking
 
 ## Additional considerations
 

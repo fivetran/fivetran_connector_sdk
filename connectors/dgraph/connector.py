@@ -41,11 +41,11 @@ __PAGE_SIZE = 100
 __CHECKPOINT_INTERVAL = 500
 
 # Table names
-__TABLE_PRODUCTS = "products"
-__TABLE_CATEGORIES = "categories"
-__TABLE_ATTRIBUTES = "attributes"
-__TABLE_REVIEWS = "reviews"
-__TABLE_EDGES = "relationships"
+__TABLE_PRODUCTS = "product"
+__TABLE_CATEGORIES = "category"
+__TABLE_ATTRIBUTES = "attribute"
+__TABLE_REVIEWS = "review"
+__TABLE_EDGES = "relationship"
 __TABLE_SCHEMA = "schema_metadata"
 
 # Relationship types for edges table
@@ -182,7 +182,9 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure how your connector fetches data. See the technical reference documentation for more details on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
@@ -298,6 +300,7 @@ def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
 
 def sync_entity(
     entity_name: str,
+    query_key: str,
     graphql_endpoint: str,
     api_key: str,
     state: dict,
@@ -310,6 +313,7 @@ def sync_entity(
     Generalized function to sync entities with incremental sync support.
     Args:
         entity_name: The name of the entity being synced (e.g., "product", "category").
+        query_key: The GraphQL query response key (e.g., "queryProduct", "queryCategory").
         graphql_endpoint: The Dgraph GraphQL API endpoint URL.
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
@@ -344,16 +348,6 @@ def sync_entity(
                 break
 
             # Get the data using the query response key (e.g., "queryProduct", "queryCategory")
-            query_key = f"query{entity_name.replace('_', '').title()}"
-            if entity_name == "category":
-                query_key = "queryCategory"
-            elif entity_name == "attribute":
-                query_key = "queryAttribute"
-            elif entity_name == "product":
-                query_key = "queryProduct"
-            elif entity_name == "review":
-                query_key = "queryReview"
-
             entities = response["data"].get(query_key, [])
 
             if not entities:
@@ -456,6 +450,7 @@ def sync_categories(graphql_endpoint: str, api_key: str, state: dict):
     """
     sync_entity(
         entity_name="category",
+        query_key="queryCategory",
         graphql_endpoint=graphql_endpoint,
         api_key=api_key,
         state=state,
@@ -508,6 +503,7 @@ def sync_attributes(graphql_endpoint: str, api_key: str, state: dict):
     """
     sync_entity(
         entity_name="attribute",
+        query_key="queryAttribute",
         graphql_endpoint=graphql_endpoint,
         api_key=api_key,
         state=state,
@@ -609,6 +605,7 @@ def sync_products(graphql_endpoint: str, api_key: str, state: dict):
     """
     sync_entity(
         entity_name="product",
+        query_key="queryProduct",
         graphql_endpoint=graphql_endpoint,
         api_key=api_key,
         state=state,
@@ -694,6 +691,7 @@ def sync_reviews(graphql_endpoint: str, api_key: str, state: dict):
     """
     sync_entity(
         entity_name="review",
+        query_key="queryReview",
         graphql_endpoint=graphql_endpoint,
         api_key=api_key,
         state=state,
@@ -807,7 +805,7 @@ def execute_graphql_query(endpoint: str, query: str, api_key: str):
 
         except requests.HTTPError as e:
             # Server errors - retry, client errors - don't retry
-            if response.status_code >= 500:
+            if hasattr(e, "response") and e.response is not None and e.response.status_code >= 500:
                 handle_retry_logic(attempt, e)
             else:
                 log.severe(f"HTTP error: {str(e)}")
