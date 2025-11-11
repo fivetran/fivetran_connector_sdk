@@ -84,58 +84,19 @@ The connector implements comprehensive error handling strategies (refer to the `
 
 ## Tables created
 
-The connector creates seven tables in the destination (refer to the `schema()` function):
+The connector creates the following tables in your destination:
 
-```json
-{
-  "table": "brand",
-  "primary_key": ["id"]
-}
-```
+| Table name     | Primary key    | Description                                                                   |
+|----------------|----------------|-------------------------------------------------------------------------------|
+| `brand`        | `id`           | Brand configuration data with update tracking                                 |
+| `audience`     | `id`           | Audience segments synced via cursor-based pagination                          |
+| `audit_event`  | `auditEventId` | Audit events with timestamp-based incremental updates for compliance tracking |
+| `list`         | `id`           | Subscriber lists for contact management                                       |
+| `message`      | `id`           | Message logs for delivery tracking                                            |
+| `notification` | `id`           | Notification templates                                                        |
+| `tenant`       | `id`           | Tenant configuration data                                                     |
 
-```json
-{
-  "table": "audience",
-  "primary_key": ["id"]
-}
-```
-
-```json
-{
-  "table": "audit_event",
-  "primary_key": ["auditEventId"]
-}
-```
-
-```json
-{
-  "table": "list",
-  "primary_key": ["id"]
-}
-```
-
-```json
-{
-  "table": "message",
-  "primary_key": ["id"]
-}
-```
-
-```json
-{
-  "table": "notification",
-  "primary_key": ["id"]
-}
-```
-
-```json
-{
-  "table": "tenant",
-  "primary_key": ["id"]
-}
-```
-
-Note: The connector uses schema inference, meaning column data types are automatically determined by Fivetran based on the API response data. Nested JSON objects from the API are flattened into single-level columns with underscore-separated names (refer to the `flatten_nested_object()` function).
+All tables include flattened versions of complex nested objects, with nested properties converted to underscore-separated columns (e.g., `settings.colors.primary` becomes `settings_colors_primary`). Column data types are automatically inferred by Fivetran based on the API response data.
 
 ## Additional considerations
 

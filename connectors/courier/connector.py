@@ -198,7 +198,13 @@ def fetch_brands(api_key: str, state: dict):
             op.checkpoint(state)
 
     log.info(f"Upserted {record_count} brands, skipped {skipped_count} unchanged brands")
-    state["brands_last_updated"] = latest_timestamp
+
+    # Checkpoint one final time if there are any remaining records since the last checkpoint
+    if record_count % __CHECKPOINT_INTERVAL != 0:
+        state["brands_last_updated"] = latest_timestamp
+        op.checkpoint(state)
+    else:
+        state["brands_last_updated"] = latest_timestamp
     return state
 
 
@@ -308,7 +314,13 @@ def fetch_audit_events(api_key: str, state: dict):
             op.checkpoint(state)
 
     log.info(f"Upserted {record_count} audit events, skipped {skipped_count} unchanged events")
-    state["audit_events_last_timestamp"] = latest_timestamp
+
+    # Checkpoint one final time if there are any remaining records since the last checkpoint
+    if record_count % __CHECKPOINT_INTERVAL != 0:
+        state["audit_events_last_timestamp"] = latest_timestamp
+        op.checkpoint(state)
+    else:
+        state["audit_events_last_timestamp"] = latest_timestamp
     return state
 
 
