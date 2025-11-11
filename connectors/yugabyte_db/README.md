@@ -110,7 +110,7 @@ The connector creates destination tables matching all tables found in your Yugab
 - `DEVICES` table with primary key `device_id` - Incremental sync enabled via `updated_at` column
 - `SENSOR_READINGS` table with primary key `reading_id` - Incremental sync enabled via `updated_at` column
 - `ALERTS` table with primary key `alert_id` - Incremental sync enabled via `updated_at` column
-- `MAINTENANCE_LOG ` table with primary key `maintenance_id` - Incremental sync enabled via `updated_at` column
+- `MAINTENANCE_LOG` table with primary key `maintenance_id` - Incremental sync enabled via `updated_at` column
 
 These will be automatically discovered and replicated to your destination with the same table names and their detected primary keys.
 
