@@ -26,7 +26,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Proper datetime to ISO string conversion for all timestamp fields
 - Comprehensive error handling with specific exception types
 - Detailed logging at key sync stages
-- PostgreSQL-compatible connection using psycopg2 driver
+- PostgreSQL-compatible connection using `psycopg2` driver
 - SQL injection prevention using psycopg2.sql identifier quoting
 
 ## Configuration file
