@@ -7,6 +7,9 @@ and the Best Practices documentation
 (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
+# For reading configuration from a JSON file
+import json
+
 # For making HTTP requests to Keycloak Admin API
 import requests
 
@@ -263,9 +266,7 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
-    Returns:
-        Updated state with last sync timestamp.
+        state: State dictionary for tracking sync progress (mutated in place).
     """
     users_url = f"{keycloak_url}/admin/realms/{realm}/users"
     first_index = 0
@@ -311,16 +312,17 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
             # Process breakout tables for user attributes, roles, and required actions
             upsert_user_breakout_tables(user, user_id)
 
-        # Update state with current progress and checkpoint after each page
-        state["users_last_created_timestamp"] = max_created_timestamp
-        # Save the progress by checkpointing the state. This is important for ensuring that
-        # the sync process can resume from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
-        log.info(
-            f"Checkpointed after page {first_index // __PAGE_SIZE + 1}: synced {synced_count} new users so far"
-        )
+            # Update state for each synced user
+            state["users_last_created_timestamp"] = max_created_timestamp
+
+            # Checkpoint after every __CHECKPOINT_INTERVAL synced users
+            if synced_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that
+                # the sync process can resume from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+                log.info(f"Checkpointed after syncing {synced_count} new users")
 
         if len(users) < __PAGE_SIZE:
             log.info(f"Reached last page. Total synced: {synced_count} new users")
@@ -328,10 +330,12 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
 
         first_index += __PAGE_SIZE
 
+    # Final checkpoint to ensure all progress is saved
+    op.checkpoint(state)
+
     log.info(
         f"User sync complete. Synced {synced_count} new users, skipped {record_count - synced_count} existing"
     )
-    return state
 
 
 def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
@@ -342,9 +346,7 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
-    Returns:
-        Updated state.
+        state: State dictionary for tracking sync progress (mutated in place).
     """
     groups_url = f"{keycloak_url}/admin/realms/{realm}/groups"
     first_index = 0
@@ -404,8 +406,6 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
 
         first_index += __PAGE_SIZE
 
-    return state
-
 
 def sync_roles(keycloak_url: str, realm: str, headers: dict, state: dict):
     """
@@ -415,9 +415,7 @@ def sync_roles(keycloak_url: str, realm: str, headers: dict, state: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
-    Returns:
-        Updated state.
+        state: State dictionary for tracking sync progress (mutated in place).
     """
     roles_url = f"{keycloak_url}/admin/realms/{realm}/roles"
     record_count = 0
@@ -449,8 +447,6 @@ def sync_roles(keycloak_url: str, realm: str, headers: dict, state: dict):
     except RuntimeError as e:
         log.warning(f"Could not fetch roles: {str(e)}")
 
-    return state
-
 
 def sync_clients(keycloak_url: str, realm: str, headers: dict, state: dict):
     """
@@ -460,9 +456,7 @@ def sync_clients(keycloak_url: str, realm: str, headers: dict, state: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
-    Returns:
-        Updated state.
+        state: State dictionary for tracking sync progress (mutated in place).
     """
     clients_url = f"{keycloak_url}/admin/realms/{realm}/clients"
     record_count = 0
@@ -497,8 +491,6 @@ def sync_clients(keycloak_url: str, realm: str, headers: dict, state: dict):
     except RuntimeError as e:
         log.warning(f"Could not fetch clients: {str(e)}")
 
-    return state
-
 
 def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start_date: str):
     """
@@ -507,13 +499,12 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
+        state: State dictionary for tracking sync progress (mutated in place).
         start_date: Start date for event filtering in YYYY-MM-DD format.
-    Returns:
-        Updated state with last event timestamp.
     """
     events_url = f"{keycloak_url}/admin/realms/{realm}/events"
     record_count = 0
+    first_index = 0
     last_event_time = state.get("events_last_time")
 
     if not last_event_time:
@@ -521,13 +512,17 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
 
     log.info(f"Starting event sync from date: {last_event_time}")
 
-    params = {"dateFrom": last_event_time, "max": __PAGE_SIZE}
-
     try:
-        events = make_api_request(events_url, headers, params)
+        max_event_time = last_event_time
 
-        if events and isinstance(events, list):
-            max_event_time = last_event_time
+        while True:
+            params = {"dateFrom": last_event_time, "first": first_index, "max": __PAGE_SIZE}
+
+            events = make_api_request(events_url, headers, params)
+
+            if not events:
+                log.info(f"No more events to fetch. Total synced: {record_count}")
+                break
 
             for event in events:
                 event_time_ms = event.get("time")
@@ -566,13 +561,17 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                     op.checkpoint(state)
                     log.info(f"Checkpointed after syncing {record_count} events")
 
-            log.info(f"Synced {record_count} events")
-        else:
-            log.info("No events found for the specified date range")
+            if len(events) < __PAGE_SIZE:
+                log.info(f"Reached last page of events. Total synced: {record_count}")
+                break
+
+            first_index += __PAGE_SIZE
+
+        # Final checkpoint to ensure all progress is saved
+        op.checkpoint(state)
+        log.info(f"Event sync complete. Total synced: {record_count} events")
     except RuntimeError as e:
         log.warning(f"Could not fetch events: {str(e)}")
-
-    return state
 
 
 def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict, start_date: str):
@@ -582,13 +581,12 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress.
+        state: State dictionary for tracking sync progress (mutated in place).
         start_date: Start date for event filtering in YYYY-MM-DD format.
-    Returns:
-        Updated state with last admin event timestamp.
     """
     admin_events_url = f"{keycloak_url}/admin/realms/{realm}/admin-events"
     record_count = 0
+    first_index = 0
     last_admin_event_time = state.get("admin_events_last_time")
 
     if not last_admin_event_time:
@@ -596,13 +594,17 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
 
     log.info(f"Starting admin event sync from date: {last_admin_event_time}")
 
-    params = {"dateFrom": last_admin_event_time, "max": __PAGE_SIZE}
-
     try:
-        admin_events = make_api_request(admin_events_url, headers, params)
+        max_admin_event_time = last_admin_event_time
 
-        if admin_events and isinstance(admin_events, list):
-            max_admin_event_time = last_admin_event_time
+        while True:
+            params = {"dateFrom": last_admin_event_time, "first": first_index, "max": __PAGE_SIZE}
+
+            admin_events = make_api_request(admin_events_url, headers, params)
+
+            if not admin_events:
+                log.info(f"No more admin events to fetch. Total synced: {record_count}")
+                break
 
             for event in admin_events:
                 event_time_ms = event.get("time")
@@ -643,13 +645,17 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
                     op.checkpoint(state)
                     log.info(f"Checkpointed after syncing {record_count} admin events")
 
-            log.info(f"Synced {record_count} admin events")
-        else:
-            log.info("No admin events found for the specified date range")
+            if len(admin_events) < __PAGE_SIZE:
+                log.info(f"Reached last page of admin events. Total synced: {record_count}")
+                break
+
+            first_index += __PAGE_SIZE
+
+        # Final checkpoint to ensure all progress is saved
+        op.checkpoint(state)
+        log.info(f"Admin event sync complete. Total synced: {record_count} admin events")
     except RuntimeError as e:
         log.warning(f"Could not fetch admin events: {str(e)}")
-
-    return state
 
 
 def schema(configuration: dict):
@@ -736,16 +742,14 @@ def update(configuration: dict, state: dict):
 
     token_manager = TokenManager(keycloak_url, realm, client_id, client_secret)
 
-    state = sync_users(keycloak_url, realm, token_manager.get_headers(), state)
-    state = sync_groups(keycloak_url, realm, token_manager.get_headers(), state)
-    state = sync_roles(keycloak_url, realm, token_manager.get_headers(), state)
-    state = sync_clients(keycloak_url, realm, token_manager.get_headers(), state)
+    sync_users(keycloak_url, realm, token_manager.get_headers(), state)
+    sync_groups(keycloak_url, realm, token_manager.get_headers(), state)
+    sync_roles(keycloak_url, realm, token_manager.get_headers(), state)
+    sync_clients(keycloak_url, realm, token_manager.get_headers(), state)
 
     if sync_events_enabled:
-        state = sync_events(keycloak_url, realm, token_manager.get_headers(), state, start_date)
-        state = sync_admin_events(
-            keycloak_url, realm, token_manager.get_headers(), state, start_date
-        )
+        sync_events(keycloak_url, realm, token_manager.get_headers(), state, start_date)
+        sync_admin_events(keycloak_url, realm, token_manager.get_headers(), state, start_date)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -760,10 +764,13 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line
-# or IDE 'run' button. This is useful for debugging while you write your code. Note this method is not
-# called by Fivetran when executing your connector in production.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
     # Test the connector locally
-    connector.debug()
+    connector.debug(configuration=configuration)

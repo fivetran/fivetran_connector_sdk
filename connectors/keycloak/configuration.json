@@ -4,5 +4,5 @@
   "client_id": "<YOUR_CLIENT_ID>",
   "client_secret": "<YOUR_CLIENT_SECRET>",
   "sync_events": "<TRUE_OR_FALSE>",
-  "start_date": "<YYYY_MM_DD>"
+  "start_date": "<YYYY-MM-DD>"
 }

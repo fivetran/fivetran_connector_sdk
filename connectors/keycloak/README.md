@@ -3,6 +3,7 @@
 ## Connector overview
 
 Keycloak is an open-source identity and access management solution that provides authentication, authorization, and user management capabilities. This connector syncs identity and access management data from the Keycloak Admin API to enable security analytics, compliance reporting, and user behavior analysis. It extracts users, groups, roles, clients, authentication events, and admin events from a Keycloak realm and delivers them to your destination through Fivetran, enabling organizations to centralize their IAM data for security monitoring, compliance auditing, user lifecycle analytics, and multi-tenant SaaS operations.
+
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -39,7 +40,7 @@ The connector requires the following configuration parameters:
   "client_id": "<YOUR_CLIENT_ID>",
   "client_secret": "<YOUR_CLIENT_SECRET>",
   "sync_events": "<TRUE_OR_FALSE>",
-  "start_date": "<YYYY_MM_DD>"
+  "start_date": "<YYYY-MM-DD>"
 }
 ```
 
@@ -96,10 +97,10 @@ For APIs that do not support pagination (such as roles and some event endpoints)
 
 The connector processes Keycloak data as follows:
 
-- **User records** - Flattens nested `access` object fields into parent table columns, creates breakout tables for `attributes`, `realmRoles`, and `requiredActions` arrays
-- **Group records** - Stores group metadata in parent table, creates breakout table for group member relationships
-- **Event records** - Converts millisecond timestamps to ISO 8601 format, generates synthetic IDs from timestamp, type, user ID, session ID, and client ID
-- **Admin event records** - Flattens `authDetails` nested object into parent table columns, generates synthetic IDs from timestamp, operation type, resource type, and resource path
+- User records - Flattens nested `access` object fields into parent table columns, creates breakout tables for `attributes`, `realmRoles`, and `requiredActions` arrays
+- Group records - Stores group metadata in parent table, creates breakout table for group member relationships
+- Event records - Converts millisecond timestamps to ISO 8601 format, generates synthetic IDs from timestamp, type, user ID, session ID, and client ID
+- Admin event records - Flattens `authDetails` nested object into parent table columns, generates synthetic IDs from timestamp, operation type, resource type, and resource path
 
 All data types are automatically inferred by Fivetran based on the actual values encountered during sync. Only primary keys are explicitly defined in the schema to enable proper upsert behavior.
 
