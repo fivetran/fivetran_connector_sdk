@@ -1,6 +1,6 @@
 tables:
   scrape_results:
-    description: Dynamically created table from Bright Data search results. Fields
+    description: Dynamically created table from Bright Data scrape results. Fields
       are inferred from the API response structure.
     fields:
     - _fivetran_deleted
@@ -14,49 +14,18 @@ tables:
     - title
     - type
     - url
-  search_results:
-    description: Dynamically created table 'search_results' from Bright Data results.
-      Fields are inferred from the API response structure.
-    fields:
-    - _fivetran_deleted
-    - _fivetran_synced
-    - body
-    - headers_accept_ch
-    - headers_alt_svc
-    - headers_cache_control
-    - headers_connection
-    - headers_content_security_policy
-    - headers_content_type
-    - headers_cross_origin_opener_policy
-    - headers_date
-    - headers_expires
-    - headers_permissions_policy
-    - headers_report_to
-    - headers_server
-    - headers_set_cookie
-    - headers_strict_transport_security
-    - headers_transfer_encoding
-    - headers_x_frame_options
-    - headers_x_unblocker_redirected_to
-    - headers_x_xss_protection
-    - position
-    - query
-    - result_index
-    - status_code
   unlocker_results:
     description: Dynamically created table 'unlocker_results' from Bright Data results.
       Fields are inferred from the API response structure.
     fields:
-    - _fivetran_deleted
-    - _fivetran_synced
     - body
-    - headers_access_control_allow_origin
-    - headers_cache_control
+    - headers_access-control-allow-origin
+    - headers_cache-control
     - headers_connection
-    - headers_content_type
+    - headers_content-type
     - headers_date
     - headers_server
-    - headers_transfer_encoding
+    - headers_transfer-encoding
     - position
     - requested_url
     - result_index
