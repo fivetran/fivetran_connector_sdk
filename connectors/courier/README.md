@@ -52,9 +52,9 @@ This connector uses Bearer token authentication to access the Courier API. The A
 
 To obtain your API key:
 
-1. Log in to your Courier account at https://app.courier.com.
+1. Log in to your [Courier account](https://app.courier.com).
 2. Navigate to **Settings > API Keys**.
-3. Copy your API key (either test key for testing or production key for live data).
+3. Make a note of your API key (either test key for testing or production key for live data).
 4. Add the API key to your `configuration.json` file.
 
 ## Pagination
@@ -64,6 +64,7 @@ The connector implements different pagination strategies based on the endpoint (
 - Cursor-based pagination – Used for the audiences, messages, and notifications endpoints. The connector processes pages sequentially using cursor tokens returned in the API response and checkpoints after each page (refer to the `fetch_audiences()`, `fetch_messages()`, and `fetch_notifications()` functions).
 - Next URL-based pagination – Used for the tenants endpoint. The connector follows the `next_url` field in the API response to retrieve subsequent pages (refer to the `fetch_tenants()` function).
 - Offset pagination – Used for lists, brands, and audit events endpoints. These endpoints return paginated results with a `more` indicator in the paging object.
+  
 ## Data handling
 
 The connector processes data as follows:
@@ -88,13 +89,13 @@ The connector creates the following tables in your destination:
 
 | Table name     | Primary key    | Description                                                                   |
 |----------------|----------------|-------------------------------------------------------------------------------|
-| `brand`        | `id`           | Brand configuration data with update tracking                                 |
-| `audience`     | `id`           | Audience segments synced via cursor-based pagination                          |
-| `audit_event`  | `auditEventId` | Audit events with timestamp-based incremental updates for compliance tracking |
-| `list`         | `id`           | Subscriber lists for contact management                                       |
-| `message`      | `id`           | Message logs for delivery tracking                                            |
-| `notification` | `id`           | Notification templates                                                        |
-| `tenant`       | `id`           | Tenant configuration data                                                     |
+| `BRAND`        | `id`           | Brand configuration data with update tracking                                 |
+| `AUDIENCE`     | `id`           | Audience segments synced via cursor-based pagination                          |
+| `AUDIT_EVENT`  | `auditEventId` | Audit events with timestamp-based incremental updates for compliance tracking |
+| `LIST`         | `id`           | Subscriber lists for contact management                                       |
+| `MESSAGE`      | `id`           | Message logs for delivery tracking                                            |
+| `NOTIFICATION` | `id`           | Notification templates                                                        |
+| `TENANT`       | `id`           | Tenant configuration data                                                     |
 
 All tables include flattened versions of complex nested objects, with nested properties converted to underscore-separated columns (e.g., `settings.colors.primary` becomes `settings_colors_primary`). Column data types are automatically inferred by Fivetran based on the API response data.
 
