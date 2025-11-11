@@ -26,25 +26,21 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "api_key": "<YOUR_PLANDAY_HR_API_KEY>",
-  "sync_frequency_hours": "<YOUR_PLANDAY_HR_API_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_PLANDAY_HR_API_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_PLANDAY_HR_API_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_PLANDAY_HR_API_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_PLANDAY_HR_API_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_PLANDAY_HR_API_ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<YOUR_PLANDAY_HR_API_ENABLE_DEBUG_LOGGING>"
+  "enable_incremental_sync": "<YOUR_PLANDAY_HR_API_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
 ### Configuration parameters
 - `api_key` (required): Your Planday HR API authentication key
-- `sync_frequency_hours` (optional): How often to run incremental syncs, defaults to 4 hours
 - `initial_sync_days` (optional): Number of days to sync during initial sync, defaults to 90 days
 - `max_records_per_page` (optional): Maximum records per API request, defaults to 100 (range: 1-1000)
 - `request_timeout_seconds` (optional): HTTP request timeout in seconds, defaults to 30
 - `retry_attempts` (optional): Number of retry attempts for failed requests, defaults to 3
 - `enable_incremental_sync` (optional): Enable timestamp-based incremental sync, defaults to true
-- `enable_debug_logging` (optional): Enable detailed debug logging, defaults to false
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -61,10 +57,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Note: The connector uses Bearer token authentication with automatic retry logic for failed requests. API keys are never logged or exposed in plain text for security.
 
 ## Pagination
-Offset-based pagination with automatic page traversal (refer to `get_employees`, `get_departments`, and `get_skills` functions). Generator-based processing prevents memory accumulation for large employee datasets. Processes pages sequentially while yielding individual records for immediate processing. Each endpoint supports configurable page sizes through the `max_records_per_page` setting.
+Offset-based pagination with automatic page traversal (refer to the `get_employees`, `get_departments`, and `get_skills` functions). Generator-based processing prevents memory accumulation for large employee datasets. Processes pages sequentially while yielding individual records for immediate processing. Each endpoint supports configurable page sizes through the `max_records_per_page` setting.
 
 ## Data handling
-Employee, department, and skills data is mapped from Planday HR API format to normalized database columns (refer to the `__map_employee_data`, `__map_department_data`, and `__map_skill_data` functions). Nested objects are flattened, and all timestamps are converted to UTC format for consistency across different time zones.
+Employee, department, and skills data are mapped from Planday HR API format to normalized database columns (refer to the `__map_employee_data`, `__map_department_data`, and `__map_skill_data` functions). Nested objects are flattened, and all timestamps are converted to UTC format for consistency across different time zones.
 
 Supports timestamp-based incremental synchronization using the `last_sync_time` state parameter (refer to the `get_time_range` function). Initial sync can be configured to fetch historical data up to 365 days. Memory-efficient streaming processes individual records without accumulating large datasets in memory.
 
@@ -83,15 +79,6 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 | SKILLS | `id` | Employee skills and competencies with proficiency levels and categories |
 
 Column types are automatically inferred by Fivetran. Sample columns include `first_name`, `last_name`, `email`, `department_id`, `hire_date`, `position`, `salary`, `hourly_rate`, `manager_id`, `name`, `description`, `budget`, `cost_center`, `category`, `level`, `certification_required`.
-
-## Additional files
-
-The connector includes several additional files to support functionality, testing, and deployment:
-
-- `requirements.txt` – Python dependency specification for Planday HR API integration and connector requirements including faker for mock testing.
-
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
