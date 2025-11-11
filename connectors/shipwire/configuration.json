@@ -1,13 +1,11 @@
 {
   "username": "<YOUR_SHIPWIRE_USERNAME>",
   "password": "<YOUR_SHIPWIRE_PASSWORD>",
-  "sync_frequency_hours": "<YOUR_SHIPWIRE_API_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_SHIPWIRE_API_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_SHIPWIRE_API_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_SHIPWIRE_API_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_SHIPWIRE_API_RETRY_ATTEMPTS>",
   "enable_orders": "<YOUR_SHIPWIRE_API_ENABLE_ORDERS>",
   "enable_purchase_orders": "<YOUR_SHIPWIRE_API_ENABLE_PURCHASE_ORDERS>",
-  "enable_products": "<YOUR_SHIPWIRE_API_ENABLE_PRODUCTS>",
-  "enable_debug_logging": "<YOUR_SHIPWIRE_API_ENABLE_DEBUG_LOGGING>"
+  "enable_products": "<YOUR_SHIPWIRE_API_ENABLE_PRODUCTS>"
 }

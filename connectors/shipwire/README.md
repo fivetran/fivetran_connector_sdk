@@ -6,7 +6,7 @@ This connector syncs orders, purchase orders, and products data from Shipwire's 
 
 ## Requirements
 
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements): **3.9-3.13**
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -33,31 +33,27 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "username": "<YOUR_SHIPWIRE_USERNAME>",
   "password": "<YOUR_SHIPWIRE_PASSWORD>",
-  "sync_frequency_hours": "<YOUR_SHIPWIRE_API_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_SHIPWIRE_API_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_SHIPWIRE_API_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_SHIPWIRE_API_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_SHIPWIRE_API_RETRY_ATTEMPTS>",
   "enable_orders": "<YOUR_SHIPWIRE_API_ENABLE_ORDERS>",
   "enable_purchase_orders": "<YOUR_SHIPWIRE_API_ENABLE_PURCHASE_ORDERS>",
-  "enable_products": "<YOUR_SHIPWIRE_API_ENABLE_PRODUCTS>",
-  "enable_debug_logging": "<YOUR_SHIPWIRE_API_ENABLE_DEBUG_LOGGING>"
+  "enable_products": "<YOUR_SHIPWIRE_API_ENABLE_PRODUCTS>"
 }
 ```
 
 ### Configuration parameters
 
-- `username`: Shipwire API username for Basic authentication
-- `password`: Shipwire API password for Basic authentication
-- `sync_frequency_hours`: Hours between sync runs (default: 4)
-- `initial_sync_days`: Days of historical data to fetch on first sync (default: 90)
-- `max_records_per_page`: Records per API request page (default: 100, max: 1000)
-- `request_timeout_seconds`: HTTP request timeout (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_orders`: Enable orders data sync (default: true)
-- `enable_purchase_orders`: Enable purchase orders data sync (default: true)
+- `username` (required): Shipwire API username for Basic authentication
+- `password` (required): Shipwire API password for Basic authentication
+- `initial_sync_days` (optional): Days of historical data to fetch on first sync (default: 90)
+- `max_records_per_page` (optional): Records per API request page (default: 100, max: 1000)
+- `request_timeout_seconds` (optional): HTTP request timeout (default: 30)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
+- `enable_orders` (optional): Enable orders data sync (default: true)
+- `enable_purchase_orders` (optional): Enable purchase orders data sync (default: true)
 - `enable_products`: Enable products data sync (default: true)
-- `enable_debug_logging`: Enable detailed debug logging (default: false)
 
 ## Requirements file
 
@@ -77,7 +73,7 @@ Note: The connector uses HTTP Basic authentication with automatic retry handling
 
 ## Pagination
 
-Offset-based pagination with automatic page traversal (refer to `get_orders`, `get_purchase_orders`, and `get_products` functions). Generator-based processing prevents memory accumulation for large datasets. Processes pages sequentially while yielding individual records for immediate processing.
+Offset-based pagination with automatic page traversal (refer to the `get_orders`, `get_purchase_orders`, and `get_products` functions). Generator-based processing prevents memory accumulation for large datasets. Processes pages sequentially while yielding individual records for immediate processing.
 
 ## Data handling
 
@@ -95,21 +91,81 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 
 ## Tables created
 
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| ORDERS | `id` | Order management data including status, items, shipping details |
-| PURCHASE_ORDERS | `id` | Purchase order tracking with vendor and warehouse information |
-| PRODUCTS | `id` | Product catalog with SKUs, dimensions, classifications, and inventory flags |
+Column types are automatically inferred by Fivetran. Nested objects and arrays are stored as JSON.
 
-Column types are automatically inferred by Fivetran. Sample columns include `order_number`, `status`, `total_value`, `currency`, `ship_to`, `items`, `po_number`, `warehouse_id`, `vendor_id`, `sku`, `description`, `category`, `dimensions`, `values`, `flags`.
+### ORDERS
 
-## Additional files
+Primary Key: `id`
 
-The connector includes several additional files to support functionality, testing, and deployment:
+Description: Order management data including status, items, shipping details, and fulfillment information.
 
-- `requirements.txt` – Python dependency specification for Shipwire API integration and connector requirements including faker for mock testing.
+Columns:
 
-- `configuration.json` – Configuration template for API credentials and connector parameters (should be excluded from version control).
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Unique order identifier (Primary Key) |
+| `external_id` | String | External order identifier from source system |
+| `order_number` | String | Human-readable order number |
+| `status` | String | Current order status |
+| `holds` | Array (JSON) | List of holds placed on the order |
+| `total_value` | Number | Total monetary value of the order |
+| `currency` | String | Currency code for the order value |
+| `ship_to` | Object (JSON) | Shipping address and recipient information |
+| `items` | Array (JSON) | List of items in the order |
+| `options` | Object (JSON) | Additional order options and preferences |
+| `created_date` | String | ISO 8601 timestamp when order was created |
+| `updated_date` | String | ISO 8601 timestamp when order was last updated |
+| `processed_date` | String | ISO 8601 timestamp when order was processed |
+| `timestamp` | String | ISO 8601 timestamp when record was synced |
+
+### PURCHASE_ORDERS
+
+Primary Key: `id`
+
+Description: Purchase order tracking with vendor and warehouse information.
+
+Columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Unique purchase order identifier (Primary Key) |
+| `external_id` | String | External purchase order identifier from source system |
+| `po_number` | String | Human-readable purchase order number |
+| `status` | String | Current purchase order status |
+| `warehouse_id` | String | Identifier of the warehouse receiving the order |
+| `warehouse_external_id` | String | External identifier of the warehouse |
+| `vendor_id` | String | Identifier of the vendor supplying the order |
+| `vendor_external_id` | String | External identifier of the vendor |
+| `expected_date` | String | ISO 8601 timestamp when order is expected to arrive |
+| `created_date` | String | ISO 8601 timestamp when purchase order was created |
+| `updated_date` | String | ISO 8601 timestamp when purchase order was last updated |
+| `items` | Array (JSON) | List of items in the purchase order |
+| `timestamp` | String | ISO 8601 timestamp when record was synced |
+
+### PRODUCTS
+
+Primary Key: `id`
+
+Description: Product catalog with SKUs, dimensions, classifications, and inventory flags.
+
+Columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | String | Unique product identifier (Primary Key) |
+| `sku` | String | Stock Keeping Unit identifier |
+| `external_id` | String | External product identifier from source system |
+| `description` | String | Product description |
+| `status` | String | Current product status |
+| `category` | String | Product category classification |
+| `classification` | String | Product classification code |
+| `batteryConfiguration` | Object (JSON) | Battery configuration details if applicable |
+| `dimensions` | Object (JSON) | Product dimensions (length, width, height, weight) |
+| `values` | Object (JSON) | Product value and pricing information |
+| `flags` | Object (JSON) | Product flags and metadata |
+| `created_date` | String | ISO 8601 timestamp when product was created |
+| `updated_date` | String | ISO 8601 timestamp when product was last updated |
+| `timestamp` | String | ISO 8601 timestamp when record was synced |
 
 
 ## Additional considerations
