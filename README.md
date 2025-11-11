@@ -27,7 +27,7 @@ Fivetran Connector SDK allows you to code a custom data connector using Python a
 Connector SDK provides native support for many Fivetran features and relies on existing Fivetran technology. It also eliminates timeout and data size limitations seen in AWS Lambda.
 
 ## Requirements
-- Python version ≥3.9 and ≤3.12
+- Python version ≥3.10 and ≤3.13
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -63,6 +63,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 - [firebird_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/firebird_db) - This example shows how to sync data from Firebird DB using Connector SDK. You need to provide your Firebird DB credentials for this example to work.
 - [fleetio](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/fleetio) - This example shows how to sync data from Fleetio using Connector SDK. You need to provide your Fleetio API Token for this example to work.
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
+- [grey_hr](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/grey_hr) - This example shows how to sync data from the greytHR API using the Connector SDK. Provide your greytHR API credentials for this example to work.
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
 - [harness_io](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/harness_io) - This example shows how to connect and sync data from Harness.io using Connector SDK. You need to provide your Harness API token and account ID for this example to work.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
@@ -257,11 +258,11 @@ This repository is open source and intended specifically for Connector SDK examp
 2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
 3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
 4. Ensure your code works correctly and follows our coding standards.
-  - [Python coding standards](./PYTHON_CODING_STANDARDS.md)
-  - [Fivetran coding principles](./FIVETRAN_CODING_PRINCIPLES.md)
+  - [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
+  - [Fivetran coding principles](https://github.com/fivetran/fivetran_connector_sdk/blob/main/FIVETRAN_CODING_PRINCIPLES.md)
 5. Open a pull request with a clear description of your changes.
   - If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag 
-  - If your're part of the Fivetran internal hackathon, please use the `hackathon` tag  
+  - If you're part of the Fivetran internal hackathon, please use the `hackathon` tag  
 
 ### What we're looking for
 
