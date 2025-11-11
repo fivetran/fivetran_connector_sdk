@@ -35,14 +35,14 @@ def _default_description(table_name: str) -> str:
     )
 
 
-def update_fields_yaml(fields: Set[str], table_name: str = "search_results") -> None:
+def update_fields_yaml(fields: Set[str], table_name: str) -> None:
     """
-    Update fields.yaml with discovered fields from Bright Data search results.
+    Update fields.yaml with discovered fields from Bright Data results.
 
-    Documents all fields found in the search results for reference.
+    Documents all fields found in the API responses for reference.
 
     Args:
-        fields: Set of field names discovered from search results
+        fields: Set of field names discovered from results
         table_name: Name of the table these fields belong to
     """
     sorted_fields = sorted(list(fields))

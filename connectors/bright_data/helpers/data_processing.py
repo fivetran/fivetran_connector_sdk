@@ -1,4 +1,4 @@
-"""Data processing utilities for flattening and normalizing search results."""
+"""Data processing utilities for flattening and normalizing Bright Data results."""
 
 import json
 from typing import Any, Dict, List, Set
@@ -47,39 +47,6 @@ def flatten_dict(
         return {parent_key: data}
 
     return dict(items)
-
-
-def process_search_result(result: Any, query: str, result_index: int) -> Dict[str, Any]:
-    """
-    Process a single search result by flattening all nested dictionaries.
-
-    Flattens the entire result structure into a flat key-value dictionary
-    where nested keys become top-level columns (e.g., "metadata_title" from {"metadata": {"title": "..."}}).
-
-    Args:
-        result: Search result dictionary from Bright Data parse_content
-        query: The search query that produced this result
-        result_index: Index of this result in the result set
-
-    Returns:
-        Flattened dictionary with all fields as top-level keys
-    """
-    # Start with base fields that identify the record
-    base_fields = {
-        "query": query,
-        "result_index": result_index,
-        "position": result_index + 1,
-    }
-
-    if not isinstance(result, dict):
-        base_fields["raw_data"] = str(result)
-        return base_fields
-
-    # Flatten the entire result dictionary
-    flattened = flatten_dict(result)
-
-    # Merge base fields with flattened fields (base fields take precedence)
-    return {**flattened, **base_fields}
 
 
 def collect_all_fields(results: List[Dict[str, Any]]) -> Set[str]:
