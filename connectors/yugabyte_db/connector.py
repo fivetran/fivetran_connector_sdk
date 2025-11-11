@@ -454,9 +454,8 @@ def update(configuration: dict, state: dict):
             except Exception as e:
                 log.warning(f"Error closing connection: {e}")
 
-    # Create the connector object using the schema and update functions
 
-
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
