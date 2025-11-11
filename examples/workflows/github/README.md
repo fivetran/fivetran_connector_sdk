@@ -70,7 +70,7 @@ You can use any [supported version of Python](https://github.com/fivetran/fivetr
 #### **Step 7: Deploy Fivetran Connector**
 - Uses environment variables for deployment.
 - Runs the `fivetran deploy` command with required parameters, including configuration file created in an earlier step.
-- A supported Python version must be specified; defaults to 3.12 if not provided.
+- A supported Python version must be specified; defaults to 3.13 if not provided.
 
 ## How to Use
 
