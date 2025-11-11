@@ -199,12 +199,10 @@ def fetch_brands(api_key: str, state: dict):
 
     log.info(f"Upserted {record_count} brands, skipped {skipped_count} unchanged brands")
 
-    # Checkpoint one final time if there are any remaining records since the last checkpoint
+    # Always update and checkpoint after processing all records
+    state["brands_last_updated"] = latest_timestamp
     if record_count % __CHECKPOINT_INTERVAL != 0:
-        state["brands_last_updated"] = latest_timestamp
         op.checkpoint(state)
-    else:
-        state["brands_last_updated"] = latest_timestamp
     return state
 
 
