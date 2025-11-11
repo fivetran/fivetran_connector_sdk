@@ -14,3 +14,5 @@ examples/**/dist/
 *.spec
 **/__run.py
 **/Dockerfile
+.env
+.venv/

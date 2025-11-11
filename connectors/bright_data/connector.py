@@ -21,8 +21,10 @@ from helpers import (
     collect_all_fields,
     perform_scrape,
     perform_search,
+    perform_web_unlocker,
     process_scrape_result,
     process_search_result,
+    process_unlocker_result,
     update_fields_yaml,
     validate_configuration,
 )
@@ -69,6 +71,16 @@ def schema(_config: dict) -> List[Dict[str, Any]]:
             "table": "scrape_results",
             "primary_key": [
                 "url",
+                "result_index",
+            ],
+        }
+    )
+
+    tables.append(
+        {
+            "table": "unlocker_results",
+            "primary_key": [
+                "requested_url",
                 "result_index",
             ],
         }
@@ -123,6 +135,12 @@ def update(
         if scrape_url_input:
             new_state = _process_scrape_endpoint(
                 client, configuration, scrape_url_input, new_state
+            )
+
+        unlocker_url_input = configuration.get("unlocker_url", "")
+        if unlocker_url_input:
+            new_state = _process_unlocker_endpoint(
+                configuration, unlocker_url_input, new_state
             )
 
         # Checkpoint state after processing all endpoints
@@ -453,11 +471,109 @@ def _process_scrape_endpoint(
     return state
 
 
+def _process_unlocker_endpoint(
+    configuration: Dict[str, Any],
+    unlocker_url_input: str,
+    state: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Process unlocker endpoint: fetch unlocker results and upsert to Fivetran.
+    """
+    urls: List[str]
+    if unlocker_url_input:
+        try:
+            parsed = json.loads(unlocker_url_input)
+            if isinstance(parsed, list):
+                urls = parsed
+            else:
+                urls = [parsed]
+        except (json.JSONDecodeError, TypeError):
+            if isinstance(unlocker_url_input, str):
+                if "," in unlocker_url_input:
+                    urls = [
+                        url.strip()
+                        for url in unlocker_url_input.split(",")
+                        if url.strip()
+                    ]
+                elif "\n" in unlocker_url_input:
+                    urls = [
+                        url.strip()
+                        for url in unlocker_url_input.split("\n")
+                        if url.strip()
+                    ]
+                else:
+                    urls = (
+                        [unlocker_url_input.strip()]
+                        if unlocker_url_input.strip()
+                        else []
+                    )
+            elif isinstance(unlocker_url_input, list):
+                urls = unlocker_url_input
+            else:
+                urls = []
+    else:
+        urls = []
+
+    if not urls:
+        raise ValueError("unlocker_url cannot be empty")
+
+    api_token = configuration.get("api_token")
+    country = configuration.get("country")
+    data_format = configuration.get("data_format")
+    format_param = configuration.get("format")
+    method = configuration.get("method")
+    unlocker_zone = configuration.get("unlocker_zone") or configuration.get("zone")
+
+    unlocker_payload = urls if len(urls) > 1 else urls[0]
+    unlocker_results = perform_web_unlocker(
+        api_token=api_token,
+        url=unlocker_payload,
+        zone=unlocker_zone,
+        country=country,
+        method=method,
+        format_param=format_param,
+        data_format=data_format,
+    )
+
+    if not isinstance(unlocker_results, list):
+        unlocker_results = [unlocker_results]
+
+    processed_results: List[Dict[str, Any]] = []
+    for idx, result in enumerate(unlocker_results):
+        requested_url = result.get("requested_url")
+        if not requested_url:
+            requested_url = urls[idx % len(urls)]
+        processed_result = process_unlocker_result(result, requested_url, idx)
+        processed_results.append(processed_result)
+
+    if processed_results:
+        log.info(f"Upserting {len(processed_results)} unlocker results to Fivetran")
+
+        all_fields = collect_all_fields(processed_results)
+        update_fields_yaml(all_fields, "unlocker_results")
+
+        for result in processed_results:
+            single_record_data: Dict[str, List[Any]] = {}
+            for field in all_fields:
+                single_record_data[field] = [result.get(field)]
+
+            op.upsert("unlocker_results", single_record_data)
+
+        state.update(
+            {
+                "last_unlocker_urls": urls,
+                "last_unlocker_count": len(processed_results),
+            }
+        )
+
+    return state
+
+
 # Initialize the connector
 connector = Connector(update=update, schema=schema)
 
 
-if __name__ == "__main__":
-    with open("connectors/bright_data/configuration.json", "r", encoding="utf-8") as f:
-        local_configuration = json.load(f)
-    connector.debug(configuration=local_configuration)
+# if __name__ == "__main__":
+#     with open("connectors/bright_data/configuration.json", "r", encoding="utf-8") as f:
+#         local_configuration = json.load(f)
+#     connector.debug(configuration=local_configuration)

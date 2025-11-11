@@ -1,0 +1,18 @@
+[
+  {
+    "requested_url": "[\"https://geo.brdtest.com/welcome.txt\"]",
+    "result_index": "[0]",
+    "headers_access_control_allow_origin": "[\"*\"]",
+    "headers_server": "[\"nginx\"]",
+    "status_code": "[200]",
+    "_fivetran_deleted": false,
+    "headers_content_type": "[\"text/plain; charset=utf-8\"]",
+    "body": "[\"Welcome to Bright Data! Here are your proxy details Country: US City: North Bergen Region: NJ Postal Code: 07047 Latitude: 40.7964 Longitude: -74.0203 Timezone: America/New\\\\_York ASN number: 14061 ASN Organization name: DIGITALOCEAN-ASN IP version: IPv4 Common usage examples: \\\\[USERNAME\\\\]-country-us:\\\\[PASSWORD\\\\] // US based Proxy \\\\[USERNAME\\\\]-country-us-state-ny:\\\\[PASSWORD\\\\] // US proxy from NY \\\\[USERNAME\\\\]-asn-56386:\\\\[PASSWORD\\\\] // proxy from ASN 56386 \\\\[USERNAME\\\\]-ip-1.1.1.1.1:\\\\[PASSWORD\\\\] // proxy from dedicated pool To get a simple JSON response, use https://geo.brdtest.com/mygeo.json . More examples on https://docs.brightdata.com/api-reference/introduction\"]",
+    "headers_cache_control": "[\"no-store\"]",
+    "_fivetran_synced": "2025-11-10T22:12:51.291393+00:00",
+    "headers_connection": "[\"close\"]",
+    "position": "[1]",
+    "headers_transfer_encoding": "[\"chunked\"]",
+    "headers_date": "[\"Mon, 10 Nov 2025 22:12:51 GMT\"]"
+  }
+]
