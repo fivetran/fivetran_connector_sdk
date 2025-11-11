@@ -61,11 +61,11 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses API key authentication via the `X-Auth-Token` HTTP header. The authentication token is passed with every GraphQL request to both the `/graphql` and `/admin` endpoints.
 
-Configuration:
+To set up authentication, do the following:
 1. Obtain an API key or auth token from your Dgraph instance.
 2. Add the token to the `api_key` field in your `configuration.json` file.
-3. The connector automatically handles authentication in all GraphQL requests.
 
+Once the API key is provided, the connector automatically handles authentication in all GraphQL requests.
 For local testing with Docker, authentication may be disabled by default in your Dgraph instance.
 
 ## Pagination
