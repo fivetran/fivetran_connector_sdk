@@ -112,6 +112,9 @@ def get_table_list(connection, schema_name: str):
         tables = [row[0] for row in cursor.fetchall()]
         log.info(f"Found {len(tables)} tables in schema '{schema_name}'")
         return tables
+    except psycopg2.Error as e:
+        log.severe(f"Failed to fetch table list from schema '{schema_name}': {e}")
+        raise
     finally:
         cursor.close()
 
@@ -139,6 +142,11 @@ def get_primary_key_columns(connection, schema_name: str, table_name: str):
         cursor.execute(query, (full_table_name,))
         pk_columns = [row[0] for row in cursor.fetchall()]
         return pk_columns
+    except psycopg2.Error as e:
+        log.severe(
+            f"Failed to fetch primary key columns for table '{schema_name}.{table_name}': {e}"
+        )
+        raise
     finally:
         cursor.close()
 
@@ -162,6 +170,11 @@ def check_incremental_column(connection, schema_name: str, table_name: str):
         """
         cursor.execute(query, (schema_name, table_name))
         return cursor.fetchone() is not None
+    except psycopg2.Error as e:
+        log.severe(
+            f"Failed to check incremental column for table '{schema_name}.{table_name}': {e}"
+        )
+        raise
     finally:
         cursor.close()
 
@@ -441,8 +454,9 @@ def update(configuration: dict, state: dict):
             except Exception as e:
                 log.warning(f"Error closing connection: {e}")
 
+    # Create the connector object using the schema and update functions
 
-# Create the connector object using the schema and update functions
+
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
@@ -450,6 +464,9 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
+
+        # Test the connector locally
     connector.debug(configuration=configuration)
