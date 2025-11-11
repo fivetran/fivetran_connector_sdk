@@ -326,14 +326,15 @@ def fetch_audit_events(api_key: str, state: dict):
 
 def fetch_lists(api_key: str, state: dict):
     """
-    Fetch lists from Courier API with pagination.
+    Fetch lists from Courier API with cursor-based pagination.
     Args:
         api_key: The API key for authentication.
         state: The state dictionary to track sync progress.
     Returns:
-        Updated state.
+        Updated state with cursor position for lists.
     """
     headers = get_headers(api_key)
+    cursor = state.get("lists_cursor")
     has_more = True
     record_count = 0
 
@@ -341,6 +342,9 @@ def fetch_lists(api_key: str, state: dict):
 
     while has_more:
         url = f"{__BASE_URL}/lists"
+        if cursor:
+            url = f"{url}?cursor={cursor}"
+
         response_data = make_api_request(url, headers)
 
         items = response_data.get("items", [])
@@ -358,8 +362,10 @@ def fetch_lists(api_key: str, state: dict):
 
             record_count += 1
 
+        cursor = paging.get("cursor")
         has_more = paging.get("more", False)
 
+        state["lists_cursor"] = cursor
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -370,6 +376,7 @@ def fetch_lists(api_key: str, state: dict):
             break
 
     log.info(f"Completed fetching {record_count} total lists")
+    state["lists_cursor"] = None
     return state
 
 
