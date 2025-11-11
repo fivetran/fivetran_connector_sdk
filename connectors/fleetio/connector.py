@@ -1,6 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 # This example shows how to sync data from the Fleetio API using the Fivetran Connector SDK.
-# This example was built by the Fleetio team, who approved adding it to this repository.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
