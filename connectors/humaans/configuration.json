@@ -1,10 +1,8 @@
 {
   "api_token": "<YOUR_HUMAANS_API_TOKEN>",
-  "sync_frequency_hours": "<YOUR_HUMAANS_API_SYNC_FREQUENCY_HOURS>",
   "initial_sync_days": "<YOUR_HUMAANS_API_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_HUMAANS_API_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_HUMAANS_API_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts": "<YOUR_HUMAANS_API_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_HUMAANS_API_ENABLE_INCREMENTAL_SYNC>",
-  "enable_debug_logging": "<YOUR_HUMAANS_API_ENABLE_DEBUG_LOGGING>"
+  "enable_incremental_sync": "<YOUR_HUMAANS_API_ENABLE_INCREMENTAL_SYNC>"
 }
