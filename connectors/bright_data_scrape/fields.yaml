@@ -1,0 +1,14 @@
+tables:
+  scrape_results:
+    description: Dynamically created table 'scrape_results' from Bright Data results.
+      Fields are inferred from the API response structure.
+    fields:
+    - images
+    - links
+    - position
+    - raw_length
+    - result_index
+    - text
+    - title
+    - type
+    - url
