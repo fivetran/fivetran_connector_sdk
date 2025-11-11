@@ -50,23 +50,23 @@ For production deployments, we recommend configuring these as **GitHub secrets**
 
 ```json
 {
-  "api_key": "NRAK-ABC123DEF456",
-  "account_id": "123456789",
-  "region": "US",
-  "sync_frequency_minutes": "YOUR_SYNC_FREQUENCY_MINUTES",
-  "initial_sync_days": "YOUR_INITIAL_SYNC_DAYS",
-  "max_records_per_query": "YOUR_MAX_RECORDS_PER_QUERY",
-  "enable_apm_data": "YOUR_ENABLE_APM_DATA",
-  "enable_infrastructure_data": "YOUR_ENABLE_INFRASTRUCTURE_DATA",
-  "enable_browser_data": "YOUR_ENABLE_BROWSER_DATA",
-  "enable_mobile_data": "YOUR_ENABLE_MOBILE_DATA",
-  "enable_synthetic_data": "YOUR_ENABLE_SYNTHETIC_DATA",
-  "timeout_seconds": "YOUR_TIMEOUT_SECONDS",
-  "retry_attempts": "YOUR_RETRY_ATTEMPTS",
-  "retry_delay_seconds": "YOUR_RETRY_DELAY_SECONDS",
-  "data_quality_threshold": "YOUR_DATA_QUALITY_THRESHOLD",
-  "alert_on_errors": "YOUR_ALERT_ON_ERRORS",
-  "log_level": "YOUR_LOG_LEVEL"
+  "api_key": "<YOUR_NEWRELIC_API_KEY>",
+  "account_id": "<YOUR_NEWRELIC_ACCOUNT_ID>",
+  "region": "<YOUR_NEWRELIC_REGION>",
+  "sync_frequency_minutes": "<YOUR_SYNC_FREQUENCY_MINUTES>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_query": "<YOUR_MAX_RECORDS_PER_QUERY>",
+  "enable_apm_data": "<YOUR_ENABLE_APM_DATA>",
+  "enable_infrastructure_data": "<YOUR_ENABLE_INFRASTRUCTURE_DATA>",
+  "enable_browser_data": "<YOUR_ENABLE_BROWSER_DATA>",
+  "enable_mobile_data": "<YOUR_ENABLE_MOBILE_DATA>",
+  "enable_synthetic_data": "<YOUR_ENABLE_SYNTHETIC_DATA>",
+  "timeout_seconds": "<YOUR_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "retry_delay_seconds": "<YOUR_RETRY_DELAY_SECONDS>",
+  "data_quality_threshold": "<YOUR_DATA_QUALITY_THRESHOLD>",
+  "alert_on_errors": "<YOUR_ALERT_ON_ERRORS>",
+  "log_level": "<YOUR_LOG_LEVEL>"
 }
 ```
 
@@ -87,36 +87,11 @@ Optional configuration keys:
 - `alert_on_errors`: Enable error alerting (defaults to true)
 - `log_level`: Logging level (DEBUG, INFO, WARNING, ERROR, SEVERE, defaults to INFO)
 
-## Production vs Development Configuration
-
-### Production deployment (Recommended)
-- Method: GitHub Actions workflow with GitHub secrets
-- Security: Credentials stored securely in GitHub
-- Automation: Push-to-deploy workflow
-- Compliance: Enterprise-grade security practices
-
-### Development & Testing (Available)
-- Method: Local `configuration.json` or environment variables
-- Security: Credentials stored locally (never commit to repository)
-- Use case: Local development, debugging, testing
-- Guidance: We recommend using GitHub secrets for production
-
-Security note: For production deployments, we recommend using **GitHub secrets**. Local configuration files are available for development but we encourage using GitHub secrets for production environments.
-
-Note: We recommend keeping the `configuration.json` file out of version control to protect sensitive information. You can add it to your `.gitignore` file for additional security.
-
 ## Requirements file
 
-The `requirements.txt` file specifies the Python libraries required by the connector for New Relic API integration and data processing.
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
 
-Example content of `requirements.txt`:
-
-```
-fivetran-connector-sdk>=2.0.0
-requests>=2.28.0
-```
-
-Note: The `fivetran_connector_sdk:latest` package (v2.0.0+) is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`. 
+Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
 
 ## Authentication
 
@@ -147,27 +122,6 @@ The connector implements efficient data handling by:
 - Applying filters to focus on relevant data subsets
 
 Refer to functions `get_apm_data`, `get_infrastructure_data`, `get_browser_data`, `get_mobile_data`, and `get_synthetic_data` in `connector.py` for the data retrieval implementation.
-
-## Dynamic time range management
-
-The connector intelligently manages data fetching based on sync type:
-
-### Initial sync
-- Time range: Last 90 days of data
-- Use case: First-time setup or full re-sync
-- Data volume: Comprehensive historical data for baseline analysis
-
-### Incremental sync
-- Time range: Data since last successful sync timestamp
-- Use case: Regular scheduled syncs
-- Data volume: Only new/changed data since last sync
-- Benefits: Faster sync times, reduced API calls, efficient resource usage
-
-### Implementation details
-- State management: Uses Fivetran's checkpoint system to track last sync time
-- Automatic detection: Automatically determines sync type based on state
-- Flexible queries: All NRQL queries dynamically adjust time ranges
-- Logging: Clear indication of sync type and time ranges in logs
 
 ## Data handling
 
@@ -220,7 +174,7 @@ Refer to functions `validate_configuration`, `execute_nerdgraph_query`, and the 
 
 The connector creates the following tables for comprehensive New Relic monitoring analysis. Column types are automatically inferred by Fivetran based on the actual data structure and content.
 
-### apm_data
+### APM_DATA
 Primary table for application performance monitoring data with transaction-level metrics and performance indicators.
 
 Primary key: `account_id`, `timestamp`, `transaction_name`
@@ -234,7 +188,7 @@ Sample columns (automatically inferred by Fivetran):
 - `throughput` - Transactions per second
 - `apdex_score` - Apdex performance score (0-1)
 
-### infrastructure_data
+### INFRASTRUCTURE_DATA
 Infrastructure monitoring data for host status, domain analysis, and infrastructure health tracking.
 
 Primary key: `account_id`, `timestamp`, `host_name`
@@ -248,7 +202,7 @@ Sample columns (automatically inferred by Fivetran):
 - `reporting` - Whether the host is currently reporting
 - `tags` - JSON-formatted host tags and metadata
 
-### browser_data
+### BROWSER_DATA
 Browser performance monitoring data for user experience analysis and page performance insights.
 
 Primary key: `account_id`, `timestamp`, `page_url`
@@ -263,7 +217,7 @@ Sample columns (automatically inferred by Fivetran):
 - `load_time` - Page load time in milliseconds
 - `dom_content_loaded` - DOM content loaded time in milliseconds
 
-### mobile_data
+### MOBILE_DATA
 Mobile application monitoring data for crash analysis, platform performance, and device utilization insights.
 
 Primary key: `account_id`, `timestamp`, `app_name`
@@ -278,7 +232,7 @@ Sample columns (automatically inferred by Fivetran):
 - `os_version` - Operating system version
 - `crash_count` - Number of crashes detected
 
-### synthetic_data
+### SYNTHETIC_DATA
 Synthetic monitoring data for uptime monitoring, response time analysis, and failure detection.
 
 Primary key: `account_id`, `timestamp`, `monitor_name`
@@ -293,42 +247,5 @@ Sample columns (automatically inferred by Fivetran):
 - `location` - Monitor execution location
 - `error_message` - Error message if monitor failed
 
-## Additional files
-
-The connector includes several additional files to support functionality and deployment:
-
-* `.github/workflows/deploy_connector.yaml` – Primary deployment mechanism: GitHub Actions workflow for automated deployment to Fivetran with parameterized configuration and secure credential management.
-
-* `requirements.txt` – Python dependency specification for New Relic API integration and connector requirements.
-
 ## Additional considerations
-
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-Important new relic limitations:
-- NRQL queries limited to 1000 results per query
-- API rate limits apply to large accounts
-- Data retention varies by New Relic plan
-- Some features require specific New Relic licenses
-- Historical data availability depends on account settings
-
-Performance considerations:
-- Large accounts may experience longer sync times
-- Multiple monitoring services increase API calls
-- Historical data syncs can be resource-intensive
-- Use incremental syncs for production environments
-
-Security best practices:
-- We recommend using API keys with minimal required permissions
-- Consider regularly rotating API keys for enhanced security
-- Monitor API usage and rate limits to maintain optimal performance
-- Implement proper error handling and logging for better troubleshooting
-
-GitHub actions workflow management:
-- Recommended production method: We recommend using GitHub Actions workflow for production deployments
-- Keep secrets and variables updated in GitHub repository settings
-- Use environment protection rules for production deployments
-- Monitor workflow execution logs for any deployment issues
-- Regularly review and update workflow permissions and access controls
-- Consider using branch protection rules to prevent unauthorized deployments
-- Manual deployment: Available for development, testing, and debugging, but we encourage using GitHub Actions for production

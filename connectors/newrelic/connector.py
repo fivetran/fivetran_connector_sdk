@@ -1,9 +1,7 @@
-"""This connector demonstrates how to fetch data from New Relic feature APIs and upsert it into destination using the Fivetran Connector SDK.
-Supports querying data from APM, Infrastructure, Browser monitoring, Mobile monitoring, and Synthetic monitoring APIs.
-
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-"""
+# This connector demonstrates how to fetch data from New Relic feature APIs and upsert it into destination using the Fivetran Connector SDK.
+# Supports querying data from APM, Infrastructure, Browser monitoring, Mobile monitoring, and Synthetic monitoring APIs.
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # For reading configuration from a JSON file
 import json
@@ -22,7 +20,6 @@ import requests
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from string import Template
 
 
 def _validate_required_configs(configuration: dict):
@@ -222,7 +219,7 @@ def _get_data_source_flags(configuration: dict) -> dict:
     """
     return {
         "enable_apm": configuration.get("enable_apm_data", "true").lower() == "true",
-        "enable_infrastructure": configuration.get("enable_infrastructure_data", "true").lower(),
+        "enable_infrastructure": configuration.get("enable_infrastructure_data", "true").lower() == "true",
         "enable_browser": configuration.get("enable_browser_data", "true").lower() == "true",
         "enable_mobile": configuration.get("enable_mobile_data", "true").lower() == "true",
         "enable_synthetic": configuration.get("enable_synthetic_data", "true").lower() == "true",
@@ -308,7 +305,7 @@ def get_apm_data(
     retry_delay_seconds: int = 5,
 ):
     """
-    Fetch APM data from New Relic and insert records directly.
+    Fetch APM data from New Relic with pagination and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -323,31 +320,43 @@ def get_apm_data(
         Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query_template = Template(
+    total_record_count = 0
+    offset = 0
+
+    # Paginate through all results
+    while True:
+        query = f"""
+        {{
+          actor {{
+            account(id: {account_id}) {{
+              nrql(query: "SELECT * FROM Transaction {time_range} LIMIT {max_records} OFFSET {offset}") {{
+                results
+              }}
+            }}
+          }}
+        }}
         """
-    {
-      actor {
-        account(id: $account_id) {
-          nrql(query: "SELECT * FROM Transaction $time_range LIMIT $max_records") {
-            results
-          }
-        }
-      }
-    }
-    """
-    )
-    query = query_template.substitute(
-        account_id=account_id, time_range=time_range, max_records=max_records
-    )
 
-    response = execute_nerdgraph_query(
-        query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
-    )
+        response = execute_nerdgraph_query(
+            query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
+        )
 
-    record_count = 0
-    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
-        results = response["data"]["actor"]["account"]["nrql"]["results"]
+        # Check if we got results
+        results = (
+            response.get("data", {})
+            .get("actor", {})
+            .get("account", {})
+            .get("nrql", {})
+            .get("results", [])
+        )
+
+        if not results:
+            # No more results, break pagination loop
+            break
+
         current_time = datetime.now(timezone.utc).isoformat()
+        page_count = 0
+
         for result in results:
             record = {
                 "account_id": account_id,
@@ -363,9 +372,19 @@ def get_apm_data(
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="apm_data", data=record)
-            record_count += 1
+            page_count += 1
+            total_record_count += 1
 
-    return record_count
+        log.info(f"APM data page: {page_count} records (offset: {offset})")
+
+        # If we got fewer results than max_records, we've reached the end
+        if len(results) < max_records:
+            break
+
+        # Move to next page
+        offset += max_records
+
+    return total_record_count
 
 
 def get_infrastructure_data(
@@ -377,7 +396,7 @@ def get_infrastructure_data(
     retry_delay_seconds: int = 5,
 ):
     """
-    Fetch Infrastructure monitoring data from New Relic and insert records directly.
+    Fetch Infrastructure monitoring data from New Relic with cursor-based pagination and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -388,46 +407,55 @@ def get_infrastructure_data(
     Returns:
         Number of records processed
     """
-    query_template = Template(
+    total_record_count = 0
+    next_cursor = None
+
+    # Paginate through all results using cursor-based pagination
+    while True:
+        cursor_param = f'cursor: "{next_cursor}"' if next_cursor else ""
+        query = f"""
+        {{
+          actor {{
+            entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = {account_id}" {cursor_param}) {{
+              count
+              results {{
+                nextCursor
+                entities {{
+                  name
+                  accountId
+                  domain
+                  type
+                  reporting
+                  tags {{
+                    key
+                    values
+                  }}
+                }}
+              }}
+            }}
+          }}
+        }}
         """
-    {
-      actor {
-        entitySearch(query: "domain = 'INFRA' AND type = 'HOST' AND accountId = $account_id") {
-          count
-          results {
-            entities {
-              name
-              accountId
-              domain
-              type
-              reporting
-              tags {
-                key
-                values
-              }
-            }
-          }
-        }
-      }
-    }
-    """
-    )
-    query = query_template.substitute(account_id=account_id)
 
-    response = execute_nerdgraph_query(
-        query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
-    )
+        response = execute_nerdgraph_query(
+            query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
+        )
 
-    record_count = 0
-    if (
-        response.get("data", {})
-        .get("actor", {})
-        .get("entitySearch", {})
-        .get("results", {})
-        .get("entities")
-    ):
-        entities = response["data"]["actor"]["entitySearch"]["results"]["entities"]
+        # Check if we got results
+        entity_search = response.get("data", {}).get("actor", {}).get("entitySearch", {})
+        if not entity_search:
+            break
+
+        results = entity_search.get("results", {})
+        entities = results.get("entities", [])
+
+        if not entities:
+            # No more entities, break pagination loop
+            break
+
         current_time = datetime.now(timezone.utc).isoformat()
+        page_count = 0
+
         for entity in entities:
             record = {
                 "account_id": account_id,
@@ -443,9 +471,18 @@ def get_infrastructure_data(
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="infrastructure_data", data=record)
-            record_count += 1
+            page_count += 1
+            total_record_count += 1
 
-    return record_count
+        log.info(f"Infrastructure data page: {page_count} entities")
+
+        # Check if there's a next cursor for pagination
+        next_cursor = results.get("nextCursor")
+        if not next_cursor:
+            # No more pages, break pagination loop
+            break
+
+    return total_record_count
 
 
 def get_browser_data(
@@ -460,7 +497,7 @@ def get_browser_data(
     retry_delay_seconds: int = 5,
 ):
     """
-    Fetch Browser monitoring data from New Relic and insert records directly.
+    Fetch Browser monitoring data from New Relic with pagination and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -475,31 +512,43 @@ def get_browser_data(
         Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query_template = Template(
+    total_record_count = 0
+    offset = 0
+
+    # Paginate through all results
+    while True:
+        query = f"""
+        {{
+          actor {{
+            account(id: {account_id}) {{
+              nrql(query: "SELECT * FROM PageView {time_range} LIMIT {max_records} OFFSET {offset}") {{
+                results
+              }}
+            }}
+          }}
+        }}
         """
-    {
-      actor {
-        account(id: $account_id) {
-          nrql(query: "SELECT * FROM PageView $time_range LIMIT $max_records") {
-            results
-          }
-        }
-      }
-    }
-    """
-    )
-    query = query_template.substitute(
-        account_id=account_id, time_range=time_range, max_records=max_records
-    )
 
-    response = execute_nerdgraph_query(
-        query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
-    )
+        response = execute_nerdgraph_query(
+            query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
+        )
 
-    record_count = 0
-    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
-        results = response["data"]["actor"]["account"]["nrql"]["results"]
+        # Check if we got results
+        results = (
+            response.get("data", {})
+            .get("actor", {})
+            .get("account", {})
+            .get("nrql", {})
+            .get("results", [])
+        )
+
+        if not results:
+            # No more results, break pagination loop
+            break
+
         current_time = datetime.now(timezone.utc).isoformat()
+        page_count = 0
+
         for result in results:
             record = {
                 "account_id": account_id,
@@ -516,9 +565,19 @@ def get_browser_data(
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="browser_data", data=record)
-            record_count += 1
+            page_count += 1
+            total_record_count += 1
 
-    return record_count
+        log.info(f"Browser data page: {page_count} records (offset: {offset})")
+
+        # If we got fewer results than max_records, we've reached the end
+        if len(results) < max_records:
+            break
+
+        # Move to next page
+        offset += max_records
+
+    return total_record_count
 
 
 def get_mobile_data(
@@ -533,7 +592,7 @@ def get_mobile_data(
     retry_delay_seconds: int = 5,
 ):
     """
-    Fetch Mobile monitoring data from New Relic and insert records directly.
+    Fetch Mobile monitoring data from New Relic with pagination and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -548,31 +607,43 @@ def get_mobile_data(
         Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query_template = Template(
+    total_record_count = 0
+    offset = 0
+
+    # Paginate through all results
+    while True:
+        query = f"""
+        {{
+          actor {{
+            account(id: {account_id}) {{
+              nrql(query: "SELECT * FROM Mobile WHERE appName IS NOT NULL {time_range} LIMIT {max_records} OFFSET {offset}") {{
+                results
+              }}
+            }}
+          }}
+        }}
         """
-    {
-      actor {
-        account(id: $account_id) {
-          nrql(query: "SELECT * FROM Mobile WHERE appName IS NOT NULL $time_range LIMIT $max_records") {
-            results
-          }
-        }
-      }
-    }
-    """
-    )
-    query = query_template.substitute(
-        account_id=account_id, time_range=time_range, max_records=max_records
-    )
 
-    response = execute_nerdgraph_query(
-        query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
-    )
+        response = execute_nerdgraph_query(
+            query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
+        )
 
-    record_count = 0
-    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
-        results = response["data"]["actor"]["account"]["nrql"]["results"]
+        # Check if we got results
+        results = (
+            response.get("data", {})
+            .get("actor", {})
+            .get("account", {})
+            .get("nrql", {})
+            .get("results", [])
+        )
+
+        if not results:
+            # No more results, break pagination loop
+            break
+
         current_time = datetime.now(timezone.utc).isoformat()
+        page_count = 0
+
         for result in results:
             record = {
                 "account_id": account_id,
@@ -589,9 +660,19 @@ def get_mobile_data(
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="mobile_data", data=record)
-            record_count += 1
+            page_count += 1
+            total_record_count += 1
 
-    return record_count
+        log.info(f"Mobile data page: {page_count} records (offset: {offset})")
+
+        # If we got fewer results than max_records, we've reached the end
+        if len(results) < max_records:
+            break
+
+        # Move to next page
+        offset += max_records
+
+    return total_record_count
 
 
 def get_synthetic_data(
@@ -606,7 +687,7 @@ def get_synthetic_data(
     retry_delay_seconds: int = 5,
 ):
     """
-    Fetch Synthetic monitoring data from New Relic and insert records directly.
+    Fetch Synthetic monitoring data from New Relic with pagination and insert records directly.
     Args:
         api_key: New Relic API key
         region: New Relic region
@@ -621,31 +702,43 @@ def get_synthetic_data(
         Number of records processed
     """
     time_range = get_time_range(last_sync_time, initial_sync_days)
-    query_template = Template(
+    total_record_count = 0
+    offset = 0
+
+    # Paginate through all results
+    while True:
+        query = f"""
+        {{
+          actor {{
+            account(id: {account_id}) {{
+              nrql(query: "SELECT * FROM SyntheticCheck {time_range} LIMIT {max_records} OFFSET {offset}") {{
+                results
+              }}
+            }}
+          }}
+        }}
         """
-    {
-      actor {
-        account(id: $account_id) {
-          nrql(query: "SELECT * FROM SyntheticCheck $time_range LIMIT $max_records") {
-            results
-          }
-        }
-      }
-    }
-    """
-    )
-    query = query_template.substitute(
-        account_id=account_id, time_range=time_range, max_records=max_records
-    )
 
-    response = execute_nerdgraph_query(
-        query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
-    )
+        response = execute_nerdgraph_query(
+            query, api_key, region, timeout_seconds, retry_attempts, retry_delay_seconds
+        )
 
-    record_count = 0
-    if response.get("data", {}).get("actor", {}).get("account", {}).get("nrql", {}).get("results"):
-        results = response["data"]["actor"]["account"]["nrql"]["results"]
+        # Check if we got results
+        results = (
+            response.get("data", {})
+            .get("actor", {})
+            .get("account", {})
+            .get("nrql", {})
+            .get("results", [])
+        )
+
+        if not results:
+            # No more results, break pagination loop
+            break
+
         current_time = datetime.now(timezone.utc).isoformat()
+        page_count = 0
+
         for result in results:
             record = {
                 "account_id": account_id,
@@ -662,17 +755,30 @@ def get_synthetic_data(
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted,
             op.upsert(table="synthetic_data", data=record)
-            record_count += 1
+            page_count += 1
+            total_record_count += 1
 
-    return record_count
+        log.info(f"Synthetic data page: {page_count} records (offset: {offset})")
+
+        # If we got fewer results than max_records, we've reached the end
+        if len(results) < max_records:
+            break
+
+        # Move to next page
+        offset += max_records
+
+    return total_record_count
 
 
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
+
     return [
         {
             "table": "apm_data",
@@ -697,12 +803,75 @@ def schema(configuration: dict):
     ]
 
 
+def _process_data_sources(config_params: dict, data_source_flags: dict, last_sync_time: Optional[str]) -> tuple:
+    """
+    Process all enabled data sources and return metrics.
+    Args:
+        config_params: Configuration parameters
+        data_source_flags: Data source enablement flags
+        last_sync_time: Last sync timestamp for incremental sync
+    Returns:
+        Tuple of (total_records, data_quality_scores)
+    """
+    total_records = 0
+    data_quality_scores = []
+
+    # Define data sources with their fetch functions
+    data_sources = [
+        ("apm", data_source_flags["enable_apm"], get_apm_data, True),
+        ("infrastructure", data_source_flags["enable_infrastructure"], get_infrastructure_data, False),
+        ("browser", data_source_flags["enable_browser"], get_browser_data, True),
+        ("mobile", data_source_flags["enable_mobile"], get_mobile_data, True),
+        ("synthetic", data_source_flags["enable_synthetic"], get_synthetic_data, True),
+    ]
+
+    # Process each enabled data source
+    for source_name, enabled, fetch_func, uses_time_range in data_sources:
+        if enabled:
+            log.info(f"Fetching {source_name.title()} data...")
+
+            # Prepare arguments based on function signature
+            if uses_time_range:
+                data = fetch_func(
+                    config_params["api_key"],
+                    config_params["region"],
+                    config_params["account_id"],
+                    last_sync_time,
+                    config_params["initial_sync_days"],
+                    config_params["max_records"],
+                    config_params["timeout_seconds"],
+                    config_params["retry_attempts"],
+                    config_params["retry_delay_seconds"],
+                )
+            else:
+                data = fetch_func(
+                    config_params["api_key"],
+                    config_params["region"],
+                    config_params["account_id"],
+                    config_params["timeout_seconds"],
+                    config_params["retry_attempts"],
+                    config_params["retry_delay_seconds"],
+                )
+
+            # Get record count from fetch function (data is already synced)
+            record_count = data
+            quality_score = _calculate_simple_data_quality(record_count)
+            total_records += record_count
+            data_quality_scores.append(quality_score)
+            log.info(f"{source_name.title()} data: {record_count} records")
+
+    return total_records, data_quality_scores
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("Starting New Relic Feature APIs connector sync")
 
@@ -727,62 +896,8 @@ def update(configuration: dict, state: dict):
     )
 
     try:
-        total_records = 0
-        data_quality_scores = []
-
-        # Define data sources with their fetch functions
-        data_sources = [
-            ("apm", data_source_flags["enable_apm"], get_apm_data, True),
-            (
-                "infrastructure",
-                data_source_flags["enable_infrastructure"],
-                get_infrastructure_data,
-                False,
-            ),
-            ("browser", data_source_flags["enable_browser"], get_browser_data, True),
-            ("mobile", data_source_flags["enable_mobile"], get_mobile_data, True),
-            (
-                "synthetic",
-                data_source_flags["enable_synthetic"],
-                get_synthetic_data,
-                True,
-            ),
-        ]
-
-        # Process each enabled data source
-        for source_name, enabled, fetch_func, uses_time_range in data_sources:
-            if enabled:
-                log.info(f"Fetching {source_name.title()} data...")
-
-                # Prepare arguments based on function signature
-                if uses_time_range:
-                    data = fetch_func(
-                        config_params["api_key"],
-                        config_params["region"],
-                        config_params["account_id"],
-                        last_sync_time,
-                        config_params["initial_sync_days"],
-                        config_params["max_records"],
-                        config_params["timeout_seconds"],
-                        config_params["retry_attempts"],
-                        config_params["retry_delay_seconds"],
-                    )
-                else:
-                    data = fetch_func(
-                        config_params["api_key"],
-                        config_params["region"],
-                        config_params["account_id"],
-                        config_params["timeout_seconds"],
-                        config_params["retry_attempts"],
-                        config_params["retry_delay_seconds"],
-                    )
-
-                # Get record count from fetch function (data is already synced)
-                record_count = data
-                quality_score = _calculate_simple_data_quality(record_count)
-                total_records += record_count
-                data_quality_scores.append(quality_score)
-                log.info(f"{source_name.title()} data: {record_count} records")
+        # Process all data sources
+        total_records, data_quality_scores = _process_data_sources(config_params, data_source_flags, last_sync_time)
 
         # Calculate overall data quality score
         overall_quality = (
