@@ -566,6 +566,14 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                     op.checkpoint(state)
                     log.info(f"Checkpointed after syncing {record_count} events")
 
+            # After processing all events, ensure the final batch is checkpointed if not already done.
+            if record_count % __CHECKPOINT_INTERVAL != 0 and record_count > 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that
+                # the sync process can resume from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+                log.info(f"Final checkpoint after syncing {record_count} events")
             log.info(f"Synced {record_count} events")
         else:
             log.info("No events found for the specified date range")
