@@ -123,6 +123,76 @@ def get_access_token(keycloak_url: str, realm: str, client_id: str, client_secre
     raise RuntimeError("Failed to obtain access token after all retry attempts")
 
 
+def handle_http_status_code(response, url: str, attempt: int):
+    """
+    Handle HTTP status codes and determine retry logic.
+    Args:
+        response: The HTTP response object.
+        url: The API endpoint URL.
+        attempt: Current retry attempt number.
+    Returns:
+        JSON data if successful, or empty list for 404.
+    Raises:
+        RuntimeError: For error status codes or when retries are exhausted.
+    """
+    if response.status_code == 200:
+        return response.json()
+
+    if response.status_code == 401:
+        log.severe(f"Unauthorized access to {url}. Token may be expired or invalid.")
+        raise RuntimeError("Unauthorized: Check token and permissions")
+
+    if response.status_code == 403:
+        log.severe(f"Forbidden access to {url}. Service account may lack required roles.")
+        raise RuntimeError("Forbidden: Service account needs view permissions")
+
+    if response.status_code == 404:
+        log.warning(f"Resource not found at {url}")
+        return []
+
+    if response.status_code in [429, 500, 502, 503, 504]:
+        if attempt < __MAX_RETRIES - 1:
+            delay = __BASE_DELAY_SECONDS * (2**attempt)
+            log.warning(
+                f"Request failed with status {response.status_code}, "
+                f"retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+            )
+            time.sleep(delay)
+            return None
+        else:
+            log.severe(
+                f"Failed to fetch data from {url} after {__MAX_RETRIES} attempts. "
+                f"Last status: {response.status_code}"
+            )
+            raise RuntimeError(
+                f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
+            )
+
+    log.severe(f"Unexpected status {response.status_code} from {url}: {response.text}")
+    raise RuntimeError(f"API error {response.status_code}: {response.text}")
+
+
+def handle_request_exception(e: Exception, url: str, attempt: int):
+    """
+    Handle request exceptions with retry logic.
+    Args:
+        e: The exception that occurred.
+        url: The API endpoint URL.
+        attempt: Current retry attempt number.
+    Raises:
+        RuntimeError: When retries are exhausted.
+    """
+    if attempt < __MAX_RETRIES - 1:
+        delay = __BASE_DELAY_SECONDS * (2**attempt)
+        log.warning(f"Request exception: {str(e)}, retrying in {delay} seconds")
+        time.sleep(delay)
+    else:
+        log.severe(
+            f"Failed to fetch data from {url} after {__MAX_RETRIES} attempts due to: {str(e)}"
+        )
+        raise RuntimeError(f"Request failed: {str(e)}")
+
+
 def make_api_request(url: str, headers: dict, params: dict = None):
     """
     Make API request to Keycloak with retry logic and error handling.
@@ -136,52 +206,13 @@ def make_api_request(url: str, headers: dict, params: dict = None):
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers, params=params, timeout=30)
+            result = handle_http_status_code(response, url, attempt)
 
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 401:
-                log.severe(f"Unauthorized access to {url}. Token may be expired or invalid.")
-                raise RuntimeError("Unauthorized: Check token and permissions")
-            elif response.status_code == 403:
-                log.severe(
-                    "Forbidden access to %s. Service account may lack required roles." % url
-                )
-                raise RuntimeError("Forbidden: Service account needs view permissions")
-            elif response.status_code == 404:
-                log.warning(f"Resource not found at {url}")
-                return []
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, "
-                        f"retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data from {url} after {__MAX_RETRIES} attempts. "
-                        f"Last status: {response.status_code}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            else:
-                log.severe(f"Unexpected status {response.status_code} from {url}: {response.text}")
-                raise RuntimeError(f"API error {response.status_code}: {response.text}")
+            if result is not None:
+                return result
 
         except requests.exceptions.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(f"Request exception: {str(e)}, retrying in {delay} seconds")
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(
-                    f"Failed to fetch data from {url} after {__MAX_RETRIES} attempts due to: {str(e)}"
-                )
-                raise RuntimeError(f"Request failed: {str(e)}")
+            handle_request_exception(e, url, attempt)
 
     raise RuntimeError("API request failed after all retry attempts")
 
@@ -216,6 +247,73 @@ def flatten_user_record(user: dict):
     return flattened
 
 
+def upsert_user_attributes(user: dict, user_id: str):
+    """
+    Upsert user attributes to breakout table.
+    Args:
+        user: Original user record from Keycloak API.
+        user_id: The user's unique identifier.
+    """
+    attributes = user.get("attributes")
+    if not attributes or not isinstance(attributes, dict):
+        return
+
+    for attribute_key, attribute_values in attributes.items():
+        if not isinstance(attribute_values, list):
+            continue
+
+        for attribute_value in attribute_values:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(
+                table="user_attribute",
+                data={
+                    "user_id": user_id,
+                    "attribute_key": attribute_key,
+                    "attribute_value": attribute_value,
+                },
+            )
+
+
+def upsert_user_realm_roles(user: dict, user_id: str):
+    """
+    Upsert user realm roles to breakout table.
+    Args:
+        user: Original user record from Keycloak API.
+        user_id: The user's unique identifier.
+    """
+    realm_roles = user.get("realmRoles")
+    if not realm_roles or not isinstance(realm_roles, list):
+        return
+
+    for role_name in realm_roles:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="user_realm_role", data={"user_id": user_id, "role_name": role_name})
+
+
+def upsert_user_required_actions(user: dict, user_id: str):
+    """
+    Upsert user required actions to breakout table.
+    Args:
+        user: Original user record from Keycloak API.
+        user_id: The user's unique identifier.
+    """
+    required_actions = user.get("requiredActions")
+    if not required_actions or not isinstance(required_actions, list):
+        return
+
+    for action in required_actions:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(
+            table="user_required_action", data={"user_id": user_id, "required_action": action}
+        )
+
+
 def upsert_user_breakout_tables(user: dict, user_id: str):
     """
     Process and upsert user breakout table data for attributes, roles, and actions.
@@ -223,40 +321,51 @@ def upsert_user_breakout_tables(user: dict, user_id: str):
         user: Original user record from Keycloak API.
         user_id: The user's unique identifier.
     """
-    # Process user attributes breakout table
-    if "attributes" in user and isinstance(user["attributes"], dict):
-        for attribute_key, attribute_values in user["attributes"].items():
-            if isinstance(attribute_values, list):
-                for attribute_value in attribute_values:
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The first argument is the name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(
-                        table="user_attribute",
-                        data={
-                            "user_id": user_id,
-                            "attribute_key": attribute_key,
-                            "attribute_value": attribute_value,
-                        },
-                    )
+    upsert_user_attributes(user, user_id)
+    upsert_user_realm_roles(user, user_id)
+    upsert_user_required_actions(user, user_id)
 
-    # Process user realm roles breakout table
-    if "realmRoles" in user and isinstance(user["realmRoles"], list):
-        for role_name in user["realmRoles"]:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="user_realm_role", data={"user_id": user_id, "role_name": role_name})
 
-    # Process user required actions breakout table
-    if "requiredActions" in user and isinstance(user["requiredActions"], list):
-        for action in user["requiredActions"]:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(
-                table="user_required_action", data={"user_id": user_id, "required_action": action}
-            )
+def should_sync_user(created_timestamp: int, last_synced_timestamp: int):
+    """
+    Determine if a user should be synced based on creation timestamp.
+    Args:
+        created_timestamp: The user's creation timestamp.
+        last_synced_timestamp: The last synced timestamp from state.
+    Returns:
+        True if the user should be synced, False otherwise.
+    """
+    return created_timestamp > last_synced_timestamp
+
+
+def process_user(user: dict, last_synced_timestamp: int, max_created_timestamp: int):
+    """
+    Process a single user record and return updated max timestamp.
+    Args:
+        user: User data from Keycloak API.
+        last_synced_timestamp: The last synced timestamp from state.
+        max_created_timestamp: Current maximum creation timestamp.
+    Returns:
+        Tuple of (should_sync, updated_max_timestamp).
+    """
+    created_timestamp = user.get("createdTimestamp", 0)
+
+    if not should_sync_user(created_timestamp, last_synced_timestamp):
+        return False, max_created_timestamp
+
+    flattened_user = flatten_user_record(user)
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="user", data=flattened_user)
+
+    user_id = user.get("id")
+    upsert_user_breakout_tables(user, user_id)
+
+    if created_timestamp > max_created_timestamp:
+        max_created_timestamp = created_timestamp
+
+    return True, max_created_timestamp
 
 
 def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
@@ -279,7 +388,6 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
 
     while True:
         params = {"first": first_index, "max": __PAGE_SIZE}
-
         users = make_api_request(users_url, headers, params)
 
         if not users:
@@ -290,39 +398,21 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
 
         for user in users:
             record_count += 1
-            created_timestamp = user.get("createdTimestamp", 0)
+            was_synced, max_created_timestamp = process_user(
+                user, last_synced_timestamp, max_created_timestamp
+            )
 
-            # Incremental sync: only process users created after last sync
-            if created_timestamp <= last_synced_timestamp:
-                continue
+            if was_synced:
+                synced_count += 1
+                state["users_last_created_timestamp"] = max_created_timestamp
 
-            flattened_user = flatten_user_record(user)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="user", data=flattened_user)
-            synced_count += 1
-
-            user_id = user.get("id")
-
-            if created_timestamp > max_created_timestamp:
-                max_created_timestamp = created_timestamp
-
-            # Process breakout tables for user attributes, roles, and required actions
-            upsert_user_breakout_tables(user, user_id)
-
-            # Update state for each synced user
-            state["users_last_created_timestamp"] = max_created_timestamp
-
-            # Checkpoint after every __CHECKPOINT_INTERVAL synced users
-            if synced_count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for ensuring that
-                # the sync process can resume from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-                log.info(f"Checkpointed after syncing {synced_count} new users")
+                if synced_count % __CHECKPOINT_INTERVAL == 0:
+                    # Save the progress by checkpointing the state. This is important for ensuring that
+                    # the sync process can resume from the correct position in case of next sync or interruptions.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                    op.checkpoint(state)
+                    log.info(f"Checkpointed after syncing {synced_count} new users")
 
         if len(users) < __PAGE_SIZE:
             log.info(f"Reached last page. Total synced: {synced_count} new users")
@@ -330,12 +420,66 @@ def sync_users(keycloak_url: str, realm: str, headers: dict, state: dict):
 
         first_index += __PAGE_SIZE
 
-    # Final checkpoint to ensure all progress is saved
+    # Save the progress by checkpointing the state. This is important for ensuring that
+    # the sync process can resume from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
     log.info(
         f"User sync complete. Synced {synced_count} new users, skipped {record_count - synced_count} existing"
     )
+
+
+def upsert_group_members(keycloak_url: str, realm: str, group_id: str, headers: dict):
+    """
+    Fetch and upsert members for a specific group.
+    Args:
+        keycloak_url: The base URL of the Keycloak server.
+        realm: The Keycloak realm name.
+        group_id: The group ID to fetch members for.
+        headers: HTTP headers including authorization token.
+    """
+    members_url = f"{keycloak_url}/admin/realms/{realm}/groups/{group_id}/members"
+
+    try:
+        members = make_api_request(members_url, headers)
+
+        if not members or not isinstance(members, list):
+            return
+
+        for member in members:
+            member_record = {"group_id": group_id, "user_id": member.get("id")}
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="group_member", data=member_record)
+    except RuntimeError as e:
+        log.warning(f"Could not fetch members for group {group_id}: {str(e)}")
+
+
+def process_group(group: dict, keycloak_url: str, realm: str, headers: dict):
+    """
+    Process a single group and its members.
+    Args:
+        group: Group data from Keycloak API.
+        keycloak_url: The base URL of the Keycloak server.
+        realm: The Keycloak realm name.
+        headers: HTTP headers including authorization token.
+    """
+    group_data = {
+        "id": group.get("id"),
+        "name": group.get("name"),
+        "path": group.get("path"),
+    }
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="group", data=group_data)
+
+    group_id = group.get("id")
+    upsert_group_members(keycloak_url, realm, group_id, headers)
 
 
 def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
@@ -356,7 +500,6 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
 
     while True:
         params = {"first": first_index, "max": __PAGE_SIZE}
-
         groups = make_api_request(groups_url, headers, params)
 
         if not groups:
@@ -364,33 +507,8 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
             break
 
         for group in groups:
-            group_data = {
-                "id": group.get("id"),
-                "name": group.get("name"),
-                "path": group.get("path"),
-            }
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="group", data=group_data)
+            process_group(group, keycloak_url, realm, headers)
             record_count += 1
-
-            group_id = group.get("id")
-            members_url = f"{keycloak_url}/admin/realms/{realm}/groups/{group_id}/members"
-
-            try:
-                members = make_api_request(members_url, headers)
-
-                if members and isinstance(members, list):
-                    for member in members:
-                        member_record = {"group_id": group_id, "user_id": member.get("id")}
-                        # The 'upsert' operation is used to insert or update data in the destination table.
-                        # The first argument is the name of the destination table.
-                        # The second argument is a dictionary containing the record to be upserted.
-                        op.upsert(table="group_member", data=member_record)
-            except RuntimeError as e:
-                log.warning(f"Could not fetch members for group {group_id}: {str(e)}")
 
         if record_count % __CHECKPOINT_INTERVAL == 0 and record_count > 0:
             # Save the progress by checkpointing the state. This is important for ensuring that
@@ -407,7 +525,7 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
         first_index += __PAGE_SIZE
 
 
-def sync_roles(keycloak_url: str, realm: str, headers: dict, state: dict):
+def sync_roles(keycloak_url: str, realm: str, headers: dict):
     """
     Sync realm roles from Keycloak.
     Roles are always fully synced as Keycloak API does not provide modification timestamps.
@@ -448,7 +566,7 @@ def sync_roles(keycloak_url: str, realm: str, headers: dict, state: dict):
         log.warning(f"Could not fetch roles: {str(e)}")
 
 
-def sync_clients(keycloak_url: str, realm: str, headers: dict, state: dict):
+def sync_clients(keycloak_url: str, realm: str, headers: dict):
     """
     Sync OAuth clients from Keycloak.
     Clients are always fully synced as Keycloak API does not provide modification timestamps.
@@ -492,6 +610,55 @@ def sync_clients(keycloak_url: str, realm: str, headers: dict, state: dict):
         log.warning(f"Could not fetch clients: {str(e)}")
 
 
+def build_event_data(event: dict):
+    """
+    Build event data dictionary from raw event.
+    Args:
+        event: Raw event from Keycloak API.
+    Returns:
+        Formatted event data dictionary.
+    """
+    event_time_str = convert_event_time_to_iso(event.get("time"))
+    event_id = (
+        f"{event.get('time', 'unknown')}_{event.get('type', 'unknown')}_"
+        f"{event.get('userId', 'unknown')}_{event.get('sessionId', 'unknown')}_"
+        f"{event.get('clientId', 'unknown')}"
+    )
+
+    return {
+        "id": event_id,
+        "time": event_time_str,
+        "type": event.get("type"),
+        "user_id": event.get("userId"),
+        "session_id": event.get("sessionId"),
+        "ip_address": event.get("ipAddress"),
+        "client_id": event.get("clientId"),
+    }
+
+
+def process_event(event: dict, max_event_time: str):
+    """
+    Process a single event and upsert to destination.
+    Args:
+        event: Raw event from Keycloak API.
+        max_event_time: Current maximum event time.
+    Returns:
+        Updated maximum event time.
+    """
+    event_time_str = convert_event_time_to_iso(event.get("time"))
+
+    if event_time_str and event_time_str > max_event_time:
+        max_event_time = event_time_str
+
+    event_data = build_event_data(event)
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="event", data=event_data)
+
+    return max_event_time
+
+
 def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start_date: str):
     """
     Sync authentication events from Keycloak with date range filtering.
@@ -505,10 +672,7 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
     events_url = f"{keycloak_url}/admin/realms/{realm}/events"
     record_count = 0
     first_index = 0
-    last_event_time = state.get("events_last_time")
-
-    if not last_event_time:
-        last_event_time = start_date
+    last_event_time = state.get("events_last_time", start_date)
 
     log.info(f"Starting event sync from date: {last_event_time}")
 
@@ -517,7 +681,6 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
 
         while True:
             params = {"dateFrom": last_event_time, "first": first_index, "max": __PAGE_SIZE}
-
             events = make_api_request(events_url, headers, params)
 
             if not events:
@@ -525,33 +688,9 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
                 break
 
             for event in events:
-                event_time_ms = event.get("time")
-                if event_time_ms:
-                    event_datetime = datetime.fromtimestamp(event_time_ms / 1000, tz=timezone.utc)
-                    event_time_str = event_datetime.isoformat()
-
-                    if event_time_str > max_event_time:
-                        max_event_time = event_time_str
-                else:
-                    event_time_str = None
-
-                event_data = {
-                    "id": f"{event.get('time', 'unknown')}_{event.get('type', 'unknown')}_{event.get('userId', 'unknown')}_{event.get('sessionId', 'unknown')}_{event.get('clientId', 'unknown')}",
-                    "time": event_time_str,
-                    "type": event.get("type"),
-                    "user_id": event.get("userId"),
-                    "session_id": event.get("sessionId"),
-                    "ip_address": event.get("ipAddress"),
-                    "client_id": event.get("clientId"),
-                }
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="event", data=event_data)
+                max_event_time = process_event(event, max_event_time)
                 record_count += 1
 
-                # Update state incrementally and checkpoint periodically
                 state["events_last_time"] = max_event_time
                 if record_count % __CHECKPOINT_INTERVAL == 0:
                     # Save the progress by checkpointing the state. This is important for ensuring that
@@ -567,11 +706,78 @@ def sync_events(keycloak_url: str, realm: str, headers: dict, state: dict, start
 
             first_index += __PAGE_SIZE
 
-        # Final checkpoint to ensure all progress is saved
+        # Save the progress by checkpointing the state. This is important for ensuring that
+        # the sync process can resume from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
         log.info(f"Event sync complete. Total synced: {record_count} events")
     except RuntimeError as e:
         log.warning(f"Could not fetch events: {str(e)}")
+
+
+def convert_event_time_to_iso(event_time_ms):
+    """
+    Convert event time in milliseconds to ISO format string.
+    Args:
+        event_time_ms: Event time in milliseconds or None.
+    Returns:
+        ISO format string or None if event_time_ms is None.
+    """
+    if not event_time_ms:
+        return None
+    event_datetime = datetime.fromtimestamp(event_time_ms / 1000, tz=timezone.utc)
+    return event_datetime.isoformat()
+
+
+def build_admin_event_data(event: dict):
+    """
+    Build admin event data dictionary from raw event.
+    Args:
+        event: Raw admin event from Keycloak API.
+    Returns:
+        Formatted admin event data dictionary.
+    """
+    event_time_str = convert_event_time_to_iso(event.get("time"))
+    auth_details = event.get("authDetails", {})
+    event_id = (
+        f"{event.get('time', 'unknown')}_{event.get('operationType', 'unknown')}_"
+        f"{event.get('resourceType', 'unknown')}_{event.get('resourcePath', 'unknown')}"
+    )
+
+    return {
+        "id": event_id,
+        "time": event_time_str,
+        "operation_type": event.get("operationType"),
+        "resource_type": event.get("resourceType"),
+        "resource_path": event.get("resourcePath"),
+        "auth_realm_id": auth_details.get("realmId") if auth_details else None,
+        "auth_client_id": auth_details.get("clientId") if auth_details else None,
+        "auth_user_id": auth_details.get("userId") if auth_details else None,
+    }
+
+
+def process_admin_event(event: dict, max_admin_event_time: str):
+    """
+    Process a single admin event and upsert to destination.
+    Args:
+        event: Raw admin event from Keycloak API.
+        max_admin_event_time: Current maximum event time.
+    Returns:
+        Updated maximum event time.
+    """
+    event_time_str = convert_event_time_to_iso(event.get("time"))
+
+    if event_time_str and event_time_str > max_admin_event_time:
+        max_admin_event_time = event_time_str
+
+    admin_event_data = build_admin_event_data(event)
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="admin_event", data=admin_event_data)
+
+    return max_admin_event_time
 
 
 def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict, start_date: str):
@@ -587,10 +793,7 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
     admin_events_url = f"{keycloak_url}/admin/realms/{realm}/admin-events"
     record_count = 0
     first_index = 0
-    last_admin_event_time = state.get("admin_events_last_time")
-
-    if not last_admin_event_time:
-        last_admin_event_time = start_date
+    last_admin_event_time = state.get("admin_events_last_time", start_date)
 
     log.info(f"Starting admin event sync from date: {last_admin_event_time}")
 
@@ -599,7 +802,6 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
 
         while True:
             params = {"dateFrom": last_admin_event_time, "first": first_index, "max": __PAGE_SIZE}
-
             admin_events = make_api_request(admin_events_url, headers, params)
 
             if not admin_events:
@@ -607,35 +809,9 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
                 break
 
             for event in admin_events:
-                event_time_ms = event.get("time")
-                if event_time_ms:
-                    event_datetime = datetime.fromtimestamp(event_time_ms / 1000, tz=timezone.utc)
-                    event_time_str = event_datetime.isoformat()
-
-                    if event_time_str > max_admin_event_time:
-                        max_admin_event_time = event_time_str
-                else:
-                    event_time_str = None
-
-                auth_details = event.get("authDetails", {})
-                admin_event_data = {
-                    "id": f"{event.get('time', 'unknown')}_{event.get('operationType', 'unknown')}_{event.get('resourceType', 'unknown')}_{event.get('resourcePath', 'unknown')}",
-                    "time": event_time_str,
-                    "operation_type": event.get("operationType"),
-                    "resource_type": event.get("resourceType"),
-                    "resource_path": event.get("resourcePath"),
-                    "auth_realm_id": auth_details.get("realmId") if auth_details else None,
-                    "auth_client_id": auth_details.get("clientId") if auth_details else None,
-                    "auth_user_id": auth_details.get("userId") if auth_details else None,
-                }
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="admin_event", data=admin_event_data)
+                max_admin_event_time = process_admin_event(event, max_admin_event_time)
                 record_count += 1
 
-                # Update state incrementally and checkpoint periodically
                 state["admin_events_last_time"] = max_admin_event_time
                 if record_count % __CHECKPOINT_INTERVAL == 0:
                     # Save the progress by checkpointing the state. This is important for ensuring that
@@ -651,7 +827,10 @@ def sync_admin_events(keycloak_url: str, realm: str, headers: dict, state: dict,
 
             first_index += __PAGE_SIZE
 
-        # Final checkpoint to ensure all progress is saved
+        # Save the progress by checkpointing the state. This is important for ensuring that
+        # the sync process can resume from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
         log.info(f"Admin event sync complete. Total synced: {record_count} admin events")
     except RuntimeError as e:
@@ -744,8 +923,8 @@ def update(configuration: dict, state: dict):
 
     sync_users(keycloak_url, realm, token_manager.get_headers(), state)
     sync_groups(keycloak_url, realm, token_manager.get_headers(), state)
-    sync_roles(keycloak_url, realm, token_manager.get_headers(), state)
-    sync_clients(keycloak_url, realm, token_manager.get_headers(), state)
+    sync_roles(keycloak_url, realm, token_manager.get_headers())
+    sync_clients(keycloak_url, realm, token_manager.get_headers())
 
     if sync_events_enabled:
         sync_events(keycloak_url, realm, token_manager.get_headers(), state, start_date)
@@ -761,8 +940,9 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# This is Python's standard entry method allowing your script to be run directly from the
+# command line or IDE 'run' button. This is useful for debugging while you write your code.
+# Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
