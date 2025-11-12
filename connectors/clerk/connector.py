@@ -67,15 +67,13 @@ def validate_configuration(configuration: dict):
 
 def schema(configuration: dict):
     """
-    Define the schema function which lets you configure the schema your connector delivers.
-    See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-
-    Returns:
-        List of table schema definitions with table names and primary keys.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
 
     return [
@@ -264,7 +262,6 @@ def fetch_users_paginated(api_key, last_created_at=None):
 
         # If no users returned, we've reached the end
         if not users:
-            has_more_data = False
             break
 
         # Yield each user individually to avoid memory issues
@@ -350,7 +347,7 @@ def handle_http_error_with_retry(response, attempt_number):
         )
 
 
-def make_api_request(url, api_key, params):
+def make_api_request(url: str, api_key: str, params: dict) -> dict:
     """
     Make an API request to Clerk API with retry logic and exponential backoff.
 
