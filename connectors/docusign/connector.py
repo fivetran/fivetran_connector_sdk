@@ -8,7 +8,6 @@ https://fivetran.com/docs/connectors/connector-sdk/best-practices
 for details.
 """
 
-
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -19,14 +18,19 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 import requests
+
 # For handling date and time operations
 from datetime import datetime, timezone
+
 # For type hints
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Generator
+
 # For encoding binary data of documents to base64
 import base64
+
 # For reading configuration from a JSON file
 import json
+
 # For handling retries and delays
 import time
 
@@ -135,7 +139,9 @@ def make_api_request(
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS
+            )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -228,7 +234,9 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
-                log.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                log.severe(
+                    "Received 401 Unauthorized. Access token is likely expired. Aborting fetch."
+                )
                 break
             else:
                 log.severe(f"Failed to fetch envelopes with HTTP error: {exc}")
@@ -262,15 +270,11 @@ def fetch_audit_events(configuration: dict, envelope_id: str) -> List[Dict[str, 
             event["envelope_id"] = envelope_id
         return events
     except Exception as exc:
-        log.warning(
-            f"Could not fetch audit events for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch audit events for envelope {envelope_id}: {exc}")
         return []
 
 
-def fetch_envelope_notifications(
-    configuration: dict, envelope_id: str
-) -> List[Dict[str, Any]]:
+def fetch_envelope_notifications(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch envelope notifications like reminders and expirations.
     """
@@ -285,15 +289,11 @@ def fetch_envelope_notifications(
             n["envelope_id"] = envelope_id
         return notifications
     except Exception as exc:
-        log.warning(
-            f"Could not fetch notifications for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch notifications for envelope {envelope_id}: {exc}")
         return []
 
 
-def fetch_enhanced_recipients(
-    configuration: dict, envelope_id: str
-) -> List[Dict[str, Any]]:
+def fetch_enhanced_recipients(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch recipients with full status history, reminders, declines.
     """
@@ -317,15 +317,11 @@ def fetch_enhanced_recipients(
                 recipients.append(r)
         return recipients
     except Exception as exc:
-        log.warning(
-            f"Could not fetch enhanced recipients for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch enhanced recipients for envelope {envelope_id}: {exc}")
         return []
 
 
-def fetch_recipients_for_envelope(
-    configuration: dict, envelope_id: str
-) -> List[Dict[str, Any]]:
+def fetch_recipients_for_envelope(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch recipients data for a specific envelope.
     """
@@ -351,15 +347,11 @@ def fetch_recipients_for_envelope(
 
         return recipients
     except Exception as exc:
-        log.warning(
-            f"Could not fetch recipients for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch recipients for envelope {envelope_id}: {exc}")
         return []
 
 
-def fetch_documents_for_envelope(
-    configuration: dict, envelope_id: str
-) -> List[Dict[str, Any]]:
+def fetch_documents_for_envelope(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch documents data for a specific envelope.
     """
@@ -376,13 +368,13 @@ def fetch_documents_for_envelope(
 
         return documents
     except Exception as exc:
-        log.warning(
-            f"Could not fetch documents for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch documents for envelope {envelope_id}: {exc}")
         return []
 
 
-def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str, Any]]:
+def fetch_templates(
+    configuration: dict, state: Dict[str, Any]
+) -> Generator[Dict[str, Any], None, None]:
     """
     Fetch templates data for standard template usage tracking.
     Uses incremental sync by filtering templates modified after last_sync_time.
@@ -392,7 +384,6 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
     url = f"{base_url}/templates"
     params = {"count": __BATCH_SIZE}
 
-    all_templates: List[Dict[str, Any]] = []
     start_position = 0
     last_sync_time = state.get("last_sync_time", __DEFAULT_START_DATE)
 
@@ -410,7 +401,7 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
             for template in templates:
                 last_modified = template.get("lastModified", "")
                 if last_modified and last_modified > last_sync_time:
-                    all_templates.append(template)
+                    yield template
 
             start_position += len(templates)
 
@@ -419,17 +410,19 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
 
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:  # Check specifically for a 401 Unauthorized error
-                log.severe("Received 401 Unauthorized. Access token is likely expired. Aborting fetch.")
+                log.severe(
+                    "Received 401 Unauthorized. Access token is likely expired. Aborting fetch."
+                )
                 break
             else:
                 log.severe(f"Failed to fetch templates with HTTP error: {exc}")
                 break
 
         except Exception as exc:
-            log.severe(f"Failed to fetch templates: {exc}")    # If a non-HTTP exception occurs, break the loop to avoid infinite calls
+            log.severe(
+                f"Failed to fetch templates: {exc}"
+            )  # If a non-HTTP exception occurs, break the loop to avoid infinite calls
             raise RuntimeError(f"Failed to fetch templates: {exc}")
-
-    return all_templates
 
 
 def fetch_custom_fields_for_envelope(
@@ -444,18 +437,14 @@ def fetch_custom_fields_for_envelope(
 
     try:
         data = make_api_request(url, headers)
-        custom_fields = data.get("textCustomFields", []) + data.get(
-            "listCustomFields", []
-        )
+        custom_fields = data.get("textCustomFields", []) + data.get("listCustomFields", [])
 
         for field in custom_fields:
             field["envelope_id"] = envelope_id
 
         return custom_fields
     except Exception as exc:
-        log.warning(
-            f"Could not fetch custom fields for envelope {envelope_id}: {exc}"
-        )
+        log.warning(f"Could not fetch custom fields for envelope {envelope_id}: {exc}")
         return []
 
 
@@ -526,9 +515,7 @@ def _upsert_audit_events(configuration: dict, envelope_id: str):
 
         flat_event["envelope_id"] = envelope_id
         # Use a combination of envelope_id + logTime as a surrogate primary key
-        flat_event["event_id"] = (
-            f"{envelope_id}_{flat_event.get('logtime', '')}"
-        )
+        flat_event["event_id"] = f"{envelope_id}_{flat_event.get('logtime', '')}"
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
@@ -582,12 +569,8 @@ def _upsert_documents_and_content(configuration: dict, envelope_id: str):
                 },
             )
 
-            log.info(
-                f"Fetching content for document {document_id} in envelope {envelope_id}"
-            )
-            content = fetch_document_content(
-                configuration, envelope_id, document_id
-            )
+            log.info(f"Fetching content for document {document_id} in envelope {envelope_id}")
+            content = fetch_document_content(configuration, envelope_id, document_id)
             if content:
                 # Content is stored as a Base64 encoded string to handle binary data safely.
                 encoded_content = base64.b64encode(content).decode("utf-8")
@@ -609,9 +592,7 @@ def _upsert_custom_fields(configuration: dict, envelope_id: str):
     """
     Fetch and upsert custom fields for a given envelope.
     """
-    custom_fields = fetch_custom_fields_for_envelope(
-        configuration, envelope_id
-    )
+    custom_fields = fetch_custom_fields_for_envelope(configuration, envelope_id)
     for f in custom_fields:
         if f.get("name"):
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -657,15 +638,11 @@ def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
         if sent_time and completed_time:
             try:
                 sent_dt = datetime.fromisoformat(sent_time.replace("Z", "+00:00"))
-                completed_dt = datetime.fromisoformat(
-                    completed_time.replace("Z", "+00:00")
-                )
+                completed_dt = datetime.fromisoformat(completed_time.replace("Z", "+00:00"))
                 cycle_time = (completed_dt - sent_dt).total_seconds() / 3600
                 processed_envelope["contract_cycle_time_hours"] = str(cycle_time)
             except Exception as exc:
-                log.warning(
-                    f"Could not calculate cycle time for envelope {envelope_id}: {exc}"
-                )
+                log.warning(f"Could not calculate cycle time for envelope {envelope_id}: {exc}")
 
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The op.upsert method is called with two arguments:
@@ -687,8 +664,8 @@ def _process_templates(configuration: dict, state: Dict[str, Any]):
     Fetch and process templates.
     """
     log.info("Fetching templates data...")
-    templates = fetch_templates(configuration, state)
-    for t in templates:
+    template_count = 0
+    for t in fetch_templates(configuration, state):
         if t.get("templateId"):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
@@ -705,7 +682,8 @@ def _process_templates(configuration: dict, state: Dict[str, Any]):
                     "shared": str(t.get("shared", "false")).lower(),
                 },
             )
-    log.info(f"Upserted {len(templates)} templates")
+            template_count += 1
+    log.info(f"Upserted {template_count} templates")
 
 
 def update(configuration: dict, state: Dict[str, Any]):

@@ -4,6 +4,10 @@
 
 This connector extracts data from the DocuSign eSignature API. It is designed to sync key objects related to the electronic signature process, including envelopes, recipients, documents (including their binary content), audit events, and templates. The extracted data can be used in a destination to enable analytics for Sales, Legal, Operations, and other teams tracking contract lifecycles, signature status, and compliance.
 
+## Accreditation
+
+This example was contributed by [Arpit Kumar Khatri](https://github.com/ArpitKhatri1). The connector was developed as part of the [AI Accelerate](https://ai-accelerate.devpost.com/) hackathon.
+
 ## Requirements
 
   - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
