@@ -25,16 +25,16 @@ from pulsar import MessageId
 from datetime import datetime, UTC
 
 # Maximum number of messages to process per topic per sync (prevents memory overflow)
-_MAX_MESSAGES_PER_TOPIC = 1000
+__MAX_MESSAGES_PER_TOPIC = 1000
 
 # Timeout for reading messages from Pulsar (in milliseconds)
-_READ_TIMEOUT_MS = 5000
+__READ_TIMEOUT_MS = 5000
 
 # Checkpoint interval in number of messages
-_CHECKPOINT_INTERVAL = 100
+__CHECKPOINT_INTERVAL = 100
 
 # Default partition index for non-partitioned topics
-_DEFAULT_PARTITION_INDEX = -1
+__DEFAULT_PARTITION_INDEX = -1
 
 
 def validate_configuration(configuration: dict):
@@ -90,14 +90,11 @@ def parse_topics(configuration: dict) -> list:
 
 def schema(configuration: dict):
     """
-    Define the schema for the connector.
-    Creates a separate table for each Pulsar topic with a unified schema.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-
-    Returns:
-        A list of table schemas
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     topics = parse_topics(configuration)
 
@@ -113,16 +110,8 @@ def schema(configuration: dict):
                 "table": table_name,  # Table name based on topic
                 "primary_key": ["message_id"],  # Pulsar message ID as primary key
                 "columns": {
-                    "message_id": "STRING",  # Unique message identifier from Pulsar
-                    "topic": "STRING",  # Source topic name
-                    "publish_time": "UTC_DATETIME",  # When the message was published
-                    "event_time": "UTC_DATETIME",  # Event timestamp (if present in message)
-                    "message_key": "STRING",  # Message key (optional)
                     "data": "JSON",  # The actual message payload as JSON
                     "properties": "JSON",  # Message properties/metadata
-                    "producer_name": "STRING",  # Name of the producer
-                    "sequence_id": "INT",  # Message sequence ID
-                    "synced_at": "UTC_DATETIME",  # When this message was synced by Fivetran
                 },
             }
         )
@@ -132,15 +121,16 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is called by Fivetran during each sync.
-    Reads messages from Apache Pulsar topics and upserts them into destination tables.
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
-               The state dictionary is empty for the first sync or for any full re-sync
+        The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Apache Pulsar Source Connector")
+
+    log.warning("Example: Source Connector : Apache Pulsar")
 
     # Validate the configuration
     validate_configuration(configuration=configuration)
@@ -157,6 +147,7 @@ def update(configuration: dict, state: dict):
     log.info(f"Connecting to Pulsar at {service_url}")
     log.info(f"Topics to sync: {', '.join(topics)}")
 
+    client = None
     try:
         # Create Pulsar client with optional authentication
         client_params = {"service_url": service_url}
@@ -178,11 +169,18 @@ def update(configuration: dict, state: dict):
                 state=state,
             )
 
-        # Close the Pulsar client
-        client.close()
-
+    except pulsar.ConnectError as e:
+        raise RuntimeError(f"Failed to connect to Pulsar cluster at {service_url}: {str(e)}")
+    except pulsar.AuthenticationError as e:
+        raise RuntimeError(f"Authentication failed for Pulsar cluster: {str(e)}")
+    except pulsar.PulsarException as e:
+        raise RuntimeError(f"Pulsar error during sync: {str(e)}")
     except Exception as e:
         raise RuntimeError(f"Failed to sync data from Pulsar: {str(e)}")
+    finally:
+        # Close the Pulsar client to ensure proper resource cleanup
+        if client:
+            client.close()
 
 
 def create_pulsar_reader(client, full_topic_name: str, last_message_id_bytes: str, topic: str):
@@ -254,12 +252,18 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
                 op.checkpoint(updated_state)
                 log.info(f"Checkpointed after {messages_processed} messages for topic {topic}")
 
+        except pulsar.Timeout:
+            # No more messages available within timeout period
+            break
+        except (pulsar.ReaderNotInitializedError, pulsar.PulsarException) as e:
+            log.warning(f"Error processing message from Pulsar: {str(e)}")
+            continue
+        except json.JSONDecodeError as e:
+            log.warning(f"Error decoding message JSON: {str(e)}")
+            continue
         except Exception as e:
-            if "timeout" in str(e).lower():
-                break
-            else:
-                log.warning(f"Error processing message: {str(e)}")
-                continue
+            log.warning(f"Unexpected error processing message: {str(e)}")
+            continue
 
     return messages_processed, last_message_id
 
@@ -274,9 +278,6 @@ def sync_topic(client, tenant: str, namespace: str, topic: str, state: dict) -> 
         namespace: Pulsar namespace name
         topic: Topic name to sync
         state: State dictionary for checkpointing
-
-    Returns:
-        Updated state dictionary with this topic's checkpoint
     """
     # Construct full topic name
     full_topic_name = f"persistent://{tenant}/{namespace}/{topic}"
@@ -309,8 +310,17 @@ def sync_topic(client, tenant: str, namespace: str, topic: str, state: dict) -> 
         log.info(f"✓ Synced {messages_processed} messages from topic {topic}")
         reader.close()
 
+    except pulsar.ReaderNotInitializedError as e:
+        log.severe(f"Reader not initialized for topic {topic}: {str(e)}")
+        raise RuntimeError(f"Failed to initialize reader for topic {topic}: {str(e)}")
+    except pulsar.InvalidTopicName as e:
+        log.severe(f"Invalid topic name {topic}: {str(e)}")
+        raise ValueError(f"Invalid Pulsar topic name {topic}: {str(e)}")
+    except pulsar.PulsarException as e:
+        log.severe(f"Pulsar error syncing topic {topic}: {str(e)}")
+        raise RuntimeError(f"Pulsar error syncing topic {topic}: {str(e)}")
     except Exception as e:
-        log.severe(f"Error syncing topic {topic}: {str(e)}")
+        log.severe(f"Unexpected error syncing topic {topic}: {str(e)}")
         raise
 
 
