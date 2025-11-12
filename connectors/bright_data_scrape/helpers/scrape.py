@@ -4,6 +4,7 @@ import time
 from typing import Any, Dict, List, Optional, Union
 
 from brightdata import bdclient
+
 from fivetran_connector_sdk import Logging as log
 
 
@@ -19,7 +20,7 @@ def perform_scrape(
     poll_interval: int = 5,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Scrape URLs using Bright Data's Web Scraper SDK.
+    Scrape URLs using Bright Data's Web Scraper.
     """
     if not url:
         raise ValueError("URL cannot be empty")
@@ -55,11 +56,7 @@ def perform_scrape(
 
             if snapshot_ids:
                 valid_snapshot_ids = [
-                    sid
-                    for sid in snapshot_ids
-                    if isinstance(sid, str)
-                    and len(sid) < 200
-                    and not sid.strip().startswith("<")
+                    sid for sid in snapshot_ids if _is_valid_snapshot_candidate(sid)
                 ]
 
                 if valid_snapshot_ids:
@@ -112,6 +109,7 @@ def perform_scrape(
 def _extract_snapshot_ids(
     results: Union[Dict[str, Any], List[Dict[str, Any]], str], _url_count: int
 ) -> List[str]:
+    """Extract snapshot ids from async responses."""
     snapshot_ids: List[str] = []
 
     def is_valid_snapshot_id(sid: str) -> bool:
@@ -151,6 +149,7 @@ def _poll_snapshots(
     max_attempts: int = 20,
     poll_interval: int = 5,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    """Poll the snapshot endpoint until all snapshots are ready."""
     results: List[Any] = []
     completed_snapshots = set()
     failed_snapshots: List[str] = []
@@ -208,11 +207,9 @@ def _poll_snapshots(
                 if "failed" in error_msg:
                     failed_snapshots.append(snapshot_id)
                     log.info(f"Snapshot {snapshot_id[:8]}... failed: {str(e)}")
-                elif (
-                    "not ready" in error_msg
-                    or "not found" in error_msg
-                    or "pending" in error_msg
-                    or "running" in error_msg
+                elif any(
+                    keyword in error_msg
+                    for keyword in ("not ready", "not found", "pending", "running")
                 ):
                     log.info(
                         f"Snapshot {snapshot_id[:8]}... status: running (attempt {attempt + 1}/{max_attempts})"
@@ -237,3 +234,16 @@ def _poll_snapshots(
         return results[0]
     return results
 
+
+def _is_valid_snapshot_candidate(candidate: Any) -> bool:
+    """Return True if the value appears to be a valid snapshot identifier."""
+    if not isinstance(candidate, str):
+        return False
+    stripped = candidate.strip()
+    if not stripped:
+        return False
+    if len(candidate) >= 200:
+        return False
+    if stripped.startswith("<"):
+        return False
+    return True
