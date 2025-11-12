@@ -16,7 +16,10 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
+# For making HTTP requests to Award Co API
 import requests
+
+# For implementing delays in retry logic and rate limiting
 import time
 
 __PAGE_SIZE = 100
@@ -77,9 +80,11 @@ def validate_configuration(configuration: dict):
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
-    """
+"""
     return [
         {
             "table": "user",
@@ -157,7 +162,7 @@ def checkpoint_sync_state(sync_time: str):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:

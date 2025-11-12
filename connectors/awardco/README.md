@@ -61,18 +61,15 @@ Implementation reference
 - Config usage — `awardco-users-connector/connector.py:58`
 
 ## Requirements file
-This example does not require external libraries at runtime for the connector itself. The provided `requirements.txt` is intentionally minimal.
+*Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.*
 
-Example (optional dev tooling):
+*Example content of `requirements.txt`:*
 
 ```
-# requirements.txt
-# Add optional tools only if needed for local development
-# Faker can be used to generate mock data, but is not required by the connector
-Faker
+pandas
 ```
 
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. Do not declare them in `requirements.txt` to avoid conflicts.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API. To obtain the API key, do the following:
@@ -115,24 +112,11 @@ Recommendations
 - Consider retries and rate-limit handling if the AwardCo API enforces limits.
 
 ## Tables created
-- `user` — Primary key: `employeeId`.
+- `USER` — Primary key: `employeeId`.
 
 Example fields: `employeeId`, `firstName`, `lastName`, `email`, `balance`, `currencyCode`, `updated_at`, `created_at`.
 
 After a debug run, validate the DuckDB output (default: `warehouse.db`) and check operation counts in the CLI summary.
 
-## Additional files
-- `awardco-users-connector/mock_api.py` – Simulated API for basic testing scenarios.
-- `awardco-users-connector/mock_responses.py` – Faker-powered responses for unit tests and demos.
-- `awardco-users-connector/generate_mock_data.py` – Generates realistic mock users as JSON/CSV.
-- `awardco-users-connector/test_connector.py` – Unit tests stubbing the SDK and requests.
-- `awardco-users-connector/files/mock_users.json` – Sample payload for offline runs.
-
 ## Additional considerations
-These examples help demonstrate the Connector SDK. Validate behavior in non-production environments and follow your organization’s security and compliance standards. For questions, contact Fivetran Support.
-
-## Resources
-- Template Example Connector: https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_example_connector
-- SDK Docs: https://fivetran.com/docs/connector-sdk
-- Technical Reference: https://fivetran.com/docs/connector-sdk/technical-reference
-- Best Practices: https://fivetran.com/docs/connector-sdk/best-practices
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
