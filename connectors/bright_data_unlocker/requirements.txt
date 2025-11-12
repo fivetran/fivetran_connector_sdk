@@ -1,0 +1,4 @@
+python-dotenv==1.2.1
+PyYAML==6.0.3
+requests==2.32.5
+
