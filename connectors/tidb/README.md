@@ -24,10 +24,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Robust error handling with per-table error markers stored in the connector `state`.
 
 ## Configuration file
-- The connector expects a `configuration.json` file when running locally. Configuration keys consumed by this connector:
+- The connector expects a `configuration.json` file when running locally.
 
 ```
-
 {
   "TIDB_HOST": "<YOUR_TIDB_HOST>",
   "TIDB_USER": "<YOUR_TIDB_USERNAME>",
@@ -37,24 +36,23 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "TABLES_PRIMARY_KEY_COLUMNS": "<JSON_STRING_OF_TABLE_TO_PRIMARY_KEY_MAPPING>",
   "VECTOR_TABLES_DATA": "<JSON_STRING_OF_VECTOR_TABLE_CONFIGURATION>"
 }
-
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### Configuration details
+### Configuration parameters
 
-**TIDB_HOST**: Hostname or IP address of the TiDB server.
+`TIDB_HOST`: Hostname or IP address of the TiDB server.
 
-**TIDB_USER**: Username for TiDB connection.
+`TIDB_USER`: Username for TiDB connection.
 
-**TIDB_PASS**: Password for the TiDB user.
+`TIDB_PASS`: Password for the TiDB user.
 
-**TIDB_PORT**: Port number for TiDB connection.
+`TIDB_PORT`: Port number for TiDB connection.
 
-**TIDB_DATABASE**: Name of your TiDB database.
+`TIDB_DATABASE`: Name of your TiDB database.
 
-**TABLES_PRIMARY_KEY_COLUMNS**: A JSON object where keys are table names and values are the primary key column names.
+`TABLES_PRIMARY_KEY_COLUMNS`: A JSON object where keys are table names and values are the primary key column names.
 
 Example:
 ```json
@@ -83,20 +81,26 @@ Example:
 - `requirements.txt` lists third-party Python packages required by this example. Example content:
 
 ```
-
 pytidb>=0.0.11
 certifi==2025.8.3
-
 ```
 
 Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
 
 ## Authentication
-This example uses direct database credentials (username/password) to connect to the TiDB cluster. Provide the host, user, password, port, and database in `configuration.json`.
+
+This connector uses username and password authentication to connect to TiDB. The credentials are specified in the configuration file.
+
+To set up authentication:
+
+1. Create a TiDB user with appropriate permissions to access the required tables.
+2. Provide the username and password in the `configuration.json` file.
+3. Ensure the user has `SELECT` permissions on the tables that need to be synced.
+
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
 ## Pagination
-Not applicable. The connector issues simple `SELECT` queries against tables and uses `created_at` for incremental reads. If a table uses a different incremental column or requires cursor-based pagination at the source, modify `fetch_and_upsert_data` accordingly.
+The connector does not currently implement pagination and loads all matching rows into memory at once when performing incremental reads. This approach may cause memory issues for large tables. For production use, it is strongly recommended to implement batching or pagination (for example, using LIMIT/OFFSET or keyset pagination) in the `fetch_and_upsert_data` function to process data in manageable chunks. If a table uses a different incremental column or requires cursor-based pagination at the source, modify `fetch_and_upsert_data` accordingly.
 
 ## Data handling
 - Rows are fetched and passed to `process_row` for normalization.
@@ -109,13 +113,34 @@ Not applicable. The connector issues simple `SELECT` queries against tables and 
 - Connection-level failures are recorded in the state under `last_connection_error`, and the exception is raised to allow the runtime to retry according to its backoff policy. See `create_tidb_connection` and `update`.
 
 ## Tables created
-Summary of tables replicated depends on `TABLES_PRIMARY_KEY_COLUMNS` in `configuration.json`. The connector does not create destination tables automatically; the connector SDK runtime handles writing rows into destination tables according to this schema declaration.
-Example tables that could be synced: `caretakers`, `patients`, `patient_metadata`, `usual_spots`.
+
+The connector creates tables based on the `TABLES_PRIMARY_KEY_COLUMNS` configuration. Each table is defined with its primary key. The SDK runtime handles creating destination tables according to these schema declarations.
+
+Example schema for a typical configuration:
+
+```json
+{
+  "table": "customers",
+  "primary_key": ["customer_id"]
+}
+```
+
+For vector tables (if configured), the schema includes typed JSON columns:
+```json
+{
+  "table": "product_embeddings",
+  "primary_key": ["product_id"],
+  "columns": {
+    "embedding_vector": "JSON"
+  }
+}
+```
 
 ## Additional files
-- `connector.py` – Main connector implementation including schema declaration, update loop, and helpers.
-- `configuration.json` – Sample configuration for local debugging (do not commit secrets).
-- `requirements.txt` – Third-party dependencies required by this example.
+The connector uses the following additional files:
+- **connector.py** – Main connector implementation including schema declaration, update loop, and helpers
+- **configuration.json** – Sample configuration for local debugging (do not commit secrets)
+- **requirements.txt** – Third-party dependencies required by this example
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

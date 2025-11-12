@@ -26,7 +26,7 @@ import certifi
 # TiDB client used to connect/query the TiDB cluster
 from pytidb import TiDBClient
 
-# for timestamp parsing/normalization
+# For timestamp parsing/normalization
 from datetime import datetime, timezone
 
 
@@ -358,34 +358,6 @@ def execute_query(cursor: TiDBClient, query: str, params: Optional[Dict[str, Any
         return list(query_result)
 
 
-def attempt_upsert_with_retry(table_name: str, row_data: Dict[str, Any], row_id: Any) -> bool:
-    """
-    Attempt to upsert a row with retry logic.
-    
-    Args:
-        table_name: Name of the table
-        row_data: Dictionary containing row data
-        row_id: Row identifier for logging
-        
-    Returns:
-        True if upsert succeeded, False otherwise
-    """
-    # Retry upsert operation up to __MAX_UPSERT_RETRIES times
-    for attempt in range(1, __MAX_UPSERT_RETRIES + 1):
-        try:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table=table_name, data=row_data)
-            return True
-        except Exception as upp_err:
-            log.info("Upsert failed for table %s row %s (attempt %d): %s", table_name, row_id, attempt, upp_err)
-            if attempt >= __MAX_UPSERT_RETRIES:
-                log.severe("Giving up on upsert for table %s row %s after %d attempts", table_name, row_id, __MAX_UPSERT_RETRIES)
-    
-    return False
-
-
 def extract_row_timestamp(row_data: Dict[str, Any]) -> Optional[datetime]:
     """
     Extract and parse created_at timestamp from row.
@@ -436,10 +408,11 @@ def process_and_upsert_rows(rows: List[Dict[str, Any]], table_name: str, state: 
     for row in rows:
         try:
             row_data = process_row(row, table_name, configuration, is_vector_table)
-            row_id = row.get("id", "<no-id>")
-            
-            # Attempt upsert with retry logic
-            upsert_success = attempt_upsert_with_retry(table_name, row_data, row_id)
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            upsert_success = op.upsert(table=table_name, data=row_data)
             
             # Update max timestamp if upsert succeeded
             if upsert_success:
@@ -454,11 +427,20 @@ def process_and_upsert_rows(rows: List[Dict[str, Any]], table_name: str, state: 
             # Store sample of problematic row for debugging
             try:
                 sample_key = f"{table_name}_last_row_error_sample"
-                state[sample_key] = json.dumps({k: str(v) for k, v in (list(row.items())[:10])})
-                # If storing the sample row fails (e.g., due to serialization issues), ignore the error.
+                # Store only non-sensitive metadata about the error for debugging
+                error_metadata = {
+                    "row_id": row.get("id", "<no-id>"),
+                    "table_name": table_name,
+                    "error_message": str(row_err),
+                }
+                # Optionally include timestamp if present
+                if "created_at" in row:
+                    error_metadata["created_at"] = str(row.get("created_at"))
+                state[sample_key] = json.dumps(error_metadata)
+            except Exception as sample_row_err:
+                # If storing the error metadata fails (e.g., due to serialization issues), ignore the error.
                 # This is non-critical and should not interrupt processing of other rows.
-            except Exception:
-                pass
+                log.fine("Ignoring error while storing sample row for table %s: %s", table_name, sample_row_err)
     
     return max_seen_timestamp
 
@@ -690,15 +672,14 @@ def close_connection(connection: TiDBClient):
 
 
 def update(configuration: Dict[str, Any], state: Dict[str, Any]):
-    """ 
-    Define the update function, which is a required function, and is called by Fivetran during each sync. 
-    See the technical reference documentation for more details on the update function 
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update 
-    Args: 
-        configuration: A dictionary containing connection details 
-        state: A dictionary containing state information from previous runs 
-        The state dictionary is empty for the first sync or for any full re-sync 
-     """
+    """
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
+    """
     # Validate configuration early
     validate_configuration(configuration)
     
