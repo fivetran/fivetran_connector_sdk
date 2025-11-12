@@ -21,7 +21,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Incremental replication driven by `created_at` timestamp.
 - Configurable table list and primary keys via `TABLES_PRIMARY_KEY_COLUMNS`.
 - Optional support for vector columns: Parse serialized embeddings into proper JSON lists via `VECTOR_TABLES_DATA`.
-- Robust error handling with per-table error markers stored into the connector `state`.
+- Robust error handling with per-table error markers stored in the connector `state`.
 
 ## Configuration file
 - The connector expects a `configuration.json` file when running locally. Configuration keys consumed by this connector:
