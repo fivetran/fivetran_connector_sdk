@@ -46,9 +46,7 @@ def validate_configuration(configuration: dict) -> None:
     required_configs = ["host", "port", "service_name", "user", "password"]
     missing = [key for key in required_configs if not configuration.get(key)]
     if missing:
-        raise ValueError(
-            f"Missing required configuration value(s): {', '.join(missing)}"
-        )
+        raise ValueError(f"Missing required configuration value(s): {', '.join(missing)}")
 
 
 def _parse_timestamp(value: Any) -> Optional[datetime]:
@@ -124,9 +122,7 @@ def _build_incremental_query(columns: List[str], full_table_name: str) -> str:
     )
 
 
-def _iterate_records(
-    cursor: "oracledb.Cursor", columns: List[str]
-) -> Iterable[Dict[str, Any]]:
+def _iterate_records(cursor: "oracledb.Cursor", columns: List[str]) -> Iterable[Dict[str, Any]]:
     """
     Yield records from the Oracle cursor in batches to avoid loading all rows in memory.
     Args:
@@ -144,9 +140,7 @@ def _iterate_records(
             yield dict(zip(columns, row))
 
 
-def _apply_row_operations(
-    table_name: str, record: Dict[str, Any]
-) -> Optional[datetime]:
+def _apply_row_operations(table_name: str, record: Dict[str, Any]) -> Optional[datetime]:
     """
     Upsert the record into the destination and extract the updated watermark.
     Args:
@@ -180,9 +174,7 @@ def _checkpoint_if_needed(
 
     checkpoint_dt = latest_sync_dt or fallback_sync_dt or __DEFAULT_SYNC_DATETIME
     op.checkpoint({"last_sync_time": _format_timestamp(checkpoint_dt)})
-    log.info(
-        f"Checkpointed state after {processed_rows} rows for table {full_table_name}"
-    )
+    log.info(f"Checkpointed state after {processed_rows} rows for table {full_table_name}")
 
 
 def _sync_table(
@@ -221,9 +213,7 @@ def _sync_table(
             processed_rows += 1
             record_sync_dt = _apply_row_operations(table_name=table_name, record=record)
 
-            if record_sync_dt and (
-                latest_sync_dt is None or record_sync_dt > latest_sync_dt
-            ):
+            if record_sync_dt and (latest_sync_dt is None or record_sync_dt > latest_sync_dt):
                 latest_sync_dt = record_sync_dt
 
             _checkpoint_if_needed(
@@ -233,9 +223,7 @@ def _sync_table(
                 full_table_name=full_table_name,
             )
 
-    log.info(
-        f"Finished syncing table {full_table_name}, processed {processed_rows} rows"
-    )
+    log.info(f"Finished syncing table {full_table_name}, processed {processed_rows} rows")
     return latest_sync_dt, processed_rows
 
 
