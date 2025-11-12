@@ -230,7 +230,7 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
 
     while messages_processed < __MAX_MESSAGES_PER_TOPIC:
         try:
-            msg = reader.read_next(timeout_millis=_READ_TIMEOUT_MS)
+            msg = reader.read_next(timeout_millis=__READ_TIMEOUT_MS)
             message_data = parse_message(msg, topic)
 
             # The 'upsert' operation is used to insert or update data in the destination table.
