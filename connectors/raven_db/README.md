@@ -4,7 +4,7 @@
 
 This connector integrates RavenDB with Fivetran, syncing data from RavenDB collections to your destination. It connects to a RavenDB cluster, efficiently retrieves data using pagination, and handles incremental updates based on the `@last-modified` metadata field.
 
-The connector is designed to handle large datasets efficiently through streaming and pagination techniques, making it suitable for production environments with significant data volumes.
+The connector is designed to handle large datasets efficiently through streaming and pagination, making it suitable for production environments with high data volumes.
 
 ## Requirements
 
@@ -41,7 +41,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-The connector requires the following configuration parameters:
+### Configuration parameters
 - `ravendb_urls` (required): Your RavenDB Cloud URL(s). For clusters, provide comma-separated URLs
 - `database_name` (required): Name of the RavenDB database to sync from
 - `certificate_base64` (required): Base64-encoded client certificate (PEM format)
@@ -72,11 +72,11 @@ To obtain your certificate:
 3. Download the client certificate package
 4. Convert the certificate to base64 format:
 
-    - **macOS/Linux:**  
+    - **macOS/Linux:**
       ```sh
       base64 -i certificate.pem
       ```
-    - **Windows:**  
+    - **Windows:**
       ```cmd
       certutil -encode certificate.pem certificate.b64
       ```
@@ -87,7 +87,7 @@ To obtain your certificate:
 
 The connector implements efficient pagination when retrieving data from RavenDB:
 - Uses RavenDB's `skip/take` pagination with configurable batch sizes
-- Default batch size is set to 100 documents but can be adjusted
+- Default batch size is set to 100 documents, but can be adjusted
 - Performs upserts one document at a time, avoiding excessive memory usage
 - Handles checkpointing after each batch to maintain state during long-running syncs
 
@@ -105,13 +105,13 @@ The connector processes data with the following approach:
 
 ## Error handling
 
-The connector implements the following error handling strategies:
+The connector implements the following error-handling strategies:
 - Validates configuration parameters before attempting connection
 - Provides detailed error messages for connection and certificate failures
 - Wraps data fetching operations in try/except blocks with informative error messages
 - Gracefully handles pagination issues that may occur with large datasets
 - Implements regular checkpointing to minimize data loss in case of failures
-- Proper resource cleanup with DocumentStore closure in finally block
+- Proper resource cleanup with DocumentStore closure in the finally block
 
 ## Tables created
 

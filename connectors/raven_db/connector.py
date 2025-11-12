@@ -18,14 +18,17 @@ from fivetran_connector_sdk import Operations as op
 
 # Import the RavenDB Python SDK for connecting to RavenDB database
 from ravendb import DocumentStore
+from ravendb.exceptions.exceptions import RavenException
 
 # For handling type hints
 from typing import Optional, List, Dict, Any, Tuple
 
 # For handling the deployment-safe base64-encoded certificate
 import base64
+import binascii
 import tempfile
 import os
+import time
 
 __DEFAULT_BATCH_SIZE = 100
 __DEFAULT_COLLECTION_NAME = "Orders"
@@ -140,7 +143,7 @@ def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
         log.info("Decoding base64 certificate")
         try:
             cert_bytes = base64.b64decode(certificate_base64)
-        except Exception as decode_err:
+        except (ValueError, binascii.Error) as decode_err:
             raise ValueError(f"Failed to decode base64 certificate: {decode_err}")
 
         # Write certificate bytes directly to temp PEM file
@@ -157,12 +160,12 @@ def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
         log.info(f"DocumentStore initialized for database '{database_name}'")
         return store, temp_cert_path
 
-    except Exception as e:
+    except (ValueError, RavenException, ConnectionError, OSError) as e:
         if temp_cert_path and os.path.exists(temp_cert_path):
             try:
                 os.unlink(temp_cert_path)
                 log.info("Cleaned up temporary certificate after failure")
-            except Exception as cleanup_err:
+            except OSError as cleanup_err:
                 log.warning(f"Failed to remove temporary certificate file: {cleanup_err}")
         log.severe(f"Failed to create RavenDB DocumentStore: {e}")
         raise RuntimeError(f"Failed to create RavenDB DocumentStore: {e}")
@@ -225,6 +228,7 @@ def fetch_documents_batch(
     last_modified: Optional[str] = None,
     skip: int = 0,
     take: int = __DEFAULT_BATCH_SIZE,
+    max_retries: int = 3,
 ) -> Tuple[List[Dict[str, Any]], bool]:
     """
     Fetch a batch of documents from RavenDB collection using streaming to minimize memory footprint.
@@ -233,12 +237,15 @@ def fetch_documents_batch(
     loading the entire result set into memory. Documents are processed incrementally and only
     the requested batch size is kept in memory.
 
+    Implements retry logic with exponential backoff for transient failures.
+
     Args:
         store (DocumentStore): The RavenDB DocumentStore instance.
         collection_name (str): The name of the collection to fetch data from.
         last_modified (str, optional): The last modified timestamp from the previous sync.
         skip (int): Number of records to skip (for pagination).
         take (int): Number of records to fetch in this batch.
+        max_retries (int): Maximum number of retry attempts for transient failures.
 
     Returns:
         Tuple[List[Dict[str, Any]], bool]: A tuple containing:
@@ -246,50 +253,77 @@ def fetch_documents_batch(
             - Boolean indicating if more data exists
 
     Raises:
-        RuntimeError: If the batch fetch fails.
+        RuntimeError: If the batch fetch fails after all retries.
     """
-    try:
-        with store.open_session() as session:
-            # Build RQL query using helper function
-            rql = build_rql_query(collection_name, last_modified, skip, take)
+    retry_count = 0
 
-            # Execute raw RQL query and get iterator (does not load all results into memory)
-            query_result = session.advanced.raw_query(rql, object_type=dict)
+    while retry_count <= max_retries:
+        try:
+            with store.open_session() as session:
+                # Build RQL query using helper function
+                rql = build_rql_query(collection_name, last_modified, skip, take)
 
-            # Process documents one at a time using iterator
-            documents = []
-            document_count = 0
+                # Execute raw RQL query and get iterator (does not load all results into memory)
+                query_result = session.advanced.raw_query(rql, object_type=dict)
 
-            for doc in query_result:
-                # Get metadata for this document
-                metadata = session.advanced.get_metadata_for(doc)
+                # Process documents one at a time using iterator
+                documents = []
+                document_count = 0
 
-                # Enrich document with metadata
-                enriched_doc = enrich_document_with_metadata(doc, metadata)
-                documents.append(enriched_doc)
+                for doc in query_result:
+                    # Get metadata for this document
+                    metadata = session.advanced.get_metadata_for(doc)
 
-                document_count += 1
+                    # Enrich document with metadata
+                    enriched_doc = enrich_document_with_metadata(doc, metadata)
+                    documents.append(enriched_doc)
 
-                # Stop if we've reached the batch size
-                if document_count >= take:
-                    break
+                    document_count += 1
 
-            log.info(
-                f"Fetched batch: {len(documents)} documents from collection: {collection_name}, "
-                f"skip: {skip}, take: {take}"
+                    # Stop if we've reached the batch size
+                    if document_count >= take:
+                        break
+
+                log.info(
+                    f"Fetched batch: {len(documents)} documents from collection: {collection_name}, "
+                    f"skip: {skip}, take: {take}"
+                )
+
+                # Check if there might be more data
+                # If we got exactly 'take' documents, there might be more
+                has_more_data = len(documents) == take
+
+                return documents, has_more_data
+
+        except (ConnectionError, TimeoutError, RavenException) as e:
+            retry_count += 1
+            if retry_count > max_retries:
+                log.severe(
+                    f"Failed to fetch batch from collection {collection_name} at skip {skip} "
+                    f"after {max_retries} retries: {e}"
+                )
+                raise RuntimeError(
+                    f"Failed to fetch batch from collection {collection_name} at skip {skip} "
+                    f"after {max_retries} retries: {str(e)}"
+                )
+
+            # Exponential backoff: 1s, 2s, 4s, etc.
+            backoff_seconds = 2 ** (retry_count - 1)
+            log.warning(
+                f"Transient error fetching batch from collection {collection_name} at skip {skip}: {e}. "
+                f"Retrying in {backoff_seconds}s (attempt {retry_count}/{max_retries})"
             )
+            time.sleep(backoff_seconds)
 
-            # Check if there might be more data
-            # If we got exactly 'take' documents, there might be more
-            has_more_data = len(documents) == take
-
-            return documents, has_more_data
-
-    except Exception as e:
-        log.severe(f"Failed to fetch batch from collection {collection_name} at skip {skip}: {e}")
-        raise RuntimeError(
-            f"Failed to fetch batch from collection {collection_name} at skip {skip}: {str(e)}"
-        )
+        except (ValueError, KeyError, TypeError) as e:
+            # Non-retryable errors (data/configuration issues)
+            log.severe(
+                f"Data error while fetching batch from collection {collection_name} at skip {skip}: {e}"
+            )
+            raise RuntimeError(
+                f"Data error while fetching batch from collection {collection_name} at skip {skip}: {str(e)}"
+            )
+    return None
 
 
 def process_document_batch(documents, collection_name):
@@ -309,7 +343,10 @@ def process_document_batch(documents, collection_name):
         # Flatten nested document structure
         flattened_doc = flatten_dict(document)
 
-        # The 'upsert' operation is used to insert or update data in the destination table.
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.upsert(table=collection_name.lower(), data=flattened_doc)
         processed_count += 1
 
@@ -406,7 +443,17 @@ def sync_collection_data(store, collection_name, batch_size, initial_last_modifi
         # Update state if we processed any documents
         if batch_row_count > 0:
             total_row_count += batch_row_count
-            last_modified = new_last_modified
+
+            # Check if last_modified changed (incremental sync scenario)
+            if new_last_modified != last_modified:
+                # Reset skip to 0 when last_modified changes
+                # The @last-modified filter handles incrementing through data
+                skip = 0
+                last_modified = new_last_modified
+            else:
+                # Only increment skip when last_modified hasn't changed
+                # (initial sync or multiple batches at same timestamp)
+                skip += batch_size
 
             # Checkpoint after each complete batch to ensure consistent state
             save_state(last_modified)
@@ -415,34 +462,25 @@ def sync_collection_data(store, collection_name, batch_size, initial_last_modifi
                 f"Completed batch {batch_count}: processed {batch_row_count} documents, "
                 f"total processed: {total_row_count}, last modified: {last_modified}"
             )
-
-        # Update skip for next batch
-        skip += batch_size
+        else:
+            # No documents processed but has_more_data is True
+            # This shouldn't normally happen, but increment skip to avoid infinite loop
+            skip += batch_size
 
     return total_row_count, batch_count
 
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-
-    This function orchestrates the sync process by:
-    1. Validating configuration
-    2. Creating a connection to RavenDB
-    3. Syncing collection data in batches
-    4. Managing state and cleanup
-
+     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
-        configuration (dict): A dictionary containing connection details.
-        state (dict): A dictionary containing state information from previous runs.
-                     The state dictionary is empty for the first sync or for any full re-sync.
-
-    Raises:
-        RuntimeError: If the sync process fails.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
     log.warning("Example: Source Examples - RavenDB")
 
     # Validate the configuration to ensure it contains all required values
@@ -465,18 +503,23 @@ def update(configuration: dict, state: dict):
             f"Successfully synced {total_row_count} documents across {total_batch_count} batches"
         )
 
-    except Exception as e:
-        # In case of an exception, raise a runtime error
+    except (RuntimeError, ValueError, KeyError, ConnectionError, RavenException) as e:
+        # In case of a known exception, raise a runtime error
+        log.severe(f"Failed to sync data: {e}")
         raise RuntimeError(f"Failed to sync data: {str(e)}")
     finally:
         # Always close the document store
-        store.close()
+        try:
+            store.close()
+        except (RavenException, AttributeError) as close_err:
+            log.warning(f"Error closing document store: {close_err}")
+
         # Clean up the temporary certificate file
         if cert_path and os.path.exists(cert_path):
             try:
                 os.unlink(cert_path)
                 log.info(f"Cleaned up temporary certificate file: {cert_path}")
-            except Exception as cleanup_err:
+            except OSError as cleanup_err:
                 log.warning(f"Failed to remove temporary certificate file: {cleanup_err}")
 
 
