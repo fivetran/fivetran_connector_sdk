@@ -26,23 +26,6 @@ __MAX_RETRIES = 3
 __BASE_DELAY = 1
 __BINANCE_BASE_URL = "https://api.binance.us"
 
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains
-    all required parameters.
-    Args:
-        configuration: a dictionary that holds the configuration
-                       settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    required_configs = ["api_key", "api_secret"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-
-
 def create_signature(query_string: str, api_secret: str) -> str:
     """
     Create HMAC SHA256 signature for authenticated requests.
@@ -455,9 +438,6 @@ def update(configuration: dict, state: dict):
     # Generate a unique run ID for this sync
     run_id = str(uuid.uuid4())
     log.info(f"Generated run ID: {run_id}")
-
-    # Validate the configuration to ensure it contains all required values
-    validate_configuration(configuration=configuration)
 
     # Extract configuration parameters
     api_key = configuration.get("api_key")
