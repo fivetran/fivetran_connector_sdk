@@ -524,6 +524,12 @@ def sync_groups(keycloak_url: str, realm: str, headers: dict, state: dict):
 
         first_index += __PAGE_SIZE
 
+    # Save the progress by checkpointing the state. This is important for ensuring that
+    # the sync process can resume from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
+
 
 def sync_roles(keycloak_url: str, realm: str, headers: dict):
     """
@@ -533,7 +539,6 @@ def sync_roles(keycloak_url: str, realm: str, headers: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress (mutated in place).
     """
     roles_url = f"{keycloak_url}/admin/realms/{realm}/roles"
     record_count = 0
@@ -574,7 +579,6 @@ def sync_clients(keycloak_url: str, realm: str, headers: dict):
         keycloak_url: The base URL of the Keycloak server.
         realm: The Keycloak realm name.
         headers: HTTP headers including authorization token.
-        state: State dictionary for tracking sync progress (mutated in place).
     """
     clients_url = f"{keycloak_url}/admin/realms/{realm}/clients"
     record_count = 0

@@ -39,8 +39,8 @@ The connector requires the following configuration parameters:
   "realm": "<YOUR_KEYCLOAK_REALM>",
   "client_id": "<YOUR_CLIENT_ID>",
   "client_secret": "<YOUR_CLIENT_SECRET>",
-  "sync_events": "<TRUE_OR_FALSE>",
-  "start_date": "<YYYY-MM-DD>"
+  "sync_events": "<TRUE_OR_FALSE_DEFAULT_TRUE>",
+  "start_date": "<START_DATE_YYYY_MM_DD_DEFAULT_30_DAYS_AGO>"
 }
 ```
 
@@ -108,11 +108,11 @@ All data types are automatically inferred by Fivetran based on the actual values
 
 The connector implements comprehensive error handling with the following strategies:
 
-- **Retry logic with exponential backoff** - Retries transient errors (HTTP 429, 500, 502, 503, 504) up to 3 times with delays of 1s, 2s, and 4s
-- **Token expiration handling** - Monitors token expiration time and automatically refreshes tokens between table syncs
-- **Specific exception handling** - Catches `requests.exceptions.RequestException` for network errors and provides detailed logging
-- **Graceful degradation** - If optional resources like events or admin-events are unavailable, the connector logs warnings and continues with other tables
-- **Authentication failures** - Immediately fails on HTTP 401 (invalid token) and HTTP 403 (insufficient permissions) with actionable error messages
+- Retry logic with exponential backoff - Retries transient errors (HTTP 429, 500, 502, 503, 504) up to 3 times with delays of 1s, 2s, and 4s
+- Token expiration handling - Monitors token expiration time and automatically refreshes tokens between table syncs
+- Specific exception handling - Catches `requests.exceptions.RequestException` for network errors and provides detailed logging
+- Graceful degradation - If optional resources like events or admin-events are unavailable, the connector logs warnings and continues with other tables
+- Authentication failures - Immediately fails on HTTP 401 (invalid token) and HTTP 403 (insufficient permissions) with actionable error messages
 
 All errors are logged using the Fivetran SDK logging framework with appropriate severity levels (warning for retryable errors, severe for fatal errors).
 
@@ -124,123 +124,143 @@ The connector creates the following tables in your destination:
 
 Main table containing Keycloak user data with flattened access fields.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the user |
-| username | STRING | Username for authentication |
-| email | STRING | User's email address |
-| first_name | STRING | User's first name |
-| last_name | STRING | User's last name |
-| enabled | BOOLEAN | Whether the user account is enabled |
-| created_timestamp | UTC_DATETIME | When the user was created |
-| access_manage_group_membership | BOOLEAN | Permission to manage group membership |
-| access_view | BOOLEAN | Permission to view user details |
-| access_map_roles | BOOLEAN | Permission to map roles |
-| access_impersonate | BOOLEAN | Permission to impersonate user |
-| access_manage | BOOLEAN | Permission to manage user |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the user |
+| username | Username for authentication |
+| email | User's email address |
+| first_name | User's first name |
+| last_name | User's last name |
+| enabled | Whether the user account is enabled |
+| created_timestamp | When the user was created |
+| access_manage_group_membership | Permission to manage group membership |
+| access_view | Permission to view user details |
+| access_map_roles | Permission to map roles |
+| access_impersonate | Permission to impersonate user |
+| access_manage | Permission to manage user |
 
 ### user_attribute
 
 Breakout table for user attributes (key-value pairs).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| user_id | STRING | Foreign key to the user table |
-| attribute_key | STRING | Name of the attribute |
-| attribute_value | STRING | Value of the attribute |
+Primary key: `user_id`, `attribute_key`, `attribute_value`
+
+| Column | Description |
+|--------|-------------|
+| user_id | Foreign key to the user table |
+| attribute_key | Name of the attribute |
+| attribute_value | Value of the attribute |
 
 ### user_realm_role
 
 Breakout table for user realm role assignments.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| user_id | STRING | Foreign key to the user table |
-| role_name | STRING | Name of the assigned realm role |
+Primary key: `user_id`, `role_name`
+
+| Column | Description |
+|--------|-------------|
+| user_id | Foreign key to the user table |
+| role_name | Name of the assigned realm role |
 
 ### user_required_action
 
 Breakout table for user required actions.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| user_id | STRING | Foreign key to the user table |
-| required_action | STRING | Action required from the user (e.g., VERIFY_EMAIL, UPDATE_PASSWORD) |
+Primary key: `user_id`, `required_action`
+
+| Column | Description |
+|--------|-------------|
+| user_id | Foreign key to the user table |
+| required_action | Action required from the user (e.g., VERIFY_EMAIL, UPDATE_PASSWORD) |
 
 ### group
 
 Table containing Keycloak group data.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the group |
-| name | STRING | Name of the group |
-| path | STRING | Full path of the group in the hierarchy |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the group |
+| name | Name of the group |
+| path | Full path of the group in the hierarchy |
 
 ### group_member
 
 Breakout table for group membership relationships.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| group_id | STRING | Foreign key to the group table |
-| user_id | STRING | Foreign key to the user table |
+Primary key: `group_id`, `user_id`
+
+| Column | Description |
+|--------|-------------|
+| group_id | Foreign key to the group table |
+| user_id | Foreign key to the user table |
 
 ### role
 
 Table containing realm roles.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the role |
-| name | STRING | Name of the role |
-| description | STRING | Description of the role |
-| composite | BOOLEAN | Whether this is a composite role |
-| client_role | BOOLEAN | Whether this is a client-specific role |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the role |
+| name | Name of the role |
+| description | Description of the role |
+| composite | Whether this is a composite role |
+| client_role | Whether this is a client-specific role |
 
 ### client
 
 Table containing OAuth/OIDC client applications.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the client |
-| client_id | STRING | Client ID used in OAuth flows |
-| name | STRING | Display name of the client |
-| description | STRING | Description of the client application |
-| enabled | BOOLEAN | Whether the client is enabled |
-| public_client | BOOLEAN | Whether this is a public client |
-| protocol | STRING | Authentication protocol (e.g., openid-connect) |
-| base_url | STRING | Base URL of the client application |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the client |
+| client_id | Client ID used in OAuth flows |
+| name | Display name of the client |
+| description | Description of the client application |
+| enabled | Whether the client is enabled |
+| public_client | Whether this is a public client |
+| protocol | Authentication protocol (e.g., openid-connect) |
+| base_url | Base URL of the client application |
 
 ### event
 
 Table containing authentication events.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the event (composite: timestamp + type + user_id + session_id + client_id) |
-| time | UTC_DATETIME | When the event occurred |
-| type | STRING | Type of authentication event (e.g., LOGIN, LOGOUT, LOGIN_ERROR) |
-| user_id | STRING | ID of the user associated with the event |
-| session_id | STRING | Session identifier |
-| ip_address | STRING | IP address of the client |
-| client_id | STRING | ID of the client application |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the event (composite: timestamp + type + user_id + session_id + client_id) |
+| time | When the event occurred |
+| type | Type of authentication event (e.g., LOGIN, LOGOUT, LOGIN_ERROR) |
+| user_id | ID of the user associated with the event |
+| session_id | Session identifier |
+| ip_address | IP address of the client |
+| client_id | ID of the client application |
 
 ### admin_event
 
 Table containing administrative events for audit trails.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | STRING | Unique identifier for the admin event (composite: timestamp + operation_type + resource_type + resource_path) |
-| time | UTC_DATETIME | When the admin event occurred |
-| operation_type | STRING | Type of operation (CREATE, UPDATE, DELETE, ACTION) |
-| resource_type | STRING | Type of resource modified (USER, GROUP, ROLE, CLIENT, etc.) |
-| resource_path | STRING | Path to the modified resource |
-| auth_realm_id | STRING | Realm ID of the authenticated admin |
-| auth_client_id | STRING | Client ID used by the admin |
-| auth_user_id | STRING | User ID of the admin who performed the action |
+Primary key: `id`
+
+| Column | Description |
+|--------|-------------|
+| id | Unique identifier for the admin event (composite: timestamp + operation_type + resource_type + resource_path) |
+| time | When the admin event occurred |
+| operation_type | Type of operation (CREATE, UPDATE, DELETE, ACTION) |
+| resource_type | Type of resource modified (USER, GROUP, ROLE, CLIENT, etc.) |
+| resource_path | Path to the modified resource |
+| auth_realm_id | Realm ID of the authenticated admin |
+| auth_client_id | Client ID used by the admin |
+| auth_user_id | User ID of the admin who performed the action |
 
 ## Additional files
 
