@@ -44,8 +44,8 @@ The connector requires the following configuration parameters in the `configurat
 
 ```json
 {
-  "api_key": "YOUR_BINANCE_US_API_KEY",
-  "api_secret": "YOUR_BINANCE_US_API_SECRET"
+  "api_key": "<YOUR_BINANCE_US_API_KEY>",
+  "api_secret": "<YOUR_BINANCE_US_API_SECRET>"
 }
 ```
 
