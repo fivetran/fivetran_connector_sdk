@@ -1,0 +1,7 @@
+*.pyc
+__pycache__/
+*.db
+*.db.wal
+.env
+fields.yaml
+
