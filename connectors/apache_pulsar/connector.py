@@ -228,7 +228,7 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
     messages_processed = 0
     last_message_id = None
 
-    while messages_processed < _MAX_MESSAGES_PER_TOPIC:
+    while messages_processed < __MAX_MESSAGES_PER_TOPIC:
         try:
             msg = reader.read_next(timeout_millis=_READ_TIMEOUT_MS)
             message_data = parse_message(msg, topic)
