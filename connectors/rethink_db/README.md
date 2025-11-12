@@ -75,26 +75,26 @@ SSL/TLS connections:
 ## Data handling
 The connector processes RethinkDB data as follows:
 
-**Schema discovery**: The `schema()` function dynamically discovers all tables in the database and retrieves their primary key definitions using `table.info()`. This ensures the connector adapts to schema changes automatically.
+Schema discovery: The `schema()` function dynamically discovers all tables in the database and retrieves their primary key definitions using `table.info()`. This ensures the connector adapts to schema changes automatically.
 
-**Incremental sync**: The connector implements intelligent incremental syncing by automatically detecting timestamp fields in each table. The `get_timestamp_field()` function searches for common timestamp field names (updated_at, modified_at, timestamp, created_at, last_modified) in priority order. When a timestamp field is found, subsequent syncs only retrieve records with timestamps newer than the last sync, significantly reducing data transfer and processing time. Tables without timestamp fields automatically fall back to full table sync.
+Incremental sync: The connector implements intelligent incremental syncing by automatically detecting timestamp fields in each table. The `get_timestamp_field()` function searches for common timestamp field names (updated_at, modified_at, timestamp, created_at, last_modified) in priority order. When a timestamp field is found, subsequent syncs only retrieve records with timestamps newer than the last sync, significantly reducing data transfer and processing time. Tables without timestamp fields automatically fall back to full table sync.
 
-**Data transformation**: The `transform_record()` function handles complex RethinkDB data types by converting nested objects and arrays to JSON strings, making them compatible with the Fivetran SDK supported data types.
+Data transformation: The `transform_record()` function handles complex RethinkDB data types by converting nested objects and arrays to JSON strings, making them compatible with the Fivetran SDK supported data types.
 
-**Streaming**: The connector uses RethinkDB cursors to stream data from tables, avoiding loading entire tables into memory. This enables efficient handling of large datasets.
+Streaming: The connector uses RethinkDB cursors to stream data from tables, avoiding loading entire tables into memory. This enables efficient handling of large datasets.
 
-**Checkpointing**: Progress is checkpointed every 100 records (configured via `__CHECKPOINT_INTERVAL`) to enable resumable syncs in case of interruptions. The state also tracks the maximum timestamp for each table to support incremental syncs. Refer to the `sync_table_data()` function.
+Checkpointing: Progress is checkpointed every 100 records (configured via `__CHECKPOINT_INTERVAL`) to enable resumable syncs in case of interruptions. The state also tracks the maximum timestamp for each table to support incremental syncs. Refer to the `sync_table_data()` function.
 
 ## Error handling
 Error handling is implemented throughout the connector:
 
-**Connection errors**: The `connect_to_rethinkdb()` function catches connection failures and raises descriptive errors to help diagnose network or authentication issues.
+Connection errors: The `connect_to_rethinkdb()` function catches connection failures and raises descriptive errors to help diagnose network or authentication issues.
 
-**Table access errors**: The `get_all_tables()` and `get_table_primary_key()` functions handle cases where tables cannot be accessed or primary keys cannot be determined, falling back to default values where appropriate.
+Table access errors: The `get_all_tables()` and `get_table_primary_key()` functions handle cases where tables cannot be accessed or primary keys cannot be determined, falling back to default values where appropriate.
 
-**Data sync errors**: The `sync_table_data()` function wraps the sync logic in try-except blocks to catch and log errors during data processing, ensuring partial sync progress is preserved via checkpoints.
+Data sync errors: The `sync_table_data()` function wraps the sync logic in try-except blocks to catch and log errors during data processing, ensuring partial sync progress is preserved via checkpoints.
 
-**Resource cleanup**: All functions use try-finally blocks to ensure RethinkDB connections are properly closed, preventing connection leaks.
+Resource cleanup: All functions use try-finally blocks to ensure RethinkDB connections are properly closed, preventing connection leaks.
 
 ## Tables created
 
