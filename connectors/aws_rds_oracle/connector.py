@@ -4,13 +4,20 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import oracledb
-
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+# Add your source-specific imports here.
+# oracledb provides the Oracle database driver used for connectivity in this example.
+import oracledb
 
 __TABLES: List[Dict[str, Any]] = [
     {
@@ -23,7 +30,7 @@ __TABLES: List[Dict[str, Any]] = [
 
 __DEFAULT_PORT = 1521
 __FETCH_BATCH_SIZE = 500
-__CHECKPOINT_INTERVAL = 500
+__CHECKPOINT_INTERVAL = 1000
 __DEFAULT_SYNC_DATETIME = datetime(1970, 1, 1, 0, 0, 0)
 
 
@@ -39,7 +46,9 @@ def validate_configuration(configuration: dict) -> None:
     required_configs = ["host", "port", "service_name", "user", "password"]
     missing = [key for key in required_configs if not configuration.get(key)]
     if missing:
-        raise ValueError(f"Missing required configuration value(s): {', '.join(missing)}")
+        raise ValueError(
+            f"Missing required configuration value(s): {', '.join(missing)}"
+        )
 
 
 def _parse_timestamp(value: Any) -> Optional[datetime]:
@@ -97,6 +106,139 @@ def connect_oracle(configuration: dict) -> "oracledb.Connection":
     )
 
 
+def _build_incremental_query(columns: List[str], full_table_name: str) -> str:
+    """
+    Build the incremental query for pulling Oracle records.
+    Args:
+        columns: Ordered list of columns to select from the source table.
+        full_table_name: Fully qualified table name including schema.
+    Returns:
+        SQL query string that fetches records newer than the stored watermark.
+    """
+
+    select_clause = ", ".join(columns)
+    return (
+        f"SELECT {select_clause} FROM {full_table_name} "
+        "WHERE LAST_UPDATED > TO_TIMESTAMP(:last_sync_time, 'YYYY-MM-DD HH24:MI:SS') "
+        "ORDER BY LAST_UPDATED"
+    )
+
+
+def _iterate_records(
+    cursor: "oracledb.Cursor", columns: List[str]
+) -> Iterable[Dict[str, Any]]:
+    """
+    Yield records from the Oracle cursor in batches to avoid loading all rows in memory.
+    Args:
+        cursor: Active Oracle cursor with an executed query.
+        columns: Ordered list of column names to map onto row values.
+    Yields:
+        Dictionary representation of each record returned by the cursor.
+    """
+
+    while True:
+        rows = cursor.fetchmany()
+        if not rows:
+            break
+        for row in rows:
+            yield dict(zip(columns, row))
+
+
+def _apply_row_operations(
+    table_name: str, record: Dict[str, Any]
+) -> Optional[datetime]:
+    """
+    Upsert the record into the destination and extract the updated watermark.
+    Args:
+        table_name: Destination table name.
+        record: Record fetched from the source.
+    Returns:
+        Parsed datetime for LAST_UPDATED if available.
+    """
+
+    op.upsert(table=table_name, data=record)
+    return _parse_timestamp(record.get("LAST_UPDATED"))
+
+
+def _checkpoint_if_needed(
+    processed_rows: int,
+    latest_sync_dt: Optional[datetime],
+    fallback_sync_dt: datetime,
+    full_table_name: str,
+) -> None:
+    """
+    Checkpoint connector state periodically to guard against data re-processing.
+    Args:
+        processed_rows: Number of rows processed so far.
+        latest_sync_dt: Latest LAST_UPDATED timestamp encountered in this batch.
+        fallback_sync_dt: Watermark to use when no new rows are present.
+        full_table_name: Fully qualified table name used for logging.
+    """
+
+    if processed_rows % __CHECKPOINT_INTERVAL != 0:
+        return
+
+    checkpoint_dt = latest_sync_dt or fallback_sync_dt or __DEFAULT_SYNC_DATETIME
+    op.checkpoint({"last_sync_time": _format_timestamp(checkpoint_dt)})
+    log.info(
+        f"Checkpointed state after {processed_rows} rows for table {full_table_name}"
+    )
+
+
+def _sync_table(
+    connection: "oracledb.Connection",
+    table_def: Dict[str, Any],
+    last_sync_time_str: str,
+    fallback_sync_dt: datetime,
+) -> Tuple[Optional[datetime], int]:
+    """
+    Synchronize a single table using the provided connection.
+    Args:
+        connection: Active Oracle connection used for querying data.
+        table_def: Table definition dictionary with schema, table, pk, and columns.
+        last_sync_time_str: Serialized watermark in Oracle compatible format.
+        fallback_sync_dt: Watermark used when no newer records exist.
+    Returns:
+        Tuple containing the latest LAST_UPDATED datetime encountered and the total processed rows.
+    """
+
+    schema_name = table_def["schema"]
+    table_name = table_def["table"]
+    columns = table_def["columns"]
+    full_table_name = f"{schema_name}.{table_name}"
+
+    log.info(f"Syncing table {full_table_name}")
+    latest_sync_dt: Optional[datetime] = None
+    processed_rows = 0
+
+    query = _build_incremental_query(columns=columns, full_table_name=full_table_name)
+
+    with connection.cursor() as cursor:
+        cursor.arraysize = __FETCH_BATCH_SIZE
+        cursor.execute(query, {"last_sync_time": last_sync_time_str})
+
+        for record in _iterate_records(cursor=cursor, columns=columns):
+            processed_rows += 1
+            record_sync_dt = _apply_row_operations(table_name=table_name, record=record)
+
+            if record_sync_dt and (
+                latest_sync_dt is None or record_sync_dt > latest_sync_dt
+            ):
+                latest_sync_dt = record_sync_dt
+
+            _checkpoint_if_needed(
+                processed_rows=processed_rows,
+                latest_sync_dt=latest_sync_dt,
+                fallback_sync_dt=fallback_sync_dt,
+                full_table_name=full_table_name,
+            )
+
+    log.info(
+        f"Finished syncing table {full_table_name}, processed {processed_rows} rows"
+    )
+    return latest_sync_dt, processed_rows
+
+
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -142,72 +284,28 @@ def update(configuration: dict, state: dict) -> None:
     last_sync_time_str = _format_timestamp(last_sync_time_dt)
     new_sync_time_dt = last_sync_time_dt
 
+    conn: Optional["oracledb.Connection"] = None
     try:
         conn = connect_oracle(configuration=configuration)
         log.info("Connected to Oracle database")
     except Exception as exc:
-        log.error(f"Oracle connection failed: {exc}")
+        log.severe(f"Oracle connection failed: {exc}")
         raise
 
     try:
         for table_def in __TABLES:
-            schema_name = table_def["schema"]
-            table_name = table_def["table"]
-            columns = table_def["columns"]
-            full_table_name = f"{schema_name}.{table_name}"
-
-            log.info(f"Syncing table {full_table_name}")
-
-            table_latest_sync_dt: Optional[datetime] = None
-            processed_rows = 0
-
-            try:
-                with conn.cursor() as cursor:
-                    cursor.arraysize = __FETCH_BATCH_SIZE
-                    query = (
-                        f"SELECT {', '.join(columns)} FROM {full_table_name} "
-                        "WHERE LAST_UPDATED > TO_TIMESTAMP(:last_sync_time, 'YYYY-MM-DD HH24:MI:SS') "
-                        "ORDER BY LAST_UPDATED"
-                    )
-                    cursor.execute(query, {"last_sync_time": last_sync_time_str})
-
-                    while True:
-                        rows = cursor.fetchmany()
-                        if not rows:
-                            break
-
-                        for row in rows:
-                            record = dict(zip(columns, row))
-                            op.upsert(table=table_name, data=record)
-
-                            record_sync_dt = _parse_timestamp(record.get("LAST_UPDATED"))
-                            if record_sync_dt:
-                                if table_latest_sync_dt is None:
-                                    table_latest_sync_dt = record_sync_dt
-                                elif record_sync_dt > table_latest_sync_dt:
-                                    table_latest_sync_dt = record_sync_dt
-
-                            processed_rows += 1
-                            if processed_rows % __CHECKPOINT_INTERVAL == 0:
-                                checkpoint_dt = table_latest_sync_dt or new_sync_time_dt
-                                if checkpoint_dt is None:
-                                    checkpoint_dt = __DEFAULT_SYNC_DATETIME
-                                op.checkpoint({"last_sync_time": _format_timestamp(checkpoint_dt)})
-                                log.info(
-                                    f"Checkpointed state after {processed_rows} rows for table {full_table_name}"
-                                )
-
-            except Exception as exc:
-                log.error(f"Failed to sync table {full_table_name}: {exc}")
-                continue
+            table_latest_sync_dt, _ = _sync_table(
+                connection=conn,
+                table_def=table_def,
+                last_sync_time_str=last_sync_time_str,
+                fallback_sync_dt=new_sync_time_dt,
+            )
 
             if table_latest_sync_dt and table_latest_sync_dt > new_sync_time_dt:
                 new_sync_time_dt = table_latest_sync_dt
-
-            log.info(f"Finished syncing table {full_table_name}, processed {processed_rows} rows")
-
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
     final_state = {"last_sync_time": _format_timestamp(new_sync_time_dt)}
     op.checkpoint(final_state)

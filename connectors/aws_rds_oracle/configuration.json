@@ -3,5 +3,5 @@
     "port": "<YOUR_AWS_RDS_ORACLE_PORT>",
     "service_name": "<YOUR_AWS_RDS_ORACLE_SERVICE_NAME>",
     "user": "<YOUR_AWS_RDS_ORACLE_USER>",
-    "password": "<YOUR_AWS_RDS_ORACLE_PASSWORD>",
+    "password": "<YOUR_AWS_RDS_ORACLE_PASSWORD>"
 }
