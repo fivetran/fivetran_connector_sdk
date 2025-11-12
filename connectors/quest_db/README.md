@@ -45,11 +45,14 @@ The connector requires the following configuration parameters:
 
 Configuration parameters:
 
+**Required:**
+- `tables` - Comma-separated list of table names to sync (e.g., `sensor_data`,`market_ticks`)
+
+**Optional:**
 - `host` - QuestDB server hostname or IP address (defaults to `localhost`)
 - `port` - QuestDB REST API port (defaults to `9000`)
-- `username` (optional) - QuestDB username for HTTP basic authentication.
-- `password` (optional) - QuestDB password for HTTP basic authentication.
-- `tables` - Comma-separated list of table names to sync (e.g., `sensor_data`,`market_ticks`)
+- `username` - QuestDB username for HTTP basic authentication
+- `password` - QuestDB password for HTTP basic authentication
 - `batch_size` - Number of records to fetch per API request (defaults to `1000`)
 - `timestamp_column` - Column name for timestamp-based incremental sync (defaults to `timestamp`)
 
