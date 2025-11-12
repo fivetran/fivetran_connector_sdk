@@ -338,7 +338,7 @@ def parse_message(msg, topic: str) -> dict:
     # Get message ID (unique identifier)
     message_id = msg.message_id()
     # For non-partitioned topics, partition_index doesn't exist, use default
-    partition_idx = getattr(message_id, "partition_index", lambda: _DEFAULT_PARTITION_INDEX)()
+    partition_idx = getattr(message_id, "partition_index", lambda: __DEFAULT_PARTITION_INDEX)()
     message_id_str = f"{message_id.ledger_id()}:{message_id.entry_id()}:{partition_idx}"
 
     # Get publish time (when the message was published to Pulsar)
