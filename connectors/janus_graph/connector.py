@@ -3,7 +3,6 @@
 This connector integrates JanusGraph graph database with Fivetran by extracting vertices, edges,
 and their properties using the Gremlin Server API. It supports incremental sync with checkpointing
 based on updated_at timestamps and provides schema discovery via JanusGraph management queries.
-
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
@@ -62,6 +61,9 @@ def create_gremlin_client(configuration: dict):
     """
     Create and return a Gremlin client connection to JanusGraph.
 
+    Supports both authenticated and unauthenticated connections. If username and password
+    are provided in the configuration, the client will use Simple Authentication.
+
     Args:
         configuration: a dictionary containing the Gremlin server connection details.
 
@@ -70,13 +72,25 @@ def create_gremlin_client(configuration: dict):
     """
     gremlin_server_url = configuration.get("gremlin_server_url")
     traversal_source = configuration.get("traversal_source", "g")
+    username = configuration.get("username")
+    password = configuration.get("password")
 
     # Create Gremlin client with JSON serialization
-    gremlin_client = client.Client(
-        gremlin_server_url,
-        traversal_source,
-        message_serializer=serializer.GraphSONSerializersV3d0(),
-    )
+    client_params = {
+        "url": gremlin_server_url,
+        "traversal_source": traversal_source,
+        "message_serializer": serializer.GraphSONSerializersV3d0(),
+    }
+
+    # Add authentication credentials if provided
+    if username and password:
+        log.info("Creating authenticated Gremlin client connection")
+        client_params["username"] = username
+        client_params["password"] = password
+    else:
+        log.info("Creating unauthenticated Gremlin client connection")
+
+    gremlin_client = client.Client(**client_params)
 
     return gremlin_client
 
@@ -96,22 +110,29 @@ def execute_gremlin_query_with_retry(gremlin_client, query: str, bindings: dict 
     Raises:
         RuntimeError: if the query fails after all retry attempts.
     """
+    last_exception = None
     for attempt in range(__MAX_RETRIES):
         try:
             query_bindings = bindings if bindings is not None else {}
             result_set = gremlin_client.submit(query, query_bindings)
             return result_set.all().result()
         except (GremlinServerError, ConnectionError, TimeoutError) as e:
+            last_exception = e
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(
                     f"Gremlin query failed after {__MAX_RETRIES} attempts: {str(e)}"
                 )
 
-            sleep_time = min(60, __RETRY_DELAY_SECONDS**attempt)
+            sleep_time = min(60, __RETRY_DELAY_SECONDS * (2**attempt))
             log.warning(
                 f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: {str(e)}"
             )
             time.sleep(sleep_time)
+
+    # This should never be reached due to the raise in the loop, but added for safety
+    raise RuntimeError(
+        f"Gremlin query failed after {__MAX_RETRIES} attempts: {str(last_exception)}"
+    )
 
 
 def get_vertex_labels(gremlin_client):
@@ -179,6 +200,194 @@ def get_property_keys(gremlin_client):
         return []
 
 
+def flatten_properties(properties: dict) -> dict:
+    """
+    Flatten properties dictionary by extracting first value from lists.
+
+    Args:
+        properties: Dictionary of properties where values may be lists or single values.
+
+    Returns:
+        Dictionary with flattened properties (lists reduced to first value).
+    """
+    flattened_props = {}
+    for key, value in properties.items():
+        str_key = str(key)
+        if isinstance(value, list):
+            flattened_props[str_key] = value[0] if value else None
+        else:
+            flattened_props[str_key] = value
+    return flattened_props
+
+
+def build_vertex_query(
+    offset: int, batch_size: int, has_updated_at: bool, last_updated_at: str = None
+) -> str:
+    """
+    Build Gremlin query for fetching vertices with optional incremental filter.
+
+    Args:
+        offset: Starting offset for pagination.
+        batch_size: Number of records to fetch.
+        has_updated_at: Whether to use incremental sync based on updated_at.
+        last_updated_at: Last synced timestamp for incremental sync.
+
+    Returns:
+        Gremlin query string.
+    """
+    if has_updated_at and last_updated_at:
+        return f"""
+        g.V().has('updated_at', gt('{last_updated_at}'))
+         .order().by('updated_at')
+         .range({offset}, {offset + batch_size})
+         .project('id', 'label', 'properties')
+         .by(id())
+         .by(label())
+         .by(valueMap(true))
+        """
+    else:
+        return f"""
+        g.V().range({offset}, {offset + batch_size})
+         .project('id', 'label', 'properties')
+         .by(id())
+         .by(label())
+         .by(valueMap(true))
+        """
+
+
+def build_edge_query(
+    offset: int, batch_size: int, has_updated_at: bool, last_updated_at: str = None
+) -> str:
+    """
+    Build Gremlin query for fetching edges with optional incremental filter.
+
+    Args:
+        offset: Starting offset for pagination.
+        batch_size: Number of records to fetch.
+        has_updated_at: Whether to use incremental sync based on updated_at.
+        last_updated_at: Last synced timestamp for incremental sync.
+
+    Returns:
+        Gremlin query string.
+    """
+    if has_updated_at and last_updated_at:
+        return f"""
+        g.E().has('updated_at', gt('{last_updated_at}'))
+         .order().by('updated_at')
+         .range({offset}, {offset + batch_size})
+         .project('id', 'label', 'inV', 'outV', 'properties')
+         .by(id())
+         .by(label())
+         .by(inV().id())
+         .by(outV().id())
+         .by(valueMap(true))
+        """
+    else:
+        return f"""
+        g.E().range({offset}, {offset + batch_size})
+         .project('id', 'label', 'inV', 'outV', 'properties')
+         .by(id())
+         .by(label())
+         .by(inV().id())
+         .by(outV().id())
+         .by(valueMap(true))
+        """
+
+
+def update_latest_timestamp(latest_timestamp, flattened_props: dict, has_updated_at: bool):
+    """
+    Update latest timestamp from current record if newer.
+
+    Args:
+        latest_timestamp: Current latest timestamp (may be None).
+        flattened_props: Flattened properties containing potential updated_at.
+        has_updated_at: Whether to check for updated_at property.
+
+    Returns:
+        Updated latest timestamp.
+    """
+    if has_updated_at and "updated_at" in flattened_props:
+        updated_at = flattened_props["updated_at"]
+        if latest_timestamp is None or updated_at > latest_timestamp:
+            return updated_at
+    return latest_timestamp
+
+
+def sync_multi_valued_properties(
+    entity_id: str, properties: dict, table_name: str, id_field_name: str
+):
+    """
+    Sync multi-valued properties to separate table.
+
+    This function processes multi-valued properties (lists with more than one value) and creates
+    separate records for each value to maintain proper relational structure in the destination.
+
+    Note: Checkpointing is handled at the batch level by the calling function (sync_vertices or
+    sync_edges), which ensures all properties for a batch of entities are saved together.
+
+    Args:
+        entity_id: The entity ID (vertex or edge).
+        properties: Dictionary of properties.
+        table_name: Name of the properties table.
+        id_field_name: Name of the ID field (vertex_id or edge_id).
+    """
+    for property_key, property_value in properties.items():
+        if isinstance(property_value, list) and len(property_value) > 1:
+            # Multi-valued property - create separate records for each value
+            for idx, value in enumerate(property_value):
+                property_record = {
+                    id_field_name: entity_id,
+                    "property_key": property_key,
+                    "property_value": str(value),
+                    "property_index": idx,
+                }
+                op.upsert(table=table_name, data=property_record)
+
+
+def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp):
+    """
+    Process a batch of vertices and upsert them to destination tables.
+
+    Args:
+        vertices: List of vertex records from Gremlin query.
+        has_updated_at: Whether to track updated_at timestamps.
+        latest_timestamp: Current latest timestamp.
+
+    Returns:
+        Tuple of (updated_latest_timestamp, count_processed).
+    """
+    count_processed = 0
+
+    for vertex in vertices:
+        vertex_id = str(vertex.get("id"))
+        vertex_label = vertex.get("label")
+        properties = vertex.get("properties", {})
+
+        # Flatten properties - handle both single values and lists
+        flattened_props = flatten_properties(properties)
+
+        vertex_record = {
+            "vertex_id": vertex_id,
+            "vertex_label": vertex_label,
+            **flattened_props,
+        }
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        op.upsert(table=__TABLE_VERTICES, data=vertex_record)
+
+        # Sync multi-valued properties to separate table
+        sync_multi_valued_properties(vertex_id, properties, __TABLE_VERTEX_PROPERTIES, "vertex_id")
+
+        # Track latest timestamp
+        latest_timestamp = update_latest_timestamp(
+            latest_timestamp, flattened_props, has_updated_at
+        )
+
+        count_processed += 1
+
+    return latest_timestamp, count_processed
+
+
 def sync_vertices(gremlin_client, state: dict, has_updated_at: bool):
     """
     Sync vertices from JanusGraph with incremental support.
@@ -203,67 +412,17 @@ def sync_vertices(gremlin_client, state: dict, has_updated_at: bool):
 
     while True:
         # Build query with optional incremental filter
-        if has_updated_at and last_updated_at:
-            query = f"""
-            g.V().has('updated_at', gt('{last_updated_at}'))
-             .order().by('updated_at')
-             .range({offset}, {offset + __BATCH_SIZE})
-             .project('id', 'label', 'properties')
-             .by(id())
-             .by(label())
-             .by(valueMap(true))
-            """
-        else:
-            query = f"""
-            g.V().range({offset}, {offset + __BATCH_SIZE})
-             .project('id', 'label', 'properties')
-             .by(id())
-             .by(label())
-             .by(valueMap(true))
-            """
-
+        query = build_vertex_query(offset, __BATCH_SIZE, has_updated_at, last_updated_at)
         results = execute_gremlin_query_with_retry(gremlin_client, query)
 
         if not results:
             break
 
-        for vertex in results:
-            vertex_id = str(vertex.get("id"))
-            vertex_label = vertex.get("label")
-            properties = vertex.get("properties", {})
-
-            # Flatten properties - handle both single values and lists
-            flattened_props = {}
-            for key, value in properties.items():
-                # Ensure key is a string
-                str_key = str(key)
-                if isinstance(value, list):
-                    # Take first value if list
-                    flattened_props[str_key] = value[0] if value else None
-                else:
-                    flattened_props[str_key] = value
-
-            vertex_record = {
-                "vertex_id": vertex_id,
-                "vertex_label": vertex_label,
-                **flattened_props,
-            }
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table=__TABLE_VERTICES, data=vertex_record)
-
-            # Sync vertex properties to separate table if they contain complex structures
-            sync_vertex_properties(vertex_id, properties)
-
-            # Track latest timestamp
-            if has_updated_at and "updated_at" in flattened_props:
-                updated_at = flattened_props["updated_at"]
-                if latest_timestamp is None or updated_at > latest_timestamp:
-                    latest_timestamp = updated_at
-
-            total_synced += 1
+        # Process batch of vertices
+        latest_timestamp, batch_count = process_vertex_batch(
+            results, has_updated_at, latest_timestamp
+        )
+        total_synced += batch_count
 
         log.info(f"Synced {len(results)} vertices (total: {total_synced})")
 
@@ -285,29 +444,52 @@ def sync_vertices(gremlin_client, state: dict, has_updated_at: bool):
     return latest_timestamp
 
 
-def sync_vertex_properties(vertex_id: str, properties: dict):
+def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp):
     """
-    Sync vertex properties that have multiple values to separate table.
+    Process a batch of edges and upsert them to destination tables.
 
     Args:
-        vertex_id: The vertex ID.
-        properties: Dictionary of vertex properties.
-    """
-    for property_key, property_value in properties.items():
-        if isinstance(property_value, list) and len(property_value) > 1:
-            # Multi-valued property - create separate records
-            for idx, value in enumerate(property_value):
-                property_record = {
-                    "vertex_id": vertex_id,
-                    "property_key": property_key,
-                    "property_value": str(value),
-                    "property_index": idx,
-                }
+        edges: List of edge records from Gremlin query.
+        has_updated_at: Whether to track updated_at timestamps.
+        latest_timestamp: Current latest timestamp.
 
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=__TABLE_VERTEX_PROPERTIES, data=property_record)
+    Returns:
+        Tuple of (updated_latest_timestamp, count_processed).
+    """
+    count_processed = 0
+
+    for edge in edges:
+        edge_id = str(edge.get("id"))
+        edge_label = edge.get("label")
+        in_vertex_id = str(edge.get("inV"))
+        out_vertex_id = str(edge.get("outV"))
+        properties = edge.get("properties", {})
+
+        # Flatten properties
+        flattened_props = flatten_properties(properties)
+
+        edge_record = {
+            "edge_id": edge_id,
+            "edge_label": edge_label,
+            "in_vertex_id": in_vertex_id,
+            "out_vertex_id": out_vertex_id,
+            **flattened_props,
+        }
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        op.upsert(table=__TABLE_EDGES, data=edge_record)
+
+        # Sync multi-valued properties to separate table
+        sync_multi_valued_properties(edge_id, properties, __TABLE_EDGE_PROPERTIES, "edge_id")
+
+        # Track latest timestamp
+        latest_timestamp = update_latest_timestamp(
+            latest_timestamp, flattened_props, has_updated_at
+        )
+
+        count_processed += 1
+
+    return latest_timestamp, count_processed
 
 
 def sync_edges(gremlin_client, state: dict, has_updated_at: bool):
@@ -334,74 +516,17 @@ def sync_edges(gremlin_client, state: dict, has_updated_at: bool):
 
     while True:
         # Build query with optional incremental filter
-        if has_updated_at and last_updated_at:
-            query = f"""
-            g.E().has('updated_at', gt('{last_updated_at}'))
-             .order().by('updated_at')
-             .range({offset}, {offset + __BATCH_SIZE})
-             .project('id', 'label', 'inV', 'outV', 'properties')
-             .by(id())
-             .by(label())
-             .by(inV().id())
-             .by(outV().id())
-             .by(valueMap(true))
-            """
-        else:
-            query = f"""
-            g.E().range({offset}, {offset + __BATCH_SIZE})
-             .project('id', 'label', 'inV', 'outV', 'properties')
-             .by(id())
-             .by(label())
-             .by(inV().id())
-             .by(outV().id())
-             .by(valueMap(true))
-            """
-
+        query = build_edge_query(offset, __BATCH_SIZE, has_updated_at, last_updated_at)
         results = execute_gremlin_query_with_retry(gremlin_client, query)
 
         if not results:
             break
 
-        for edge in results:
-            edge_id = str(edge.get("id"))
-            edge_label = edge.get("label")
-            in_vertex_id = str(edge.get("inV"))
-            out_vertex_id = str(edge.get("outV"))
-            properties = edge.get("properties", {})
-
-            # Flatten properties
-            flattened_props = {}
-            for key, value in properties.items():
-                # Ensure key is a string
-                str_key = str(key)
-                if isinstance(value, list):
-                    flattened_props[str_key] = value[0] if value else None
-                else:
-                    flattened_props[str_key] = value
-
-            edge_record = {
-                "edge_id": edge_id,
-                "edge_label": edge_label,
-                "in_vertex_id": in_vertex_id,
-                "out_vertex_id": out_vertex_id,
-                **flattened_props,
-            }
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table=__TABLE_EDGES, data=edge_record)
-
-            # Sync edge properties to separate table if they contain complex structures
-            sync_edge_properties(edge_id, properties)
-
-            # Track latest timestamp
-            if has_updated_at and "updated_at" in flattened_props:
-                updated_at = flattened_props["updated_at"]
-                if latest_timestamp is None or updated_at > latest_timestamp:
-                    latest_timestamp = updated_at
-
-            total_synced += 1
+        # Process batch of edges
+        latest_timestamp, batch_count = process_edge_batch(
+            results, has_updated_at, latest_timestamp
+        )
+        total_synced += batch_count
 
         log.info(f"Synced {len(results)} edges (total: {total_synced})")
 
@@ -423,31 +548,6 @@ def sync_edges(gremlin_client, state: dict, has_updated_at: bool):
     return latest_timestamp
 
 
-def sync_edge_properties(edge_id: str, properties: dict):
-    """
-    Sync edge properties that have multiple values to separate table.
-
-    Args:
-        edge_id: The edge ID.
-        properties: Dictionary of edge properties.
-    """
-    for property_key, property_value in properties.items():
-        if isinstance(property_value, list) and len(property_value) > 1:
-            # Multi-valued property - create separate records
-            for idx, value in enumerate(property_value):
-                property_record = {
-                    "edge_id": edge_id,
-                    "property_key": property_key,
-                    "property_value": str(value),
-                    "property_index": idx,
-                }
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table=__TABLE_EDGE_PROPERTIES, data=property_record)
-
-
 def check_updated_at_property(gremlin_client):
     """
     Check if vertices and edges have updated_at property for incremental sync.
@@ -463,7 +563,8 @@ def check_updated_at_property(gremlin_client):
     try:
         vertex_result = execute_gremlin_query_with_retry(gremlin_client, vertex_query)
         vertices_have_updated_at = vertex_result[0] > 0 if vertex_result else False
-    except Exception:
+    except Exception as e:
+        log.warning(f"Failed to check vertices for updated_at property: {str(e)}")
         vertices_have_updated_at = False
 
     # Check edges
@@ -471,7 +572,8 @@ def check_updated_at_property(gremlin_client):
     try:
         edge_result = execute_gremlin_query_with_retry(gremlin_client, edge_query)
         edges_have_updated_at = edge_result[0] > 0 if edge_result else False
-    except Exception:
+    except Exception as e:
+        log.warning(f"Failed to check edges for updated_at property: {str(e)}")
         edges_have_updated_at = False
 
     return vertices_have_updated_at, edges_have_updated_at
@@ -528,16 +630,14 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Example: GRAPH_DATABASE : JANUSGRAPH")
+    log.warning("Example: Source Examples : JanusGraph")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
@@ -593,8 +693,9 @@ def update(configuration: dict, state: dict):
         if gremlin_client:
             try:
                 gremlin_client.close()
-            except Exception:
-                pass
+            except Exception as e:
+                # Log any exception that occurs during Gremlin client cleanup, but do not raise, as this is non-fatal
+                log.warning(f"Exception occurred while closing Gremlin client: {str(e)}")
 
 
 # Create the connector object using the schema and update functions

@@ -32,23 +32,34 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Schema discovery - Automatically discovers vertex labels, edge labels, and property keys from JanusGraph management API.
 - Multi-valued property handling - Creates separate property tables for vertices and edges with multi-valued properties, maintaining property order with indexes.
 - Relationship preservation - Captures graph structure by storing `in_vertex_id` and `out_vertex_id` in the edges table for relationship analytics.
-- Retry logic - Implements exponential backoff retry mechanism for transient Gremlin server failures.
-- Checkpoint management - Automatically checkpoints state after each batch to enable resume capability on interruptions.
+- Retry logic - Implements an exponential backoff retry mechanism for transient Gremlin server failures.
+- Checkpoint management - Automatically checkpoints the state after each batch to enable resume capability on interruptions.
 
 ## Configuration file
 
-The connector requires the following configuration parameters in the `configuration.json` file:
-
+**For development (without authentication):**
 ```json
 {
-  "gremlin_server_url": "<YOUR_GREMLIN_SERVER_URL>",
-  "traversal_source": "<YOUR_TRAVERSAL_SOURCE_NAME>"
+  "gremlin_server_url": "ws://localhost:8182/gremlin",
+  "traversal_source": "g"
 }
 ```
 
-Configuration parameters:
-- `gremlin_server_url` - The WebSocket URL of your Gremlin Server (e.g., `ws://localhost:8182/gremlin`)
-- `traversal_source` - The graph traversal source name, typically `g` (default traversal source in JanusGraph)
+**For production (with authentication):**
+```json
+{
+  "gremlin_server_url": "<YOUR_GREMLIN_SERVER_URL>",
+  "traversal_source": "<YOUR_TRAVERSAL_SOURCE_NAME>",
+  "username": "<YOUR_USERNAME>",
+  "password": "<YOUR_PASSWORD>"
+}
+```
+
+### Configuration parameters
+- `gremlin_server_url` (required) - The WebSocket URL of your Gremlin Server (e.g., `ws://localhost:8182/gremlin` for development or `wss://your-server:8182/gremlin` for production with SSL)
+- `traversal_source` (required) - The graph traversal source name, typically `g` (default traversal source in JanusGraph)
+- `username` (optional) - Username for authenticated connections to the Gremlin Server
+- `password` (optional) - Password for authenticated connections to the Gremlin Server
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -69,25 +80,23 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses WebSocket connections to the Gremlin Server API. By default, JanusGraph's Gremlin Server runs without authentication in development mode.
+This connector supports both authenticated and unauthenticated connections to the Gremlin Server API using WebSocket connections.
 
-For production deployments:
+**Development mode (no authentication):**
+- JanusGraph's Gremlin Server runs without authentication by default
+- Use `ws://` protocol in `gremlin_server_url`
+- Omit `username` and `password` from configuration
 
+**Production mode (with authentication):**
 1. Configure authentication on your JanusGraph Gremlin Server by editing `gremlin-server.yaml`:
     - Add authentication handler (e.g., Simple Authentication)
     - Configure username and password credentials
 
-2. Extend the `configuration.json` to include authentication credentials:
-   ```json
-   {
-     "gremlin_server_url": "wss://your-server:8182/gremlin",
-     "traversal_source": "g",
-     "username": "<YOUR_USERNAME>",
-     "password": "<YOUR_PASSWORD>"
-   }
-   ```
+2. Add authentication credentials to your `configuration.json`:
+    - Use `wss://` protocol for secure connections
+    - Include `username` and `password` parameters
 
-3. Modify the `create_gremlin_client()` function in [connector.py:61-73](connector.py#L61-L73) to pass authentication credentials when creating the client connection.
+The connector automatically detects authentication credentials in the configuration and establishes authenticated connections when provided (refer to `create_gremlin_client()` function at [connector.py:61-82](connector.py#L61-L82)).
 
 ## Pagination
 
@@ -131,9 +140,9 @@ The connector transforms JanusGraph graph data into four relational tables optim
 
 **Schema discovery** (refer to functions at [connector.py:115-178](connector.py#L115-L178)):
 - Queries JanusGraph management API for vertex labels, edge labels, and property keys
-- Uses fallback queries to discover labels from actual data if management API fails
+- Uses fallback queries to discover labels from actual data if the management API fails
 - Minimal schema definition with primary keys and core columns
-- Additional properties are auto-discovered by Fivetran from data
+- Additional properties are auto-discovered by Fivetran from the data
 
 ## Error handling
 
@@ -143,7 +152,7 @@ The connector implements comprehensive error handling with retry logic for trans
 - Retries Gremlin queries up to 5 times (controlled by `__MAX_RETRIES` constant)
 - Uses exponential backoff: sleep time = min(60, 2^attempt) seconds
 - Catches specific exceptions: `GremlinServerError`, `ConnectionError`, `TimeoutError`
-- Logs each retry attempt with warning level for monitoring
+- Logs each retry attempt with a warning level for monitoring
 - Raises `RuntimeError` after exhausting all retry attempts
 
 **Error scenarios handled:**
@@ -154,7 +163,7 @@ The connector implements comprehensive error handling with retry logic for trans
 
 **Fail-fast behavior:**
 - Configuration validation fails immediately on missing required parameters
-- Final exception raised after all retries exhausted to alert Fivetran
+- Final exception raised after all retries are exhausted to alert Fivetran
 - Client connection cleanup in `finally` block to prevent resource leaks
 
 ## Tables created
@@ -206,64 +215,8 @@ The connector creates four tables in your destination warehouse:
 | `property_value` | STRING | Single value from the property list |
 | `property_index` | INT | Position in the original property list, 0-based (Composite Primary Key) |
 
-**Schema definition:** Refer to the `schema()` function at [connector.py:484-525](connector.py#L484-L525).
+For schema definition, refer to the `schema()` function in [connector.py](connector.py).
 
 ## Additional considerations
-
-### Testing with Docker
-
-To test this connector locally, spin up a JanusGraph instance using Docker:
-
-```bash
-docker run -d --name janusgraph -p 8182:8182 janusgraph/janusgraph:latest
-```
-
-The Gremlin Server will be available at `ws://localhost:8182/gremlin`.
-
-### Adding sample data with timestamps
-
-For testing incremental sync, add sample vertices and edges with `updated_at` properties:
-
-```groovy
-# Connect via Gremlin Console and run:
-g.addV('person').property('name', 'Alice').property('updated_at', '2024-01-15T10:00:00Z')
-g.addV('person').property('name', 'Bob').property('updated_at', '2024-01-15T11:00:00Z')
-g.V().has('name', 'Alice').addE('knows').to(g.V().has('name', 'Bob')).property('updated_at', '2024-01-15T12:00:00Z')
-```
-
-### Testing the connector
-
-Use Fivetran CLI commands to test the connector:
-
-```bash
-# Test sync
-fivetran debug
-
-# Reset state for fresh sync
-fivetran reset
-```
-
-### Performance tuning
-
-Adjust the `__BATCH_SIZE` constant in [connector.py:31](connector.py#L31) based on your graph size:
-- Small graphs (< 100K vertices): 5000 records per batch
-- Medium graphs (100K - 1M vertices): 1000 records per batch (default)
-- Large graphs (> 1M vertices): 500 records per batch
-
-### Graph relationship queries
-
-To analyze relationships in your warehouse, join the `edges` table with `vertices`:
-
-```sql
-SELECT
-  v1.vertex_label as source_type,
-  e.edge_label as relationship,
-  v2.vertex_label as target_type,
-  COUNT(*) as relationship_count
-FROM edges e
-JOIN vertices v1 ON e.out_vertex_id = v1.vertex_id
-JOIN vertices v2 ON e.in_vertex_id = v2.vertex_id
-GROUP BY 1, 2, 3
-```
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
