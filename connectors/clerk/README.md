@@ -37,7 +37,7 @@ The configuration file contains the API key required to authenticate with the Cl
 }
 ```
 
-**Configuration parameters:**
+Configuration parameters:
 - `api_key` (required): Your Clerk API secret key.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -48,7 +48,6 @@ This connector example uses standard libraries provided by Python and does not r
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-
 ## Authentication
 This connector uses API key authentication with bearer tokens. The API key is passed in the `Authorization` header as `Bearer <api_key>`.
 
@@ -57,7 +56,6 @@ To obtain your Clerk API key:
 2. Navigate to **API Keys** in the left sidebar.
 3. Make a note of your secret key (starts with `sk_test_` for test mode or `sk_live_` for production).
 4. Add this key to your `configuration.json` file.
-
 
 ## Pagination
 The connector implements offset-based pagination using the Clerk API's `limit` and `offset` query parameters.
@@ -69,7 +67,6 @@ Pagination details:
 - For incremental syncs, the `created_at_after` parameter is added to fetch only new records
 
 The pagination logic is implemented as a generator function to avoid loading all data into memory at once, which is critical for handling large datasets efficiently.
-
 
 ## Data handling
 The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures.
@@ -88,8 +85,6 @@ Data type inference:
 - Only primary keys are explicitly defined in the schema
 - Fivetran automatically infers data types for all other columns based on the data
 
-
-
 ## Error handling
 The connector implements comprehensive error handling with retry logic.
 
@@ -107,7 +102,6 @@ Error categories:
 
 Timeout: All API requests have a 30-second timeout to prevent hanging connections.
 
-
 ## Tables created
 The connector creates 8 tables in your destination:
 
@@ -121,7 +115,6 @@ The connector creates 8 tables in your destination:
 | `USER_EXTERNAL_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains OAuth social login accounts (Google, GitHub, etc.). |
 | `USER_SAML_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains SAML SSO account information. |
 | `USER_ENTERPRISE_ACCOUNT` | Child table | `id` | `user_id` → `USER.id` | Contains enterprise account connections and SSO details. |
-
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
