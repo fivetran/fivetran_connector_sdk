@@ -242,7 +242,7 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
             last_message_id = msg.message_id()
             messages_processed += 1
 
-            if messages_processed % _CHECKPOINT_INTERVAL == 0:
+            if messages_processed % __CHECKPOINT_INTERVAL == 0:
                 serialized_id = last_message_id.serialize().hex()
                 updated_state = {**state, state_key: serialized_id}
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
