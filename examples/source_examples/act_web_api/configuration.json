@@ -1,0 +1,12 @@
+{
+  "protocol": "http",
+  "hostname": "YOUR_ACT_SERVER_ADDRESS_LIKE='192.168.7.27'",
+  "port": "YOUR_PORT_LIKE='8080'",
+  "api_path": "YOUR_API_PATH_LIKE='/act.web.api'",
+  "username": "YOUR_USERNAME",
+  "password": "YOUR_PASSWORD",
+  "database_name": "YOUR_DATABASE_NAME",
+  "batch_size": "10000",
+  "rate_limit_pause": "0.25",
+  "default_start_date": "1900-01-01T00:00:00Z"
+}
