@@ -40,40 +40,40 @@ The connector requires the following configuration parameters:
 ```
 
 Configuration parameters:
-- username: Your Sendcloud API public key (required)
-- password: Your Sendcloud API secret key (required)
-- start_date: ISO date to begin synchronization in YYYY-MM-DD format (required)
-- use_mock_server: Set to "true" to use Stoplight mock server for testing, "false" for production API (optional, defaults to "false")
+- `username`: Your Sendcloud API public key (required)
+- `password`: Your Sendcloud API secret key (required)
+- `start_date`: ISO date to begin synchronization in YYYY-MM-DD format (required)
+- `use_mock_server`: Set to "true" to use Stoplight mock server for testing, "false" for production API (optional, defaults to "false")
 
-Note: Ensure that [configuration.json](configuration.json) file is not checked into version control to protect sensitive information.
+Note: Ensure that [`configuration.json`](configuration.json) file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
 This connector does not require any additional Python packages beyond the pre-installed packages in the Fivetran environment.
 
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your [`requirements.txt`](requirements.txt).
 
 ## Authentication
 
-This connector uses HTTP Basic Authentication to connect to the Sendcloud API. The credentials are specified in the configuration file and encoded as Base64 in the Authorization header (refer to the `get_auth_header()` function in [connector.py](connector.py)).
+This connector uses HTTP Basic Authentication to connect to the Sendcloud API. The credentials are specified in the configuration file and encoded as Base64 in the Authorization header (refer to the `get_auth_header()` function in [`connector.py`](connector.py)).
 
 To set up authentication:
 
 1. Log in to your Sendcloud account at https://account.sendcloud.com.
 2. Navigate to **Settings > Integrations > API**.
-3. Generate or retrieve your API public key (username) and secret key (password).
-4. Add the username and password to the [configuration.json](configuration.json) file.
-5. Set the start_date to begin synchronization from a specific date.
+3. Generate or retrieve your API public key (`username`) and secret key (`password`).
+4. Add the `username` and `password` to the [`configuration.json`](configuration.json) file.
+5. Set the `start_date` to begin synchronization from a specific date.
 
 ## Pagination
 
-The connector implements cursor-based pagination to handle large datasets efficiently (refer to the `update()` and `determine_next_cursor()` functions in [connector.py](connector.py)).
+The connector implements cursor-based pagination to handle large datasets efficiently (refer to the `update()` and `determine_next_cursor()` functions in [`connector.py`](connector.py)).
 
 The Sendcloud API returns pagination metadata in the response with a next_cursor field. The connector extracts this cursor and uses it in subsequent requests to fetch the next page. If the API does not provide an explicit cursor and the page is full, the connector generates a cursor using the encode_cursor function as a fallback mechanism. Pagination continues until no more records are returned or the API indicates there are no more pages.
 
 ## Data handling
 
-The connector processes shipment data through multiple stages (refer to the `flatten_shipment_data()` and `process_shipment_arrays()` functions in [connector.py](connector.py)):
+The connector processes shipment data through multiple stages (refer to the `flatten_shipment_data()` and `process_shipment_arrays()` functions in [`connector.py`](connector.py)):
 
 - Main shipment fields are flattened into the primary shipments table
 - Nested single objects (addresses, prices, delivery dates) are flattened into the same table with prefixed column names
@@ -83,7 +83,7 @@ The connector processes shipment data through multiple stages (refer to the `fla
 
 ## Error handling
 
-The connector implements comprehensive error handling with automatic retry logic (refer to the `fetch_shipments_page()` function in [connector.py](connector.py)):
+The connector implements comprehensive error handling with automatic retry logic (refer to the `fetch_shipments_page()` function in [`connector.py`](connector.py)):
 
 - HTTP errors with status codes 400, 401, 403, 404 are treated as permanent failures and fail immediately without retry
 - Transient errors (500, 502, 503, 504, timeouts, connection errors) trigger exponential backoff retry logic up to 3 attempts
