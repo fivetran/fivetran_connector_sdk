@@ -112,6 +112,11 @@ def update(configuration: dict, state: dict):
                 process_provider_record(result)
                 records_processed += 1
 
+            # Check if we've reached the end of results before incrementing skip
+            if current_skip + len(results) >= total_results:
+                log.info(f"Reached end of results. Total records processed: {records_processed}")
+                break
+
             # Move to next page
             current_skip += len(results)
 
@@ -124,19 +129,22 @@ def update(configuration: dict, state: dict):
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(new_state)
                 log.info(f"Checkpoint saved at skip offset: {new_state['skip']}")
-            # Check if we've reached the end of results
-            if current_skip >= total_results:
-                log.info(f"Reached end of results. Total records processed: {records_processed}")
-                break
 
             # Warn if approaching API limit
-            if current_skip + len(results) > __MAX_SKIP and current_skip < total_results:
+            if (
+                current_skip + len(results) > __MAX_SKIP
+                and current_skip + len(results) < total_results
+            ):
                 log.warning(
                     f"API limit will be reached on the next iteration. Maximum skip value is {__MAX_SKIP}. Retrieved {records_processed} of {total_results} total records. Refine your search criteria to get specific records."
                 )
 
         # Final checkpoint at the end of sync
         final_state = {"skip": 0}  # Reset for next full sync
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(final_state)
         log.info(f"Sync completed successfully. Total records processed: {records_processed}")
 
@@ -179,6 +187,8 @@ def make_api_request_with_retry(url: str):
         url: The complete API URL with all parameters
     Returns:
         JSON response data
+    Raises:
+        requests.exceptions.RequestException: If all retry attempts fail
     """
     for attempt in range(__MAX_RETRIES):
         try:
@@ -193,6 +203,10 @@ def make_api_request_with_retry(url: str):
                 f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}. Retrying in {delay}s..."
             )
             time.sleep(delay)
+
+    # This should never be reached due to the raise in the exception handler,
+    # but added for completeness to avoid implicit None return
+    raise RuntimeError("API request failed after all retry attempts")
 
 
 def process_provider_record(result: dict):

@@ -8,9 +8,9 @@ This connector fetches healthcare provider data from the National Plan and Provi
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
@@ -49,8 +49,8 @@ To generate your API URL:
 
 1. Visit the [NPPES API Demo Page](https://npiregistry.cms.hhs.gov/demo-api).
 2. Enter your search criteria (provider name, location, taxonomy, etc.).
-3. Set the **Limit** parameter to 200 (the API's maximum allowed value).
-4. Click **Submit** to generate the API URL.
+3. Set the Limit parameter to 200 (the API's maximum allowed value).
+4. Click Submit to generate the API URL.
 5. Copy the complete URL from the demo interface.
 6. Paste it into the `configuration.json` file as the value for `api_url`.
 
@@ -77,7 +77,7 @@ The pagination logic works as follows:
 - The `skip` parameter starts at 0 and increments by the number of results returned
 - The maximum skip value allowed by the API is 1000
 - Each request returns results based on the `limit` parameter in your API URL (API maximum: 200)
-- **API Limitation**: The API can return a maximum of 1,200 records total (6 pages × 200 results) per query
+- API Limitation: The API can return a maximum of 1,200 records total (6 pages × 200 results) per query
 - The connector continues fetching pages until no more results are returned or the max skip is reached
 - If your search criteria matches more than 1,200 providers, you will need to refine your search to get specific records
 - The current skip offset is stored in the state and checkpointed periodically
@@ -124,7 +124,7 @@ The connector creates the following tables in your destination:
 | `PROVIDER`         | `number`                                      | Main provider information including enumeration type, creation/update timestamps, and flattened `basic` object fields (`organization_name`, `provider_name`, `credentials`, `authorized_official_information`, etc.)                                                                      |
 | `ADDRESS`          | `number`, `address_purpose`                   | Provider addresses (`LOCATION` or `MAILING`) with fields: `address_1`, `address_2`, `city`, `state`, `postal_code`, `country_code`, `country_name`, `telephone_number`, `fax_number`, `address_type`                                                                                      |
 | `TAXONOMY`         | `number`, `code`                              | Healthcare provider taxonomy/specialty information with fields: `taxonomy_group`, `description`, `state`, `license`, `primary`                                                                                                                    |
-| `IDENTIFIER`       | `number`, `identifier`, `code`                | Other provider identifiers such as state licenses with fields: `description`, `issuer`, `state`                                                                                                                                                                                          |
+| `IDENTIFIER`       | `number`, `identifier`                        | Other provider identifiers such as state licenses with fields: `code`, `description`, `issuer`, `state`                                                                                                                                                                                  |
 | `ENDPOINT`         | `number`, `endpoint`                          | Electronic health record endpoint information with fields: `endpointType`, `endpointTypeDescription`, `endpointDescription`, `affiliation`, `affiliationName`, `use`, `useDescription`, `useOtherDescription`, `contentType`, `contentTypeDescription`, `contentOtherDescription`, plus address fields                          |
 | `OTHER_NAME`       | `number`, `code`, `type`                      | Alternative organization names with fields: `organization_name`, `type`                                                                                                                                                                                                                   |
 | `PRACTICE_LOCATION`| `number`, `address_1`                         | Secondary practice location addresses with fields: `address_2`, `city`, `state`, `postal_code`, `country_code`, `country_name`, `telephone_number`                                                                                                |
