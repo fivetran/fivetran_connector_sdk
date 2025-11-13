@@ -49,30 +49,6 @@ from fivetran_connector_sdk import Logging as log
 # and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required
-    parameters.
-    This function is called at the start of the update method to ensure that
-    the connector has all necessary configuration values.
-    Args:
-        configuration: a dictionary that holds the configuration settings
-                       for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-
-    # Define required configuration keys
-    required_configs = ["api_key", "search_query"]
-
-    # Check for missing keys or empty values
-    for key in required_configs:
-        value = configuration.get(key)
-        if not value:
-            raise ValueError(f"Missing required configuration value: {key}")
-
-
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
     Define the schema function which configures
@@ -225,8 +201,7 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
-    validate_configuration(configuration)
-
+    
     api_key = configuration["api_key"]
     search_query = configuration["search_query"]
 
