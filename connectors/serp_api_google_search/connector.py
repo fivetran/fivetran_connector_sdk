@@ -21,7 +21,7 @@ and the Best Practices documentation
 for details.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any  # For type hints in function signatures
 
 # Import requests to make HTTP calls to API
 import requests
