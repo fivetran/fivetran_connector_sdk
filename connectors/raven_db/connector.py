@@ -160,7 +160,7 @@ def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
         log.info(f"DocumentStore initialized for database '{database_name}'")
         return store, temp_cert_path
 
-    except (ValueError, RavenException, ConnectionError, OSError) as e:
+    except (ValueError, RavenException, OSError) as e:
         if temp_cert_path and os.path.exists(temp_cert_path):
             try:
                 os.unlink(temp_cert_path)
