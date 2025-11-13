@@ -24,7 +24,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 For local testing, this example includes a `__main__` block that reads `configuration.json` and runs `connector.debug(...)`.
 
 ## Features
-- **Activity ingestion:** Retrieves paginated activity data from `/v0/public/activities`.
+- Activity ingestion: Retrieves paginated activity data from `/v0/public/activities`.
 - **Participants sync:** Retrieves participant details from `/v0/public/activities/participants`.
 - **Authentication:** Automatically refreshes the access token when a 401 response is received.
 - **Error handling:** Retries failed requests with exponential backoff for transient 5xx and connection errors.
