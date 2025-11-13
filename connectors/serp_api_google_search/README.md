@@ -45,14 +45,6 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
 
-## Requirements file
-The `requirements.txt` file lists external libraries needed for this connector.
-
-Example content of `requirements.txt`:
-python-dotenv==1.1.1
-
-- `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
-
 ## API calls
 - **Endpoint:** `https://serpapi.com/search`
 
