@@ -143,7 +143,7 @@ def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
         log.info("Decoding base64 certificate")
         try:
             cert_bytes = base64.b64decode(certificate_base64)
-        except (ValueError, binascii.Error) as decode_err:
+        except ValueError as decode_err:
             raise ValueError(f"Failed to decode base64 certificate: {decode_err}")
 
         # Write certificate bytes directly to temp PEM file
