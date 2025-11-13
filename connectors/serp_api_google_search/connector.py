@@ -49,14 +49,15 @@ from fivetran_connector_sdk import Logging as log
 # and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
+
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     # Define the schema function which lets you configure the schema your connector delivers
-    # See the technical reference documentation for more details 
+    # See the technical reference documentation for more details
     # on the schema function:
     # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     return [
         {
-            "table": "organic_google_search_results",  
+            "table": "organic_google_search_results",
             "primary_key": ["search_metadata_id", "position"],
         }
     ]
@@ -170,9 +171,9 @@ def sync_results(data: dict):
 
         # 4. Perform the upsert operation
         try:
-            # The 'upsert' operation is used to insert or update data 
-            # in the destination table. The first argument is the 
-            # name of the destination table. 
+            # The 'upsert' operation is used to insert or update data
+            # in the destination table. The first argument is the
+            # name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="organic_google_search_results",
@@ -186,9 +187,9 @@ def sync_results(data: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure 
-    how your connector fetches data. 
-    See the technical reference documentation for more details 
+    Define the update function which lets you configure
+    how your connector fetches data.
+    See the technical reference documentation for more details
     on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     args:
@@ -197,7 +198,7 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
-    
+
     api_key = configuration["api_key"]
     search_query = configuration["search_query"]
 
