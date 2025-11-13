@@ -225,15 +225,14 @@ def update(configuration: dict, state: dict):
         raise
 
 
-# This creates the connector object
-# that will use the update and schema functions.
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 
-# Standard Python entry point for local testing
-# (not used by Fivetran in production)
-# Please test using the Fivetran debug command prior
-# to finalizing and deploying.
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
 
     try:
@@ -249,6 +248,6 @@ if __name__ == "__main__":
         connector.debug(configuration=configuration)
 
     except FileNotFoundError:
-        log.error("Error: configuration.json not found. " "Please create it for local testing.")
+        log.severe("Error: configuration.json not found. " "Please create it for local testing.")
     except Exception as e:
-        log.error(f"An unexpected error occurred during debug execution: {e}")
+        log.severe(f"An unexpected error occurred during debug execution: {e}")
