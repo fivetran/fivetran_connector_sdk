@@ -1,0 +1,5 @@
+{
+  "base_url": "<YOUR_ASTRONOMER_BASE_URL>",
+  "api_token": "<YOUR_ASTRONOMER_API_TOKEN>",
+  "verify_ssl": "<YOUR_SSL_VERIFICATION_OPTION>"
+}
