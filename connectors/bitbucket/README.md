@@ -4,7 +4,7 @@
 This connector syncs workspaces, repositories, and projects data from Bitbucket Cloud using the Bitbucket REST API v2.0. It provides comprehensive data extraction for organizational analysis, repository management, and project tracking. The connector implements memory-efficient streaming patterns to handle large datasets and includes robust error handling with exponential backoff retry logic for production reliability.
 
 ## Requirements
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements):
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
@@ -15,9 +15,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 - Syncs workspace information including names, privacy settings, and organizational details from Bitbucket API
-- Basic authentication using username and app passwords with automatic retry logic (refer to `execute_api_request` function)
-- Memory-efficient streaming prevents data accumulation for large datasets (refer to `get_workspaces`, `get_repositories`, and `get_projects` functions)
-- Incremental synchronization using timestamp-based cursors for optimal performance (refer to `get_time_range` function)
+- Basic authentication using username and app passwords with automatic retry logic (refer to the `execute_api_request` function)
+- Memory-efficient streaming prevents data accumulation for large datasets (refer to the `get_workspaces`, `get_repositories`, and `get_projects` functions)
+- Incremental synchronization using timestamp-based cursors for optimal performance (refer to the `get_time_range` function)
 - Comprehensive error handling with exponential backoff retry logic for rate limiting and network issues
 - Support for both workspace-level repositories and project-organized repositories
 - Configurable pagination with automatic page traversal to handle API limits
@@ -43,15 +43,15 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ### Configuration parameters
 - `username` (required): Your Bitbucket username for authentication
 - `app_password` (required): Bitbucket app password (not your account password)
-- `sync_frequency_hours` (optional): How often to run full syncs (default: 4 hours)
-- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync (default: 90 days)
-- `max_records_per_page` (optional): API pagination limit per request (1-100, default: 50)
-- `request_timeout_seconds` (optional): HTTP request timeout (default: 30 seconds)
-- `retry_attempts` (optional): Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (default: true)
-- `enable_repositories` (optional): Sync repository data (default: true)
-- `enable_projects` (optional): Sync project data (default: true)
-- `enable_debug_logging` (optional): Enable detailed debug logging (default: false)
+- `sync_frequency_hours` (optional): How often to run full syncs expressed in hours (default: `4`)
+- `initial_sync_days` (optional): Number of days of historical data to fetch on first sync (default: `90`)
+- `max_records_per_page` (optional): API pagination limit per request (1-100, default: `50`)
+- `request_timeout_seconds` (optional): HTTP request timeout expressed in seconds (default: `30`)
+- `retry_attempts` (optional): Number of retry attempts for failed requests (default: `3`)
+- `enable_incremental_sync` (optional): Enable timestamp-based incremental syncing (default: `true`)
+- `enable_repositories` (optional): Sync repository data (default: `true`)
+- `enable_projects` (optional): Sync project data (default: `true`)
+- `enable_debug_logging` (optional): Enable detailed debug logging (default: `false`)
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
@@ -60,8 +60,8 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 1. Log in to your [Bitbucket account settings](https://bitbucket.org/account/settings/).
-2. Navigate to "App passwords" in the left sidebar under "Access management".
-3. Click "Create app password" to generate a new app password.
+2. Navigate to **App passwords** in the left sidebar under Access management.
+3. Click **Create app password** to generate a new app password.
 4. Select the required permissions: `Repositories: Read`, `Workspaces: Read`, `Projects: Read`.
 5. Make a note of the generated app password (this cannot be viewed again).
 6. Use your Bitbucket username and the generated app password in the configuration.
@@ -69,7 +69,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Note: The connector uses Basic HTTP authentication with username and app password. Regular account passwords are not supported for API access.
 
 ## Pagination
-The connector implements page-based pagination with automatic page traversal (refer to `get_workspaces`, `get_repositories`, and `get_projects` functions). Generator-based processing prevents memory accumulation for large datasets by yielding individual records for immediate processing. Configurable page sizes allow optimization for different API rate limits and performance requirements.
+The connector implements page-based pagination with automatic page traversal (refer to the `get_workspaces`, `get_repositories`, and `get_projects` functions). Generator-based processing prevents memory accumulation for large datasets by yielding individual records for immediate processing. Configurable page sizes allow optimization for different API rate limits and performance requirements.
 
 ## Data handling
 Data is mapped from Bitbucket API's JSON format to normalized database columns with proper type conversion (refer to the `__map_workspace_data`, `__map_repository_data`, and `__map_project_data` functions). Nested objects are flattened into separate columns, and all timestamps are converted to UTC format for consistency.
@@ -84,22 +84,16 @@ Supports timestamp-based incremental synchronization using the `last_sync_time` 
 - Memory management: Generator-based processing prevents out-of-memory issues with large datasets
 
 ## Tables created
-| Table | Primary Key | Description |
-|-------|-------------|-------------|
-| WORKSPACES | `uuid` | Bitbucket workspace information including names, privacy settings, and organizational details |
-| REPOSITORIES | `uuid` | Repository metadata including names, descriptions, languages, and workspace relationships |
-| PROJECTS | `uuid` | Project information including keys, names, descriptions, and workspace associations |
 
-### WORKSPACES table columns
-Sample columns include `uuid`, `name`, `slug`, `type`, `is_private`, `created_on`, `updated_on`, `website`, `location`, `has_publicly_visible_repos`, `synced_at`.
-
-### REPOSITORIES table columns
-Sample columns include `uuid`, `name`, `full_name`, `slug`, `workspace_uuid`, `is_private`, `description`, `scm`, `website`, `language`, `has_issues`, `has_wiki`, `size`, `created_on`, `updated_on`, `pushed_on`, `fork_policy`, `mainbranch_name`, `project_uuid`, `project_name`, `synced_at`.
-
-### PROJECTS table columns
-Sample columns include `uuid`, `key`, `name`, `workspace_uuid`, `description`, `is_private`, `created_on`, `updated_on`, `synced_at`.
+The connector creates the `WORKSPACES`, `REPOSITORIES`, and `PROJECTS` tables.
 
 Column types are automatically inferred by Fivetran based on the data content and structure.
+
+| Table | Primary Key | Description | Sample Columns |
+|-------|-------------|-------------|-------------|
+| `WORKSPACES` | `uuid` | Bitbucket workspace information including names, privacy settings, and organizational details | `uuid`, `name`, `slug`, `type`, `is_private`, `created_on`, `updated_on`, `website`, `location`, `has_publicly_visible_repos`, `synced_at` | `uuid`, `name`, `full_name`, `slug`, `workspace_uuid`, `is_private`, `description`, `scm`, `website`, `language`, `has_issues`, `has_wiki`, `size`, `created_on`, `updated_on`, `pushed_on`, `fork_policy`, `mainbranch_name`, `project_uuid`, `project_name`, `synced_at` |
+| `REPOSITORIES` | `uuid` | Repository metadata including names, descriptions, languages, and workspace relationships |
+| `PROJECTS` | `uuid` | Project information including keys, names, descriptions, and workspace associations | `uuid`, `key`, `name`, `workspace_uuid`, `description`, `is_private`, `created_on`, `updated_on`, `synced_at` |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
