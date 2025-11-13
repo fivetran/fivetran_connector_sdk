@@ -57,7 +57,7 @@ For production deployments, we recommend configuring these as **GitHub secrets**
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_query": "<YOUR_MAX_RECORDS_PER_QUERY>",
   "enable_apm_data": "<YOUR_ENABLE_APM_DATA>",
-  "enable_infrastructure_data": "<YOUR_ENABLE_INFRASTRUCTURE_DATA>",
+  "enable_infra_data": "<YOUR_ENABLE_INFRASTRUCTURE_DATA>",
   "enable_browser_data": "<YOUR_ENABLE_BROWSER_DATA>",
   "enable_mobile_data": "<YOUR_ENABLE_MOBILE_DATA>",
   "enable_synthetic_data": "<YOUR_ENABLE_SYNTHETIC_DATA>",

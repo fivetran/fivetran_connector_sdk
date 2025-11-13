@@ -219,7 +219,7 @@ def _get_data_source_flags(configuration: dict) -> dict:
     """
     return {
         "enable_apm": configuration.get("enable_apm_data", "true").lower() == "true",
-        "enable_infrastructure": configuration.get("enable_infrastructure_data", "true").lower() == "true",
+        "enable_infrastructure": configuration.get("enable_infra_data", "true").lower() == "true",
         "enable_browser": configuration.get("enable_browser_data", "true").lower() == "true",
         "enable_mobile": configuration.get("enable_mobile_data", "true").lower() == "true",
         "enable_synthetic": configuration.get("enable_synthetic_data", "true").lower() == "true",
@@ -803,7 +803,9 @@ def schema(configuration: dict):
     ]
 
 
-def _process_data_sources(config_params: dict, data_source_flags: dict, last_sync_time: Optional[str]) -> tuple:
+def _process_data_sources(
+    config_params: dict, data_source_flags: dict, last_sync_time: Optional[str]
+) -> tuple:
     """
     Process all enabled data sources and return metrics.
     Args:
@@ -819,7 +821,12 @@ def _process_data_sources(config_params: dict, data_source_flags: dict, last_syn
     # Define data sources with their fetch functions
     data_sources = [
         ("apm", data_source_flags["enable_apm"], get_apm_data, True),
-        ("infrastructure", data_source_flags["enable_infrastructure"], get_infrastructure_data, False),
+        (
+            "infrastructure",
+            data_source_flags["enable_infrastructure"],
+            get_infrastructure_data,
+            False,
+        ),
         ("browser", data_source_flags["enable_browser"], get_browser_data, True),
         ("mobile", data_source_flags["enable_mobile"], get_mobile_data, True),
         ("synthetic", data_source_flags["enable_synthetic"], get_synthetic_data, True),
@@ -897,7 +904,9 @@ def update(configuration: dict, state: dict):
 
     try:
         # Process all data sources
-        total_records, data_quality_scores = _process_data_sources(config_params, data_source_flags, last_sync_time)
+        total_records, data_quality_scores = _process_data_sources(
+            config_params, data_source_flags, last_sync_time
+        )
 
         # Calculate overall data quality score
         overall_quality = (
