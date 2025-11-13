@@ -170,32 +170,28 @@ def sync_results(data: dict):
 
         # 4. Perform the upsert operation
         try:
-            # The 'upsert' operation is used to insert or update data in the
-            # destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data
-            #   into.
-            # - The second argument is a dictionary containing the data to be
-            #   upserted
+            # The 'upsert' operation is used to insert or update data 
+            # in the destination table. The first argument is the 
+            # name of the destination table. 
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="organic_google_search_results",
                 data=enriched_record,
             )
         except Exception as e:
-            log.error(f"Error during upsert for record: {e}")
+            log.severe(f"Error during upsert for record: {e}")
 
     log.info(f"Successfully processed and attempted to upsert " f"{len(organic_results)} records.")
 
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by
-    Fivetran during each sync.
-    See the technical reference documentation for more details on the update
-    function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Define the update function which lets you configure 
+    how your connector fetches data. 
+    See the technical reference documentation for more details 
+    on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
-    Args:
+    args:
         configuration: A dictionary containing connection details.
         state: A dictionary containing state information from previous runs.
                The state dictionary is empty for the first sync or for any
@@ -220,12 +216,12 @@ def update(configuration: dict, state: dict):
 
     except requests.exceptions.RequestException as e:
         # This catches the error if the API call fails even after all 5 retries
-        log.error(f"Fatal API error after all retries" " for query" f"'{search_query}': {e}")
+        log.severe(f"Fatal API error after all retries" " for query" f"'{search_query}': {e}")
         # Raising an exception here will fail the sync,
         # which is correct for a fatal error
         raise
     except Exception as e:
-        log.error(f"An error occurred during sync: {e}")
+        log.severe(f"An error occurred during sync: {e}")
         raise
 
 
