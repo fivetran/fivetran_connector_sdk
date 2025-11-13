@@ -63,7 +63,7 @@ Both `/activities` and `/activities/{type}` endpoints use offset-based paginatio
 - Pagination continues until fewer than `limit` records are returned.  
 - Each page is upserted into the destination table using `op.upsert(...)`.
 
-**Functions responsible for pagination:**
+Functions responsible for pagination:
 - `get_page`: Fetches a single page with retry and reauth logic.  
 - `sync_base_activities`: Iterates through all pages for `/activities`.  
 - `sync_activity_type`: Iterates through all pages for `/activities/{type}` (e.g., `participants`).
