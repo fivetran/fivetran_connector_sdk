@@ -14,6 +14,7 @@ from .common import (
     DEFAULT_SERP_ZONE,
     DEFAULT_TIMEOUT_SECONDS,
     RETRY_STATUS_CODES,
+    DEFAULT_FORMAT,
     extract_error_detail,
     parse_response_payload,
 )
@@ -24,6 +25,7 @@ def perform_search(
     query: Union[str, List[str]],
     search_engine: Optional[str] = "google",
     country: Optional[str] = "us",
+    format: Optional[str] = DEFAULT_FORMAT,
     zone: Optional[str] = DEFAULT_SERP_ZONE,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     retries: int = 3,
@@ -77,7 +79,7 @@ def perform_search(
         payload: Dict[str, Any] = {
             "zone": zone_identifier,
             "url": search_url,
-            "format": "json",
+            "format": format or DEFAULT_FORMAT,
             "method": "GET",
         }
 

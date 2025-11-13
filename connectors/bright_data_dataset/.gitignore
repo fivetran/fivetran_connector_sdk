@@ -4,4 +4,4 @@ __pycache__/
 *.db.wal
 .env
 fields.yaml
-
+venv/

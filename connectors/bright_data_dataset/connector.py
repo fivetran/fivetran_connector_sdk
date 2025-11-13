@@ -93,6 +93,7 @@ def update(
         filter_operator = configuration.get("filter_operator")
         filter_value = configuration.get("filter_value")
         records_limit_str = configuration.get("records_limit")
+        size = configuration.get("size")
 
         # Convert records_limit from string to integer if provided
         records_limit = None
@@ -118,6 +119,7 @@ def update(
             filter_obj=filter_obj,
             records_limit=records_limit,
             state=new_state,
+            size=size,
         )
 
         # Checkpoint state after processing

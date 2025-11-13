@@ -15,4 +15,4 @@ examples/**/dist/
 **/__run.py
 **/Dockerfile
 .env
-.venv/
+venv/

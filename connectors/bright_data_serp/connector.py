@@ -74,6 +74,7 @@ def _process_search_endpoint(
     search_engine = configuration.get("search_engine")
     country = configuration.get("country")
     search_zone = configuration.get("search_zone") or configuration.get("zone")
+    format = configuration.get("format") 
 
     query_param = queries if len(queries) > 1 else queries[0]
     search_results = perform_search(
@@ -82,6 +83,7 @@ def _process_search_endpoint(
         search_engine=search_engine,
         country=country,
         zone=search_zone,
+        format=format
     )
 
     processed_results: List[Dict[str, Any]] = []

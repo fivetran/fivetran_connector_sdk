@@ -3,6 +3,7 @@
   "search_query": "Ghana, Togo,Netflix",
   "country": "us",
   "search_engine": "google",
-  "search_zone": "serp_api1"
+  "search_zone": "serp_api1",
+  "format": "json"
 }
 
