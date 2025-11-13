@@ -34,7 +34,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_key": "<YOUR_FRED_API_KEY>",
   "series_ids": "<COMMA_SEPARATED_SERIES_IDS>",
-  "sync_start_date": "YOUR_OPTIONAL_SYNC_START_DATE_AS_YYYY-MM-DD>"
+  "sync_start_date": "<YOUR_OPTIONAL_SYNC_START_DATE_AS_YYYY-MM-DD>"
 }
 ```
 
