@@ -29,7 +29,7 @@ import requests
 # Import the json module to handle JSON data.
 import json
 
-# Imported for retries
+# For implementing exponential backoff retry logic with API requests
 from tenacity import (
     retry,
     stop_after_attempt,
