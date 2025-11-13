@@ -91,8 +91,8 @@ Column types are automatically inferred by Fivetran based on the data content an
 
 | Table | Primary Key | Description | Sample Columns |
 |-------|-------------|-------------|-------------|
-| `WORKSPACES` | `uuid` | Bitbucket workspace information including names, privacy settings, and organizational details | `uuid`, `name`, `slug`, `type`, `is_private`, `created_on`, `updated_on`, `website`, `location`, `has_publicly_visible_repos`, `synced_at` | `uuid`, `name`, `full_name`, `slug`, `workspace_uuid`, `is_private`, `description`, `scm`, `website`, `language`, `has_issues`, `has_wiki`, `size`, `created_on`, `updated_on`, `pushed_on`, `fork_policy`, `mainbranch_name`, `project_uuid`, `project_name`, `synced_at` |
-| `REPOSITORIES` | `uuid` | Repository metadata including names, descriptions, languages, and workspace relationships |
+| `WORKSPACES` | `uuid` | Bitbucket workspace information including names, privacy settings, and organizational details | `uuid`, `name`, `slug`, `type`, `is_private`, `created_on`, `updated_on`, `website`, `location`, `has_publicly_visible_repos`, `synced_at` | 
+| `REPOSITORIES` | `uuid` | Repository metadata including names, descriptions, languages, and workspace relationships | `uuid`, `name`, `full_name`, `slug`, `workspace_uuid`, `is_private`, `description`, `scm`, `website`, `language`, `has_issues`, `has_wiki`, `size`, `created_on`, `updated_on`, `pushed_on`, `fork_policy`, `mainbranch_name`, `project_uuid`, `project_name`, `synced_at` |
 | `PROJECTS` | `uuid` | Project information including keys, names, descriptions, and workspace associations | `uuid`, `key`, `name`, `workspace_uuid`, `description`, `is_private`, `created_on`, `updated_on`, `synced_at` |
 
 ## Additional considerations
