@@ -50,13 +50,13 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
-    """
-    Define the schema function which configures
-    the tables delivered by the connector.
-    """
+    # Define the schema function which lets you configure the schema your connector delivers
+    # See the technical reference documentation for more details 
+    # on the schema function:
+    # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     return [
         {
-            "table": "organic_google_search_results",  # 'activity' table
+            "table": "organic_google_search_results",  
             "primary_key": ["search_metadata_id", "position"],
         }
     ]
