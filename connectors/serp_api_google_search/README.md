@@ -74,7 +74,7 @@ The connector fetches search results and processes the `organic_results` section
 - Configuration validation: Early failure if `api_key` or `search_query` are missing.  
 - Logging: Provides detailed information and error messages during sync.
 
-## Table created
+## Tables created
 **Summary of the table replicated**
 
 ### `organic_google_search_results`
@@ -85,11 +85,8 @@ The connector fetches search results and processes the `organic_results` section
 ## Additional files
 - `connector.py` – Contains all core logic: `schema`, `update`, `get_direct_google_search_results`, `sync_results`, `validate_configuration`.  
 - `configuration.json` – Contains API credentials (`api_key`, `search_query`).  
-- `requirements.txt` – Lists any third-party Python libraries required (e.g., `requests`, `tenacity`).
 
 ## Additional considerations
-This connector provides a reference implementation for integrating SerpAPI with the Fivetran Connector SDK.  
-While this code has been tested for common cases, Fivetran cannot guarantee compatibility with all API configurations or rate limits.  
-
-For troubleshooting or enhancements, consult the [Fivetran Connector SDK documentation](https://fivetran.com/docs/connectors/connector-sdk)  
-or contact Fivetran Support.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. 
+While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. 
+For inquiries, please reach out to our Support team.
