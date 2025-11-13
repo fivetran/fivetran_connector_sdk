@@ -25,7 +25,6 @@ from typing import Optional, List, Dict, Any, Tuple
 
 # For handling the deployment-safe base64-encoded certificate
 import base64
-import binascii
 import tempfile
 import os
 import time
