@@ -22,13 +22,19 @@ and Best Practices
 for implementation guidance.
 """
 
+# For reading configuration from a JSON file
+import json
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 from __future__ import annotations
 
 # The unused imports 'Sequence' and 'Literal' have been removed.
 from typing import Any, Dict, List
-
-# Import the json module to handle JSON data.
-import json
 
 # Import time module to handle time-related tasks, such as delays.
 import time
@@ -43,10 +49,6 @@ import Callable
 # or return types that can be None
 import Optional
 
-# Import required classes from fivetran_connector_sdk.
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
 # --- Configuration ---
 __API_BASE = "https://api.people.ai"
