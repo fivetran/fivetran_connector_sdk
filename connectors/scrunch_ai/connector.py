@@ -62,6 +62,15 @@ def validate_configuration(configuration: dict):
 
 
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers
+    See the technical reference documentation for more details
+    on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+      configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "responses",  # Destination table for responses
@@ -111,19 +120,22 @@ def get_responses(start_date, end_date, offset, token, brand_id):
 
 
 def flatten_response(rec: dict) -> dict:
-    # """
-    # Transform a raw API response record into a flattened dictionary.
+    """
+    Transform a raw API response record into a flattened dictionary.
 
-    # - Preserves key scalar fields (id, created_at, prompt_id, etc.)
-    #   using direct access or safe .get().
-    # - Converts list fields (tags, key_topics, competitors_present) into a
-    #   single string joined by LIST_JOINER, or None if empty.
-    # - Serializes `citations` (which may be a list of dicts) into a JSON
-    #   string or None if missing.
-    # - Ensures downstream consumers (e.g., database upserts)
-    #   can rely on a flat schema of simple scalars
-    #   and strings instead of nested lists/objects.
-    #   Necessary because Fivetran does not take in lists as datatypes
+     - Preserves key scalar fields (id, created_at, prompt_id, etc.)
+       using direct access or safe .get().
+     - Converts list fields (tags, key_topics, competitors_present) into a
+       single string joined by LIST_JOINER, or None if empty.
+     - Serializes `citations` (which may be a list of dicts) into a JSON
+       string or None if missing.
+     - Ensures downstream consumers (e.g., database upserts)
+       can rely on a flat schema of simple scalars
+       and strings instead of nested lists/objects.
+       Necessary because Fivetran does not take in lists as datatypes
+    Returns:
+      Dictionary of records
+    """
     return {
         "id": rec["id"],
         "created_at": rec["created_at"],
@@ -312,7 +324,17 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
     """
     Pull competitor performance aggregates and
     upsert into 'competitor_performance'.
+
+    Fields include dates, prompt/persona info, platform, branded flag, and
+    aggregate metrics.
+
+    Args:
+        start_date (str): Start date (YYYY-MM-DD).
+        end_date   (str): End date   (YYYY-MM-DD).
+        token      (str): Bearer token for Scrunch API.
+        brand_id   (str): Brand ID specified in configuration
     """
+  
     DIMS = [
         "date",
         "date_month",
