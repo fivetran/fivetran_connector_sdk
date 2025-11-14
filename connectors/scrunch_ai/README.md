@@ -40,12 +40,12 @@ For local testing, this example includes a `__main__` block that reads `configur
 Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the `configuration.json` file.
 ```
 {
-  "api_token": "<your_api_token>", 
-  "brand_id": "<specific_brand_id>"
+  "api_token": "<YOUR_API_TOKEN>", 
+  "brand_id": "<YOUR_BRAND_ID>"
 }
 ```
-- `api_token`: The Bearer token required for API authentication.
-- `brand_id`: The specific brand identifier to filter data from Scrunch AI.
+- `api_token` (required): The Bearer token required for API authentication.
+- `brand_id` (required): The specific brand identifier to filter data from Scrunch AI.
 
 Note: The `brand_id` is a value that you will be getting directly from Scrunch AI.
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
