@@ -1,16 +1,7 @@
 # GNews Search Connector Example
 
 ## Connector overview
-This example demonstrates how to extract recent news articles from the [GNews v4 Search API](https://gnews.io/docs/v4#tag/Search) and load them into a destination using the Fivetran Connector SDK.  
-The connector:
-- Retrieves paginated GNews search results for a user-defined query and date.  
-- Implements resilient HTTP calls with exponential backoff and retries (e.g., 429/5xx).  
-- Flattens structured JSON responses into a clean, tabular format.  
-- Performs idempotent upserts into a single destination table (`news_stories`) using a composite primary key (`url`, `publishedAt`).  
-- Logs plan-limit messages returned by GNews (e.g., free-tier real-time delays, 30-day historical window).
-
-Related functions in `connector.py`:  
-`schema`, `update`, `fetch_news_page`, `fetch_all_news`, `normalize_articles`, `validate_configuration`.
+This example demonstrates how to build a Fivetran Connector SDK integration for [GNews v4 Search API](https://gnews.io/docs/v4#tag/Search), a REST API service to search articles from 60,000+ worldwide sources. The API provides access to real-time news and historical data, as well as top headlines based on Google News rankings. The connector pulls Google search information from GNews's API, and delivers it to your Fivetran destination.
 
 ## Requirements
 - Python version ≥3.10 and ≤3.13
@@ -53,20 +44,6 @@ python-dotenv==1.1.1
 
 - `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
 
-## API calls
-- **Endpoint:** `https://gnews.io/api/v4/search`
-
-## Parameters
-
-- api_key: Your GNews API key (`apikey` in requests).  
-- search_term: Keyword or phrase to search.  
-- from_date: ISO date (`YYYY-MM-DD`) or datetime. Defaults to `2025-10-15` in the example code.  
-- page_size: Page size (max 100). Default: `100`.  
-- sort_by: One of `popularity`, `publishedAt`, `relevance`. Default: `popularity`.  
-- lang: ISO 639-1 language filter (e.g., `en`).  
-- country: ISO 3166-1 alpha-2 country filter (e.g., `us`).  
-- max_pages: Stop after this many pages even if more results exist.
-
 ## Data handling
 
 - Normalization: `normalize_articles` flattens each `articles[*]` object and maps:
@@ -82,28 +59,6 @@ python-dotenv==1.1.1
   - `max_pages` is reached, or  
   - A page returns zero results.
 
-## Schema definition
-
-`schema(configuration)` defines one table:
-
-### `news_stories`
-- Primary key: `url`, `publishedAt`
-- Representative columns (not exhaustive):
-  - `url`
-  - `publishedAt`
-  - `title`
-  - `description`
-  - `content`
-  - `urlToImage`
-  - `source_id`
-  - `source_name`
-  - `source_url`
-  - `source_country`
-  - `lang`
-  - `gnews_id`
-  - `query`
-
-Although GNews provides an article `id`, the connector keeps `url + publishedAt` as a composite key for cross-source stability and compatibility with prior NewsAPI-based schemas.
 
 ## Error handling
 
@@ -119,7 +74,7 @@ Although GNews provides an article `id`, the connector keeps `url + publishedAt`
 - GNews plan-limit messages:  
   If the response includes `information` (e.g., “real-time news available only on paid plans”) or `articlesRemovedFromResponse` (e.g., “historical beyond 30 days”), the connector logs those messages for observability.
 
-## Table created
+## Tables created
 
 **Summary of the table replicated**
 
@@ -128,20 +83,6 @@ Although GNews provides an article `id`, the connector keeps `url + publishedAt`
 - Selected columns (not exhaustive):  
   `url`, `publishedAt`, `title`, `description`, `content`, `urlToImage`,  
   `source_id`, `source_name`, `source_url`, `source_country`, `lang`, `gnews_id`, `query`
-
-## Additional files
-
-- `connector.py` – Core logic: `schema`, `update`, `fetch_news_page`, `fetch_all_news`, `normalize_articles`, `validate_configuration`.  
-- `configuration.json` – API credentials and runtime parameters.  
-- `requirements.txt` – Third-party Python dependencies (e.g., `requests`).
-
-## Migration notes (from NewsAPI)
-
-- Parameter name for key is `apikey` (not `apiKey`).  
-- Count field is `totalArticles` (not `totalResults`).  
-- Image field is `image` (mapped to `urlToImage`).  
-- No top-level `status: ok`; rely on HTTP 200 + expected fields.  
-- Optional `lang`/`country` filters are supported and pass-through.
 
 ## Additional considerations
 
