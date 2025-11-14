@@ -69,15 +69,20 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     See the technical reference documentation
     for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Returns:
+         
     """
     return [
         {
-            "table": "activity",  # The base 'activity' table
-            "primary_key": ["uid"],
+            "table": "activity",  # Name of the table in the destination, required.
+            "primary_key": ["uid"], # Primary key column(s) for the table, optional.
         },
         {
-            "table": "participants",  # The 'participants' table
-            "primary_key": ["uid", "email"],
+            "table": "participants",  # Name of the table in the destination, required.
+            "primary_key": ["uid", "email"], # Primary key column(s) for the table, optional.
         },
     ]
 
@@ -92,9 +97,22 @@ def get_page(
     timeout: int = 30,
 ) -> List[Dict[str, Any]]:
     """
-    Fetches a single page of data with
-    exponential backoff for 502/server errors
-    and a token refresh attempt for 401 errors.
+    Fetches a page of data from an API endpoint, handling potential
+    reauthentication on 401 errors.
+
+    Args:
+        access_token (str): The authentication token required for API access.
+        reauth_func (Callable[[], str]): A function that, when called,
+            performs reauthentication and returns a new access token. Used on 401 errors.
+        activity_type (Optional[str]): Specifies the type of activity to fetch.
+            Set to None for the base endpoint.
+        limit (int): The maximum number of items to return in a single page.
+        offset (int): The starting position (offset) for the query, used for pagination.
+        timeout (int): The request timeout in seconds.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, where each dictionary
+            represents a data item (e.g., activity record).
     """
 
     current_token = access_token
@@ -197,9 +215,20 @@ def sync_base_activities(
     access_token: str, reauth_func: Callable[[], str], op: op, *, limit: int = 50
 ) -> int:
     """
-    Handles the full pagination and upsert logic
-    for the base /activities endpoint.
+    Handles the full pagination and upsert logic for the base /activities endpoint.
     Passes the reauth_func to get_page.
+
+    Args:
+        access_token (str): The authentication token required for API access.
+        reauth_func (Callable[[], str]): A function that, when called,
+            performs reauthentication and returns a new access token. Used on 401 errors.
+        op (op): A database or storage operation object used to perform
+            the upsert (update or insert) of the fetched data.
+        limit (int): The maximum number of items to fetch per page in each
+            API call (default is 50).
+
+    Returns:
+        int: The total number of records successfully processed (upserted).
     """
     offset = 0
     total = 0
@@ -258,6 +287,21 @@ def sync_activity_type(
     Handles the full pagination and upsert logic
     for a single specific activity type (/activities/{type}).
     Passes the reauth_func to get_page.
+
+    Args:
+        access_token (str): The authentication token required for API access.
+        reauth_func (Callable[[], str]): A function that, when called,
+            performs reauthentication and returns a new access token. Used on 401 errors.
+        op (op): A database or storage operation object used to perform
+            the upsert (update or insert) of the fetched data.
+        activity_type (str): The specific type of activity to synchronize
+            (e.g., 'runs', 'rides', 'swims'), which forms part of the API endpoint.
+        limit (int): The maximum number of items to fetch per page in each
+            API call (default is 50).
+
+    Returns:
+        int: The total number of records successfully processed (upserted) for
+            the specified activity type.
     """
     offset = 0
     total = 0
@@ -306,6 +350,13 @@ def sync_activity_type(
 def get_access_token(api_key: str, api_secret: str) -> str:
     """
     Fetches the OAuth access token using client credentials.
+
+    Args:
+        api_key (str): The client ID or API key used to identify the application.
+        api_secret (str): The client secret used to authenticate the application.
+
+    Returns:
+        str: The newly acquired OAuth access token.
     """
     url = f"{__API_BASE}/auth/v1/tokens"
     data = {
@@ -321,9 +372,16 @@ def get_access_token(api_key: str, api_secret: str) -> str:
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure how your connector fetches data.
-    See the technical reference documentation for more details on the update function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Define the update function which lets you configure
+    how your connector fetches data.
+    See the technical reference documentation for more details
+    on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+    Args:
+        configuration: A dictionary containing connection details.
+        state: A dictionary containing state information from previous runs.
+               The state dictionary is empty for the first sync or for any
+               full re-sync.
     """
 
     # Define a closure function for re-authentication to pass to sync functions
