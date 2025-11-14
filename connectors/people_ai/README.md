@@ -25,10 +25,10 @@ For local testing, this example includes a `__main__` block that reads `configur
 
 ## Features
 - Activity ingestion: Retrieves paginated activity data from `/v0/public/activities`.
-- **Participants sync:** Retrieves participant details from `/v0/public/activities/participants`.
-- **Authentication:** Automatically refreshes the access token when a 401 response is received.
-- **Error handling:** Retries failed requests with exponential backoff for transient 5xx and connection errors.
-- **Schema:** Defines two destination tables — `activity` and `participants`.
+- Participants sync: Retrieves participant details from `/v0/public/activities/participants`.
+- Authentication: Automatically refreshes the access token when a 401 response is received.
+- Error handling: Retries failed requests with exponential backoff for transient 5xx and connection errors.
+- Schema: Defines two destination tables — `activity` and `participants`.
 
 ## Configuration file
 The `configuration.json` file provides API credentials required for authentication.
