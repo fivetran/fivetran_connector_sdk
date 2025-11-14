@@ -20,14 +20,19 @@ and the Best Practices documentation
 (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
 for details.
 """
+# For reading configuration from a JSON file
+import json
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 from typing import List, Dict, Any  # For type hints in function signatures
 
 # Import requests to make HTTP calls to API
 import requests
-
-# Import the json module to handle JSON data.
-import json
 
 # For implementing exponential backoff retry logic with API requests
 from tenacity import (
@@ -37,24 +42,17 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-# For supporting Data operations like Upsert(), Update(), Delete()
-# and Checkpoint()
-# For supporting Connector operations like Update() and Schema()
-from fivetran_connector_sdk import Connector
-
-# For enabling Logs in your connector code
-from fivetran_connector_sdk import Logging as log
-
-# For supporting Data operations like Upsert(), Update(), Delete()
-# and checkpoint()
-from fivetran_connector_sdk import Operations as op
-
-
 def schema(configuration: dict) -> List[Dict[str, Any]]:
-    # Define the schema function which lets you configure the schema your connector delivers
-    # See the technical reference documentation for more details
-    # on the schema function:
-    # https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    """
+    Define the schema function which lets you configure the schema
+    your connector delivers.
+    See the technical reference documentation
+    for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.         
+    """
     return [
         {
             "table": "organic_google_search_results",
@@ -78,6 +76,13 @@ def get_direct_google_search_results(query: str, api_key: str) -> dict:
     with exponential backoff and retries on failure.
 
     If all retries fail, a requests.exceptions.RequestException will be raised.
+
+    Args:
+        query (str): The search query string to send to Google Search.
+        api_key (str): The authentication key required for the SerpApi service.
+
+    Returns:
+        dict: The raw JSON response dictionary containing the search results.
     """
     log.info(f"Attempting API call for query: {query}")
 
@@ -192,7 +197,7 @@ def update(configuration: dict, state: dict):
     See the technical reference documentation for more details
     on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
-    args:
+    Args:
         configuration: A dictionary containing connection details.
         state: A dictionary containing state information from previous runs.
                The state dictionary is empty for the first sync or for any
