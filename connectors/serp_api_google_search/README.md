@@ -35,8 +35,8 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
 
 ```json
 {
-  "api_key": "<your_serpapi_api_key>",
-  "search_query": "<your_search_query>"
+  "api_key": "<YOUR_SERPAPI_API_KEY>",
+  "search_query": "<YOUR_SEARCH_QUERY>"
 }
 ```
 - `api_key`: Your SerpAPI API key (client ID).  
@@ -44,6 +44,12 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
 ### Notes
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
+
+## Requirements file
+The `requirements.txt` file lists external libraries needed for this connector.
+
+- `requests` is needed to get HTTP requests
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## API calls
 - **Endpoint:** `https://serpapi.com/search`
