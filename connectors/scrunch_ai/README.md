@@ -51,8 +51,6 @@ Note: The `brand_id` is a value that you will be getting directly from Scrunch A
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.
-
 Example content of `requirements.txt`:
 python-dotenv
 python_dateutil
