@@ -53,7 +53,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.
 
-*Example content of `requirements.txt`:*
+Example content of `requirements.txt`:
 python-dotenv==1.1.1 
 python_dateutil==2.9.0.post0
 
