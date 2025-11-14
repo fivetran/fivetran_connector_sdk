@@ -71,9 +71,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
 
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Returns:
-         
+        configuration: a dictionary that holds the configuration settings for the connector.         
     """
     return [
         {
