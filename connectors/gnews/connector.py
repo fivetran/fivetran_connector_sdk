@@ -24,6 +24,7 @@ and Best Practices:
 https://fivetran.com/docs/connectors/connector-sdk/best-practices
 for additional implementation guidance.
 """
+
 from __future__ import annotations
 
 # For reading configuration from a JSON file
@@ -356,4 +357,3 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
-
