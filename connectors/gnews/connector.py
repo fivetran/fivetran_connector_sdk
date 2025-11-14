@@ -24,6 +24,7 @@ and Best Practices:
 https://fivetran.com/docs/connectors/connector-sdk/best-practices
 for additional implementation guidance.
 """
+from __future__ import annotations
 
 # For reading configuration from a JSON file
 import json
@@ -36,8 +37,6 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
-
-from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 import time
@@ -357,3 +356,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
