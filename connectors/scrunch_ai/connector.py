@@ -21,19 +21,18 @@ for details.
 
 # For reading configuration from a JSON file
 import json
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
+
 import time  # Rate limiting, retries, or backoff (if needed)
 from datetime import datetime  # Timestamps and date utilities
 
 import requests  # HTTP requests to Scrunch API
 from dateutil.relativedelta import relativedelta  # Date arithmetic utilities
-
-# For supporting Data operations like Upsert(), Update(), Delete()
-# and Checkpoint()
-# For enabling Logs in your connector code
-# Import required classes from fivetran_connector_sdk
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
 __API_BASE = "https://api.scrunchai.com/v1"
 __LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
