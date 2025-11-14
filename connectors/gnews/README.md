@@ -42,9 +42,8 @@ The `configuration.json` file provides the GNews credentials and query parameter
 - `api_key` (required): Your GNews API key
 - `search_query`(required): The query you are looking to get data on
 
-### Notes
-- Ensure that `configuration.json` is not committed to version control.  
-- Both configuration values are required; the connector will raise an error if either is missing.
+Note: Ensure that `configuration.json` is not committed to version control.  
+
 
 ## Requirements file
 The `requirements.txt` file lists external libraries needed for this connector.
