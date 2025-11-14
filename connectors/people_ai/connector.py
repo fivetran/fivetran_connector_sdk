@@ -21,6 +21,7 @@ and Best Practices
 (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
 for implementation guidance.
 """
+from __future__ import annotations
 
 # For reading configuration from a JSON file
 import json
@@ -33,8 +34,6 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
-
-from __future__ import annotations
 
 # The unused imports 'Sequence' and 'Literal' have been removed.
 from typing import Any, Dict, List
