@@ -21,10 +21,13 @@ for details.
 
 # For reading configuration from a JSON file
 import json
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
 # For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
@@ -334,7 +337,7 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
         token      (str): Bearer token for Scrunch API.
         brand_id   (str): Brand ID specified in configuration
     """
-  
+
     DIMS = [
         "date",
         "date_month",
