@@ -45,7 +45,6 @@ python-dotenv==1.1.1
 - `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
 
 ## Data handling
-
 - Normalization: `normalize_articles` flattens each `articles[*]` object and maps:
   - `image` → `urlToImage` (to keep parity with existing schema/column names)
   - Adds pass-through fields: `gnews_id`, `lang`, `source_url`, `source_country`, plus `query`
@@ -61,7 +60,6 @@ python-dotenv==1.1.1
 
 
 ## Error handling
-
 - Transient errors (429/5xx, timeouts, connection issues):  
   Retried up to 5 times with exponential backoff and small random jitter.
 
@@ -75,7 +73,6 @@ python-dotenv==1.1.1
   If the response includes `information` (e.g., “real-time news available only on paid plans”) or `articlesRemovedFromResponse` (e.g., “historical beyond 30 days”), the connector logs those messages for observability.
 
 ## Tables created
-
 **Summary of the table replicated**
 
 ### `news_stories`
@@ -85,8 +82,6 @@ python-dotenv==1.1.1
   `source_id`, `source_name`, `source_url`, `source_country`, `lang`, `gnews_id`, `query`
 
 ## Additional considerations
-
-This example serves as a reference integration of **GNews** with the **Fivetran Connector SDK**. Behavior may vary based on plan limits, rate limits, and content availability.  
-For troubleshooting and enhancements, consult the [Fivetran Connector SDK documentation](https://fivetran.com/docs/connectors/connector-sdk) or contact Fivetran Support.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
 
