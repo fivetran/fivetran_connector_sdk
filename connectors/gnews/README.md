@@ -20,12 +20,9 @@ Related functions in `connector.py`:
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for setup instructions.
-
-For local testing, this example includes a `__main__` block that reads `configuration.json` and runs `connector.debug(...)`.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-
 - GNews Search: Fetches news for a given `search_term` and `from_date` via `/api/v4/search`.  
 - Pagination: Iterates over pages until the end of the result set or an optional `max_pages` cap.  
 - Error handling: Retries transient failures (429/5xx and network timeouts) with exponential backoff and jitter.  
