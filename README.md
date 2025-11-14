@@ -37,8 +37,6 @@ Connector SDK provides native support for many Fivetran features and relies on e
 
 See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-Run the `.github/scripts/setup-hooks.sh` script from the root of the repository to set up pre-commit hooks. This ensures that your code is formatted correctly and passes all tests before you commit them.
-
 ## Connectors
 
 These connectors are ready to use out of the box, requiring minimal modifications to get started.
@@ -66,6 +64,7 @@ These connectors are ready to use out of the box, requiring minimal modification
 - [gcp_pub_sub](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/gcp_pub_sub) - This example shows how to sync data from Google Cloud Pub/Sub using the Connector SDK.
 - [grey_hr](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/grey_hr) - This example shows how to sync data from the greytHR API using the Connector SDK. Provide your greytHR API credentials for this example to work.
 - [greenplum_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/greenplum_db) - This example shows how to sync data from Greenplum database using Connector SDK. You need to provide your Greenplum credentials for this example to work.
+- [gnews](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/gnews) - This is a simple example of how to sync data from the GNews API using Connector SDK.
 - [harness_io](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/harness_io) - This example shows how to connect and sync data from Harness.io using Connector SDK. You need to provide your Harness API token and account ID for this example to work.
 - [hubspot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/hubspot) - This example shows how to connect and sync specific event type Event data from Hubspot using Connector SDK
 - [ibm_db2](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ibm_db2) - This example shows how to connect and sync data from IBM Db2 using Connector SDK. It uses the `ibm_db` library to connect to the database and fetch data.
