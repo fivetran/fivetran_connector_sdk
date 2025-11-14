@@ -54,11 +54,13 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 Explain the role of the `requirements.txt` file in specifying the Python libraries required by the connector.
 
 Example content of `requirements.txt`:
-python-dotenv==1.1.1 
-python_dateutil==2.9.0.post0
+python-dotenv
+python_dateutil
+requests
 
-- `python-dotenv==1.1.1` is required to load environment variables from a `.env` file.
-- `python_dateutil==2.9.0.post0` is needed to calculate rolling lookback windows.
+- `python-dotenv` is required to load environment variables from a `.env` file.
+- `python_dateutil` is needed to calculate rolling lookback windows.
+- `requests` is needed to get HTTP requests
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
