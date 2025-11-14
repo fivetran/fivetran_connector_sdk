@@ -13,14 +13,11 @@ Related functions in `connector.py`:
 `schema`, `update`, `fetch_news_page`, `fetch_all_news`, `normalize_articles`, `validate_configuration`.
 
 ## Requirements
-- **Python 3** (see the SDK’s supported versions)  
+- Python version ≥3.10 and ≤3.13
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-- Network access to `https://gnews.io`
-
-> Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for environment setup and SDK usage.
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for setup instructions.
