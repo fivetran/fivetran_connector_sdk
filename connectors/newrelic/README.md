@@ -1,0 +1,251 @@
+# New Relic Feature APIs Connector Example
+
+## Connector overview
+
+The New Relic Feature APIs custom connector extracts comprehensive monitoring and performance data. It leverages New Relic's NerdGraph API to extract APM, infrastructure, browser, mobile, and synthetic monitoring data for comprehensive observability analysis.
+
+The connector serves the following use cases:
+
+- Application performance monitoring
+- Infrastructure health tracking
+- User experience optimization
+- Mobile app quality assurance
+- Synthetic monitoring
+- Comprehensive observability analysis
+
+## Requirements
+
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+## Features
+
+- Transaction performance metrics, error rates, throughput analysis, and Apdex scores for application monitoring
+- Host status monitoring, domain analysis, infrastructure entity tracking, and health reporting
+- Page load time analysis, browser compatibility insights, device performance comparison, and user experience metrics
+- Crash analysis, platform performance tracking, device utilization insights, and app stability monitoring
+- Uptime monitoring, response time analysis, failure detection, and location-based performance insights
+- Integrated analysis across all monitoring services for comprehensive observability
+- Intelligent data fetching based on sync type (initial vs incremental)
+- Efficient data updates with checkpoint-based state management
+- Service and account-level filtering for focused monitoring analysis
+- Robust error handling with comprehensive logging and validation
+- Automated deployment via GitHub Actions with parameterized configuration
+- Secure credential management using GitHub Environments
+- Seamless updates without service interruption
+
+## Configuration file
+
+PRODUCTION DEPLOYMENT GUIDANCE: For production deployments, we recommend using **GitHub secrets** configured in the GitHub Actions workflow. Local configuration files can be used for development and testing, but we encourage using GitHub secrets for production environments.
+
+### Basic configuration
+
+For production deployments, we recommend configuring these as **GitHub secrets** (see [Deployment](#deployment) section). For local development and testing, you can define them in `configuration.json`:
+
+```json
+{
+  "api_key": "<YOUR_NEWRELIC_API_KEY>",
+  "account_id": "<YOUR_NEWRELIC_ACCOUNT_ID>",
+  "region": "<YOUR_NEWRELIC_REGION>",
+  "sync_frequency_minutes": "<YOUR_SYNC_FREQUENCY_MINUTES>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_query": "<YOUR_MAX_RECORDS_PER_QUERY>",
+  "enable_apm_data": "<YOUR_ENABLE_APM_DATA>",
+  "enable_infra_data": "<YOUR_ENABLE_INFRASTRUCTURE_DATA>",
+  "enable_browser_data": "<YOUR_ENABLE_BROWSER_DATA>",
+  "enable_mobile_data": "<YOUR_ENABLE_MOBILE_DATA>",
+  "enable_synthetic_data": "<YOUR_ENABLE_SYNTHETIC_DATA>",
+  "timeout_seconds": "<YOUR_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "retry_delay_seconds": "<YOUR_RETRY_DELAY_SECONDS>",
+  "data_quality_threshold": "<YOUR_DATA_QUALITY_THRESHOLD>",
+  "alert_on_errors": "<YOUR_ALERT_ON_ERRORS>",
+  "log_level": "<YOUR_LOG_LEVEL>"
+}
+```
+
+Required configuration keys:
+- `api_key`: New Relic API key for NerdGraph API access (must start with NRAK-)
+- `account_id`: New Relic account ID for data extraction
+
+Optional configuration keys:
+- `region`: New Relic region (US or EU, defaults to US)
+- `sync_frequency_minutes`: Sync frequency in minutes (1-1440, defaults to 15)
+- `initial_sync_days`: Days of historical data for initial sync (1-365, defaults to 90)
+- `max_records_per_query`: Maximum records per API query (1-10000, defaults to 1000)
+- `enable_*_data`: Enable/disable specific data sources (defaults to true)
+- `timeout_seconds`: API request timeout (5-300, defaults to 30)
+- `retry_attempts`: Number of retry attempts on failure (0-10, defaults to 3)
+- `retry_delay_seconds`: Delay between retry attempts (defaults to 5)
+- `data_quality_threshold`: Data quality threshold for alerts (0-1, defaults to 0.95)
+- `alert_on_errors`: Enable error alerting (defaults to true)
+- `log_level`: Logging level (DEBUG, INFO, WARNING, ERROR, SEVERE, defaults to INFO)
+
+## Requirements file
+
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
+
+Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
+
+## Authentication
+
+The connector uses New Relic API keys to authenticate the connector with the NerdGraph API.
+
+To obtain API credentials:
+1. Log in to your New Relic account.
+2. Go to **API Keys**.
+3. Create a new API key with the following permissions:
+  - NerdGraph API access for querying monitoring data.
+  - Account-level access for the specified account ID.
+
+Note: For production connectors, we recommend adding credentials as GitHub Secrets (see [Deployment](#deployment) section). For test connectors, you can add credentials to `configuration.json`.
+
+## Pagination
+
+The connector handles data retrieval from New Relic NerdGraph API with efficient pagination:
+
+- NRQL queries: Limited to 1000 results per query with time-based filtering
+- Entity search: Supports cursor-based pagination for large result sets
+- Data volume Management: Uses appropriate time ranges to manage data volume
+- Incremental syncs: Implements incremental syncs to reduce data transfer
+
+The connector implements efficient data handling by:
+- Processing complete API responses in memory
+- Using appropriate time ranges to manage data volume
+- Implementing incremental syncs to reduce data transfer
+- Applying filters to focus on relevant data subsets
+
+Refer to functions `get_apm_data`, `get_infrastructure_data`, `get_browser_data`, `get_mobile_data`, and `get_synthetic_data` in `connector.py` for the data retrieval implementation.
+
+## Data handling
+
+The connector processes New Relic monitoring data through several stages:
+
+1. Data extraction: Direct GraphQL queries to NerdGraph endpoints.
+2. Data transformation: Conversion of New Relic API responses to structured table format.
+3. Schema mapping: Consistent data types and column naming across all tables.
+4. State management: Checkpoint-based incremental sync support.
+5. Error handling: Comprehensive error handling with logging and validation.
+
+Data Processing Features:
+- Type conversion: New Relic API responses converted to appropriate data types
+- Default values: Missing dimensions populated with appropriate defaults
+- Timestamp handling: ISO format timestamp conversion and period-based grouping
+- Data aggregation: Multiple metric aggregations (averages, counts, percentages)
+- Filtering: Service and account-level filtering based on configuration
+- Dynamic time ranges: Intelligent time range selection for initial vs incremental syncs
+
+Data Flow:
+New Relic NerdGraph API → Requests Client → Dynamic Time Range Processing → Data Processing Functions → Fivetran Operations → Data Warehouse Tables
+
+Refer to functions `get_time_range`, `execute_nerdgraph_query`, `get_apm_data`, `get_infrastructure_data`, `get_browser_data`, `get_mobile_data`, and `get_synthetic_data` in `connector.py` for detailed data handling logic.
+
+## Error handling
+
+The connector implements comprehensive error handling strategies to ensure robust operation:
+
+Configuration validation errors:
+- ValueError: Missing required configuration values (`api_key`, `account_id`, `region`)
+- ValueError: Invalid API key format (must start with `NRAK-`)
+- ValueError: Invalid region specification (must be `US` or `EU`)
+
+API request errors:
+- RequestException: Handles network timeouts, connection errors, and HTTP failures
+- RuntimeError: Manages API request failures and query execution errors
+
+Sync operation errors:
+- RuntimeError: Handles general sync failures with detailed error messages
+- Logging: Uses Fivetran's logging system with info and severe levels for comprehensive reporting
+
+Error handling implementation:
+- Early validation: Configuration parameters validated before API calls
+- Exception propagation: Errors are logged and re-raised for Fivetran to handle
+- State preservation: Checkpoint system maintains sync state across failures
+
+Refer to functions `validate_configuration`, `execute_nerdgraph_query`, and the main `update` function in `connector.py` for error handling implementation.
+
+## Tables created
+
+The connector creates the following tables for comprehensive New Relic monitoring analysis. Column types are automatically inferred by Fivetran based on the actual data structure and content.
+
+### APM_DATA
+Primary table for application performance monitoring data with transaction-level metrics and performance indicators.
+
+Primary key: `account_id`, `timestamp`, `transaction_name`
+
+Sample columns (automatically inferred by Fivetran):
+- `account_id` - New Relic account identifier
+- `timestamp` - Data collection timestamp
+- `transaction_name` - Name of the monitored transaction
+- `duration` - Transaction response time in milliseconds
+- `error_rate` - Error rate percentage (0-1)
+- `throughput` - Transactions per second
+- `apdex_score` - Apdex performance score (0-1)
+
+### INFRASTRUCTURE_DATA
+Infrastructure monitoring data for host status, domain analysis, and infrastructure health tracking.
+
+Primary key: `account_id`, `timestamp`, `host_name`
+
+Sample columns (automatically inferred by Fivetran):
+- `account_id` - New Relic account identifier
+- `timestamp` - Data collection timestamp
+- `host_name` - Infrastructure host name
+- `domain` - Host domain classification
+- `type` - Host type classification
+- `reporting` - Whether the host is currently reporting
+- `tags` - JSON-formatted host tags and metadata
+
+### BROWSER_DATA
+Browser performance monitoring data for user experience analysis and page performance insights.
+
+Primary key: `account_id`, `timestamp`, `page_url`
+
+Sample columns (automatically inferred by Fivetran):
+- `account_id` - New Relic account identifier
+- `timestamp` - Data collection timestamp
+- `page_url` - Monitored page URL
+- `browser_name` - Browser name and version
+- `browser_version` - Browser version information
+- `device_type` - Device type classification
+- `load_time` - Page load time in milliseconds
+- `dom_content_loaded` - DOM content loaded time in milliseconds
+
+### MOBILE_DATA
+Mobile application monitoring data for crash analysis, platform performance, and device utilization insights.
+
+Primary key: `account_id`, `timestamp`, `app_name`
+
+Sample columns (automatically inferred by Fivetran):
+- `account_id` - New Relic account identifier
+- `timestamp` - Data collection timestamp
+- `app_name` - Mobile application name
+- `platform` - Mobile platform (iOS/Android)
+- `version` - Application version
+- `device_model` - Device model information
+- `os_version` - Operating system version
+- `crash_count` - Number of crashes detected
+
+### SYNTHETIC_DATA
+Synthetic monitoring data for uptime monitoring, response time analysis, and failure detection.
+
+Primary key: `account_id`, `timestamp`, `monitor_name`
+
+Sample columns (automatically inferred by Fivetran):
+- `account_id` - New Relic account identifier
+- `timestamp` - Data collection timestamp
+- `monitor_name` - Synthetic monitor name
+- `monitor_type` - Type of synthetic monitor
+- `status` - Monitor execution status
+- `response_time` - Monitor response time in milliseconds
+- `location` - Monitor execution location
+- `error_message` - Error message if monitor failed
+
+## Additional considerations
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
