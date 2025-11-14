@@ -105,7 +105,8 @@ Summary of tables replicated.
 
 ### responses
 - primary key: `id`.
-- selected columns (not exhaustive): `id`, `created_at`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `country`, `stage`, `branded`, `platform`, `brand_present`, `brand_sentiment`, `brand_position`, `response_text`, `tags`, `key_topics`, `competitors_present`, `citations_json`.
+- selected columns (not exhaustive): `id`, `created_at`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `country`, `stage`, `branded`,
+`platform`, `brand_present`, `brand_sentiment`, `brand_position`, `response_text`, `tags`, `key_topics`, `competitors_present`, `citations_json`.
 
 ### overall\_scrunch\_performance
 - dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `ai_platform`, `branded`.
