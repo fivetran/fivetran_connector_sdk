@@ -74,8 +74,8 @@ The `get_all_responses` function handles pagination.
 
 - The function loops while the `offset` is less than the `total` number of responses.
 - Each page of responses is retrieved and flattened.
-- These flattened items are **upserted** into the "responses" table using `op.upsert(table="responses", data=...)`.
-- The example code advances the **offset** in increments of 100, relying on the API's default page size.
+- These flattened items are upserted into the "responses" table using `op.upsert(table="responses", data=...)`.
+- The example code advances the offset in increments of 100, relying on the API's default page size.
 - Refer to `get_all_responses` and `get_responses` for details.
 
 ## Data handling
