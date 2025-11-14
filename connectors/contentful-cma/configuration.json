@@ -1,0 +1,6 @@
+{
+  "access_token": "<YOUR_CONTENTFUL_CMA_ACCESS_TOKEN>",
+  "environment_id": "<YOUR_CONTENTFUL_ENVIRONMENT_ID>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>"
+}
