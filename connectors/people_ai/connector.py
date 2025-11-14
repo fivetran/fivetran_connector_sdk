@@ -21,6 +21,7 @@ and Best Practices
 (https://fivetran.com/docs/connectors/connector-sdk/best-practices)
 for implementation guidance.
 """
+
 from __future__ import annotations
 
 # For reading configuration from a JSON file
