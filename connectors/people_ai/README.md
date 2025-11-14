@@ -46,6 +46,11 @@ The `configuration.json` file provides API credentials required for authenticati
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
 
+## Requirements file
+- `requests` is needed to get HTTP requests
+
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
 ## Authentication
 - Type: OAuth2 Client Credentials  
 - Token URL: `https://api.people.ai/auth/v1/tokens`  
