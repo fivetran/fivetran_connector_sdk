@@ -24,19 +24,21 @@ and Best Practices:
 https://fivetran.com/docs/connectors/connector-sdk/best-practices
 for additional implementation guidance.
 """
+# For reading configuration from a JSON file
+import json
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
-import json
 import time
 import random
 import requests
-
-# Import required classes from the Fivetran Connector SDK.
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
 
 __NEWSAPI_ENDPOINT = "https://newsapi.org/v2/everything"
 
@@ -50,10 +52,14 @@ DEFAULT_HEADERS = {
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
-    Define the schema function which lets you configure the schema your connector delivers
-    See the technical reference documentation for more details
-    on the schema function:
+    Define the schema function which lets you configure the schema
+    your connector delivers.
+    See the technical reference documentation
+    for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.         
     """
     return [
         {
@@ -347,3 +353,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
