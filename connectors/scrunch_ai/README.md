@@ -40,8 +40,8 @@ For local testing, this example includes a `__main__` block that reads `configur
 Detail the configuration keys defined for your connector, which are uploaded to Fivetran from the `configuration.json` file.
 ```
 {
-  "api_token": "<YOUR_API_TOKEN>", 
-  "brand_id": "<YOUR_BRAND_ID>"
+  "api_token": "<YOUR_SCRUNCH_AI_API_TOKEN>", 
+  "brand_id": "<YOUR_SPECIFIC_BRAND_ID>"
 }
 ```
 - `api_token` (required): The Bearer token required for API authentication.
