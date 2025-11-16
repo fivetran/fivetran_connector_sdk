@@ -13,16 +13,16 @@ It automatically detects schema changes, computes checksums for delete detection
 ## **Requirements**
 
 * [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating System:
-    * Windows 10 or later
-    * macOS 13 (Ventura) or later
-    * Linux: Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later
+* Operating system:
+    * Windows: 10 or later (64-bit only)
+    * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+    * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ---
 
 ## **Getting Started**
 
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for instructions on installing dependencies, setting up the connector, and running it locally using the `fivetran debug` command.
+Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ---
 
@@ -58,7 +58,7 @@ The connector uses a `configuration.json` file to store database connection sett
 | `schema_name` | No | Schema to filter tables (optional). |
 | `incremental_column` | No | Name of the incremental timestamp column (defaults to `updated_at`). |
 
-Note: Do not commit your `configuration.json` file to version control to avoid exposing sensitive tokens.
+Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
 ---
 
@@ -70,7 +70,7 @@ The connector requires the following Python dependencies for local execution:
 duckdb
 ```
 
-Note: `duckdb` is pre-installed in the Fivetran environment. Declare them only when testing locally.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ---
 
@@ -165,5 +165,4 @@ Each table includes:
 - Batch size and incremental column can be customized in configuration.
 - The connector is idempotent and safe for repeated runs — unchanged records will not be reloaded.
 
-This example is provided for educational use with the Fivetran Connector SDK. Fivetran is not responsible for modifications or external dependency issues.  
-For assistance, contact Fivetran Support.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
