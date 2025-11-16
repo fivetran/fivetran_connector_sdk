@@ -7,6 +7,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 # For reading configuration from a JSON file
 import json
 
+# For generating stable hashes for document IDs
+import hashlib
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -55,6 +58,29 @@ def schema(configuration: dict):
     ]
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
+    """
+    # Validate required configuration parameters
+    required_configs = ["api_url", "api_key"]
+    for key in required_configs:
+        if key not in configuration or not configuration[key]:
+            raise ValueError(f"Missing required configuration value: '{key}'")
+
+    # Validate api_url format
+    api_url = configuration.get("api_url")
+    if not api_url.startswith(("http://", "https://")):
+        raise ValueError(
+            f"Invalid api_url format: {api_url}. Must start with 'http://' or 'https://'"
+        )
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function which lets you configure how your connector fetches data.
@@ -66,6 +92,9 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Source Examples - MeiliSearch")
 
+    # Validate the configuration to ensure it contains all required values
+    validate_configuration(configuration=configuration)
+
     api_url = configuration.get("api_url")
     api_key = configuration.get("api_key")
 
@@ -73,7 +102,12 @@ def update(configuration: dict, state: dict):
 
     last_sync_timestamp = state.get("last_sync_timestamp")
     synced_indexes = state.get("synced_indexes", [])
-    current_sync_timestamp = int(time.time() * 1000)
+
+    # Use existing current_sync_timestamp if this is a resumed sync, otherwise create a new one
+    # This ensures we don't lose data between the original sync start and a restart
+    current_sync_timestamp = state.get("current_sync_timestamp")
+    if current_sync_timestamp is None:
+        current_sync_timestamp = int(time.time() * 1000)
 
     # Sync indexes first
     sync_indexes(api_url, headers)
@@ -84,18 +118,22 @@ def update(configuration: dict, state: dict):
         "last_sync_timestamp": last_sync_timestamp,
         "synced_indexes": synced_indexes,
         "indexes_synced": True,
+        "current_sync_timestamp": current_sync_timestamp,
     }
     op.checkpoint(new_state)
     log.info("Checkpointed after completing index sync")
 
     # Sync documents from all indexes
-    sync_documents_from_all_indexes(api_url, headers, last_sync_timestamp, synced_indexes)
+    sync_documents_from_all_indexes(
+        api_url, headers, last_sync_timestamp, synced_indexes, current_sync_timestamp
+    )
 
     # Final checkpoint after all syncs are complete
     final_state = {
         "last_sync_timestamp": current_sync_timestamp,
         "synced_indexes": [],
         "indexes_synced": False,
+        "current_sync_timestamp": None,
     }
     op.checkpoint(final_state)
     log.info("Checkpointed after completing all syncs")
@@ -233,6 +271,7 @@ def sync_documents_from_all_indexes(
     headers: Dict[str, str],
     last_sync_timestamp: Optional[int] = None,
     synced_indexes: List[str] = None,
+    current_sync_timestamp: Optional[int] = None,
 ):
     """
     Fetch documents from all indexes in MeiliSearch and sync them to the destination.
@@ -242,6 +281,7 @@ def sync_documents_from_all_indexes(
         headers: HTTP headers including authorization
         last_sync_timestamp: Timestamp in milliseconds for incremental sync filtering
         synced_indexes: List of index UIDs that have already been synced
+        current_sync_timestamp: Timestamp for the current sync run (preserved across restarts)
     """
     log.info("Starting documents sync from all indexes")
 
@@ -267,6 +307,7 @@ def sync_documents_from_all_indexes(
                 "last_sync_timestamp": last_sync_timestamp,
                 "synced_indexes": synced_indexes,
                 "indexes_synced": True,
+                "current_sync_timestamp": current_sync_timestamp,
             }
             op.checkpoint(checkpoint_state)
             log.info(f"Checkpointed after syncing index: {index_uid}")
@@ -362,6 +403,7 @@ def sync_documents_for_index(
 def extract_document_id(document: Dict, index_uid: str) -> str:
     """
     Extract document ID from document data.
+    Uses SHA256 hash as a fallback for documents without an ID field to ensure stable, deterministic IDs.
     Args:
         document: The document dictionary
         index_uid: The index UID for logging context
@@ -373,9 +415,12 @@ def extract_document_id(document: Dict, index_uid: str) -> str:
     elif "_id" in document:
         return str(document["_id"])
     else:
-        generated_id = str(hash(json.dumps(document, sort_keys=True)))
+        # Use SHA256 for stable, deterministic hash across runs
+        # Sort keys to ensure consistent serialization
+        document_json = json.dumps(document, sort_keys=True, ensure_ascii=True)
+        generated_id = hashlib.sha256(document_json.encode("utf-8")).hexdigest()
         log.warning(
-            f"Document in index '{index_uid}' has no 'id' or '_id' field. Generated hash-based ID: {generated_id}"
+            f"Document in index '{index_uid}' has no 'id' or '_id' field. Generated SHA256-based ID: {generated_id}"
         )
         return generated_id
 
