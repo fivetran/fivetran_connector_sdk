@@ -760,7 +760,7 @@ def handle_retry_logic(attempt: int, error: Exception):
         error: The exception that was raised.
     """
     if attempt == __MAX_RETRIES - 1:
-        log.severe(f"Request failed after {__MAX_RETRIES} retries: {str(error)}")
+        log.severe(f"Request failed after {__MAX_RETRIES} retries", error)
         raise
 
     sleep_time = min(60, __RETRY_BASE_DELAY_SECONDS**attempt)
