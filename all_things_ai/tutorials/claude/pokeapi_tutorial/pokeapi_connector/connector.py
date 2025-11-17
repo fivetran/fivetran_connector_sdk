@@ -223,7 +223,7 @@ def update(configuration: dict, state: dict):
         yield op.checkpoint(state={"offset": new_offset})
 
     except Exception as e:
-        log.severe(f"Error during sync process: {str(e)}")
+        log.severe("Error during sync process", e)
         # Still checkpoint to avoid reprocessing the same data
         new_offset = offset + processed_count
         yield op.checkpoint(state={"offset": new_offset})
