@@ -40,9 +40,9 @@ The configuration for this connector is defined in `configuration.json`.
 }
 ```
 Configuration parameters:
-  - `access_token` (required): The OAuth2 access token for authenticating with the DocuSign API.
-  - `base_url` (required): The base URL for the DocuSign API (e.g., `https://demo.docusign.net/restapi` for demo or `https://na3.docusign.net/restapi` for production).
-  - `account_id` (required): The Account ID for your DocuSign account.
+  - access_token (required) - The OAuth2 access token for authenticating with the DocuSign API.
+  - base_url (required) - The base URL for the DocuSign API (e.g., `https://demo.docusign.net/restapi` for demo or `https://na3.docusign.net/restapi` for production).
+  - account_id (required) - The Account ID for your DocuSign account.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -75,28 +75,185 @@ Data is processed within the `update` function and its various `fetch_*` helper 
 - Schema: The connector schema, including all tables and their primary keys, is defined in the `schema` function.
 - Type conversion: All data values are explicitly converted to strings (e.g., `str(envelope.get("status", ""))`) before being passed to `op.upsert` to ensure compatibility with the destination warehouse.
 - Data flattening: For the `audit_events` table , the nested `eventFields` array from the API response is flattened into top-level columns in the destination table.
-- Binary data: The `fetch_document_content` function downloads the binary content of documents. In the `update` function , this content is then base64-encoded (`base64.b64encode`) and stored as a string in the `document_contents` table.
+- Binary data: The `fetch_document_content` function downloads the binary content of documents. To ensure stability and prevent memory usage issues, documents are first validated against the `__MAX_FILE_SIZE_BYTES` limit and are only processed if they fall below this threshold. In the `update` function , this content is then base64-encoded (`base64.b64encode`) and stored as a string in the `document_contents` table.
 - State management: The connector uses `state.get("last_sync_time", ...)` to fetch data incrementally. At the end of a successful sync, it checkpoints the new state using `op.checkpoint(new_state)`.
+- Sync duration: Sync duration scales linearly with envelope count × sub-resources (present in `_process_envelope` function) due to the connector's N+1 data extraction pattern.
 
 ## Error handling
 
 - API request errors: The `make_api_request` function  uses `response.raise_for_status()` to automatically raise an exception for HTTP 4xx (client) or 5xx (server) errors.
-- Resilient child object fetching: All functions that fetch data for a *specific* envelope (e.g., `fetch_audit_events`, `fetch_document_content`, `fetch_recipients_for_envelope`) are wrapped in `try...except` blocks. If an API call for one envelope's sub-resource fails, the error is logged using `log.warning` and an empty list or `None` is returned. This prevents a single failed document or recipient from stopping the entire sync.
+- Resilient child object fetching: All functions that fetch data for a specific envelope (e.g., `fetch_audit_events`, `fetch_document_content`, `fetch_recipients_for_envelope`) are wrapped in `try...except` blocks. If an API call for one envelope's sub-resource fails, the error is logged using `log.warning` and an empty list or `None` is returned. This prevents a single failed document or recipient from stopping the entire sync.
 - Global error handling: The entire `update` function is wrapped in a `try...except Exception as e` block. Any unhandled exception will be caught and raised as a `RuntimeError`, which signals to Fivetran that the sync has failed.
 
 ## Tables created
 
 This connector creates the following tables in the destination, as defined in the `schema` function:
 
-  - `ENVELOPES`
-  - `RECIPIENTS`
-  - `ENHANCED_RECIPIENTS`
-  - `AUDIT_EVENTS`
-  - `ENVELOPE_NOTIFICATIONS`
-  - `DOCUMENTS`
-  - `DOCUMENT_CONTENTS`
-  - `TEMPLATES`
-  - `CUSTOM_FIELDS`
+  `ENVELOPES`:
+  ```json
+  {
+    
+  "table": "envelopes",
+  "primary_key": [
+    "envelope_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "status": "STRING",
+    "sent_timestamp": "UTC_DATETIME",
+    "completed_timestamp": "UTC_DATETIME",
+    "created_timestamp": "UTC_DATETIME",
+    "last_modified_timestamp": "UTC_DATETIME",
+    "subject": "STRING",
+    "expire_after": "STRING",
+    "contract_cycle_time_hours": "DOUBLE",
+    "conversion_status": "STRING"
+  }
+}
+```
+
+  `RECIPIENTS`:
+  ```json
+  {
+  "table": "recipients",
+  "primary_key": [
+    "envelope_id",
+    "recipient_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "recipient_id": "STRING",
+    "name": "STRING",
+    "email": "STRING",
+    "status": "STRING",
+    "type": "STRING",
+    "routing_order": "STRING"
+  }
+}
+```
+  `ENHANCED_RECIPIENTS`:
+  ```json
+  {
+  "table": "enhanced_recipients",
+  "primary_key": [
+    "envelope_id",
+    "recipient_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "recipient_id": "STRING",
+    "name": "STRING",
+    "email": "STRING",
+    "status": "STRING",
+    "type": "STRING",
+    "routing_order": "STRING",
+    "declined_reason": "STRING",
+    "sent_timestamp": "UTC_DATETIME",
+    "signed_timestamp": "UTC_DATETIME"
+  }
+}
+```
+  `AUDIT_EVENTS`:
+  ```json
+  {
+  "table": "audit_events",
+  "primary_key": [
+    "envelope_id",
+    "event_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "event_id": "STRING",
+    "logtime": "UTC_DATETIME",
+    "action": "STRING",
+    "message": "STRING",
+    "username": "STRING",
+    "source": "STRING"
+  }
+}
+```
+  `ENVELOPE_NOTIFICATIONS`:
+  ```json
+  {
+  "table": "envelope_notifications",
+  "primary_key": [
+    "envelope_id",
+    "notification_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "notification_id": "STRING",
+    "notification_type": "STRING",
+    "scheduled_date": "UTC_DATETIME",
+    "sent_date": "UTC_DATETIME"
+  }
+}
+```
+  `DOCUMENTS`:
+  ```json
+  {
+  "table": "documents",
+  "primary_key": [
+    "envelope_id",
+    "document_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "document_id": "STRING",
+    "name": "STRING",
+    "type": "STRING",
+    "pages": "STRING"
+  }
+}
+```
+  `DOCUMENT_CONTENTS`:
+  ```json
+  {
+  "table": "document_contents",
+  "primary_key": [
+    "envelope_id",
+    "document_id"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "document_id": "STRING",
+    "content_base64": "STRING"
+  }
+}
+```
+  `TEMPLATES`:
+  ```json
+  {
+  "table": "templates",
+  "primary_key": [
+    "template_id"
+  ],
+  "columns": {
+    "template_id": "STRING",
+    "name": "STRING",
+    "description": "STRING",
+    "created_timestamp": "UTC_DATETIME",
+    "last_modified_timestamp": "UTC_DATETIME",
+    "shared": "BOOLEAN"
+  }
+}
+```
+  `CUSTOM_FIELDS`:
+  ```json
+  {
+  "table": "custom_fields",
+  "primary_key": [
+    "envelope_id",
+    "field_name"
+  ],
+  "columns": {
+    "envelope_id": "STRING",
+    "field_name": "STRING",
+    "value": "STRING",
+    "type": "STRING"
+  }
+}
+```
 
 ## Additional considerations
 

@@ -17,13 +17,14 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
+# For making HTTP API requests to DocuSign (provided by SDK runtime)
 import requests
 
 # For handling date and time operations
 from datetime import datetime, timezone
 
 # For type hints
-from typing import Any, Dict, List, Optional, Generator
+from typing import Any, Dict, List, Optional
 
 # For encoding binary data of documents to base64
 import base64
@@ -42,6 +43,7 @@ __BATCH_SIZE = 100
 __MAX_RETRIES = 3
 __RETRY_DELAY_SECONDS = 2
 __CHECKPOINT_INTERVAL = 10
+__MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB file fetch limit
 
 
 def schema(configuration: dict):
@@ -177,9 +179,31 @@ def fetch_document_content(
 
     for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, headers=headers, timeout=__DOCUMENT_TIMEOUT_SECONDS)
-            response.raise_for_status()
-            return response.content
+            with requests.get(
+                url, headers=headers, stream=True, timeout=__DOCUMENT_TIMEOUT_SECONDS
+            ) as response:
+                response.raise_for_status()
+
+                #  Check Content-Length header before downloading
+                content_length = response.headers.get("Content-Length")
+                if content_length and int(content_length) > __MAX_FILE_SIZE_BYTES:
+                    log.warning(
+                        f"Skipping document {document_id}: Header size ({content_length} bytes) exceeds limit."
+                    )
+                    return None
+
+                #  Read in chunks to monitor accumulation
+                content = bytearray()
+                for chunk in response.iter_content(chunk_size=8192):
+                    content.extend(chunk)
+                    # Stop downloading if we cross the threshold
+                    if len(content) > __MAX_FILE_SIZE_BYTES:
+                        log.warning(
+                            f"Skipping document {document_id}: Streamed size exceeds limit."
+                        )
+                        return None
+
+                return bytes(content)
         except requests.exceptions.RequestException as e:
             log.warning(f"API request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}")
             if attempt < __MAX_RETRIES - 1:
@@ -277,6 +301,11 @@ def fetch_audit_events(configuration: dict, envelope_id: str) -> List[Dict[str, 
 def fetch_envelope_notifications(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch envelope notifications like reminders and expirations.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
+    Returns:
+        A list of dictionaries representing envelope notifications.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -296,6 +325,11 @@ def fetch_envelope_notifications(configuration: dict, envelope_id: str) -> List[
 def fetch_enhanced_recipients(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch recipients with full status history, reminders, declines.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
+    Returns:
+        A list of dictionaries representing enhanced recipients.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -324,6 +358,11 @@ def fetch_enhanced_recipients(configuration: dict, envelope_id: str) -> List[Dic
 def fetch_recipients_for_envelope(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch recipients data for a specific envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
+    Returns:
+        A list of dictionaries representing recipients.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -354,6 +393,11 @@ def fetch_recipients_for_envelope(configuration: dict, envelope_id: str) -> List
 def fetch_documents_for_envelope(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch documents data for a specific envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
+    Returns:
+        A list of dictionaries representing documents.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -372,12 +416,15 @@ def fetch_documents_for_envelope(configuration: dict, envelope_id: str) -> List[
         return []
 
 
-def fetch_templates(
-    configuration: dict, state: Dict[str, Any]
-) -> Generator[Dict[str, Any], None, None]:
+def fetch_templates(configuration: dict, state: Dict[str, Any]):
     """
     Fetch templates data for standard template usage tracking.
     Uses incremental sync by filtering templates modified after last_sync_time.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        state: A dictionary containing state information.
+    Returns:
+        A generator yielding dictionaries representing templates.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -430,6 +477,11 @@ def fetch_custom_fields_for_envelope(
 ) -> List[Dict[str, Any]]:
     """
     Fetch custom fields for a specific envelope such as envelope type.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
+    Returns:
+        A list of dictionaries representing custom fields.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -451,6 +503,9 @@ def fetch_custom_fields_for_envelope(
 def _upsert_recipients(configuration: dict, envelope_id: str):
     """
     Fetch and upsert recipients for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     recipients = fetch_recipients_for_envelope(configuration, envelope_id)
     for r in recipients:
@@ -476,6 +531,9 @@ def _upsert_recipients(configuration: dict, envelope_id: str):
 def _upsert_enhanced_recipients(configuration: dict, envelope_id: str):
     """
     Fetch and upsert enhanced recipients for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     enhanced_recipients = fetch_enhanced_recipients(configuration, envelope_id)
     for er in enhanced_recipients:
@@ -504,6 +562,9 @@ def _upsert_enhanced_recipients(configuration: dict, envelope_id: str):
 def _upsert_audit_events(configuration: dict, envelope_id: str):
     """
     Fetch and upsert audit events for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     audit_events = fetch_audit_events(configuration, envelope_id)
     for event in audit_events:
@@ -526,6 +587,9 @@ def _upsert_audit_events(configuration: dict, envelope_id: str):
 def _upsert_envelope_notifications(configuration: dict, envelope_id: str):
     """
     Fetch and upsert envelope notifications for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     notifications = fetch_envelope_notifications(configuration, envelope_id)
     for n in notifications:
@@ -549,6 +613,9 @@ def _upsert_envelope_notifications(configuration: dict, envelope_id: str):
 def _upsert_documents_and_content(configuration: dict, envelope_id: str):
     """
     Fetch and upsert documents and their content for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     documents = fetch_documents_for_envelope(configuration, envelope_id)
     for d in documents:
@@ -591,6 +658,9 @@ def _upsert_documents_and_content(configuration: dict, envelope_id: str):
 def _upsert_custom_fields(configuration: dict, envelope_id: str):
     """
     Fetch and upsert custom fields for a given envelope.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope_id: The ID of the envelope.
     """
     custom_fields = fetch_custom_fields_for_envelope(configuration, envelope_id)
     for f in custom_fields:
@@ -613,6 +683,9 @@ def _upsert_custom_fields(configuration: dict, envelope_id: str):
 def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
     """
     Process a single envelope and its related data.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        envelope: A dictionary containing envelope data from the API.
     """
     envelope_id = envelope.get("envelopeId")
     if not envelope_id:
@@ -662,6 +735,9 @@ def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
 def _process_templates(configuration: dict, state: Dict[str, Any]):
     """
     Fetch and process templates.
+    Args:
+        configuration: A dictionary containing the connector configuration.
+        state: A dictionary containing state information.
     """
     log.info("Fetching templates data...")
     template_count = 0
@@ -696,7 +772,6 @@ def update(configuration: dict, state: Dict[str, Any]):
     Args:
         configuration: A dictionary containing DocuSign API connection details
         state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.info("DocuSign: eSignature API Connector")
 
