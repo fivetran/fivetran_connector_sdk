@@ -63,7 +63,7 @@ def update(configuration: dict, state: dict):
         state["timestamp"] = time.time()
         op.checkpoint(state)
     except Exception as e:
-        log.severe(f"An error occurred: {e}")
+        log.severe("An error occurred", e)
 
 
 def validate_configuration(configuration: dict):
@@ -125,7 +125,7 @@ def read_postgres_and_upsert(host, database, user, password, port, table_name):
         conn.close()
 
     except Exception as e:
-        log.severe(f"Error: {e}")
+        log.severe("Error", e)
         raise e
 
 

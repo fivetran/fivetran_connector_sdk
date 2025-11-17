@@ -90,7 +90,8 @@ def fetch_agreements(api_key, updated_at):
                 continue
             else:
                 log.severe(
-                    f"Failed to fetch agreements after {__MAX_RETRIES} attempts due to network error: {str(e)}"
+                    f"Failed to fetch agreements after {__MAX_RETRIES} attempts due to network error",
+                    e,
                 )
                 raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
     return None
