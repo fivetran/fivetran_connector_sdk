@@ -56,6 +56,9 @@ class ODataClient:
         This method handles various data types and structures that can be returned by
         the OData service, converting them to Python native types for easier processing.
         """
+        dict_val = hasattr(value, "__dict__")
+        extr_val = not isinstance(value, (str, int, float, bool))
+        none_val = value is not None
         # Handle EntityProxy objects
         if hasattr(value, "_cache") and value._cache:
             return self._extract_entity_data(value=value._cache)
@@ -69,11 +72,7 @@ class ODataClient:
             return {k: self._extract_entity_data(value=v) for k, v in value.items()}
 
         # Check for other entity-like objects with special attributes
-        elif (
-            hasattr(value, "__dict__")
-            and not isinstance(value, (str, int, float, bool))
-            and value is not None
-        ):
+        elif dict_val and extr_val and none_val:
             extracted = self._extract_special_attributes(value=value)
             if extracted:
                 return extracted
