@@ -230,7 +230,7 @@ def make_api_request(url, headers):
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            log.severe(f"API request failed on attempt {attempt}: {str(e)}")
+            log.severe(f"API request failed on attempt {attempt}", e)
             if hasattr(e.response, "status_code") and e.response.status_code == 403:
                 log.severe("Access forbidden. Ensure your token has the proper access.")
                 return None
