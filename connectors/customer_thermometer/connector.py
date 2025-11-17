@@ -184,7 +184,7 @@ def parse_xml_response_and_upsert(
 
         return records_processed
     except et.ParseError as e:
-        log.severe(f"Failed to parse XML response", e)
+        log.severe("Failed to parse XML response", e)
         raise
 
 
@@ -407,19 +407,19 @@ def update(configuration: dict, state: dict):
 
     except requests.RequestException as e:
         # Handle API request failures
-        log.severe(f"API request failed", e)
+        log.severe("API request failed", e)
         raise
     except et.ParseError as e:
         # Handle XML parsing errors
-        log.severe(f"XML parsing failed", e)
+        log.severe("XML parsing failed", e)
         raise
     except ValueError as e:
         # Handle validation and data errors
-        log.severe(f"Validation error", e)
+        log.severe("Validation error", e)
         raise
     except Exception as e:
         # Catch-all for unexpected errors
-        log.severe(f"Sync failed with unexpected error", e)
+        log.severe("Sync failed with unexpected error", e)
         raise
 
 

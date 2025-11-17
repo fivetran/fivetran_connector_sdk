@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Operations as op
 
 from uuid import uuid4  # for generating batch boundaries
 import json
-from requests_toolbelt.multipart import decoder, encoder  # for batch request processing
+from requests_toolbelt.multipart import decoder  # for batch request processing
 import datetime
 
 
@@ -344,7 +344,7 @@ class ODataClient:
                 self._process_batch_part(part=part, part_index=i)
 
         except Exception as e:
-            log.severe(f"Failed to process batch response.", e)
+            log.severe("Failed to process batch response.", e)
             raise
 
     def _process_batch_part(self, part, part_index: int):
