@@ -5,10 +5,11 @@ The SAP Ariba Purchase Orders connector demonstrates how to use the Fivetran Con
 
 The connector supports incremental syncing by maintaining timestamps in its internal state. It fetches new or modified purchase orders and items, and marks processed rows with checkpoints for reliable continuation.
 It maintains two tables:
-- `ORDER` – contains header-level purchase order metadata.
-- `ITEM` – contains detailed line-item records for each order.
+- `order` – contains header-level purchase order metadata.
+- `item` – contains detailed line-item records for each order.
 
 This example uses the SAP Ariba Sandbox API but can easily be configured for production environments.
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
@@ -22,19 +23,19 @@ This example uses the SAP Ariba Sandbox API but can easily be configured for pro
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for setup instructions, including installing dependencies, configuring authentication, and running local tests.
 
 ## Features
-- Fetches purchase orders and line items from the SAP Ariba API.
+- Fetches purchase orders and line items from the SAP Ariba API
 - Performs incremental syncs using internal timestamp checkpoints
-- Supports pagination with `$skip` and `$top` query parameters.
-- Converts timestamps to ISO 8601 UTC format.
-- Retries automatically on network failures or rate limit errors.
-- Performs schema-aware upserts for idempotent loading into Fivetran destinations.
+- Supports pagination with `$skip` and `$top` query parameters
+- Converts timestamps to ISO 8601 UTC format
+- Retries automatically on network failures or rate limit errors
+- Performs schema-aware upserts for idempotent loading into Fivetran destinations
 
 ## Configuration file
 The connector reads configuration settings from `configuration.json`, which defines the authentication parameters for SAP Ariba.
 
 ```
 {
-  "api_key": <"YOUR_SAP_ARIBA_API_KEY">
+  "api_key": "<YOUR_SAP_ARIBA_API_KEY>"
 }
 ```
 
@@ -44,8 +45,6 @@ The connector reads configuration settings from `configuration.json`, which defi
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-
----
 
 ## Authentication
 The connector authenticates using a single API key passed in the request headers.  
@@ -68,24 +67,22 @@ GET /purchase-orders?$top=100&$skip=200
 ```
 
 ## Data handling
-The connector uses the `update(configuration, state)` function to:
-1. Fetch data from the `/purchase-orders` and related endpoints.
-2. Parse JSON responses and flatten nested structures into relational rows.
-3. Convert Ariba timestamp fields (e.g., `"16 May 2019 1:41:26 AM"`) to ISO UTC.
-4. Emit `Upsert` operations for every record using `op.upsert()`.
-5. Save sync progress with checkpoints via `op.checkpoint(state)`.
+The connector uses the `update(configuration, state)` function to fetch and process data:
+- Fetches data from the `/purchase-orders` and related endpoints
+- Parses JSON responses and flattens nested structures into relational rows
+- Converts Ariba timestamp fields (e.g., `"16 May 2019 1:41:26 AM"`) to ISO UTC
+- Emits `Upsert` operations for every record using `op.upsert()`
+- Saves sync progress with checkpoints via `op.checkpoint(state)`
 
 The connector also defines schemas and primary keys for both the `orders` and `items` tables through the `schema(configuration)` function.
 
 ## Error handling
-Refer to the HTTP request logic in the connector implementation.
-
-The connector implements the following error handling:
-- `400–499`: Client-side errors (e.g., invalid key or malformed request) – connector logs and exits.
-- `429`: API rate limit exceeded – connector retries automatically using exponential backoff.
-- `500–599`: Server errors – connector retries after a short delay.
-- Network issues: Automatically retried up to three times.
-- Invalid JSON or date parsing errors: Skipped gracefully and logged for review.
+The connector implements error handling in the `make_api_request()` function:
+- `400–499`: Client-side errors (e.g., invalid key or malformed request) – connector logs and exits
+- `429`: API rate limit exceeded – connector retries automatically using exponential backoff
+- `500–599`: Server errors – connector retries after a short delay
+- Network issues: Automatically retried up to three times
+- Invalid JSON or date parsing errors: Skipped gracefully and logged for review
 
 
 ## Tables created
@@ -144,11 +141,10 @@ Primary key: `document_number`, `line_number`, `row_id`
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-When adapting this connector for production:
-- Replace the Sandbox API URL with your tenant’s production endpoint.
-- Increase retry delay (`__RETRY_DELAY`) if you encounter rate limits.
-- Confirm that your API key has permissions for both Purchase Order and Item endpoints.
-- All timestamps are normalized to UTC (`UTC_DATETIME`).
-- The connector is idempotent and safe for repeated runs.
 
-For questions or issues, contact Fivetran Support.
+When adapting this connector for production:
+- Replace the Sandbox API URL with your tenant’s production endpoint
+- Increase retry delay (`__RETRY_DELAY`) if you encounter rate limits
+- Confirm that your API key has permissions for both Purchase Order and Item endpoints
+- All timestamps are normalized to UTC (`UTC_DATETIME`)
+- The connector is idempotent and safe for repeated runs

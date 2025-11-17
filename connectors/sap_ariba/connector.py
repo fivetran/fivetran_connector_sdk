@@ -1,8 +1,8 @@
-# This connector syncs SAP Ariba purchase orders using the SAP Ariba API.
-# It defines 'update' and 'schema' methods to fetch and upsert purchase order and item data into Fivetran destinations.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
-
+"""
+    This connector demonstrates how to fetch purchase order data from the SAP Ariba API and upsert it into a Fivetran destination using the Connector SDK.
+    See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+    and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
@@ -24,40 +24,44 @@ __MAX_RETRIES = 3
 __RETRY_DELAY = 3  # seconds
 __BASE_URL = "https://sandbox.api.sap.com/ariba/api/purchase-orders/v1/sandbox/"
 __RECORDS_PER_PAGE = 100
-__EPOCH_START_DATE = "1970-01-01T00:00:00Z"
 __LAST_UPDATED_AT = "last_updated_at"
 __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing every 1000 rows
 __PAGE_OFFSET = "$skip"
 
 
-# Define the schema function which lets you configure the schema your connector delivers.
-# See the technical reference documentation for more details on the schema function:
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-# The schema function takes one parameter:
-# - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
     return [
         {
             "table": "order",  # Name of the table in the destination.
-            "primary_key": ["payload_id", "revision", "row_id"],
+            "primary_key": ["payloadId", "revision", "rowId"],
             "columns": get_order_columns(),  # Define the columns and their data types.
         },
         {
             "table": "item",  # Name of the table in the destination.
-            "primary_key": ["document_number", "line_number", "row_id"],
+            "primary_key": ["documentNumber", "lineNumber", "rowId"],
             "columns": get_item_columns(),  # Define the columns and their data types.
         },
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+    validate_configuration(configuration)
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
@@ -78,6 +82,19 @@ def update(configuration: dict, state: dict):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
+
+def validate_configuration(configuration: dict) -> None:
+    """
+    Validate the configuration dictionary to ensure all required fields are present.
+    Args:
+        configuration: A dictionary containing connection details.
+    Raises:
+        ValueError: If any required configuration value is missing.
+    """
+    required_keys = ["api_key"]
+    for key in required_keys:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
@@ -107,7 +124,7 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
         for item in items:
             count += 1
             values = filter_columns(item, allowed_columns)
-            values["row_id"] = count
+            values["rowId"] = count
             values["last_updated_at"] = sync_start
 
             # The 'upsert' operation is used to insert or update data in a table.
@@ -115,12 +132,12 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
             # The second argument is a dictionary containing the data to be upserted,
             op.upsert(table=table_name, data=values)
 
-            if count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
+        if count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
             if record_count and count >= record_count:
                 break
@@ -141,7 +158,7 @@ def convert_to_iso(date_str):
     try:
         dt = datetime.strptime(date_str, "%d %b %Y %I:%M:%S %p")
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except Exception:
+    except ValueError:
         return date_str  # fallback if it’s already ISO
 
 
@@ -156,7 +173,7 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
     """
     filtered = {}
     for col in allowed_columns.keys():
-        if col == "row_id":
+        if col == "rowId":
             continue
         if allowed_columns[col] == "UTC_DATETIME":
             filtered[col] = convert_to_iso(record.get(col))
@@ -167,11 +184,12 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
 
 def sync_orders(params, headers, state, sync_start):
     """
-    This function fetches all rows for a table with pagination
-    Args: params: API request parameters
-          headers: API request headers
-          state: State dictionary to track sync progress
-          sync_start: Timestamp of the current sync start
+    This function fetches all rows for a table with pagination.
+    Args:
+        params: API request parameters.
+        headers: API request headers.
+        state: State dictionary to track sync progress.
+        sync_start: Timestamp of the current sync start.
     """
     table_name = "order"
 
@@ -192,11 +210,12 @@ def sync_orders(params, headers, state, sync_start):
 
 def sync_items(params, headers, state, sync_start):
     """
-    This function fetches all rows for the 'item' table with pagination
-    Args: params: API request parameters
-          headers: API request headers
-          state: State dictionary to track sync progress
-          sync_start: Timestamp of the current sync start
+    This function fetches all rows for the 'item' table with pagination.
+    Args:
+        params: API request parameters.
+        headers: API request headers.
+        state: State dictionary to track sync progress.
+        sync_start: Timestamp of the current sync start.
     """
     table_name = "item"
 
@@ -239,18 +258,18 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Rate limit hit. Retrying in {wait}s...")
                 time.sleep(wait)
             elif 400 <= response.status_code < 500:
-                raise Exception(f"Client error: ({response.status_code}): {response.text}")
+                raise response.raise_for_status()  # Raises requests.HTTPError for client errors
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
             else:
-                raise Exception(
-                    f"Unexpected HTTP status code {response.status_code} for URL {url} with params {params}. Response body: {response.text}"
+                raise requests.HTTPError(
+                    f"Unexpected HTTP status code {response.status_code} for URL {url} with params {params}. Response body: {response.text}", response=response
                 )
         except requests.RequestException as e:
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
-    raise Exception(f"Failed to fetch {url} after {retries} retries")
+    raise requests.RequestException(f"Failed to fetch {url} after {retries} retries")
 
 
 def get_order_columns():
@@ -277,7 +296,7 @@ def get_order_columns():
         "numberOfInvoices": "INT",
         "invoiced_amount": "DOUBLE",
         "company_code": "STRING",
-        "row_id": "INT",
+        "rowId": "INT",
     }
 
 
@@ -307,7 +326,7 @@ def get_item_columns():
         "itemLocation": "STRING",
         "requestedDeliveryDate": "UTC_DATETIME",
         "requestedShipmentDate": "UTC_DATETIME",
-        "row_id": "INT",
+        "rowId": "INT",
     }
 
 
@@ -325,13 +344,3 @@ if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
     connector.debug(configuration=configuration)
 
-
-# Fivetran debug results
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 859
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 2
-# Checkpoints     | 3
