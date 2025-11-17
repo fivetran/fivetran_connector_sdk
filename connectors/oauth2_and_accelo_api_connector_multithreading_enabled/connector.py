@@ -123,7 +123,7 @@ def update(configuration: dict, state: dict):
             f"Update process completed. Total time: {update_duration:.2f} seconds. Final state: {thread_local_state.state}"
         )
     except Exception as e:
-        log.severe(f"Update process failed: {str(e)}")
+        log.severe("Update process failed", e)
 
 
 def sync_entity(
@@ -189,7 +189,7 @@ def sync_entity(
                 )
                 return entities
             except Exception as e:
-                log.severe(f"Error fetching {entity_name} data for page {page}: {str(e)}")
+                log.severe(f"Error fetching {entity_name} data for page {page}", e)
                 return []
 
         page = 0
@@ -243,8 +243,7 @@ def sync_entity(
         )
 
     except Exception as e:
-        log.severe(f"Unhandled exception during sync of {entity_name}: {str(e)}")
-        log.severe(f"Exception details: {type(e).__name__}: {str(e)}")
+        log.severe(f"Unhandled exception during sync of {entity_name}", e)
         import traceback
 
         log.severe(f"Traceback: {traceback.format_exc()}")
