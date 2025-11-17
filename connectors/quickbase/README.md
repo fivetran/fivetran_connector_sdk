@@ -1,4 +1,4 @@
-# Quickbase API Connector
+# Quickbase API Connector Example
 
 This connector provides comprehensive Quickbase application and data synchronization into your data warehouse for business process analysis, application data management, and operational insights. It leverages Quickbase's REST API to extract applications, tables, fields, and records data for comprehensive business intelligence and analytics.
 
@@ -43,8 +43,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "retry_attempts": "3",
   "enable_incremental_sync": "true",
   "enable_fields_sync": "true",
-  "enable_records_sync": "true",
-  "date_field_for_incremental": "3",
+  "enable_records_sync": "true"
 }
 ```
 
@@ -62,7 +61,6 @@ Optional configuration keys:
 - `enable_incremental_sync`: Enable incremental sync (true/false, default: true)
 - `enable_fields_sync`: Enable field metadata sync (true/false, default: true)
 - `enable_records_sync`: Enable record data sync (true/false, default: true)
-- `date_field_for_incremental`: Field ID for incremental sync filtering (default: 3)
 
 ## Requirements file
 

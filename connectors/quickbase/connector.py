@@ -21,6 +21,8 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+# For type hinting
 from typing import Dict, List, Any
 
 # Import helper modules
