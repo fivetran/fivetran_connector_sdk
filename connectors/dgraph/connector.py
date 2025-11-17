@@ -242,7 +242,7 @@ def update(configuration: dict, state: dict):
         log.info(f"Sync completed successfully at {state['last_sync_timestamp']}")
 
     except Exception as e:
-        log.severe(f"Failed to sync data from Dgraph: {str(e)}")
+        log.severe("Failed to sync data from Dgraph", e)
         raise RuntimeError(f"Failed to sync data: {str(e)}") from e
 
 
@@ -288,13 +288,13 @@ def sync_schema_metadata(admin_endpoint: str, api_key: str, state: dict):
             log.warning("Unable to retrieve schema from Dgraph")
 
     except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
-        log.severe(f"Network error syncing schema metadata: {str(e)}")
+        log.severe("Network error syncing schema metadata", e)
         raise
     except ValueError as e:
-        log.severe(f"JSON parsing error syncing schema metadata: {str(e)}")
+        log.severe("JSON parsing error syncing schema metadata", e)
         raise
     except Exception as e:
-        log.severe(f"Unexpected error syncing schema metadata: {str(e)}")
+        log.severe("Unexpected error syncing schema metadata", e)
         raise
 
 
@@ -379,7 +379,7 @@ def sync_entity(
             requests.Timeout,
             ValueError,
         ) as e:
-            log.severe(f"Error syncing {entity_name} at offset {offset}: {str(e)}")
+            log.severe(f"Error syncing {entity_name} at offset {offset}", e)
             raise
 
     # Update state with the most recent timestamp
@@ -808,7 +808,7 @@ def execute_graphql_query(endpoint: str, query: str, api_key: str):
             if hasattr(e, "response") and e.response is not None and e.response.status_code >= 500:
                 handle_retry_logic(attempt, e)
             else:
-                log.severe(f"HTTP error: {str(e)}")
+                log.severe("HTTP error", e)
                 raise
 
         # Removed generic exception catch block to comply with SDK best practices.
