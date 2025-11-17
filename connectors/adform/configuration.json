@@ -4,6 +4,5 @@
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
   "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>"
 }

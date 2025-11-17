@@ -40,7 +40,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "max_records_per_page" (optional): "<YOUR_MAX_RECORDS_PER_PAGE>",
   "request_timeout_seconds" (optional): "<YOUR_REQUEST_TIMEOUT_SECONDS>",
   "retry_attempts" (optional): "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>"
 }
 ```
 
@@ -53,7 +52,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - `max_records_per_page`: Maximum records per API page (1-1000, default: 100)
 - `request_timeout_seconds`: API request timeout in seconds (default: 30)
 - `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable incremental sync (true/false, default: true)
 
 ## Requirements file
 
