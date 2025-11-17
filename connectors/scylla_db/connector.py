@@ -1,14 +1,13 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# Imports classes and constants from the `cassandra.cluster` module, which provides
-# the main interface for connecting to and interacting with an Apache Cassandra cluster.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+This connector demonstrates how to fetch data from a ScyllaDB cluster using the Cassandra driver and upsert it into a Fivetran destination using the Connector SDK.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
 
-
-from cassandra.cluster import Cluster, ExecutionProfile, EXEC_PROFILE_DEFAULT
-from cassandra.policies import DCAwareRoundRobinPolicy, TokenAwarePolicy
-from cassandra.auth import PlainTextAuthProvider
-from datetime import datetime, timedelta, timezone
+from cassandra.cluster import Cluster, ExecutionProfile, EXEC_PROFILE_DEFAULT  # Core Cassandra driver classes to create a cluster and define/load an execution profile
+from cassandra.policies import DCAwareRoundRobinPolicy, TokenAwarePolicy  # Load-balancing policies for distributing queries across nodes in a specific data center
+from cassandra.auth import PlainTextAuthProvider  # Auth provider used to pass username/password credentials to Cassandra
+from datetime import datetime, timedelta, timezone  # Date/time utilities for incremental cursors, TTL windows, and UTC-safe timestamps
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -20,8 +19,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import required libraries
-import json
+import json # For reading configuration from JSON file
 
 __CHECKPOINT_INTERVAL = 1000
 __INTERVAL_HOURS = 6
@@ -43,15 +41,28 @@ def validate_configuration(configuration: dict):
     log.info("Configuration validation passed.")
 
 def get_cluster(configuration: dict):
+    """
+    Create and return a Cassandra Cluster object using the provided configuration.
+    Args:
+        configuration (dict): A dictionary containing the connection parameters, including host(s), port, username, password, and other cluster settings.
+    Returns:
+        Cluster: An instance of the Cassandra Cluster class, connected using the provided configuration.
+    Raises:
+        Exception: If there is an error while connecting to the cluster.
+    """
     try:
-        profile = ExecutionProfile(load_balancing_policy=TokenAwarePolicy(DCAwareRoundRobinPolicy(local_dc='AWS_US_EAST_1')))
-        return Cluster(
-        execution_profiles={EXEC_PROFILE_DEFAULT: profile},
-        contact_points=[
-            configuration.get("host_1"), configuration.get("host_2"), configuration.get("host_3")
-        ],
-        port=configuration.get("port", 9042),
-        auth_provider = PlainTextAuthProvider(username=configuration.get("username"), password=configuration.get("password")))
+        data_center_region = configuration.get("data_center_region", "AWS_US_EAST_1")
+        profile = ExecutionProfile(load_balancing_policy=TokenAwarePolicy(DCAwareRoundRobinPolicy(data_center_region)))
+
+        cluster = Cluster(
+            execution_profiles={EXEC_PROFILE_DEFAULT: profile},
+            contact_points=[
+                configuration.get("host_1"), configuration.get("host_2"), configuration.get("host_3")
+            ],
+            port=configuration.get("port", 9042),
+            auth_provider=PlainTextAuthProvider(username=configuration.get("username"), password=configuration.get("password"))
+        )
+
         log.info('Connecting to cluster')
         return cluster
     except Exception as e:
@@ -59,10 +70,22 @@ def get_cluster(configuration: dict):
         raise e
 
 def cluster_shutdown(cluster):
+    """
+    Shut down the provided Cassandra cluster connection and log the shutdown event.
+    Args:
+        cluster: The Cassandra Cluster object to be shut down.
+    """
     cluster.shutdown()
     log.info('Cluster shutdown')
 
 def schema(configuration: dict):
+    """
+     Define the schema function which lets you configure the schema your connector delivers.
+     See the technical reference documentation for more details on the schema function:
+     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+     Args:
+         configuration: a dictionary that holds the configuration settings for the connector.
+     """
     schema = []
 
     cluster = get_cluster(configuration)
@@ -86,30 +109,55 @@ def schema(configuration: dict):
     return schema
 
 def get_tables(session, keyspace: str):
-    # Fetch all table names in the specified keyspace
-    rows = session.execute(f"SELECT table_name FROM system_schema.tables WHERE keyspace_name='{keyspace}';")
+    """
+    Fetch all table names in the specified keyspace.
+    Args:
+        session: The Cassandra/Scylla session object used to execute queries.
+        keyspace (str): The name of the keyspace to retrieve tables from.
+    Returns:
+        list: A list of table names (strings) in the specified keyspace.
+    """
+    # Fetch all table names in the specified keyspace using a parameterized query to prevent SQL injection
+    rows = session.execute("SELECT table_name FROM system_schema.tables WHERE keyspace_name=%s;", (keyspace,))
     tables = [row.table_name for row in rows]
     return tables
 
 def get_primary_keys(session, keyspace, table):
-    # Get columns and their kinds (partition_key, clustering, regular)
-    columns = session.execute(f"""
+    """
+    Retrieve the primary key columns (partition and clustering keys) for a given table in the specified keyspace.
+    Args:
+        session: The Cassandra/Scylla session object used to execute queries.
+        keyspace: The name of the keyspace containing the table.
+        table: The name of the table for which to retrieve primary key columns.
+    Returns:
+        A list of column names that make up the primary key (partition and clustering keys) for the table.
+    """
+
+    query = """
     SELECT column_name, kind
     FROM system_schema.columns
-    WHERE keyspace_name='{keyspace}' AND table_name='{table}'
-    """)
+    WHERE keyspace_name=%s AND table_name=%s
+    """
+    columns = session.execute(query, (keyspace, table))
     pk_columns = [col.column_name for col in columns if col.kind in ('partition_key', 'clustering')]
-
     return pk_columns
 
 def get_all_columns(session, keyspace, table):
-    # Fetch columns metadata (some Scylla versions use type_name instead of type)
-    query = f"""
+    """
+    Fetch all columns and their data types for a given table in a keyspace.
+    Args:
+        session: The Cassandra/Scylla session object used to execute queries.
+        keyspace (str): The name of the keyspace containing the table.
+        table (str): The name of the table whose columns are to be fetched.
+    Returns:
+        dict: A dictionary mapping column names to Fivetran-compatible data types.
+    """
+    query = """
         SELECT column_name, kind, type
         FROM system_schema.columns
-        WHERE keyspace_name='{keyspace}' AND table_name='{table}'
+        WHERE keyspace_name=%s AND table_name=%s
     """
-    columns = session.execute(query)
+    columns = session.execute(query, (keyspace, table))
 
     col_map = {}
 
@@ -118,8 +166,7 @@ def get_all_columns(session, keyspace, table):
         data_type = scylla_to_fivetran_type(getattr(col, "type", None) or "text")
         col_map[col.column_name] = data_type
 
-    schema_map = col_map
-    return schema_map
+    return col_map
 
 def scylla_to_fivetran_type(scylla_type: str) -> str:
     type_mapping = {
@@ -147,6 +194,15 @@ def scylla_to_fivetran_type(scylla_type: str) -> str:
     return type_mapping.get(scylla_type, "STRING")  # Default to STRING if type not found
 
 def update(configuration: dict, state: dict):
+    """
+      Define the update function, which is a required function, and is called by Fivetran during each sync.
+     See the technical reference documentation for more details on the update function
+     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+     Args:
+         configuration: A dictionary containing connection details
+         state: A dictionary containing state information from previous runs
+         The state dictionary is empty for the first sync or for any full re-sync
+     """
     try:
         validate_configuration(configuration)
     except ValueError as ve:
@@ -165,14 +221,19 @@ def update(configuration: dict, state: dict):
         session.set_keyspace(keyspace)
         tables = get_tables(session, keyspace)
 
-        sync_start = datetime.now()
+        sync_start = datetime.now(timezone.utc)
 
         for table in tables:
             sync_table(session, state, keyspace, table, sync_start)
             if state.get(table) is None:
                 state[table] = {}
             state[table]["last_updated_at"] = datetime.strftime(sync_start, "%Y-%m-%d %H:%M:%S")
-            op.checkpoint(state=state)
+
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
     except Exception as e:
         log.severe(f"Error during update: {e}")
@@ -181,6 +242,17 @@ def update(configuration: dict, state: dict):
     cluster_shutdown(cluster)
 
 def sync_table(session, state: dict, keyspace: str, table: str, sync_start):
+    """
+    Synchronize a single table from ScyllaDB to the destination.
+    Args:
+        session: The Cassandra/ScyllaDB session object used to execute queries.
+        state: A dictionary holding the connector's state, including last sync timestamps.
+        keyspace: The keyspace containing the table to sync.
+        table: The name of the table to synchronize.
+        sync_start: The datetime object representing the upper bound of the sync window.
+    This function fetches records from the specified table in time intervals, upserts them into the destination,
+    and checkpoints progress at regular intervals.
+    """
     columns = get_all_columns(session, keyspace, table)
     count = 0
     columns_clause = get_columns_clause(columns)
@@ -190,7 +262,6 @@ def sync_table(session, state: dict, keyspace: str, table: str, sync_start):
     start_time = datetime.strptime(last_updated, "%Y-%m-%d %H:%M:%S")
 
     while start_time < sync_start:
-        results = []
         end_time = min(start_time + timedelta(hours=__INTERVAL_HOURS), sync_start)
         log.info(f"Querying {table} from {start_time} to {end_time}, executing query is:'{data_fetch_query}'")
 
@@ -200,17 +271,24 @@ def sync_table(session, state: dict, keyspace: str, table: str, sync_start):
         rows = session.execute(data_fetch_query,
         [start_time_dt, end_time_dt])
 
-        results.extend(rows)
-
-        log.info(f"Number of rows fetched: {len(results)}")
-        for row in results:
+        log.info(f"Number of rows fetched: {len(rows)}")
+        for row in rows:
             row_dict = dict(row._asdict())
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted
             op.upsert(table, row_dict)
             count += 1
 
             if count % __CHECKPOINT_INTERVAL == 0:
-                op.checkpoint()
-                print(f"Processed {count} records for {table}")
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+                log.info(f"Processed {count} records for {table}")
 
         start_time = end_time
 
@@ -253,13 +331,3 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
-
-# Fivetran Debug Results
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 112
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 3
-# Checkpoints     | 3
