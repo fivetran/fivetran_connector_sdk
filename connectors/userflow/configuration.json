@@ -1,5 +1,5 @@
 {
-  "userflow_api_key": "ak_us1_q3kdeplzjfar3n5zg7ep3ohiq4",
-  "base_url": "https://api.userflow.com",
-  "page_size": "100"
+  "userflow_api_key": "<YOUR_USERFLOW_API_KEY>",
+  "base_url": "\"<https://api.userflow.com>\"",
+  "page_size": "\"<100>\""
 }
