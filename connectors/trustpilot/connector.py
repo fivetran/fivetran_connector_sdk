@@ -23,9 +23,10 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for API interactions
+import random
 import requests
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 
 _INVALID_LITERAL_ERROR = "invalid literal"
