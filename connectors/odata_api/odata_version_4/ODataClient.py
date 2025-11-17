@@ -138,8 +138,8 @@ class ODataClient:
                 current_value = item[column]
                 if state_var not in self.state or current_value > self.state[state_var]:
                     self.state[state_var] = current_value
-            except KeyError:
-                log.severe(f"{column} not found in the fetched data")
+            except KeyError as e:
+                log.severe(f"{column} not found in the fetched data", e)
 
     def _upsert_formatted_data(self, formatted_data, table, update_state):
         """Upsert the formatted data and update the state tracker."""
@@ -344,7 +344,7 @@ class ODataClient:
                 self._process_batch_part(part=part, part_index=i)
 
         except Exception as e:
-            log.severe(f"Failed to process batch response: {str(e)}")
+            log.severe(f"Failed to process batch response.", e)
             raise
 
     def _process_batch_part(self, part, part_index: int):
