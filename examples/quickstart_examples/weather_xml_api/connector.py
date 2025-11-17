@@ -235,7 +235,7 @@ def update(configuration: dict, state: dict):
                 log.info(f"Skipping observation for {station_code} - not newer than cursor")
 
         except Exception as e:
-            log.severe(f"Error processing station {station_code}: {str(e)}")
+            log.severe(f"Error processing station {station_code}", e)
             raise
 
     # Update state with the latest observation time

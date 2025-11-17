@@ -119,7 +119,7 @@ def make_api_request(url: str, headers: dict):
                 time.sleep(delay)
                 continue
             else:
-                log.severe(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
+                log.severe(f"Network error after {__MAX_RETRIES} attempts", e)
                 raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
     return None
 
