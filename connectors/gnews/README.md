@@ -27,11 +27,13 @@ The `configuration.json` file provides the GNews credentials and query parameter
 ```json
 {
     "api_key": "<INSERT_YOUR_GNEWS_API_KEY>",
-    "search_term": "<INSERT_SEARCH_TERM>"
+    "search_term": "<INSERT_SEARCH_TERM>",
+    "from_date": "<INSERT_HISTORICAL_BACKLOG_DATE>"
 }
 ```
 - `api_key` (required): Your GNews API key
 - `search_query`(required): The query you are looking to get data on
+- `from_date` (required): How far back the historical sync will go
 
 Note: Ensure that `configuration.json` is not committed to version control.  
 
