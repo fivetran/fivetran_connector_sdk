@@ -4,7 +4,7 @@ show-source = true
 statistics = false
 doctests = true
 select = C,E,F,W,B,B950
-extend-ignore = E203, E501, B008
+extend-ignore = E203, E501, B008, W503
 exclude = .git,__pycache__,.mypy_cache,.pytest_cache
 per-file-ignores =
     tests/*:D102,D104,F401
