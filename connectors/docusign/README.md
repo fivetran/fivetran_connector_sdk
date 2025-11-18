@@ -6,14 +6,6 @@ This connector syncs data from the DocuSign eSign REST API to your destination, 
 
 The DocuSign connector fetches electronic signature data from your DocuSign account using the eSign REST API. It extracts envelope metadata, recipient information, document details, and template definitions. The connector supports both initial full syncs and incremental updates based on modification timestamps. Data is processed using memory-efficient streaming patterns to handle large volumes without resource exhaustion.
 
-Key capabilities include:
-- Envelope management: Complete envelope lifecycle tracking including status changes, timestamps, and custom fields
-- Recipient tracking: Detailed recipient information with signing status, delivery confirmations, and custom tabs
-- Document metadata: Document properties, signatures locations, and download references
-- Template synchronization: Template definitions, sharing settings, and folder organization
-- Incremental sync: Timestamp-based incremental updates to minimize API usage and sync time
-- Memory efficiency: Generator-based processing prevents memory accumulation with large datasets
-
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
@@ -26,7 +18,18 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
+Key capabilities include:
+- Envelope management: Complete envelope lifecycle tracking including status changes, timestamps, and custom fields
+- Recipient tracking: Detailed recipient information with signing status, delivery confirmations, and custom tabs
+- Document metadata: Document properties, signatures locations, and download references
+- Template synchronization: Template definitions, sharing settings, and folder organization
+- Incremental sync: Timestamp-based incremental updates to minimize API usage and sync time
+- Memory efficiency: Generator-based processing prevents memory accumulation with large datasets
+
 ### Core data entities
+
+The connector retrieves data on the following entities:
+
 - Envelopes: Retrieved via `get_envelopes` function with comprehensive metadata and status tracking
 - Recipients: Processed with `__map_recipient_data` function covering all recipient types (signers, carbon copies, etc.)
 - Documents: Handled through `__map_document_data` function with signature location tracking
@@ -151,29 +154,12 @@ The connector implements comprehensive error handling with specialized functions
 
 The connector creates four main tables with automatic column type inference:
 
-### ENVELOPES
-Primary key: `envelope_id`
-
-Column types are automatically inferred by Fivetran based on data content. Sample columns include:
-- envelope_id, account_id, subject, status, created_date_time, sent_date_time, completed_date_time, sender_email, sender_name, custom_fields, notification, email_settings, synced_at
-
-### RECIPIENTS
-Primary key: `recipient_id`, `envelope_id`
-
-Column types are automatically inferred by Fivetran. Sample columns include:
-- recipient_id, envelope_id, account_id, recipient_type, email, name, status, routing_order, signed_date_time, delivered_date_time, tabs, custom_fields, synced_at
-
-### DOCUMENTS
-Primary key: `document_id`, `envelope_id`
-
-Column types are automatically inferred by Fivetran. Sample columns include:
-- document_id, envelope_id, account_id, name, type, uri, order, pages, display, signature_locations, synced_at
-
-### TEMPLATES
-Primary key: `template_id`
-
-Column types are automatically inferred by Fivetran. Sample columns include:
-- template_id, account_id, name, description, shared, uri, created, last_modified, last_modified_by, owner, folder_id, synced_at
+| Table | Primary Key | Sample Columns |
+|-------|-------------|-------------|
+| `ENVELOPES` | `envelope_id` | `envelope_id`, `account_id`, `subject`, `status`, `created_date_time`, `sent_date_time`, `completed_date_time`, `sender_email`, `sender_name`, `custom_fields`, `notification`, `email_settings`, `synced_at` |
+| `RECIPIENTS` | Composite primary key: `recipient_id`, `envelope_id` | `recipient_id`, `envelope_id`, `account_id`, `recipient_type`, `email`, `name`, `status`, `routing_order`, `signed_date_time`, `delivered_date_time`, `tabs`, `custom_fields`, `synced_at` |
+| `DOCUMENTS` | Composite primary key: `document_id`, `envelope_id` | `document_id`, `envelope_id`, `account_id`, `name`, `type`, `uri`, `order`, `pages`, `display`, `signature_locations`, `synced_at` |
+| `TEMPLATES` | `template_id` | `template_id`, `account_id`, `name`, `description`, `shared`, `uri`, `created`, `last_modified`, `last_modified_by`, `owner`, `folder_id`, `synced_at` |
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
