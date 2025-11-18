@@ -39,9 +39,13 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-from typing import Any, Dict, List, Optional, Tuple
+# For type hints and annotations
+from typing import Any, Dict, List, Optional, Tuple 
+# For implementing retry delays in exponential backoff
 import time
+# For adding jitter to retry delays
 import random
+# For making HTTP requests to the GNews API
 import requests
 
 __NEWSAPI_ENDPOINT = "https://newsapi.org/v2/everything"
@@ -357,3 +361,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
