@@ -87,10 +87,6 @@ def schema(configuration: dict):
             "table": "competitor_performance",  # Aggregated competitor metrics
             # No primary key specified; Fivetran will create _fivetran_id
         },
-        {
-            "table": "daily_citations",  # Aggregated daily citations
-            # No primary key specified; Fivetran will create _fivetran_id
-        },
     ]
 
 
