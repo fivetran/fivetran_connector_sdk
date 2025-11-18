@@ -131,10 +131,7 @@ def update(configuration: dict, state: dict):
                 log.info(f"Checkpoint saved at skip offset: {new_state['skip']}")
 
             # Warn if approaching API limit
-            if (
-                current_skip + len(results) > __MAX_SKIP
-                and current_skip + len(results) < total_results
-            ):
+            if __MAX_SKIP < current_skip + len(results) < total_results:
                 log.warning(
                     f"API limit will be reached on the next iteration. Maximum skip value is {__MAX_SKIP}. Retrieved {records_processed} of {total_results} total records. Refine your search criteria to get specific records."
                 )
