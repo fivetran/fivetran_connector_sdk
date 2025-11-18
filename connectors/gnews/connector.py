@@ -186,7 +186,7 @@ def fetch_news_page(
             if resp.status_code in status_forcelist:
                 if attempt <= retries:
                     sleep_s = backoff_factor * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
-                    log.info(f"Transient HTTP {resp.status_code}. Retrying in {sleep_s:.2f}s...")
+                    log.warning(f"Transient HTTP {resp.status_code}. Retrying in {sleep_s:.2f}s...")
                     time.sleep(sleep_s)
                     continue
                 else:
@@ -229,7 +229,7 @@ def fetch_news_page(
             # Handle connection/timeout errors with exponential retry.
             if attempt <= retries:
                 sleep_s = backoff_factor * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
-                log.info(f"Network error: {e}. Retrying in {sleep_s:.2f}s...")
+                log.warning(f"Network error: {e}. Retrying in {sleep_s:.2f}s...")
                 time.sleep(sleep_s)
                 continue
             raise
@@ -361,5 +361,6 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
 
 
