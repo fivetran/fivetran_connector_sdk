@@ -32,7 +32,7 @@ The `configuration.json` file provides the GNews credentials and query parameter
 }
 ```
 - `api_key` (required): Your GNews API key
-- `search_query`(required): The query you are looking to get data on
+- `search_term` (required): The query you are looking to get data on
 - `from_date` (required): How far back the historical sync will go
 
 Note: Ensure that `configuration.json` is not committed to version control.  
