@@ -87,7 +87,7 @@ The `get_all_responses` function handles pagination.
 
 - Flattening: `flatten_response` transforms data for destination compatibility:
   - Preserves scalar fields.
-  - Converts lists to delimited strings using `LIST_JOINER = " | "`.
+  - Converts lists to delimited strings using `__LIST_JOINER = " | "`.
   - Serializes `citations` to a JSON string (`citations_json`) to retain structure without array types.
 
 - Aggregates: Each aggregate helper builds `fields`/`group_by` and upserts rows as returned by the API; no additional type casting is performed in this example.
