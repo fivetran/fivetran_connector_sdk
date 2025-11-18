@@ -67,9 +67,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 - Configuration validation:  
   `validate_configuration` raises if required fields are missing.
 
-- GNews plan-limit messages:  
-  If the response includes `information` (e.g., “real-time news available only on paid plans”) or `articlesRemovedFromResponse` (e.g., “historical beyond 30 days”), the connector logs those messages for observability.
-
 ## Tables created
 **Summary of the table replicated**
 
