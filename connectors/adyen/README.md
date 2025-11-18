@@ -22,12 +22,12 @@ To set up and run this connector, follow the [Connector SDK Setup Guide](https:/
 
 ## Features
 
-- Payment data sync: Fetches payment transactions with comprehensive details including amount, status, payment method, and risk information (refer to `get_payments_data` function)
-- Modification tracking: Syncs payment modifications including captures, refunds, and cancellations with proper relationship mapping (refer to `get_modifications_data` function)
-- Webhook events: Captures webhook notifications for real-time payment status updates (refer to `get_webhooks_data` function)
+- Payment data sync: Fetches payment transactions with comprehensive details including amount, status, payment method, and risk information (refer to the `get_payments_data` function)
+- Modification tracking: Syncs payment modifications including captures, refunds, and cancellations with proper relationship mapping (refer to the `get_modifications_data` function)
+- Webhook events: Captures webhook notifications for real-time payment status updates (refer to the `get_webhooks_data` function)
 - Incremental sync: Supports time-based incremental syncing to fetch only new data since last sync
 - Memory efficiency: Uses generator-based streaming to process large datasets without memory accumulation
-- Error handling: Implements comprehensive retry logic with exponential backoff for rate limiting and network issues (refer to `execute_api_request` function)
+- Error handling: Implements comprehensive retry logic with exponential backoff for rate limiting and network issues (refer to the `execute_api_request` function)
 - Configuration validation: Automatic configuration validation provided by the Fivetran SDK
 - Data quality: Automatic field mapping and type conversion with JSON serialization for complex objects
 
@@ -53,19 +53,19 @@ To set up and run this connector, follow the [Connector SDK Setup Guide](https:/
 
 ### Configuration parameters
 
-- api_key (required): Your Adyen API key for authentication. Get this from your Adyen Customer Area under Developers > API credentials
-- merchant_account (required): The merchant account identifier provided by Adyen
-- environment: API environment to use - "test" for testing or "live" for production (default: "test")
-- enable_payments: Enable syncing payment transaction data (default: "true")
-- enable_modifications: Enable syncing payment modifications like refunds and captures (default: "true")
-- enable_webhooks: Enable syncing webhook event notifications (default: "true")
-- sync_frequency_hours: How often to run incremental syncs in hours (default: "4")
-- initial_sync_days: Number of days of historical data to fetch on first sync (default: "90")
-- max_records_per_page: Maximum records to fetch per API request (default: "100", range: 1-1000)
-- request_timeout_seconds: HTTP request timeout in seconds (default: "30", range: 1-300)
-- retry_attempts: Number of retry attempts for failed requests (default: "3", range: 1-10)
-- enable_incremental_sync: Enable incremental syncing based on timestamps (default: "true")
-- enable_debug_logging: Enable verbose debug logging for troubleshooting (default: "false")
+- `api_key` (required): Your Adyen API key for authentication. Get this from your Adyen Customer Area under **Developers** > **API credentials**
+- `merchant_account` (required): The merchant account identifier provided by Adyen
+- `environment`: API environment to use. Use `test` for testing or `live` for production (default: `test`)
+- `enable_payments`: Enable syncing payment transaction data (default: `true`)
+- `enable_modifications`: Enable syncing payment modifications like refunds and captures (default: `true`)
+- `enable_webhooks`: Enable syncing webhook event notifications (default: `true`)
+- `sync_frequency_hours`: How often to run incremental syncs in hours (default: `4`)
+- `initial_sync_days`: Number of days of historical data to fetch on first sync (default: `90`)
+- `max_records_per_page`: Maximum records to fetch per API request (default: `100`, range: 1-1000)
+- `request_timeout_seconds`: HTTP request timeout in seconds (default: `30`, range: 1-300)
+- `retry_attempts`: Number of retry attempts for failed requests (default: `3`, range: 1-10)
+- `enable_incremental_sync`: Enable incremental syncing based on timestamps (default: `true`)
+- `enable_debug_logging`: Enable verbose debug logging for troubleshooting (default: `false`)
 
 ## Requirements file
 
@@ -82,29 +82,16 @@ The Fivetran environment provides these dependencies automatically, so you don't
 
 ### Setting up Adyen API credentials
 
-1. Access your Adyen Customer Area:
-   - Log in to your Adyen Customer Area
-   - Navigate to **Developers > API credentials**
-
-2. Create or select API credentials:
-   - Create new API credentials or select existing ones
-   - Ensure the credentials have appropriate permissions for:
+1. Log in to your Adyen Customer Area.
+2. Go to **Developers > API credentials**.
+3. Generate API key. Ensure the credentials have appropriate permissions for:
      - Merchant Reporting API (for payment data)
      - Management API (for webhook configurations)
      - Checkout API (for payment details)
+4. Make a note of the API key - this will be your `api_key` configuration value in the `configuration.json`.
+5. Find your merchant account in the Customer Area. You will need it for the `merchant_account` configuration value.
 
-3. Generate API key:
-   - Generate an API key from your API credentials
-   - Copy the API key - this will be your `api_key` configuration value
-
-4. Find your merchant account:
-   - Your merchant account identifier is shown in the Customer Area
-   - This identifier is required for the `merchant_account` configuration
-
-5. Environment setup:
-   - Use "test" environment for development and testing
-   - Use "live" environment for production data
-   - Different environments require different API credentials
+Note: Different environments (test or live) require different API credentials.
 
 ### Authentication method
 
@@ -112,9 +99,11 @@ The connector uses API key authentication via the `X-API-Key` header. All reques
 
 ## Pagination
 
-The connector implements cursor-based pagination to efficiently handle large datasets from Adyen's APIs. The pagination strategy varies by data type:
+The connector implements cursor-based pagination to efficiently handle large datasets from Adyen's APIs. 
 
-- Payment Data: Uses date-based filtering with configurable page sizes (refer to `get_payments_data` function)
+The pagination strategy varies by data type:
+
+- Payment data: Uses date-based filtering with configurable page sizes (refer to the `get_payments_data` function)
 - Modifications: Fetches modifications within date ranges with automatic pagination
 - Webhooks: Processes webhook events in chronological order with size limits
 
