@@ -3,14 +3,6 @@
 ## Connector overview
 This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination. The CWEs drive what CVEs get fetched.
 
-## Accreditation
-
-This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
-
-Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
-
-The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge**.
-
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
@@ -35,6 +27,7 @@ The connector requires the following configuration parameters in the `configurat
 
 ```json
 {
+  "api_key": "<YOUR_NVD_API_KEY>",
   "force_full_sync": "<ENABLE_FORCE_FULL_SYNC>",
   "write_temp_files": "<ENABLE_TEMP_FILE_WRITE>",
   "logging_level": "<YOUR_LOGGING_LEVEL>",
@@ -58,7 +51,13 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 This connector authenticates with the NVD 2.0 API using an API key. The key is provided in the `configuration.json` file and sent in the `apiKey` header of each request.
 
-To obtain an API key, you must register on the NVD website.
+To obtain an API key:
+1. Visit the [National Vulnerability Database website](https://nvd.nist.gov/developers/request-an-api-key).
+2. Click on "Request an API Key" and fill out the registration form.
+3. Check your email for the API key confirmation.
+4. Copy the API key and add it to your `configuration.json` file.
+
+Note: While an API key is optional, using one provides higher rate limits (50 requests per 30 seconds vs 5 requests per 30 seconds for public access).
 
 ## Pagination
 The connector handles pagination differently for full and incremental syncs, as detailed in the `update` function.
@@ -76,6 +75,8 @@ The connector fetches, processes, and delivers data to Fivetran as outlined in t
 ## Error handling
 The connector implements several error-handling strategies within the `update` function.
 - It checks the HTTP status code of each API response. If the status is not 200, it logs a `severe` error with details from the response and stops processing for that CWE.
+- If the API returns a 429 (rate limit exceeded) or 403 (forbidden) error, the connector logs a `severe` error and skips processing for that CWE. The connector does not retry these requests, as the NVD API does not provide a recommended backoff strategy for these errors.
+- To help prevent rate limiting, the connector applies a fixed delay of 0.6 seconds (`_API_RATE_LIMIT_DELAY`) between API requests. This delay is intended to keep requests within the NVD API's published rate limits, but if rate limits are still exceeded, the connector will log the error and skip the affected CWE.
 - It wraps the JSON decoding process in a `try...except` block to catch `json.JSONDecodeError` and logs a `severe` error if the response is not valid JSON.
 - A general `try...except` block is used to catch any other exceptions during the API request and processing loop, logging a `severe` error to prevent the entire sync from failing.
 
@@ -116,3 +117,11 @@ The connector creates two tables in the destination, as defined in the `schema` 
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+
+### Accreditation
+
+This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
+
+Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
+
+The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge**.
