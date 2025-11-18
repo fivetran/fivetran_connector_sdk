@@ -117,9 +117,7 @@ Summary of tables replicated.
 - metrics: `responses`.
 
 ## Additional files
-- `connector.py` – Contains all the core logic, including `schema`, `update`, `get_all_responses`, and all helper functions (`get_responses`, `flatten_response`, `get_scrunch_performance`, `get_competitor_performance`, `get_daily_citations`).
-- `configuration.json` – The file used for connector configuration, including `api_token` and `brand_id`.
-- `requirements.txt` – Specifies required third-party Python libraries (`python-dotenv`, `python_dateutil`).
+There are no additional files required for this connector.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
