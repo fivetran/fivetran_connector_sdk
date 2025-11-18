@@ -1,0 +1,5 @@
+{
+  "base_url": "<YOUR_JENKINS_URL>",
+  "username": "<YOUR_JENKINS_USERNAME>",
+  "api_token": "<YOUR_JENKINS_API_TOKEN>"
+}
