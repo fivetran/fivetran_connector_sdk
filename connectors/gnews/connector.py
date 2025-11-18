@@ -79,13 +79,13 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 
 def normalize_articles(page_json: Dict[str, Any], query: str) -> List[Dict[str, Any]]:
     """
-    Convert a NewsAPI response page into scalar-only rows.
+    Convert a GNews response page into scalar-only rows.
 
-    This function flattens nested JSON objects from the NewsAPI response
+    This function flattens nested JSON objects from the GNews response
     and sanitizes fields to make them safe for database upserts.
 
     Args:
-        page_json (dict): JSON response from NewsAPI for one page.
+        page_json (dict): JSON response from GNews for one page.
         query (str): The search term used in the API request.
 
     Returns:
