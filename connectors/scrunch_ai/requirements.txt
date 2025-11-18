@@ -1,3 +1,2 @@
-python-dotenv
 python_dateutil
 requests
