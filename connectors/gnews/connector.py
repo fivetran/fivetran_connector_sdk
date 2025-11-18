@@ -1,8 +1,8 @@
 """
-This example shows how to pull recent news articles from the NewsAPI service
+This example shows how to pull recent news articles from the GNews API service
 and load them into a destination using the Fivetran Connector SDK.
 
-This Fivetran Connector uses the NewsAPI `/v2/everything` endpoint to retrieve
+This Fivetran Connector uses the GNewsAPI search endpoint to retrieve
 articles for a given search term and date range. This connector demonstrates:
 - Robust API communication with exponential backoff and retries for transient
   HTTP and network errors (e.g., 429, 5xx).
@@ -14,8 +14,8 @@ articles for a given search term and date range. This connector demonstrates:
   composite primary key of `url` and `publishedAt`.
 - Configurable parameters for search term, sorting, pagination, and date range.
 
-Refer to NewsAPI documentation for details:
-https://newsapi.org/docs/endpoints/everything
+Refer to GNews API documentation for details:
+https://docs.gnews.io/endpoints/search-endpoint
 
 See the Fivetran Connector SDK Technical Reference:
 https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -48,12 +48,12 @@ import random
 # For making HTTP requests to the GNews API
 import requests
 
-__NEWSAPI_ENDPOINT = "https://newsapi.org/v2/everything"
+__GNEWSAPI_ENDPOINT = "https://gnews.io/api/v4/search"
 
 # Default headers for API requests.
 # User-Agent and Accept headers prevent 426 (Upgrade Required) responses.
 __DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; NewsFetcher/1.0; +https://newsapi.org)",
+    "User-Agent": "Mozilla/5.0 (compatible; NewsFetcher/1.0; +https://gnews.io)",
     "Accept": "application/json",
 }
 
@@ -147,14 +147,14 @@ def fetch_news_page(
     page: int = 1,
     page_size: int = 100,
     sort_by: str = "popularity",
-    endpoint: str = __NEWSAPI_ENDPOINT,
+    endpoint: str = __GNEWSAPI_ENDPOINT,
     retries: int = 5,
     backoff_factor: float = 0.75,
     status_forcelist: Optional[set] = None,
     timeout: int = 20,
 ) -> Tuple[int, int, int]:
     """
-    Fetches one page of articles from the NewsAPI, normalizes the data,
+    Fetches one page of articles from the GNewsAPI, normalizes the data,
     and performs upserts into the destination table.
 
     Implements exponential backoff and retry logic for transient
@@ -163,7 +163,7 @@ def fetch_news_page(
     Args:
         query (str): Search keyword or phrase.
         from_date (str): Start date (YYYY-MM-DD) for filtering news.
-        api_key (str): NewsAPI authentication key.
+        api_key (str): GNewsAPI authentication key.
         page (int): The current page number to fetch.
         page_size (int): Number of articles per page (max 100).
         sort_by (str): Sorting method (e.g., 'popularity', 'publishedAt').
@@ -180,7 +180,7 @@ def fetch_news_page(
     if status_forcelist is None:
         status_forcelist = {426, 429, 500, 502, 503, 504}
 
-    # Define request parameters for NewsAPI query.
+    # Define request parameters for GNewsAPI query.
     params = {
         "q": query,
         "from": from_date,
@@ -194,7 +194,7 @@ def fetch_news_page(
     while True:
         attempt += 1
         try:
-            # Send the GET request to NewsAPI.
+            # Send the GET request to GNewsAPI.
             resp = requests.get(endpoint, headers=__DEFAULT_HEADERS, params=params, timeout=timeout)
 
             # Handle transient error codes with retries.
@@ -213,7 +213,7 @@ def fetch_news_page(
 
             data = resp.json()
             if data.get("status") != "ok":
-                raise RuntimeError(f"NewsAPI error: {data}")
+                raise RuntimeError(f"GNewsAPI error: {data}")
 
             # Extract and normalize article data.
             articles = data.get("articles", []) or []
@@ -257,7 +257,7 @@ def fetch_all_news(
     *,
     page_size: int = 100,
     sort_by: str = "popularity",
-    endpoint: str = __NEWSAPI_ENDPOINT,
+    endpoint: str = __GNEWSAPI_ENDPOINT,
     max_pages: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
@@ -274,7 +274,7 @@ def fetch_all_news(
         api_key (str): API key for authentication.
         page_size (int): Number of articles per page.
         sort_by (str): Sort order.
-        endpoint (str): NewsAPI endpoint.
+        endpoint (str): GNewsAPI endpoint.
         max_pages (int | None): Optional hard cap for paging.
 
     Returns:
@@ -346,7 +346,7 @@ def update(configuration: dict, state: dict):
     search_term = configuration["search_term"]
     from_date = configuration["from_date"]
 
-    # Perform the NewsAPI sync and log summary statistics.
+    # Perform the GNewsAPI sync and log summary statistics.
     result = fetch_all_news(search_term, from_date, api_key)
     log.info(
         f"Sync finished. pagesFetched={result['pagesFetched']} "
@@ -376,6 +376,7 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
 
 
 
