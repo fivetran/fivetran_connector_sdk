@@ -46,6 +46,20 @@ __CHECKPOINT_INTERVAL = 10
 __MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB file fetch limit
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["access_token", "base_url", "account_id"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your
@@ -218,15 +232,13 @@ def fetch_document_content(
     raise RuntimeError(f"Failed to make API request after {__MAX_RETRIES} attempts")
 
 
-def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str, Any]]:
+def fetch_envelopes(configuration: dict, state: Dict[str, Any]):
     """
     Fetch envelopes data with incremental sync support.
     Uses the last_modified_date from state for incremental updates.
     Args:
         configuration: A dictionary containing the connector configuration.
         state: A dictionary containing state information.
-    Returns:
-        A list of dictionaries representing envelopes.
     """
     base_url = get_base_url(configuration)
     headers = get_docusign_headers(configuration)
@@ -236,8 +248,8 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
         "count": __BATCH_SIZE,
     }
 
-    all_envelopes: List[Dict[str, Any]] = []
     start_position = 0
+    total_count = 0
 
     while True:
         params["start_position"] = start_position
@@ -250,7 +262,10 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
             if not envelopes:
                 break
 
-            all_envelopes.extend(envelopes)
+            for envelope in envelopes:
+                yield envelope
+
+            total_count += len(envelopes)
             start_position += len(envelopes)
 
             if len(envelopes) < params["count"]:
@@ -270,8 +285,7 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]) -> List[Dict[str
             log.severe(f"Failed to fetch envelopes: {exc}")
             raise RuntimeError(f"Failed to fetch envelopes: {exc}")
 
-    log.info(f"Fetched {len(all_envelopes)} envelopes")
-    return all_envelopes
+    log.info(f"Fetched {total_count} envelopes")
 
 
 def fetch_audit_events(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
@@ -774,7 +788,7 @@ def update(configuration: dict, state: Dict[str, Any]):
         state: A dictionary containing state information from previous runs
     """
     log.info("DocuSign: eSignature API Connector")
-
+    validate_configuration(configuration)
     try:
         if not state:
             state = {"last_sync_time": __DEFAULT_START_DATE}
@@ -783,19 +797,21 @@ def update(configuration: dict, state: Dict[str, Any]):
 
         # --- Process Envelopes and Related Data ---
         log.info(f"Fetching envelopes data at {current_time}")
-        envelopes = fetch_envelopes(configuration, state)
+        envelopes_generator = fetch_envelopes(configuration, state)
+        envelope_count = 0
 
-        for i, envelope in enumerate(envelopes):
+        for envelope in envelopes_generator:
             _process_envelope(configuration, envelope)
-            if (i + 1) % __CHECKPOINT_INTERVAL == 0:
-                log.info(f"Processed {i + 1} envelopes, checkpointing state.")
+            envelope_count += 1
+            if envelope_count % __CHECKPOINT_INTERVAL == 0:
+                log.info(f"Processed {envelope_count} envelopes, checkpointing state.")
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
                 # Learn more about how and where to checkpoint by reading our best practices documentation
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
 
-        log.info(f"Processed {len(envelopes)} envelopes and their related data.")
+        log.info(f"Total processed envelopes: {envelope_count}")
         # --- Process Templates ---
         _process_templates(configuration, state)
 
