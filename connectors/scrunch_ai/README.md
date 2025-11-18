@@ -51,14 +51,10 @@ Note: The `brand_id` is a value that you will be getting directly from Scrunch A
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-Example content of `requirements.txt`:
-python-dotenv
-python_dateutil
-requests
+The `requirements.txt` should contain the following packages:
+`python-dateutil`
 
-- `python-dotenv` is required to load environment variables from a `.env` file.
-- `python_dateutil` is needed to calculate rolling lookback windows.
-- `requests` is needed to get HTTP requests
+- `python-dateutil` is needed to calculate rolling lookback windows.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
