@@ -83,7 +83,7 @@ The Fivetran environment provides these dependencies automatically, so you don't
 ### Setting up Adyen API credentials
 
 1. Log in to your Adyen Customer Area.
-2. Go to **Developers > API credentials**.
+2. Go to **Developers** > **API credentials**.
 3. Generate API key. Ensure the credentials have appropriate permissions for:
      - Merchant Reporting API (for payment data)
      - Management API (for webhook configurations)
@@ -143,7 +143,7 @@ The error handling logic is modularized into focused helper functions to maintai
 
 The connector creates the following tables in your data warehouse. Column types are automatically inferred by Fivetran.
 
-### payments
+### PAYMENTS
 
 Primary key: `psp_reference`
 
@@ -163,7 +163,7 @@ Sample columns:
 - `auth_code`: Authorization code from processor
 - `additional_data`: JSON object with additional payment metadata
 
-### modifications
+### MODIFICATIONS
 
 Primary key: `psp_reference`
 
@@ -179,7 +179,7 @@ Sample columns:
 - `reason`: Reason for the modification (for refunds)
 - `additional_data`: JSON object with additional modification metadata
 
-### webhook_events
+### WEBHOOK_EVENTS
 
 Primary key: `psp_reference`, `event_code`, `event_date`
 
