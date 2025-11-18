@@ -45,7 +45,6 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Data handling
 - Normalization: `normalize_articles` flattens each `articles[*]` object and maps:
   - `image` → `urlToImage` (to keep parity with existing schema/column names)
-  - Adds pass-through fields: `gnews_id`, `lang`, `source_url`, `source_country`, plus `query`
   - Persists only scalar fields (nested values are JSON-encoded strings)
 
 - Upserts: Each record is written via `op.upsert(...)` to `news_stories`.
