@@ -60,13 +60,15 @@ The connector implements Resend's cursor-based pagination system using the `afte
 The Resend API returns emails sorted by creation date in descending order (newest first). This ordering is leveraged for efficient incremental syncing.
 
 ## Incremental sync
-The connector implements incremental syncing to efficiently fetch only new emails since the last sync. The strategy works as follows:
+The connector implements incremental syncing to efficiently fetch only new emails since the last sync. 
+
+The strategy works as follows:
 
 For the first sync, the connector fetches all emails using pagination and saves the newest (first) email ID to state. For subsequent syncs, the connector fetches emails starting from the newest and stops when it reaches the previously synced email ID. The state management stores the newest email ID from each sync in `files/state.json` for the next sync. Checkpointing creates checkpoints every 50 emails with the newest email ID for recovery.
 
 Since the Resend API returns emails sorted newest-first without date filtering, the connector reads pages from newest to oldest, stops pagination when encountering a previously synced email, and only upserts new emails to prevent duplicates. This approach ensures efficient incremental syncing without fetching the entire dataset on each run.
 
-Refer to the `sync_emails` function for the implementation.
+Note: Refer to the `sync_emails` function for the implementation.
 
 ## Data handling
 The connector processes email data from the `/emails` endpoint which contains email metadata including sender, recipients, subject, timestamps, and delivery status. All nested JSON structures are flattened using the `flatten_dict` function to create optimal table schemas. Arrays are converted to JSON strings for storage.
@@ -83,24 +85,24 @@ The connector implements comprehensive error handling strategies. Refer to the `
 - Graceful error logging without exposing sensitive information
 
 ## Tables created
-The connector creates a single table named `email` with the following schema:
+The connector creates a single table named `EMAIL` with the following columns:
 
 | Column Name | Type | Description |
 |------------|------|-------------|
-| id | STRING | Email ID (Primary Key) |
-| _from | STRING | Sender email address |
-| _to | STRING | Recipient email addresses (JSON array) |
-| subject | STRING | Email subject line |
-| created_at | STRING | Email creation timestamp |
-| last_event | STRING | Last email event status (delivered, bounced, complained, etc.) |
-| cc | STRING | CC recipients (JSON array) |
-| bcc | STRING | BCC recipients (JSON array) |
-| reply_to | STRING | Reply-to addresses (JSON array) |
-| scheduled_at | STRING | Scheduled send time (if applicable) |
+| `id` | STRING | Email ID (Primary Key) |
+| `_from` | STRING | Sender email address |
+| `_to` | STRING | Recipient email addresses (JSON array) |
+| `subject` | STRING | Email subject line |
+| `created_at` | STRING | Email creation timestamp |
+| `last_event` | STRING | Last email event status (delivered, bounced, complained, etc.) |
+| `cc` | STRING | CC recipients (JSON array) |
+| `bcc` | STRING | BCC recipients (JSON array) |
+| `reply_to` | STRING | Reply-to addresses (JSON array) |
+| `scheduled_at` | STRING | Scheduled send time (if applicable) |
 
 The table uses `id` as the primary key. The connector automatically infers additional column types from the API response data.
 
-Note: Detailed event tracking (opens, clicks, individual event timestamps) is not available through the List Emails API. Resend provides this data through webhooks, which is outside the scope of this connector.
+Note: Detailed event tracking (such as opens, clicks, individual event timestamps) is not available through the List Emails API. Resend provides this data through webhooks, which is outside the scope of this connector.
 
 ## Additional files
 The example includes additional utility files for testing and data population:
