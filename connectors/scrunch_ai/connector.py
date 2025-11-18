@@ -224,13 +224,9 @@ def get_all_responses(start_date, end_date, token, brand_id):
 
         for item in items:
             flat = flatten_response(item)
-            # The 'upsert' operation is used to insert or update data in the
-            # destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data
-            #   into.
-            # - The second argument is a dictionary containing the data to be
-            #   upserted
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="responses", data=flat)
 
         offset += limit
@@ -444,10 +440,12 @@ def update(configuration: dict, state: dict):
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Standard Python entry point for local testing
-# (not used by Fivetran in production)
-# Please test using the Fivetran debug command prior
-# to finalizing and deploying.
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your 
+# script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. 
+# Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
