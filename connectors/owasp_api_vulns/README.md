@@ -1,7 +1,7 @@
 # OWASP API Vulnerabilities Connector Example
 
 ## Connector overview
-This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination.
+This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination. The CWEs drive what CVEs get fetched.
 
 ## Accreditation
 
