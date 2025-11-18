@@ -24,9 +24,6 @@ import requests
 # For handling time operations and timestamps
 from datetime import datetime, timezone
 
-# For URL parameter encoding
-from urllib.parse import urlencode
-
 # For handling retries with exponential backoff
 import time
 
@@ -97,53 +94,61 @@ def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
     Returns:
         JSON response as a dictionary.
     """
+
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
+
         except requests.exceptions.HTTPError as e:
-            if response.status_code in [401, 403, 404]:
-                log.severe(f"Permanent API error {response.status_code}: {e}")
-                raise RuntimeError(f"API request failed with status {response.status_code}: {e}")
-            if response.status_code == 429:
-                if attempt == __MAX_RETRIES - 1:
-                    log.severe(f"Rate limit exceeded after {__MAX_RETRIES} attempts")
-                    raise RuntimeError("API rate limit exceeded")
-                sleep_time = min(__MAX_RETRY_DELAY_SECONDS, __RETRY_DELAY_SECONDS * (2**attempt))
-                log.warning(
-                    f"Rate limited. Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
-                )
-                time.sleep(sleep_time)
-                continue
-            if attempt == __MAX_RETRIES - 1:
-                log.severe(f"API request failed after {__MAX_RETRIES} attempts: {e}")
-                raise RuntimeError(f"API request failed: {e}")
-            sleep_time = min(__MAX_RETRY_DELAY_SECONDS, __RETRY_DELAY_SECONDS * (2**attempt))
-            log.warning(f"Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s due to: {e}")
-            time.sleep(sleep_time)
+            last_error = e
+            status_code = e.response.status_code if hasattr(e, "response") else None
+
+            # Fail fast on permanent errors (401, 403, 404)
+            permanent_errors = [401, 403, 404]
+            if status_code in permanent_errors:
+                log.severe(f"Permanent API error {status_code}: {e}")
+                raise RuntimeError(f"API request failed with status {status_code}: {e}")
+
+            error_type = "Rate limit" if status_code == 429 else "HTTP error"
+
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            if attempt == __MAX_RETRIES - 1:
-                log.severe(f"Network error after {__MAX_RETRIES} attempts: {e}")
-                raise RuntimeError(f"Network error: {e}")
-            sleep_time = min(__MAX_RETRY_DELAY_SECONDS, __RETRY_DELAY_SECONDS * (2**attempt))
-            log.warning(f"Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s due to: {e}")
-            time.sleep(sleep_time)
+            last_error = e
+            error_type = "Network error"
+
+        except requests.exceptions.RequestException as e:
+            last_error = e
+            error_type = "Request error"
+
+        # Handle retry or raise on final attempt
+        is_last_attempt = attempt == __MAX_RETRIES - 1
+        retry_msg = f"{error_type}. Retry {attempt + 1}/{__MAX_RETRIES}"
+
+        if is_last_attempt:
+            log.severe(f"{error_type} after {__MAX_RETRIES} attempts")
+            raise RuntimeError(f"{error_type}: {last_error}")
+
+        log.warning(retry_msg)
+        sleep_time = min(__MAX_RETRY_DELAY_SECONDS, __RETRY_DELAY_SECONDS * (2**attempt))
+        time.sleep(sleep_time)
+
+    raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
 
 
-def parse_iso_datetime(date_string: str) -> datetime:
+def parse_iso_datetime(date_string: str) -> datetime | None:
     """
     Parse ISO 8601 datetime string to datetime object.
     Args:
         date_string: ISO 8601 formatted datetime string.
     Returns:
-        datetime object in UTC timezone.
+        datetime object in UTC timezone, or None if parsing fails.
     """
     try:
         if date_string.endswith("Z"):
             date_string = date_string[:-1] + "+00:00"
         return datetime.fromisoformat(date_string).astimezone(timezone.utc)
-    except Exception as e:
+    except ValueError as e:
         log.warning(f"Failed to parse datetime '{date_string}': {e}")
         return None
 
@@ -170,13 +175,12 @@ def flatten_dict(data: dict, parent_key: str = "", separator: str = "_") -> dict
     return dict(items)
 
 
-def fetch_surveys(api_key: str, state: dict) -> int:
+def fetch_surveys(api_key: str) -> int:
     """
     Fetch all surveys from Refiner API with cursor-based or page-based pagination.
     Uses cursor pagination for large datasets as recommended by Refiner API docs.
     Args:
         api_key: Refiner API key for authentication.
-        state: State dictionary for tracking sync progress.
     Returns:
         Number of surveys synced.
     """
@@ -188,14 +192,10 @@ def fetch_surveys(api_key: str, state: dict) -> int:
     log.info("Starting survey sync with cursor-based pagination")
 
     while True:
-        params = {"page_length": __PAGE_SIZE, "config": "true", "meta": "true"}
-
-        if __USE_CURSOR_PAGINATION and page_cursor:
-            params["page_cursor"] = page_cursor
-            log.info(f"Fetching surveys with cursor pagination")
-        else:
-            params["page"] = page
-            log.info(f"Fetching surveys page {page}")
+        # Build request parameters
+        params = build_pagination_params(
+            page, page_cursor, "surveys", {"config": "true", "meta": "true"}
+        )
 
         url = f"{__API_BASE_URL}/forms"
         response_data = make_api_request(url, headers, params)
@@ -219,37 +219,26 @@ def fetch_surveys(api_key: str, state: dict) -> int:
             op.upsert(table="surveys", data=flattened_survey)
             total_surveys += 1
 
-            questions_synced = fetch_questions(survey_uuid, survey, api_key)
+            questions_synced = fetch_questions(survey_uuid, survey)
             log.info(f"Synced survey {survey_uuid} with {questions_synced} questions")
 
+        # Determine next page
         pagination = response_data.get("pagination", {})
-        next_page_cursor = pagination.get("next_page_cursor")
+        page_cursor, page, has_more = get_next_page_info(pagination, page, "surveys")
 
-        if __USE_CURSOR_PAGINATION and next_page_cursor:
-            page_cursor = next_page_cursor
-        elif not __USE_CURSOR_PAGINATION:
-            current_page = pagination.get("current_page", page)
-            last_page = pagination.get("last_page", page)
-
-            if current_page >= last_page:
-                log.info(f"Reached last page of surveys: {last_page}")
-                break
-            page += 1
-        else:
-            log.info("No next page cursor, pagination complete")
+        if not has_more:
             break
 
     log.info(f"Completed survey sync: {total_surveys} surveys")
     return total_surveys
 
 
-def fetch_questions(survey_uuid: str, survey_data: dict, api_key: str) -> int:
+def fetch_questions(survey_uuid: str, survey_data: dict) -> int:
     """
     Extract questions from survey configuration and create child table records.
     Args:
         survey_uuid: Survey UUID (parent key).
         survey_data: Full survey data including config.
-        api_key: API key for authentication.
     Returns:
         Number of questions extracted.
     """
@@ -277,6 +266,160 @@ def fetch_questions(survey_uuid: str, survey_data: dict, api_key: str) -> int:
     return questions_count
 
 
+def build_response_record(response: dict) -> dict:
+    """
+    Build a response record from raw API response data.
+    Args:
+        response: Raw response data from API.
+    Returns:
+        Formatted response record for database upsert.
+    """
+    response_uuid = response.get("uuid")
+    user_id = response.get("contact_uuid") or response.get("user_id")
+    form_data = response.get("form", {})
+    contact_data = response.get("contact", {})
+
+    return {
+        "uuid": response_uuid,
+        "survey_uuid": (
+            form_data.get("uuid") if isinstance(form_data, dict) else response.get("form_uuid")
+        ),
+        "user_id": (
+            user_id or contact_data.get("remote_id") if isinstance(contact_data, dict) else user_id
+        ),
+        "completed_at": response.get("completed_at"),
+        "first_shown_at": response.get("first_shown_at"),
+        "last_shown_at": response.get("last_shown_at"),
+        "last_data_reception_at": response.get("last_data_reception_at"),
+        "created_at": response.get("created_at"),
+        "updated_at": response.get("updated_at"),
+        "score": response.get("score"),
+    }
+
+
+def get_response_timestamp(response: dict) -> str:
+    """
+    Extract the most recent timestamp from a response.
+    Args:
+        response: Response data from API.
+    Returns:
+        The latest timestamp (last_data_reception_at or updated_at).
+    """
+    return response.get("last_data_reception_at") or response.get("updated_at")
+
+
+def process_single_response(response: dict, latest_timestamp: str) -> tuple[int, str]:
+    """
+    Process a single response record: validate, upsert, and fetch related data.
+    Args:
+        response: Raw response data from API.
+        latest_timestamp: Current latest timestamp for tracking incremental sync.
+    Returns:
+        Tuple of (records_processed, updated_latest_timestamp).
+    """
+    response_uuid = response.get("uuid")
+    if not response_uuid:
+        log.warning("Response missing uuid, skipping")
+        return 0, latest_timestamp
+
+    response_record = build_response_record(response)
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="responses", data=response_record)
+
+    # Fetch related data
+    fetch_answers(response_uuid, response)
+
+    if response_record["user_id"]:
+        fetch_respondent(response_record["user_id"], response)
+
+    # Update latest timestamp
+    current_timestamp = get_response_timestamp(response)
+    if current_timestamp and current_timestamp > latest_timestamp:
+        latest_timestamp = current_timestamp
+
+    return 1, latest_timestamp
+
+
+def create_checkpoint(state: dict, latest_timestamp: str, total_responses: int):
+    """
+    Create a checkpoint to save sync progress.
+    Args:
+        state: State dictionary to update.
+        latest_timestamp: Latest timestamp to save.
+        total_responses: Total number of responses processed so far.
+    """
+    state["last_response_sync"] = latest_timestamp
+    op.checkpoint(state)
+    log.info(f"Checkpointed at {total_responses} responses, latest timestamp: {latest_timestamp}")
+
+
+def build_pagination_params(
+    page: int,
+    page_cursor: str | None = None,
+    resource_name: str = "items",
+    extra_params: dict | None = None,
+) -> dict:
+    """
+    Build pagination parameters for API request with cursor or page-based pagination.
+    Args:
+        page: Current page number.
+        page_cursor: Current cursor for cursor-based pagination (optional).
+        resource_name: Name of the resource being paginated (for logging).
+        extra_params: Additional query parameters to include (optional).
+    Returns:
+        Dictionary of query parameters.
+    """
+    params = {"page_length": __PAGE_SIZE}
+
+    # Add extra parameters if provided
+    if extra_params:
+        params.update(extra_params)
+
+    # Add pagination parameters
+    if __USE_CURSOR_PAGINATION and page_cursor:
+        params["page_cursor"] = page_cursor
+        log.info(f"Fetching {resource_name} with cursor pagination")
+    else:
+        params["page"] = page
+        log.info(f"Fetching {resource_name} page {page}")
+
+    return params
+
+
+def get_next_page_info(
+    pagination: dict, current_page: int, resource_name: str = "items"
+) -> tuple[str | None, int, bool]:
+    """
+    Determine next pagination state from API response.
+    Args:
+        pagination: Pagination data from API response.
+        current_page: Current page number.
+        resource_name: Name of the resource being paginated (for logging).
+    Returns:
+        Tuple of (next_page_cursor, next_page_number, has_more_pages).
+        next_page_cursor can be None if not using cursor pagination or if no more pages.
+    """
+    next_page_cursor = pagination.get("next_page_cursor")
+
+    if __USE_CURSOR_PAGINATION:
+        if next_page_cursor:
+            return next_page_cursor, current_page, True
+        else:
+            log.info("No next page cursor, pagination complete")
+            return None, current_page, False
+    else:
+        current = pagination.get("current_page", current_page)
+        last = pagination.get("last_page", current_page)
+
+        if current >= last:
+            log.info(f"Reached last page of {resource_name}: {last}")
+            return None, current_page, False
+        return None, current_page + 1, True
+
+
 def fetch_responses(api_key: str, state: dict, last_sync_time: str) -> int:
     """
     Fetch survey responses incrementally based on last_data_reception_at timestamp.
@@ -298,15 +441,12 @@ def fetch_responses(api_key: str, state: dict, last_sync_time: str) -> int:
     log.info(f"Starting incremental responses sync from {last_sync_time}")
 
     while True:
-        params = {"page_length": __PAGE_SIZE, "date_range_start": last_sync_time}
+        # Build request parameters
+        params = build_pagination_params(
+            page, page_cursor, "responses", {"date_range_start": last_sync_time}
+        )
 
-        if __USE_CURSOR_PAGINATION and page_cursor:
-            params["page_cursor"] = page_cursor
-            log.info(f"Fetching responses with cursor pagination")
-        else:
-            params["page"] = page
-            log.info(f"Fetching responses page {page}")
-
+        # Fetch page of responses
         url = f"{__API_BASE_URL}/responses"
         response_data = make_api_request(url, headers, params)
 
@@ -315,82 +455,24 @@ def fetch_responses(api_key: str, state: dict, last_sync_time: str) -> int:
             log.info("No more responses to process")
             break
 
+        # Process each response in the current page
         for response in responses:
-            response_uuid = response.get("uuid")
-            if not response_uuid:
-                log.warning("Response missing uuid, skipping")
-                continue
-
-            user_id = response.get("contact_uuid") or response.get("user_id")
-            form_data = response.get("form", {})
-            contact_data = response.get("contact", {})
-
-            response_record = {
-                "uuid": response_uuid,
-                "survey_uuid": (
-                    form_data.get("uuid")
-                    if isinstance(form_data, dict)
-                    else response.get("form_uuid")
-                ),
-                "user_id": (
-                    user_id or contact_data.get("remote_id")
-                    if isinstance(contact_data, dict)
-                    else user_id
-                ),
-                "completed_at": response.get("completed_at"),
-                "first_shown_at": response.get("first_shown_at"),
-                "last_shown_at": response.get("last_shown_at"),
-                "last_data_reception_at": response.get("last_data_reception_at"),
-                "created_at": response.get("created_at"),
-                "updated_at": response.get("updated_at"),
-                "score": response.get("score"),
-            }
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="responses", data=response_record)
-            total_responses += 1
-            record_count += 1
-
-            answers_synced = fetch_answers(response_uuid, response)
-
-            if response_record["user_id"]:
-                fetch_respondent(response_record["user_id"], response, api_key)
-
-            current_response_timestamp = response.get("last_data_reception_at") or response.get(
-                "updated_at"
+            records_processed, latest_timestamp = process_single_response(
+                response, latest_timestamp
             )
-            if current_response_timestamp and current_response_timestamp > latest_timestamp:
-                latest_timestamp = current_response_timestamp
+            total_responses += records_processed
+            record_count += records_processed
 
+            # Checkpoint if needed
             if record_count >= __CHECKPOINT_INTERVAL:
-                state["last_response_sync"] = latest_timestamp
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
+                create_checkpoint(state, latest_timestamp, total_responses)
                 record_count = 0
-                log.info(
-                    f"Checkpointed at {total_responses} responses, latest timestamp: {latest_timestamp}"
-                )
 
+        # Determine next page
         pagination = response_data.get("pagination", {})
-        next_page_cursor = pagination.get("next_page_cursor")
+        page_cursor, page, has_more = get_next_page_info(pagination, page, "responses")
 
-        if __USE_CURSOR_PAGINATION and next_page_cursor:
-            page_cursor = next_page_cursor
-        elif not __USE_CURSOR_PAGINATION:
-            current_page = pagination.get("current_page", page)
-            last_page = pagination.get("last_page", page)
-
-            if current_page >= last_page:
-                log.info(f"Reached last page of responses: {last_page}")
-                break
-            page += 1
-        else:
-            log.info("No next page cursor, pagination complete")
+        if not has_more:
             break
 
     log.info(
@@ -436,13 +518,12 @@ def fetch_answers(response_uuid: str, response_data: dict) -> int:
     return answers_count
 
 
-def fetch_respondent(user_id: str, response_data: dict, api_key: str):
+def fetch_respondent(user_id: str, response_data: dict):
     """
     Fetch or extract respondent (contact) information from response data.
     Args:
         user_id: User ID for the respondent.
         response_data: Response data that may contain contact info.
-        api_key: API key for authentication.
     """
     respondent_record = {
         "user_id": user_id,
@@ -457,10 +538,12 @@ def fetch_respondent(user_id: str, response_data: dict, api_key: str):
                 "contact_uuid": contact_data.get("uuid"),
                 "email": contact_data.get("email"),
                 "display_name": contact_data.get("display_name"),
-                "first_seen_at": contact_data.get("first_seen_at")
-                or respondent_record["first_seen_at"],
-                "last_seen_at": contact_data.get("last_seen_at")
-                or respondent_record["last_seen_at"],
+                "first_seen_at": (
+                    contact_data.get("first_seen_at") or respondent_record["first_seen_at"]
+                ),
+                "last_seen_at": (
+                    contact_data.get("last_seen_at") or respondent_record["last_seen_at"]
+                ),
                 "attributes": json.dumps(contact_data.get("attributes", {})),
             }
         )
@@ -471,13 +554,12 @@ def fetch_respondent(user_id: str, response_data: dict, api_key: str):
     op.upsert(table="respondents", data=respondent_record)
 
 
-def fetch_contacts(api_key: str, state: dict) -> int:
+def fetch_contacts(api_key: str) -> int:
     """
     Fetch all contacts from Refiner API with cursor-based pagination.
     Contacts endpoint does not support date filtering, so we sync all contacts each time.
     Args:
         api_key: Refiner API key for authentication.
-        state: State dictionary for tracking sync progress.
     Returns:
         Number of contacts synced.
     """
@@ -489,14 +571,8 @@ def fetch_contacts(api_key: str, state: dict) -> int:
     log.info("Starting contacts sync with cursor-based pagination")
 
     while True:
-        params = {"page_length": __PAGE_SIZE}
-
-        if __USE_CURSOR_PAGINATION and page_cursor:
-            params["page_cursor"] = page_cursor
-            log.info(f"Fetching contacts with cursor pagination")
-        else:
-            params["page"] = page
-            log.info(f"Fetching contacts page {page}")
+        # Build request parameters
+        params = build_pagination_params(page, page_cursor, "contacts")
 
         url = f"{__API_BASE_URL}/contacts"
         response_data = make_api_request(url, headers, params)
@@ -534,21 +610,11 @@ def fetch_contacts(api_key: str, state: dict) -> int:
             op.upsert(table="respondents", data=contact_record)
             total_contacts += 1
 
+        # Determine next page
         pagination = response_data.get("pagination", {})
-        next_page_cursor = pagination.get("next_page_cursor")
+        page_cursor, page, has_more = get_next_page_info(pagination, page, "contacts")
 
-        if __USE_CURSOR_PAGINATION and next_page_cursor:
-            page_cursor = next_page_cursor
-        elif not __USE_CURSOR_PAGINATION:
-            current_page = pagination.get("current_page", page)
-            last_page = pagination.get("last_page", page)
-
-            if current_page >= last_page:
-                log.info(f"Reached last page of contacts: {last_page}")
-                break
-            page += 1
-        else:
-            log.info("No next page cursor, pagination complete")
+        if not has_more:
             break
 
     log.info(f"Completed contacts sync: {total_contacts} contacts")
@@ -571,42 +637,36 @@ def update(configuration: dict, state: dict):
     api_key = configuration.get("api_key")
     start_date = configuration.get("start_date", __DEFAULT_START_DATE)
 
-    last_survey_sync = state.get("last_survey_sync", start_date)
     last_response_sync = state.get("last_response_sync", start_date)
 
     current_sync_time = datetime.now(timezone.utc).isoformat()
 
     log.info(f"Starting sync from last_response_sync: {last_response_sync}")
 
-    try:
-        surveys_synced = fetch_surveys(api_key, state)
-        log.info(f"Synced {surveys_synced} surveys")
+    surveys_synced = fetch_surveys(api_key)
+    log.info(f"Synced {surveys_synced} surveys")
 
-        contacts_synced = fetch_contacts(api_key, state)
-        log.info(f"Synced {contacts_synced} contacts")
+    contacts_synced = fetch_contacts(api_key)
+    log.info(f"Synced {contacts_synced} contacts")
 
-        responses_synced = fetch_responses(api_key, state, last_response_sync)
-        log.info(f"Synced {responses_synced} responses")
+    responses_synced = fetch_responses(api_key, state, last_response_sync)
+    log.info(f"Synced {responses_synced} responses")
 
-        # Update sync timestamps - note that last_response_sync is already updated in fetch_responses
-        state["last_survey_sync"] = current_sync_time
-        state["last_contact_sync"] = current_sync_time
+    # Update sync timestamps - note that last_response_sync is already updated in fetch_responses
+    state["last_survey_sync"] = current_sync_time
+    state["last_contact_sync"] = current_sync_time
 
-        # Only update last_response_sync if no responses were found (use current time as marker)
-        if responses_synced == 0:
-            state["last_response_sync"] = current_sync_time
+    # Only update last_response_sync if no responses were found (use current time as marker)
+    if responses_synced == 0:
+        state["last_response_sync"] = current_sync_time
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
-        log.info(f"Sync completed successfully at {current_sync_time}")
-
-    except Exception as e:
-        log.severe(f"Sync failed: {e}")
-        raise RuntimeError(f"Sync failed: {str(e)}")
+    log.info(f"Sync completed successfully at {current_sync_time}")
 
 
 # Create the connector object using the schema and update functions
@@ -617,5 +677,9 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Test the connector locally
-    connector.debug()
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+        # Test the connector locally
+    connector.debug(configuration=configuration)

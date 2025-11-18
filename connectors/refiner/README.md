@@ -1,4 +1,4 @@
-# Connector SDK Refiner Survey Analytics Connector
+# Connector SDK Refiner Survey Analytics Connector Example
 
 ## Connector overview
 This custom Fivetran connector extracts survey response data from the [Refiner](https://refiner.io) REST API and loads it into your destination. The connector fetches NPS surveys, questions, responses, and respondent data keyed by user ID, enabling product teams to analyze survey feedback alongside user behavior data for comprehensive product analytics.
@@ -6,9 +6,9 @@ This custom Fivetran connector extracts survey response data from the [Refiner](
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
@@ -35,7 +35,7 @@ The configuration requires your Refiner API key and optionally a start date for 
 }
 ```
 
-Configuration parameters:
+### Configuration parameters
 - `api_key` (required) - Your Refiner API key for Bearer token authentication.
 - `start_date` (optional) - UTC datetime in ISO 8601 format with 'Z' suffix (e.g., "2025-01-01T00:00:00Z"). If not provided, sync starts from EPOCH time (1970-01-01T00:00:00Z) to capture all historical data.
 
@@ -50,15 +50,14 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector uses Bearer token authentication via the `Authorization` header. To obtain your API key:
 
 1. Log in to your Refiner account.
-2. Go to **Settings > Integrations > API**.
+2. Go to **Settings** > **Integrations** > API**.
 3. Copy your API key.
 4. Add the API key to your `configuration.json` file as shown above.
 
 The API key is included in every request as `Authorization: Bearer YOUR_API_KEY`.
 
 ## Pagination
-The connector handles pagination automatically using Refiner API's page-based pagination structure. The API supports the following pagination parameters:
-
+The connector handles pagination automatically using the Refiner API's page-based pagination structure. The API supports the following pagination parameters:
 - `page` - Current page number (starts at 1)
 - `page_length` - Number of items per page (default: 100)
 - `next_page_cursor` - Optional cursor for cursor-based pagination
@@ -66,7 +65,7 @@ The connector handles pagination automatically using Refiner API's page-based pa
 The connector uses page-based pagination with automatic detection of the last page:
 - Each sync processes all paginated data completely using the `pagination.current_page` and `pagination.last_page` response fields.
 - Pagination state is not persisted between sync runs for cleaner state management.
-- Uses the `date_range_start` parameter to filter responses from API directly for incremental syncs.
+- Uses the `date_range_start` parameter to filter responses from the API directly for incremental syncs.
 
 Pagination logic is implemented in:
 - `fetch_surveys()` - Paginate through all surveys
@@ -87,7 +86,7 @@ The connector processes survey and response data with an optimized incremental s
 - Incremental syncs use `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
 - State tracks separate timestamps for surveys and responses
 - Checkpoint every 1000 records during large response syncs to enable resumability
-- Final checkpoint saves complete state only after successful sync completion
+- Final checkpoint saves the complete state only after successful sync completion
 
 ### Data transformation
 - **JSON flattening** - Nested dictionaries converted to underscore-separated columns (e.g., `config.theme.color` becomes `config_theme_color`)
@@ -106,13 +105,13 @@ The connector processes survey and response data with an optimized incremental s
 - `fetch_answers()` - Extract answers from response data
 - `fetch_respondent()` - Extract or update respondent information
 
-The connector maintains clean state with `last_survey_sync` and `last_response_sync` timestamps, automatically advancing after each successful sync to ensure reliable incremental syncs without data duplication or gaps.
+The connector maintains a clean state with `last_survey_sync` and `last_response_sync` timestamps, automatically advancing after each successful sync to ensure reliable incremental syncs without data duplication or gaps.
 
 ## Error handling
 The connector implements comprehensive error handling with multiple layers of protection:
 
 ### Configuration validation (`validate_configuration()`)
-- Validates required `api_key` field exists and is not empty
+- Validates the required `api_key` field exists and is not empty
 - Provides clear error messages for configuration issues
 
 ### API request resilience (`make_api_request()`)
@@ -129,8 +128,8 @@ The connector implements comprehensive error handling with multiple layers of pr
 
 ### Checkpoint recovery
 - Checkpoints every 1000 records during large syncs enable recovery from interruptions
-- State tracking allows sync to resume from last successful checkpoint
-- Final checkpoint only saved after complete successful sync
+- State tracking allows sync to resume from the last successful checkpoint
+- Final checkpoint only saved after a complete successful sync
 
 All exceptions are caught at the top level in the `update()` function and re-raised as `RuntimeError` with descriptive messages, making troubleshooting easier for users and Fivetran support.
 
@@ -179,24 +178,3 @@ The connector creates the following tables in your destination:
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
----
-
-## Business value and revenue impact
-
-This Refiner connector directly helps Fivetran customers unlock survey analytics at scale:
-
-### Customer feedback analytics
-- **Problem** - Companies rely on manual CSV exports to analyze survey responses.
-- **Solution** - Automated connector syncs survey and response data keyed by user ID, ready for analysis in BI tools.
-- **Revenue impact** - Opens new market segment (customer feedback analytics); supports product and marketing analytics customers.
-
-### User-level insights
-- **Problem** - Product and growth teams cannot easily correlate survey responses with user behavior data.
-- **Solution** - Connector enables joining survey data with product usage in the warehouse via user ID.
-- **Revenue impact** - Drives adoption among SaaS and growth teams using Refiner to measure user satisfaction and NPS.
-
-### Operational efficiency
-- **Problem** - Manual exports are time-consuming and error-prone.
-- **Solution** - Fivetran automation eliminates manual work and ensures consistent incremental syncs.
-- **Revenue impact** - Strengthens positioning in the feedback automation space, increasing customer retention and cross-sell opportunities.
