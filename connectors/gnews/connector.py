@@ -76,6 +76,21 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
         }
     ]
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
+    """
+    required_configs = ["api_key", "search_term", "from_date"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+        if not configuration[key]:
+            raise ValueError(f"Configuration value '{key}' cannot be empty")
+
 
 def normalize_articles(page_json: Dict[str, Any], query: str) -> List[Dict[str, Any]]:
     """
@@ -361,6 +376,7 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
 
 
 
