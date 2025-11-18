@@ -71,7 +71,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 - Primary key: `url`, `publishedAt`
 - Selected columns (not exhaustive):  
   `url`, `publishedAt`, `title`, `description`, `content`, `urlToImage`,  
-  `source_id`, `source_name`, `source_url`, `source_country`, `lang`, `gnews_id`, `query`
+  `source_id`, `source_name`, `author`, `query`
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
