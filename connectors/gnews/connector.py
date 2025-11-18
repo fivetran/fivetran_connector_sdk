@@ -52,7 +52,7 @@ __NEWSAPI_ENDPOINT = "https://newsapi.org/v2/everything"
 
 # Default headers for API requests.
 # User-Agent and Accept headers prevent 426 (Upgrade Required) responses.
-DEFAULT_HEADERS = {
+__DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; NewsFetcher/1.0; +https://newsapi.org)",
     "Accept": "application/json",
 }
@@ -180,7 +180,7 @@ def fetch_news_page(
         attempt += 1
         try:
             # Send the GET request to NewsAPI.
-            resp = requests.get(endpoint, headers=DEFAULT_HEADERS, params=params, timeout=timeout)
+            resp = requests.get(endpoint, headers=__DEFAULT_HEADERS, params=params, timeout=timeout)
 
             # Handle transient error codes with retries.
             if resp.status_code in status_forcelist:
@@ -361,4 +361,5 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
 
