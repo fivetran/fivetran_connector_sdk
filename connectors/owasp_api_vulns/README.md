@@ -3,15 +3,23 @@
 ## Connector overview
 This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination.
 
+## Accreditation
+
+This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
+
+Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
+
+The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge**.
+
 ## Requirements
-- Supported Python versions   
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the Connector SDK Setup Guide to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 - Fetches vulnerability data from the NVD 2.0 API.
@@ -27,11 +35,10 @@ The connector requires the following configuration parameters in the `configurat
 
 ```json
 {
-  "api_key": "YOUR_NVD_API_KEY_HERE",
-  "force_full_sync": "false",
-  "write_temp_files": "false",
-  "logging_level": "standard",
-  "cwe_ids": "CWE-285,CWE-639,CWE-287,CWE-288,CWE-290,CWE-294,CWE-301,CWE-302,CWE-303,CWE-304,CWE-306,CWE-307,CWE-521,CWE-798,CWE-269,CWE-400,CWE-770,CWE-642,CWE-918,CWE-16,CWE-209,CWE-598,CWE-20,CWE-73,CWE-200,CWE-79"
+  "force_full_sync": "<ENABLE_FORCE_FULL_SYNC>",
+  "write_temp_files": "<ENABLE_TEMP_FILE_WRITE>",
+  "logging_level": "<YOUR_LOGGING_LEVEL>",
+  "cwe_ids": "<YOUR_CWE_ID_SEPARATED_BY_COMMA>"
 }
 ```
 
