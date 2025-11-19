@@ -29,8 +29,6 @@ For local testing, this example includes a `__main__` block that reads `configur
     - Refer to `get_scrunch_performance`.
   - Competitor performance.
     - Refer to `get_competitor_performance`.
-  - Daily citations.
-    - Refer to `get_daily_citations`.
 - Data shaping: list fields collapsed with a stable delimiter; `citations` serialized to JSON.
   - Refer to `flatten_response`.
 - Incremental syncs: dataset-specific checkpoints with rolling lookbacks.
