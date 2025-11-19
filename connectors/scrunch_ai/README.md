@@ -73,11 +73,10 @@ The `get_all_responses` function handles pagination.
 - Refer to `get_all_responses` and `get_responses` for details.
 
 ## Data handling
-- Schema definition: `schema(configuration)` returns four tables:
+- Schema definition: `schema(configuration)` returns three tables:
   - `responses` (primary key: `id`).
   - `overall_scrunch_performance`.
   - `competitor_performance`.
-  - `daily_citations`.
 
 - Flattening: `flatten_response` transforms data for destination compatibility:
   - Preserves scalar fields.
