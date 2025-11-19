@@ -105,7 +105,7 @@ The connector dynamically creates tables based on the schema discovered in your 
 | `USERS` | `id` | User accounts with roles, contact information, and profile settings stored as JSON |
 | `PROJECTS` | `id` | Project records including status, team members (as JSON array), and metadata |
 | `tasks` | `id` | Task records with assignments, priorities, tags (as JSON array), and due dates |
-| `comments` | `id` | Comments on tasks with reactions stored as JSON objects |
+| `COMMENTS` | `id` | Comments on tasks with reactions stored as JSON objects |
 | `activity_log` | `id` | Real-time activity tracking with action details stored as JSON |
 
 Note: The connector automatically detects the primary key for each table. Complex data types like arrays and nested objects are converted to JSON strings for storage in the destination warehouse.
