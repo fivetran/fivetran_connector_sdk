@@ -102,6 +102,7 @@ def update(configuration: dict, state: dict):
 
     last_sync_timestamp = state.get("last_sync_timestamp")
     synced_indexes = state.get("synced_indexes", [])
+    indexes_synced = state.get("indexes_synced", False)
 
     # Use existing current_sync_timestamp if this is a resumed sync, otherwise create a new one
     # This ensures we don't lose data between the original sync start and a restart
@@ -109,19 +110,22 @@ def update(configuration: dict, state: dict):
     if current_sync_timestamp is None:
         current_sync_timestamp = int(time.time() * 1000)
 
-    # Sync indexes first
-    sync_indexes(api_url, headers)
+    # Sync indexes first only if not already synced in this sync run
+    if not indexes_synced:
+        sync_indexes(api_url, headers)
 
-    # Checkpoint after completing the index table sync
-    # This ensures we don't lose index sync progress if the sync fails during document processing
-    new_state = {
-        "last_sync_timestamp": last_sync_timestamp,
-        "synced_indexes": synced_indexes,
-        "indexes_synced": True,
-        "current_sync_timestamp": current_sync_timestamp,
-    }
-    op.checkpoint(new_state)
-    log.info("Checkpointed after completing index sync")
+        # Checkpoint after completing the index table sync
+        # This ensures we don't lose index sync progress if the sync fails during document processing
+        new_state = {
+            "last_sync_timestamp": last_sync_timestamp,
+            "synced_indexes": synced_indexes,
+            "indexes_synced": True,
+            "current_sync_timestamp": current_sync_timestamp,
+        }
+        op.checkpoint(new_state)
+        log.info("Checkpointed after completing index sync")
+    else:
+        log.info("Skipping index sync - already completed in this sync run")
 
     # Sync documents from all indexes
     sync_documents_from_all_indexes(
