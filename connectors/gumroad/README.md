@@ -50,7 +50,7 @@ This connector uses access token authentication to connect to the Gumroad API. T
 
 To set up authentication:
 
-1. Log in to your Gumroad account at https://gumroad.com.
+1. Log in to your [Gumroad account] (https://gumroad.com).
 
 2. Navigate to **Settings** > **Advanced** > Applications**.
 
