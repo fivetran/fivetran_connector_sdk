@@ -404,11 +404,11 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs.
                The state dictionary is empty for the first sync or for any
                full re-sync.
-    """
-    log.warning("Example: API Connector : Scrunch AI")
-  
+    """  
     # Validate then grab token from configuration
     validate_configuration(configuration)
+    log.warning("Example: API Connector : Scrunch AI")
+
     token = configuration["api_token"]
     brand_id = configuration["brand_id"]
 
