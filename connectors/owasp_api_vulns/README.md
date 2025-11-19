@@ -83,8 +83,8 @@ The connector fetches, processes, and delivers data to Fivetran as outlined in t
 ## Error handling
 The connector implements several error-handling strategies within the `update` function.
 - It checks the HTTP status code of each API response. If the status is not 200, it logs a `severe` error with details from the response and stops processing for that CWE.
-- If the API returns a 429 (rate limit exceeded) or 403 (forbidden) error, the connector logs a `severe` error and skips processing for that CWE. The connector does not retry these requests, as the NVD API does not provide a recommended backoff strategy for these errors.
-- To help prevent rate limiting, the connector applies a fixed delay of 0.6 seconds (`_API_RATE_LIMIT_DELAY`) between API requests. This delay is intended to keep requests within the NVD API's published rate limits, but if rate limits are still exceeded, the connector will log the error and skip the affected CWE.
+- It implements an exponential backoff retry strategy for transient network errors, 5xx server errors, and rate limit errors (HTTP 403 and 429).
+- To proactively manage rate limits, the connector applies a fixed delay of 0.6 seconds (`__API_RATE_LIMIT_DELAY`) between paginated requests.
 - It wraps the JSON decoding process in a `try...except` block to catch `json.JSONDecodeError` and logs a `severe` error if the response is not valid JSON.
 - A general `try...except` block is used to catch any other exceptions during the API request and processing loop, logging a `severe` error to prevent the entire sync from failing.
 

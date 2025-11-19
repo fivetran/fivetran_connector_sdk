@@ -89,6 +89,8 @@ __LOG_DESCRIPTION_MAX_LENGTH = 50
 __CPE_MIN_PARTS = 5  # Minimum CPE parts required for valid processing (indices 0-4)
 __FIX_DESCRIPTION_MAX_LENGTH = 100  # Maximum length for fix description text
 __MAX_RETRIES = 5  # Maximum number of retries for API requests
+__RETRY_DELAY_SECONDS = 1  # Initial delay in seconds for API request retries
+__RETRY_BACKOFF = 2  # Backoff multiplier for exponential backoff
 
 
 def schema(configuration: dict):
@@ -105,7 +107,7 @@ def schema(configuration: dict):
     """
     validate_configuration(configuration)
 
-    log_level = configuration.get("logging_level", "debug").lower()
+    log_level = configuration.get("logging_level", "standard").lower()
     is_debug_logging = log_level == "debug"
 
     if "api_key" not in configuration:
@@ -186,7 +188,7 @@ def _get_sync_config(configuration: dict):
         tuple: A tuple containing sync settings:
                (is_debug_logging, headers, write_temp_files, force_full_sync, cwe_ids).
     """
-    log_level = configuration.get("logging_level", "debug").lower()
+    log_level = configuration.get("logging_level", "standard").lower()
     is_debug_logging = log_level == "debug"
     api_key = configuration.get("api_key", "")
     headers = {"apiKey": api_key} if api_key else {}
@@ -225,15 +227,15 @@ def _initialize_state(state: dict, force_full_sync: bool, is_debug_logging: bool
     if force_full_sync:
         if is_debug_logging:
             log.info("Forcing full sync; ignoring previous state")
-        return {}
+        return {"cwe_progress": {}}
 
     if is_debug_logging:
         log.info("Performing incremental sync based on previous state")
-    if "last_sync_time" in state:
-        log.info(f"State loaded: last_sync_time = {state['last_sync_time']}")
+    if "cwe_progress" in state and state["cwe_progress"]:
+        log.info(f"State loaded with progress for {len(state['cwe_progress'])} CWEs.")
     else:
         log.warning("No previous state found; defaulting to full sync")
-        return {}
+        return {"cwe_progress": {}}
     return state
 
 
@@ -253,11 +255,14 @@ def _build_request_params(cwe: str, state: dict, force_full_sync: bool):
         ValueError: If the last_sync_time in state is malformed.
     """
     params = {"cweId": cwe}
-    if not force_full_sync and "last_sync_time" in state:
+    cwe_progress = state.get("cwe_progress", {})
+    last_sync_time_for_cwe = cwe_progress.get(cwe)
+
+    if not force_full_sync and last_sync_time_for_cwe:
         try:
             # Convert "Z" to "+00:00" for fromisoformat compatibility if needed
             last_sync = datetime.datetime.fromisoformat(
-                state["last_sync_time"].replace("Z", "+00:00")
+                last_sync_time_for_cwe.replace("Z", "+00:00")
             )
 
             # Use a 1-minute buffer to minimize overlap and avoid missing records due to clock skew.
@@ -279,8 +284,10 @@ def _build_request_params(cwe: str, state: dict, force_full_sync: bool):
                 f"lastModEndDate={params['lastModEndDate']}"
             )
         except ValueError as e:
-            log.severe(f"Critical error: Invalid last_sync_time format in state: {e}")
-            raise ValueError(f"Malformed state: last_sync_time is invalid: {e}")
+            log.severe(
+                f"Critical error: Invalid last_sync_time format in state for CWE {cwe}: {e}"
+            )
+            raise ValueError(f"Malformed state for {cwe}: last_sync_time is invalid: {e}")
     else:
         params["resultsPerPage"] = __RESULTS_PER_PAGE
         params["startIndex"] = 0
@@ -376,13 +383,12 @@ def _extract_affected_libraries(cve: dict) -> list:
                 is_java = "java" in vendor.lower() or "java" in product.lower()
 
                 if is_app_cpe and (is_python or is_java):
-                    # Determine language based on keyword presence
+                    # Determine language based on keyword presence.
+                    # The outer 'if' guarantees that one of these must be true.
                     if is_python:
                         lang = "python"
-                    elif is_java:
-                        lang = "java"
                     else:
-                        lang = product.split("_")[0]
+                        lang = "java"
 
                     # Using f-strings avoids binary operators (+) at line starts
                     version_str = f"{match.get('versionStartIncluding', '')}-{match.get('versionEndExcluding', '')}"
@@ -564,49 +570,52 @@ def _fetch_and_process_cwe_data(
 
     while True:
         response = None
-        # Retry logic with exponential backoff
+        # Unified retry logic with exponential backoff for transient errors
         for attempt in range(__MAX_RETRIES):
             try:
                 response = requests.get(base_url, params=params, headers=headers)
-                response.raise_for_status()
-                break
-            except (requests.Timeout, requests.ConnectionError) as e:
-                if attempt == __MAX_RETRIES - 1:
-                    log.severe(
-                        f"Error fetching data for {cwe} after {__MAX_RETRIES} attempts: {e}"
-                    )
-                    # Raise to break out of the pagination loop in the outer block
-                    raise requests.exceptions.RequestException(e)
-                sleep_time = min(60, 2**attempt)
-                log.warning(f"Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s for {cwe}")
-                time.sleep(sleep_time)
-            except requests.exceptions.HTTPError as e:
-                # Don't retry 4xx client errors (except maybe 429, dealt with via delay generally)
-                if 400 <= response.status_code < 500:
-                    log.severe(f"Client error for {cwe}: {e}")
-                    # If rate limit or forbidden, strictly break
-                    if response.status_code in [403, 429]:
-                        break
-                    break
-                # Retry 5xx server errors
-                if attempt == __MAX_RETRIES - 1:
-                    log.severe(f"Server error for {cwe} after {__MAX_RETRIES} attempts: {e}")
-                    raise requests.exceptions.RequestException(e)
-                sleep_time = min(60, 2**attempt)
-                log.warning(f"Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s for {cwe}")
-                time.sleep(sleep_time)
+                response.raise_for_status()  # Raises HTTPError for 4xx/5xx responses
+                break  # If request is successful, break out of the retry loop
+            except (
+                requests.Timeout,
+                requests.ConnectionError,
+                requests.exceptions.HTTPError,
+            ) as e:
+                # For non-retriable 4xx client errors, fail fast.
+                # We treat 403 (Forbidden) and 429 (Too Many Requests) as potentially transient and retriable.
+                if isinstance(e, requests.exceptions.HTTPError) and response:
+                    # Fail fast on client errors that are not related to rate limiting
+                    if 400 <= response.status_code < 500 and response.status_code not in [
+                        403,
+                        429,
+                    ]:
+                        log.severe(f"Client error for {cwe}: {e}")
+                        raise  # Re-raise to be caught by the outer handler in update()
 
-        if not response or response.status_code != 200:
-            log.severe(f"Failed to get valid response for {cwe}, skipping remaining pages.")
-            break
+                # For 5xx server errors, 429 rate limit, or network errors, retry
+                log.warning(
+                    f"Retriable error for {cwe} (attempt {attempt + 1}/{__MAX_RETRIES}): {e}"
+                )
+                if attempt == __MAX_RETRIES - 1:
+                    log.severe(f"Failed to fetch data for {cwe} after {__MAX_RETRIES} attempts.")
+                    raise  # Re-raise the exception after the final attempt
+
+            # If we are here, it's a retriable error and not the last attempt.
+            delay = min(60, __RETRY_DELAY_SECONDS * (__RETRY_BACKOFF**attempt))
+            log.info(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
 
         try:
+            # The NVD API enforces a maximum page size of 2000 records, and each page is processed immediately
+            # without accumulation, so loading one page's response into memory is acceptable.
             data = response.json()
         except json.JSONDecodeError as e:
             log.severe(
                 f"JSON decode error for {cwe} at startIndex {params.get('startIndex', 'N/A')}: {e}"
             )
-            break
+            # Instead of break, raise an exception to fail processing for this CWE.
+            # This allows the main update loop to catch it and continue to the next CWE without checkpointing.
+            raise ValueError(f"Failed to decode JSON response for {cwe}") from e
 
         log.info(
             f"API response for {cwe}: status={response.status_code}, "
@@ -620,8 +629,6 @@ def _fetch_and_process_cwe_data(
             log.info(f"No more vulnerabilities returned for {cwe} at current startIndex.")
             break
 
-        # The NVD API enforces a maximum page size of 2000 records, so loading the full response into
-        # memory is acceptable here.
         if write_temp_files:
             _save_temp_response(response.text, cwe, is_debug_logging)
 
@@ -670,11 +677,6 @@ def _finalize_sync(start_time: float, total_upserts: int, force_full_sync: bool)
             "total_rows_upserted": total_upserts,
         },
     )
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint({"last_sync_time": sync_datetime})
 
 
 def update(configuration: dict, state: dict):
@@ -733,10 +735,14 @@ def update(configuration: dict, state: dict):
             log.info(f"Results fetched for {cwe}")
             log.info(f"Rows upserted for {cwe}: {upsert_count_per_cwe}")
 
-            # Save the progress by checkpointing the state after each CWE
-            # This allows the connector to resume from the last successfully processed CWE if interrupted.
+            # Checkpoint progress after each successful CWE sync
             sync_datetime = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            op.checkpoint({"last_sync_time": sync_datetime})
+            state["cwe_progress"][cwe] = sync_datetime
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
         except requests.exceptions.RequestException as e:
             log.severe(f"Network error fetching for {cwe}: {str(e)}")
