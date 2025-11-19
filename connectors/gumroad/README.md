@@ -50,9 +50,9 @@ This connector uses access token authentication to connect to the Gumroad API. T
 
 To set up authentication:
 
-1. Log in to your Gumroad account at https://gumroad.com.
+1. Log in to your [Gumroad account] (https://gumroad.com).
 
-2. Navigate to **Settings > Advanced > Applications**.
+2. Navigate to **Settings** > **Advanced** > Applications**.
 
 3. Click **Create new application** and fill in the required details.
 
@@ -64,7 +64,7 @@ To set up authentication:
 
 ## Pagination
 
-The connector handles pagination automatically for endpoints that return paginated results. The Gumroad API uses a `page_key` parameter for pagination, where the response includes a `next_page_key` field indicating the key for the next page of results.
+The connector handles pagination automatically for endpoints that return paginated results. The Gumroad API uses a `page_key` parameter for pagination, where the response includes a `next_page_key` field that indicates the key for the next page of results.
 
 The pagination logic is implemented in the `sync_sales()`, `sync_payouts()`, and `fetch_product_subscribers()` functions. The connector continues fetching pages until no `next_page_key` is returned, indicating all data has been retrieved.
 
