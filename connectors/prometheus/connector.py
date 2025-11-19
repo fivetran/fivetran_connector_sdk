@@ -360,13 +360,13 @@ def fetch_time_series_data(
     return results
 
 
-def process_time_series_result(result: dict) -> list[dict]:
+def process_and_upsert_time_series_result(result: dict) -> int:
     """
-    Process a single time-series result into multiple data points.
+    Process a single time-series result and upsert data points directly.
     Args:
         result: Time-series result dictionary from Prometheus.
     Returns:
-        List of data point dictionaries ready for upsert.
+        Number of data points upserted.
     """
     metric_labels = result.get("metric", {})
     metric_name = metric_labels.pop("__name__", "unknown")
@@ -374,7 +374,7 @@ def process_time_series_result(result: dict) -> list[dict]:
 
     series_id = generate_series_id(metric_name, metric_labels)
 
-    data_points = []
+    data_points_count = 0
     for timestamp_float, value_str in values:
         data_point = {
             "series_id": series_id,
@@ -383,22 +383,13 @@ def process_time_series_result(result: dict) -> list[dict]:
             "timestamp": parse_timestamp_to_datetime(timestamp_float),
             "value": float(value_str),
         }
-        data_points.append(data_point)
-
-    return data_points
-
-
-def sync_time_series_batch(data_points: list[dict]) -> None:
-    """
-    Upsert a batch of time-series data points.
-    Args:
-        data_points: List of data point dictionaries.
-    """
-    for data_point in data_points:
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="time_series", data=data_point)
+        data_points_count += 1
+
+    return data_points_count
 
 
 def get_sync_time_range(state: dict, configuration: dict) -> tuple[datetime, datetime]:
@@ -458,12 +449,12 @@ def sync_time_series_for_metrics(
         batch_data_points = 0
 
         for result in results:
-            data_points = process_time_series_result(result)
-            sync_time_series_batch(data_points)
-            batch_data_points += len(data_points)
+            # Process and upsert data points directly without creating intermediate lists
+            num_data_points = process_and_upsert_time_series_result(result)
+            batch_data_points += num_data_points
 
             if batch_data_points >= __CHECKPOINT_BATCH_SIZE:
-                total_data_points += len(batch_data_points)
+                total_data_points += batch_data_points
                 state["last_sync_timestamp"] = end_time.isoformat()
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
@@ -477,7 +468,7 @@ def sync_time_series_for_metrics(
         if batch_data_points:
             state["last_sync_timestamp"] = end_time.isoformat()
             op.checkpoint(state)
-            total_data_points += len(batch_data_points)
+            total_data_points += batch_data_points
             log.info(f"Completed Checkpointed {total_data_points} data points")
         metrics_synced += 1
 
