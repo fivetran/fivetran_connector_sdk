@@ -43,7 +43,6 @@ __MAX_RETRIES = 5
 __INITIAL_BACKOFF = 2  # seconds
 
 
-
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required
@@ -404,7 +403,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs.
                The state dictionary is empty for the first sync or for any
                full re-sync.
-    """  
+    """
     # Validate then grab token from configuration
     validate_configuration(configuration)
     log.warning("Example: API Connector : Scrunch AI")
@@ -438,16 +437,15 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your 
+# This is Python's standard entry method allowing your
 # script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. 
+# This is useful for debugging while you write your code.
 # Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
-      configuration = json.load(f)
-      
+        configuration = json.load(f)
+
     # Test the connector locally
     connector.debug()
-      
