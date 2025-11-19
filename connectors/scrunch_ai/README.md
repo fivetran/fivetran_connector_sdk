@@ -109,9 +109,6 @@ Summary of tables replicated.
 - dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `competitor_id`, `competitor_name`.
 - metrics: `responses`, `brand_presence_percentage`, `competitor_presence_percentage`.
 
-### daily\_citations
-- dimensions: `date`, `date_week`, `date_month`, `date_year`, `prompt_id`, `prompt`, `ai_platform`, `source_type`, `source_url`.
-- metrics: `responses`.
 
 ## Additional files
 There are no additional files required for this connector.
