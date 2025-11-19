@@ -119,8 +119,8 @@ def connect_to_rethinkdb(configuration: dict):
     except ReqlDriverError as e:
         log.severe(f"Driver error connecting to RethinkDB: {str(e)}")
         raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
-    except Exception as e:
-        log.severe(f"Unexpected error connecting to RethinkDB: {str(e)}")
+    except (ValueError, TypeError, OSError) as e:
+        log.severe(f"Configuration or connection error: {str(e)}")
         raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
 
 
