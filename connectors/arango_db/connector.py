@@ -202,7 +202,7 @@ def sync_collection(database: Any, collection_name: str, table_name: str, state:
         )
         return state[f"{collection_name}_offset"]
     except ArangoServerError as e:
-        log.severe(f"ArangoDB server error while syncing collection '{collection_name}': {e}")
+        log.severe(f"ArangoDB server error while syncing collection '{collection_name}'", e)
         raise RuntimeError(
             f"ArangoDB server error while syncing collection '{collection_name}': {str(e)}"
         )
