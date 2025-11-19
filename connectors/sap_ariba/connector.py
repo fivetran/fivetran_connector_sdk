@@ -53,15 +53,15 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
     validate_configuration(configuration)
+    log.warning("Example: connectors : sap_ariba")
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     headers = {
@@ -72,30 +72,25 @@ def update(configuration: dict, state: dict):
 
     log.info("Starting sync from SAP Ariba API...")
 
-    params = {"$top": __RECORDS_PER_PAGE, "$$count": True}
+    params = {"$top": __RECORDS_PER_PAGE, "$count": True}
 
-    sync_orders(params, headers, state, current_sync_start)
-    sync_items(params, headers, state, current_sync_start)
-
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
+    sync_orders(params.copy(), headers, state, current_sync_start)
+    sync_items(params.copy(), headers, state, current_sync_start)
 
 def validate_configuration(configuration: dict) -> None:
     """
-    Validate the configuration dictionary to ensure all required fields are present.
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
-        configuration: A dictionary containing connection details.
+        configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If any required configuration value is missing.
+        ValueError: if any required configuration parameter is missing.
     """
+
     required_keys = ["api_key"]
     for key in required_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
-
 
 def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
     """
@@ -127,9 +122,9 @@ def sync_rows(table_name, params, headers, state, allowed_columns, sync_start):
             values["rowId"] = count
             values["last_updated_at"] = sync_start
 
-            # The 'upsert' operation is used to insert or update data in a table.
-            # The first argument is the name of the table to upsert the data into, in this case, "hello".
-            # The second argument is a dictionary containing the data to be upserted,
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table=table_name, data=values)
 
         if count % __CHECKPOINT_INTERVAL == 0:
@@ -258,7 +253,7 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Rate limit hit. Retrying in {wait}s...")
                 time.sleep(wait)
             elif 400 <= response.status_code < 500:
-                raise response.raise_for_status()  # Raises requests.HTTPError for client errors
+                response.raise_for_status()  # Raises requests.HTTPError for client errors
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
@@ -330,7 +325,7 @@ def get_item_columns():
     }
 
 
-# This creates the connector object that will use the update function defined in this connector.py file.
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
@@ -338,9 +333,6 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
-    connector.debug(configuration=configuration)
+    # Test the connector locally
+    connector.debug()
 

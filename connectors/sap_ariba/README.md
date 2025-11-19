@@ -20,11 +20,11 @@ This example uses the SAP Ariba Sandbox API but can easily be configured for pro
 - Outbound internet access to `sandbox.api.sap.com` (or your production Ariba host)
 
 ## Getting started
-Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for setup instructions, including installing dependencies, configuring authentication, and running local tests.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 - Fetches purchase orders and line items from the SAP Ariba API
-- Performs incremental syncs using internal timestamp checkpoints
+- Tracks sync progress using internal state and checkpoints
 - Supports pagination with `$skip` and `$top` query parameters
 - Converts timestamps to ISO 8601 UTC format
 - Retries automatically on network failures or rate limit errors
@@ -74,7 +74,7 @@ The connector uses the `update(configuration, state)` function to fetch and proc
 - Emits `Upsert` operations for every record using `op.upsert()`
 - Saves sync progress with checkpoints via `op.checkpoint(state)`
 
-The connector also defines schemas and primary keys for both the `orders` and `items` tables through the `schema(configuration)` function.
+The connector also defines schemas and primary keys for both the `order` and `item` tables through the `schema(configuration)` function.
 
 ## Error handling
 The connector implements error handling in the `make_api_request()` function:
@@ -89,31 +89,31 @@ The connector implements error handling in the `make_api_request()` function:
 The connector creates two destination tables.
 
 ### ORDER
-Primary key: `payload_id`, `revision`, `row_id`
+Primary key: `payloadId`, `revision`, `rowId`
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `documentNumber` | STRING | Unique purchase order number. |
-| `orderDate` | UTC_DATETIME | Date when the order was created. |
-| `supplierName` | STRING | Name of the supplier. |
-| `supplierANID` | STRING | Supplier Ariba Network ID. |
-| `buyerANID` | STRING | Buyer Ariba Network ID. |
-| `customerName` | STRING | Name of the customer. |
-| `systemId` | STRING | Ariba system identifier. |
-| `payloadId` | STRING | Unique payload identifier. |
-| `revision` | STRING | Revision number or version. |
-| `endpointId` | STRING | Endpoint identifier. |
-| `created` | UTC_DATETIME | Creation timestamp. |
-| `status` | STRING | Status of the order. |
-| `documentStatus` | STRING | Confirmation state (Confirmed/Unconfirmed). |
-| `amount` | DOUBLE | Total purchase order amount. |
+| Column             | Type | Description |
+|--------------------|------|-------------|
+| `documentNumber`   | STRING | Unique purchase order number. |
+| `orderDate`        | UTC_DATETIME | Date when the order was created. |
+| `supplierName`     | STRING | Name of the supplier. |
+| `supplierANID`     | STRING | Supplier Ariba Network ID. |
+| `buyerANID`        | STRING | Buyer Ariba Network ID. |
+| `customerName`     | STRING | Name of the customer. |
+| `systemId`         | STRING | Ariba system identifier. |
+| `payloadId`        | STRING | Unique payload identifier. |
+| `revision`         | STRING | Revision number or version. |
+| `endpointId`       | STRING | Endpoint identifier. |
+| `created`          | UTC_DATETIME | Creation timestamp. |
+| `status`           | STRING | Status of the order. |
+| `documentStatus`   | STRING | Confirmation state (Confirmed/Unconfirmed). |
+| `amount`           | DOUBLE | Total purchase order amount. |
 | `numberOfInvoices` | INT | Number of invoices linked to the order. |
-| `invoiced_amount` | DOUBLE | Total invoiced amount. |
-| `company_code` | STRING | Internal company code. |
-| `row_id` | INT | Sequential ID used for uniqueness. |
+| `invoiced_amount`  | DOUBLE | Total invoiced amount. |
+| `company_code`     | STRING | Internal company code. |
+| `rowId`            | INT | Sequential ID used for uniqueness. |
 
 ### ITEM
-Primary key: `document_number`, `line_number`, `row_id`
+Primary key: `documentNumber`, `lineNumber`, `rowId`
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -136,7 +136,7 @@ Primary key: `document_number`, `line_number`, `row_id`
 | `itemLocation` | STRING | Delivery location name. |
 | `requestedDeliveryDate` | UTC_DATETIME | Requested delivery date. |
 | `requestedShipmentDate` | UTC_DATETIME | Requested shipment date. |
-| `row_id` | INT | Sequential ID used for uniqueness. |
+| `rowId` | INT | Sequential ID used for uniqueness. |
 
 
 ## Additional considerations
