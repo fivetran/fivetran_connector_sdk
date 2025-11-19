@@ -3,6 +3,14 @@
 ## Connector overview
 This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination. The CWEs drive what CVEs get fetched.
 
+### Accreditation
+
+This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
+
+Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
+
+The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge - https://devpost.com/software/owasp-api-vulnerability-adviso**.
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
@@ -117,11 +125,3 @@ The connector creates two tables in the destination, as defined in the `schema` 
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-### Accreditation
-
-This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
-
-Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
-
-The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge**.
