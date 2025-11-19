@@ -33,6 +33,63 @@ __BASE_DELAY_SECONDS = 1
 __PAGE_LIMIT = 100
 __CHECKPOINT_INTERVAL = 500
 
+# Endpoint configuration for all tables
+__ENDPOINTS = {
+    "campaign": {
+        "endpoint": "/campaigns",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+    "contact": {"endpoint": "/contacts", "state_key": "", "date_field": "", "extra_params": None},
+    "list": {"endpoint": "/lists", "state_key": "", "date_field": "", "extra_params": None},
+    "segment": {"endpoint": "/segments", "state_key": "", "date_field": "", "extra_params": None},
+    "template": {
+        "endpoint": "/templates",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": {"scopeType": "Personal"},
+    },
+    "event": {
+        "endpoint": "/events",
+        "state_key": "last_event_date",
+        "date_field": "EventDate",
+        "extra_params": None,
+    },
+    "campaign_statistic": {
+        "endpoint": "/statistics/campaigns",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+    "file": {"endpoint": "/files", "state_key": "", "date_field": "", "extra_params": None},
+    "domain": {"endpoint": "/domains", "state_key": "", "date_field": "", "extra_params": None},
+    "suppression": {
+        "endpoint": "/suppressions",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+    "bounce": {
+        "endpoint": "/suppressions/bounces",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+    "complaint": {
+        "endpoint": "/suppressions/complaints",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+    "unsubscribe": {
+        "endpoint": "/suppressions/unsubscribes",
+        "state_key": "",
+        "date_field": "",
+        "extra_params": None,
+    },
+}
+
 
 def validate_configuration(configuration: dict):
     """
@@ -168,8 +225,8 @@ def process_paginated_endpoint(
             url = f"{__BASE_URL}{endpoint}"
             params: dict = {"limit": __PAGE_LIMIT, "offset": offset}
 
-            if state_key and max_date_value and isinstance(max_date_value, str):
-                params["from"] = max_date_value
+            if state_key and current_max_date and isinstance(current_max_date, str):
+                params["from"] = current_max_date
 
             if extra_params is not None:
                 params.update(extra_params)
@@ -261,23 +318,17 @@ def update(configuration: dict, state: dict):
     api_key = configuration.get("api_key")
 
     try:
-        process_paginated_endpoint(api_key, "/campaigns", "campaign", state)
-        process_paginated_endpoint(api_key, "/contacts", "contact", state)
-        process_paginated_endpoint(api_key, "/lists", "list", state)
-        process_paginated_endpoint(api_key, "/segments", "segment", state)
-        process_paginated_endpoint(
-            api_key, "/templates", "template", state, "", "", {"scopeType": "Personal"}
-        )
-        process_paginated_endpoint(
-            api_key, "/events", "event", state, "last_event_date", "EventDate"
-        )
-        process_paginated_endpoint(api_key, "/statistics/campaigns", "campaign_statistic", state)
-        process_paginated_endpoint(api_key, "/files", "file", state)
-        process_paginated_endpoint(api_key, "/domains", "domain", state)
-        process_paginated_endpoint(api_key, "/suppressions", "suppression", state)
-        process_paginated_endpoint(api_key, "/suppressions/bounces", "bounce", state)
-        process_paginated_endpoint(api_key, "/suppressions/complaints", "complaint", state)
-        process_paginated_endpoint(api_key, "/suppressions/unsubscribes", "unsubscribe", state)
+        # Iterate through all endpoints and sync data
+        for table_name, config in __ENDPOINTS.items():
+            process_paginated_endpoint(
+                api_key=api_key,
+                endpoint=config["endpoint"],
+                table_name=table_name,
+                state=state,
+                state_key=config["state_key"],
+                date_field=config["date_field"],
+                extra_params=config["extra_params"],
+            )
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process
         # can resume from the correct position in case of next sync or interruptions.
