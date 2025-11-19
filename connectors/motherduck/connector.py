@@ -25,20 +25,23 @@ from typing import Dict, List, Any  # Type hints for dictionaries, lists and gen
 
 __BATCH_SIZE = 10000
 
-def build_where(**kwargs) -> str:
+def build_where(**kwargs) -> tuple:
     """
     Build a WHERE clause from provided keyword arguments, ignoring None or empty values.
     Args:
         kwargs: field-value pairs for the WHERE clause
-    Returns: WHERE clause string
+    Returns: Tuple of (WHERE clause string, list of parameter values)
     """
     conditions = []
+    params = []
     for field, value in kwargs.items():
         if value:
-            conditions.append(f"{field} = '{value}'")
-    return "WHERE " + " AND ".join(conditions) if conditions else ""
+            conditions.append(f"{field} = ?")
+            params.append(value)
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return where_clause, params
 
-def build_table_schema(conn,database: str, schema_name: str,table_name: str):
+def build_table_schema(conn, database: str, schema_name: str,table_name: str):
     """
     Build a single Fivetran table schema entry from DuckDB metadata.
     Returns None if the table has no columns.
@@ -124,32 +127,48 @@ def map_type(duckdb_type: str) -> str:
     Returns: Fivetran SDK compatible data type as a string
     """
     duckdb_type = duckdb_type.upper()
-    if any(k in duckdb_type for k in ["INT", "BIGINT", "SMALLINT", "TINYINT"]):
+    # Integer types
+    if "TINYINT" in duckdb_type or "SMALLINT" in duckdb_type:
+        return "SHORT"
+    if "INT" in duckdb_type or "INTEGER" in duckdb_type:
         return "INT"
-    if any(k in duckdb_type for k in ["DOUBLE", "FLOAT", "REAL", "DECIMAL", "NUMERIC"]):
+    if "BIGINT" in duckdb_type:
+        return "LONG"
+    # Floating point types
+    if "FLOAT" in duckdb_type or "REAL" in duckdb_type:
         return "FLOAT"
+    if "DOUBLE" in duckdb_type:
+        return "DOUBLE"
+    if "DECIMAL" in duckdb_type or "NUMERIC" in duckdb_type:
+        return "DECIMAL"
+    # Boolean
     if "BOOLEAN" in duckdb_type:
         return "BOOLEAN"
-    if any(k in duckdb_type for k in ["TIMESTAMP", "DATE"]):
+    # Date/time
+    if "TIMESTAMP" in duckdb_type or "DATE" in duckdb_type:
         return "UTC_DATETIME"
+    # Binary
     if "BLOB" in duckdb_type or "BYTEA" in duckdb_type:
         return "BINARY"
+    # JSON
     if "JSON" in duckdb_type:
         return "JSON"
+    # Default to STRING
     return "STRING"
 
 
 
 def update(configuration, state):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
+    validate_configuration(configuration)
+    log.warning("Example: connectors : motherduck")
     token = configuration["motherduck_token"]
     database = configuration.get("database_name")
     schema_filter = configuration.get("schema_name")
@@ -188,7 +207,7 @@ def update(configuration, state):
     conn.close()
 
 
-def incremental_sync(conn, db, schema_name, table_name, inc_col, table_state, batch_size):
+def incremental_sync(conn, db, schema_name, table_name, inc_col, state, batch_size):
     """
     Perform incremental sync for a given table using the specified incremental column.
     Args:
@@ -207,7 +226,7 @@ def incremental_sync(conn, db, schema_name, table_name, inc_col, table_state, ba
 
     query = f"SELECT * FROM {full}"
     if last_val:
-        query += f" WHERE {inc_col} > '{last_val}'"
+        query += f" WHERE {inc_col} >= '{last_val}'"
     query += f" ORDER BY {inc_col} LIMIT {batch_size}"
 
     result = conn.execute(query)
@@ -224,6 +243,11 @@ def incremental_sync(conn, db, schema_name, table_name, inc_col, table_state, ba
         new_checksums[rid] = chk
 
         if rid not in old_checksums or old_checksums[rid] != chk:
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(fivetran_table_name, rec)
 
         val = rec.get(inc_col)
@@ -235,16 +259,20 @@ def incremental_sync(conn, db, schema_name, table_name, inc_col, table_state, ba
     for rid in deleted:
         op.delete(fivetran_table_name, {"_row_id": rid})
 
-    table_state = {
+    state[table_name] = {
         "last_incremental_value": max_val,
         "checksums": new_checksums,
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    op.checkpoint(table_state)
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
 
-def reimport_sync(conn, db, schema_name, table_name, table_state, batch_size):
+def reimport_sync(conn, db, schema_name, table_name, state, batch_size):
     """
     Perform reimport sync for a given table without an incremental column.
     Args:
@@ -252,7 +280,7 @@ def reimport_sync(conn, db, schema_name, table_name, table_state, batch_size):
         db: Database name
         schema_name: Schema name
         table_name: Table name
-        table_state: State dictionary for the table
+        state: State dictionary for all tables
         batch_size: Number of rows to process in each batch
     """
     full = qualified_name(db, schema_name, table_name)
@@ -271,18 +299,27 @@ def reimport_sync(conn, db, schema_name, table_name, table_state, batch_size):
         chk = checksum(rec)
         new[rid] = chk
         if rid not in old or old[rid] != chk:
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(fivetran_table_name, rec)
 
     deleted = set(old.keys()) - set(new.keys())
     for rid in deleted:
         op.delete(fivetran_table_name, {"_row_id": rid})
 
-    table_state = {
+    state[fivetran_table_name] = {
         "checksums": new,
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    op.checkpoint(table_state)
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
 
 def connect(token, db=None):
@@ -291,14 +328,25 @@ def connect(token, db=None):
     Args:
         token: MotherDuck authentication token
         db: Optional database name
+    Returns:
+        DuckDB connection object
     """
     conn_str = f"md:{db}?motherduck_token={token}" if db else f"md:?motherduck_token={token}"
     log.info(f"Connecting to MotherDuck ({'default DB' if not db else db})")
-    try:
-        return duckdb.connect(conn_str)
-    except Exception as e:
-        log.severe(f"Connection failed: {e}")
-        raise
+
+    for attempt in range(__MAX_RETRIES):
+        try:
+            return duckdb.connect(conn_str)
+        except (ConnectionError, TimeoutError) as e:
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(f"Connection failed after {__MAX_RETRIES} attempts: {e}")
+                raise
+            sleep_time = min(60, 2 ** attempt)
+            log.warning(f"Connection attempt {attempt + 1} failed, retrying in {sleep_time}s: {e}")
+            time.sleep(sleep_time)
+        except Exception as e:
+            log.severe(f"Connection failed: {e}")
+            raise
 
 
 def get_schemas(conn, db=None, schema_filter=None):
@@ -308,6 +356,8 @@ def get_schemas(conn, db=None, schema_filter=None):
         conn: DuckDB connection
         db: Optional database name
         schema_filter: Optional schema name to filter
+    Returns:
+        List of schema name strings
     """
     where = build_where(catalog_name=db, schema_name=schema_filter)
     q = f"SELECT schema_name FROM information_schema.schemata {where} ORDER BY schema_name"
@@ -319,9 +369,11 @@ def get_tables(conn, db=None, schema_name=None):
     """
     Retrieve list of tables from MotherDuck.
     Args:
+        conn: DuckDB connection
         db: Optional database name
         schema_name: Optional schema name to filter
-        conn: DuckDB connection
+    Returns:
+        List of table name strings
     """
 
     where = build_where(table_catalog=db, table_schema=schema_name)
@@ -344,6 +396,8 @@ def get_columns(conn, db=None, schema_name=None, table_name=None):
         db: Optional database name
         schema_name: Schema name
         table_name: Table name
+    Returns:
+        List of dictionaries with 'name' and 'type' keys for each column
     """
     where = build_where(table_catalog=db, table_schema=schema_name, table_name=table_name)
     q = f"""
@@ -375,7 +429,10 @@ def get_fivetran_table_name(db, schema, table):
         db: Database name
         schema: Schema name
         table: Table name
+    Returns:
+        Underscore-separated table name string
     """
+
     parts = [p for p in [db, schema, table] if p]
     return "_".join(f'{p}' for p in parts)
 
@@ -387,6 +444,8 @@ def find_incremental(cols, default):
     Args:
         cols: List of column dictionaries
         default: Default incremental column name
+    Returns:
+        Column name string if found, otherwise None.
     """
     names = [c["name"].lower() for c in cols]
     for candidate in [default, "updated_at", "modified_at", "last_modified", "created_at"]:
@@ -402,6 +461,8 @@ def serialize(row):
     lists and dictionaries to JSON strings, and bytes to hex strings.
     Args:
         row: the data row as a dictionary
+    Returns:
+        Serialized dictionary with JSON-compatible values.
     """
     out = {}
     for k, v in row.items():
@@ -422,6 +483,8 @@ def row_id(row):
     This is used for delete capture.
     Args:
         row: the data row as a dictionary
+    Returns:
+        MD5 hash hexdigest string
     """
     return hashlib.md5(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -432,17 +495,31 @@ def checksum(row):
     This is used to detect changes in the row data.
     Args:
         row: the data row as a dictionary
+    Returns:
+        SHA256 hash hexadecimal string
     """
     return hashlib.sha256(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest()
 
 
-# This creates the connector object that will use the update and schema functions defined in this connector.py file.
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
+    """
+    if not configuration.get("motherduck_token"):
+        raise ValueError("Missing required configuration value: motherduck_token")
+
+
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
-# be run directly from the command line or IDE 'run' button. This is useful for debugging while you write your code.
-# Note this method is not called by Fivetran when executing your connector in production. Please test using the
-# Fivetran debug command prior to finalizing and deploying your connector.
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
