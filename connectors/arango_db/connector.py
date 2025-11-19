@@ -79,7 +79,7 @@ def connect_to_arangodb(configuration: dict) -> Any:
         log.severe("Failed to connect to ArangoDB server", e)
         raise RuntimeError(f"Failed to connect to ArangoDB server: {str(e)}")
     except ArangoServerError as e:
-        log.severe(f"ArangoDB server error during connection: {e}")
+        log.severe("ArangoDB server error during connection", e)
         raise RuntimeError(f"ArangoDB server error during connection: {str(e)}")
     except Exception as e:
         log.severe(f"Unexpected error connecting to ArangoDB: {e}")
