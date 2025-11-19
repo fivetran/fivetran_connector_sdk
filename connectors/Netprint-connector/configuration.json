@@ -1,6 +1,6 @@
 {
-  "username": "CanvaUser46",
-  "password": "jyc4zpn@axg-XBA4vzx",
-  "PAGE_SIZE": "200",
-  "BASE_URL": "https://api-s.printing.ne.jp/usr/webservice/api/"
+  "username": "<YOUR_NETPRINT_USERNAME>",
+  "password": "<YOUR_NETPRINT_PASSWORD>",
+  "PAGE_SIZE": "<NUMBER_OF_RECORDS_PER_PAGE>",
+  "BASE_URL": "<NETPRINT_API_BASE_URL>"
 }
