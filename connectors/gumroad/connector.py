@@ -197,21 +197,6 @@ def sync_products(access_token: str, state: dict):
 
         records_processed += 1
 
-        if records_processed % __CHECKPOINT_INTERVAL == 0:
-            # Save the progress by checkpointing the state. This is important for ensuring
-            # that the sync process can resume from the correct position in case of next
-            # sync or interruptions. Learn more about how and where to checkpoint by reading
-            # our best practices documentation (https://fivetran.com/docs/connectors/
-            # connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(state)
-            log.info(f"Checkpointed after processing {records_processed} products")
-
-    # Save the progress by checkpointing the state. This is important for ensuring
-    # that the sync process can resume from the correct position in case of next
-    # sync or interruptions. Learn more about how and where to checkpoint by reading
-    # our best practices documentation (https://fivetran.com/docs/connectors/
-    # connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
     log.info(f"Completed products sync with {records_processed} records")
 
 
@@ -244,12 +229,6 @@ def sync_subscribers(access_token: str, state: dict):
             access_token=access_token, product_id=product_id
         )
 
-    # Save the progress by checkpointing the state. This is important for ensuring
-    # that the sync process can resume from the correct position in case of next
-    # sync or interruptions. Learn more about how and where to checkpoint by reading
-    # our best practices documentation (https://fivetran.com/docs/connectors/
-    # connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
     log.info(f"Completed subscribers sync with {total_subscribers} records")
 
 
