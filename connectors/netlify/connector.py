@@ -459,6 +459,67 @@ def sync_submissions(api_token: str, state: dict):
     log.info(f"Completed submissions sync: {record_count} records processed")
 
 
+def make_api_request_with_retry(url: str, api_token: str):
+    """
+    Make an API request with retry logic and error handling.
+    Args:
+        url: The full URL to request.
+        api_token: The API token for authentication.
+    Returns:
+        A list of records from the API response, or an empty list if the resource is not found.
+    Raises:
+        RuntimeError: If the request fails after all retries.
+    """
+    headers = get_headers(api_token)
+
+    for attempt in range(__MAX_RETRIES):
+        try:
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code in [429, 500, 502, 503, 504]:
+                if attempt < __MAX_RETRIES - 1:
+                    delay = __BASE_DELAY_SECONDS * (2**attempt)
+                    log.warning(
+                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+                    )
+                    time.sleep(delay)
+                    continue
+                else:
+                    log.severe(
+                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
+                    )
+                    raise RuntimeError(
+                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
+                    )
+            elif response.status_code == 404:
+                return []
+            else:
+                log.severe(
+                    f"API request failed with status {response.status_code}: {response.text}"
+                )
+                raise RuntimeError(
+                    f"API request failed with status {response.status_code}: {response.text}"
+                )
+
+        except requests.exceptions.RequestException as e:
+            if attempt < __MAX_RETRIES - 1:
+                delay = __BASE_DELAY_SECONDS * (2**attempt)
+                log.warning(
+                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
+                )
+                time.sleep(delay)
+                continue
+            else:
+                log.severe(f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}")
+                raise RuntimeError(
+                    f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}"
+                )
+
+    return []
+
+
 def fetch_paginated_data(endpoint: str, api_token: str, page: int, per_page: int):
     """
     Fetch paginated data from Netlify API.
@@ -471,54 +532,7 @@ def fetch_paginated_data(endpoint: str, api_token: str, page: int, per_page: int
         A list of records from the API response.
     """
     url = f"{__BASE_URL}{endpoint}?page={page}&per_page={per_page}"
-    headers = get_headers(api_token)
-
-    for attempt in range(__MAX_RETRIES):
-        try:
-            response = requests.get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            elif response.status_code == 404:
-                return []
-            else:
-                log.severe(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
-                raise RuntimeError(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
-
-        except requests.exceptions.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(
-                    f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}"
-                )
-
-    return []
+    return make_api_request_with_retry(url, api_token)
 
 
 def fetch_data(endpoint: str, api_token: str):
@@ -531,54 +545,7 @@ def fetch_data(endpoint: str, api_token: str):
         A list of records from the API response.
     """
     url = f"{__BASE_URL}{endpoint}"
-    headers = get_headers(api_token)
-
-    for attempt in range(__MAX_RETRIES):
-        try:
-            response = requests.get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            elif response.status_code == 404:
-                return []
-            else:
-                log.severe(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
-                raise RuntimeError(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
-
-        except requests.exceptions.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(
-                    f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}"
-                )
-
-    return []
+    return make_api_request_with_retry(url, api_token)
 
 
 def get_headers(api_token: str):
