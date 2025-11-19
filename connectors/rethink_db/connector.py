@@ -230,7 +230,7 @@ def transform_record(record: dict) -> dict:
 
 
 @handle_rethinkdb_error(
-    "syncing table data", (ReqlOpFailedError, ReqlRuntimeError, ReqlDriverError, Exception)
+    "syncing table data", (ReqlOpFailedError, ReqlRuntimeError, ReqlDriverError)
 )
 def sync_table_data(conn, database: str, table_name: str, state: dict) -> int:
     """
