@@ -181,13 +181,10 @@ def get_timestamp_field(conn, database: str, table_name: str):
     """
     # Get a sample record to check for timestamp fields
     sample = r.db(database).table(table_name).limit(1).run(conn)
-    sample_record = list(sample)
-
-    if not sample_record:
+    try:
+        record = next(iter(sample))
+    except StopIteration:
         return None
-
-    record = sample_record[0]
-
     # Common timestamp field names (in priority order)
     timestamp_fields = [
         "updated_at",
