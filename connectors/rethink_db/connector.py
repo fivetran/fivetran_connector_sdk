@@ -7,6 +7,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 # For reading configuration from a JSON file
 import json
 
+# For implementing retry logic with exponential backoff
+import time
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -25,22 +28,11 @@ from rethinkdb.errors import (
     ReqlRuntimeError,
 )
 
-# For handling SSL and connection errors
+# For handling SSL connections
 import ssl
 
 __CHECKPOINT_INTERVAL = 100  # Checkpoint after processing every 100 records
-
-
-def create_ssl_context():
-    """
-    Create SSL context for secure RethinkDB connections.
-    Returns:
-        ssl.SSLContext: SSL context configured for RethinkDB connections
-    """
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    return ssl_context
+__MAX_RETRIES = 5  # Maximum number of retry attempts for transient failures
 
 
 def handle_rethinkdb_error(
@@ -60,7 +52,13 @@ def handle_rethinkdb_error(
         Decorated function with error handling wrapper
     """
     if error_exceptions is None:
-        error_exceptions = (ReqlOpFailedError, ReqlDriverError, ReqlRuntimeError, ConnectionError, OSError)
+        error_exceptions = (
+            ReqlOpFailedError,
+            ReqlDriverError,
+            ReqlRuntimeError,
+            ConnectionError,
+            OSError,
+        )
 
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -92,39 +90,54 @@ def connect_to_rethinkdb(configuration: dict):
     Raises:
         RuntimeError: If connection to RethinkDB fails
     """
-    try:
-        host = configuration.get("host")
-        port = int(configuration.get("port", 28015))
-        database = configuration.get("database")
-        username = configuration.get("username")
-        password = configuration.get("password")
-        use_ssl = configuration.get("use_ssl", "false").lower() == "true"
+    host = configuration.get("host")
+    port = int(configuration.get("port", 28015))
+    database = configuration.get("database")
+    username = configuration.get("username")
+    password = configuration.get("password")
+    use_ssl = configuration.get("use_ssl", "false").lower() == "true"
 
-        connection_params = {"host": host, "port": port, "db": database}
+    connection_params = {"host": host, "port": port, "db": database}
 
-        if username:
-            connection_params["user"] = username
-            connection_params["password"] = password
+    if username:
+        connection_params["user"] = username
+        connection_params["password"] = password
 
-        if use_ssl:
-            connection_params["ssl"] = create_ssl_context()
+    if use_ssl:
+        # Create SSL context with proper certificate verification enabled for security
+        connection_params["ssl"] = ssl.create_default_context()
 
-        conn = r.connect(**connection_params)
-        log.info(f"Successfully connected to RethinkDB at {host}:{port}, database: {database}")
-        return conn
+    # Retry logic with exponential backoff for transient failures
+    for attempt in range(__MAX_RETRIES):
+        try:
+            conn = r.connect(**connection_params)
+            log.info(f"Successfully connected to RethinkDB at {host}:{port}, database: {database}")
+            return conn
 
-    except ReqlAuthError as e:
-        log.severe(f"Authentication failed for RethinkDB: {str(e)}")
-        raise RuntimeError(f"Unable to authenticate with RethinkDB: {str(e)}")
-    except ReqlDriverError as e:
-        log.severe(f"Driver error connecting to RethinkDB: {str(e)}")
-        raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
-    except (ValueError, TypeError, OSError) as e:
-        log.severe(f"Configuration or connection error: {str(e)}")
-        raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
+        except ReqlAuthError as e:
+            # Don't retry authentication failures - these are permanent errors
+            log.severe(f"Authentication failed for RethinkDB: {str(e)}")
+            raise RuntimeError(f"Unable to authenticate with RethinkDB: {str(e)}")
+
+        except (ReqlDriverError, ConnectionError, OSError) as e:
+            # Retry transient network/connection errors
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(f"Failed to connect after {__MAX_RETRIES} attempts: {str(e)}")
+                raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
+
+            sleep_time = min(60, 2**attempt)
+            log.warning(
+                f"Connection attempt {attempt + 1}/{__MAX_RETRIES} failed, retrying in {sleep_time}s: {str(e)}"
+            )
+            time.sleep(sleep_time)
+
+        except (ValueError, TypeError) as e:
+            # Don't retry configuration errors - these are permanent errors
+            log.severe(f"Configuration error: {str(e)}")
+            raise RuntimeError(f"Unable to establish RethinkDB connection: {str(e)}")
 
 
-@handle_rethinkdb_error("retrieving table list", (ReqlOpFailedError, ReqlDriverError, Exception))
+@handle_rethinkdb_error("retrieving table list", (ReqlOpFailedError, ReqlDriverError))
 def get_all_tables(conn, database: str) -> list:
     """
     Retrieve list of all tables in the RethinkDB database.
@@ -141,7 +154,7 @@ def get_all_tables(conn, database: str) -> list:
 
 @handle_rethinkdb_error(
     "getting primary key",
-    (ReqlOpFailedError, ReqlDriverError, Exception),
+    (ReqlOpFailedError, ReqlDriverError),
     raise_error=False,
     default_value=["id"],
 )
@@ -164,7 +177,7 @@ def get_table_primary_key(conn, database: str, table_name: str) -> list:
 
 @handle_rethinkdb_error(
     "detecting timestamp field",
-    (ReqlOpFailedError, ReqlDriverError, Exception),
+    (ReqlOpFailedError, ReqlDriverError),
     raise_error=False,
     default_value=None,
 )
@@ -262,8 +275,8 @@ def sync_table_data(conn, database: str, table_name: str, state: dict) -> int:
     query = r.db(database).table(table_name)
 
     if last_sync_timestamp and timestamp_field:
-        # Filter for records updated since last sync
-        query = query.filter(r.row[timestamp_field] > last_sync_timestamp)
+        # Filter for records updated at or after last sync (use >= to avoid missing records with identical timestamps)
+        query = query.filter(r.row[timestamp_field] >= last_sync_timestamp)
 
     cursor = query.run(conn)
 
