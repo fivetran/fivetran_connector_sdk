@@ -40,11 +40,14 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # For type hints and annotations
-from typing import Any, Dict, List, Optional, Tuple 
+from typing import Any, Dict, List, Optional, Tuple
+
 # For implementing retry delays in exponential backoff
 import time
+
 # For adding jitter to retry delays
 import random
+
 # For making HTTP requests to the GNews API
 import requests
 
@@ -75,6 +78,7 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
             "primary_key": ["url", "publishedAt"],
         }
     ]
+
 
 def validate_configuration(configuration: dict):
     """
@@ -185,9 +189,8 @@ def fetch_news_page(
         "q": query,
         "from": from_date,
         "sortBy": sort_by,
-        "apiKey": api_key,
+        "apikey": api_key,
         "page": page,
-        "pageSize": page_size,
     }
 
     attempt = 0
@@ -195,13 +198,17 @@ def fetch_news_page(
         attempt += 1
         try:
             # Send the GET request to GNewsAPI.
-            resp = requests.get(endpoint, headers=__DEFAULT_HEADERS, params=params, timeout=timeout)
+            resp = requests.get(
+                endpoint, headers=__DEFAULT_HEADERS, params=params, timeout=timeout
+            )
 
             # Handle transient error codes with retries.
             if resp.status_code in status_forcelist:
                 if attempt <= retries:
                     sleep_s = backoff_factor * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
-                    log.warning(f"Transient HTTP {resp.status_code}. Retrying in {sleep_s:.2f}s...")
+                    log.warning(
+                        f"Transient HTTP {resp.status_code}. Retrying in {sleep_s:.2f}s..."
+                    )
                     time.sleep(sleep_s)
                     continue
                 else:
@@ -212,12 +219,9 @@ def fetch_news_page(
                 resp.raise_for_status()
 
             data = resp.json()
-            if data.get("status") != "ok":
-                raise RuntimeError(f"GNewsAPI error: {data}")
 
             # Extract and normalize article data.
-            articles = data.get("articles", []) or []
-            total_results = int(data.get("totalResults", 0))
+            total_results = int(data.get("totalArticles", 0))
             rows = normalize_articles(data, query)
 
             # Upsert normalized rows to destination.
@@ -235,10 +239,10 @@ def fetch_news_page(
                     continue
 
             log.info(
-                f"Fetched {len(articles)} articles, upserted {upserts_count} "
+                f"Fetched {total_results} articles, upserted {upserts_count} "
                 f"from page {page}. totalResults={total_results}"
             )
-            return upserts_count, len(articles), total_results
+            return upserts_count, total_results
 
         except (requests.Timeout, requests.ConnectionError) as e:
             # Handle connection/timeout errors with exponential retry.
@@ -289,7 +293,7 @@ def fetch_all_news(
         log.info(f"Fetching page {page}...")
 
         # Fetch one page of results.
-        upserts_count, articles_fetched, total_results = fetch_news_page(
+        upserts_count, total_results = fetch_news_page(
             query=query,
             from_date=from_date,
             api_key=api_key,
@@ -304,18 +308,14 @@ def fetch_all_news(
             total_results_seen = total_results
 
         # Stop if no data was returned.
-        if articles_fetched == 0:
+        if upserts_count == 0:
             break
 
         pages_fetched += 1
         total_upserts += upserts_count
 
         # Stop if we’ve clearly reached the end of the result set.
-        if articles_fetched < page_size:
-            break
-        if total_results_seen is not None and page * page_size >= total_results_seen:
-            break
-        if max_pages and page >= max_pages:
+        if total_results_seen == total_upserts:
             break
 
         page += 1
@@ -376,8 +376,3 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
-
-
-
-
-
