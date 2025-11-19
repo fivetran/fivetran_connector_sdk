@@ -39,6 +39,9 @@ from dateutil.relativedelta import relativedelta  # Date arithmetic utilities
 
 __API_BASE = "https://api.scrunchai.com/v1"
 __LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
+__MAX_RETRIES = 5
+__INITIAL_BACKOFF = 2  # seconds
+
 
 
 def validate_configuration(configuration: dict):
@@ -185,25 +188,23 @@ def get_all_responses(start_date, end_date, token, brand_id):
     """
     offset = 0
     limit = 100
-    MAX_RETRIES = 5
-    INITIAL_BACKOFF = 2  # seconds
 
     while True:
         response = None
 
-        for attempt in range(MAX_RETRIES):
+        for attempt in range(__MAX_RETRIES):
             try:
                 log.info(
                     f"Fetching responses (offset={offset}, attempt "
-                    f"{attempt + 1}/{MAX_RETRIES})..."
+                    f"{attempt + 1}/{__MAX_RETRIES})..."
                 )
                 response = get_responses(start_date, end_date, offset, token, brand_id)
                 break  # Success, exit retry loop
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Error fetching responses on attempt {attempt + 1}: {e}")
-                if attempt < MAX_RETRIES - 1:
-                    wait_time = INITIAL_BACKOFF * (2**attempt)
+                if attempt < __MAX_RETRIES - 1:
+                    wait_time = __INITIAL_BACKOFF * (2**attempt)
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
@@ -244,8 +245,6 @@ def get_scrunch_performance(start_date, end_date, token, brand_id):
         end_date   (str): End date   (YYYY-MM-DD).
         token      (str): Bearer token for Scrunch API.
     """
-    MAX_RETRIES = 5
-    INITIAL_BACKOFF = 2  # seconds
 
     # Construct base URL dynamically using brand_id
     base_url = f"{__API_BASE}/{brand_id}/query"
@@ -276,9 +275,9 @@ def get_scrunch_performance(start_date, end_date, token, brand_id):
     url = f"{base_url}{query_params}"
 
     response = None
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(__MAX_RETRIES):
         try:
-            log.info(f"Fetching data (Attempt {attempt + 1}/{MAX_RETRIES})...")
+            log.info(f"Fetching data (Attempt {attempt + 1}/{__MAX_RETRIES})...")
             response = requests.get(url, headers=headers)
             # This will raise an HTTPError for bad responses (4xx or 5xx)
             response.raise_for_status()
@@ -286,9 +285,9 @@ def get_scrunch_performance(start_date, end_date, token, brand_id):
         except requests.exceptions.RequestException as e:
             # Catch network errors and HTTP errors
             log.warning(f"Error fetching data on attempt {attempt + 1}: {e}")
-            if attempt < MAX_RETRIES - 1:
+            if attempt < __MAX_RETRIES - 1:
                 # Calculate exponential backoff time
-                wait_time = INITIAL_BACKOFF * (2**attempt)
+                wait_time = __INITIAL_BACKOFF * (2**attempt)
                 log.info(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:
@@ -357,22 +356,19 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
     }
     headers = {"Authorization": f"Bearer {token}"}
 
-    MAX_RETRIES = 5
-    INITIAL_BACKOFF = 2  # seconds
-
     response = None
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(__MAX_RETRIES):
         try:
             log.info(
-                "Fetching competitor performance (attempt " f"{attempt + 1}/{MAX_RETRIES})..."
+                "Fetching competitor performance (attempt " f"{attempt + 1}/{__MAX_RETRIES})..."
             )
             response = requests.get(base_url, headers=headers, params=params)
             response.raise_for_status()
             break  # success
         except requests.exceptions.RequestException as e:
             log.warning(f"Error on attempt {attempt + 1}: {e}")
-            if attempt < MAX_RETRIES - 1:
-                wait_time = INITIAL_BACKOFF * (2**attempt)
+            if attempt < __MAX_RETRIES - 1:
+                wait_time = __INITIAL_BACKOFF * (2**attempt)
                 log.info(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:
@@ -429,7 +425,10 @@ def update(configuration: dict, state: dict):
     get_scrunch_performance(response_start_date, end_date, token, brand_id)
     get_competitor_performance(response_start_date, end_date, token, brand_id)
 
-    # Save the progress by checkpointing the state
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state={"response_start_date": end_date})
 
 
