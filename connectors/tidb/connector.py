@@ -33,7 +33,6 @@ from datetime import datetime, timezone
 # Module-level constants
 __TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
 __REQUIRED_CONFIG_KEYS = __TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]
-__MAX_UPSERT_RETRIES = 3
 __FALLBACK_TIMESTAMP = datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
@@ -419,13 +418,12 @@ def process_and_upsert_rows(
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
-            upsert_success = op.upsert(table=table_name, data=row_data)
+            op.upsert(table=table_name, data=row_data)
 
-            # Update max timestamp if upsert succeeded
-            if upsert_success:
-                row_timestamp = extract_row_timestamp(row_data)
-                if row_timestamp and row_timestamp > max_seen_timestamp:
-                    max_seen_timestamp = row_timestamp
+            # Update max timestamp once upsert succeeded
+            row_timestamp = extract_row_timestamp(row_data)
+            if row_timestamp and row_timestamp > max_seen_timestamp:
+                max_seen_timestamp = row_timestamp
 
         except Exception as row_err:
             # Log row-level errors and continue processing other rows
