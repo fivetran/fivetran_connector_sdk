@@ -376,7 +376,7 @@ def update(configuration: dict, state: dict):
             f"RethinkDB sync completed successfully. Total records synced: {total_records} across {len(tables)} tables"
         )
 
-    except Exception as e:
+    except (ReqlOpFailedError, ReqlDriverError, ReqlRuntimeError, ReqlAuthError) as e:
         log.severe(f"Error during sync: {str(e)}")
         raise RuntimeError(f"Failed to sync data from RethinkDB: {str(e)}")
 
