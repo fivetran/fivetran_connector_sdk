@@ -60,7 +60,7 @@ def handle_rethinkdb_error(
         Decorated function with error handling wrapper
     """
     if error_exceptions is None:
-        error_exceptions = (ReqlOpFailedError, ReqlDriverError, ReqlRuntimeError, Exception)
+        error_exceptions = (ReqlOpFailedError, ReqlDriverError, ReqlRuntimeError, ConnectionError, OSError)
 
     def decorator(func):
         def wrapper(*args, **kwargs):
