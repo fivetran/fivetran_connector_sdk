@@ -455,16 +455,15 @@ def sync_time_series_for_metrics(
 
         results = fetch_time_series_data(prometheus_url, headers, query, start_time, end_time)
 
-        batch_data_points = []
+        batch_data_points = 0
 
         for result in results:
             data_points = process_time_series_result(result)
-            batch_data_points.extend(data_points)
+            sync_time_series_batch(data_points)
+            batch_data_points += len(data_points)
 
-            if len(batch_data_points) >= __CHECKPOINT_BATCH_SIZE:
-                sync_time_series_batch(batch_data_points)
+            if batch_data_points >= __CHECKPOINT_BATCH_SIZE:
                 total_data_points += len(batch_data_points)
-
                 state["last_sync_timestamp"] = end_time.isoformat()
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
@@ -473,12 +472,13 @@ def sync_time_series_for_metrics(
                 op.checkpoint(state)
 
                 log.info(f"Checkpointed {total_data_points} data points")
-                batch_data_points = []
+                batch_data_points = 0
 
         if batch_data_points:
-            sync_time_series_batch(batch_data_points)
+            state["last_sync_timestamp"] = end_time.isoformat()
+            op.checkpoint(state)
             total_data_points += len(batch_data_points)
-
+            log.info(f"Completed Checkpointed {total_data_points} data points")
         metrics_synced += 1
 
         if metrics_synced % 10 == 0:
