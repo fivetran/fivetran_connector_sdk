@@ -405,6 +405,8 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
+    log.warning("Example: API Connector : Scrunch AI")
+  
     # Validate then grab token from configuration
     validate_configuration(configuration)
     token = configuration["api_token"]
@@ -444,5 +446,8 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
-        configuration = json.load(f)
+      configuration = json.load(f)
+      
+    # Test the connector locally
+    connector.debug()
       
