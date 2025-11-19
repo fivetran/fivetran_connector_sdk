@@ -341,7 +341,7 @@ def schema(configuration: dict):
 
         return schema_definition
 
-    except Exception as e:
+    except (ReqlOpFailedError, ReqlDriverError, ReqlRuntimeError, ReqlAuthError) as e:
         log.severe(f"Error generating schema: {str(e)}")
         raise RuntimeError(f"Schema generation failed: {str(e)}")
 
