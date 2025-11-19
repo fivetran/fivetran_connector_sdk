@@ -207,7 +207,7 @@ def sync_collection(database: Any, collection_name: str, table_name: str, state:
             f"ArangoDB server error while syncing collection '{collection_name}': {str(e)}"
         )
     except Exception as e:
-        log.severe(f"Unexpected error syncing collection '{collection_name}': {e}")
+        log.severe(f"Unexpected error syncing collection '{collection_name}'", e)
         raise RuntimeError(f"Unexpected error syncing collection '{collection_name}': {str(e)}")
 
 
