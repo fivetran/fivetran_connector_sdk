@@ -1,3 +1,4 @@
+
 import hashlib
 import json
 import re
@@ -87,16 +88,13 @@ class StateManager:
             This method provides a default state for new sheets, ensuring
             that the first sync will fetch all available data.
         """
+        default_time = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
         return self.sheet_states.get(
             sheet_id,
             {
                 "last_modified": self.state.get(
                     "last_modified",
-                    (
-                        datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                        - timedelta(days=1)
-                    ).isoformat()
-                    + "Z",
+                    default_time.isoformat() + "Z",
                 ),
                 "row_ids": [],
             },
@@ -165,13 +163,10 @@ class StateManager:
         and prevent state corruption issues.
         """
         if not self.sheet_states:
+            default_time = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
             return self.state.get(
                 "last_modified",
-                (
-                    datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-                    - timedelta(days=1)
-                ).isoformat()
-                + "Z",
+                default_time.isoformat() + "Z",
             )
         return max(state["last_modified"] for state in self.sheet_states.values())
 
