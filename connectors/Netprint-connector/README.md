@@ -45,7 +45,7 @@ PAGE_SIZE	No	Number of records retrieved per page from the API (default is 200).
 
 Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
-Requirements file
+## Requirements file
 The requirements.txt file lists only external dependencies that are not preinstalled in the Fivetran runtime.
 
 In this example, the connector does not require any additional dependencies, so your requirements.txt should either be empty or omitted.
@@ -58,39 +58,33 @@ requests
 
 These are already available in the environment.
 
-Authentication
-The connector authenticates to the NetPrint API using a Base64‐encoded header:
+## Authentication
+The connector authenticates to the NetPrint API using a Base64‐encoded header.
 
-pgsql
-Copy code
-X-NPS-Authorization: base64(username%password%4)
-This header is generated automatically when the connector is initialized.
-
-Pagination
+## Pagination
 Pagination is handled in the NetPrintAPI.iter_files() function. The connector uses the fromCount and showCount parameters to retrieve data in pages of a configurable size (PAGE_SIZE, default 200).
 
 The connector continues fetching until an empty fileList response is received.
 
-Data handling
+## Data handling
 Data extraction and delivery are performed in the update(configuration, state) function:
 
 Fetches data from three endpoints:
 
-core/information → loaded into system_info
+- core/information → loaded into system_info
 
-core/folderSize → loaded into folder_usage
+- core/folderSize → loaded into folder_usage
 
-core/file → loaded into files
+- core/file → loaded into files
 
-Each response is delivered using Upsert operations.
+- Each response is delivered using Upsert operations.
 
-Deleted files are marked using _fivetran_deleted = True.
+- Deleted files are marked using _fivetran_deleted = True.
 
-Incremental state is stored under state["files"], including:
+- Incremental state is stored under state["files"], including:
 
-last_synced_at (timestamp bookmark)
-
-known_keys (list of previously seen accessKey values)
+  - last_synced_at (timestamp bookmark)
+  - known_keys (list of previously seen accessKey values)
 
 Example state:
 
@@ -100,7 +94,8 @@ Copy code
   "last_synced_at": "2025-10-21T09:00:00Z",
   "known_keys": ["AK1", "AK2", "AK3"]
 }
-Error handling
+
+## Error handling
 The connector implements error handling for network and API-related issues:
 
 Retries for 429 responses based on the Retry-After header.
@@ -113,7 +108,7 @@ Logs and skips invalid JSON.
 
 Raises errors for other unexpected HTTP responses.
 
-Tables created
+## Tables created
 system_info
 Column	Description
 Dynamic fields	Vary by API response.
@@ -130,5 +125,5 @@ accessKey	Primary key identifying each file.
 _fivetran_deleted	Boolean flag for soft deletes.
 Other fields	Include filename, upload timestamp, size, etc.
 
-Additional considerations
+## Additional considerations
 The provided example is intended to help you effectively use the Fivetran Connector SDK. While the connector logic has been tested, Fivetran cannot be held responsible for any unexpected or negative consequences arising from its use. For support, please reach out to the Fivetran Support team.
