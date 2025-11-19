@@ -35,6 +35,8 @@ The connector reads configuration values from `configuration.json`. These settin
   "BASE_URL": "<NETPRINT_API_BASE_URL>",
   "PAGE_SIZE": "<NUMBER_OF_RECORDS_PER_PAGE>"
 }
+```
+
 Key	Required	Description
 username	Yes	Your NetPrint account username.
 password	Yes	Your NetPrint account password.
