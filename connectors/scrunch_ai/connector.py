@@ -207,7 +207,7 @@ def get_all_responses(start_date, end_date, token, brand_id):
                     log.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    log.error("Max retries reached while fetching responses. Failing")
+                    log.severe("Max retries reached while fetching responses. Failing")
                     raise  # re-raise the last exception
 
         if response is None:
@@ -291,7 +291,7 @@ def get_scrunch_performance(start_date, end_date, token, brand_id):
                 time.sleep(wait_time)
             else:
                 # Re-raise the exception on the last attempt
-                log.error("Max retries reached. Failing.")
+                log.severe("Max retries reached. Failing.")
                 raise  # Re-raise the last exception
 
     # Check if a successful response was obtained
@@ -371,7 +371,7 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
                 log.info(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:
-                log.error("Max retries reached for competitor performance.")
+                log.severe("Max retries reached for competitor performance.")
                 raise
 
     if response is None:
