@@ -4,7 +4,7 @@
 This example demonstrates a source connector that reads rows from a TiDB database and upserts them into the Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
 Use cases: Incremental sync of application tables, vector/embedding export for ML workflows, and incremental change capture for analytics.
 
-## Accreditation
+## Contributor
 This example was contributed by [Nikhil Mankani](https://www.linkedin.com/in/nikhilmankani/).
 
 ## Requirements
@@ -40,19 +40,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### Configuration parameters
+Configuration parameters:
 
-`TIDB_HOST`: Hostname or IP address of the TiDB server.
-
-`TIDB_USER`: Username for TiDB connection.
-
-`TIDB_PASS`: Password for the TiDB user.
-
-`TIDB_PORT`: Port number for TiDB connection.
-
-`TIDB_DATABASE`: Name of your TiDB database.
-
-`TABLES_PRIMARY_KEY_COLUMNS`: A JSON object where keys are table names and values are the primary key column names.
+- `TIDB_HOST`: Hostname or IP address of the TiDB server.
+- `TIDB_USER`: Username for TiDB connection.
+- `TIDB_PASS`: Password for the TiDB user.
+- `TIDB_PORT`: Port number for TiDB connection.
+- `TIDB_DATABASE`: Name of your TiDB database.
+- `TABLES_PRIMARY_KEY_COLUMNS`: A JSON object where keys are table names and values are the primary key column names.
 
 Example:
 ```json
@@ -78,7 +73,8 @@ Example:
 ```
 
 ## Requirements file
-- `requirements.txt` lists third-party Python packages required by this example. Example content:
+
+The `requirements.txt` file lists third-party Python packages required for this example. Example content:
 
 ```
 pytidb>=0.0.11
