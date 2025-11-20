@@ -346,7 +346,7 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: API : GNews Search")
     validate_configuration(configuration)
-  
+
     api_key = configuration["api_key"]
     search_term = configuration["search_term"]
     from_date = configuration["from_date"]
@@ -381,4 +381,3 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
-
