@@ -53,13 +53,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-Configuration keys:
-- `google_cloud_storage_bucket` – GCS bucket name containing motion files
-- `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`)
-- `batch_limit` – Maximum number of files to process per prefix per sync (default: 25). State is updated with the last processed file's timestamp. TESTING ONLY – remove for production use to process all files in a single sync.
-- `include_extensions` – File extensions to process (comma-separated, default: `.bvh,.fbx`)
-- `max_blend_pairs` – Maximum number of blend pairs to generate per sync (default: 100)
-- `max_motion_buffer_size` – Maximum number of seed/build motions to buffer before generating blend pairs (default: 1000)
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `google_cloud_storage_bucket` | Yes | N/A | GCS bucket name containing motion files |
+| `google_cloud_storage_prefixes` | Yes | N/A | Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`) |
+| `batch_limit` | No | 25 | Maximum number of files to process per prefix per sync. State is updated with the last processed file's timestamp. TESTING ONLY – remove for production use to process all files in a single sync. |
+| `include_extensions` | No | `.bvh,.fbx` | File extensions to process (comma-separated) |
+| `max_blend_pairs` | No | 100 | Maximum number of blend pairs to generate per sync |
+| `max_motion_buffer_size` | No | 1000 | Maximum number of seed/build motions to buffer before generating blend pairs |
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
