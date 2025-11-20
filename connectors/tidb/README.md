@@ -58,7 +58,7 @@ Example:
 }
 ```
 
-`VECTOR_TABLES_DATA` (Optional): A JSON object for tables containing vector/embedding columns. Each table requires:
+`VECTOR_TABLES_DATA` (optional): A JSON object for tables containing vector/embedding columns. Each table requires:
 - `primary_key_column`: The primary key column name
 - `vector_column`: The column containing vector data
 
