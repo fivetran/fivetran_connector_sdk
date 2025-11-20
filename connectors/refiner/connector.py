@@ -136,23 +136,7 @@ def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
     raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
 
 
-def parse_iso_datetime(date_string: str) -> datetime | None:
-    """
-    Parse ISO 8601 datetime string to datetime object.
-    Args:
-        date_string: ISO 8601 formatted datetime string.
-    Returns:
-        datetime object in UTC timezone, or None if parsing fails.
-    """
-    try:
-        if date_string.endswith("Z"):
-            date_string = date_string[:-1] + "+00:00"
-        return datetime.fromisoformat(date_string).astimezone(timezone.utc)
-    except ValueError as e:
-        log.warning(f"Failed to parse datetime '{date_string}': {e}")
-        return None
-
-
+# (Removed unused parse_iso_datetime function)
 def flatten_dict(data: dict, parent_key: str = "", separator: str = "_") -> dict:
     """
     Flatten nested dictionary into single-level dictionary with underscore-separated keys.
