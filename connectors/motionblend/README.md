@@ -5,7 +5,7 @@ The MotionBlend connector catalogs motion-capture (MoCap) file inventory from Go
 
 This connector supports three motion categories – `seed_motions`, `build_motions`, and `blend_motions` – and is designed for AI and animation pipelines that analyze or generate blended human motion sequences.
 
-Current Limitations:
+Current limitations:
 - Motion-specific metadata (frame count, FPS, joint counts, skeleton IDs) use static placeholder values
 - Quality metrics in blend records are set to NULL and require post-processing
 - File contents are not parsed; only GCS blob metadata (URI, timestamps, size) is extracted
