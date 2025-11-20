@@ -10,12 +10,14 @@ from fivetran_connector_sdk import Operations as op
 
 import requests        # HTTP client library used to send requests to external APIs (GET/POST, etc.)
 import datetime as dt  # Standard datetime module (aliased as dt) for working with dates, times, and timestamps
+import time  # For implementing retry delays with exponential backoff
 
 __USERFLOW_VERSION = "2020-01-03"
 __MAX_LIMIT = 100
+__MAX_RETRIES = 5
 
 
-def headers(api_key: str):
+def build_headers(api_key: str):
     """
     Create headers for Userflow API requests.
     Args:
@@ -94,7 +96,7 @@ def fetch_users(base_url, headers, limit, starting_after=None):
         params["starting_after"] = starting_after
 
     url = base_url + "/users"
-    resp = requests.get(url, headers=headers, params=params, timeout=60)
+    resp = get_with_retry(url, headers=headers, params=params, timeout=60)
     resp.raise_for_status()
     payload = resp.json()
 
@@ -103,6 +105,72 @@ def fetch_users(base_url, headers, limit, starting_after=None):
         payload.get("has_more"),
         payload.get("next_page_url"),
     )
+
+def validate_configuration(configuration):
+    """
+    Validate connector configuration.
+    Args:
+        configuration: The connector configuration dictionary
+    """
+    api_key = configuration.get("userflow_api_key")
+    if api_key is None or not str(api_key).strip():
+        raise ValueError("Missing required configuration field: 'userflow_api_key'")
+
+    base_url = configuration.get("base_url", "https://api.userflow.com")
+    parsed = urlparse(base_url)
+    if not parsed.scheme or not parsed.netloc:
+        raise ValueError(f"Invalid 'base_url' value: {base_url!r}")
+
+    log.info("Configuration validation succeeded.")
+
+def get_with_retry(url, headers=None, params=None, timeout=60):
+    """
+    Perform a GET request with retries for transient errors.
+    Args:
+        url: The URL to send the GET request to.
+        headers: Optional HTTP headers.
+        params: Optional query parameters.
+        timeout: Request timeout in seconds.
+    Returns:
+        The HTTP response object.
+    """
+    for attempt in range(__MAX_RETRIES):
+        try:
+            resp = requests.get(url, headers=headers, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp
+
+        except (requests.Timeout, requests.ConnectionError) as e:
+            # Network-level / timeout issues → retry if we have attempts left
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(f"Network/timeout error on GET {url}", e)
+                raise
+            sleep_time = min(60, 2 ** attempt)
+            log.warning(
+                f"Network/timeout error on GET {url}: {e}. "
+                f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
+            )
+            time.sleep(sleep_time)
+
+        except requests.HTTPError as e:
+            status = e.response.status_code
+            # Retry only transient HTTP errors (5xx, 429)
+            if status in (429,) or 500 <= status < 600:
+                if attempt == __MAX_RETRIES - 1:
+                    log.severe(f"HTTP error {status} on GET {url}: {e.response.text}")
+                    raise
+                sleep_time = min(60, 2 ** attempt)
+                log.warning(
+                    f"Transient HTTP {status} on GET {url}. "
+                    f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
+                )
+                time.sleep(sleep_time)
+            else:
+                # Non-retryable: 4xx, etc.
+                log.severe(f"Non-retryable HTTP {status} on GET {url}: {e.response.text}")
+                raise
+
+    raise RuntimeError(f"get_with_retry exhausted retries for {url}")
 
 
 def update(configuration, state):
@@ -121,7 +189,7 @@ def update(configuration, state):
 
     base_url = configuration.get("base_url", "https://api.userflow.com")
     api_key = configuration["userflow_api_key"]
-    limit = int(configuration.get("page_size", __MAX_LIMIT))
+    limit = __MAX_LIMIT
     headers = headers(api_key)
 
     tb_state = table_state(state, "users")
@@ -139,10 +207,9 @@ def update(configuration, state):
 
         for user in users:
             attrs = user.get("attributes", {})
-            # The 'upsert' operation is used to insert or update data in a table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into, in this case, "hello".
-            # - The second argument is a dictionary containing the data to be upserted.
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="users",
                 data={
@@ -173,7 +240,7 @@ def update(configuration, state):
                 log.warning(f"Unexpected format for next_page_url: {next_page_url}. Skipping pagination.")
                 has_more = False
 
-        last_user_id = users[-1].get("id") if isinstance(users[-1], dict) else users[-1].id
+        last_user_id = users[-1].get("id")
         starting_after = last_user_id
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -183,84 +250,13 @@ def update(configuration, state):
         op.checkpoint(state)
     log.info(f"Incremental sync completed: {total} users fetched")
 
-def validate_configuration(configuration):
-    """
-    Validate connector configuration.
-    Args:
-        configuration: The connector configuration dictionary
-    """
-    base_url = configuration.get("base_url", "https://api.userflow.com")
-    api_key = configuration["userflow_api_key"]
-    headers = headers(api_key)
-
-    try:
-        url = base_url + "/users"
-        resp = get_with_retry(url, headers=headers, params={"limit": 1}, timeout=60)
-        resp.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        log.error(f"Configuration validation failed: {e}")
-        raise RuntimeError(f"Configuration validation failed: {e}")
-
-    log.info("Configuration validation succeeded.")
-
-def get_with_retry(url, headers=None, params=None, timeout=60):
-    """
-    Perform a GET request with retries for transient errors.
-    Args:
-        url: The URL to send the GET request to.
-        headers: Optional HTTP headers.
-        params: Optional query parameters.
-        timeout: Request timeout in seconds.
-    Returns:
-        The HTTP response object.
-    """
-    for attempt in range(__MAX_RETRIES):
-        try:
-            resp = requests.get(url, headers=headers, params=params, timeout=timeout)
-            resp.raise_for_status()
-            return resp
-
-        except (requests.Timeout, requests.ConnectionError) as e:
-            # Network-level / timeout issues → retry if we have attempts left
-            if attempt == __MAX_RETRIES - 1:
-                log.severe(f"Network/timeout error on GET {url}: {e}")
-                raise
-            sleep_time = min(60, 2 ** attempt)
-            log.warning(
-                f"Network/timeout error on GET {url}: {e}. "
-                f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
-            )
-            time.sleep(sleep_time)
-
-        except requests.HTTPError as e:
-            status = e.response.status_code
-            # Retry only transient HTTP errors (5xx, 429)
-            if status in (429,) or 500 <= status < 600:
-                if attempt == __MAX_RETRIES - 1:
-                    log.severe(f"HTTP error {status} on GET {url}: {e.response.text}")
-                    raise
-                sleep_time = min(60, 2 ** attempt)
-                log.warning(
-                    f"Transient HTTP {status} on GET {url}. "
-                    f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
-                )
-                time.sleep(sleep_time)
-            else:
-                # Non-retryable: 4xx, etc.
-                log.severe(f"Non-retryable HTTP {status} on GET {url}: {e.response.text}")
-                raise
-
-# Create the connector object using the schema and update functions
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+# Please test using the "fivetran debug" command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
-
-    # Test the connector locally
-    connector.debug(configuration=configuration)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug()

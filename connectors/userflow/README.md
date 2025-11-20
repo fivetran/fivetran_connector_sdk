@@ -27,8 +27,7 @@ The connector requires the following configuration parameters:
 ```json
 {
   "userflow_api_key": "<YOUR_USERFLOW_API_KEY>",
-  "base_url": "https://api.userflow.com",
-  "page_size": "100"
+  "base_url": "<YOUR_USERFLOW_BASE_URL>"
 }
 ```
 
@@ -50,7 +49,7 @@ If you are using the EU region of Userflow, set "base_url": "https://api.eu.user
 
 ## Data handling
 - Connects using the configured API key to /users
-- Fetches records in batches up to page_size
+- Fetches records in batches up to page_size which is 100 by default.
 - For each user, it extracts id, email, name, created_at, and signed_up_at, and stores the entire JSON payload in a raw column.
 - Upserts each record into the users table.
 - Updates state["bookmarks"]["users"]["last_seen_id"] for next sync.
@@ -61,7 +60,7 @@ If you are using the EU region of Userflow, set "base_url": "https://api.eu.user
 - Pagination issues: handled gracefully with logs and safe exits.
 - Retry logic: transient errors retried automatically.
 
-### Tables created
+## Tables created
 The connector creates one table:
 `users`
 

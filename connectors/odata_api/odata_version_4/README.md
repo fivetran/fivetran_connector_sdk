@@ -195,14 +195,14 @@ session = requests.Session()
 session.auth = ('username', 'password')
 
 # OR OAuth/Bearer token
-session.headers = {
+session.build_headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
     'Authorization': 'Bearer YOUR_TOKEN'
 }
 
 # OR Custom Headers
-session.headers.update({
+session.build_headers.update({
     'Custom-Header': 'value'
 })
 ```

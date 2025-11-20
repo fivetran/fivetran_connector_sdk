@@ -334,7 +334,7 @@ def call_vql(url, headers, payload):
         log.warning(
             f"Unsuccessful API call -- Response Status: {response_page.get('responseStatus')}, Errors: {response_page.get('errors')}"
         )
-    resp_headers = response.headers
+    resp_headers = response.build_headers
 
     # If approaching Burst Limit, sleep for 5 min
     if int(resp_headers.get("x-vaultapi-burstlimitremaining")) < __BURST_LIMIT_THRESHOLD:

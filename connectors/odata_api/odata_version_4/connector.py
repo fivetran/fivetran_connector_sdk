@@ -299,7 +299,7 @@ def update(configuration: dict, state: dict):
     session = requests.Session()
 
     # Headers to enable that responses are fetched in json format
-    session.headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    session.build_headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
     # Initialize the ODataClient objects required to interact with the OData service
     # The ODataClient objects require the base URL of the OData service, session object and state dictionary
