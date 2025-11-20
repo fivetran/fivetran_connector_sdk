@@ -136,7 +136,17 @@ def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
     raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
 
 
-# (Removed unused parse_iso_datetime function)
+def parse_iso_datetime(timestamp: str) -> datetime:
+    """
+    Parse an ISO 8601 datetime string to a datetime object.
+    Args:
+        timestamp: ISO formatted string with 'Z' timezone.
+    Returns:
+        datetime object with timezone.
+    """
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
+
 def flatten_dict(data: dict, parent_key: str = "", separator: str = "_") -> dict:
     """
     Flatten nested dictionary into single-level dictionary with underscore-separated keys.
@@ -616,7 +626,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-    log.warning("Example: REFINER_SURVEY_ANALYTICS_CONNECTOR")
+    log.warning("Example: Source Examples : Refiner Survey Analytics")
 
     validate_configuration(configuration)
 
