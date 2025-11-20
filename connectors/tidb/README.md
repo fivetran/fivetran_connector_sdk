@@ -133,10 +133,7 @@ For vector tables (if configured), the schema includes typed JSON columns:
 ```
 
 ## Additional files
-The connector uses the following additional files:
-- **connector.py** – Main connector implementation including schema declaration, update loop, and helpers
-- **configuration.json** – Sample configuration for local debugging (do not commit secrets)
-- **requirements.txt** – Third-party dependencies required by this example
+This example does not include additional files beyond the main connector script and configuration.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
