@@ -130,11 +130,11 @@ def estimate_blend_quality(
     # 2. Reasonable transition window (0.3 weight)
     # Window should be 10-50% of shorter motion
     min_frames = min(left_frames, right_frames)
+    if min_frames == 0:
+        return None  # Cannot calculate quality for zero-length motions
+
     ideal_window_ratio = 0.3  # 30% of motion
-    if min_frames > 0:
-        actual_window_ratio = transition_window_size / min_frames
-    else:
-        actual_window_ratio = 0.0
+    actual_window_ratio = transition_window_size / min_frames
     window_quality = 1.0 - abs(actual_window_ratio - ideal_window_ratio)
     window_quality = max(0.0, min(1.0, window_quality))
 
