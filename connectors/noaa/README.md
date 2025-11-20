@@ -1,14 +1,13 @@
 # NOAA Weather API Connector Example
 
 ## Connector overview
-This connector retrieves weather observation data and active alerts from the [National Weather Service (NOAA) API](https://www.weather.gov/documentation/services-web-api) and syncs it to Fivetran destinations. The connector fetches current observations from specified weather stations and active weather alerts for designated areas, supporting incremental syncing to efficiently process weather data over time.
-
+This connector retrieves weather observation data and active alerts from the [National Weather Service (NOAA) API](https://www.weather.gov/documentation/services-web-api) and syncs it to Fivetran destinations. The connector fetches current observations from specified weather stations and weather alerts for designated areas, supporting incremental syncing to efficiently process weather data over time.
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
@@ -20,15 +19,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Retrieves active weather alerts filtered by US state or area
 - Supports incremental sync using timestamp-based checkpointing
 - Automatic retry logic with exponential backoff for API requests
-- Comprehensive weather metrics including temperature, wind, pressure, and precipitation
-- Detailed alert information including severity, urgency, and affected zones
+- Comprehensive weather metrics, including temperature, wind, pressure, and precipitation
+- Detailed alert information, including severity, urgency, and affected zones
 - No authentication required (public API)
 - Modular architecture with dedicated functions for observations and alerts
-
-## Limitations
-- **Observations limit**: Fetches maximum 500 observations per station per sync. For best results, run syncs hourly or daily to stay within this limit.
-- **Stations limit**: Fetches maximum 500 stations per sync. Most states have fewer than 500 stations, but nationwide queries may be limited.
-- **No pagination**: Current implementation does not paginate through results. Best suited for frequent syncs rather than large historical backfills.
 
 ## Configuration file
 The connector requires only a User-Agent identifier. All other parameters are optional and can be omitted.
@@ -47,20 +41,17 @@ The connector requires only a User-Agent identifier. All other parameters are op
   "state_code": "<OPTIONAL_US_STATE_CODE_FOR_OBSERVATIONS>",
   "station_ids": "<OPTIONAL_COMMA_SEPARATED_STATION_IDS>",
   "alert_area": "<OPTIONAL_US_STATE_CODE_FOR_ALERTS>",
-  "start_date": "<OPTIONAL_YYYY_MM_DD_START_DATE>"
+  "start_date": "<OPTIONAL_YYYY-MM-DD_START_DATE>"
 }
 ```
 
-**Configuration Parameters:**
+### Configuration parameters
 
-**Required:**
-- `user_agent`: Your application name and contact information (e.g., "MyWeatherApp (contact@example.com)"). The National Weather Service requires this to identify your application.
-
-**Optional (can be omitted):**
-- `state_code`: Two-letter US state code to automatically fetch all weather stations in that state (e.g., "IL", "CA"). Default behavior if omitted: fetches up to 500 stations from all states (API limit).
-- `station_ids`: Comma-separated list of specific weather station identifiers (e.g., "KORD,KMDW,KPWK"). This takes precedence over state_code if both are provided. Default behavior if omitted: uses state_code logic or fetches from all states.
-- `alert_area`: Two-letter US state code for filtering weather alerts (e.g., "IL", "CA"). Default behavior if omitted: fetches all active weather alerts across the United States.
-- `start_date`: Date in YYYY-MM-DD format to start syncing observations from (e.g., "2025-01-01"). Default behavior if omitted: starts syncing from current time (no historical backfill).
+- `user_agent` (required): Your application name and contact information (e.g., "MyWeatherApp (contact@example.com)"). The National Weather Service requires this to identify your application.
+- `state_code` (optional): Two-letter US state code to automatically fetch all weather stations in that state (e.g., "IL", "CA"). Default behavior if omitted: fetches up to 500 stations from all states (API limit).
+- `station_ids` (optional): Comma-separated list of specific weather station identifiers (e.g., "KORD, KMDW, KPWK"). This takes precedence over state_code if both are provided. Default behavior if omitted: uses state_code logic or fetches from all states.
+- `alert_area` (optional): Two-letter US state code for filtering weather alerts (e.g., "IL", "CA"). Default behavior if omitted: fetches all active weather alerts across the United States.
+- `start_date` (optional): Date in YYYY-MM-DD format to start syncing observations from (e.g., "2025-01-01"). Default behavior if omitted: starts syncing from the current time (no historical backfill).
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -84,16 +75,16 @@ The connector processes two types of data from the NOAA API:
 
 **Alerts** - Active weather alerts are fetched using the `/alerts/active` endpoint. The connector:
 - Filters alerts by state/area if configured
-- Extracts alert metadata including severity, urgency, and affected zones
+- Extracts alert metadata, including severity, urgency, and affected zones
 - Converts complex arrays and objects to string representations
 - Uses the alert ID as the primary key for upserts
 - Captures active alerts at the time of sync
 
-State management uses ISO 8601 timestamps to track the last sync time, enabling incremental syncing for observations (refer to the `update` function).
+State management uses ISO 8601 timestamps to track the last sync time, enabling incremental syncing for observations (see the `update` function).
 
 ## Error handling
 The connector implements comprehensive error handling through multiple layers:
-- Configuration validation ensures required User-Agent parameter is present
+- Configuration validation ensures the required User-Agent parameter is present
 - API requests include retry logic with exponential backoff for transient errors (refer to the `make_api_request` function)
 - Specific exception catching for HTTP timeouts, rate limiting (429), and service unavailable (503) errors
 - Client errors (400, 404) fail fast without retry
@@ -164,4 +155,10 @@ The connector implements comprehensive error handling through multiple layers:
 | geometry_type | STRING | Geometry type for affected area |
 
 ## Additional considerations
+
+### API Limitations
+- Observations limit: Fetches a maximum of 500 observations per station per sync. For best results, run syncs hourly or daily to stay within this limit.
+- Stations limit: Fetches a maximum of 500 stations per sync. Most states have fewer than 500 stations, but nationwide queries may be limited.
+- No pagination: Current implementation does not paginate through results. Best suited for frequent syncs rather than large historical backfills.
+
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

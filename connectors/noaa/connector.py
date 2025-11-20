@@ -18,6 +18,9 @@ import time
 # For adding jitter to retry delays to avoid thundering herd problem
 import random
 
+# For loading configuration from JSON file
+import json
+
 # For type hints to improve code clarity and maintainability
 from typing import Optional, List, Dict
 
@@ -42,6 +45,22 @@ __STATIONS_LIMIT = 500  # Maximum stations per request
 __CHECKPOINT_INTERVAL = 100  # Checkpoint every N records
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["user_agent"]
+    for config in required_configs:
+        if config not in configuration or not configuration[config]:
+            raise ValueError(f"Missing required configuration parameter: {config}")
+    log.info("Configuration validation passed.")
+
+
 def parse_user_date_to_iso(date_input: str) -> Optional[str]:
     """
     Parse user-provided date input in YYYY-MM-DD format and convert to ISO 8601 format.
@@ -62,32 +81,6 @@ def parse_user_date_to_iso(date_input: str) -> Optional[str]:
         raise ValueError(
             f"Invalid date format '{date_input}'. Please use YYYY-MM-DD format (e.g., '2023-01-01'). Error: {e}"
         )
-
-
-def parse_iso_to_timestamp(iso_string: str) -> Optional[str]:
-    """
-    Parse an ISO format timestamp string and return it normalized.
-    Args:
-        iso_string: ISO format datetime string (e.g., "2023-12-01T10:30:00+00:00")
-    Returns:
-        Normalized ISO timestamp string, or None if parsing fails
-    """
-    if not iso_string:
-        return None
-
-    try:
-        if iso_string.endswith("Z"):
-            normalized_string = iso_string.replace("Z", "+00:00")
-        elif "+" in iso_string or "-" in iso_string[-6:]:
-            normalized_string = iso_string
-        else:
-            normalized_string = iso_string + "+00:00"
-
-        datetime.fromisoformat(normalized_string)
-        return iso_string
-    except (ValueError, AttributeError) as e:
-        log.warning(f"Failed to parse ISO timestamp '{iso_string}': {e}")
-        return None
 
 
 def make_api_request(
@@ -450,10 +443,10 @@ def update(configuration: dict, state: dict):
 
     log.info("Example: Source Examples : NOAA Weather API")
 
-    user_agent = configuration.get("user_agent")
-    if not user_agent:
-        raise ValueError("Missing required configuration value: user_agent")
+    # Validate configuration before proceeding
+    validate_configuration(configuration)
 
+    user_agent = configuration.get("user_agent")
     station_ids_input = configuration.get("station_ids")
     state_code = configuration.get("state_code")
     alert_area = configuration.get("alert_area")
@@ -499,10 +492,10 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or
-# IDE 'run' button. This is useful for debugging while you write your code. Note this method is not called by
-# Fivetran when executing your connector in production.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Test the connector locally
-    connector.debug()
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    connector.debug(configuration=configuration)
