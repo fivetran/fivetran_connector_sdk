@@ -318,6 +318,9 @@ def fetch_all_news(
         if total_results_seen == total_upserts:
             break
 
+        # Stop if max_pages limit reached
+        if max_pages is not None and pages_fetched >= max_pages:
+            break
         page += 1
 
     return {
