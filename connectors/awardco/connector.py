@@ -23,13 +23,19 @@ import requests
 import time
 
 __PAGE_SIZE = 100
-MAX_RETRIES = 3
+# Maximum number of total attempts for a request (including the first attempt).
+# Set to 3 by default which means up to 3 attempts will be made.
+MAX_ATTEMPTS = 3
 MAX_RETRY_INTERVAL = 60  # seconds
 
 
 def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.Response:
     """
     Make an HTTP request with exponential backoff retry logic.
+
+    This function makes up to `MAX_ATTEMPTS` total attempts (including the first).
+    If the request fails, it will wait with exponential backoff between attempts.
+
     Args:
         url: The URL to make the request to
         headers: Headers to include in the request
@@ -37,28 +43,26 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
     Returns:
         Response: The successful response
     Raises:
-        requests.exceptions.RequestException: If all retries fail
+        requests.exceptions.RequestException: If all attempts fail
     """
-    retry_count = 0
     last_exception = None
 
-    while retry_count <= MAX_RETRIES:
+    for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:
-            retry_count += 1
             last_exception = e
-
-            if retry_count > MAX_RETRIES:
-                log.error(f"Max retries ({MAX_RETRIES}) exceeded. Last error: {str(e)}")
+            # If this was the last allowed attempt, log and raise
+            if attempt == MAX_ATTEMPTS:
+                log.severe(f"Max attempts ({MAX_ATTEMPTS}) exceeded. Last error: {str(e)}")
                 raise last_exception
 
-            # Calculate backoff time: 2^retry_count, but cap at max_interval
-            backoff = min(2**retry_count, MAX_RETRY_INTERVAL)
+            # Calculate backoff time: 2^attempt, but cap at max interval
+            backoff = min(2**attempt, MAX_RETRY_INTERVAL)
             log.warning(
-                f"Request failed: {str(e)}. Retrying in {backoff} seconds... (Attempt {retry_count} of {MAX_RETRIES})"
+                f"Request failed: {str(e)}. Retrying in {backoff} seconds... (Attempt {attempt} of {MAX_ATTEMPTS})"
             )
             time.sleep(backoff)
 
@@ -93,7 +97,14 @@ def schema(configuration: dict):
     ]
 
 
-def fetch_users(base_url: str, api_key: str, page: int = 1, per_page: int = 100) -> list:
+def fetch_users(
+    base_url: str,
+    api_key: str,
+    page: int = 1,
+    per_page: int = 100,
+    last_sync_time: str = None,
+    updated_since_param: str = "updated_since",
+) -> list:
     """
     Fetch a page of users from the Awardco API with retry and exponential backoff.
     Args:
@@ -106,7 +117,14 @@ def fetch_users(base_url: str, api_key: str, page: int = 1, per_page: int = 100)
     Raises:
         requests.exceptions.RequestException: If the API request fails after max retries
     """
+    # Build query params. If `last_sync_time` is provided, include it as a filter
+    # so the API can return only updated records since the last sync.
     params = {"page": page, "per_page": per_page}
+    if last_sync_time:
+        # Many APIs accept a parameter like `updated_since` or `updated_after`.
+        # The connector defaults to `updated_since` but this can be overridden
+        # by passing a different `updated_since_param` from configuration.
+        params[updated_since_param] = last_sync_time
     headers = {"apiKey": api_key}
     url = f"{base_url}/api/users"
 
@@ -126,7 +144,7 @@ def process_user_record(record: dict, current_sync_time: str) -> str:
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into.
-    # - The second argument is a dictionary containing the data to be upserted,
+    # - The second argument is a dictionary containing the data to be upserted.
     op.upsert(table="user", data=record)
     record_time = record.get("updated_at")
 
@@ -180,9 +198,16 @@ def update(configuration: dict, state: dict):
     try:
         page = 1
         per_page = __PAGE_SIZE
+        # Allow connector configuration to override the timestamp query param name
+        # if Awardco uses a different parameter name (e.g., `updated_after`).
+        updated_since_param = configuration.get("updated_since_param", "updated_since")
 
         while True:
-            users = fetch_users(base_url, api_key, page, per_page)
+            # Pass the last checkpointed sync time so the API can return only
+            # records updated since that timestamp. This avoids full table scans.
+            users = fetch_users(
+                base_url, api_key, page, per_page, last_sync_time=sync_time, updated_since_param=updated_since_param
+            )
             if not users:
                 break
 

@@ -1,6 +1,5 @@
 {
   "api_key": "<YOUR_AWARDCO_API_KEY>",
   "base_url": "<YOUR_AWARDCO_BASE_URL>",
-  "rate_limit": "<YOUR_AWARDCO_RATE_LIMIT>",
-  "use_mock": "<TRUE_OR_FALSE>"
+  "updated_since_param": "updated_since"
 }
