@@ -212,8 +212,13 @@ Data Transformation Pipeline:
      - **Primary:** Uses GCS `blob.id` (stable across file renames/moves)
      - **Fallback:** SHA-1 hash of file_uri if GCS ID unavailable (legacy compatibility)
    - **ID stability:** File renames/moves do NOT create duplicate records when GCS object ID is available
-   - **Add placeholder values** for skeleton type ("mixamo24"), fps (30), joint count (24), and frames (0)
-   - Preserve actual GCS timestamps and file URIs
+   - **Insert STATIC placeholder values** (NOT extracted from file contents):
+     - `skeleton_id`: "mixamo24" (hardcoded constant)
+     - `fps`: 30 (hardcoded constant)
+     - `joints_count`: 24 (hardcoded constant)
+     - `frames`: 0 (hardcoded constant)
+     - `build_method`: "ganimator" for build_motions (hardcoded constant)
+   - Preserve actual GCS blob metadata: file URIs, timestamps, file sizes
    - Quality metrics (blend_quality, transition_smoothness) are set to NULL
 3. Load (`update()` function, lines 411-560) – Upsert records to destination:
    - **Files are sorted by `updated_at` timestamp** to ensure chronological processing and prevent data loss
@@ -231,9 +236,20 @@ Data Transformation Pipeline:
 - If failure occurs after B, state = Jan 15, and no files are skipped in next sync
 
 **Data Accuracy:**
-- ✅ Accurate: File URIs, GCS update timestamps, file names
-- ⚠️ Placeholder: Frame counts, FPS, skeleton IDs, joint counts, quality metrics
-- ❌ Not extracted: Actual motion data requires parsing BVH/FBX file contents
+- ✅ Accurate: File URIs, GCS update timestamps, file names, file sizes, GCS object IDs
+- ⚠️ STATIC placeholders (NOT extracted): Frame counts (0), FPS (30), skeleton IDs ("mixamo24"), joint counts (24), build_method ("ganimator")
+- ❌ Not extracted: Actual motion data requires parsing BVH/FBX file contents (frames, actual FPS, skeleton structure)
+
+**Blend Metadata Calculation (blend_utils):**
+When motion pairs are provided to `transform_blend_record()` with `left_motion` and `right_motion` parameters, the connector uses `blend_utils.create_blend_metadata()` to calculate:
+- `blend_ratio`: Based on motion duration ratios (heuristic)
+- `transition_start_frame` / `transition_end_frame`: Calculated from blend ratio and transition window
+- `estimated_quality`: Heuristic score based on duration similarity and blend parameters
+
+**Important:** These calculations use placeholder frame counts (0) from the catalog, so they produce theoretical values. For production-quality blend metadata, you need to:
+1. Parse actual BVH/FBX files to extract real frame counts and motion data
+2. Use the [blendanim framework](https://github.com/RydlrCS/blendanim) for neural network-based blending
+3. Calculate L2 velocity/acceleration metrics on generated motion sequences
 
 Type Conversions:
 - File sizes (bytes) → INTEGER
