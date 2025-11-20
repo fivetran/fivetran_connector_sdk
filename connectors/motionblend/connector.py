@@ -204,7 +204,7 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
         # Filter by last sync time for incremental sync
         if last_sync_time and blob.updated:
             blob_updated_str = blob.updated.isoformat()
-            if blob_updated_str <= last_sync_time:
+            if blob_updated_str < last_sync_time:
                 continue
 
         record = {
