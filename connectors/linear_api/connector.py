@@ -4,7 +4,12 @@ Supports incremental sync (updatedAt), delete capture (archived), and dynamic sc
 """
 
 import requests  # HTTP client library used to send requests to external APIs (GET/POST, etc.)
-from typing import Dict, List, Any, Optional  # Type hints for dictionaries, lists, generic values, and optional fields
+from typing import (
+    Dict,
+    List,
+    Any,
+    Optional,
+)  # Type hints for dictionaries, lists, generic values, and optional fields
 from datetime import datetime, timezone  # Utilities for working with timezone-aware UTC timestamps
 
 # Import required classes from fivetran_connector_sdk
@@ -18,6 +23,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 __PAGE_SIZE = 250
+
 
 def graphql_query(api_key, query, variables=None):
     """
@@ -52,7 +58,9 @@ def to_iso(dt: Optional[str]) -> Optional[str]:
         return None
     try:
         # Ensure UTC ISO 8601
-        return datetime.fromisoformat(dt.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+        return (
+            datetime.fromisoformat(dt.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+        )
     except Exception:
         return dt
 
@@ -77,16 +85,12 @@ def schema(configuration: Dict[str, Any]) -> List[Dict[str, Any]]:
         "id": "STRING",
         "createdAt": "UTC_DATETIME",
         "updatedAt": "UTC_DATETIME",
-        "archivedAt": "UTC_DATETIME"
+        "archivedAt": "UTC_DATETIME",
     }
 
     schemas = []
     for table in tables:
-        schemas.append({
-            "table": table,
-            "primary_key": ["id"],
-            "columns": default_columns
-        })
+        schemas.append({"table": table, "primary_key": ["id"], "columns": default_columns})
 
     return schemas
 
@@ -120,10 +124,12 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             new_max_updated = sync_entity(api_key, entity, last_updated, page_size)
             merged_state[entity] = {
                 "last_updated": new_max_updated
-                                or last_updated
-                                or datetime.now(timezone.utc).isoformat()
+                or last_updated
+                or datetime.now(timezone.utc).isoformat()
             }
-            log.info(f"[IES] {entity}: done (new_last_updated={merged_state[entity]['last_updated']})")
+            log.info(
+                f"[IES] {entity}: done (new_last_updated={merged_state[entity]['last_updated']})"
+            )
 
         ies.run(entity, sync_one_entity)
 
@@ -144,7 +150,9 @@ def sync_entity(api_key: str, entity: str, last_updated: Optional[str], page_siz
     """
     valid_entities = {"issues", "projects", "teams", "users", "comments"}
     if entity not in valid_entities:
-        raise ValueError(f"Unsupported Linear entity '{entity}'. Allowed: {', '.join(sorted(valid_entities))}")
+        raise ValueError(
+            f"Unsupported Linear entity '{entity}'. Allowed: {', '.join(sorted(valid_entities))}"
+        )
 
     cursor: Optional[str] = None
     has_more = True
@@ -206,11 +214,13 @@ def sync_entity(api_key: str, entity: str, last_updated: Optional[str], page_siz
 
 # ------------------- Isolated Endpoint Sync Utility -------------------
 
+
 class IsolatedEndpointSync:
     """
     Mirrors Fivetran's Java IsolatedEndpointSync semantics:
     runs each endpoint in isolation, captures and reports failures.
     """
+
     def __init__(self, logger=log):
         self.failures: Dict[str, Exception] = {}
         self.logger = logger
@@ -246,6 +256,3 @@ connector = Connector(update=update)
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug()
-
-
-
