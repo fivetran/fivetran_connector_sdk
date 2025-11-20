@@ -40,12 +40,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ```json
 {
-  "gcp_project": "your-project-id",
-  "gcs_bucket": "motionblend-mocap",
-  "gcs_prefixes": "mocap/seed/,mocap/build/,mocap/blend/",
-  "bigquery_dataset": "RAW",
-  "batch_limit": 25,
-  "include_exts": ".bvh,.fbx"
+  "gcp_project": "<YOUR_GCP_PROJECT_ID>",
+  "gcs_bucket": "<YOUR_GCS_BUCKET_NAME>",
+  "gcs_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
+  "bigquery_dataset": "<YOUR_BIGQUERY_DATASET_NAME>",
+  "batch_limit": "<BATCH_LIMIT_NUMBER_DEFAULT_25>",
+  "include_exts": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
 }
 ```
 
