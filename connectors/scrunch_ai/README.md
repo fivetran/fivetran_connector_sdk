@@ -52,20 +52,18 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 - header: `authorization: bearer <api_token>` (provided via `configuration["api_token"]`).
 - where set: All `requests.get(...)` calls across helpers set this header.
 
-You can get the API token directly from Scrunch AI.
-
 ## Pagination
 The `get_all_responses` function handles pagination.
 
 - The function loops while the `offset` is less than the `total` number of responses.
 - Each page of responses is retrieved and flattened.
-- These flattened items are upserted into the "responses" table using `op.upsert(table="responses", data=...)`.
+- These flattened items are upserted into the "response" table using `op.upsert(table="response", data=...)`.
 - The example code advances the offset in increments of 100, relying on the API's default page size.
 - Refer to `get_all_responses` and `get_responses` for details.
 
 ## Data handling
 - Schema definition: `schema(configuration)` returns three tables:
-  - `responses` (primary key: `id`).
+  - `response` (primary key: `id`).
   - `overall_scrunch_performance`.
   - `competitor_performance`.
 
@@ -87,7 +85,7 @@ The `get_all_responses` function handles pagination.
 
 Summary of tables replicated.
 
-### responses
+### response
 - primary key: `id`.
 - selected columns (not exhaustive): `id`, `created_at`, `prompt_id`, `prompt`, `persona_id`, `persona_name`, `country`, `stage`, `branded`,
 `platform`, `brand_present`, `brand_sentiment`, `brand_position`, `response_text`, `tags`, `key_topics`, `competitors_present`, `citations_json`.
