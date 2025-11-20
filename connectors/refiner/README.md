@@ -21,9 +21,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Processes all paginated data automatically using cursor-based pagination for large datasets
 - Implements exponential backoff for API reliability (3 retries with progressive delays)
 - Flattens nested JSON structures into table columns automatically
-- Checkpoint strategy ensures resumability for large datasets (every 1000 records)
+- Checkpoints progress during pagination to ensure resumability for large datasets
 - Extracts and normalizes nested arrays (questions, answers) into child tables with foreign keys
-- User-level data keyed by user ID for joining with product usage data
+- Keys user-level data by user ID for joining with product usage data
 
 ## Configuration file
 The configuration requires your Refiner API key and optionally a start date for the initial sync.
@@ -49,7 +49,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 The connector uses Bearer token authentication via the `Authorization` header. To obtain your API key:
 
-1. Log in to your Refiner account.
+1. Log in to your [Refiner](https://refiner.io) account.
 2. Go to **Settings** > **Integrations** > **API**.
 3. Copy your API key.
 4. Add the API key to your `configuration.json` file as shown above.
@@ -57,13 +57,14 @@ The connector uses Bearer token authentication via the `Authorization` header. T
 The API key is included in every request as `Authorization: Bearer YOUR_API_KEY`.
 
 ## Pagination
-The connector handles pagination automatically using the Refiner API's page-based pagination structure. The API supports the following pagination parameters:
-- `page` - Current page number (starts at 1)
+The connector handles pagination automatically using the Refiner API's cursor-based pagination structure. The API supports the following pagination parameters:
+- `page` - Current page number (starts at 1) - used as fallback
 - `page_length` - Number of items per page (default: 100)
-- `next_page_cursor` - Optional cursor for cursor-based pagination
+- `next_page_cursor` - Cursor token for cursor-based pagination
 
-The connector uses page-based pagination with automatic detection of the last page:
-- Each sync processes all paginated data completely using the `pagination.current_page` and `pagination.last_page` response fields.
+The connector uses cursor-based pagination for optimal performance with large datasets:
+- Each sync processes all paginated data completely using the `pagination.next_page_cursor` response field.
+- Cursor-based pagination is more efficient than page-based pagination for large datasets and is recommended by the Refiner API documentation.
 - Pagination state is not persisted between sync runs for cleaner state management.
 - Uses the `date_range_start` parameter to filter responses from the API directly for incremental syncs.
 
@@ -82,30 +83,33 @@ The connector processes survey and response data with an optimized incremental s
 - **respondents** - User/contact information keyed by user ID (parent for responses)
 
 ### Incremental sync strategy
-- Initial sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as fallback
-- Incremental syncs use `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
-- State tracks separate timestamps for surveys and responses
+- **Responses**: Incremental sync using `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
+- **Surveys and Contacts**: Full sync on every run (the Refiner API does not support date filtering for these endpoints)
+- Initial response sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as fallback
 - Checkpoint every 1000 records during large response syncs to enable resumability
+- Checkpoint after each page for surveys and contacts to preserve progress
 - Final checkpoint saves the complete state only after successful sync completion
 
 ### Data transformation
 - **JSON flattening** - Nested dictionaries converted to underscore-separated columns (e.g., `config.theme.color` becomes `config_theme_color`)
-- **Array handling** - Arrays converted to JSON strings when stored in parent tables, or normalized to child tables
-- **Child table extraction** - Questions extracted from survey config, answers extracted from response data
+- **Array handling** - Arrays converted to JSON strings when stored in parent tables, or normalized to child tables when appropriate
+- **Child table extraction** - Questions extracted from survey config (`config.form_elements`) and answers extracted from response data are stored in dedicated child tables to preserve relational structure
+- **Smart exclusion** - Relational data like `form_elements` is excluded from the flattened parent table to avoid duplication, as it's already normalized into the questions table
 - **Foreign keys** - Child tables maintain relationships via parent primary keys (`survey_uuid`, `response_uuid`)
 - **Type safety** - Configuration validation ensures required fields exist before processing
 
 ### Key functions
 - `validate_configuration()` - Validates required API key configuration
 - `make_api_request()` - Centralized API calling with retry logic and error handling
-- `flatten_dict()` - Recursive JSON structure flattening for table columns
-- `fetch_surveys()` - Main survey sync with pagination and question extraction
-- `fetch_questions()` - Extract questions from survey configuration
-- `fetch_responses()` - Incremental response sync with date-based filtering
-- `fetch_answers()` - Extract answers from response data
+- `flatten_dict()` - Recursive JSON structure flattening for table columns with smart exclusion of relational data
+- `fetch_surveys()` - Main survey sync with pagination, question extraction, and page-level checkpointing
+- `fetch_questions()` - Extract questions from survey configuration into child table
+- `fetch_contacts()` - Full contact sync with pagination and page-level checkpointing
+- `fetch_responses()` - Incremental response sync with date-based filtering and record-level checkpointing
+- `fetch_answers()` - Extract answers from response data into child table
 - `fetch_respondent()` - Extract or update respondent information
 
-The connector maintains a clean state with `last_survey_sync` and `last_response_sync` timestamps, automatically advancing after each successful sync to ensure reliable incremental syncs without data duplication or gaps.
+The connector maintains a clean state with the `last_response_sync` timestamp for incremental response syncing, automatically advancing after each successful sync to ensure reliable incremental syncs without data duplication or gaps. Surveys and contacts are fully synced on each run.
 
 ## Error handling
 The connector implements comprehensive error handling with multiple layers of protection:
@@ -122,16 +126,18 @@ The connector implements comprehensive error handling with multiple layers of pr
 
 ### Data processing safeguards
 - Graceful handling of missing or malformed API response structures
-- Safe dictionary access patterns with `.get()` to prevent KeyError exceptions
+- Safe dictionary access patterns with `.get()` and type checks to prevent AttributeError and KeyError exceptions
 - Skips records missing required identifiers (uuid) with warnings
-- Proper exception propagation with descriptive RuntimeError messages
+- Error handling for malformed timestamps with warning logs
+- Proper exception propagation with descriptive RuntimeError messages from API layer
 
 ### Checkpoint recovery
-- Checkpoints every 1000 records during large syncs enable recovery from interruptions
+- Checkpoints after each page during survey and contact syncs to preserve progress
+- Checkpoints every 1000 records during large response syncs enable recovery from interruptions
 - State tracking allows sync to resume from the last successful checkpoint
-- Final checkpoint only saved after a complete successful sync
+- Final checkpoint saved after complete successful sync
 
-All exceptions are caught at the top level in the `update()` function and re-raised as `RuntimeError` with descriptive messages, making troubleshooting easier for users and Fivetran support.
+Unhandled exceptions in the `update()` function will propagate and be logged by the Fivetran platform for troubleshooting. The connector's error handling strategy focuses on resilience at the API request level and safe data processing with proper validation.
 
 ## Tables created
 
@@ -174,7 +180,8 @@ The connector creates the following tables in your destination:
 **respondents** table:
 - User/contact information keyed by user ID for joins with product usage data
 - Primary key: `user_id`
-- Columns: `email`, `name`, `first_seen_at`, `last_seen_at`, `attributes` (JSON)
+- Populated from both response data (via `fetch_respondent()`) and dedicated contacts endpoint (via `fetch_contacts()`)
+- Columns: `contact_uuid`, `remote_id`, `email`, `display_name`, `first_seen_at`, `last_seen_at`, `last_form_submission_at`, `last_tracking_event_at`, `attributes` (JSON), `segments` (JSON)
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

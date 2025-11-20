@@ -27,6 +27,9 @@ from datetime import datetime, timezone
 # For handling retries with exponential backoff
 import time
 
+# For type hints
+from typing import Optional, Any
+
 # Refiner API base URL
 __API_BASE_URL = "https://api.refiner.io/v1"
 
@@ -83,7 +86,7 @@ def schema(configuration: dict):
     ]
 
 
-def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
+def make_api_request(url: str, headers: dict, params: dict = None) -> Any | None:
     """
     Make an API request with retry logic and exponential backoff.
     Handles 429 rate limiting with proper backoff.
@@ -123,17 +126,15 @@ def make_api_request(url: str, headers: dict, params: dict = None) -> dict:
 
         # Handle retry or raise on final attempt
         is_last_attempt = attempt == __MAX_RETRIES - 1
-        retry_msg = f"{error_type}. Retry {attempt + 1}/{__MAX_RETRIES}"
 
         if is_last_attempt:
             log.severe(f"{error_type} after {__MAX_RETRIES} attempts")
             raise RuntimeError(f"{error_type}: {last_error}")
 
-        log.warning(retry_msg)
+        log.warning(f"{error_type}. Retry {attempt + 1}/{__MAX_RETRIES}")
         sleep_time = min(__MAX_RETRY_DELAY_SECONDS, __RETRY_DELAY_SECONDS * (2**attempt))
         time.sleep(sleep_time)
-
-    raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
+    return None
 
 
 def parse_iso_datetime(timestamp: str) -> datetime:
@@ -147,21 +148,32 @@ def parse_iso_datetime(timestamp: str) -> datetime:
     return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
 
-def flatten_dict(data: dict, parent_key: str = "", separator: str = "_") -> dict:
+def flatten_dict(
+    data: dict, parent_key: str = "", separator: str = "_", exclude_keys: Optional[list] = None
+) -> dict:
     """
     Flatten nested dictionary into single-level dictionary with underscore-separated keys.
     Args:
         data: Dictionary to flatten.
         parent_key: Parent key for nested recursion.
         separator: Separator for joining keys.
+        exclude_keys: List of key paths to exclude from flattening (e.g., ["config.form_elements"]).
     Returns:
         Flattened dictionary.
     """
+    if exclude_keys is None:
+        exclude_keys = []
+
     items = []
     for key, value in data.items():
         new_key = f"{parent_key}{separator}{key}" if parent_key else key
+
+        # Skip keys that should be excluded (extracted into child tables)
+        if new_key in exclude_keys:
+            continue
+
         if isinstance(value, dict):
-            items.extend(flatten_dict(value, new_key, separator).items())
+            items.extend(flatten_dict(value, new_key, separator, exclude_keys).items())
         elif isinstance(value, list):
             items.append((new_key, json.dumps(value)))
         else:
@@ -169,12 +181,13 @@ def flatten_dict(data: dict, parent_key: str = "", separator: str = "_") -> dict
     return dict(items)
 
 
-def fetch_surveys(api_key: str) -> int:
+def fetch_surveys(api_key: str, state: dict) -> int:
     """
     Fetch all surveys from Refiner API with cursor-based or page-based pagination.
     Uses cursor pagination for large datasets as recommended by Refiner API docs.
     Args:
         api_key: Refiner API key for authentication.
+        state: State dictionary for checkpointing progress.
     Returns:
         Number of surveys synced.
     """
@@ -205,7 +218,8 @@ def fetch_surveys(api_key: str) -> int:
                 log.warning("Survey missing uuid, skipping")
                 continue
 
-            flattened_survey = flatten_dict(survey)
+            # Flatten survey data, excluding form_elements since they're extracted into questions table
+            flattened_survey = flatten_dict(survey, exclude_keys=["config_form_elements"])
 
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
@@ -215,6 +229,13 @@ def fetch_surveys(api_key: str) -> int:
 
             questions_synced = fetch_questions(survey_uuid, survey)
             log.info(f"Synced survey {survey_uuid} with {questions_synced} questions")
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+        log.info(f"Checkpointed after processing surveys page {page} ({total_surveys} total)")
 
         # Determine next page
         pagination = response_data.get("pagination", {})
@@ -270,16 +291,20 @@ def build_response_record(response: dict) -> dict:
     """
     response_uuid = response.get("uuid")
     user_id = response.get("contact_uuid") or response.get("user_id")
-    form_data = response.get("form", {})
-    contact_data = response.get("contact", {})
+    form_data = response.get("form")
+    contact_data = response.get("contact")
 
     return {
         "uuid": response_uuid,
         "survey_uuid": (
-            form_data.get("uuid") if isinstance(form_data, dict) else response.get("form_uuid")
+            form_data.get("uuid")
+            if isinstance(form_data, dict) and form_data
+            else response.get("form_uuid")
         ),
         "user_id": (
-            user_id or contact_data.get("remote_id") if isinstance(contact_data, dict) else user_id
+            (user_id or contact_data.get("remote_id"))
+            if isinstance(contact_data, dict) and contact_data
+            else user_id
         ),
         "completed_at": response.get("completed_at"),
         "first_shown_at": response.get("first_shown_at"),
@@ -329,12 +354,15 @@ def process_single_response(response: dict, latest_timestamp: str) -> tuple[int,
     if response_record["user_id"]:
         fetch_respondent(response_record["user_id"], response)
 
-    # Update latest timestamp
+    # Update latest timestamp with error handling for malformed timestamps
     current_timestamp = get_response_timestamp(response)
-    current_dt = parse_iso_datetime(current_timestamp) if current_timestamp else None
-    latest_dt = parse_iso_datetime(latest_timestamp) if latest_timestamp else None
-    if current_dt and latest_dt and current_dt > latest_dt:
-        latest_timestamp = current_timestamp
+    try:
+        current_dt = parse_iso_datetime(current_timestamp) if current_timestamp else None
+        latest_dt = parse_iso_datetime(latest_timestamp) if latest_timestamp else None
+        if current_dt and latest_dt and current_dt > latest_dt:
+            latest_timestamp = current_timestamp
+    except (ValueError, AttributeError) as e:
+        log.warning(f"Failed to parse timestamp for response {response_uuid}: {e}")
 
     return 1, latest_timestamp
 
@@ -348,15 +376,19 @@ def create_checkpoint(state: dict, latest_timestamp: str, total_responses: int):
         total_responses: Total number of responses processed so far.
     """
     state["last_response_sync"] = latest_timestamp
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
     log.info(f"Checkpointed at {total_responses} responses, latest timestamp: {latest_timestamp}")
 
 
 def build_pagination_params(
     page: int,
-    page_cursor: str | None = None,
+    page_cursor: Optional[str] = None,
     resource_name: str = "items",
-    extra_params: dict | None = None,
+    extra_params: Optional[dict] = None,
 ) -> dict:
     """
     Build pagination parameters for API request with cursor or page-based pagination.
@@ -387,7 +419,7 @@ def build_pagination_params(
 
 def get_next_page_info(
     pagination: dict, current_page: int, resource_name: str = "items"
-) -> tuple[str | None, int, bool]:
+) -> tuple[Optional[str], int, bool]:
     """
     Determine next pagination state from API response.
     Args:
@@ -437,7 +469,10 @@ def fetch_responses(api_key: str, state: dict, last_sync_time: str) -> int:
     log.info(f"Starting incremental responses sync from {last_sync_time}")
 
     while True:
-        # Build request parameters
+        # Build request parameters using last_sync_time (not latest_timestamp) to ensure we capture
+        # all records from the start of this sync run. This intentionally causes some overlap when
+        # resuming from a checkpoint, but ensures no records are missed due to API pagination ordering.
+        # The upsert operation handles duplicate records idempotently.
         params = build_pagination_params(
             page, page_cursor, "responses", {"date_range_start": last_sync_time}
         )
@@ -550,12 +585,13 @@ def fetch_respondent(user_id: str, response_data: dict):
     op.upsert(table="respondents", data=respondent_record)
 
 
-def fetch_contacts(api_key: str) -> int:
+def fetch_contacts(api_key: str, state: dict) -> int:
     """
     Fetch all contacts from Refiner API with cursor-based pagination.
     Contacts endpoint does not support date filtering, so we sync all contacts each time.
     Args:
         api_key: Refiner API key for authentication.
+        state: State dictionary for checkpointing progress.
     Returns:
         Number of contacts synced.
     """
@@ -606,6 +642,13 @@ def fetch_contacts(api_key: str) -> int:
             op.upsert(table="respondents", data=contact_record)
             total_contacts += 1
 
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+        log.info(f"Checkpointed after processing contacts page {page} ({total_contacts} total)")
+
         # Determine next page
         pagination = response_data.get("pagination", {})
         page_cursor, page, has_more = get_next_page_info(pagination, page, "contacts")
@@ -639,20 +682,19 @@ def update(configuration: dict, state: dict):
 
     log.info(f"Starting sync from last_response_sync: {last_response_sync}")
 
-    surveys_synced = fetch_surveys(api_key)
+    surveys_synced = fetch_surveys(api_key, state)
     log.info(f"Synced {surveys_synced} surveys")
 
-    contacts_synced = fetch_contacts(api_key)
+    contacts_synced = fetch_contacts(api_key, state)
     log.info(f"Synced {contacts_synced} contacts")
 
     responses_synced = fetch_responses(api_key, state, last_response_sync)
     log.info(f"Synced {responses_synced} responses")
 
-    # Update sync timestamps - note that last_response_sync is already updated in fetch_responses
-    state["last_survey_sync"] = current_sync_time
-    state["last_contact_sync"] = current_sync_time
-
-    # Only update last_response_sync if no responses were found (use current time as marker)
+    # Update last_response_sync timestamp - note that it's already updated in fetch_responses
+    # for non-zero results. We only need to update it here if no responses were found.
+    # Note: Surveys and contacts are always fully synced (not incremental) so we don't track
+    # last_survey_sync or last_contact_sync timestamps.
     if responses_synced == 0:
         state["last_response_sync"] = current_sync_time
 
@@ -677,5 +719,5 @@ if __name__ == "__main__":
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
 
-        # Test the connector locally
-        connector.debug(configuration=configuration)
+    # Test the connector locally
+    connector.debug(configuration=configuration)
