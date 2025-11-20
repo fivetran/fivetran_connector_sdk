@@ -96,11 +96,11 @@ This connector supports both authenticated and unauthenticated connections to th
     - Use `wss://` protocol for secure connections
     - Include `username` and `password` parameters
 
-The connector automatically detects authentication credentials in the configuration and establishes authenticated connections when provided (refer to `create_gremlin_client()` function at [connector.py:61-82](connector.py#L61-L82)).
+The connector automatically detects authentication credentials in the configuration and establishes authenticated connections when provided (refer to `create_gremlin_client()` function in connector.py).
 
 ## Pagination
 
-The connector implements pagination using Gremlin's `range()` step to handle large graph datasets without loading all data into memory at once (refer to `sync_vertices()` function at [connector.py:180-280](connector.py#L180-L280) and `sync_edges()` function at [connector.py:318-418](connector.py#L318-L418)).
+The connector implements pagination using Gremlin's `range()` step to handle large graph datasets without loading all data into memory at once (refer to `sync_vertices()` and `sync_edges()` functions in connector.py).
 
 Pagination implementation:
 - Batch size is controlled by the `__BATCH_SIZE` constant (default: 1000 records)
@@ -132,13 +132,13 @@ The connector transforms JanusGraph graph data into four relational tables optim
 - Preserves property ordering using `property_index` for list-type properties
 - Automatically infers column data types from property values
 
-**Incremental sync logic** (refer to `check_updated_at_property()` function at [connector.py:458-481](connector.py#L458-L481)):
+**Incremental sync logic** (refer to `check_updated_at_property()` function in connector.py):
 - On first sync, checks if vertices/edges have `updated_at` property
 - If present, uses timestamp-based filtering for subsequent syncs: `g.V().has('updated_at', gt(last_checkpoint))`
 - State tracks separate timestamps: `vertices_last_updated_at` and `edges_last_updated_at`
 - Falls back to full sync if `updated_at` property is not available
 
-**Schema discovery** (refer to functions at [connector.py:115-178](connector.py#L115-L178)):
+**Schema discovery** (refer to schema discovery functions in connector.py):
 - Queries JanusGraph management API for vertex labels, edge labels, and property keys
 - Uses fallback queries to discover labels from actual data if the management API fails
 - Minimal schema definition with primary keys and core columns
@@ -148,7 +148,7 @@ The connector transforms JanusGraph graph data into four relational tables optim
 
 The connector implements comprehensive error handling with retry logic for transient failures:
 
-**Retry mechanism** (refer to `execute_gremlin_query_with_retry()` function at [connector.py:76-112](connector.py#L76-L112)):
+**Retry mechanism** (refer to `execute_gremlin_query_with_retry()` function in connector.py):
 - Retries Gremlin queries up to 5 times (controlled by `__MAX_RETRIES` constant)
 - Uses exponential backoff: sleep time = min(60, 2^attempt) seconds
 - Catches specific exceptions: `GremlinServerError`, `ConnectionError`, `TimeoutError`
