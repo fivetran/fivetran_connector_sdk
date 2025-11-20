@@ -32,7 +32,7 @@ from google.api_core import exceptions as google_exceptions  # Import Google API
 from requests import exceptions as requests_exceptions  # For handling HTTP errors during GCS API calls
 import hashlib  # For generating deterministic record IDs using SHA-1 hashing
 import time  # For implementing retry delays with exponential backoff in GCS operations
-from typing import Iterator, Dict, Any, Optional, List  # For type hints to improve code clarity and IDE support
+from typing import Iterator, Dict, Any, Optional  # For type hints to improve code clarity and IDE support
 from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
 
 # Default configuration constants for motion capture metadata
@@ -131,7 +131,7 @@ def schema(configuration: dict):
     ]
 
 
-def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: Optional[int] = None, last_sync_time: Optional[str] = None) -> Iterator[Dict[str, Any]]:
+def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: Optional[int] = None, last_sync_time: Optional[str] = None) -> Iterator[Dict[str, Any]]:
     """
     List files from GCS bucket with optional filtering and retry logic for transient failures.
 
