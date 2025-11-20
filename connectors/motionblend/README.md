@@ -110,7 +110,7 @@ The service account needs the following IAM role:
 - `roles/storage.objectViewer` - Read access to GCS buckets and objects
 
 ## Pagination
-Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 137-251).
+Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py`.
 
 The connector implements:
 - Lazy iteration using `storage.Client().bucket().list_blobs(prefix=prefix)` iterator
@@ -123,14 +123,13 @@ Important - Testing Only: The `batch_limit` parameter limits how many files are 
 - Next sync will resume from that point and process the next batch
 - This is ONLY for testing/development to avoid processing large datasets during development
 - Production use: Remove `batch_limit` entirely or set to a very high value
-- Files are processed in chronological order (sorted by `updated_at`) to ensure no files are skipped
 
-For incremental sync, the connector tracks cursors in the `update()` function by recording the `updated_at` timestamp from each successfully processed file (lines 559-565).
+For incremental sync, the connector tracks cursors in the `update()` function by recording the `updated_at` timestamp from each successfully processed file in the main processing loop.
 
 ## Data handling
-Files are discovered via GCS API, cataloged with blob metadata, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 314-448).
+Files are discovered via GCS API, cataloged with blob metadata, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`).
 
-Schemas are defined in the `schema()` function (lines 49-135) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings.
+Schemas are defined in the `schema()` function and correspond to the table definitions below. Date fields are UTC ISO-8601 strings.
 
 ### Record ID Generation Strategy
 
@@ -176,11 +175,11 @@ Important Notes:
 - Downstream systems should treat record IDs as opaque stable identifiers
 
 Data Transformation Pipeline:
-1. Extract (`list_gcs_files()` function, lines 137-251) – List blobs from GCS, filter by file extension, yield GCS metadata:
+1. Extract (`list_gcs_files()` function) – List blobs from GCS, filter by file extension, yield GCS metadata:
    - Actual extracted data: `file_uri`, `updated_at` (from GCS blob), `size`, `name`, `gcs_id`, `gcs_generation`
    - Not extracted: File contents are not parsed; motion-specific metadata is not extracted
-2. Transform (transform functions, lines 314-448) – Normalize records based on category:
-   - Generate stable deterministic ID using GCS object identifier (`generate_record_id()`, lines 278-311)
+2. Transform (transform functions) – Normalize records based on category:
+   - Generate stable deterministic ID using GCS object identifier (`generate_record_id()` function)
      - Primary: Uses GCS `blob.id` (stable across file renames/moves)
      - Fallback: SHA-1 hash of file_uri if GCS ID unavailable (legacy compatibility)
    - ID stability: File renames/moves do not create duplicate records when GCS object ID is available
@@ -192,20 +191,20 @@ Data Transformation Pipeline:
      - `build_method`: "ganimator" for build_motions (hardcoded constant)
    - Preserve actual GCS blob metadata: file URIs, timestamps, file sizes
    - Quality metrics (blend_quality, transition_smoothness) are set to NULL
-3. Load (`update()` function, lines 468-612) – Upsert records to destination:
-   - Files are sorted by `updated_at` timestamp to ensure chronological processing and prevent data loss
+3. Load (`update()` function) – Upsert records to destination:
+   - Files are processed in the order returned by the GCS API, which is not guaranteed to be chronological
    - Tables are automatically created by Fivetran based on schema definition
    - Uses `op.upsert()` operation for inserting/updating records
    - State is updated after each successful upsert with that file's timestamp (not maximum across batch)
    - Checkpoints state every 100 records and after each prefix completes
-   - Data loss prevention: Processing in chronological order ensures connector failures don't skip unprocessed files
+   - Data loss risk: Files are processed in API order; if the connector fails mid-sync, files with earlier timestamps may be skipped in subsequent syncs. For strict chronological processing, the connector implementation must be updated to sort files by `updated_at`.
 
 State Management & Data Loss Prevention:
-- Files are sorted by `updated_at` before processing (oldest first)
+- Files are processed in the order returned by the GCS API (not guaranteed to be chronological)
 - State tracks the timestamp of the last successfully processed file (not max timestamp)
 - If connector fails mid-sync, next run resumes from last successful file
-- Example: Files A (Jan 10), B (Jan 15), C (Jan 12) are sorted → A, C, B and processed in order
-- If failure occurs after B, state = Jan 15, and no files are skipped in next sync
+- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are returned in API order B, C, A, they will be processed in that order, which may result in files with earlier timestamps being skipped if a failure occurs.
+- For strict chronological processing and to prevent data loss, the connector implementation must be updated to sort files by `updated_at` before processing.
 
 Data Accuracy:
 - ✅ Accurate: File URIs, GCS update timestamps, file names, file sizes, GCS object IDs
@@ -228,22 +227,21 @@ Type Conversions:
 - GCS blob timestamps → UTC ISO-8601 strings
 
 ## Error handling
-Refer to the `list_gcs_files()` function (lines 137-251) and `update()` function (lines 468-612) in `connector.py`.
+Refer to the `list_gcs_files()` and `update()` functions in `connector.py`.
 
 The connector implements:
 - Exponential backoff with retry logic for transient GCS failures
 - Specific exception handling for permanent vs. transient errors
 - Comprehensive logging using the Fivetran SDK logging module
-- Memory safeguard: Warns if file count exceeds 10,000 per prefix (configurable via `__MAX_FILES_PER_SYNC`)
 
-Retry Logic (refer to `list_gcs_files()` function, lines 162-197):
+Retry Logic (refer to `list_gcs_files()` function):
 - Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)
 - Max attempts: 3 retries before raising RuntimeError
 - Retryable errors: Transient GCS/network failures (GoogleAPIError, RetryError, ServerError, ConnectionError, Timeout, HTTPError)
 - Non-retryable: Authentication errors (PermissionDenied, Unauthenticated), invalid requests (NotFound, ValueError)
 
 Error Categories:
-1. Transient errors (lines 168-185) – Retried with exponential backoff:
+1. Transient errors – Retried with exponential backoff:
    - `google_exceptions.GoogleAPIError`
    - `google_exceptions.RetryError`
    - `google_exceptions.ServerError`
@@ -251,7 +249,7 @@ Error Categories:
    - `requests_exceptions.Timeout`
    - `requests_exceptions.HTTPError`
 
-2. Permanent errors (lines 186-193) – Fail immediately:
+2. Permanent errors – Fail immediately:
    - `google_exceptions.PermissionDenied`
    - `google_exceptions.Unauthenticated`
    - `google_exceptions.NotFound`

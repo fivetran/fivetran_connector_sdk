@@ -36,13 +36,14 @@ from typing import Iterator, Dict, Any, Optional  # For type hints to improve co
 from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
 
 # Import motion blending utilities
-from blend_utils import create_blend_metadata
+from blend_utils import create_blend_metadata, generate_blend_pairs
 
 # Default configuration constants for motion capture metadata
 __DEFAULT_SKELETON_ID = "mixamo24"  # Default skeleton identifier for motion data
 __DEFAULT_FPS = 30  # Default frames per second for motion capture
 __DEFAULT_JOINTS_COUNT = 24  # Default number of joints in the skeleton
 __CHECKPOINT_INTERVAL = 100  # Number of records to process before checkpointing
+__MAX_BLEND_PAIRS = 100  # Maximum number of blend pairs to generate per sync (default limit)
 __MAX_RETRIES = 3  # Maximum number of retry attempts for transient failures
 
 
@@ -449,20 +450,94 @@ def transform_blend_record(raw: Dict[str, Any], left_motion: Optional[Dict[str, 
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector
-    has all necessary configuration values.
+    Validate the configuration dictionary to ensure it contains all required parameters
+    with valid formats and constraints.
 
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
 
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or has invalid format.
     """
-    required_configs = ["google_cloud_storage_bucket"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    # Validate required parameter: google_cloud_storage_bucket
+    if "google_cloud_storage_bucket" not in configuration:
+        raise ValueError("Missing required configuration value: google_cloud_storage_bucket")
+    
+    bucket = configuration.get("google_cloud_storage_bucket", "").strip()
+    if not bucket:
+        raise ValueError("Configuration parameter 'google_cloud_storage_bucket' cannot be empty")
+    
+    # Validate google_cloud_storage_prefixes (required, must have at least one non-empty prefix)
+    if "google_cloud_storage_prefixes" not in configuration:
+        raise ValueError("Missing required configuration value: google_cloud_storage_prefixes")
+    
+    prefixes = configuration.get("google_cloud_storage_prefixes", "").split(",")
+    valid_prefixes = [p.strip() for p in prefixes if p.strip()]
+    if not valid_prefixes:
+        raise ValueError(
+            "Configuration parameter 'google_cloud_storage_prefixes' must contain at least one non-empty prefix. "
+            "Provide comma-separated GCS prefixes (e.g., 'mocap/seed/,mocap/build/')"
+        )
+    
+    # Validate include_extensions (optional, but if provided must be valid)
+    if "include_extensions" in configuration:
+        extensions_str = configuration.get("include_extensions", "")
+        # Check if parameter is present but empty or whitespace-only
+        if not extensions_str or not extensions_str.strip():
+            raise ValueError(
+                "Configuration parameter 'include_extensions' cannot be empty or whitespace-only. "
+                "Provide comma-separated extensions starting with '.' (e.g., '.bvh,.fbx') or omit parameter to use default (.bvh,.fbx)"
+            )
+        
+        extensions = extensions_str.split(",")
+        valid_extensions = []
+        for ext in extensions:
+            ext = ext.strip()
+            if ext:
+                if not ext.startswith("."):
+                    raise ValueError(
+                        f"Invalid file extension format '{ext}' in 'include_extensions'. "
+                        f"Extensions must start with '.' (e.g., '.bvh,.fbx')"
+                    )
+                valid_extensions.append(ext)
+        
+        if not valid_extensions:
+            raise ValueError(
+                "Configuration parameter 'include_extensions' is present but contains no valid extensions. "
+                "Provide comma-separated extensions starting with '.' (e.g., '.bvh,.fbx') or omit parameter for default"
+            )
+    
+    # Validate batch_limit (optional, but if provided must be positive integer)
+    if "batch_limit" in configuration:
+        batch_limit_str = configuration.get("batch_limit")
+        if batch_limit_str is not None and str(batch_limit_str).strip():  # If provided and not empty
+            try:
+                batch_limit = int(batch_limit_str)
+                if batch_limit <= 0:
+                    raise ValueError(
+                        f"Configuration parameter 'batch_limit' must be a positive integer, got: {batch_limit}"
+                    )
+            except (ValueError, TypeError) as error:
+                raise ValueError(
+                    f"Configuration parameter 'batch_limit' must be a valid positive integer, got: '{batch_limit_str}'. "
+                    f"Error: {str(error)}"
+                )
+    
+    # Validate max_blend_pairs (optional, but if provided must be positive integer)
+    if "max_blend_pairs" in configuration:
+        max_blend_pairs_str = configuration.get("max_blend_pairs")
+        if max_blend_pairs_str is not None and str(max_blend_pairs_str).strip():  # If provided and not empty
+            try:
+                max_blend_pairs = int(max_blend_pairs_str)
+                if max_blend_pairs <= 0:
+                    raise ValueError(
+                        f"Configuration parameter 'max_blend_pairs' must be a positive integer, got: {max_blend_pairs}"
+                    )
+            except (ValueError, TypeError) as error:
+                raise ValueError(
+                    f"Configuration parameter 'max_blend_pairs' must be a valid positive integer, got: '{max_blend_pairs_str}'. "
+                    f"Error: {str(error)}"
+                )
 
 
 def update(configuration: dict, state: dict):
@@ -480,17 +555,35 @@ def update(configuration: dict, state: dict):
     # Extract configuration
     bucket = configuration.get("google_cloud_storage_bucket")
     prefixes = configuration.get("google_cloud_storage_prefixes", "").split(",")
-    extensions = configuration.get("include_extensions", ".bvh,.fbx").split(",")
+    
+    # Extract and validate extensions with defensive filtering
+    extensions_raw = configuration.get("include_extensions", ".bvh,.fbx").split(",")
+    extensions = [ext.strip() for ext in extensions_raw if ext.strip()]
+    # Fallback to defaults if no valid extensions after filtering
+    if not extensions:
+        log.warning("No valid file extensions found in configuration, using defaults: .bvh,.fbx")
+        extensions = [".bvh", ".fbx"]
+    
     try:
         limit = int(configuration.get("batch_limit", 25))
     except (ValueError, TypeError):
         log.warning("Invalid batch_limit value, using default of 25")
         limit = 25
+    
+    try:
+        max_blend_pairs = int(configuration.get("max_blend_pairs", __MAX_BLEND_PAIRS))
+    except (ValueError, TypeError):
+        log.warning(f"Invalid max_blend_pairs value, using default of {__MAX_BLEND_PAIRS}")
+        max_blend_pairs = __MAX_BLEND_PAIRS
 
     log.info(f"Starting sync for bucket: {bucket}")
 
     # Initialize record counter for logging progress
     total_records_synced = 0
+    
+    # Collections for generating blend pairs after processing seed and build motions
+    seed_motions = []
+    build_motions = []
 
     # Define table mappings
     table_map = {
@@ -523,8 +616,10 @@ def update(configuration: dict, state: dict):
             # Process files as they are yielded from GCS API (streaming approach)
             # This prevents unbounded memory usage for large datasets by processing one file at a time
             # Note: Files are processed in the order returned by GCS API, which may not be chronological.
-            # The incremental sync filter (last_sync_time) ensures only new/updated files are processed,
-            # and state updates after each file ensure recovery from failures.
+            # The incremental sync filter (last_sync_time) ensures only new/updated files are processed.
+            # WARNING: Because files are processed in GCS API order (not chronological), updating state after each file
+            # can result in data loss if a file with an earlier timestamp is processed after a later one and the connector fails mid-sync.
+            # In such cases, files with timestamps <= last_sync_time will be skipped in the next sync. This is a known limitation.
             for raw_record in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 category = infer_category(raw_record["file_uri"])
 
@@ -541,6 +636,15 @@ def update(configuration: dict, state: dict):
                 # The first argument is the name of the destination table.
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table_name, record)
+                
+                # Collect seed and build motions for blend pair generation
+                # Only collect from non-blend categories to avoid circular dependencies
+                if category == "seed":
+                    seed_motions.append(record)
+                    log.fine(f"Collected seed motion: {record['id']}")
+                elif category == "build":
+                    build_motions.append(record)
+                    log.fine(f"Collected build motion: {record['id']}")
 
                 # Update state with current file's timestamp immediately after successful upsert
                 # This ensures incremental sync accuracy: if connector fails, next sync resumes from last successfully processed file
@@ -568,7 +672,7 @@ def update(configuration: dict, state: dict):
             # State reflects the last successfully processed file, so next sync will resume from that point.
 
             # Final checkpoint after completing prefix
-            # NOTE: State was updated in the loop (lines 538-545) after each file was successfully processed.
+            # NOTE: State was updated in the main processing loop after each file was successfully processed.
             # The state contains the timestamp of the last file that was actually upserted, NOT datetime.now().
             # This ensures incremental sync resumes from the last processed file, preventing data loss.
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -591,6 +695,44 @@ def update(configuration: dict, state: dict):
         # Note: KeyError and ValueError are NOT caught here - they indicate programming bugs
         # and should fail fast with full stack traces for debugging
         # requests_exceptions.RequestException is handled in list_gcs_files() with retries
+
+    # Generate blend pairs from collected seed and build motions
+    if seed_motions and build_motions:
+        log.info(f"Generating blend pairs from {len(seed_motions)} seed motions and {len(build_motions)} build motions")
+        
+        try:
+            # Generate blend pairs using blend_utils
+            blend_pairs = generate_blend_pairs(
+                seed_motions=seed_motions,
+                build_motions=build_motions,
+                max_pairs=max_blend_pairs
+            )
+            
+            log.info(f"Generated {len(blend_pairs)} blend pairs")
+            
+            # Process and upsert blend pairs
+            blend_count = 0
+            for blend_record in blend_pairs:
+                # Upsert blend record to destination
+                op.upsert("blend_motions", blend_record)
+                
+                blend_count += 1
+                total_records_synced += 1
+                
+                # Checkpoint every 100 blend records
+                if blend_count % __CHECKPOINT_INTERVAL == 0:
+                    op.checkpoint(state)
+                    log.info(f"Synced {blend_count} blend pairs ({total_records_synced} total records)")
+            
+            # Final checkpoint after all blend pairs
+            op.checkpoint(state)
+            log.info(f"Completed blend pair generation: {blend_count} blend records synced")
+            
+        except Exception as error:
+            # Log blend generation errors but don't fail the entire sync
+            log.warning(f"Error generating blend pairs: {str(error)}. Continuing with sync.")
+    else:
+        log.info("No seed or build motions collected; skipping blend pair generation")
 
     log.info(f"Sync completed successfully: {total_records_synced} total records synced")
 
