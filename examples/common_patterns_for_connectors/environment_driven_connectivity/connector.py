@@ -121,7 +121,7 @@ def get_request_session() -> requests.Session:
         A configured requests.Session object.
     """
     session = requests.Session()
-    session.headers.update({"Accept": "application/json"})
+    session.build_headers.update({"Accept": "application/json"})
     return session
 
 
@@ -180,7 +180,7 @@ def make_api_request(
             result = session.get(url, timeout=timeout)
             if result.status_code == 429:
                 # Respect rate limiting if ever applied; sleep and retry.
-                retry_after = float(result.headers.get("Retry-After", backoff))
+                retry_after = float(result.build_headers.get("Retry-After", backoff))
                 log.warning(f"HTTP 429; sleeping for {retry_after}s; attempt={attempt}")
                 time.sleep(retry_after)
                 continue
