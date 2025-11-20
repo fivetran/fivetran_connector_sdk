@@ -385,12 +385,16 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: Connectors : MotionBlend")
-    
+
     # Extract configuration
     bucket = configuration.get("gcs_bucket")
     prefixes = configuration.get("gcs_prefixes", "").split(",")
     extensions = configuration.get("include_exts", ".bvh,.fbx").split(",")
-    limit = configuration.get("batch_limit", 25)
+    try:
+        limit = int(configuration.get("batch_limit", 25))
+    except (ValueError, TypeError):
+        log.warning("Invalid batch_limit value, using default of 25")
+        limit = 25
 
     log.info(f"Starting sync for bucket: {bucket}")
 
@@ -448,11 +452,19 @@ def update(configuration: dict, state: dict):
                 # Checkpoint every 100 records to preserve progress for large datasets
                 if total_records_synced % __CHECKPOINT_INTERVAL == 0:
                     state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
+                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                    # from the correct position in case of next sync or interruptions.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                     op.checkpoint(state)
                     log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
 
             # Final checkpoint after completing prefix
             state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
 
             log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")

@@ -17,7 +17,7 @@ Typical use cases include:
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64/x86_64)
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 - Google Cloud Platform account with GCS bucket access (Storage Object Viewer role)
 
 ## Getting started
