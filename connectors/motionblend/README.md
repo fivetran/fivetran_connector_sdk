@@ -169,11 +169,20 @@ Data Transformation Pipeline:
    - **Add placeholder values** for skeleton type ("mixamo24"), fps (30), joint count (24), and frames (0)
    - Preserve actual GCS timestamps and file URIs
    - Quality metrics (blend_quality, transition_smoothness) are set to NULL
-3. Load (`update()` function, lines 411-557) – Upsert records to destination:
+3. Load (`update()` function, lines 411-560) – Upsert records to destination:
+   - **Files are sorted by `updated_at` timestamp** to ensure chronological processing and prevent data loss
    - Tables are automatically created by Fivetran based on schema definition
    - Uses `op.upsert()` operation for inserting/updating records
-   - Tracks maximum `updated_at` timestamp from processed files for accurate state management
-   - Checkpoints state after each prefix (unless `batch_limit` was reached)
+   - **State is updated after each successful upsert** with that file's timestamp (not maximum across batch)
+   - Checkpoints state every 100 records and after each prefix completes
+   - **Data loss prevention:** Processing in chronological order ensures connector failures don't skip unprocessed files
+
+**State Management & Data Loss Prevention:**
+- Files are sorted by `updated_at` before processing (oldest first)
+- State tracks the timestamp of the **last successfully processed file** (not max timestamp)
+- If connector fails mid-sync, next run resumes from last successful file
+- Example: Files A (Jan 10), B (Jan 15), C (Jan 12) are sorted → A, C, B and processed in order
+- If failure occurs after B, state = Jan 15, and no files are skipped in next sync
 
 **Data Accuracy:**
 - ✅ Accurate: File URIs, GCS update timestamps, file names
@@ -185,12 +194,13 @@ Type Conversions:
 - GCS blob timestamps → UTC ISO-8601 strings
 
 ## Error handling
-Refer to the `list_gcs_files()` function (lines 137-228) and `update()` function (lines 411-557) in `connector.py`.
+Refer to the `list_gcs_files()` function (lines 137-228) and `update()` function (lines 411-560) in `connector.py`.
 
 The connector implements:
 - Exponential backoff with retry logic for transient GCS failures
 - Specific exception handling for permanent vs. transient errors
 - Comprehensive logging using the Fivetran SDK logging module
+- **Memory safeguard:** Warns if file count exceeds 10,000 per prefix (configurable via `__MAX_FILES_PER_SYNC`)
 
 Retry Logic (refer to `list_gcs_files()` function, lines 161-196):
 - Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)

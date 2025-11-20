@@ -44,6 +44,7 @@ __DEFAULT_FPS = 30  # Default frames per second for motion capture
 __DEFAULT_JOINTS_COUNT = 24  # Default number of joints in the skeleton
 __CHECKPOINT_INTERVAL = 100  # Number of records to process before checkpointing
 __MAX_RETRIES = 3  # Maximum number of retry attempts for transient failures
+__MAX_FILES_PER_SYNC = 10000  # Maximum files to process per prefix sync (prevents memory issues)
 
 
 def schema(configuration: dict):
@@ -465,14 +466,27 @@ def update(configuration: dict, state: dict):
             # Initialize counter for this prefix
             prefix_record_count = 0
 
-            # Track the maximum timestamp from processed files for accurate state management
-            max_updated_at = last_sync_time
+            # Convert generator to list and sort by updated_at to ensure chronological processing
+            # This prevents data loss: if files are processed out of order and connector fails,
+            # the state timestamp would skip unprocessed files in the next sync
+            log.info(f"Fetching files from prefix '{prefix}'...")
+            files = list(list_gcs_files(bucket, prefix, extensions, limit, last_sync_time))
 
-            # Track whether we hit the artificial batch limit (for testing)
-            hit_batch_limit = False
+            # Sort files by updated_at timestamp (ascending) to process oldest first
+            # Files without updated_at are placed at the end
+            files.sort(key=lambda f: f.get("updated_at") or "9999-12-31T23:59:59")
 
-            # List files from GCS with incremental sync support
-            for raw_record in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
+            # Safety check: warn if file count exceeds memory threshold
+            if len(files) > __MAX_FILES_PER_SYNC:
+                log.warning(
+                    f"File count ({len(files)}) exceeds recommended maximum ({__MAX_FILES_PER_SYNC}) for prefix '{prefix}'. "
+                    f"This may cause memory issues. Consider using smaller prefixes or batch_limit."
+                )
+
+            log.info(f"Processing {len(files)} files from prefix '{prefix}' in chronological order")
+
+            # Process files in chronological order
+            for raw_record in files:
                 category = infer_category(raw_record["file_uri"])
 
                 if category not in table_map:
@@ -489,19 +503,22 @@ def update(configuration: dict, state: dict):
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table_name, record)
 
-                # Update max timestamp if this record is newer
-                if raw_record.get("updated_at"):
-                    if max_updated_at is None or raw_record["updated_at"] > max_updated_at:
-                        max_updated_at = raw_record["updated_at"]
+                # Update state with current file's timestamp immediately after successful upsert
+                # This ensures incremental sync accuracy: if connector fails, next sync resumes from last successfully processed file
+                current_updated_at = raw_record.get("updated_at")
+                if current_updated_at:
+                    state[f"last_sync_{prefix}"] = current_updated_at
+                else:
+                    # Skip files without updated_at - they cannot be tracked reliably for incremental sync
+                    log.warning(f"File {raw_record.get('file_uri', 'unknown')} has no updated_at timestamp - skipping state update")
 
                 # Increment counters
                 prefix_record_count += 1
                 total_records_synced += 1
 
                 # Checkpoint every 100 records to preserve progress for large datasets
+                # State is already updated after each upsert, so just checkpoint here
                 if total_records_synced % __CHECKPOINT_INTERVAL == 0:
-                    if max_updated_at:
-                        state[f"last_sync_{prefix}"] = max_updated_at
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
                     # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -511,25 +528,19 @@ def update(configuration: dict, state: dict):
 
             # Check if we hit the batch limit
             if limit and prefix_record_count >= limit:
-                hit_batch_limit = True
                 log.warning(
-                    f"Batch limit of {limit} reached for prefix '{prefix}'. State will NOT be updated to prevent data loss. "
-                    f"Remaining files (if any) will be processed in the next sync. "
+                    f"Batch limit of {limit} reached for prefix '{prefix}'. State reflects last successfully processed file. "
+                    f"Remaining files (if any) will be processed in the next sync starting from that point. "
                     f"For production use, remove batch_limit or set to a high value."
                 )
 
             # Final checkpoint after completing prefix
-            # Only update state if we didn't hit an artificial batch limit to prevent skipping unprocessed files
-            if not hit_batch_limit and max_updated_at:
-                state[f"last_sync_{prefix}"] = max_updated_at
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
-            elif hit_batch_limit:
-                # Still checkpoint to save progress of other prefixes, but don't update this prefix's state
-                op.checkpoint(state)
+            # State is already updated to reflect last successfully processed file
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
             log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
 
