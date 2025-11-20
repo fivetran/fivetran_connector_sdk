@@ -112,7 +112,7 @@ The connector implements:
 - Configurable `limit` parameter for testing (processes first N files)
 - Filters out directories (names ending with `/`) and non-BVH/FBX files
 
-For incremental sync, the connector tracks cursors in the `update()` function (refer to line 430: `state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()`).
+For incremental sync, the connector tracks cursors in the `update()` function (refer to line 455: `state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()`).
 
 ## Data handling
 Files are discovered via GCS API, normalized, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 265-373).
