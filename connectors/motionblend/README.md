@@ -45,17 +45,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
-  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
-  "batch_limit": "<BATCH_LIMIT_NUMBER_DEFAULT_25>",
-  "include_extensions": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
+  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
+  "batch_limit": "<BATCH_LIMIT>",
+  "include_extensions": "<FILE_EXTENSIONS>"
 }
 ```
 
 Configuration keys:
 - `google_cloud_storage_bucket` – GCS bucket name containing motion files
-- `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan
-- `batch_limit` – Maximum number of files to process per prefix per sync (TESTING ONLY - state is not updated when limit is reached to prevent data loss; remove for production use)
-- `include_extensions` – File extensions to process (comma-separated)
+- `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`)
+- `batch_limit` – Maximum number of files to process per prefix per sync (default: 25, TESTING ONLY - state is not updated when limit is reached to prevent data loss; remove for production use)
+- `include_extensions` – File extensions to process (comma-separated, default: `.bvh,.fbx`)
 
 Note: Do not check this file into version control, as it may contain credentials.
 
