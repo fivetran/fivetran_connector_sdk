@@ -235,7 +235,7 @@ def fetch_news_page(
                     op.upsert(table="news_stories", data=rec)
                     upserts_count += 1
                 except Exception as e:
-                    log.error(f"Failed to upsert record: {rec}\nError: {e}")
+                    log.severe(f"Failed to upsert record: {rec}\nError: {e}")
                     continue
 
             log.info(
@@ -341,7 +341,9 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
-
+    log.warning("Example: API : GNews Search")
+    validate_configuration(configuration)
+  
     api_key = configuration["api_key"]
     search_term = configuration["search_term"]
     from_date = configuration["from_date"]
@@ -376,3 +378,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
