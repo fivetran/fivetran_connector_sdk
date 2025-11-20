@@ -20,7 +20,7 @@ class ODataClient:
             self.client = pyodata.Client(service_url, session)
             log.info("OData Version 2 client initialized")
         except Exception as e:
-            log.severe(f"Failed to initialize OData client: {str(e)}")
+            log.severe("Failed to initialize OData client", e)
             raise ConnectionError(f"OData client initialization failed: {str(e)}")
         self.batch_requests = []
 
@@ -56,6 +56,9 @@ class ODataClient:
         This method handles various data types and structures that can be returned by
         the OData service, converting them to Python native types for easier processing.
         """
+        dict_val = hasattr(value, "__dict__")
+        extr_val = not isinstance(value, (str, int, float, bool))
+        none_val = value is not None
         # Handle EntityProxy objects
         if hasattr(value, "_cache") and value._cache:
             return self._extract_entity_data(value=value._cache)
@@ -69,11 +72,7 @@ class ODataClient:
             return {k: self._extract_entity_data(value=v) for k, v in value.items()}
 
         # Check for other entity-like objects with special attributes
-        elif (
-            hasattr(value, "__dict__")
-            and not isinstance(value, (str, int, float, bool))
-            and value is not None
-        ):
+        elif dict_val and extr_val and none_val:
             extracted = self._extract_special_attributes(value=value)
             if extracted:
                 return extracted
@@ -141,7 +140,7 @@ class ODataClient:
             return self.state
 
         except Exception as e:
-            log.severe(f"Error fetching entity set {entity_set}: {str(e)}")
+            log.severe(f"Error fetching entity set {entity_set}", e)
             raise ConnectionError(f"Error fetching entity set: {str(e)}")
 
     def upsert_multiple_entity(self, entity_list: List[Dict], state: Dict = None):
@@ -329,7 +328,7 @@ class ODataClient:
                 )
 
         except Exception as e:
-            log.severe(f"Error processing expanded entity {nav_prop}: {str(e)}")
+            log.severe(f"Error processing expanded entity {nav_prop}", e)
             record[nav_prop] = None
 
     def _process_expanded_collection(self, collection, options: Dict) -> List:
