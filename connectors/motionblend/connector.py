@@ -567,7 +567,9 @@ def update(configuration: dict, state: dict):
                 )
 
             # Final checkpoint after completing prefix
-            # State is already updated to reflect last successfully processed file
+            # NOTE: State was updated in the loop (lines 538-545) after each file was successfully processed.
+            # The state contains the timestamp of the last file that was actually upserted, NOT datetime.now().
+            # This ensures incremental sync resumes from the last processed file, preventing data loss.
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
