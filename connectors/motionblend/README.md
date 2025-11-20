@@ -79,32 +79,41 @@ Key dependencies:
 Note: `fivetran_connector_sdk` and `requests` are already available in the SDK runtime; do not redeclare them.
 
 ## Authentication
-This connector uses service account authentication for both GCS and BigQuery access.
+This connector uses Google Cloud Application Default Credentials (ADC) for GCS authentication. The connector initializes the GCS client as `storage.Client()` without explicit credentials, relying on the runtime environment to provide authentication.
 
-1. Create a Google Cloud service account with Storage Object Viewer and BigQuery Data Editor roles.
+### Local development
+Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to your service account JSON key:
 
-2. Download its JSON key file and reference it in your environment as `GOOGLE_APPLICATION_CREDENTIALS`.
-
-3. Ensure the same credentials grant read access to the bucket and write access to the dataset.
-
-Example setup:
 ```bash
+# Create service account with required permissions
 gcloud iam service-accounts create motionblend-connector \
   --display-name="MotionBlend Connector"
 
+# Grant Storage Object Viewer role for GCS read access
 gcloud projects add-iam-policy-binding YOUR_PROJECT \
   --member="serviceAccount:motionblend-connector@YOUR_PROJECT.iam.gserviceaccount.com" \
   --role="roles/storage.objectViewer"
 
-gcloud projects add-iam-policy-binding YOUR_PROJECT \
-  --member="serviceAccount:motionblend-connector@YOUR_PROJECT.iam.gserviceaccount.com" \
-  --role="roles/bigquery.dataEditor"
-
+# Download service account key
 gcloud iam service-accounts keys create sa-key.json \
   --iam-account=motionblend-connector@YOUR_PROJECT.iam.gserviceaccount.com
 
+# Set environment variable for local testing
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
 ```
+
+### Fivetran deployment
+When deploying to Fivetran, credentials must be configured through the Fivetran platform:
+
+1. In the Fivetran connector setup UI, provide the service account JSON key content in the designated credentials field
+2. Fivetran will inject these credentials into the runtime environment as ADC
+3. The connector will automatically discover and use these credentials via `storage.Client()`
+
+Note: The connector does not accept credentials via `configuration.json`. All authentication is handled through Fivetran's secure credential management system.
+
+### Required permissions
+The service account needs the following IAM role:
+- `roles/storage.objectViewer` - Read access to GCS buckets and objects
 
 ## Pagination
 Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 127-214).
