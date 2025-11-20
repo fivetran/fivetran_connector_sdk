@@ -459,21 +459,26 @@ def update(configuration: dict, state: dict):
 
     headers = {"User-Agent": user_agent, "Accept": "application/geo+json"}
 
+    # Create a mutable copy of the state to track progress and checkpoint updates
+    current_state = dict(state) if state is not None else {}
+    if last_sync_time:
+        current_state["last_sync_time"] = last_sync_time
+
     try:
         station_ids = get_station_ids_for_sync(headers, station_ids_input, state_code)
         total_observations = sync_observations_for_stations(
-            headers, station_ids, last_sync_time, state
+            headers, station_ids, last_sync_time, current_state
         )
-        total_alerts = fetch_active_alerts(headers, alert_area, state)
+        total_alerts = fetch_active_alerts(headers, alert_area, current_state)
 
         current_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        new_state = {"last_sync_time": current_timestamp}
+        current_state["last_sync_time"] = current_timestamp
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(new_state)
+        op.checkpoint(current_state)
 
         log.info(
             f"Sync completed. Total observations: {total_observations}, "
