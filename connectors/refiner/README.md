@@ -50,7 +50,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector uses Bearer token authentication via the `Authorization` header. To obtain your API key:
 
 1. Log in to your Refiner account.
-2. Go to **Settings** > **Integrations** > API**.
+2. Go to **Settings** > **Integrations** > **API**.
 3. Copy your API key.
 4. Add the API key to your `configuration.json` file as shown above.
 
