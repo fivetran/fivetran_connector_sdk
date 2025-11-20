@@ -52,7 +52,7 @@ This connector uses API key authentication to connect to the Elastic Email API. 
 
 To set up authentication:
 
-1. Log in to your Elastic Email account at https://app.elasticemail.com.
+1. Log in to your [Elastic Email account](https://app.elasticemail.com).
 2. Navigate to **Settings** and then **API**.
 3. Click on **Create Additional API Key** or use an existing key.
 4. Make a note of the API key value.
@@ -94,19 +94,19 @@ The connector creates the following tables in the destination:
 
 | Table Name | Primary Key | Description |
 |------------|-------------|-------------|
-| CAMPAIGN | name | Email marketing campaigns |
-| CONTACT | email | Contact list with email addresses and metadata |
-| LIST | listName | Contact lists used for segmentation |
-| SEGMENT | name | Dynamic contact segments based on rules |
-| TEMPLATE | name | Email templates for campaigns |
-| EVENT | transactionID | Email delivery events (sent, opened, clicked, bounced) |
-| CAMPAIGN_STATISTICS | name | Campaign performance statistics |
-| FILE | name | Uploaded files and attachments |
-| DOMAIN | domain | Verified sending domains |
-| SUPPRESSION | email | All suppressed email addresses |
-| BOUNCE | email | Bounced email addresses |
-| COMPLAINT | email | Spam complaint email addresses |
-| USUBSCRIBE | email | Unsubscribed email addresses |
+| CAMPAIGN | name | Email marketing campaigns. |
+| CONTACT | email | Contact list with email addresses and metadata. |
+| LIST | listName | Contact lists used for segmentation. |
+| SEGMENT | name | Dynamic contact segments based on rules. |
+| TEMPLATE | name | Email templates for campaigns. |
+| EVENT | transactionID | Email delivery events (sent, opened, clicked, bounced). |
+| CAMPAIGN_STATISTICS | name | Campaign performance statistics. |
+| FILE | name | Uploaded files and attachments. |
+| DOMAIN | domain | Verified sending domains. |
+| SUPPRESSION | email | All suppressed email addresses. |
+| BOUNCE | email | Bounced email addresses. |
+| COMPLAINT | email | Spam complaint email addresses. |
+| USUBSCRIBE | email | Unsubscribed email addresses. |
 
 All table schemas are defined with primary keys only. Column data types are inferred by Fivetran based on the actual data. Nested objects are flattened with underscore-separated column names. Refer to the `schema` function in [connector.py](connector.py).
 
@@ -114,9 +114,9 @@ All table schemas are defined with primary keys only. Column data types are infe
 
 ### Prerequisites
 
-1. A valid Elastic Email account with API access
-2. An API key with appropriate permissions
-3. Sample data in your Elastic Email account (campaigns, contacts, events, etc.)
+- A valid Elastic Email account with API access.
+- An API key with appropriate permissions.
+- Sample data in your Elastic Email account (campaigns, contacts, events, etc.).
 
 ### Local testing
 
@@ -147,16 +147,16 @@ All table schemas are defined with primary keys only. Column data types are infe
 
 To test incremental sync for the `event` table:
 
-1. Run the connector once to perform an initial sync
-2. Create new events in your Elastic Email account
-3. Run the connector again and verify that only new events (after the last synced event date) are fetched
-4. Check that the state file contains the `last_event_date` key with the correct timestamp
+1. Run the connector once to perform an initial sync.
+2. Create new events in your Elastic Email account.
+3. Run the connector again and verify that only new events (after the last synced event date) are fetched.
+4. Check that the state file contains the `last_event_date` key with the correct timestamp.
 
 ### Testing error handling
 
-1. Test with an invalid API key to verify authentication error handling
-2. Test with restricted API permissions to verify graceful handling of access denied errors
-3. Simulate network errors to verify retry logic and exponential backoff
+1. Test with an invalid API key to verify authentication error handling.
+2. Test with restricted API permissions to verify graceful handling of access denied errors.
+3. Simulate network errors to verify retry logic and exponential backoff.
 
 ### Validation checklist
 
