@@ -224,7 +224,12 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
 
         count += 1
         if limit and count >= limit:
-            log.info(f"Reached limit of {limit} files for prefix '{prefix}'")
+            log.warning(
+                f"Reached batch limit of {limit} files for prefix '{prefix}'. "
+                f"Remaining files will be processed in next sync. "
+                f"WARNING: batch_limit is for TESTING ONLY and should NOT be used in production, "
+                f"as it may cause incomplete syncs if new files arrive during processing."
+            )
             break
 
     log.info(f"Listed {count} files from prefix '{prefix}'")

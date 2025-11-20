@@ -37,7 +37,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Exponential backoff retry logic for transient GCS failures
 - Checkpointing every 100 records for fault tolerance on large datasets
 - SDK-based structured logging for operational visibility
-- Configurable batch limit for testing (WARNING: batch limits prevent state updates to avoid data loss)
+- Configurable batch limit for testing (processes N files per sync, resumes in next sync)
 
 ## Configuration file
 `configuration.json` defines the connector parameters uploaded to Fivetran.
@@ -151,9 +151,14 @@ The connector implements:
 - Configurable `limit` parameter for testing (processes first N files per prefix)
 - Filters out directories (names ending with `/`) and non-BVH/FBX files
 
-**Important:** When `batch_limit` is configured, the connector will NOT update state for that prefix when the limit is reached. This prevents data loss where remaining unprocessed files would be permanently skipped. The next sync will re-process from the last successful full sync. For production use, remove `batch_limit` or set it to a very high value.
+**Important - Testing Only:** The `batch_limit` parameter limits how many files are processed per prefix per sync. When the limit is reached:
+- State is updated with the last processed file's timestamp
+- Next sync will resume from that point and process the next batch
+- This is ONLY for testing/development to avoid processing large datasets during development
+- **Production use:** Remove `batch_limit` entirely or set to a very high value
+- Files are processed in chronological order (sorted by `updated_at`) to ensure no files are skipped
 
-For incremental sync, the connector tracks cursors in the `update()` function by recording the maximum `updated_at` timestamp from successfully processed files (lines 476-478, 503-518).
+For incremental sync, the connector tracks cursors in the `update()` function by recording the `updated_at` timestamp from each successfully processed file (lines 540-547).
 
 ## Data handling
 Files are discovered via GCS API, cataloged with blob metadata, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 271-393).
