@@ -91,10 +91,10 @@ def generate_blend_id(left_motion_uri: str, right_motion_uri: str) -> str:
         right_motion_uri: URI of right motion file
 
     Returns:
-        SHA-1 hash of concatenated URIs
+        16-character SHA-1 hash prefix of concatenated URIs
     """
     combined = f"{left_motion_uri}|{right_motion_uri}"
-    return hashlib.sha1(combined.encode('utf-8')).hexdigest()
+    return hashlib.sha1(combined.encode('utf-8')).hexdigest()[:16]
 
 
 def estimate_blend_quality(
