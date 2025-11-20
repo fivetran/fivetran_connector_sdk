@@ -124,9 +124,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             new_max_updated = sync_entity(api_key, entity, last_updated, page_size)
             last_updated = new_max_updated or last_updated
             last_updated = last_updated or datetime.now(timezone.utc).isoformat()
-            merged_state[entity] = {
-                "last_updated": last_updated
-            }
+            merged_state[entity] = {"last_updated": last_updated}
             log.info(
                 f"[IES] {entity}: done (new_last_updated={merged_state[entity]['last_updated']})"
             )
