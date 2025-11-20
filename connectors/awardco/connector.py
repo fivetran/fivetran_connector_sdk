@@ -206,7 +206,12 @@ def update(configuration: dict, state: dict):
             # Pass the last checkpointed sync time so the API can return only
             # records updated since that timestamp. This avoids full table scans.
             users = fetch_users(
-                base_url, api_key, page, per_page, last_sync_time=sync_time, updated_since_param=updated_since_param
+                base_url,
+                api_key,
+                page,
+                per_page,
+                last_sync_time=sync_time,
+                updated_since_param=updated_since_param,
             )
             if not users:
                 break
