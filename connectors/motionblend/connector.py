@@ -38,7 +38,6 @@ __DEFAULT_FPS = 30  # Default frames per second for motion capture
 __DEFAULT_JOINTS_COUNT = 24  # Default number of joints in the skeleton
 __CHECKPOINT_INTERVAL = 100  # Number of records to process before checkpointing
 __MAX_RETRIES = 3  # Maximum number of retry attempts for transient failures
-__RETRY_DELAY_SECONDS = 2  # Initial delay in seconds between retries
 
 
 def schema(configuration: dict):
@@ -174,7 +173,7 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: 
                 raise RuntimeError(f"GCS connection failed after {__MAX_RETRIES} retries: {str(error)}")
 
             # Exponential backoff: 2^0=1s, 2^1=2s, 2^2=4s, capped at 60s
-            sleep_time = min(60, __RETRY_DELAY_SECONDS ** attempt)
+            sleep_time = min(60, 2 ** attempt)
             log.warning(f"GCS connection attempt {attempt + 1}/{__MAX_RETRIES} failed (transient error), retrying in {sleep_time}s: {str(error)}")
             time.sleep(sleep_time)
         except (google_exceptions.PermissionDenied,
