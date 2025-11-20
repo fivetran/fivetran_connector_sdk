@@ -210,7 +210,7 @@ State Management & Data Loss Prevention:
 - State tracks the timestamp of the last successfully processed file
 - If connector fails mid-sync, next run resumes from last successful file timestamp
 - Chronological sorting ensures data integrity: Files are always processed oldest-to-newest within each batch
-- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A, C, B before processing
+- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A (Jan 10), C (Jan 12), B (Jan 15) before processing
 - Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors while maintaining chronological order
 
 Data Accuracy:
