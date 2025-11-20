@@ -46,10 +46,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
   "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
-  "batch_limit": "<BATCH_LIMIT>",
-  "include_extensions": "<FILE_EXTENSIONS>",
-  "max_blend_pairs": "<MAX_BLEND_PAIRS>",
-  "max_motion_buffer_size": "<MAX_MOTION_BUFFER_SIZE>"
+  "batch_limit": "<OPTIONAL_BATCH_LIMIT_FOR_TESTING_ONLY>",
+  "include_extensions": "<OPTIONAL_FILE_EXTENSIONS>",
+  "max_blend_pairs": "<OPTIONAL_MAX_BLEND_PAIRS>",
+  "max_motion_buffer_size": "<OPTIONAL_MAX_BUFFER_SIZE>"
 }
 ```
 
@@ -57,7 +57,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 |-----------|----------|---------|-------------|
 | `google_cloud_storage_bucket` | Yes | N/A | GCS bucket name containing motion files |
 | `google_cloud_storage_prefixes` | Yes | N/A | Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`) |
-| `batch_limit` | No | 25 | Maximum number of files to process per prefix per sync. State is updated with the last processed file's timestamp. TESTING ONLY – remove for production use to process all files in a single sync. |
+| `batch_limit` | No | None (unlimited) | Maximum number of files to process per prefix per sync. TESTING ONLY – omit for production to process all files in a single sync. When set, state is updated with the last processed file's timestamp and remaining files are processed in subsequent syncs. |
 | `include_extensions` | No | `.bvh,.fbx` | File extensions to process (comma-separated) |
 | `max_blend_pairs` | No | 100 | Maximum number of blend pairs to generate per sync |
 | `max_motion_buffer_size` | No | 1000 | Maximum number of seed/build motions to buffer before generating blend pairs |
@@ -210,7 +210,7 @@ State Management & Data Loss Prevention:
 - State tracks the timestamp of the last successfully processed file
 - If connector fails mid-sync, next run resumes from last successful file timestamp
 - Chronological sorting ensures data integrity: Files are always processed oldest-to-newest within each batch
-- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A, B, C before processing
+- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A, C, B before processing
 - Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors while maintaining chronological order
 
 Data Accuracy:

@@ -221,9 +221,10 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
             continue
 
         # Filter by last sync time for incremental sync
-        # Use < to include files with exactly the same timestamp (prevents data loss on retries)
+        # Use <= to skip files that have already been processed (cursor is set to last successfully processed file)
+        # Files with timestamps > last_sync_time are new and should be processed
         blob_updated_str = blob.updated.isoformat()
-        if last_sync_time and blob_updated_str < last_sync_time:
+        if last_sync_time and blob_updated_str <= last_sync_time:
             continue
 
         record = {
@@ -682,7 +683,8 @@ def update(configuration: dict, state: dict):
         extensions = [".bvh", ".fbx"]
 
     # Configuration values are already validated by validate_configuration() - safe to use directly
-    limit = int(configuration.get("batch_limit", 25))
+    # batch_limit defaults to None (unlimited) for production - only set explicitly for testing
+    limit = int(configuration.get("batch_limit")) if configuration.get("batch_limit") else None
     max_blend_pairs = int(configuration.get("max_blend_pairs", __MAX_BLEND_PAIRS))
     max_motion_buffer_size = int(configuration.get("max_motion_buffer_size", __MAX_MOTION_BUFFER_SIZE))
 

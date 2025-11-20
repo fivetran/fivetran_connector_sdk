@@ -1,8 +1,8 @@
 {
   "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
-  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
-  "batch_limit": "<OPTIONAL_BATCH_LIMIT_DEFAULT_25>",
-  "include_extensions": "<OPTIONAL_EXTENSIONS_DEFAULT_.bvh,.fbx>",
-  "max_blend_pairs": "<OPTIONAL_MAX_BLEND_PAIRS_DEFAULT_100>",
-  "max_motion_buffer_size": "<OPTIONAL_MAX_BUFFER_SIZE_DEFAULT_1000>"
+  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
+  "batch_limit": "<OPTIONAL_BATCH_LIMIT_FOR_TESTING_ONLY>",
+  "include_extensions": "<OPTIONAL_FILE_EXTENSIONS>",
+  "max_blend_pairs": "<OPTIONAL_MAX_BLEND_PAIRS>",
+  "max_motion_buffer_size": "<OPTIONAL_MAX_BUFFER_SIZE>"
 }
