@@ -573,7 +573,8 @@ def process_file_record(
     build_motions: list,
     max_motion_buffer_size: int,
     generate_and_sync_blends_func,
-    counters: dict[str, int]
+    counters: dict[str, int],
+    global_max_timestamp_tracker: dict[str, str | None]
 ) -> None:
     """
     Process a single file record: categorize, transform, upsert, and collect for blend generation.
@@ -593,6 +594,7 @@ def process_file_record(
         max_motion_buffer_size: Maximum buffer size before generating blends
         generate_and_sync_blends_func: Function to call when buffers reach limit
         counters: Dictionary with 'prefix_record_count' and 'total_records_synced' keys
+        global_max_timestamp_tracker: Dictionary with 'timestamp' key to track global maximum across batches
 
     Returns:
         None (updates state and counters in place)
@@ -639,16 +641,18 @@ def process_file_record(
     counters['prefix_record_count'] += 1
     counters['total_records_synced'] += 1
 
-    # Store last file timestamp for later state update during checkpoint
-    # This will be used to update state only at checkpoint boundaries (not per-file)
-    counters['last_file_timestamp'] = raw_record["updated_at"]
+    # Update global maximum timestamp across all batches
+    current_timestamp = raw_record["updated_at"]
+    if global_max_timestamp_tracker['timestamp'] is None or current_timestamp > global_max_timestamp_tracker['timestamp']:
+        global_max_timestamp_tracker['timestamp'] = current_timestamp
 
     # Checkpoint every __CHECKPOINT_INTERVAL records to preserve progress for large datasets
     # Update state ONLY when checkpointing to prevent data loss (state and checkpoint are atomic)
     if counters['total_records_synced'] % __CHECKPOINT_INTERVAL == 0:
-        # Update state with current file's timestamp BEFORE checkpointing
-        # This ensures state is only advanced after successful data writes
-        state[f"last_sync_{prefix}"] = counters['last_file_timestamp']
+        # Update state with global maximum timestamp BEFORE checkpointing
+        # This ensures state cursor always represents the true maximum across all batches
+        # and maintains monotonic progression even if connector fails mid-sync
+        state[f"last_sync_{prefix}"] = global_max_timestamp_tracker['timestamp']
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
@@ -869,7 +873,8 @@ def update(configuration: dict, state: dict):
             # Buffer size defined at module level as __FILE_BUFFER_SIZE constant
             files_buffer = []
             prefix_files_processed = 0  # Track files processed for this prefix only
-            global_max_timestamp = last_sync_time  # Track maximum timestamp across all batches for correct state cursor
+            # Track maximum timestamp across all batches using mutable dict for sharing with process_file_record
+            global_max_timestamp_tracker = {'timestamp': last_sync_time}
 
             for file_metadata in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 files_buffer.append(file_metadata)
@@ -891,11 +896,9 @@ def update(configuration: dict, state: dict):
                             build_motions=build_motions,
                             max_motion_buffer_size=max_motion_buffer_size,
                             generate_and_sync_blends_func=generate_and_sync_blends,
-                            counters=counters
+                            counters=counters,
+                            global_max_timestamp_tracker=global_max_timestamp_tracker
                         )
-                        # Track global maximum timestamp across all batches
-                        if global_max_timestamp is None or raw_record["updated_at"] > global_max_timestamp:
-                            global_max_timestamp = raw_record["updated_at"]
 
                     prefix_files_processed += len(files_buffer)
                     files_buffer.clear()  # Clear buffer to free memory
@@ -916,11 +919,9 @@ def update(configuration: dict, state: dict):
                         build_motions=build_motions,
                         max_motion_buffer_size=max_motion_buffer_size,
                         generate_and_sync_blends_func=generate_and_sync_blends,
-                        counters=counters
+                        counters=counters,
+                        global_max_timestamp_tracker=global_max_timestamp_tracker
                     )
-                    # Track global maximum timestamp across all batches
-                    if global_max_timestamp is None or raw_record["updated_at"] > global_max_timestamp:
-                        global_max_timestamp = raw_record["updated_at"]
 
                 prefix_files_processed += len(files_buffer)
                 files_buffer.clear()
@@ -948,9 +949,10 @@ def update(configuration: dict, state: dict):
             # Final checkpoint after completing prefix
             # Update state with the global maximum timestamp across all batches (if any files were processed)
             # This ensures the state cursor advances monotonically and maintains incremental sync integrity
-            if prefix_files_processed > 0 and global_max_timestamp:
+            # Note: State is also updated at intermediate checkpoints in process_file_record with the same global_max_timestamp
+            if prefix_files_processed > 0 and global_max_timestamp_tracker['timestamp']:
                 # Update state with global max timestamp before final checkpoint
-                state[f"last_sync_{prefix}"] = global_max_timestamp
+                state[f"last_sync_{prefix}"] = global_max_timestamp_tracker['timestamp']
 
             # State contains the timestamp of the last file processed (guaranteed to be the latest due to chronological sorting)
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
