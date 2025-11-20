@@ -1,15 +1,15 @@
 {
   "api_key": "<YOUR_ADYEN_API_KEY>",
   "merchant_account": "<YOUR_MERCHANT_ACCOUNT>",
-  "environment": "<test_or_live>",
-  "enable_payments": "true",
-  "enable_modifications": "true",
-  "enable_webhooks": "true",
-  "sync_frequency_hours": "4",
-  "initial_sync_days": "90",
-  "max_records_per_page": "100",
-  "request_timeout_seconds": "30",
-  "retry_attempts": "3",
-  "enable_incremental_sync": "true",
-  "enable_debug_logging": "false"
+  "environment": "<YOUR_ENVIRONMENT>",
+  "enable_payments": "<YOUR_ENABLE_PAYMENTS>",
+  "enable_modifications": "<YOUR_ENABLE_MODIFICATIONS>",
+  "enable_webhooks": "<YOUR_ENABLE_WEBHOOKS>",
+  "sync_frequency_hours": "<YOUR_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }

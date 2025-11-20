@@ -55,17 +55,17 @@ To set up and run this connector, follow the [Connector SDK Setup Guide](https:/
 
 - api_key (required): Your Adyen API key for authentication. Get this from your Adyen Customer Area under Developers > API credentials
 - merchant_account (required): The merchant account identifier provided by Adyen
-- environment: API environment to use - "test" for testing or "live" for production (default: "test")
-- enable_payments: Enable syncing payment transaction data (default: "true")
-- enable_modifications: Enable syncing payment modifications like refunds and captures (default: "true")
-- enable_webhooks: Enable syncing webhook event notifications (default: "true")
-- sync_frequency_hours: How often to run incremental syncs in hours (default: "4")
-- initial_sync_days: Number of days of historical data to fetch on first sync (default: "90")
-- max_records_per_page: Maximum records to fetch per API request (default: "100", range: 1-1000)
-- request_timeout_seconds: HTTP request timeout in seconds (default: "30", range: 1-300)
-- retry_attempts: Number of retry attempts for failed requests (default: "3", range: 1-10)
-- enable_incremental_sync: Enable incremental syncing based on timestamps (default: "true")
-- enable_debug_logging: Enable verbose debug logging for troubleshooting (default: "false")
+- environment (optional): API environment to use - "test" for testing or "live" for production (default: "test")
+- enable_payments (optional): Enable syncing payment transaction data (default: "true")
+- enable_modifications (optional): Enable syncing payment modifications like refunds and captures (default: "true")
+- enable_webhooks (optional): Enable syncing webhook event notifications (default: "true")
+- sync_frequency_hours (optional): How often to run incremental syncs in hours (default: "4")
+- initial_sync_days (optional): Number of days of historical data to fetch on first sync (default: "90")
+- max_records_per_page (optional): Maximum records to fetch per API request (default: "100", range: 1-1000)
+- request_timeout_seconds (optional): HTTP request timeout in seconds (default: "30", range: 1-300)
+- retry_attempts (optional): Number of retry attempts for failed requests (default: "3", range: 1-10)
+- enable_incremental_sync (optional): Enable incremental syncing based on timestamps (default: "true")
+- enable_debug_logging (optional): Enable verbose debug logging for troubleshooting (default: "false")
 
 ## Requirements file
 
