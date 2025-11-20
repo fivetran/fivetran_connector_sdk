@@ -124,6 +124,8 @@ def process_user_record(record: dict, current_sync_time: str) -> str:
         str: The updated sync time
     """
     # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     # The op.upsert method is called with two arguments:
     # - The first argument is the name of the table to upsert the data into.
     # - The second argument is a dictionary containing the data to be upserted,
