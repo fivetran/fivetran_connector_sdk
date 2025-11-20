@@ -76,11 +76,3 @@ When a PR changes or adds a connector/example/template that includes a `configur
 }
 ```
 **Issues**: Real token, abbreviations, empty value, non-standard boolean, no placeholders, unused field
-
-# Review Response Format
-When requesting changes, provide:
-1. **Severity**: BLOCKER (must fix) or REQUEST_CHANGES (should improve)
-2. **Issue**: Specific field(s) with problems
-3. **Problem**: Clear description of what's wrong
-4. **Fix**: Show correct format with example
-5. **Reference**: Link to template if relevant
