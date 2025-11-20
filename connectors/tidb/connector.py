@@ -359,17 +359,16 @@ def execute_query(
         return list(query_result)
 
 
-def extract_row_timestamp(row_data: Dict[str, Any]) -> Optional[datetime]:
+def extract_row_timestamp(created_val: datetime) -> Optional[datetime]:
     """
-    Extract and parse created_at timestamp from row.
+    Extract and parse created_at timestamp.
 
     Args:
-        row_data: Dictionary containing row data
+        created_val: datetime field containing created_at value
 
     Returns:
         Parsed datetime object or None if extraction fails
     """
-    created_val = row_data.get("created_at")
 
     if not created_val:
         return None
