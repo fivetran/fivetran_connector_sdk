@@ -123,7 +123,7 @@ def sync_shipments(api_token, last_sync_time):
 
             process_shipment(shipment)
 
-            if shipment_updated and (new_sync_time is None or shipment_updated > new_sync_time):
+            if shipment_updated and (new_sync_time is None or shipment_updated >= new_sync_time):
                 new_sync_time = shipment_updated
 
             records_processed += 1
