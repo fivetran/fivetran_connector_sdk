@@ -15,8 +15,8 @@ The blendanim framework uses Mixamo skeleton with specific structure:
 - Rotation: Euler angles (XYZ degrees), 6D continuous, or rotation matrices
 - Quality metrics: L2 velocity/acceleration on 5 key joints (Pelvis, L/R Wrist, L/R Foot)
 
-See the README.md for detailed documentation.
-See https://github.com/RydlrCS/blendanim for framework implementation.
+See the README.md for detailed documentation and usage examples.
+Framework implementation: https://github.com/RydlrCS/blendanim
 """
 
 # Import required classes from fivetran_connector_sdk
