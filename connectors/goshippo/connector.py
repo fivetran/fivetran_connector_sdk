@@ -10,6 +10,9 @@ import json
 # For time-related operations and delays
 import time
 
+# For parsing URL parameters during pagination
+from urllib.parse import urlparse, parse_qs
+
 # For making HTTP API requests
 import requests
 
@@ -75,7 +78,7 @@ def update(configuration: dict, state: dict):
 
         log.info(f"Sync completed successfully. New sync time: {new_sync_time}")
 
-    except Exception as e:
+    except (RuntimeError, requests.RequestException, ValueError, KeyError) as e:
         log.severe(f"Failed to sync data: {str(e)}")
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
@@ -99,7 +102,7 @@ def sync_shipments(api_token, last_sync_time):
         page_count += 1
         log.info(f"Fetching page {page_count} of shipments")
 
-        shipments_data = fetch_shipments_page(api_token, page_token, last_sync_time)
+        shipments_data = fetch_shipments_page(api_token, page_token)
 
         if not shipments_data or "results" not in shipments_data:
             log.warning("No shipments data returned from API")
@@ -137,21 +140,18 @@ def sync_shipments(api_token, last_sync_time):
         next_url = shipments_data.get("next")
         if next_url:
             page_token = extract_page_token(next_url)
-            has_more_data = True
-        else:
-            has_more_data = False
+        has_more_data = bool(next_url)
 
     log.info(f"Total records processed: {records_processed}")
     return new_sync_time or last_sync_time
 
 
-def fetch_shipments_page(api_token, page_token, last_sync_time):
+def fetch_shipments_page(api_token, page_token):
     """
     Fetch a single page of shipments from the Goshippo API with retry logic.
     Args:
         api_token: The API token for authentication.
         page_token: The page token for pagination (None for first page).
-        last_sync_time: ISO format timestamp to filter shipments.
     Returns:
         dict: JSON response containing shipment data.
     """
@@ -451,7 +451,7 @@ def build_query_params(page_token):
     Returns:
         dict: Query parameters dictionary.
     """
-    params = {"results": min(__PAGE_SIZE, __MAX_PAGE_SIZE)}
+    params = {"results": __PAGE_SIZE}
 
     if page_token:
         params["page_token"] = page_token
@@ -471,12 +471,10 @@ def extract_page_token(next_url):
         return None
 
     try:
-        from urllib.parse import urlparse, parse_qs
-
         parsed = urlparse(next_url)
         params = parse_qs(parsed.query)
         return params.get("page_token", [None])[0]
-    except Exception as e:
+    except (ValueError, AttributeError, IndexError, TypeError) as e:
         log.warning(f"Failed to extract page_token from URL: {str(e)}")
         return None
 
