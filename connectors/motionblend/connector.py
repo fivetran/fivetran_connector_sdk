@@ -581,13 +581,16 @@ def update(configuration: dict, state: dict):
             # RuntimeError indicates unrecoverable failures (e.g., GCS connection after retries)
             log.severe(f"Fatal error processing prefix '{prefix}': {str(runtime_error)}")
             raise
-        except (google_exceptions.GoogleAPIError,
-                requests_exceptions.RequestException,
-                KeyError,
-                ValueError) as error:
-            # Catch specific expected errors and re-raise with context
-            log.severe(f"Error processing prefix '{prefix}': {str(error)}")
-            raise RuntimeError(f"Failed to process prefix '{prefix}': {str(error)}")
+        except google_exceptions.GoogleAPIError as error:
+            # Catch unexpected Google API errors not already handled by list_gcs_files() retry logic
+            # Note: Transient errors (GoogleAPIError, RetryError, ServerError) are retried in list_gcs_files()
+            # Permanent errors (PermissionDenied, Unauthenticated, NotFound) fail immediately in list_gcs_files()
+            # This catches any other Google API errors that occur during processing (e.g., quota exceeded)
+            log.severe(f"Google API error processing prefix '{prefix}': {str(error)}")
+            raise
+        # Note: KeyError and ValueError are NOT caught here - they indicate programming bugs
+        # and should fail fast with full stack traces for debugging
+        # requests_exceptions.RequestException is handled in list_gcs_files() with retries
 
     log.info(f"Sync completed successfully: {total_records_synced} total records synced")
 
