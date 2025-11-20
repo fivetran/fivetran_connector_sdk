@@ -51,7 +51,7 @@ This connector uses Bearer token authentication to access the Prefect Cloud API.
 
 To obtain your API credentials:
 
-1. Log in to your Prefect Cloud account at https://app.prefect.cloud/.
+1. Log in to your [Prefect Cloud] (https://app.prefect.cloud/) account.
 2. Navigate to your account settings and select **API Keys**.
 3. Generate a new API key with appropriate permissions.
 4. Make a note of the API key. You will need to add it to the `configuration.json` file.
