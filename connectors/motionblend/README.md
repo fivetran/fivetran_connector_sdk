@@ -18,9 +18,7 @@ Typical use cases include:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   - Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64/x86_64)
-- Google Cloud Platform account with:
-  - GCS bucket access (Storage Object Viewer role)
-  - BigQuery dataset write access (BigQuery Data Editor role)
+- Google Cloud Platform account with GCS bucket access (Storage Object Viewer role)
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for SDK installation and environment configuration.
@@ -40,21 +38,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ```json
 {
-  "gcp_project": "<YOUR_GCP_PROJECT_ID>",
   "gcs_bucket": "<YOUR_GCS_BUCKET_NAME>",
   "gcs_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
-  "bigquery_dataset": "<YOUR_BIGQUERY_DATASET_NAME>",
   "batch_limit": "<BATCH_LIMIT_NUMBER_DEFAULT_25>",
   "include_exts": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
 }
 ```
 
 Configuration keys:
-- `gcp_project` – GCP project ID for BigQuery
 - `gcs_bucket` – GCS bucket name containing motion files
 - `gcs_prefixes` – Comma-separated list of prefixes to scan
-- `bigquery_dataset` – BigQuery dataset name (e.g., RAW, RAW_DEV)
-- `batch_limit` – Records per batch for BigQuery insert
+- `batch_limit` – Maximum number of files to process per sync (for testing)
 - `include_exts` – File extensions to process (comma-separated)
 
 Note: Do not check this file into version control, as it may contain credentials.
@@ -64,17 +58,11 @@ Note: Do not check this file into version control, as it may contain credentials
 
 Example content:
 ```
-google-cloud-storage>=2.0.0
-google-cloud-bigquery>=3.0.0
-structlog>=23.0.0
-tenacity>=8.0.0
+google-cloud-storage==2.18.2
 ```
 
 Key dependencies:
-- `google-cloud-storage` – GCS client for blob iteration
-- `google-cloud-bigquery` – BigQuery client for data loading
-- `structlog` – Structured logging with JSON output
-- `tenacity` – Retry library for exponential backoff
+- `google-cloud-storage` – GCS client for blob iteration and file discovery
 
 Note: `fivetran_connector_sdk` and `requests` are already available in the SDK runtime; do not redeclare them.
 

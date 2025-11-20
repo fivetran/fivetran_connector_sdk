@@ -1,8 +1,6 @@
 {
-  "gcp_project": "<YOUR_GCP_PROJECT_ID>",
   "gcs_bucket": "<YOUR_GCS_BUCKET_NAME>",
   "gcs_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
-  "bigquery_dataset": "<YOUR_BIGQUERY_DATASET_NAME>",
   "batch_limit": "<BATCH_LIMIT_NUMBER_DEFAULT_25>",
   "include_exts": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
 }
