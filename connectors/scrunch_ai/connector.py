@@ -169,6 +169,36 @@ def flatten_response(rec: dict) -> dict:
         ),
     }
 
+def _fetch_page_with_retries(start_date, end_date, offset, token, brand_id):
+    """
+    Fetches a single page of responses from the API with exponential backoff retries.
+    Args:
+        start_date (str): Start date in 'YYYY-MM-DD' format (passed through).
+        end_date   (str): End date in 'YYYY-MM-DD' format (used in checkpoint).
+        offset     (int): Offset to mark location in API call 
+        token      (str): Bearer token for Scrunch API.
+        brand_id   (str): Brand identifier for the Scrunch API endpoint.
+    """
+    for attempt in range(__MAX_RETRIES):
+        try:
+            log.info(
+                f"Fetching responses (offset={offset}, attempt "
+                f"{attempt + 1}/{__MAX_RETRIES})..."
+            )
+            response = get_responses(start_date, end_date, offset, token, brand_id)
+            return response # Success, return response
+
+        except requests.exceptions.RequestException as e:
+            log.warning(f"Error fetching responses on attempt {attempt + 1}: {e}")
+            if attempt < __MAX_RETRIES - 1:
+                wait_time = __INITIAL_BACKOFF * (2**attempt)
+                log.info(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                # Max retries reached, raise the last exception
+                log.severe("Max retries reached while fetching responses. Failing")
+                raise
+    return None
 
 def get_all_responses(start_date, end_date, token, brand_id):
     """
@@ -187,37 +217,27 @@ def get_all_responses(start_date, end_date, token, brand_id):
     """
     offset = 0
     limit = 100
+    total = float('inf') # Initialize to inf to ensure the loop runs at least once
 
-    while True:
-        response = None
+    while offset < total: # Use 'offset < total' for a cleaner loop condition
+        # 1. Fetch the page using the helper function
+        try:
+            response = _fetch_page_with_retries(
+                start_date, end_date, offset, token, brand_id
+            )
+        except Exception:
+            # The helper function handles retries and raises if all fail
+            raise # Re-raise the exception from the helper
 
-        for attempt in range(__MAX_RETRIES):
-            try:
-                log.info(
-                    f"Fetching responses (offset={offset}, attempt "
-                    f"{attempt + 1}/{__MAX_RETRIES})..."
-                )
-                response = get_responses(start_date, end_date, offset, token, brand_id)
-                break  # Success, exit retry loop
+        # 2. Process the response
+        if total == float('inf'):
+            # First successful call, set the actual total
+            total = response.get("total")
 
-            except requests.exceptions.RequestException as e:
-                log.warning(f"Error fetching responses on attempt {attempt + 1}: {e}")
-                if attempt < __MAX_RETRIES - 1:
-                    wait_time = __INITIAL_BACKOFF * (2**attempt)
-                    log.info(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                else:
-                    log.severe("Max retries reached while fetching responses. Failing")
-                    raise  # re-raise the last exception
-
-        if response is None:
-            raise ConnectionError("Failed to fetch responses after all retries.")
-
-        total = response.get("total")
         items = response.get("items", [])
-
         log.info(f"Fetched {len(items)} responses (offset={offset}/{total})")
 
+        # 3. Upsert items
         for item in items:
             flat = flatten_response(item)
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -225,11 +245,10 @@ def get_all_responses(start_date, end_date, token, brand_id):
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="response", data=flat)
 
+        # 4. Prepare for next page
         offset += limit
-        if offset >= total:
-            log.info("All responses fetched successfully.")
-            break
-
+        
+    log.info("All responses fetched successfully.")
 
 def get_scrunch_performance(start_date, end_date, token, brand_id):
     """
