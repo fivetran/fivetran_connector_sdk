@@ -684,7 +684,7 @@ def update(configuration: dict, state: dict):
 
     # Configuration values are already validated by validate_configuration() - safe to use directly
     # batch_limit defaults to None (unlimited) for production - only set explicitly for testing
-    limit = int(configuration.get("batch_limit")) if configuration.get("batch_limit") else None
+    limit = int(configuration.get("batch_limit")) if "batch_limit" in configuration else None
     max_blend_pairs = int(configuration.get("max_blend_pairs", __MAX_BLEND_PAIRS))
     max_motion_buffer_size = int(configuration.get("max_motion_buffer_size", __MAX_MOTION_BUFFER_SIZE))
 
