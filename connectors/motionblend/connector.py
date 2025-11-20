@@ -384,6 +384,8 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
+    log.warning("Example: Connectors : MotionBlend")
+    
     # Extract configuration
     bucket = configuration.get("gcs_bucket")
     prefixes = configuration.get("gcs_prefixes", "").split(",")
