@@ -23,11 +23,12 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 __PAGE_SIZE = 250
+__MAX_RETRIES = 5
 
 
 def graphql_query(api_key, query, variables=None):
     """
-    Perform a GraphQL query against the Linear API.
+    Perform a GraphQL query against the Linear API with retry logic.
     Args: api_key: Linear API key
           query: GraphQL query string
           variables: Optional variables for the query
@@ -35,17 +36,32 @@ def graphql_query(api_key, query, variables=None):
     """
     headers = {"Content-Type": "application/json", "Authorization": api_key.strip()}
     payload = {"query": query, "variables": variables or {}}
-    r = requests.post("https://api.linear.app/graphql", headers=headers, json=payload, timeout=60)
 
-    if r.status_code != 200:
-        log.severe(f"Linear returned {r.status_code}: {r.text}")
-        r.raise_for_status()
+    for attempt in range(__MAX_RETRIES):
+        try:
+            r = requests.post("https://api.linear.app/graphql", headers=headers, json=payload, timeout=60)
 
-    data = r.json()
-    if "errors" in data:
-        log.severe(f"GraphQL errors: {data['errors']}")
-        raise Exception(f"GraphQL errors: {data['errors']}")
-    return data["data"]
+            # Fail fast for authentication/authorization errors
+            if r.status_code in [401, 403]:
+                log.severe(f"Linear authentication failed: {r.status_code}: {r.text}")
+                r.raise_for_status()
+
+            if r.status_code != 200:
+                log.severe(f"Linear returned {r.status_code}: {r.text}")
+                r.raise_for_status()
+
+            data = r.json()
+            if "errors" in data:
+                log.severe(f"GraphQL errors: {data['errors']}")
+                raise Exception(f"GraphQL errors: {data['errors']}")
+            return data["data"]
+
+        except (requests.Timeout, requests.ConnectionError) as e:
+            if attempt == __MAX_RETRIES - 1:
+                raise
+            sleep_time = min(60, 2 ** attempt)
+            log.warning(f"Retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s due to: {e}")
+            time.sleep(sleep_time)
 
 
 def to_iso(dt: Optional[str]) -> Optional[str]:

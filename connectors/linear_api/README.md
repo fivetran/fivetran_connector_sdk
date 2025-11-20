@@ -159,7 +159,7 @@ IsolatedEndpointSync detected failed endpoints -> issues: 500 Internal Server Er
 
 ## Error handling
 The connector implements robust error handling for API and sync operations:
-- HTTP Errors (4xx/5xx) – Logged and retried with exponential backoff.
+- HTTP Errors (4xx/5xx) – Logged and raised immediately.
 - GraphQL Errors – Logged with full error details and halted for that entity only.
 - Network Failures – Automatically retried with incremental delays.
 - Partial Failures – Isolated by entity; other syncs continue running.
