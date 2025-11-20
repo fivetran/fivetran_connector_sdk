@@ -162,7 +162,7 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
             log.severe(
                 f"API request failed with status {response.status_code}: {response.text}"
             )
-            raise RuntimeError(f"API request failed: {response.status_code} - " f"{response.text}")
+            raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
 
         except requests.exceptions.Timeout:
             handle_retryable_error(attempt, "Request timeout")
