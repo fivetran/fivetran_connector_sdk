@@ -129,7 +129,7 @@ def schema(configuration: dict):
     ]
 
 
-def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: Optional[int] = None, last_sync_time: Optional[str] = None) -> Iterator[Dict[str, Any]]:
     """
     List files from GCS bucket with optional filtering and retry logic for transient failures.
 
@@ -138,6 +138,7 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: 
         prefix: Blob prefix to scan
         extensions: List of file extensions to include (e.g., ['.bvh', '.fbx'])
         limit: Optional limit on number of files to process
+        last_sync_time: ISO 8601 timestamp; only yield files updated after this time
 
     Yields:
         Dictionary with file metadata
@@ -146,6 +147,8 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: 
         RuntimeError: If all retry attempts fail for GCS operations
     """
     log.info(f"Listing files from GCS bucket '{bucket_name}' with prefix '{prefix}'")
+    if last_sync_time:
+        log.info(f"Filtering for files updated after {last_sync_time}")
 
     # Initialize blobs variable
     blobs = None
@@ -195,6 +198,12 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: 
         # Check file extension
         if not any(blob.name.lower().endswith(ext) for ext in extensions):
             continue
+
+        # Filter by last sync time for incremental sync
+        if last_sync_time and blob.updated:
+            blob_updated_str = blob.updated.isoformat()
+            if blob_updated_str <= last_sync_time:
+                continue
 
         record = {
             "file_uri": f"gs://{bucket_name}/{blob.name}",
@@ -399,12 +408,19 @@ def update(configuration: dict, state: dict):
 
         log.info(f"Processing prefix: {prefix}")
 
+        # Read last sync time for incremental sync
+        last_sync_time = state.get(f"last_sync_{prefix}")
+        if last_sync_time:
+            log.info(f"Incremental sync enabled for prefix '{prefix}': last sync at {last_sync_time}")
+        else:
+            log.info(f"Full sync for prefix '{prefix}': no previous sync time found")
+
         try:
             # Initialize counter for this prefix
             prefix_record_count = 0
 
-            # List files from GCS
-            for raw_record in list_gcs_files(bucket, prefix, extensions, limit):
+            # List files from GCS with incremental sync support
+            for raw_record in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 category = infer_category(raw_record["file_uri"])
 
                 if category not in table_map:
