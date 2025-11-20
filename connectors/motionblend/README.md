@@ -134,7 +134,7 @@ Schemas are defined in the `schema()` function (lines 50-136) and correspond to 
 
 ### Record ID Generation Strategy
 
-The connector uses **stable GCS object identifiers** to generate record IDs, ensuring data integrity across file renames and reorganizations:
+The connector uses stable GCS object identifiers to generate record IDs, ensuring data integrity across file renames and reorganizations:
 
 ID Generation Logic (`generate_record_id()` function):
 - Primary: Uses GCS `blob.id` (format: `bucket/object/generation`)
@@ -202,7 +202,7 @@ Data Transformation Pipeline:
 
 State Management & Data Loss Prevention:
 - Files are sorted by `updated_at` before processing (oldest first)
-- State tracks the timestamp of the **last successfully processed file** (not max timestamp)
+- State tracks the timestamp of the last successfully processed file (not max timestamp)
 - If connector fails mid-sync, next run resumes from last successful file
 - Example: Files A (Jan 10), B (Jan 15), C (Jan 12) are sorted → A, C, B and processed in order
 - If failure occurs after B, state = Jan 15, and no files are skipped in next sync
@@ -234,7 +234,7 @@ The connector implements:
 - Exponential backoff with retry logic for transient GCS failures
 - Specific exception handling for permanent vs. transient errors
 - Comprehensive logging using the Fivetran SDK logging module
-- **Memory safeguard:** Warns if file count exceeds 10,000 per prefix (configurable via `__MAX_FILES_PER_SYNC`)
+- Memory safeguard: Warns if file count exceeds 10,000 per prefix (configurable via `__MAX_FILES_PER_SYNC`)
 
 Retry Logic (refer to `list_gcs_files()` function, lines 163-197):
 - Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)
