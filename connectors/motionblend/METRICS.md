@@ -5,7 +5,7 @@ This connector supports comprehensive quality metrics for evaluating blended mot
 ## Metrics Overview
 
 ### 1. L2 Velocity
-**Formula:** `Δv(t,j) = |v(t,j) - v(t-1,j)` where `v(t,j) = ||v(t,j)||₂`
+**Formula:** `Δv(t,j) = |v(t,j) - v(t-1,j)|` where `v(t,j) = ||v(t,j)||₂`
 
 Measures joint speed discontinuities between consecutive frames.
 
