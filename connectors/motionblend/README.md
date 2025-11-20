@@ -45,11 +45,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
-  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
-  "batch_limit": "<OPTIONAL_BATCH_LIMIT_FOR_TESTING_ONLY>",
-  "include_extensions": "<OPTIONAL_FILE_EXTENSIONS>",
-  "max_blend_pairs": "<OPTIONAL_MAX_BLEND_PAIRS>",
-  "max_motion_buffer_size": "<OPTIONAL_MAX_BUFFER_SIZE>"
+  "google_cloud_storage_prefixes": "<YOUR_COMMA_SEPARATED_PREFIXES>",
+  "batch_limit": "<YOUR_OPTIONAL_BATCH_LIMIT>",
+  "include_extensions": "<YOUR_OPTIONAL_FILE_EXTENSIONS>",
+  "max_blend_pairs": "<YOUR_OPTIONAL_MAX_BLEND_PAIRS>",
+  "max_motion_buffer_size": "<YOUR_OPTIONAL_MAX_BUFFER_SIZE>"
 }
 ```
 
@@ -58,9 +58,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 | `google_cloud_storage_bucket` | Yes | N/A | GCS bucket name containing motion files |
 | `google_cloud_storage_prefixes` | Yes | N/A | Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`) |
 | `batch_limit` | No | None (unlimited) | Maximum number of files to process per prefix per sync. TESTING ONLY – omit for production to process all files in a single sync. When set, state is updated with the last processed file's timestamp and remaining files are processed in subsequent syncs. |
-| `include_extensions` | No | `.bvh,.fbx` | File extensions to process (comma-separated) |
-| `max_blend_pairs` | No | 100 | Maximum number of blend pairs to generate per sync |
-| `max_motion_buffer_size` | No | 1000 | Maximum number of seed/build motions to buffer before generating blend pairs |
+| `include_extensions` | No | <YOUR_OPTIONAL_FILE_EXTENSIONS> | File extensions to process (comma-separated) |
+| `max_blend_pairs` | No | <YOUR_OPTIONAL_MAX_BLEND_PAIRS> | Maximum number of blend pairs to generate per sync |
+| `max_motion_buffer_size` | No | <YOUR_OPTIONAL_MAX_BUFFER_SIZE> | Maximum number of seed/build motions to buffer before generating blend pairs |
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
