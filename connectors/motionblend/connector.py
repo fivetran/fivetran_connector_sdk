@@ -869,6 +869,7 @@ def update(configuration: dict, state: dict):
             # Buffer size defined at module level as __FILE_BUFFER_SIZE constant
             files_buffer = []
             prefix_files_processed = 0  # Track files processed for this prefix only
+            global_max_timestamp = last_sync_time  # Track maximum timestamp across all batches for correct state cursor
 
             for file_metadata in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 files_buffer.append(file_metadata)
@@ -892,6 +893,9 @@ def update(configuration: dict, state: dict):
                             generate_and_sync_blends_func=generate_and_sync_blends,
                             counters=counters
                         )
+                        # Track global maximum timestamp across all batches
+                        if global_max_timestamp is None or raw_record["updated_at"] > global_max_timestamp:
+                            global_max_timestamp = raw_record["updated_at"]
 
                     prefix_files_processed += len(files_buffer)
                     files_buffer.clear()  # Clear buffer to free memory
@@ -914,6 +918,9 @@ def update(configuration: dict, state: dict):
                         generate_and_sync_blends_func=generate_and_sync_blends,
                         counters=counters
                     )
+                    # Track global maximum timestamp across all batches
+                    if global_max_timestamp is None or raw_record["updated_at"] > global_max_timestamp:
+                        global_max_timestamp = raw_record["updated_at"]
 
                 prefix_files_processed += len(files_buffer)
                 files_buffer.clear()
@@ -939,11 +946,11 @@ def update(configuration: dict, state: dict):
                 # Buffers are cleared inside generate_and_sync_blends(), no need to clear again
 
             # Final checkpoint after completing prefix
-            # Update state with the last processed file's timestamp (if any files were processed)
-            # This ensures the state cursor reflects the last successfully synced record
-            if prefix_files_processed > 0 and 'last_file_timestamp' in counters:
-                # Update state with last file timestamp before final checkpoint
-                state[f"last_sync_{prefix}"] = counters['last_file_timestamp']
+            # Update state with the global maximum timestamp across all batches (if any files were processed)
+            # This ensures the state cursor advances monotonically and maintains incremental sync integrity
+            if prefix_files_processed > 0 and global_max_timestamp:
+                # Update state with global max timestamp before final checkpoint
+                state[f"last_sync_{prefix}"] = global_max_timestamp
 
             # State contains the timestamp of the last file processed (guaranteed to be the latest due to chronological sorting)
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
