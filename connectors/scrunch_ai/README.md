@@ -4,10 +4,6 @@
 This example shows how to pull AI/ML response and aggregate data from the Scrunch API and load it into a destination using the Fivetran Connector SDK. Scrunch provides individual responses, citations, and performance metrics across prompts, personas, and platforms. The connector:
 - Retrieves paginated responses (raw records).
 - Executes aggregate queries for overall performance, competitor performance, and daily citations.
-- Flattens lists and serializes nested objects for destination compatibility.
-- Implements checkpointed incremental syncs per dataset.
-
-Related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `get_responses`, `flatten_response`, `get_scrunch_performance`, `get_competitor_performance`, `get_daily_citations`.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) 
@@ -15,11 +11,6 @@ Related functions in `connector.py`: `schema`, `update`, `get_all_responses`, `g
   - Windows: 10 or later (64-bit only).
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64]).
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64).
-
-## Getting started
-Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
-
-For local testing, this example includes a `__main__` block that reads `configuration.json` and runs `connector.debug(...)`.
 
 ## Features
 - Responses ingestion: offset-based pagination over `/v1/{account_id}/responses`.
@@ -45,7 +36,7 @@ Detail the configuration keys defined for your connector, which are uploaded to 
 - `api_token` (required): The Bearer token required for API authentication.
 - `brand_id` (required): The specific brand identifier to filter data from Scrunch AI.
 
-Note: The `brand_id` is a value that you will be getting directly from Scrunch AI.
+Note: The `brand_id` is a value specific to your account that you must attain from ScrunchAI
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
