@@ -328,7 +328,7 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
         brand_id   (str): Brand ID specified in configuration
     """
 
-    DIMS = [
+    dims = [
         "date",
         "date_month",
         "date_week",
@@ -339,19 +339,19 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
         "competitor_id",
         "competitor_name",
     ]
-    METRICS = [
+    metrics = [
         "responses",
         "brand_presence_percentage",
         "competitor_presence_percentage",
     ]
-    FIELDS = DIMS + METRICS
+    fields = dims + metrics
 
     base_url = f"{__API_BASE}/{brand_id}/query"
     params = {
         "start_date": start_date,
         "end_date": end_date,
-        "fields": ",".join(FIELDS),
-        "group_by": ",".join(DIMS),
+        "fields": ",".join(fields),
+        "group_by": ",".join(dims),
     }
     headers = {"Authorization": f"Bearer {token}"}
 
