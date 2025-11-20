@@ -179,7 +179,7 @@ def fetch_news_page(
 
     Returns:
         Tuple containing:
-            (upserts_count, articles_fetched, total_results)
+            (upserts_count, total_results)
     """
     if status_forcelist is None:
         status_forcelist = {426, 429, 500, 502, 503, 504}
