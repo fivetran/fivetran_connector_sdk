@@ -716,6 +716,81 @@ def update(configuration: dict, state: dict):
     build_motions = []
     total_blend_pairs_generated = 0
 
+    def _calculate_blend_batch_limit(total_generated: int, max_pairs: int) -> int:
+        """
+        Calculate the batch limit for blend pair generation.
+
+        Args:
+            total_generated: Total number of blend pairs generated so far
+            max_pairs: Maximum total blend pairs allowed
+
+        Returns:
+            Batch limit for next generation cycle
+        """
+        remaining_pairs = max_pairs - total_generated
+        return min(__BLEND_GENERATION_BATCH_SIZE, remaining_pairs) if remaining_pairs > 0 else __BLEND_GENERATION_BATCH_SIZE
+
+    def _upsert_blend_records(blend_pairs: list[dict], state_dict: dict, counter_dict: dict) -> int:
+        """
+        Transform and upsert blend pair records to destination table with periodic checkpointing.
+
+        Args:
+            blend_pairs: List of blend metadata dictionaries from blend_utils
+            state_dict: State dictionary for checkpointing
+            counter_dict: Dictionary containing 'total_records_synced' counter
+
+        Returns:
+            Number of blend records successfully upserted
+        """
+        blend_count = 0
+        for blend_meta in blend_pairs:
+            # Transform blend metadata using shared transform_blend_record function
+            # This eliminates code duplication and ensures consistent transformation logic
+            raw_record = {"file_uri": blend_meta.get('left_motion_uri', '')}
+            blend_record = transform_blend_record(
+                raw=raw_record,
+                blend_meta=blend_meta
+            )
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert("blend_motions", blend_record)
+
+            blend_count += 1
+            counter_dict['total_records_synced'] += 1
+
+            # Checkpoint every 100 blend records
+            if blend_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state_dict)
+                log.info(f"Synced {blend_count} blend pairs in this batch ({counter_dict['total_records_synced']} total records)")
+
+        # Checkpoint after batch completion
+        if blend_count > 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state_dict)
+
+        return blend_count
+
+    def _clear_motion_buffers(seed_buffer: list, build_buffer: list) -> None:
+        """
+        Clear motion buffers to free memory.
+
+        Args:
+            seed_buffer: List of seed motion records to clear
+            build_buffer: List of build motion records to clear
+        """
+        seed_buffer.clear()
+        build_buffer.clear()
+        log.info("Cleared motion buffers to free memory")
+
     def generate_and_sync_blends():
         """
         Generate blend pairs from current buffers and sync to destination.
@@ -736,9 +811,8 @@ def update(configuration: dict, state: dict):
         )
 
         try:
-            # Calculate remaining blend pairs budget
-            remaining_pairs = max_blend_pairs - total_blend_pairs_generated
-            batch_limit = min(__BLEND_GENERATION_BATCH_SIZE, remaining_pairs) if remaining_pairs > 0 else __BLEND_GENERATION_BATCH_SIZE
+            # Calculate batch limit using helper
+            batch_limit = _calculate_blend_batch_limit(total_blend_pairs_generated, max_blend_pairs)
 
             # Generate blend pairs using blend_utils
             blend_pairs = generate_blend_pairs(
@@ -749,52 +823,17 @@ def update(configuration: dict, state: dict):
 
             log.info(f"Generated {len(blend_pairs)} blend pairs in this batch")
 
-            # Process and upsert blend pairs
-            blend_count = 0
-            for blend_meta in blend_pairs:
-                # Transform blend metadata using shared transform_blend_record function
-                # This eliminates code duplication and ensures consistent transformation logic
-                raw_record = {"file_uri": blend_meta.get('left_motion_uri', '')}
-                blend_record = transform_blend_record(
-                    raw=raw_record,
-                    blend_meta=blend_meta
-                )
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert("blend_motions", blend_record)
-
-                blend_count += 1
-                total_blend_pairs_generated += 1
-                counters['total_records_synced'] += 1
-
-                # Checkpoint every 100 blend records
-                if blend_count % __CHECKPOINT_INTERVAL == 0:
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(state)
-                    log.info(f"Synced {blend_count} blend pairs in this batch ({counters['total_records_synced']} total records)")
-
-            # Checkpoint after batch completion
-            if blend_count > 0:
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state)
+            # Upsert blend records using helper
+            blend_count = _upsert_blend_records(blend_pairs, state, counters)
+            total_blend_pairs_generated += blend_count
 
             log.info(
                 f"Completed blend batch: {blend_count} blend records synced "
                 f"({total_blend_pairs_generated} total blend pairs, {counters['total_records_synced']} total records)"
             )
 
-            # Clear buffers to free memory after successful generation
-            seed_motions.clear()
-            build_motions.clear()
-            log.info(f"Cleared motion buffers to free memory (freed {blend_count} records)")
+            # Clear buffers using helper
+            _clear_motion_buffers(seed_motions, build_motions)
 
             return blend_count
 
@@ -806,8 +845,7 @@ def update(configuration: dict, state: dict):
                 f"Skipping blend generation for this batch. Buffers will be cleared to prevent memory issues."
             )
             # Clear buffers even on error to prevent memory accumulation
-            seed_motions.clear()
-            build_motions.clear()
+            _clear_motion_buffers(seed_motions, build_motions)
             return 0
         except Exception as error:
             # Unexpected errors indicate programming bugs or serious issues that should not be hidden
@@ -817,8 +855,7 @@ def update(configuration: dict, state: dict):
                 f"This indicates a bug that needs investigation."
             )
             # Clear buffers before re-raising to prevent memory leaks
-            seed_motions.clear()
-            build_motions.clear()
+            _clear_motion_buffers(seed_motions, build_motions)
             raise
 
     # Define table mappings
