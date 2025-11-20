@@ -459,7 +459,7 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
-    required_configs = ["gcs_bucket"]
+    required_configs = ["google_cloud_storage_bucket"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
