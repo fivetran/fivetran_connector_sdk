@@ -18,7 +18,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Extracts survey responses from the `/responses` endpoint with incremental sync support
 - Creates normalized tables for surveys, questions, responses, answers, and respondents
 - Implements incremental syncs based on `updated_at` timestamps with automatic state management
-- Processes all paginated data automatically using page-based pagination
+- Processes all paginated data automatically using cursor-based pagination for large datasets
 - Implements exponential backoff for API reliability (3 retries with progressive delays)
 - Flattens nested JSON structures into table columns automatically
 - Checkpoint strategy ensures resumability for large datasets (every 1000 records)
