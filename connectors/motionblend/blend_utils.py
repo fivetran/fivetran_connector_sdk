@@ -9,7 +9,7 @@ For full motion blending with neural networks, see: https://github.com/RydlrCS/b
 """
 
 import hashlib  # For generating deterministic blend IDs using SHA-1 hashing
-from typing import Dict, Any, Optional, Tuple  # For type hints to improve code clarity and IDE support
+from typing import Any  # For type hints to improve code clarity and IDE support
 from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
 
 
@@ -48,7 +48,7 @@ def calculate_transition_window(
     right_frames: int,
     blend_ratio: float = 0.5,
     window_size: int = 30
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
     Calculate transition start and end frames for blending.
 
@@ -102,7 +102,7 @@ def estimate_blend_quality(
     right_frames: int,
     blend_ratio: float,
     transition_window_size: int
-) -> Optional[float]:
+) -> float | None:
     """
     Estimate blend quality score based on motion parameters.
 
@@ -131,7 +131,10 @@ def estimate_blend_quality(
     # Window should be 10-50% of shorter motion
     min_frames = min(left_frames, right_frames)
     ideal_window_ratio = 0.3  # 30% of motion
-    actual_window_ratio = transition_window_size / min_frames if min_frames > 0 else 0.0
+    if min_frames > 0:
+        actual_window_ratio = transition_window_size / min_frames
+    else:
+        actual_window_ratio = 0.0
     window_quality = 1.0 - abs(actual_window_ratio - ideal_window_ratio)
     window_quality = max(0.0, min(1.0, window_quality))
 
@@ -140,21 +143,17 @@ def estimate_blend_quality(
     ratio_balance = 1.0 - abs(blend_ratio - 0.5) * 2.0
 
     # Weighted combination
-    quality = (
-        duration_similarity * 0.3
-        + window_quality * 0.3
-        + ratio_balance * 0.4
-    )
+    quality = (duration_similarity * 0.3 + window_quality * 0.3 + ratio_balance * 0.4)
 
     return round(quality, 3)
 
 
 def create_blend_metadata(
-    left_motion: Dict[str, Any],
-    right_motion: Dict[str, Any],
+    left_motion: dict[str, Any],
+    right_motion: dict[str, Any],
     transition_frames: int = 30,
-    custom_ratio: Optional[float] = None
-) -> Dict[str, Any]:
+    custom_ratio: float | None = None
+) -> dict[str, Any]:
     """
     Create blend metadata record from two motion files.
 
@@ -221,12 +220,13 @@ def create_blend_metadata(
 def generate_blend_pairs(
     seed_motions: list,
     build_motions: list,
-    max_pairs: Optional[int] = None
+    max_pairs: int | None = None
 ) -> list:
     """
     Generate blend motion pairs from seed and build motions.
 
     Strategy: Pair each build motion with compatible seed motions.
+    Early termination when max_pairs is reached to avoid O(n*m) complexity issues.
 
     Args:
         seed_motions: List of seed motion records
@@ -239,12 +239,16 @@ def generate_blend_pairs(
     blends = []
 
     for build_motion in build_motions:
+        # Early termination in outer loop to avoid unnecessary iterations
+        if max_pairs and len(blends) >= max_pairs:
+            break
+
         for seed_motion in seed_motions:
             # Create blend pairing
             blend = create_blend_metadata(seed_motion, build_motion)
             blends.append(blend)
 
-            # Check limit
+            # Check limit immediately to avoid unnecessary iterations
             if max_pairs and len(blends) >= max_pairs:
                 return blends
 

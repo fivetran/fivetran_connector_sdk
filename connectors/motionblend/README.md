@@ -110,7 +110,7 @@ The service account needs the following IAM role:
 - `roles/storage.objectViewer` - Read access to GCS buckets and objects
 
 ## Pagination
-Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py`.
+The connector uses streaming iteration for GCS objects with configurable batching. It iterates through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py`.
 
 The connector implements:
 - Lazy iteration using `storage.Client().bucket().list_blobs(prefix=prefix)` iterator
@@ -299,6 +299,7 @@ This lightweight Python module calculates blend metadata for motion pairs and pr
 - `calculate_transition_window(left_frames, right_frames, ratio)` - Determines transition start/end frames
 - `estimate_blend_quality(params)` - Heuristic quality score (0.0-1.0) based on motion compatibility
 - `generate_blend_id(left_uri, right_uri)` - Deterministic SHA-1 hash for blend pair identification
+- `generate_blend_pairs(seed_motions, build_motions, max_pairs)` - Generates blend motion pairs from seed and build motion collections
 
 Example Usage:
 ```python

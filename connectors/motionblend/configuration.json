@@ -3,5 +3,6 @@
   "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
   "batch_limit": "<BATCH_LIMIT>",
   "include_extensions": "<FILE_EXTENSIONS>",
-  "max_blend_pairs": "<MAX_BLEND_PAIRS>"
+  "max_blend_pairs": "<MAX_BLEND_PAIRS>",
+  "max_motion_buffer_size": "<MAX_MOTION_BUFFER_SIZE>"
 }
