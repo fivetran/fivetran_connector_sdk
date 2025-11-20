@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 __TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
 __REQUIRED_CONFIG_KEYS = __TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]
 __FALLBACK_TIMESTAMP = datetime(1990, 1, 1, tzinfo=timezone.utc)
+__BATCH_SIZE = 50
 
 
 def validate_configuration(configuration: Dict[str, Any]):
@@ -321,7 +322,7 @@ def build_incremental_query(table_name: str, last_created: str) -> str:
         tidb_timestamp = last_created.replace("T", " ").replace("Z", "")
         escaped_table = escape_table_name(table_name)
         query = (
-            f"SELECT * FROM {escaped_table} WHERE created_at > :last_created ORDER BY created_at"
+            f"SELECT * FROM {escaped_table} WHERE created_at > :last_created ORDER BY created_at LIMIT :limit OFFSET :offset"
         )
         params = {"last_created": tidb_timestamp}
         return query, params
@@ -448,7 +449,7 @@ def process_and_upsert_rows(
                     sample_row_err,
                 )
 
-    return max_seen_timestamp
+    return extract_row_timestamp(max_seen_timestamp)
 
 
 def update_state_timestamp(state: Dict[str, Any], table_name: str, timestamp: datetime):
@@ -490,16 +491,28 @@ def fetch_and_upsert_data(
 
     # Build and execute query
     try:
+        page = 0
         query, params = build_incremental_query(table_name, last_created)
     except Exception as e:
         log.severe("Failed to build query for table %s: %s", table_name, e)
         return
-
     try:
-        rows = execute_query(cursor, query, params)
+        while True:
+            params["limit"] = __BATCH_SIZE
+            params["offset"] = __BATCH_SIZE * page
+            rows = execute_query(cursor, query, params)
+            if not rows:
+                break
+            # Process rows and track maximum timestamp
+            max_seen_timestamp = process_and_upsert_rows(
+                rows, table_name, state, configuration, is_vector_table, last_created_timestamp
+            )
+            # Persist updated timestamp to state
+            update_state_timestamp(state, table_name, max_seen_timestamp)
+            page += 1
     except Exception as e:
         # Query execution failed, likely due to missing column
-        log.severe("Failed to execute query for table %s: %s", table_name, e)
+        log.severe(f"Failed to execute query for table {table_name}.", e)
         state[f"{table_name}_last_error"] = str(e)
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
@@ -507,24 +520,6 @@ def fetch_and_upsert_data(
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
         return
-
-    # Process rows and track maximum timestamp
-    max_seen_timestamp = process_and_upsert_rows(
-        rows, table_name, state, configuration, is_vector_table, last_created_timestamp
-    )
-
-    # Persist updated timestamp to state
-    update_state_timestamp(state, table_name, max_seen_timestamp)
-
-    # Checkpoint state to persist progress
-    try:
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(state)
-    except Exception as chk_err:
-        log.severe("Failed to checkpoint state after processing table %s: %s", table_name, chk_err)
 
 
 def create_tidb_connection(configuration: Dict[str, Any]) -> TiDBClient:
@@ -620,7 +615,7 @@ def sync_regular_tables(
             )
         except Exception as t_err:
             # Log table-level errors but continue with other tables
-            log.severe("Unhandled error processing table %s: %s", table_name, t_err)
+            log.severe(f"Unhandled error processing table: {table_name}.", t_err)
             state[f"{table_name}_last_error"] = str(t_err)
             try:
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
