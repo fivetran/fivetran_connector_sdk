@@ -26,11 +26,11 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 - Lists and ingests motion-capture files from GCS
 - Normalizes metadata into three logical streams: `seed_motions`, `build_motions`, `blend_motions`
-- Incremental sync using the `updated_at` timestamp for efficient refreshes
+- Incremental sync using blob `updated` timestamps to process only new or modified files
 - Deterministic record IDs (SHA-1 hash of file path) for idempotent loads
-- Retry and circuit-breaker logic for resilient ingestion
-- Structured JSON logging with correlation IDs for observability
-- Automatic table creation with daily partitioning on `created_at`
+- Exponential backoff retry logic for transient GCS failures
+- Checkpointing every 100 records for fault tolerance on large datasets
+- SDK-based structured logging for operational visibility
 - Configurable batch sizes (default: 25 records) for optimal performance
 
 ## Configuration file
