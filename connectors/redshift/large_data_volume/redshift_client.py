@@ -97,7 +97,7 @@ class _ConnectionPool:
             try:
                 connection.close()
             except Exception as e:
-                log.severe(f"Error closing connection: {e}")
+                log.severe("Error closing connection", e)
 
 
 def get_table_plans(configuration):
