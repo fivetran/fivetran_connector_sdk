@@ -64,7 +64,7 @@ google-cloud-storage==2.18.2
 Key dependencies:
 - `google-cloud-storage` – GCS client for blob iteration and file discovery
 
-Note: `fivetran_connector_sdk` and `requests` are already available in the SDK runtime; do not redeclare them.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 This connector uses Google Cloud Application Default Credentials (ADC) for GCS authentication. The connector initializes the GCS client as `storage.Client()` without explicit credentials, relying on the runtime environment to provide authentication.
