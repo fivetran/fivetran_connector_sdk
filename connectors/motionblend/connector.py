@@ -387,9 +387,9 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Connectors : MotionBlend")
 
     # Extract configuration
-    bucket = configuration.get("gcs_bucket")
-    prefixes = configuration.get("gcs_prefixes", "").split(",")
-    extensions = configuration.get("include_exts", ".bvh,.fbx").split(",")
+    bucket = configuration.get("google_cloud_storage_bucket")
+    prefixes = configuration.get("google_cloud_storage_prefixes", "").split(",")
+    extensions = configuration.get("include_extensions", ".bvh,.fbx").split(",")
     try:
         limit = int(configuration.get("batch_limit", 25))
     except (ValueError, TypeError):

@@ -1,6 +1,6 @@
 {
-  "gcs_bucket": "<YOUR_GCS_BUCKET_NAME>",
-  "gcs_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
+  "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
+  "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES_EXAMPLE_mocap/seed/,mocap/build/>",
   "batch_limit": "<BATCH_LIMIT_NUMBER_DEFAULT_25>",
-  "include_exts": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
+  "include_extensions": "<FILE_EXTENSIONS_DEFAULT_.bvh,.fbx>"
 }
