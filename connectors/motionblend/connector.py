@@ -24,6 +24,9 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
+# For reading configuration from a JSON file
+import json
+
 from google.cloud import storage  # Import Google Cloud Storage library for accessing GCS buckets and blobs
 from google.api_core import exceptions as google_exceptions  # Import Google API exceptions for specific error handling
 from requests import exceptions as requests_exceptions  # For handling HTTP errors during GCS API calls
@@ -477,9 +480,6 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # For reading configuration from a JSON file
-    import json
-
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
