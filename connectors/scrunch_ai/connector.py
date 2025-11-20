@@ -78,7 +78,7 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "responses",  # Destination table for responses
+            "table": "response",  # Destination table for responses
             "primary_key": ["id"],
         },
         {
@@ -172,7 +172,7 @@ def flatten_response(rec: dict) -> dict:
 
 def get_all_responses(start_date, end_date, token, brand_id):
     """
-    Iterate through all paginated responses and upsert into 'responses' table.
+    Iterate through all paginated responses and upsert into 'response' table.
     Uses get_responses() for pagination and flatten_response() to
     normalize each item before writing to the destination.
     Includes exponential backoff retries
@@ -223,7 +223,7 @@ def get_all_responses(start_date, end_date, token, brand_id):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="responses", data=flat)
+            op.upsert(table="response", data=flat)
 
         offset += limit
         if offset >= total:
