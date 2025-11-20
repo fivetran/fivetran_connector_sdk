@@ -393,14 +393,14 @@ def get_api_response_with_retry(current_url: str, params: dict, max_retries: int
 
             # Client errors (4xx) except 429 - don't retry
             else:
-                log.severe(f"HTTP error {status_code}: {str(e)}")
+                log.severe(f"HTTP error {status_code}", e)
                 with __ERROR_STATS_LOCK:
                     __ERROR_STATS["client_errors"] += 1
                 raise
 
         except Exception as e:
             # Unexpected errors
-            log.severe(f"Unexpected error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            log.severe(f"Unexpected error on attempt {attempt + 1}/{max_retries}", e)
             with __ERROR_STATS_LOCK:
                 __ERROR_STATS["unexpected_errors"] += 1
 

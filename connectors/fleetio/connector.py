@@ -174,7 +174,7 @@ def make_api_request(base_url, path, headers, params=None):
         return response.json()
 
     except requests.RequestException as e:
-        log.severe(f"API call failed: {str(e)}")
+        log.severe("API call failed", e)
         return None
 
 

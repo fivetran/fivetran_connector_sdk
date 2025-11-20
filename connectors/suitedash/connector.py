@@ -274,7 +274,7 @@ def make_api_request(url: str, headers: dict, params=None) -> Any:
 
         except requests.exceptions.RequestException as e:
             if attempt == __MAX_RETRIES - 1:  # Last attempt
-                log.severe(f"API request failed after {__MAX_RETRIES} attempts: {str(e)}")
+                log.severe(f"API request failed after {__MAX_RETRIES} attempts", e)
                 raise RuntimeError(f"Failed to fetch data from SuiteDash API: {str(e)}")
 
             # Calculate delay with exponential backoff
