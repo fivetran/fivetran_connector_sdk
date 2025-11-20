@@ -421,9 +421,7 @@ def process_and_upsert_rows(
             op.upsert(table=table_name, data=row_data)
 
             # Update max timestamp once upsert succeeded
-            row_timestamp = extract_row_timestamp(row_data)
-            if row_timestamp and row_timestamp > max_seen_timestamp:
-                max_seen_timestamp = row_timestamp
+            max_seen_timestamp = row_data.get("created_at")
 
         except Exception as row_err:
             # Log row-level errors and continue processing other rows
