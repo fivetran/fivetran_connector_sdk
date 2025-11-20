@@ -27,6 +27,7 @@ __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
 __CHECKPOINT_INTERVAL = 500  # Checkpoint after processing this many records
 __MAX_SKIP = 1000  # Maximum skip value allowed by the API
+__REQUEST_TIMEOUT = 30  # Timeout in seconds for API requests
 
 
 def validate_configuration(configuration: dict):
@@ -158,9 +159,16 @@ def update(configuration: dict, state: dict):
 def fetch_npi_data(base_url: str, skip: int):
     """
     Fetch data from the NPI Registry API with pagination support.
+
+    Note: Each page contains a maximum of 200 records (API limit), which is
+    safe to load into memory. Records are processed immediately upon return
+    in the update() function, ensuring efficient memory usage through streaming
+    pagination rather than accumulating all records.
+
     Args:
         base_url: The complete API URL from configuration
         skip: Number of records to skip (for pagination)
+
     Returns:
         Tuple of (results list, total result count)
     """
@@ -189,7 +197,7 @@ def make_api_request_with_retry(url: str):
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=__REQUEST_TIMEOUT)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
