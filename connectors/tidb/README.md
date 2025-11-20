@@ -42,12 +42,12 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 Configuration parameters:
 
-- `TIDB_HOST`: Hostname or IP address of the TiDB server.
-- `TIDB_USER`: Username for TiDB connection.
-- `TIDB_PASS`: Password for the TiDB user.
-- `TIDB_PORT`: Port number for TiDB connection.
-- `TIDB_DATABASE`: Name of your TiDB database.
-- `TABLES_PRIMARY_KEY_COLUMNS`: A JSON object where keys are table names and values are the primary key column names.
+- `TIDB_HOST` (required): Hostname or IP address of the TiDB server.
+- `TIDB_USER` (required): Username for TiDB connection.
+- `TIDB_PASS` (required): Password for the TiDB user.
+- `TIDB_PORT` (required): Port number for TiDB connection.
+- `TIDB_DATABASE` (required): Name of your TiDB database.
+- `TABLES_PRIMARY_KEY_COLUMNS` (optional): A JSON object where keys are table names and values are the primary key column names.
 
 Example:
 ```json
@@ -81,7 +81,7 @@ pytidb>=0.0.11
 certifi==2025.8.3
 ```
 
-Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
