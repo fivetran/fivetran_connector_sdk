@@ -134,21 +134,21 @@ Type Conversions:
 - File sizes (bytes) → INTEGER
 
 ## Error handling
-Refer to the `list_gcs_files()` function (lines 131-222) and `update()` function (lines 375-469) in `connector.py`.
+Refer to the `list_gcs_files()` function (lines 134-225) and `update()` function (lines 378-472) in `connector.py`.
 
 The connector implements:
 - Exponential backoff with retry logic for transient GCS failures
 - Specific exception handling for permanent vs. transient errors
 - Comprehensive logging using the Fivetran SDK logging module
 
-Retry Logic (refer to `list_gcs_files()` function, lines 145-180):
+Retry Logic (refer to `list_gcs_files()` function, lines 158-193):
 - Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)
 - Max attempts: 3 retries before raising RuntimeError
 - Retryable errors: Transient GCS/network failures (GoogleAPIError, RetryError, ServerError, ConnectionError, Timeout, HTTPError)
 - Non-retryable: Authentication errors (PermissionDenied, Unauthenticated), invalid requests (NotFound, ValueError)
 
 Error Categories:
-1. Transient errors (lines 150-169) – Retried with exponential backoff:
+1. Transient errors (lines 166-184) – Retried with exponential backoff:
    - `google_exceptions.GoogleAPIError`
    - `google_exceptions.RetryError`
    - `google_exceptions.ServerError`
@@ -156,7 +156,7 @@ Error Categories:
    - `requests_exceptions.Timeout`
    - `requests_exceptions.HTTPError`
 
-2. Permanent errors (lines 170-176) – Fail immediately:
+2. Permanent errors (lines 186-193) – Fail immediately:
    - `google_exceptions.PermissionDenied`
    - `google_exceptions.Unauthenticated`
    - `google_exceptions.NotFound`
