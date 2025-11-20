@@ -668,4 +668,4 @@ if __name__ == "__main__":
         configuration = json.load(f)
 
         # Test the connector locally
-    connector.debug(configuration=configuration)
+        connector.debug(configuration=configuration)
