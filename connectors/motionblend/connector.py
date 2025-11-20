@@ -195,6 +195,7 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
         raise RuntimeError("Failed to initialize GCS blob iterator")
 
     count = 0
+    skipped_no_timestamp = 0
     for blob in blobs:
         # Skip directories
         if blob.name.endswith('/'):
@@ -204,15 +205,25 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
         if not any(blob.name.lower().endswith(ext) for ext in extensions):
             continue
 
+        # Skip files without updated_at timestamp to prevent incremental sync cursor gaps
+        # Files without timestamps cannot be reliably tracked for incremental sync,
+        # which would create data integrity issues (state cursor gaps causing data loss/duplication)
+        if not blob.updated:
+            skipped_no_timestamp += 1
+            log.warning(
+                f"Skipping file without updated_at timestamp: gs://{bucket_name}/{blob.name}. "
+                f"Files without timestamps cannot be tracked for incremental sync."
+            )
+            continue
+
         # Filter by last sync time for incremental sync
-        if last_sync_time and blob.updated:
-            blob_updated_str = blob.updated.isoformat()
-            if blob_updated_str <= last_sync_time:
-                continue
+        blob_updated_str = blob.updated.isoformat()
+        if last_sync_time and blob_updated_str <= last_sync_time:
+            continue
 
         record = {
             "file_uri": f"gs://{bucket_name}/{blob.name}",
-            "updated_at": blob.updated.isoformat() if blob.updated else None,
+            "updated_at": blob.updated.isoformat(),  # Guaranteed to exist due to filter above
             "size": blob.size,
             "name": blob.name.split('/')[-1],
             "gcs_id": blob.id if blob.id else None,  # Stable GCS object identifier
@@ -232,6 +243,11 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
             break
 
     log.info(f"Listed {count} files from prefix '{prefix}'")
+    if skipped_no_timestamp > 0:
+        log.warning(
+            f"Skipped {skipped_no_timestamp} files from prefix '{prefix}' due to missing updated_at timestamps. "
+            f"These files cannot be tracked for incremental sync."
+        )
 
 
 def infer_category(file_uri: str) -> str:
@@ -528,12 +544,8 @@ def update(configuration: dict, state: dict):
 
                 # Update state with current file's timestamp immediately after successful upsert
                 # This ensures incremental sync accuracy: if connector fails, next sync resumes from last successfully processed file
-                current_updated_at = raw_record.get("updated_at")
-                if current_updated_at:
-                    state[f"last_sync_{prefix}"] = current_updated_at
-                else:
-                    # Skip files without updated_at - they cannot be tracked reliably for incremental sync
-                    log.warning(f"File {raw_record.get('file_uri', 'unknown')} has no updated_at timestamp - skipping state update")
+                # All files are guaranteed to have updated_at due to filtering in list_gcs_files()
+                state[f"last_sync_{prefix}"] = raw_record["updated_at"]
 
                 # Increment counters
                 prefix_record_count += 1
