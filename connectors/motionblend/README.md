@@ -104,7 +104,7 @@ The service account needs the following IAM role:
 - `roles/storage.objectViewer` - Read access to GCS buckets and objects
 
 ## Pagination
-Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 127-214).
+Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 134-225).
 
 The connector implements:
 - Lazy iteration using `storage.Client().bucket().list_blobs(prefix=prefix)` iterator
@@ -148,7 +148,7 @@ Retry Logic (refer to `list_gcs_files()` function, lines 158-193):
 - Non-retryable: Authentication errors (PermissionDenied, Unauthenticated), invalid requests (NotFound, ValueError)
 
 Error Categories:
-1. Transient errors (lines 166-184) – Retried with exponential backoff:
+1. Transient errors (lines 165-184) – Retried with exponential backoff:
    - `google_exceptions.GoogleAPIError`
    - `google_exceptions.RetryError`
    - `google_exceptions.ServerError`
