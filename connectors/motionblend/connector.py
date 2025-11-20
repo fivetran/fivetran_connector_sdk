@@ -445,15 +445,13 @@ def update(configuration: dict, state: dict):
                 prefix_record_count += 1
                 total_records_synced += 1
 
-                # Log progress every 100 records instead of per-record
+                # Checkpoint every 100 records to preserve progress for large datasets
                 if total_records_synced % __CHECKPOINT_INTERVAL == 0:
+                    state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
+                    op.checkpoint(state)
                     log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
 
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            # Update cursor for this prefix
+            # Final checkpoint after completing prefix
             state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
             op.checkpoint(state)
 
