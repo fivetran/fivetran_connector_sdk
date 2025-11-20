@@ -374,7 +374,7 @@ def transform_build_record(raw: dict[str, Any]) -> dict[str, Any]:
     return record
 
 
-def transform_blend_record(raw: dict[str, Any], left_motion: dict[str, Any] | None = None, right_motion: dict[str, Any] | None = None) -> dict[str, Any]:
+def transform_blend_record(raw: dict[str, Any], left_motion: dict[str, Any] | None = None, right_motion: dict[str, Any] | None = None, blend_meta: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Transform raw GCS metadata or motion pair into blend_motions record.
 
@@ -392,6 +392,7 @@ def transform_blend_record(raw: dict[str, Any], left_motion: dict[str, Any] | No
         raw: Dictionary containing raw file metadata from GCS
         left_motion: Optional left motion record for blend pair generation
         right_motion: Optional right motion record for blend pair generation
+        blend_meta: Optional pre-computed blend metadata (if None, will be computed from left/right motion)
 
     Returns:
         Dictionary formatted for blend_motions table
@@ -400,19 +401,25 @@ def transform_blend_record(raw: dict[str, Any], left_motion: dict[str, Any] | No
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # If motion pair is provided, generate blend metadata
-    if left_motion and right_motion:
-        blend_meta = create_blend_metadata(
-            left_motion=left_motion,
-            right_motion=right_motion,
-            transition_frames=30  # Default 1 second at 30fps
-        )
-        file_id = blend_meta['id']
-        log.fine(f"Generated blend metadata for pair: {left_motion['id']} + {right_motion['id']}")
+    # Use pre-computed blend_meta if provided, otherwise generate from motion pair
+    if blend_meta is None:
+        # If motion pair is provided, generate blend metadata
+        if left_motion and right_motion:
+            blend_meta = create_blend_metadata(
+                left_motion=left_motion,
+                right_motion=right_motion,
+                transition_frames=30  # Default 1 second at 30fps
+            )
+            file_id = blend_meta['id']
+            log.fine(f"Generated blend metadata for pair: {left_motion['id']} + {right_motion['id']}")
+        else:
+            # Fallback to file-based record with stable GCS ID
+            file_id = generate_record_id(raw)
+            blend_meta = {}
     else:
-        # Fallback to file-based record with stable GCS ID
-        file_id = generate_record_id(raw)
-        blend_meta = {}
+        # Use provided blend metadata
+        file_id = blend_meta.get('id', generate_record_id(raw))
+        log.fine(f"Using pre-computed blend metadata with ID: {file_id}")
 
     record = {
         "id": file_id,
@@ -745,39 +752,13 @@ def update(configuration: dict, state: dict):
             # Process and upsert blend pairs
             blend_count = 0
             for blend_meta in blend_pairs:
-                # Transform blend metadata to match schema (blend_utils returns extra fields)
-                blend_record = {
-                    "id": blend_meta['id'],
-                    "left_motion_id": blend_meta['left_motion_id'],
-                    "right_motion_id": blend_meta['right_motion_id'],
-                    "blend_ratio": blend_meta['blend_ratio'],
-                    "transition_start_frame": blend_meta['transition_start_frame'],
-                    "transition_end_frame": blend_meta['transition_end_frame'],
-                    "method": "linear",
-                    "file_uri": blend_meta.get('left_motion_uri', ''),
-                    "created_at": blend_meta['created_at'],
-                    "updated_at": blend_meta['updated_at'],
-                    # Quality metrics - populated from blend_utils estimates or left as None
-                    "fid": None,
-                    "coverage": None,
-                    "global_diversity": None,
-                    "local_diversity": None,
-                    "inter_diversity": None,
-                    "intra_diversity": None,
-                    "l2_velocity_mean": None,
-                    "l2_velocity_std": None,
-                    "l2_velocity_max": None,
-                    "l2_velocity_transition": None,
-                    "l2_acceleration_mean": None,
-                    "l2_acceleration_std": None,
-                    "l2_acceleration_max": None,
-                    "l2_acceleration_transition": None,
-                    "transition_smoothness": blend_meta.get('transition_smoothness'),
-                    "velocity_ratio": None,
-                    "acceleration_ratio": None,
-                    "quality_score": blend_meta.get('estimated_quality'),
-                    "quality_category": None
-                }
+                # Transform blend metadata using shared transform_blend_record function
+                # This eliminates code duplication and ensures consistent transformation logic
+                raw_record = {"file_uri": blend_meta.get('left_motion_uri', '')}
+                blend_record = transform_blend_record(
+                    raw=raw_record,
+                    blend_meta=blend_meta
+                )
 
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The first argument is the name of the destination table.
