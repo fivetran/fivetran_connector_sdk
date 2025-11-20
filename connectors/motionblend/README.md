@@ -21,7 +21,7 @@ Typical use cases include:
 - Google Cloud Platform account with GCS bucket access (Storage Object Viewer role)
 
 ## Getting started
-Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for SDK installation and environment configuration.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 - Lists and ingests motion-capture files from GCS
