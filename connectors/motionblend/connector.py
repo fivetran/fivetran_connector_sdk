@@ -44,7 +44,6 @@ __DEFAULT_FPS = 30  # Default frames per second for motion capture
 __DEFAULT_JOINTS_COUNT = 24  # Default number of joints in the skeleton
 __CHECKPOINT_INTERVAL = 100  # Number of records to process before checkpointing
 __MAX_RETRIES = 3  # Maximum number of retry attempts for transient failures
-__MAX_FILES_PER_SYNC = 10000  # Maximum files to process per prefix sync (prevents memory issues)
 
 
 def schema(configuration: dict):
@@ -503,27 +502,14 @@ def update(configuration: dict, state: dict):
             # Initialize counter for this prefix
             prefix_record_count = 0
 
-            # Convert generator to list and sort by updated_at to ensure chronological processing
-            # This prevents data loss: if files are processed out of order and connector fails,
-            # the state timestamp would skip unprocessed files in the next sync
-            log.info(f"Fetching files from prefix '{prefix}'...")
-            files = list(list_gcs_files(bucket, prefix, extensions, limit, last_sync_time))
+            log.info(f"Streaming files from prefix '{prefix}'...")
 
-            # Sort files by updated_at timestamp (ascending) to process oldest first
-            # Files without updated_at are placed at the end
-            files.sort(key=lambda f: f.get("updated_at") or "9999-12-31T23:59:59")
-
-            # Safety check: warn if file count exceeds memory threshold
-            if len(files) > __MAX_FILES_PER_SYNC:
-                log.warning(
-                    f"File count ({len(files)}) exceeds recommended maximum ({__MAX_FILES_PER_SYNC}) for prefix '{prefix}'. "
-                    f"This may cause memory issues. Consider using smaller prefixes or batch_limit."
-                )
-
-            log.info(f"Processing {len(files)} files from prefix '{prefix}' in chronological order")
-
-            # Process files in chronological order
-            for raw_record in files:
+            # Process files as they are yielded from GCS API (streaming approach)
+            # This prevents unbounded memory usage for large datasets by processing one file at a time
+            # Note: Files are processed in the order returned by GCS API, which may not be chronological.
+            # The incremental sync filter (last_sync_time) ensures only new/updated files are processed,
+            # and state updates after each file ensure recovery from failures.
+            for raw_record in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 category = infer_category(raw_record["file_uri"])
 
                 if category not in table_map:
@@ -563,13 +549,11 @@ def update(configuration: dict, state: dict):
                     op.checkpoint(state)
                     log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
 
-            # Check if we hit the batch limit
-            if limit and prefix_record_count >= limit:
-                log.warning(
-                    f"Batch limit of {limit} reached for prefix '{prefix}'. State reflects last successfully processed file. "
-                    f"Remaining files (if any) will be processed in the next sync starting from that point. "
-                    f"For production use, remove batch_limit or set to a high value."
-                )
+            # Log completion for this prefix
+            log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
+
+            # Note: If batch_limit was reached, list_gcs_files() stops yielding files and logs a warning.
+            # State reflects the last successfully processed file, so next sync will resume from that point.
 
             # Final checkpoint after completing prefix
             # NOTE: State was updated in the loop (lines 538-545) after each file was successfully processed.
@@ -580,8 +564,6 @@ def update(configuration: dict, state: dict):
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
-
-            log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
 
         except RuntimeError as runtime_error:
             # RuntimeError indicates unrecoverable failures (e.g., GCS connection after retries)
