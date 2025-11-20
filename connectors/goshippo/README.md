@@ -84,7 +84,9 @@ All errors are logged using the SDK's logging framework before being raised.
 
 ## Tables created
 
-The connector creates the `SHIPMENT`, `SHIPMENT_RATES`, `SHIPMENT_PARCELS`, and `SHIPMENT_MESSAGES` tables in the destination (refer to the `schema()` function):
+The connector creates the `SHIPMENT`, `SHIPMENT_RATES`, `SHIPMENT_PARCELS`, and `SHIPMENT_MESSAGES` tables in the destination. 
+
+Refer to the `schema()` function for more details.
 
 ### SHIPMENTS
 
