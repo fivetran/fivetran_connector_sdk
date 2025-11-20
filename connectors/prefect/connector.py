@@ -31,7 +31,7 @@ import time
 
 # Define constants for the connector
 __BASE_URL_TEMPLATE = (
-    "https://api.prefect.cloud/api/accounts/" "{account_id}/workspaces/{workspace_id}"
+    "https://api.prefect.cloud/api/accounts/{account_id}/workspaces/{workspace_id}"
 )
 __MAX_RETRIES = 3
 __BASE_DELAY_SECONDS = 1
@@ -58,7 +58,7 @@ def validate_configuration(configuration: dict):
 
 # Configuration mapping for different resource types
 # Each entry maps: table_name -> (endpoint, state_key)
-SYNC_CONFIGS = {
+__SYNC_CONFIGS = {
     "flow": ("/flows/filter", "flow_last_updated"),
     "deployment": ("/deployments/filter", "deployment_last_updated"),
     "flow_run": ("/flow_runs/filter", "flow_run_last_updated"),
@@ -81,7 +81,7 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration
         settings for the connector.
     """
-    return [{"table": table_name, "primary_key": ["id"]} for table_name in SYNC_CONFIGS]
+    return [{"table": table_name, "primary_key": ["id"]} for table_name in __SYNC_CONFIGS]
 
 
 def update(configuration: dict, state: dict):
@@ -107,8 +107,7 @@ def update(configuration: dict, state: dict):
     base_url = __BASE_URL_TEMPLATE.format(account_id=account_id, workspace_id=workspace_id)
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    # Sync all resources defined in SYNC_CONFIGS
-    for table_name in SYNC_CONFIGS:
+    for table_name in __SYNC_CONFIGS:
         sync_resource(base_url, headers, state, table_name)
 
 
@@ -177,6 +176,71 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
     raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts")
 
 
+def filter_records(
+    response_data: list, cursor_field: str, cursor_value: str, endpoint: str
+) -> list:
+    """
+    Filter records based on cursor value for incremental sync.
+    Args:
+        response_data: List of records from API response.
+        cursor_field: Field name to use for filtering.
+        cursor_value: Cursor value from last sync.
+        endpoint: API endpoint path for logging.
+    Returns:
+        Filtered list of records.
+    """
+    if cursor_value:
+        filtered_records = [
+            record for record in response_data if record.get(cursor_field, "") > cursor_value
+        ]
+        log.info(
+            f"Fetched {len(response_data)} records from {endpoint}, "
+            f"filtered to {len(filtered_records)} new records"
+        )
+        return filtered_records
+
+    log.info(f"Fetched {len(response_data)} records from {endpoint}")
+    return response_data
+
+
+def process_record(record: dict, table_name: str, max_updated: str) -> str:
+    """
+    Process a single record by flattening and upserting it.
+    Args:
+        record: The record to process.
+        table_name: Name of the destination table.
+        max_updated: Current maximum updated timestamp.
+    Returns:
+        Updated maximum timestamp.
+    """
+    flattened_record = flatten_record(record)
+    op.upsert(table=table_name, data=flattened_record)
+
+    record_updated = record.get("updated")
+    if record_updated and (max_updated is None or record_updated > max_updated):
+        return record_updated
+
+    return max_updated
+
+
+def checkpoint_if_needed(
+    record_count: int, state: dict, state_key: str, max_updated: str, table_name: str
+):
+    """
+    Create a checkpoint if the record count reaches the interval.
+    Args:
+        record_count: Current count of processed records.
+        state: State dictionary to track sync progress.
+        state_key: Key in state dict to store cursor value.
+        max_updated: Current maximum updated timestamp.
+        table_name: Name of the destination table.
+    """
+    if record_count % __CHECKPOINT_INTERVAL == 0:
+        state[state_key] = max_updated
+        op.checkpoint(state)
+        log.info(f"Checkpointed {table_name} at {record_count} records")
+
+
 def fetch_and_process_paginated_data(
     base_url: str,
     endpoint: str,
@@ -209,41 +273,18 @@ def fetch_and_process_paginated_data(
 
     while True:
         payload = {"limit": __BATCH_SIZE, "offset": offset}
-
         url = f"{base_url}{endpoint}"
         response_data = make_api_request(url, headers, payload)
 
-        if not response_data or len(response_data) == 0:
+        if not response_data:
             break
 
-        # Client-side filtering for incremental sync
-        if cursor_value:
-            filtered_records = [
-                record for record in response_data if record.get(cursor_field, "") > cursor_value
-            ]
-            log.info(
-                f"Fetched {len(response_data)} records from {endpoint}, "
-                f"filtered to {len(filtered_records)} new records"
-            )
-        else:
-            filtered_records = response_data
-            log.info(f"Fetched {len(response_data)} records from {endpoint}")
+        filtered_records = filter_records(response_data, cursor_field, cursor_value, endpoint)
 
-        # Process records page by page
         for record in filtered_records:
-            flattened_record = flatten_record(record)
-            op.upsert(table=table_name, data=flattened_record)
-
-            record_updated = record.get("updated")
-            if record_updated and (max_updated is None or record_updated > max_updated):
-                max_updated = record_updated
-
+            max_updated = process_record(record, table_name, max_updated)
             record_count += 1
-
-            if record_count % __CHECKPOINT_INTERVAL == 0:
-                state[state_key] = max_updated
-                op.checkpoint(state)
-                log.info(f"Checkpointed {table_name} at {record_count} records")
+            checkpoint_if_needed(record_count, state, state_key, max_updated, table_name)
 
         total_processed += len(filtered_records)
 
@@ -294,7 +335,7 @@ def sync_resource(base_url: str, headers: dict, state: dict, table_name: str):
         state: State dictionary to track sync progress.
         table_name: Name of the resource/table to sync.
     """
-    endpoint, state_key = SYNC_CONFIGS[table_name]
+    endpoint, state_key = __SYNC_CONFIGS[table_name]
     last_updated = state.get(state_key)
     fetch_and_process_paginated_data(
         base_url, endpoint, headers, "updated", last_updated, table_name, state, state_key

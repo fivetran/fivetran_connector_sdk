@@ -37,6 +37,14 @@ The connector requires the following configuration parameters:
 }
 ```
 
+### Configuration parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `api_key` | string | Yes | Your Prefect Cloud API key used for authentication. This key should have read access to the workspace you want to sync. |
+| `account_id` | string | Yes | Your Prefect Cloud account identifier. This can be found in your Prefect Cloud URL or account settings. |
+| `workspace_id` | string | Yes | Your Prefect Cloud workspace identifier. This specifies which workspace's data will be synced to your data warehouse. |
+
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
