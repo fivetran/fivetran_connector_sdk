@@ -8,9 +8,9 @@ motion synthesis (which requires deep learning models from the blendanim framewo
 For full motion blending with neural networks, see: https://github.com/RydlrCS/blendanim
 """
 
-import hashlib
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime, timezone
+import hashlib  # For generating deterministic blend IDs using SHA-1 hashing
+from typing import Dict, Any, Optional, Tuple  # For type hints to improve code clarity and IDE support
+from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
 
 
 def calculate_blend_ratio(

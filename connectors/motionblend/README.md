@@ -8,7 +8,7 @@ This connector supports three motion categories – `seed_motions`, `build_motio
 Current Limitations:
 - Motion-specific metadata (frame count, FPS, joint counts, skeleton IDs) use static placeholder values
 - Quality metrics in blend records are set to NULL and require post-processing
-- File contents are NOT parsed; only GCS blob metadata (URI, timestamps, size) is extracted
+- File contents are not parsed; only GCS blob metadata (URI, timestamps, size) is extracted
 - Suitable for building a file catalog and tracking file locations; full metadata extraction requires additional processing steps
 
 Typical use cases include:
@@ -54,10 +54,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 Configuration keys:
 - `google_cloud_storage_bucket` – GCS bucket name containing motion files
 - `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`)
-- `batch_limit` – Maximum number of files to process per prefix per sync (default: 25, TESTING ONLY - state is not updated when limit is reached to prevent data loss; remove for production use)
+- `batch_limit` – Maximum number of files to process per prefix per sync (default: 25). State is updated with the last processed file's timestamp. TESTING ONLY – remove for production use to process all files in a single sync.
 - `include_extensions` – File extensions to process (comma-separated, default: `.bvh,.fbx`)
 
-Note: Do not check this file into version control, as it may contain credentials.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 `requirements.txt` lists third-party Python dependencies used by the connector.
@@ -178,13 +178,13 @@ Important Notes:
 Data Transformation Pipeline:
 1. Extract (`list_gcs_files()` function, lines 138-235) – List blobs from GCS, filter by file extension, yield GCS metadata:
    - Actual extracted data: `file_uri`, `updated_at` (from GCS blob), `size`, `name`, `gcs_id`, `gcs_generation`
-   - NOT extracted: File contents are not parsed; motion-specific metadata is not extracted
+   - Not extracted: File contents are not parsed; motion-specific metadata is not extracted
 2. Transform (transform functions, lines 299-432) – Normalize records based on category:
    - Generate stable deterministic ID using GCS object identifier (`generate_record_id()`, lines 263-296)
      - Primary: Uses GCS `blob.id` (stable across file renames/moves)
      - Fallback: SHA-1 hash of file_uri if GCS ID unavailable (legacy compatibility)
-   - ID stability: File renames/moves do NOT create duplicate records when GCS object ID is available
-   - Insert STATIC placeholder values (NOT extracted from file contents):
+   - ID stability: File renames/moves do not create duplicate records when GCS object ID is available
+   - Insert STATIC placeholder values (not extracted from file contents):
      - `skeleton_id`: "mixamo24" (hardcoded constant)
      - `fps`: 30 (hardcoded constant)
      - `joints_count`: 24 (hardcoded constant)
@@ -209,7 +209,7 @@ State Management & Data Loss Prevention:
 
 Data Accuracy:
 - ✅ Accurate: File URIs, GCS update timestamps, file names, file sizes, GCS object IDs
-- ⚠️ STATIC placeholders (NOT extracted): Frame counts (0), FPS (30), skeleton IDs ("mixamo24"), joint counts (24), build_method ("ganimator")
+- ⚠️ STATIC placeholders (not extracted): Frame counts (0), FPS (30), skeleton IDs ("mixamo24"), joint counts (24), build_method ("ganimator")
 - ❌ Not extracted: Actual motion data requires parsing BVH/FBX file contents (frames, actual FPS, skeleton structure)
 
 Blend Metadata Calculation (blend_utils):
@@ -296,11 +296,11 @@ The connector uses the following additional file:
 
 This lightweight Python module calculates blend metadata for motion pairs and provides the following core functions:
 
-- `create_blend_metadata(left_motion, right_motion, transition_frames)` – Generates complete blend record with calculated parameters
-- `calculate_blend_ratio(left_duration, right_duration)` – Computes blend ratio based on motion durations  
-- `calculate_transition_window(left_frames, right_frames, ratio)` – Determines transition start/end frames
-- `estimate_blend_quality(params)` – Heuristic quality score (0.0-1.0) based on motion compatibility
-- `generate_blend_id(left_uri, right_uri)` – Deterministic SHA-1 hash for blend pair identification
+- `create_blend_metadata(left_motion, right_motion, transition_frames)` - Generates complete blend record with calculated parameters
+- `calculate_blend_ratio(left_duration, right_duration)` - Computes blend ratio based on motion durations  
+- `calculate_transition_window(left_frames, right_frames, ratio)` - Determines transition start/end frames
+- `estimate_blend_quality(params)` - Heuristic quality score (0.0-1.0) based on motion compatibility
+- `generate_blend_id(left_uri, right_uri)` - Deterministic SHA-1 hash for blend pair identification
 
 Example Usage:
 ```python
