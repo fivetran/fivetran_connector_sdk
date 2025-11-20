@@ -59,8 +59,8 @@ Example:
 ```
 
 `VECTOR_TABLES_DATA` (optional): A JSON object for tables containing vector/embedding columns. Each table requires:
-- `primary_key_column`: The primary key column name
-- `vector_column`: The column containing vector data
+- `primary_key_column`: The primary key column name.
+- `vector_column`: The column containing vector data.
 
 Example:
 ```json
@@ -74,7 +74,9 @@ Example:
 
 ## Requirements file
 
-The `requirements.txt` file lists third-party Python packages required for this example. Example content:
+The `requirements.txt` file lists third-party Python packages required for this example. 
+
+Example content:
 
 ```
 pytidb>=0.0.11
