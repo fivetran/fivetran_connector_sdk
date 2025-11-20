@@ -8,7 +8,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-import requests        # HTTP client library used to send requests to external APIs (GET/POST, etc.)
+import requests  # HTTP client library used to send requests to external APIs (GET/POST, etc.)
 import datetime as dt  # Standard datetime module (aliased as dt) for working with dates, times, and timestamps
 import time  # For implementing retry delays with exponential backoff
 
@@ -106,6 +106,7 @@ def fetch_users(base_url, headers, limit, starting_after=None):
         payload.get("next_page_url"),
     )
 
+
 def validate_configuration(configuration):
     """
     Validate connector configuration.
@@ -122,6 +123,7 @@ def validate_configuration(configuration):
         raise ValueError(f"Invalid 'base_url' value: {base_url!r}")
 
     log.info("Configuration validation succeeded.")
+
 
 def get_with_retry(url, headers=None, params=None, timeout=60):
     """
@@ -145,7 +147,7 @@ def get_with_retry(url, headers=None, params=None, timeout=60):
             if attempt == __MAX_RETRIES - 1:
                 log.severe(f"Network/timeout error on GET {url}", e)
                 raise
-            sleep_time = min(60, 2 ** attempt)
+            sleep_time = min(60, 2**attempt)
             log.warning(
                 f"Network/timeout error on GET {url}: {e}. "
                 f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
@@ -159,7 +161,7 @@ def get_with_retry(url, headers=None, params=None, timeout=60):
                 if attempt == __MAX_RETRIES - 1:
                     log.severe(f"HTTP error {status} on GET {url}: {e.response.text}")
                     raise
-                sleep_time = min(60, 2 ** attempt)
+                sleep_time = min(60, 2**attempt)
                 log.warning(
                     f"Transient HTTP {status} on GET {url}. "
                     f"Retrying {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s"
@@ -199,9 +201,7 @@ def update(configuration, state):
     has_more = True
 
     while has_more:
-        users, has_more, next_page_url = fetch_users(
-            base_url, headers, limit, starting_after
-        )
+        users, has_more, next_page_url = fetch_users(base_url, headers, limit, starting_after)
         if not users:
             break
 
@@ -237,7 +237,9 @@ def update(configuration, state):
             elif next_page_url.startswith("/"):
                 base_url = base_url.rstrip("/") + next_page_url
             else:
-                log.warning(f"Unexpected format for next_page_url: {next_page_url}. Skipping pagination.")
+                log.warning(
+                    f"Unexpected format for next_page_url: {next_page_url}. Skipping pagination."
+                )
                 has_more = False
 
         last_user_id = users[-1].get("id")
@@ -249,6 +251,7 @@ def update(configuration, state):
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint(state)
     log.info(f"Incremental sync completed: {total} users fetched")
+
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
