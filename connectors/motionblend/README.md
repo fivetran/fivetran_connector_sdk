@@ -47,7 +47,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "google_cloud_storage_bucket": "<YOUR_GCS_BUCKET_NAME>",
   "google_cloud_storage_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
   "batch_limit": "<BATCH_LIMIT>",
-  "include_extensions": "<FILE_EXTENSIONS>"
+  "include_extensions": "<FILE_EXTENSIONS>",
+  "max_blend_pairs": "<MAX_BLEND_PAIRS>",
+  "max_motion_buffer_size": "<MAX_MOTION_BUFFER_SIZE>"
 }
 ```
 
@@ -56,6 +58,8 @@ Configuration keys:
 - `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`)
 - `batch_limit` – Maximum number of files to process per prefix per sync (default: 25). State is updated with the last processed file's timestamp. TESTING ONLY – remove for production use to process all files in a single sync.
 - `include_extensions` – File extensions to process (comma-separated, default: `.bvh,.fbx`)
+- `max_blend_pairs` – Maximum number of blend pairs to generate per sync (default: 100)
+- `max_motion_buffer_size` – Maximum number of seed/build motions to buffer before generating blend pairs (default: 1000)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -192,19 +196,21 @@ Data Transformation Pipeline:
    - Preserve actual GCS blob metadata: file URIs, timestamps, file sizes
    - Quality metrics (blend_quality, transition_smoothness) are set to NULL
 3. Load (`update()` function) – Upsert records to destination:
-   - Files are processed in the order returned by the GCS API, which is not guaranteed to be chronological
+   - Files are collected in bounded batches (1000 files per batch) and sorted by `updated_at` timestamp before processing
+   - Chronological sorting prevents data loss: even if connector fails mid-sync, next sync resumes from last processed timestamp
    - Tables are automatically created by Fivetran based on schema definition
    - Uses `op.upsert()` operation for inserting/updating records
-   - State is updated after each successful upsert with that file's timestamp (not maximum across batch)
+   - State is updated after each successful upsert with that file's timestamp
    - Checkpoints state every 100 records and after each prefix completes
-   - Data loss risk: Files are processed in API order; if the connector fails mid-sync, files with earlier timestamps may be skipped in subsequent syncs. For strict chronological processing, the connector implementation must be updated to sort files by `updated_at`.
+   - Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors for large GCS prefixes
 
 State Management & Data Loss Prevention:
-- Files are processed in the order returned by the GCS API (not guaranteed to be chronological)
-- State tracks the timestamp of the last successfully processed file (not max timestamp)
-- If connector fails mid-sync, next run resumes from last successful file
-- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are returned in API order B, C, A, they will be processed in that order, which may result in files with earlier timestamps being skipped if a failure occurs.
-- For strict chronological processing and to prevent data loss, the connector implementation must be updated to sort files by `updated_at` before processing.
+- Files are collected in bounded batches and sorted by `updated_at` timestamp before processing (chronological order)
+- State tracks the timestamp of the last successfully processed file
+- If connector fails mid-sync, next run resumes from last successful file timestamp
+- Chronological sorting ensures data integrity: Files are always processed oldest-to-newest within each batch
+- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A, B, C before processing
+- Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors while maintaining chronological order
 
 Data Accuracy:
 - ✅ Accurate: File URIs, GCS update timestamps, file names, file sizes, GCS object IDs

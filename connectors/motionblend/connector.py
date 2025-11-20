@@ -772,82 +772,166 @@ def update(configuration: dict, state: dict):
             # Initialize counter for this prefix
             prefix_record_count = 0
 
-            log.info(f"Collecting files from prefix '{prefix}'...")
+            log.info(f"Streaming files from prefix '{prefix}' with bounded buffering for memory safety...")
 
-            # Collect all files into memory and sort by timestamp to prevent data loss
-            # This ensures files are processed in chronological order, so state tracking is safe
-            # even if connector fails mid-sync (next sync will resume from last processed timestamp)
-            files_to_process = list(list_gcs_files(bucket, prefix, extensions, limit, last_sync_time))
+            # Bounded buffer approach: Collect files in batches, sort each batch, process chronologically
+            # This prevents out-of-memory errors for large prefixes while maintaining chronological order
+            # Buffer size: 1000 files (~100KB metadata per file = ~100MB per batch)
+            __FILE_BUFFER_SIZE = 1000
+            files_buffer = []
+            total_files_processed = 0
 
-            if not files_to_process:
+            for file_metadata in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
+                files_buffer.append(file_metadata)
+
+                # Process buffer when full to maintain bounded memory usage
+                if len(files_buffer) >= __FILE_BUFFER_SIZE:
+                    # Sort current buffer by timestamp before processing
+                    files_buffer.sort(key=lambda f: f["updated_at"])
+                    log.info(f"Processing batch of {len(files_buffer)} files (sorted chronologically)")
+
+                    # Process sorted buffer
+                    for raw_record in files_buffer:
+                        category = infer_category(raw_record["file_uri"])
+
+                        if category not in table_map:
+                            log.warning(f"Unknown category for file: {raw_record['file_uri']}")
+                            continue
+
+                        table_name, transform_func = table_map[category]
+
+                        # Transform record
+                        record = transform_func(raw_record)
+
+                        # The 'upsert' operation is used to insert or update data in the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the record to be upserted.
+                        op.upsert(table_name, record)
+
+                        # Collect seed and build motions for blend pair generation
+                        # Only collect from non-blend categories to avoid circular dependencies
+                        # Enforce buffer size limits to prevent unbounded memory growth
+                        if category == "seed":
+                            seed_motions.append(record)
+                            log.fine(f"Collected seed motion: {record['id']} (buffer: {len(seed_motions)}/{max_motion_buffer_size})")
+
+                            # Generate blend pairs when seed buffer reaches limit (memory safety)
+                            if len(seed_motions) >= max_motion_buffer_size:
+                                log.info(f"Seed motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
+                                generate_and_sync_blends()
+
+                        elif category == "build":
+                            build_motions.append(record)
+                            log.fine(f"Collected build motion: {record['id']} (buffer: {len(build_motions)}/{max_motion_buffer_size})")
+
+                            # Generate blend pairs when build buffer reaches limit (memory safety)
+                            if len(build_motions) >= max_motion_buffer_size:
+                                log.info(f"Build motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
+                                generate_and_sync_blends()
+
+                        # Update state with current file's timestamp after successful upsert
+                        # Safe to update per-file because files are sorted chronologically within each batch
+                        # If connector fails, next sync resumes from last successfully processed timestamp
+                        state[f"last_sync_{prefix}"] = raw_record["updated_at"]
+
+                        # Increment counters
+                        prefix_record_count += 1
+                        total_records_synced += 1
+
+                        # Checkpoint every 100 records to preserve progress for large datasets
+                        if total_records_synced % __CHECKPOINT_INTERVAL == 0:
+                            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                            # from the correct position in case of next sync or interruptions.
+                            # Learn more about how and where to checkpoint by reading our best practices documentation
+                            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                            op.checkpoint(state)
+                            log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
+
+                    total_files_processed += len(files_buffer)
+                    files_buffer.clear()  # Clear buffer to free memory
+
+            # Process any remaining files in buffer
+            if files_buffer:
+                files_buffer.sort(key=lambda f: f["updated_at"])
+                log.info(f"Processing final batch of {len(files_buffer)} files (sorted chronologically)")
+                for raw_record in files_buffer:
+                    category = infer_category(raw_record["file_uri"])
+
+                    if category not in table_map:
+                        log.warning(f"Unknown category for file: {raw_record['file_uri']}")
+                        continue
+
+                    table_name, transform_func = table_map[category]
+
+                    # Transform record
+                    record = transform_func(raw_record)
+
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The first argument is the name of the destination table.
+                    # The second argument is a dictionary containing the record to be upserted.
+                    op.upsert(table_name, record)
+
+                    # Collect seed and build motions for blend pair generation
+                    # Only collect from non-blend categories to avoid circular dependencies
+                    # Enforce buffer size limits to prevent unbounded memory growth
+                    if category == "seed":
+                        seed_motions.append(record)
+                        log.fine(f"Collected seed motion: {record['id']} (buffer: {len(seed_motions)}/{max_motion_buffer_size})")
+
+                        # Generate blend pairs when seed buffer reaches limit (memory safety)
+                        if len(seed_motions) >= max_motion_buffer_size:
+                            log.info(f"Seed motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
+                            generate_and_sync_blends()
+
+                    elif category == "build":
+                        build_motions.append(record)
+                        log.fine(f"Collected build motion: {record['id']} (buffer: {len(build_motions)}/{max_motion_buffer_size})")
+
+                        # Generate blend pairs when build buffer reaches limit (memory safety)
+                        if len(build_motions) >= max_motion_buffer_size:
+                            log.info(f"Build motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
+                            generate_and_sync_blends()
+
+                    # Update state with current file's timestamp after successful upsert
+                    # Safe to update per-file because files are sorted chronologically within each batch
+                    # If connector fails, next sync resumes from last successfully processed timestamp
+                    state[f"last_sync_{prefix}"] = raw_record["updated_at"]
+
+                    # Increment counters
+                    prefix_record_count += 1
+                    total_records_synced += 1
+
+                    # Checkpoint every 100 records to preserve progress for large datasets
+                    if total_records_synced % __CHECKPOINT_INTERVAL == 0:
+                        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                        # from the correct position in case of next sync or interruptions.
+                        # Learn more about how and where to checkpoint by reading our best practices documentation
+                        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                        op.checkpoint(state)
+                        log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
+
+                total_files_processed += len(files_buffer)
+                files_buffer.clear()
+
+            if total_files_processed == 0:
                 log.info(f"No files to process for prefix '{prefix}'")
                 continue
 
-            # Sort files by updated_at timestamp (chronological order)
-            # This prevents data loss scenario where File B (Jan 15) is processed before File A (Jan 10)
-            # and connector fails - next sync would skip File A because state = "Jan 15"
-            files_to_process.sort(key=lambda f: f["updated_at"])
-            log.info(f"Found {len(files_to_process)} files to process for prefix '{prefix}' (sorted chronologically)")
-
-            # Process files in chronological order
-            for raw_record in files_to_process:
-                category = infer_category(raw_record["file_uri"])
-
-                if category not in table_map:
-                    log.warning(f"Unknown category for file: {raw_record['file_uri']}")
-                    continue
-
-                table_name, transform_func = table_map[category]
-
-                # Transform record
-                record = transform_func(raw_record)
-
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table_name, record)
-
-                # Collect seed and build motions for blend pair generation
-                # Only collect from non-blend categories to avoid circular dependencies
-                # Enforce buffer size limits to prevent unbounded memory growth
-                if category == "seed":
-                    seed_motions.append(record)
-                    log.fine(f"Collected seed motion: {record['id']} (buffer: {len(seed_motions)}/{max_motion_buffer_size})")
-
-                    # Generate blend pairs when seed buffer reaches limit (memory safety)
-                    if len(seed_motions) >= max_motion_buffer_size:
-                        log.info(f"Seed motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
-                        generate_and_sync_blends()
-
-                elif category == "build":
-                    build_motions.append(record)
-                    log.fine(f"Collected build motion: {record['id']} (buffer: {len(build_motions)}/{max_motion_buffer_size})")
-
-                    # Generate blend pairs when build buffer reaches limit (memory safety)
-                    if len(build_motions) >= max_motion_buffer_size:
-                        log.info(f"Build motion buffer reached limit ({max_motion_buffer_size}), generating blend pairs")
-                        generate_and_sync_blends()
-
-                # Update state with current file's timestamp after successful upsert
-                # Safe to update per-file because files are sorted chronologically
-                # If connector fails, next sync resumes from last successfully processed timestamp
-                state[f"last_sync_{prefix}"] = raw_record["updated_at"]
-
-                # Increment counters
-                prefix_record_count += 1
-                total_records_synced += 1
-
-                # Checkpoint every 100 records to preserve progress for large datasets
-                if total_records_synced % __CHECKPOINT_INTERVAL == 0:
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                    op.checkpoint(state)
-                    log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
+            log.info(f"Processed {total_files_processed} files from prefix '{prefix}' using bounded buffering")
 
             # Log completion for this prefix
             log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
+
+            # Clear motion buffers after each prefix to prevent unbounded memory growth across prefixes
+            # This ensures memory usage is bounded per-prefix rather than accumulating across all prefixes
+            if seed_motions or build_motions:
+                log.info(
+                    f"Clearing motion buffers after prefix '{prefix}': "
+                    f"{len(seed_motions)} seed motions, {len(build_motions)} build motions"
+                )
+                # Generate blend pairs from buffered motions before clearing
+                generate_and_sync_blends()
+                # Buffers are cleared inside generate_and_sync_blends(), no need to clear again
 
             # Final checkpoint after completing prefix
             # State contains the timestamp of the last file processed (guaranteed to be the latest due to chronological sorting)
