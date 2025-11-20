@@ -156,7 +156,7 @@ The connector implements comprehensive error handling through multiple layers:
 
 ## Additional considerations
 
-### API Limitations
+### API limitations
 - Observations limit: Fetches a maximum of 500 observations per station per sync. For best results, run syncs hourly or daily to stay within this limit.
 - Stations limit: Fetches a maximum of 500 stations per sync. Most states have fewer than 500 stations, but nationwide queries may be limited.
 - No pagination: Current implementation does not paginate through results. Best suited for frequent syncs rather than large historical backfills.
