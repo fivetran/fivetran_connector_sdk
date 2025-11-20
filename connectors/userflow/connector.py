@@ -11,6 +11,7 @@ from fivetran_connector_sdk import Operations as op
 import requests  # HTTP client library used to send requests to external APIs (GET/POST, etc.)
 import datetime as dt  # Standard datetime module (aliased as dt) for working with dates, times, and timestamps
 import time  # For implementing retry delays with exponential backoff
+from urllib.parse import urlparse  # For validating and parsing base_url
 
 __USERFLOW_VERSION = "2020-01-03"
 __MAX_LIMIT = 100
@@ -192,7 +193,7 @@ def update(configuration, state):
     base_url = configuration.get("base_url", "https://api.userflow.com")
     api_key = configuration["userflow_api_key"]
     limit = __MAX_LIMIT
-    headers = headers(api_key)
+    headers = build_headers(api_key)
 
     tb_state = table_state(state, "users")
     starting_after = tb_state.get("last_seen_id")
