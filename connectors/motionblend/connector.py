@@ -215,7 +215,9 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
             "file_uri": f"gs://{bucket_name}/{blob.name}",
             "updated_at": blob.updated.isoformat() if blob.updated else None,
             "size": blob.size,
-            "name": blob.name.split('/')[-1]
+            "name": blob.name.split('/')[-1],
+            "gcs_id": blob.id if blob.id else None,  # Stable GCS object identifier
+            "gcs_generation": str(blob.generation) if blob.generation else None  # Object version
         }
 
         yield record
@@ -253,18 +255,38 @@ def infer_category(file_uri: str) -> str:
     return category
 
 
-def generate_record_id(file_uri: str) -> str:
+def generate_record_id(raw: Dict[str, Any]) -> str:
     """
-    Generate deterministic record ID from file URI using SHA-1 hash.
+    Generate stable deterministic record ID using GCS object identifiers.
+
+    Uses GCS object ID (combination of bucket/name/generation) for stable identification
+    that persists across file renames/moves. Falls back to file_uri hash if GCS ID unavailable.
+
+    ID Strategy:
+    - Primary: GCS blob.id (stable, unique identifier independent of file path)
+    - Fallback: SHA-1 hash of file_uri (for compatibility with older data)
+
+    This ensures:
+    - File renames/moves don't create duplicate records (if GCS ID is available)
+    - Records remain trackable even if files are reorganized in GCS
+    - Backward compatibility with file-based IDs for legacy data
 
     Args:
-        file_uri: GCS file URI
+        raw: Dictionary containing GCS metadata with 'gcs_id' and 'file_uri' keys
 
     Returns:
         16-character hash string
     """
-    log.fine(f"Generating record ID for file_uri: {file_uri}")
-    record_id = hashlib.sha1(file_uri.encode()).hexdigest()[:16]
+    # Prefer stable GCS object ID if available
+    if raw.get('gcs_id'):
+        stable_key = raw['gcs_id']
+        log.fine(f"Generating record ID from GCS object ID: {stable_key}")
+    else:
+        # Fallback to file URI (may change on rename/move)
+        stable_key = raw['file_uri']
+        log.fine(f"Generating record ID from file_uri (GCS ID not available): {stable_key}")
+
+    record_id = hashlib.sha1(stable_key.encode()).hexdigest()[:16]
     log.fine(f"Generated record ID: {record_id}")
     return record_id
 
@@ -283,7 +305,7 @@ def transform_seed_record(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     now = datetime.now(timezone.utc).isoformat()
     record = {
-        "id": generate_record_id(raw["file_uri"]),
+        "id": generate_record_id(raw),
         "file_uri": raw["file_uri"],
         "skeleton_id": __DEFAULT_SKELETON_ID,
         "frames": 0,  # Placeholder - would parse from BVH in production
@@ -311,7 +333,7 @@ def transform_build_record(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     now = datetime.now(timezone.utc).isoformat()
     record = {
-        "id": generate_record_id(raw["file_uri"]),
+        "id": generate_record_id(raw),
         "file_uri": raw["file_uri"],
         "skeleton_id": __DEFAULT_SKELETON_ID,
         "frames": 0,
@@ -329,6 +351,16 @@ def transform_build_record(raw: Dict[str, Any]) -> Dict[str, Any]:
 def transform_blend_record(raw: Dict[str, Any], left_motion: Optional[Dict[str, Any]] = None, right_motion: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Transform raw GCS metadata or motion pair into blend_motions record.
+
+    Blend ID Strategy:
+    - For blend pairs: Uses generate_blend_id() which creates SHA-1 hash of both motion URIs
+      This creates stable IDs for specific blend combinations regardless of file location
+    - For file-based records: Uses generate_record_id() with GCS object ID for stability
+
+    Note: left_motion_id and right_motion_id track the relationship between motion files.
+    These are derived from blend metadata when motion pairs are provided, or set to NULL
+    for file-based catalog entries. The blend metadata calculation is performed by
+    blend_utils.create_blend_metadata().
 
     Args:
         raw: Dictionary containing raw file metadata from GCS
@@ -352,8 +384,8 @@ def transform_blend_record(raw: Dict[str, Any], left_motion: Optional[Dict[str, 
         file_id = blend_meta['id']
         log.fine(f"Generated blend metadata for pair: {left_motion['id']} + {right_motion['id']}")
     else:
-        # Fallback to file-based record
-        file_id = generate_record_id(raw["file_uri"])
+        # Fallback to file-based record with stable GCS ID
+        file_id = generate_record_id(raw)
         blend_meta = {}
 
     record = {
