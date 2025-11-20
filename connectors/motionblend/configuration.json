@@ -1,8 +1,8 @@
 {
-  "gcp_project": "your-project-id",
-  "gcs_bucket": "motionblend-mocap",
-  "gcs_prefixes": "mocap/seed/,mocap/build/,mocap/blend/",
-  "bigquery_dataset": "RAW",
-  "batch_limit": 25,
-  "include_exts": ".bvh,.fbx"
+  "gcp_project": "<YOUR_GCP_PROJECT_ID>",
+  "gcs_bucket": "<YOUR_GCS_BUCKET_NAME>",
+  "gcs_prefixes": "<COMMA_SEPARATED_GCS_PREFIXES>",
+  "bigquery_dataset": "<YOUR_BIGQUERY_DATASET_NAME>",
+  "batch_limit": "<BATCH_LIMIT_NUMBER>",
+  "include_exts": "<COMMA_SEPARATED_FILE_EXTENSIONS>"
 }

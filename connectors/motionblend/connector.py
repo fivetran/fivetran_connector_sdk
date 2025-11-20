@@ -1,12 +1,22 @@
 """
 MotionBlend Fivetran Connector - Syncs motion capture metadata from GCS to BigQuery
 
-This connector ingests motion-capture (MoCap) metadata from Google Cloud Storage (GCS) 
-and delivers it to BigQuery for downstream transformation and analytics. It scans folders 
-containing .bvh and .fbx files, extracts key metadata, and loads structured information 
+This connector ingests motion-capture (MoCap) metadata from Google Cloud Storage (GCS)
+and delivers it to BigQuery for downstream transformation and analytics. It scans folders
+containing .bvh and .fbx files, extracts key metadata, and loads structured information
 into BigQuery tables.
 
+SKELETON HIERARCHY CONTEXT (from blendanim repository):
+The blendanim framework uses Mixamo skeleton with specific structure:
+- Total nodes: 29 (24 joints + 4 contact nodes + 1 root)
+- Feature dims: 174 = 29 nodes × 6 features (position/rotation per node)
+- Contact joints: 4 (LeftFoot, RightFoot, LeftToe, RightToe for physics)
+- Parent array: Defines hierarchical bone connections
+- Rotation: Euler angles (XYZ degrees), 6D continuous, or rotation matrices
+- Quality metrics: L2 velocity/acceleration on 5 key joints (Pelvis, L/R Wrist, L/R Foot)
+
 See the README.md for detailed documentation.
+See https://github.com/RydlrCS/blendanim for framework implementation.
 """
 
 # Import required classes from fivetran_connector_sdk
@@ -14,31 +24,43 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
-# Import Google Cloud libraries
-from google.cloud import storage, bigquery
-from google.api_core import retry
-import hashlib
-import time
-from typing import Iterator, Dict, Any, Optional
-from datetime import datetime
+from google.cloud import storage  # Import Google Cloud Storage library for accessing GCS buckets and blobs
+from google.api_core import exceptions as google_exceptions  # Import Google API exceptions for specific error handling
+from requests import exceptions as requests_exceptions  # For handling HTTP errors during GCS API calls
+import hashlib  # For generating deterministic record IDs using SHA-1 hashing
+import time  # For implementing retry delays with exponential backoff in GCS operations
+from typing import Iterator, Dict, Any, Optional, List  # For type hints to improve code clarity and IDE support
+from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
+
+# Default configuration constants for motion capture metadata
+__DEFAULT_SKELETON_ID = "mixamo24"  # Default skeleton identifier for motion data
+__DEFAULT_FPS = 30  # Default frames per second for motion capture
+__DEFAULT_JOINTS_COUNT = 24  # Default number of joints in the skeleton
+__CHECKPOINT_INTERVAL = 100  # Number of records to process before checkpointing
+__MAX_RETRIES = 3  # Maximum number of retry attempts for transient failures
+__RETRY_DELAY_SECONDS = 2  # Initial delay in seconds between retries
 
 
 def schema(configuration: dict):
     """
-    Define the schema for the connector tables.
-    
+    Define the schema function which lets you configure the schema your connector delivers.
+    This connector syncs BVH (BioVision Hierarchy) motion capture metadata from GCS.
+    Data structure aligns with blendanim framework: seed motions, build motions, and blend results.
+
+    Skeleton Hierarchy Structure (from blendanim repository):
+    - Total nodes: 29 (24 joints + 4 contact nodes + 1 root)
+    - Parent array: Defines bone hierarchy (each joint references its parent index)
+    - Contact nodes: 4 foot contacts for physics simulation (LeftFoot, RightFoot, LeftToe, RightToe)
+    - Root node: Pelvis/Hips with 6DOF (3 position XYZ + 3 rotation Euler angles)
+    - Joint nodes: 24 skeletal joints with 3DOF rotation (Euler angles in degrees)
+    - Feature representation: 174 dimensions = 29 nodes × 6 features per node
+    - Rotation formats: Euler angles (XYZ degrees), 6D continuous, or rotation matrices
+
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: Dictionary containing connector configuration
-        
-    Returns:
-        List of table schemas with columns and primary keys
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Validate required configuration
-    required_keys = ["gcp_project", "gcs_bucket", "bigquery_dataset"]
-    for key in required_keys:
-        if key not in configuration:
-            raise RuntimeError(f"Missing required configuration value: {key}")
-    
     return [
         {
             "table": "seed_motions",
@@ -51,8 +73,8 @@ def schema(configuration: dict):
                 "fps": "INT",
                 "joints_count": "INT",
                 "created_at": "UTC_DATETIME",
-                "updated_at": "UTC_DATETIME"
-            }
+                "updated_at": "UTC_DATETIME",
+            },
         },
         {
             "table": "build_motions",
@@ -66,8 +88,8 @@ def schema(configuration: dict):
                 "joints_count": "INT",
                 "build_method": "STRING",
                 "created_at": "UTC_DATETIME",
-                "updated_at": "UTC_DATETIME"
-            }
+                "updated_at": "UTC_DATETIME",
+            },
         },
         {
             "table": "blend_motions",
@@ -83,7 +105,6 @@ def schema(configuration: dict):
                 "file_uri": "STRING",
                 "created_at": "UTC_DATETIME",
                 "updated_at": "UTC_DATETIME",
-                # Quality metrics (computed post-ingestion)
                 "fid": "FLOAT",
                 "coverage": "FLOAT",
                 "global_diversity": "FLOAT",
@@ -102,133 +123,222 @@ def schema(configuration: dict):
                 "velocity_ratio": "FLOAT",
                 "acceleration_ratio": "FLOAT",
                 "quality_score": "FLOAT",
-                "quality_category": "STRING"
-            }
-        }
+                "quality_category": "STRING",
+            },
+        },
     ]
 
 
-def list_gcs_files(bucket_name: str, prefix: str, extensions: list, limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+def list_gcs_files(bucket_name: str, prefix: str, extensions: List[str], limit: Optional[int] = None) -> Iterator[Dict[str, Any]]:
     """
-    List files from GCS bucket with optional filtering.
-    
+    List files from GCS bucket with optional filtering and retry logic for transient failures.
+
     Args:
         bucket_name: GCS bucket name
         prefix: Blob prefix to scan
         extensions: List of file extensions to include (e.g., ['.bvh', '.fbx'])
         limit: Optional limit on number of files to process
-        
+
     Yields:
         Dictionary with file metadata
+
+    Raises:
+        RuntimeError: If all retry attempts fail for GCS operations
     """
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    blobs = bucket.list_blobs(prefix=prefix)
-    
+    log.info(f"Listing files from GCS bucket '{bucket_name}' with prefix '{prefix}'")
+
+    # Initialize blobs variable
+    blobs = None
+
+    # Retry logic for establishing GCS client connection with exponential backoff
+    for attempt in range(__MAX_RETRIES):
+        try:
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            blobs = bucket.list_blobs(prefix=prefix)
+            break
+        except (google_exceptions.GoogleAPIError,
+                google_exceptions.RetryError,
+                google_exceptions.ServerError,
+                requests_exceptions.ConnectionError,
+                requests_exceptions.Timeout,
+                requests_exceptions.HTTPError,
+                ConnectionError,
+                TimeoutError) as error:
+            # Transient errors that should be retried
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(f"Failed to connect to GCS after {__MAX_RETRIES} attempts: {str(error)}")
+                raise RuntimeError(f"GCS connection failed after {__MAX_RETRIES} retries: {str(error)}")
+
+            # Exponential backoff: 2^0=1s, 2^1=2s, 2^2=4s, capped at 60s
+            sleep_time = min(60, __RETRY_DELAY_SECONDS ** attempt)
+            log.warning(f"GCS connection attempt {attempt + 1}/{__MAX_RETRIES} failed (transient error), retrying in {sleep_time}s: {str(error)}")
+            time.sleep(sleep_time)
+        except (google_exceptions.PermissionDenied,
+                google_exceptions.Unauthenticated,
+                google_exceptions.NotFound,
+                ValueError) as error:
+            # Permanent errors that should not be retried
+            log.severe(f"GCS connection failed with permanent error: {str(error)}")
+            raise RuntimeError(f"GCS connection failed: {str(error)}")
+
+    # Safety check - should never happen due to raise in retry loop
+    if blobs is None:
+        raise RuntimeError("Failed to initialize GCS blob iterator")
+
     count = 0
     for blob in blobs:
         # Skip directories
         if blob.name.endswith('/'):
             continue
-        
+
         # Check file extension
         if not any(blob.name.lower().endswith(ext) for ext in extensions):
             continue
-        
+
         record = {
             "file_uri": f"gs://{bucket_name}/{blob.name}",
             "updated_at": blob.updated.isoformat() if blob.updated else None,
             "size": blob.size,
             "name": blob.name.split('/')[-1]
         }
-        
+
         yield record
-        
+
         count += 1
         if limit and count >= limit:
+            log.info(f"Reached limit of {limit} files for prefix '{prefix}'")
             break
+
+    log.info(f"Listed {count} files from prefix '{prefix}'")
 
 
 def infer_category(file_uri: str) -> str:
     """
     Infer motion category from GCS URI.
-    
+
     Args:
         file_uri: GCS URI path
-        
+
     Returns:
         Category name: 'seed', 'build', or 'blend'
     """
+    log.fine(f"Inferring category for file_uri: {file_uri}")
+
     if '/seed/' in file_uri:
-        return 'seed'
+        category = 'seed'
     elif '/build/' in file_uri:
-        return 'build'
+        category = 'build'
     elif '/blend/' in file_uri:
-        return 'blend'
-    return 'unknown'
+        category = 'blend'
+    else:
+        category = 'unknown'
+
+    log.fine(f"Inferred category '{category}' for file_uri: {file_uri}")
+    return category
 
 
 def generate_record_id(file_uri: str) -> str:
     """
     Generate deterministic record ID from file URI using SHA-1 hash.
-    
+
     Args:
         file_uri: GCS file URI
-        
+
     Returns:
         16-character hash string
     """
-    return hashlib.sha1(file_uri.encode()).hexdigest()[:16]
+    log.fine(f"Generating record ID for file_uri: {file_uri}")
+    record_id = hashlib.sha1(file_uri.encode()).hexdigest()[:16]
+    log.fine(f"Generated record ID: {record_id}")
+    return record_id
 
 
 def transform_seed_record(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform raw GCS metadata into seed_motions record."""
-    now = datetime.utcnow().isoformat()
-    return {
+    """
+    Transform raw GCS metadata into seed_motions record.
+
+    Args:
+        raw: Dictionary containing raw file metadata from GCS
+
+    Returns:
+        Dictionary formatted for seed_motions table
+    """
+    log.fine(f"Transforming seed record for file_uri: {raw.get('file_uri', 'unknown')}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
         "id": generate_record_id(raw["file_uri"]),
         "file_uri": raw["file_uri"],
-        "skeleton_id": "mixamo24",  # Default skeleton
+        "skeleton_id": __DEFAULT_SKELETON_ID,
         "frames": 0,  # Placeholder - would parse from BVH in production
-        "fps": 30,
-        "joints_count": 24,
+        "fps": __DEFAULT_FPS,
+        "joints_count": __DEFAULT_JOINTS_COUNT,
         "created_at": now,
         "updated_at": raw.get("updated_at", now)
     }
 
+    log.fine(f"Transformed seed record with ID: {record['id']}")
+    return record
+
 
 def transform_build_record(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform raw GCS metadata into build_motions record."""
-    now = datetime.utcnow().isoformat()
-    return {
+    """
+    Transform raw GCS metadata into build_motions record.
+
+    Args:
+        raw: Dictionary containing raw file metadata from GCS
+
+    Returns:
+        Dictionary formatted for build_motions table
+    """
+    log.fine(f"Transforming build record for file_uri: {raw.get('file_uri', 'unknown')}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    record = {
         "id": generate_record_id(raw["file_uri"]),
         "file_uri": raw["file_uri"],
-        "skeleton_id": "mixamo24",
+        "skeleton_id": __DEFAULT_SKELETON_ID,
         "frames": 0,
-        "fps": 30,
-        "joints_count": 24,
+        "fps": __DEFAULT_FPS,
+        "joints_count": __DEFAULT_JOINTS_COUNT,
         "build_method": "ganimator",
         "created_at": now,
         "updated_at": raw.get("updated_at", now)
     }
 
+    log.fine(f"Transformed build record with ID: {record['id']}")
+    return record
+
 
 def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform raw GCS metadata into blend_motions record with quality metrics placeholders."""
-    now = datetime.utcnow().isoformat()
+    """
+    Transform raw GCS metadata into blend_motions record with quality metrics placeholders.
+
+    Args:
+        raw: Dictionary containing raw file metadata from GCS
+
+    Returns:
+        Dictionary formatted for blend_motions table with placeholder quality metrics
+    """
+    log.fine(f"Transforming blend record for file_uri: {raw.get('file_uri', 'unknown')}")
+
+    now = datetime.now(timezone.utc).isoformat()
     file_id = generate_record_id(raw["file_uri"])
-    
-    return {
+
+    record = {
         "id": file_id,
-        "left_motion_id": f"{file_id}_left",  # Placeholder
-        "right_motion_id": f"{file_id}_right",  # Placeholder
-        "blend_ratio": 0.5,
-        "transition_start_frame": 0,
-        "transition_end_frame": 10,
-        "method": "snn",
+        "left_motion_id": None,
+        "right_motion_id": None,
+        "blend_ratio": None,
+        "transition_start_frame": None,
+        "transition_end_frame": None,
+        "method": "linear",
+
         "file_uri": raw["file_uri"],
         "created_at": now,
         "updated_at": raw.get("updated_at", now),
-        # Quality metrics (populated by post-processing pipeline)
+        # Quality metrics - placeholders for post-processing
         "fid": None,
         "coverage": None,
         "global_diversity": None,
@@ -250,78 +360,114 @@ def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
         "quality_category": None
     }
 
+    log.fine(f"Transformed blend record with ID: {record['id']}")
+    return record
+
 
 def update(configuration: dict, state: dict):
     """
-    Main sync function - extracts, transforms, and loads motion capture data.
-    
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Connector configuration from configuration.json
-        state: Sync state for incremental updates
-        
-    Yields:
-        Operations to upsert records and update cursor state
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
     # Extract configuration
     bucket = configuration.get("gcs_bucket")
     prefixes = configuration.get("gcs_prefixes", "").split(",")
     extensions = configuration.get("include_exts", ".bvh,.fbx").split(",")
     limit = configuration.get("batch_limit", 25)
-    
+
     log.info(f"Starting sync for bucket: {bucket}")
-    
+
+    # Initialize record counter for logging progress
+    total_records_synced = 0
+
     # Define table mappings
     table_map = {
         "seed": ("seed_motions", transform_seed_record),
         "build": ("build_motions", transform_build_record),
         "blend": ("blend_motions", transform_blend_record)
     }
-    
+
     # Process each prefix
     for prefix in prefixes:
         prefix = prefix.strip()
         if not prefix:
             continue
-        
+
         log.info(f"Processing prefix: {prefix}")
-        
+
         try:
+            # Initialize counter for this prefix
+            prefix_record_count = 0
+
             # List files from GCS
             for raw_record in list_gcs_files(bucket, prefix, extensions, limit):
                 category = infer_category(raw_record["file_uri"])
-                
+
                 if category not in table_map:
                     log.warning(f"Unknown category for file: {raw_record['file_uri']}")
                     continue
-                
+
                 table_name, transform_func = table_map[category]
-                
+
                 # Transform record
                 record = transform_func(raw_record)
-                
-                # Upsert to destination
-                yield op.upsert(table_name, record)
-                
-                log.info(f"Synced {record['id']} to {table_name}")
-            
+
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
+                op.upsert(table_name, record)
+
+                # Increment counters
+                prefix_record_count += 1
+                total_records_synced += 1
+
+                # Log progress every 100 records instead of per-record
+                if total_records_synced % __CHECKPOINT_INTERVAL == 0:
+                    log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
+
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             # Update cursor for this prefix
-            yield op.checkpoint(state={
-                "prefix": prefix,
-                "last_sync": datetime.utcnow().isoformat()
-            })
-            
-        except Exception as e:
-            log.error(f"Error processing prefix {prefix}: {str(e)}")
+            state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
+            op.checkpoint(state)
+
+            log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
+
+        except RuntimeError as runtime_error:
+            # RuntimeError indicates unrecoverable failures (e.g., GCS connection after retries)
+            log.severe(f"Fatal error processing prefix '{prefix}': {str(runtime_error)}")
             raise
-    
-    log.info("Sync completed successfully")
+        except (google_exceptions.GoogleAPIError,
+                requests_exceptions.RequestException,
+                KeyError,
+                ValueError) as error:
+            # Catch specific expected errors and re-raise with context
+            log.severe(f"Error processing prefix '{prefix}': {str(error)}")
+            raise RuntimeError(f"Failed to process prefix '{prefix}': {str(error)}")
+
+    log.info(f"Sync completed successfully: {total_records_synced} total records synced")
 
 
-# Create the connector instance
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-
-# This allows testing locally with `python connector.py`
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    import sys
-    connector.debug()
+    # For reading configuration from a JSON file
+    import json
+
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
+    connector.debug(configuration=configuration)

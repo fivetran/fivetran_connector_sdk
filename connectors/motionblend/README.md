@@ -45,8 +45,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "gcs_prefixes": "mocap/seed/,mocap/build/,mocap/blend/",
   "bigquery_dataset": "RAW",
   "batch_limit": 25,
-  "include_exts": ".bvh,.fbx",
-  "state_path": "state.json"
+  "include_exts": ".bvh,.fbx"
 }
 ```
 
@@ -57,7 +56,6 @@ Configuration keys:
 - `bigquery_dataset` – BigQuery dataset name (e.g., RAW, RAW_DEV)
 - `batch_limit` – Records per batch for BigQuery insert
 - `include_exts` – File extensions to process (comma-separated)
-- `state_path` – Path to state file for incremental sync
 
 Note: Do not check this file into version control, as it may contain credentials.
 
@@ -109,7 +107,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
 ```
 
 ## Pagination
-Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `extract.py` function `list_blobs()` (lines 18-65).
+Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 127-214).
 
 The connector implements:
 - Lazy iteration using `storage.Client().bucket().list_blobs(prefix=prefix)` iterator
@@ -117,54 +115,61 @@ The connector implements:
 - Configurable `limit` parameter for testing (processes first N files)
 - Filters out directories (names ending with `/`) and non-BVH/FBX files
 
-For incremental sync, the connector tracks cursors in `state.py` (refer to `update_cursor()` function, lines 54-79).
+For incremental sync, the connector tracks cursors in the `update()` function (refer to line 430: `state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()`).
 
 ## Data handling
-Files are discovered via GCS API, normalized, and streamed to BigQuery in JSON rows. Each stream (seed/build/blend) maps to its own BigQuery table (refer to `transform.py`, lines 1-130).
+Files are discovered via GCS API, normalized, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 253-370).
 
-Schemas are generated in `discover.py` through the `discover()` function and correspond to the table definitions below. Date fields are UTC ISO-8601 strings; numeric metrics (frames, fps) are integers.
+Schemas are defined in the `schema()` function (lines 49-125) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings; numeric metrics (frames, fps) are integers.
 
-**Data Transformation Pipeline:**
-1. **Extract** (`extract.py`) – List blobs from GCS, filter by file extension, yield metadata
-2. **Transform** (`transform.py`) – Normalize records based on category:
-   - Generate deterministic ID using SHA-1 hash of file URI
+Data Transformation Pipeline:
+1. Extract (`list_gcs_files()` function, lines 127-214) – List blobs from GCS, filter by file extension, yield metadata
+2. Transform (transform functions, lines 253-370) – Normalize records based on category:
+   - Generate deterministic ID using SHA-1 hash of file URI (`generate_record_id()`, lines 240-250)
    - Add default values for skeleton type, fps, and joint count
    - Convert timestamps to ISO 8601 format
-3. **Load** (`load.py`) – Insert records to BigQuery:
-   - Create table if not exists (with daily partitioning on `created_at`)
-   - Use `insert_rows_json()` for batch inserts
-   - Handle partial failures (log errors, continue processing)
+3. Load (`update()` function, lines 373-451) – Upsert records to destination:
+   - Tables are automatically created by Fivetran based on schema definition
+   - Uses `op.upsert()` operation for inserting/updating records
+   - Checkpoints state after each prefix to enable incremental sync
 
-**Type Conversions:**
-- GCS blob `updated_at` (datetime) → ISO 8601 string
-- Unix timestamps (int) → BigQuery TIMESTAMP
+Type Conversions:
 - File sizes (bytes) → INTEGER
 
 ## Error handling
-Refer to `retry_util.py` and `run_once.py` (lines 95-150).
+Refer to the `list_gcs_files()` function (lines 127-214) and `update()` function (lines 373-451) in `connector.py`.
 
 The connector implements:
-- Exponential backoff (0.5s → 30s)
-- Circuit breaker (opens when > 50% of a batch fails for 2 minutes)
-- Structured logging of all exceptions with correlation IDs
+- Exponential backoff with retry logic for transient GCS failures
+- Specific exception handling for permanent vs. transient errors
+- Comprehensive logging using the Fivetran SDK logging module
 
-Transient errors (HTTP 5xx, timeouts) are retried; persistent ones are logged to a local DLQ file.
+Retry Logic (refer to `list_gcs_files()` function, lines 145-180):
+- Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)
+- Max attempts: 3 retries before raising RuntimeError
+- Retryable errors: Transient GCS/network failures (GoogleAPIError, RetryError, ServerError, ConnectionError, Timeout, HTTPError)
+- Non-retryable: Authentication errors (PermissionDenied, Unauthenticated), invalid requests (NotFound, ValueError)
 
-**Retry Logic** (refer to `retry_util.py`, `retry_with_backoff()` decorator, lines 60-150):
-- Exponential backoff with jitter (10% variation to prevent thundering herd)
-- Max attempts: 7 retries before final failure
-- Retryable errors: Transient GCS/BigQuery failures (5xx, timeout, connection)
-- Non-retryable: Authentication errors (403), invalid requests (400)
+Error Categories:
+1. Transient errors (lines 150-169) – Retried with exponential backoff:
+   - `google_exceptions.GoogleAPIError`
+   - `google_exceptions.RetryError`
+   - `google_exceptions.ServerError`
+   - `requests_exceptions.ConnectionError`
+   - `requests_exceptions.Timeout`
+   - `requests_exceptions.HTTPError`
 
-**Circuit Breaker** (refer to `retry_util.py`, `CircuitBreaker` class, lines 20-58):
-- Failure threshold: 50% of requests in 5-minute window
-- Open state: Reject requests immediately for 120 seconds
-- Half-open state: Allow one test request to check recovery
+2. Permanent errors (lines 170-176) – Fail immediately:
+   - `google_exceptions.PermissionDenied`
+   - `google_exceptions.Unauthenticated`
+   - `google_exceptions.NotFound`
+   - `ValueError`
 
-**Structured Logging** (refer to `logging_util.py`, `StructuredLogger` class, lines 15-100):
-- Correlation IDs (UUID4) for request tracing across services
-- Timing decorators for automatic duration measurement
-- Context enrichment to add metadata to all log entries
+Logging (using Fivetran SDK `log` module throughout):
+- `log.info()` – Progress updates and operation completion
+- `log.warning()` – Retry attempts and recoverable issues
+- `log.severe()` – Fatal errors and exceptions
+- `log.fine()` – Detailed debugging information
 
 ## Tables created
 
@@ -193,25 +198,5 @@ Example schema snippet (`blend_motions`):
 
 All tables use daily partitioning on `created_at` field for query performance and cost optimization.
 
-## Additional files
-- `discover.py` – Defines table schemas for discovery
-- `extract.py` – Interfaces with GCS to list and fetch object metadata
-- `transform.py` – Normalizes raw GCS metadata into BigQuery schemas
-- `load.py` – Inserts JSON rows into BigQuery
-- `state.py` – Manages incremental cursors between syncs
-- `run_once.py` – Entry point orchestrating discover, extract, transform, and load phases
-- `logging_util.py` – Handles structured logging with correlation IDs
-- `retry_util.py` – Implements exponential backoff and circuit breaker
-- `config.yaml` – Configuration file for source/destination settings
-
 ## Additional considerations
-The MotionBlend connector example demonstrates a production-grade ingestion workflow for AI and animation datasets. It can be adapted for other file-based sources that use GCS metadata as the discovery mechanism.
-
-Key considerations:
-- Use least-privilege IAM roles and rotate credentials regularly
-- Batch size (default: 25) can be tuned based on record size and network latency
-- Partitioning reduces query costs and improves performance for date-range filters
-- BigQuery inserts are charged per API call; batch sizes balance latency vs cost
-- Schema evolution requires updating `discover.py`, `transform.py`, and `load.py`
-
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For assistance or questions, contact the Fivetran Support team or open an issue in the example repository.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
