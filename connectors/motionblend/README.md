@@ -59,39 +59,6 @@ Configuration keys:
 
 Note: Do not check this file into version control, as it may contain credentials.
 
-## Motion Blending Module
-The connector includes `blend_utils.py`, a lightweight Python module that calculates blend metadata for motion pairs. This module provides:
-
-Core Functions:
-- `create_blend_metadata(left_motion, right_motion, transition_frames)` – Generates complete blend record with calculated parameters
-- `calculate_blend_ratio(left_duration, right_duration)` – Computes blend ratio based on motion durations  
-- `calculate_transition_window(left_frames, right_frames, ratio)` – Determines transition start/end frames
-- `estimate_blend_quality(params)` – Heuristic quality score (0.0-1.0) based on motion compatibility
-- `generate_blend_id(left_uri, right_uri)` – Deterministic SHA-1 hash for blend pair identification
-
-Example Usage:
-```python
-from blend_utils import create_blend_metadata
-
-# Input motion records
-seed_motion = {'id': 'seed_001', 'file_uri': 'gs://bucket/walk.bvh', 'frames': 150, 'fps': 30}
-build_motion = {'id': 'build_001', 'file_uri': 'gs://bucket/run.bvh', 'frames': 180, 'fps': 30}
-
-# Generate blend metadata
-blend = create_blend_metadata(seed_motion, build_motion, transition_frames=30)
-# Returns: {'id': '...', 'blend_ratio': 0.455, 'transition_start_frame': 53, 
-#           'transition_end_frame': 83, 'estimated_quality': 0.884, ...}
-```
-
-Important Limitations:
-- Metadata calculation only – does not perform actual motion synthesis
-- Quality estimates are heuristic (duration/ratio-based), not motion-aware
-- For neural network-based blending, use [blendanim framework](https://github.com/RydlrCS/blendanim)
-- File contents (BVH/FBX) are not parsed; frame counts use placeholder values (0)
-- Actual blend quality requires L2 velocity/acceleration analysis on generated motions
-
-The blend_utils module is designed for cataloging blend operations and generating metadata records for the `blend_motions` table.
-
 ## Requirements file
 `requirements.txt` lists third-party Python dependencies used by the connector.
 
@@ -322,6 +289,41 @@ Example schema snippet (`blend_motions`):
 ```
 
 For optimal query performance and cost optimization, we recommend configuring daily partitioning on the `created_at` field in BigQuery. This must be set up in your BigQuery destination; the connector delivers the `created_at` field but does not configure partitioning automatically.
+
+## Additional files
+The connector uses the following additional file:
+- **blend_utils.py** – Motion blending metadata calculation module
+
+This lightweight Python module calculates blend metadata for motion pairs and provides the following core functions:
+
+- `create_blend_metadata(left_motion, right_motion, transition_frames)` – Generates complete blend record with calculated parameters
+- `calculate_blend_ratio(left_duration, right_duration)` – Computes blend ratio based on motion durations  
+- `calculate_transition_window(left_frames, right_frames, ratio)` – Determines transition start/end frames
+- `estimate_blend_quality(params)` – Heuristic quality score (0.0-1.0) based on motion compatibility
+- `generate_blend_id(left_uri, right_uri)` – Deterministic SHA-1 hash for blend pair identification
+
+Example Usage:
+```python
+from blend_utils import create_blend_metadata
+
+# Input motion records
+seed_motion = {'id': 'seed_001', 'file_uri': 'gs://bucket/walk.bvh', 'frames': 150, 'fps': 30}
+build_motion = {'id': 'build_001', 'file_uri': 'gs://bucket/run.bvh', 'frames': 180, 'fps': 30}
+
+# Generate blend metadata
+blend = create_blend_metadata(seed_motion, build_motion, transition_frames=30)
+# Returns: {'id': '...', 'blend_ratio': 0.455, 'transition_start_frame': 53, 
+#           'transition_end_frame': 83, 'estimated_quality': 0.884, ...}
+```
+
+Important Limitations:
+- Metadata calculation only – does not perform actual motion synthesis
+- Quality estimates are heuristic (duration/ratio-based), not motion-aware
+- For neural network-based blending, use [blendanim framework](https://github.com/RydlrCS/blendanim)
+- File contents (BVH/FBX) are not parsed; frame counts use placeholder values (0)
+- Actual blend quality requires L2 velocity/acceleration analysis on generated motions
+
+The blend_utils module is designed for cataloging blend operations and generating metadata records for the `blend_motions` table. Refer to the "Blend Metadata Calculation (blend_utils)" subsection in the Data handling section for usage details.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
