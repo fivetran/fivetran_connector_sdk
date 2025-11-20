@@ -3,13 +3,13 @@
 ## Connector overview
 This connector retrieves API security vulnerability data from the National Vulnerability Database (NVD) 2.0 API. It is designed to help security teams and developers monitor for vulnerabilities relevant to the OWASP API Security Top 10. The connector fetches Common Vulnerabilities and Exposures (CVEs) based on a configurable list of Common Weakness Enumerations (CWEs), processes the data, and syncs it to your destination. The CWEs drive what CVEs get fetched.
 
-### Accreditation
+### Contributor
 
-This connector was contributed by **[Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/)** (GitHub: [@aksaha9](https://github.com/aksaha9)).
+This connector was contributed by [Ashish Saha](https://www.linkedin.com/in/ashish-saha-senior-engineering-manager/) (GitHub: [@aksaha9](https://github.com/aksaha9)).
 
 Ashish is a seasoned API Security and DevSecOps specialist with over a decade of experience helping global enterprises secure APIs at scale, previously leading vulnerability management programs at a major financial institution.
 
-The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the **AI Accelerate Hackathon 2025 – Fivetran Challenge - https://devpost.com/software/owasp-api-vulnerability-adviso**.
+The OWASP API Vulnerabilities connector was developed as part of Ashish’s submission to the AI Accelerate Hackathon 2025 – Fivetran Challenge - https://devpost.com/software/owasp-api-vulnerability-adviso.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
@@ -43,11 +43,11 @@ The connector requires the following configuration parameters in the `configurat
 }
 ```
 
-- `api_key` - Your API key for the NVD 2.0 API.
-- `force_full_sync` - Set to `"true"` to ignore the saved state and perform a full re-sync. Defaults to `"false"`.
-- `write_temp_files` - Set to `"true"` to save the raw API responses to a local `raw_data` directory for debugging. Defaults to `"false"`.
-- `logging_level` - Set to `"standard"` for summary logging or `"debug"` for verbose, detailed logging. Defaults to `"debug"`.
-- `cwe_ids` - A comma-separated string of CWE IDs to filter the vulnerabilities. Defaults to a predefined list of OWASP-related CWEs.
+- `api_key` (required) - Your API key for the NVD 2.0 API.
+- `force_full_sync` (optional) - Set to `true` to ignore the saved state and perform a full re-sync. Defaults to `false`.
+- `write_temp_files` (optional) - Set to `true` to save the raw API responses to a local `raw_data` directory for debugging. Defaults to `false`.
+- `logging_level` (optional) - Set to `standard` for summary logging or `debug` for verbose, detailed logging. Defaults to `debug`.
+- `cwe_ids` (optional) - A comma-separated string of CWE IDs to filter the vulnerabilities. Defaults to a predefined list of OWASP-related CWEs.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -61,9 +61,9 @@ This connector authenticates with the NVD 2.0 API using an API key. The key is p
 
 To obtain an API key:
 1. Visit the [National Vulnerability Database website](https://nvd.nist.gov/developers/request-an-api-key).
-2. Click on "Request an API Key" and fill out the registration form.
+2. Click **Request an API Key** and fill out the registration form.
 3. Check your email for the API key confirmation.
-4. Copy the API key and add it to your `configuration.json` file.
+4. Make a note of the API key and add it to your `configuration.json` file.
 
 Note: While an API key is optional, using one provides higher rate limits (50 requests per 30 seconds vs 5 requests per 30 seconds for public access).
 
@@ -91,7 +91,10 @@ The connector implements several error-handling strategies within the `update` f
 ## Tables created
 The connector creates two tables in the destination, as defined in the `schema` function.
 
-1.  **`owasp_api_vulnerabilities`**: Stores the detailed vulnerability data.
+### OWASP_API_VULNERABILITIES
+
+Description: Stores detailed vulnerability data.
+
     ```json
     {
         "table": "owasp_api_vulnerabilities",
@@ -110,7 +113,10 @@ The connector creates two tables in the destination, as defined in the `schema` 
     }
     ```
 
-2.  **`owasp_api_sync_log`**: Records metadata for each sync operation.
+### OWASP_API__SYNC_LOGIC 
+
+Description: Records metadata for each sync operation.
+
     ```json
     {
         "table": "owasp_api_sync_log",
