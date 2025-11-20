@@ -50,6 +50,21 @@ def schema(configuration: dict):
     ]
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["api_token"]
+    for key in required_configs:
+        if key not in configuration or not configuration[key]:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function which lets you configure how your connector fetches data.
@@ -59,6 +74,9 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
+    # Validate configuration before proceeding
+    validate_configuration(configuration)
+
     log.warning("Example: API Connector : Goshippo Shipments Connector")
 
     api_token = configuration.get("api_token")
@@ -118,12 +136,12 @@ def sync_shipments(api_token, last_sync_time):
             shipment_updated = shipment.get("object_updated")
 
             # Client-side filtering for incremental sync since API doesn't support filtering
-            if last_sync_time and shipment_updated and shipment_updated <= last_sync_time:
+            if last_sync_time and shipment_updated and shipment_updated < last_sync_time:
                 continue
 
             process_shipment(shipment)
 
-            if shipment_updated and (new_sync_time is None or shipment_updated > new_sync_time):
+            if shipment_updated and (new_sync_time is None or shipment_updated >= new_sync_time):
                 new_sync_time = shipment_updated
 
             records_processed += 1
@@ -167,6 +185,9 @@ def fetch_shipments_page(api_token, page_token):
             handle_response_status(response, attempt)
             return response.json()
 
+        except requests.HTTPError:
+            # Retryable error - continue to next retry attempt
+            continue
         except (requests.Timeout, requests.ConnectionError) as e:
             handle_request_exception(e, attempt)
 
@@ -179,6 +200,9 @@ def handle_response_status(response, attempt):
     Args:
         response: The HTTP response object.
         attempt: Current retry attempt number.
+    Raises:
+        requests.HTTPError: For retryable errors to trigger retry logic.
+        RuntimeError: For non-retryable errors or after all retries exhausted.
     """
     if response.status_code == 200:
         return
@@ -190,7 +214,10 @@ def handle_response_status(response, attempt):
                 f"Request failed with status {response.status_code}, retrying in {delay}s (attempt {attempt + 1}/{__MAX_RETRIES})"
             )
             time.sleep(delay)
-            return
+            # Raise an exception to trigger the retry logic in fetch_shipments_page
+            raise requests.HTTPError(
+                f"Transient error {response.status_code} on attempt {attempt + 1}"
+            )
         else:
             error_message = (
                 f"Failed after {__MAX_RETRIES} attempts. Status: {response.status_code}"
