@@ -110,66 +110,6 @@ The connector creates the following tables in the destination:
 
 All table schemas are defined with primary keys only. Column data types are inferred by Fivetran based on the actual data. Nested objects are flattened with underscore-separated column names. Refer to the `schema` function in [connector.py](connector.py).
 
-## Testing
-
-### Prerequisites
-
-- A valid Elastic Email account with API access.
-- An API key with appropriate permissions.
-- Sample data in your Elastic Email account (campaigns, contacts, events, etc.).
-
-### Local testing
-
-1. Create a `configuration.json` file in the connector directory:
-   ```json
-   {
-     "api_key": "YOUR_ELASTIC_EMAIL_API_KEY"
-   }
-   ```
-
-2. Run the connector locally:
-   ```bash
-   python connector.py
-   ```
-
-3. Verify that the connector successfully syncs data from all endpoints without errors.
-
-### Testing with Fivetran CLI
-
-1. Use the Fivetran debug command to test the connector:
-   ```bash
-   fivetran debug
-   ```
-
-2. Follow the prompts to provide your configuration and run the connector in debug mode.
-
-### Testing incremental sync
-
-To test incremental sync for the `event` table:
-
-1. Run the connector once to perform an initial sync.
-2. Create new events in your Elastic Email account.
-3. Run the connector again and verify that only new events (after the last synced event date) are fetched.
-4. Check that the state file contains the `last_event_date` key with the correct timestamp.
-
-### Testing error handling
-
-1. Test with an invalid API key to verify authentication error handling.
-2. Test with restricted API permissions to verify graceful handling of access denied errors.
-3. Simulate network errors to verify retry logic and exponential backoff.
-
-### Validation checklist
-
-- [ ] All 13 tables are created in the destination
-- [ ] Data is correctly flattened (nested objects are converted to underscore-separated columns)
-- [ ] Primary keys are correctly set for each table
-- [ ] Incremental sync works correctly for the `event` table
-- [ ] Pagination works correctly for endpoints with more than 100 records
-- [ ] Checkpointing occurs every 500 records
-- [ ] Error messages are logged appropriately
-- [ ] The connector handles API rate limits gracefully
-- [ ] The connector completes successfully without leaving partial data
-
 ## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
