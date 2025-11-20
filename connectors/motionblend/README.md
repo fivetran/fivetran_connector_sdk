@@ -1,9 +1,15 @@
 # Rydlr MotionBlend Connector Example
 
 ## Connector overview
-The MotionBlend connector ingests motion-capture (MoCap) metadata from Google Cloud Storage (GCS) and delivers it to BigQuery for downstream transformation and analytics. It scans folders containing `.bvh` and `.fbx` files, extracts key metadata (such as motion type, frame rate, skeleton ID, and timestamps), and loads this structured information into BigQuery.
+The MotionBlend connector catalogs motion-capture (MoCap) file inventory from Google Cloud Storage (GCS) and delivers it to BigQuery for downstream transformation and analytics. It scans folders containing `.bvh` and `.fbx` files, extracts GCS blob metadata (file URIs, update timestamps, and file sizes), and loads this file catalog into BigQuery.
 
 This connector supports three motion categories – `seed_motions`, `build_motions`, and `blend_motions` – and is designed for AI and animation pipelines that analyze or generate blended human motion sequences.
+
+**Current Limitations:**
+- Motion-specific metadata (frame count, FPS, joint counts, skeleton IDs) use static placeholder values
+- Quality metrics in blend records are set to NULL and require post-processing
+- File contents are NOT parsed; only GCS blob metadata (URI, timestamps, size) is extracted
+- Suitable for building a file catalog and tracking file locations; full metadata extraction requires additional processing steps
 
 Typical use cases include:
 - Motion analytics for animation and gaming studios
@@ -24,14 +30,14 @@ Typical use cases include:
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- Lists and ingests motion-capture files from GCS
-- Normalizes metadata into three logical streams: `seed_motions`, `build_motions`, `blend_motions`
+- Lists and catalogs motion-capture files from GCS
+- Normalizes file inventory into three logical streams: `seed_motions`, `build_motions`, `blend_motions`
 - Incremental sync using blob `updated` timestamps to process only new or modified files
 - Deterministic record IDs (SHA-1 hash of file path) for idempotent loads
 - Exponential backoff retry logic for transient GCS failures
 - Checkpointing every 100 records for fault tolerance on large datasets
 - SDK-based structured logging for operational visibility
-- Configurable batch sizes (default: 25 records) for optimal performance
+- Configurable batch limit for testing (WARNING: batch limits prevent state updates to avoid data loss)
 
 ## Configuration file
 `configuration.json` defines the connector parameters uploaded to Fivetran.
@@ -48,10 +54,43 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 Configuration keys:
 - `google_cloud_storage_bucket` – GCS bucket name containing motion files
 - `google_cloud_storage_prefixes` – Comma-separated list of prefixes to scan
-- `batch_limit` – Maximum number of files to process per sync (for testing)
+- `batch_limit` – Maximum number of files to process per prefix per sync (TESTING ONLY - state is not updated when limit is reached to prevent data loss; remove for production use)
 - `include_extensions` – File extensions to process (comma-separated)
 
 Note: Do not check this file into version control, as it may contain credentials.
+
+## Motion Blending Module
+The connector includes `blend_utils.py`, a lightweight Python module that calculates blend metadata for motion pairs. This module provides:
+
+**Core Functions:**
+- `create_blend_metadata(left_motion, right_motion, transition_frames)` – Generates complete blend record with calculated parameters
+- `calculate_blend_ratio(left_duration, right_duration)` – Computes blend ratio based on motion durations  
+- `calculate_transition_window(left_frames, right_frames, ratio)` – Determines transition start/end frames
+- `estimate_blend_quality(params)` – Heuristic quality score (0.0-1.0) based on motion compatibility
+- `generate_blend_id(left_uri, right_uri)` – Deterministic SHA-1 hash for blend pair identification
+
+**Example Usage:**
+```python
+from blend_utils import create_blend_metadata
+
+# Input motion records
+seed_motion = {'id': 'seed_001', 'file_uri': 'gs://bucket/walk.bvh', 'frames': 150, 'fps': 30}
+build_motion = {'id': 'build_001', 'file_uri': 'gs://bucket/run.bvh', 'frames': 180, 'fps': 30}
+
+# Generate blend metadata
+blend = create_blend_metadata(seed_motion, build_motion, transition_frames=30)
+# Returns: {'id': '...', 'blend_ratio': 0.455, 'transition_start_frame': 53, 
+#           'transition_end_frame': 83, 'estimated_quality': 0.884, ...}
+```
+
+**Important Limitations:**
+- Metadata calculation only – does not perform actual motion synthesis
+- Quality estimates are heuristic (duration/ratio-based), not motion-aware
+- For neural network-based blending, use [blendanim framework](https://github.com/RydlrCS/blendanim)
+- File contents (BVH/FBX) are not parsed; frame counts use placeholder values (0)
+- Actual blend quality requires L2 velocity/acceleration analysis on generated motions
+
+The blend_utils module is designed for cataloging blend operations and generating metadata records for the `blend_motions` table.
 
 ## Requirements file
 `requirements.txt` lists third-party Python dependencies used by the connector.
@@ -104,51 +143,63 @@ The service account needs the following IAM role:
 - `roles/storage.objectViewer` - Read access to GCS buckets and objects
 
 ## Pagination
-Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 134-225).
+Not applicable. The connector uses a streaming approach, iterating through GCS object listings with a configurable limit (`batch_limit`). See `list_gcs_files()` function in `connector.py` (lines 137-228).
 
 The connector implements:
 - Lazy iteration using `storage.Client().bucket().list_blobs(prefix=prefix)` iterator
 - No pagination tokens required; processes blobs as they are discovered
-- Configurable `limit` parameter for testing (processes first N files)
+- Configurable `limit` parameter for testing (processes first N files per prefix)
 - Filters out directories (names ending with `/`) and non-BVH/FBX files
 
-For incremental sync, the connector tracks cursors in the `update()` function (refer to line 455: `state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()`).
+**Important:** When `batch_limit` is configured, the connector will NOT update state for that prefix when the limit is reached. This prevents data loss where remaining unprocessed files would be permanently skipped. The next sync will re-process from the last successful full sync. For production use, remove `batch_limit` or set it to a very high value.
+
+For incremental sync, the connector tracks cursors in the `update()` function by recording the maximum `updated_at` timestamp from successfully processed files (lines 476-478, 503-518).
 
 ## Data handling
-Files are discovered via GCS API, normalized, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 268-376).
+Files are discovered via GCS API, cataloged with blob metadata, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 271-393).
 
-Schemas are defined in the `schema()` function (lines 46-131) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings; numeric metrics (frames, fps) are integers.
+Schemas are defined in the `schema()` function (lines 49-134) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings.
 
 Data Transformation Pipeline:
-1. Extract (`list_gcs_files()` function, lines 134-225) – List blobs from GCS, filter by file extension, yield metadata
-2. Transform (transform functions, lines 268-376) – Normalize records based on category:
-   - Generate deterministic ID using SHA-1 hash of file URI (`generate_record_id()`, lines 252-265)
-   - Add default values for skeleton type, fps, and joint count
-   - Convert timestamps to ISO 8601 format
-3. Load (`update()` function, lines 378-472) – Upsert records to destination:
+1. Extract (`list_gcs_files()` function, lines 137-228) – List blobs from GCS, filter by file extension, yield GCS metadata:
+   - **Actual extracted data:** `file_uri`, `updated_at` (from GCS blob), `size`, `name`
+   - **NOT extracted:** File contents are not parsed; motion-specific metadata is not extracted
+2. Transform (transform functions, lines 271-393) – Normalize records based on category:
+   - Generate deterministic ID using SHA-1 hash of file URI (`generate_record_id()`, lines 255-268)
+   - **Add placeholder values** for skeleton type ("mixamo24"), fps (30), joint count (24), and frames (0)
+   - Preserve actual GCS timestamps and file URIs
+   - Quality metrics (blend_quality, transition_smoothness) are set to NULL
+3. Load (`update()` function, lines 411-557) – Upsert records to destination:
    - Tables are automatically created by Fivetran based on schema definition
    - Uses `op.upsert()` operation for inserting/updating records
-   - Checkpoints state after each prefix to enable incremental sync
+   - Tracks maximum `updated_at` timestamp from processed files for accurate state management
+   - Checkpoints state after each prefix (unless `batch_limit` was reached)
+
+**Data Accuracy:**
+- ✅ Accurate: File URIs, GCS update timestamps, file names
+- ⚠️ Placeholder: Frame counts, FPS, skeleton IDs, joint counts, quality metrics
+- ❌ Not extracted: Actual motion data requires parsing BVH/FBX file contents
 
 Type Conversions:
 - File sizes (bytes) → INTEGER
+- GCS blob timestamps → UTC ISO-8601 strings
 
 ## Error handling
-Refer to the `list_gcs_files()` function (lines 134-225) and `update()` function (lines 378-472) in `connector.py`.
+Refer to the `list_gcs_files()` function (lines 137-228) and `update()` function (lines 411-557) in `connector.py`.
 
 The connector implements:
 - Exponential backoff with retry logic for transient GCS failures
 - Specific exception handling for permanent vs. transient errors
 - Comprehensive logging using the Fivetran SDK logging module
 
-Retry Logic (refer to `list_gcs_files()` function, lines 158-193):
+Retry Logic (refer to `list_gcs_files()` function, lines 161-196):
 - Exponential backoff: delays of 1s, 2s, 4s (capped at 60s)
 - Max attempts: 3 retries before raising RuntimeError
 - Retryable errors: Transient GCS/network failures (GoogleAPIError, RetryError, ServerError, ConnectionError, Timeout, HTTPError)
 - Non-retryable: Authentication errors (PermissionDenied, Unauthenticated), invalid requests (NotFound, ValueError)
 
 Error Categories:
-1. Transient errors (lines 165-184) – Retried with exponential backoff:
+1. Transient errors (lines 168-187) – Retried with exponential backoff:
    - `google_exceptions.GoogleAPIError`
    - `google_exceptions.RetryError`
    - `google_exceptions.ServerError`
@@ -156,7 +207,7 @@ Error Categories:
    - `requests_exceptions.Timeout`
    - `requests_exceptions.HTTPError`
 
-2. Permanent errors (lines 186-193) – Fail immediately:
+2. Permanent errors (lines 189-196) – Fail immediately:
    - `google_exceptions.PermissionDenied`
    - `google_exceptions.Unauthenticated`
    - `google_exceptions.NotFound`

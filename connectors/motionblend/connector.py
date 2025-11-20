@@ -35,6 +35,9 @@ import time  # For implementing retry delays with exponential backoff in GCS ope
 from typing import Iterator, Dict, Any, Optional  # For type hints to improve code clarity and IDE support
 from datetime import datetime, timezone  # For generating UTC timestamps in ISO 8601 format
 
+# Import motion blending utilities
+from blend_utils import create_blend_metadata
+
 # Default configuration constants for motion capture metadata
 __DEFAULT_SKELETON_ID = "mixamo24"  # Default skeleton identifier for motion data
 __DEFAULT_FPS = 30  # Default frames per second for motion capture
@@ -204,7 +207,7 @@ def list_gcs_files(bucket_name: str, prefix: str, extensions: list[str], limit: 
         # Filter by last sync time for incremental sync
         if last_sync_time and blob.updated:
             blob_updated_str = blob.updated.isoformat()
-            if blob_updated_str < last_sync_time:
+            if blob_updated_str <= last_sync_time:
                 continue
 
         record = {
@@ -322,34 +325,50 @@ def transform_build_record(raw: Dict[str, Any]) -> Dict[str, Any]:
     return record
 
 
-def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
+def transform_blend_record(raw: Dict[str, Any], left_motion: Optional[Dict[str, Any]] = None, right_motion: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Transform raw GCS metadata into blend_motions record with quality metrics placeholders.
+    Transform raw GCS metadata or motion pair into blend_motions record.
 
     Args:
         raw: Dictionary containing raw file metadata from GCS
+        left_motion: Optional left motion record for blend pair generation
+        right_motion: Optional right motion record for blend pair generation
 
     Returns:
-        Dictionary formatted for blend_motions table with placeholder quality metrics
+        Dictionary formatted for blend_motions table
     """
     log.fine(f"Transforming blend record for file_uri: {raw.get('file_uri', 'unknown')}")
 
     now = datetime.now(timezone.utc).isoformat()
-    file_id = generate_record_id(raw["file_uri"])
+
+    # If motion pair is provided, generate blend metadata
+    if left_motion and right_motion:
+        blend_meta = create_blend_metadata(
+            left_motion=left_motion,
+            right_motion=right_motion,
+            transition_frames=30  # Default 1 second at 30fps
+        )
+        file_id = blend_meta['id']
+        log.fine(f"Generated blend metadata for pair: {left_motion['id']} + {right_motion['id']}")
+    else:
+        # Fallback to file-based record
+        file_id = generate_record_id(raw["file_uri"])
+        blend_meta = {}
 
     record = {
         "id": file_id,
-        "left_motion_id": None,
-        "right_motion_id": None,
-        "blend_ratio": None,
-        "transition_start_frame": None,
-        "transition_end_frame": None,
+        "left_motion_id": blend_meta.get("left_motion_id"),
+        "right_motion_id": blend_meta.get("right_motion_id"),
+        "blend_ratio": blend_meta.get("blend_ratio"),
+        "transition_start_frame": blend_meta.get("transition_start_frame"),
+        "transition_end_frame": blend_meta.get("transition_end_frame"),
         "method": "linear",
 
-        "file_uri": raw["file_uri"],
-        "created_at": now,
-        "updated_at": raw.get("updated_at", now),
-        # Quality metrics - placeholders for post-processing
+        "file_uri": raw.get("file_uri", blend_meta.get("left_motion_uri", "")),
+        "created_at": blend_meta.get("created_at", now),
+        "updated_at": blend_meta.get("updated_at", raw.get("updated_at", now)),
+
+        # Quality metrics - populated from blend_utils estimates or left as placeholders
         "fid": None,
         "coverage": None,
         "global_diversity": None,
@@ -364,15 +383,33 @@ def transform_blend_record(raw: Dict[str, Any]) -> Dict[str, Any]:
         "l2_acceleration_std": None,
         "l2_acceleration_max": None,
         "l2_acceleration_transition": None,
-        "transition_smoothness": None,
+        "transition_smoothness": blend_meta.get("transition_smoothness"),
         "velocity_ratio": None,
         "acceleration_ratio": None,
-        "quality_score": None,
+        "quality_score": blend_meta.get("estimated_quality"),
         "quality_category": None
     }
 
     log.fine(f"Transformed blend record with ID: {record['id']}")
     return record
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector
+    has all necessary configuration values.
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["gcs_bucket"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 
 def update(configuration: dict, state: dict):
@@ -385,6 +422,7 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: Connectors : MotionBlend")
+    validate_configuration(configuration)
 
     # Extract configuration
     bucket = configuration.get("google_cloud_storage_bucket")
@@ -427,6 +465,12 @@ def update(configuration: dict, state: dict):
             # Initialize counter for this prefix
             prefix_record_count = 0
 
+            # Track the maximum timestamp from processed files for accurate state management
+            max_updated_at = last_sync_time
+
+            # Track whether we hit the artificial batch limit (for testing)
+            hit_batch_limit = False
+
             # List files from GCS with incremental sync support
             for raw_record in list_gcs_files(bucket, prefix, extensions, limit, last_sync_time):
                 category = infer_category(raw_record["file_uri"])
@@ -445,13 +489,19 @@ def update(configuration: dict, state: dict):
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table_name, record)
 
+                # Update max timestamp if this record is newer
+                if raw_record.get("updated_at"):
+                    if max_updated_at is None or raw_record["updated_at"] > max_updated_at:
+                        max_updated_at = raw_record["updated_at"]
+
                 # Increment counters
                 prefix_record_count += 1
                 total_records_synced += 1
 
                 # Checkpoint every 100 records to preserve progress for large datasets
                 if total_records_synced % __CHECKPOINT_INTERVAL == 0:
-                    state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
+                    if max_updated_at:
+                        state[f"last_sync_{prefix}"] = max_updated_at
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
                     # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -459,13 +509,27 @@ def update(configuration: dict, state: dict):
                     op.checkpoint(state)
                     log.info(f"Synced {total_records_synced} total records ({prefix_record_count} from prefix '{prefix}')")
 
+            # Check if we hit the batch limit
+            if limit and prefix_record_count >= limit:
+                hit_batch_limit = True
+                log.warning(
+                    f"Batch limit of {limit} reached for prefix '{prefix}'. State will NOT be updated to prevent data loss. "
+                    f"Remaining files (if any) will be processed in the next sync. "
+                    f"For production use, remove batch_limit or set to a high value."
+                )
+
             # Final checkpoint after completing prefix
-            state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(state)
+            # Only update state if we didn't hit an artificial batch limit to prevent skipping unprocessed files
+            if not hit_batch_limit and max_updated_at:
+                state[f"last_sync_{prefix}"] = max_updated_at
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+            elif hit_batch_limit:
+                # Still checkpoint to save progress of other prefixes, but don't update this prefix's state
+                op.checkpoint(state)
 
             log.info(f"Completed processing prefix '{prefix}': {prefix_record_count} records synced")
 
