@@ -787,7 +787,7 @@ def update(configuration: dict, state: Dict[str, Any]):
         configuration: A dictionary containing DocuSign API connection details
         state: A dictionary containing state information from previous runs
     """
-    log.info("DocuSign: eSignature API Connector")
+    log.warning("Example: Source Examples - DocuSign: eSignature API Connector")
     validate_configuration(configuration)
     try:
         if not state:
