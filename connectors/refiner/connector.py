@@ -321,7 +321,9 @@ def process_single_response(response: dict, latest_timestamp: str) -> tuple[int,
 
     # Update latest timestamp
     current_timestamp = get_response_timestamp(response)
-    if current_timestamp and current_timestamp > latest_timestamp:
+    current_dt = parse_iso_datetime(current_timestamp) if current_timestamp else None
+    latest_dt = parse_iso_datetime(latest_timestamp) if latest_timestamp else None
+    if current_dt and latest_dt and current_dt > latest_dt:
         latest_timestamp = current_timestamp
 
     return 1, latest_timestamp
