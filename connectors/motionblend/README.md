@@ -115,17 +115,17 @@ The connector implements:
 For incremental sync, the connector tracks cursors in the `update()` function (refer to line 455: `state[f"last_sync_{prefix}"] = datetime.now(timezone.utc).isoformat()`).
 
 ## Data handling
-Files are discovered via GCS API, normalized, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 265-373).
+Files are discovered via GCS API, normalized, and streamed to the destination via Fivetran operations. Each stream (seed/build/blend) maps to its own table (refer to `transform_seed_record()`, `transform_build_record()`, and `transform_blend_record()` functions in `connector.py`, lines 268-376).
 
-Schemas are defined in the `schema()` function (lines 43-128) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings; numeric metrics (frames, fps) are integers.
+Schemas are defined in the `schema()` function (lines 46-131) and correspond to the table definitions below. Date fields are UTC ISO-8601 strings; numeric metrics (frames, fps) are integers.
 
 Data Transformation Pipeline:
-1. Extract (`list_gcs_files()` function, lines 131-222) – List blobs from GCS, filter by file extension, yield metadata
-2. Transform (transform functions, lines 265-373) – Normalize records based on category:
-   - Generate deterministic ID using SHA-1 hash of file URI (`generate_record_id()`, lines 249-262)
+1. Extract (`list_gcs_files()` function, lines 134-225) – List blobs from GCS, filter by file extension, yield metadata
+2. Transform (transform functions, lines 268-376) – Normalize records based on category:
+   - Generate deterministic ID using SHA-1 hash of file URI (`generate_record_id()`, lines 252-265)
    - Add default values for skeleton type, fps, and joint count
    - Convert timestamps to ISO 8601 format
-3. Load (`update()` function, lines 375-469) – Upsert records to destination:
+3. Load (`update()` function, lines 378-472) – Upsert records to destination:
    - Tables are automatically created by Fivetran based on schema definition
    - Uses `op.upsert()` operation for inserting/updating records
    - Checkpoints state after each prefix to enable incremental sync
@@ -193,7 +193,7 @@ Example schema snippet (`blend_motions`):
 }
 ```
 
-All tables use daily partitioning on `created_at` field for query performance and cost optimization.
+For optimal query performance and cost optimization, we recommend configuring daily partitioning on the `created_at` field in BigQuery. This must be set up in your BigQuery destination; the connector delivers the `created_at` field but does not configure partitioning automatically.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
