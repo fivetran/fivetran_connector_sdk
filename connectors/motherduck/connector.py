@@ -82,9 +82,7 @@ def build_table_schema(conn, database: str, schema_name: str, table_name: str):
     }
 
 
-def build_all_table_schemas(
-    conn, database: str, schemas: List[str]
-) -> List[Dict[str, Any]]:
+def build_all_table_schemas(conn, database: str, schemas: List[str]) -> List[Dict[str, Any]]:
     """
     Build table schema definitions for all tables across schemas.
 
@@ -207,13 +205,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
             incr = find_incremental(columns, incremental_column)
             if incr:
-                incremental_sync(
-                    conn, database, schema_name, table_name, incr, table_state, state
-                )
+                incremental_sync(conn, database, schema_name, table_name, incr, table_state, state)
             else:
-                reimport_sync(
-                    conn, database, schema_name, table_name, table_state, state
-                )
+                reimport_sync(conn, database, schema_name, table_name, table_state, state)
 
     conn.close()
 
@@ -354,9 +348,7 @@ def connect(token: str, database: str = None):
         DuckDB connection object
     """
     conn_str = (
-        f"md:{database}?motherduck_token={token}"
-        if database
-        else f"md:?motherduck_token={token}"
+        f"md:{database}?motherduck_token={token}" if database else f"md:?motherduck_token={token}"
     )
 
     log.info(f"Connecting to MotherDuck ({database or 'default DB'})")
@@ -369,9 +361,7 @@ def connect(token: str, database: str = None):
                 log.severe(f"Connection failed after {__MAX_RETRIES} attempts: {err}")
                 raise
             wait = min(60, 2**attempt)
-            log.warning(
-                f"Connection attempt {attempt + 1} failed, retrying in {wait}s: {err}"
-            )
+            log.warning(f"Connection attempt {attempt + 1} failed, retrying in {wait}s: {err}")
             time.sleep(wait)
 
 
@@ -535,9 +525,7 @@ def row_id(row: Dict[str, Any]) -> str:
     Returns:
         MD5 hash string.
     """
-    return hashlib.md5(
-        json.dumps(row, sort_keys=True, default=str).encode()
-    ).hexdigest()
+    return hashlib.md5(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def checksum(row: Dict[str, Any]) -> str:
@@ -550,9 +538,7 @@ def checksum(row: Dict[str, Any]) -> str:
     Returns:
         SHA256 hash string.
     """
-    return hashlib.sha256(
-        json.dumps(row, sort_keys=True, default=str).encode()
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def validate_configuration(configuration: Dict[str, Any]):
