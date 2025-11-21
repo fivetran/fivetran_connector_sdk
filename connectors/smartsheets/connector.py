@@ -1,19 +1,35 @@
+# For generating MD5 hashes of row IDs as primary keys
 import hashlib
+# For reading configuration from a JSON file
 import json
+# For normalizing column names and table names
 import re
+# For rate limiting and retry backoff delays
 import time
+# For flattening nested dictionaries
 from collections.abc import MutableMapping
+# For creating configuration and state classes
 from dataclasses import dataclass
+# For datetime operations and timezone handling
 from datetime import datetime, timedelta, timezone
+# For precise numeric calculations without floating point errors
 from decimal import Decimal
+# For defining column type constants
 from enum import Enum
+# For type hints and annotations
 from typing import Any, Dict, List, Optional, Union
 
+# For making HTTP requests to the Smartsheet API
 import requests
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+# For implementing retry logic with exponential backoff
 from requests.adapters import HTTPAdapter
+# For configuring retry strategy for failed requests
 from urllib3.util.retry import Retry
 
 # Private constants
