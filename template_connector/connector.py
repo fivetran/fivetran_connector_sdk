@@ -132,6 +132,7 @@ def update(configuration: dict, state: dict):
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(new_state)
+        log.info(f"Data synced till {new_updated_at}")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
