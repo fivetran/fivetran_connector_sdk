@@ -149,7 +149,6 @@ def fetch_news_page(
     api_key: str,
     *,
     page: int = 1,
-    page_size: int = 100,
     sort_by: str = "popularity",
     endpoint: str = __GNEWSAPI_ENDPOINT,
     retries: int = 5,
@@ -169,7 +168,6 @@ def fetch_news_page(
         from_date (str): Start date (YYYY-MM-DD) for filtering news.
         api_key (str): GNewsAPI authentication key.
         page (int): The current page number to fetch.
-        page_size (int): Number of articles per page (max 100).
         sort_by (str): Sorting method (e.g., 'popularity', 'publishedAt').
         endpoint (str): API endpoint URL.
         retries (int): Max number of retry attempts for transient errors.
@@ -381,3 +379,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
