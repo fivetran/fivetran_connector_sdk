@@ -1,57 +1,31 @@
 # Amazon S3 (Glacier-aware) Connector Example
 
 ## Connector overview
+This connector extracts object metadata from an Amazon S3 bucket using the `boto3` library. It supports standard and Glacier storage classes and includes incremental sync, pagination, checkpointing, and error handling.
 
-This connector extracts object metadata from an Amazon S3 bucket using the boto3 library. It demonstrates how to:
-- List S3 objects within a bucket and prefix.
-- Capture Glacier storage class restore statuses.
-- Perform incremental synchronization using the `LastModified` field.
-- Track and checkpoint synchronization progress for reliability.
-
-It supports AWS S3 Standard, Infrequent Access, and Glacier-compatible storage classes, and it captures metadata such as file size, ETag, storage class, and last modification timestamps.
-
-Authentication is performed using standard AWS IAM credentials (access key ID and secret access key, optionally a session token) with permissions to list and read objects in the configured S3 buckets (e.g. `s3:ListBucket`, `s3:GetObject`).
-
----
+It is useful for tracking usage, Glacier restore statuses, and incremental file change history in data lakes or cold storage.
 
 ## Requirements
-
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-- Active AWS account with S3 access.
-- Appropriate IAM permissions to call:
-    - `s3:ListBucket`
-    - `s3:GetObject`
-    - `s3:HeadObject`
-    - `s3:ListBucketVersions`
-
----
+  - Linux: Ubuntu 20.04 or later, Debian 10 or later, Amazon Linux 2 (arm64 or x86_64)
+- AWS account with appropriate S3 access
 
 ## Getting started
-
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
----
-
 ## Features
-
-- Connects securely to AWS S3 using `boto3`.
-- Lists and retrieves metadata for all S3 objects in a bucket and prefix.
-- Supports incremental synchronization using the `LastModified` field.
-- Automatically handles Glacier and Deep Archive storage classes:
-    - Detects Glacier objects and retrieves restoration metadata (status and expiry).
-- Tracks progress via checkpoints for resumable syncs.
-- Handles pagination automatically using `ContinuationToken`.
-- Logs sync activity and progress for each run.
-
----
+- Full and incremental sync based on `LastModified`
+- Glacier and Deep Archive support via `Restore` header
+- Pagination with AWS continuation tokens
+- Soft checkpointing for resumable syncs
+- Robust error handling with backoff and retries
+- Logs each sync’s progress and outcomes
 
 ## Configuration file
-
-The connector requires the following configuration parameters:
+The `configuration.json` file should contain:
 
 ```json
 {
@@ -63,125 +37,76 @@ The connector requires the following configuration parameters:
 }
 ```
 
-Configuration parameters:
-- `aws_access_key_id` (required) - Your AWS access key ID.
-- `aws_secret_access_key` (required) - Your AWS secret access key.
-- `aws_region` (required) - The AWS region where your S3 bucket is hosted.
-- `bucket` (required) - The S3 bucket name.
-- `prefix` (optional) - The S3 prefix (folder path) to filter objects.
+| Key                   | Description                                           | Required |
+|------------------------|-------------------------------------------------------|----------|
+| aws_access_key_id      | Your AWS access key ID                                | Yes      |
+| aws_secret_access_key  | Your AWS secret access key                            | Yes      |
+| aws_region             | AWS region where your bucket resides                  | Yes      |
+| bucket                 | The target S3 bucket                                  | Yes      |
+| prefix                 | Object prefix (folder) filter                         | No       |
 
-
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
-
----
+Note: Do not commit this file to source control.
 
 ## Requirements file
-
-This connector requires the boto3 library to interact with AWS S3.
+This connector requires the following libraries:
 
 ```
 boto3==1.40.59
 botocore==1.40.59
 ```
 
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
-
----
+Note: `fivetran_connector_sdk` and `requests` are pre-installed in the Fivetran runtime and should not be listed.
 
 ## Authentication
+AWS credentials are passed via `boto3.session.Session` initialized using the fields from `configuration.json`.
 
-The connector uses AWS IAM credentials for authentication. The credentials are read from the `configuration.json` file and used to initialize a `boto3` session.
+Refer to: `boto3.session.Session(...)` in the connector setup block.
 
-It uses the following authentication flow:
-```python
-session = boto3.session.Session(
-    aws_access_key_id=configuration.get("aws_access_key_id"),
-    aws_secret_access_key=configuration.get("aws_secret_access_key"),
-    region_name=configuration.get("aws_region")
-)
-```
-
-### Permissions required:
-The IAM user or role running this connector must have the following S3 permissions:
+IAM permissions required:
 - `s3:ListBucket`
 - `s3:GetObject`
 - `s3:HeadObject`
-
-If you want to include Glacier restores:
-- `s3:RestoreObject`
-
----
+- `s3:RestoreObject` (optional, for Glacier restores)
 
 ## Pagination
+Pagination is handled using `list_objects_v2()` with `NextContinuationToken`.
 
-The connector uses AWS S3’s native pagination mechanism via the `list_objects_v2()` API:
-- Fetches objects in batches (`MaxKeys` = page size).
-- Automatically continues to the next page using the `NextContinuationToken`.
-- Stops once all objects have been retrieved.
-
-This ensures memory-efficient processing and smooth scaling for large buckets.
-
----
+Refer to: `def list_s3_objects(...)`
 
 ## Data handling
+- Uses `LastModified` for incremental sync
+- Checks storage class; if Glacier, inspects restore status via `head_object`
+- Extracts and syncs:
+  - Key
+  - Size
+  - ETag
+  - Storage Class
+  - LastModified
+  - Restore Status / Expiry (if applicable)
 
-The connector processes S3 object metadata in the following manner:
-
-- List Objects
-    - Uses `list_objects_v2` to retrieve object metadata for a given bucket and prefix.
-    - Extracts fields such as:
-        - `Object Key`
-        - `Size`
-        - `ETag`
-        - `Storage Class`
-        - `LastModified timestamp`
-
-- Handle Glacier Objects
-    - For objects stored in Glacier or Deep Archive, calls `head_object()` to inspect the `Restore` header.
-    - Parses restoration status and expiry date if available.
-
-- Incremental Sync
-    - Tracks the most recent `LastModified` timestamp.
-    - Skips previously synced objects to prevent duplicates.
-
----
+Refer to: `def sync_s3_metadata(...)` and `def parse_restore_info(...)`
 
 ## Error handling
+- Retries on network failures and throttling
+- Logs and continues on 4xx errors
+- Graceful error tracking for Glacier restore failures
 
-The connector implements robust error handling for:
-- Network failures: Retries automatically up to 10 times with backoff.
-- Client errors (4xx): Logs detailed error messages.
-- Glacier restore errors: Captures and records errors in the `restore_status` column.
-- API throttling: Handles `ThrottlingException` and rate limits via exponential backoff.
-
-All errors are logged using the Fivetran SDK’s logging system for debugging and monitoring.
-
-Example log output:
-```
-INFO: Starting S3 sync bucket=my-bucket prefix=logs/
-WARNING: Object archived in Glacier; restore in progress
-INFO: Checkpoint saved for s3_objects.last_modified=2025-02-12T18:32:55Z
-```
-
----
+Refer to: `def safe_api_call(...)`
 
 ## Tables created
 
-This connector replicates S3 object metadata into a single table named `S3_OBJECTS`.
-
 ### S3_OBJECTS
-| Column | Type | Description |
-|---------|------|-------------|
-| `key` | STRING | The full S3 object key (path). |
-| `size` | LONG | Size of the object in bytes. |
-| `e_tag` | STRING | The object’s ETag hash. |
-| `storage_class` | STRING | Storage class (e.g., STANDARD, GLACIER). |
-| `last_modified` | UTC_DATETIME | Last modified timestamp. |
-| `restore_status` | STRING | Glacier restoration status (restored, archived, error:<code>). |
-| `restore_expiry` | UTC_DATETIME | Expiration time of the restored object, if available. |
 
----
+| Column          | Type          | Description                                     |
+|------------------|---------------|-------------------------------------------------|
+| key              | STRING        | Full object key                                 |
+| size             | LONG          | Size in bytes                                   |
+| e_tag            | STRING        | ETag (MD5 hash)                                 |
+| storage_class    | STRING        | Storage class type                              |
+| last_modified    | UTC_DATETIME  | Last modified timestamp                         |
+| restore_status   | STRING        | Glacier restore status                          |
+| restore_expiry   | UTC_DATETIME  | Glacier restore expiration time (if applicable) |
+| _fivetran_deleted| BOOLEAN       | Soft delete flag                                |
 
 ## Additional considerations
-
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+This example is provided to help teams integrate AWS S3 metadata and storage class history into their data pipelines. Fivetran makes no guarantees regarding support or maintenance. For assistance, contact Support or submit improvements via pull request.
