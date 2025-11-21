@@ -6,24 +6,29 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
 
-# For reading configuration from a JSON file
-import json
 # For Base64 encoding of authentication credentials
 import base64
+
+# For reading configuration from a JSON file
+import json
+
 # For implementing retry delays and rate limit handling
 import time
+
 # For parsing and manipulating datetime values
 from datetime import datetime, timezone
+
 # For type hints to improve code clarity
 from typing import Any, Dict, Iterable, Optional, Set
 
 # For making HTTP requests to the NetPrint API (provided by Fivetran runtime)
 import requests
+
+# For supporting data operations like upsert and checkpoint
+# For enabling logs in your connector code
 # For connector initialization
 from fivetran_connector_sdk import Connector
-# For enabling logs in your connector code
 from fivetran_connector_sdk import Logging as log
-# For supporting data operations like upsert and checkpoint
 from fivetran_connector_sdk import Operations as op
 
 __MAX_RETRIES = 3  # Number of retries for transient errors
@@ -122,13 +127,9 @@ class NetPrintAPI:
 
         if 500 <= response.status_code < 600:
             # Surface 5xx to outer retry loop
-            raise requests.RequestException(
-                f"Server error {response.status_code} at {endpoint}"
-            )
+            raise requests.RequestException(f"Server error {response.status_code} at {endpoint}")
 
-        raise RuntimeError(
-            f"HTTP {response.status_code} at {endpoint}: {response.text}"
-        )
+        raise RuntimeError(f"HTTP {response.status_code} at {endpoint}: {response.text}")
 
     def _request_with_retry(
         self,
@@ -151,9 +152,7 @@ class NetPrintAPI:
                 )
             except requests.RequestException as exc:
                 if attempt == __MAX_RETRIES:
-                    log.severe(
-                        f"Failed calling {endpoint} after {__MAX_RETRIES} attempts: {exc}"
-                    )
+                    log.severe(f"Failed calling {endpoint} after {__MAX_RETRIES} attempts: {exc}")
                     raise
                 sleep_time = min(60, 2**attempt)
                 log.warning(
@@ -263,9 +262,7 @@ def _sync_files(
     files_state: Dict[str, Any] = state.get("files") or {}
     bookmark_str = files_state.get("last_synced_at", "")
     bookmark = (
-        _parse_dt(bookmark_str)
-        if bookmark_str
-        else datetime.min.replace(tzinfo=timezone.utc)
+        _parse_dt(bookmark_str) if bookmark_str else datetime.min.replace(tzinfo=timezone.utc)
     )
     previous_keys: Set[str] = set(files_state.get("known_keys") or [])
 
@@ -280,9 +277,7 @@ def _sync_files(
 
         current_keys.add(access_key)
 
-        timestamp_raw = file_record.get("uploadDate") or file_record.get(
-            "registrationDate"
-        ) or ""
+        timestamp_raw = file_record.get("uploadDate") or file_record.get("registrationDate") or ""
         timestamp = _parse_dt(timestamp_raw)
         if timestamp > max_seen_timestamp:
             max_seen_timestamp = timestamp
@@ -297,9 +292,7 @@ def _sync_files(
         # For large datasets, checkpoint periodically to avoid losing progress.
         if processed_count % 1000 == 0:
             state["files"] = {
-                "last_synced_at": max_seen_timestamp.astimezone(
-                    timezone.utc
-                ).isoformat(),
+                "last_synced_at": max_seen_timestamp.astimezone(timezone.utc).isoformat(),
                 # Note: For very large NetPrint accounts, tracking all keys has
                 # memory implications, but is kept for clarity in this example.
                 "known_keys": sorted(current_keys),
@@ -329,9 +322,7 @@ def _sync_files(
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
-    log.info(
-        f"files synced: {len(current_keys)}, soft-deleted: {len(missing_keys)}"
-    )
+    log.info(f"files synced: {len(current_keys)}, soft-deleted: {len(missing_keys)}")
 
 
 def update(configuration: dict, state: dict):
@@ -351,9 +342,7 @@ def update(configuration: dict, state: dict):
     password = configuration["password"]
     # Optional tuning knobs (strings in configuration.json)
     page_size = int(configuration.get("PAGE_SIZE", "200"))
-    base_url = configuration.get(
-        "BASE_URL", "https://api-s.printing.ne.jp/usr/webservice/api/"
-    )
+    base_url = configuration.get("BASE_URL", "https://api-s.printing.ne.jp/usr/webservice/api/")
 
     api = NetPrintAPI(username, password, base_url=base_url)
 
