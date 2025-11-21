@@ -56,7 +56,8 @@ This connector uses an API key. The request includes the key in the `apiKey` hea
 2. Set `api_key` in `configuration.json`.
 3. Set `base_url` (for example, `https://api.awardco.com`).
 
-Reference — `awardco-users-connector/connector.py:100-132` (see the `fetch_users()` function where the API key is set in request headers)
+### Reference
+Refer to the `make_request_with_retry()` and `fetch_users()` functions in `connector.py` for implementation details. See also `awardco-users-connector/connector.py:58` and `awardco-users-connector/connector.py:72`.
 
 ## Pagination
 This connector implements simple page-based pagination. The `update` loop requests pages from the users endpoint and processes each page in turn. If the AwardCo API supports a query parameter for returning only records updated since a timestamp, the connector will pass the checkpointed `last_sync_time` on every page request to avoid full-table scans.
