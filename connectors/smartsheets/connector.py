@@ -596,9 +596,13 @@ class DataTypeHandler:
 
 def update(configuration: dict, state: dict):
     """
-    Fetch data from Smartsheet API and upsert it into the tables.
-    :param configuration: A dictionary containing API configuration details
-    :param state: A dictionary containing the current state of the sync process
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: Connectors : Smartsheet")
     
