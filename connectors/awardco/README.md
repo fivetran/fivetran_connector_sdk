@@ -15,6 +15,11 @@ This example connector uses the Fivetran Connector SDK to sync AwardCo user data
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+## Features
+- Incremental sync based on `updated_at` timestamp
+- Pagination support for large datasets
+- Automatic retry with exponential backoff for transient failures
+- Configurable timestamp query parameter for API compatibility
 
 ## Configuration file
 Configuration keys uploaded to Fivetran come from `configuration.json` (string values only):
