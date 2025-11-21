@@ -42,17 +42,6 @@ _BACKOFF_FACTOR = 1  # Base delay factor for exponential backoff
 _RETRY_STATUS_CODES = [429, 500, 502, 503, 504]  # HTTP status codes that trigger retry
 
 
-# Simple state management
-def get_last_sync_time(state: dict) -> str:
-    """Get the last sync time from state, defaulting to 24 hours ago"""
-    if "last_sync" in state:
-        return state["last_sync"]
-    else:
-        # Default to 24 hours ago for first sync
-        default_time = (datetime.utcnow() - timedelta(days=1)).isoformat() + "Z"
-        return default_time
-
-
 class StateManager:
     def __init__(self, initial_state: Dict[str, Any]):
         """
@@ -610,6 +599,27 @@ class DataTypeHandler:
 # Remove custom ID generation - use Smartsheet's natural IDs like other connectors
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
+    """
+    if "api_token" not in configuration:
+        raise ValueError("Missing required configuration value: api_token")
+    
+    if not configuration.get("api_token"):
+        raise ValueError("Configuration value 'api_token' cannot be empty")
+    
+    if not configuration.get("sheets") and not configuration.get("reports"):
+        raise ValueError("At least one of 'sheets' or 'reports' must be configured")
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function which lets you configure how your connector fetches data.
@@ -621,6 +631,9 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
     log.warning("Example: Connectors : Smartsheet")
+    
+    # Validate configuration
+    validate_configuration(configuration)
     
     # Parse configuration values from strings
     sheets_config = {}
@@ -709,6 +722,9 @@ def update(configuration: dict, state: dict):
                         deleted_record_id = hash_value(str(deleted_row_id))
 
                         log.fine(f"Deleting row for sheet '{sheet_name}', row {deleted_row_id}")
+                        # The 'delete' operation is used to remove data from the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the primary key of the record to be deleted.
                         op.delete(table_name, {"id": deleted_record_id})
 
                 # Process each row
@@ -739,6 +755,9 @@ def update(configuration: dict, state: dict):
                         latest_sheet_modified = max(latest_sheet_modified, row_modified)
 
                         log.fine(f"Upserting row for sheet '{sheet_name}', row {row['id']}")
+                        # The 'upsert' operation is used to insert or update data in the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the record to be upserted.
                         op.upsert(table_name, row_record)
                     except Exception as e:
                         log.warning(
@@ -862,9 +881,12 @@ def update(configuration: dict, state: dict):
 
 def schema(configuration: dict):
     """
-    Define the schema for the Smartsheet tables.
-    :param configuration: A dictionary containing API configuration details
-    :return: A list of dictionaries defining the table schemas
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     if "api_token" not in configuration:
         raise ValueError("Could not find 'api_token'")
