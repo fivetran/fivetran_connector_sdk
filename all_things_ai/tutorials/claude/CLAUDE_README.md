@@ -129,8 +129,8 @@ def schema(configuration: dict):
 def update(configuration: dict, state: dict):
     """Main data processing logic with proper operations"""
     # Data fetching and processing
-    op.upsert("table_name", processed_data)
-    op.checkpoint(state=new_state)
+    yield op.upsert("table_name", processed_data)
+    yield op.checkpoint(state=new_state)
 
 # Connector initialization
 connector = Connector(update=update, schema=schema)
@@ -185,16 +185,16 @@ def schema(configuration: dict):
 ### Data Operations
 ```python
 # Upsert - Creates or updates records
-op.upsert("table_name", processed_data)
+yield op.upsert("table_name", processed_data)
 
 # Update - Updates existing records only
-op.update("table_name", modified_data)
+yield op.update("table_name", modified_data)
 
 # Delete - Marks records as deleted
-op.delete("table_name", keys_to_delete)
+yield op.delete("table_name", keys_to_delete)
 
 # Checkpoint - Saves sync state for incremental syncs
-op.checkpoint(state=new_state)
+yield op.checkpoint(state=new_state)
 ```
 
 ### State Management
@@ -480,7 +480,7 @@ if remaining_calls < 10:
 - **Version Compatibility**: Ensure SDK version compatibility
 
 ### Best Practices Summary
-- **Call operations directly** without yield (SDK v2+ requirement)
+- **Always use yield** for operations (upsert, update, delete, checkpoint)
 - **Implement proper state management** for incremental syncs
 - **Log comprehensively** for debugging and monitoring
 - **Handle errors gracefully** with appropriate retry logic
