@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<p align="center">
+<p align="center"> 
   Fivetran Connector SDK allows Real-time, efficient data replication to your destination of choice.
 </p>
 
