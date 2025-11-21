@@ -294,6 +294,8 @@ class SmartsheetAPI:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
+        # Authentication: Uses Bearer token authentication with Smartsheet API
+        # To obtain an API token, log in to your Smartsheet account at https://app.smartsheet.com/
         self.headers = {"Authorization": f"Bearer {self.config.access_token}"}
 
         self.request_times = []
