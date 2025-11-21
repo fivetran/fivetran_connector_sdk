@@ -108,14 +108,16 @@ def fetch_users(
     """
     Fetch a page of users from the Awardco API with retry and exponential backoff.
     Args:
-        base_url: The base URL for the API
-        api_key: The API key for authentication
-        page: The page number to fetch (default: 1)
-        per_page: Number of items per page (default: 100)
+        base_url: The base URL for the API.
+        api_key: The API key for authentication.
+        page: The page number to fetch (default: 1).
+        per_page: Number of items per page (default: 100).
+        last_sync_time: Timestamp for incremental sync filtering (optional).
+        updated_since_param: Name of the query parameter for timestamp filtering (default: "updated_since").
     Returns:
-        list: A list of user records from the API
+        list: A list of user records from the API.
     Raises:
-        requests.exceptions.RequestException: If the API request fails after max retries
+        requests.exceptions.RequestException: If the API request fails after max retries.
     """
     # Build query params. If `last_sync_time` is provided, include it as a filter
     # so the API can return only updated records since the last sync.
