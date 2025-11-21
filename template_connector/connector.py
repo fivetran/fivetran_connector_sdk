@@ -23,7 +23,7 @@ Add comment for each import to explain its purpose for users to follow.
 
 
 """
-GUIDELINES TO FOLLOW WHILE WRITING AN CONNECTOR:
+GUIDELINES TO FOLLOW WHILE WRITING A CONNECTOR:
 - Import only the necessary modules and libraries to keep the code clean and efficient.
 - Use clear, consistent and descriptive names for your functions and variables.
 - For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
