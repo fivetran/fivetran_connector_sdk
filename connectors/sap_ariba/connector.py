@@ -11,8 +11,7 @@ https://fivetran.com/docs/connectors/connector-sdk/best-practices
 
 # Import required libraries
 import time  # Provides time-related functions (for example, sleep and timestamps)
-from datetime import (  # Handles date and time objects with timezone awareness
-    datetime, timezone)
+from datetime import datetime, timezone  # Handles date and time objects with timezone awareness
 
 import requests  # Enables sending HTTP requests to external APIs
 
@@ -154,9 +153,7 @@ def sync_rows(
             # No more data returned from the API, stop pagination.
             break
 
-        row_count = process_items(
-            table_name, items, allowed_columns, sync_start, row_count
-        )
+        row_count = process_items(table_name, items, allowed_columns, sync_start, row_count)
 
         if should_checkpoint(row_count, total_records):
             checkpoint_state(state)
@@ -181,9 +178,7 @@ def fetch_page(table_name: str, params: dict, headers: dict) -> dict:
     return make_api_request(table_name, params=params, headers=headers)
 
 
-def update_total_records(
-    table_name: str, data: dict, existing_total: int | None
-) -> int | None:
+def update_total_records(table_name: str, data: dict, existing_total: int | None) -> int | None:
     """
     Update the total record count from the first page response.
 
@@ -480,9 +475,7 @@ def handle_response(
 
     if 500 <= response.status_code < 600:
         # Server errors: log and signal retry.
-        log.warning(
-            f"Server error {response.status_code} for {url}, body: {response.text}"
-        )
+        log.warning(f"Server error {response.status_code} for {url}, body: {response.text}")
         raise requests.RequestException("Server error, retrying")
 
     # Unexpected status code.
