@@ -46,7 +46,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API. To obtain the API key, do the following:
 
-Steps
+### Steps
 1. Obtain an API key from your AwardCo administrator or developer portal.
 2. Set `api_key` in `configuration.json`.
 3. Set `base_url` (for example, `https://api.awardco.com`).
