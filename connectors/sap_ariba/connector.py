@@ -11,16 +11,17 @@ https://fivetran.com/docs/connectors/connector-sdk/best-practices
 
 # Import required libraries
 import time  # Provides time-related functions (for example, sleep and timestamps)
-from datetime import datetime, timezone  # Handles date and time objects with timezone awareness
+from datetime import (  # Handles date and time objects with timezone awareness
+    datetime, timezone)
 
 import requests  # Enables sending HTTP requests to external APIs
 
+# For supporting data operations like upsert(), update(), delete() and checkpoint()
+# For enabling logs in your connector code
 # Import required classes from fivetran_connector_sdk
 # For supporting connector operations like update() and schema()
 from fivetran_connector_sdk import Connector
-# For enabling logs in your connector code
 from fivetran_connector_sdk import Logging as log
-# For supporting data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Constants
