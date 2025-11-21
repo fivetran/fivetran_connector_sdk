@@ -148,7 +148,7 @@ def process_user_record(record: dict, current_sync_time: str) -> str:
     op.upsert(table="user", data=record)
     record_time = record.get("updated_at")
 
-    if current_sync_time is None or (record_time and record_time > current_sync_time):
+    if current_sync_time is None or (record_time and record_time >= current_sync_time):
         return record_time
     return current_sync_time
 
