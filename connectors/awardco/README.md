@@ -36,7 +36,7 @@ Validation rules
 
 Implementation reference
 - Validation — `awardco-users-connector/connector.py:70-81`
-- Config usage — `awardco-users-connector/connector.py:58`
+- Main config usage in update — `awardco-users-connector/connector.py:198-199`
 
 ## Requirements file
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
