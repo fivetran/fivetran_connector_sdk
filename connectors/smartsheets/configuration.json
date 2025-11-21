@@ -1,6 +1,6 @@
 {
-  "api_token": "SMARTSHEET_API_TOKEN",
-  "sheets": "1234567:Sheet Name,2345567:Another Sheet Name",
-  "reports": "1234567:Report Name,2345567:Another Report Name",
-  "requests_per_minute": "60"
+  "api_token": "<YOUR_SMARTSHEET_API_TOKEN>",
+  "sheets": "<SHEET_ID_1>:<SHEET_NAME_1>,<SHEET_ID_2>:<SHEET_NAME_2>",
+  "reports": "<REPORT_ID_1>:<REPORT_NAME_1>,<REPORT_ID_2>:<REPORT_NAME_2>",
+  "requests_per_minute": "<60>"
 }

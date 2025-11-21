@@ -1,20 +1,35 @@
-
+# For generating MD5 hashes of row IDs as primary keys
 import hashlib
+# For reading configuration from a JSON file
 import json
+# For normalizing column names and table names
 import re
+# For rate limiting and retry backoff delays
 import time
+# For flattening nested dictionaries
 from collections.abc import MutableMapping
+# For creating configuration and state classes
 from dataclasses import dataclass
+# For datetime operations and timezone handling
 from datetime import datetime, timedelta, timezone
+# For precise numeric calculations without floating point errors
 from decimal import Decimal
+# For defining column type constants
 from enum import Enum
-from typing import Any, Dict, Generator, List, Optional, Union
+# For type hints and annotations
+from typing import Any, Dict, List, Optional, Union
 
+# For making HTTP requests to the Smartsheet API
 import requests
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+# For implementing retry logic with exponential backoff
 from requests.adapters import HTTPAdapter
+# For configuring retry strategy for failed requests
 from urllib3.util.retry import Retry
 
 # Private constants
@@ -25,17 +40,6 @@ _DEFAULT_REQUESTS_PER_MINUTE = 60  # Default rate limit for Smartsheet API
 _MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 _BACKOFF_FACTOR = 1  # Base delay factor for exponential backoff
 _RETRY_STATUS_CODES = [429, 500, 502, 503, 504]  # HTTP status codes that trigger retry
-
-
-# Simple state management
-def get_last_sync_time(state: dict) -> str:
-    """Get the last sync time from state, defaulting to 24 hours ago"""
-    if "last_sync" in state:
-        return state["last_sync"]
-    else:
-        # Default to 24 hours ago for first sync
-        default_time = (datetime.utcnow() - timedelta(days=1)).isoformat() + "Z"
-        return default_time
 
 
 class StateManager:
@@ -595,12 +599,42 @@ class DataTypeHandler:
 # Remove custom ID generation - use Smartsheet's natural IDs like other connectors
 
 
-def update(configuration: dict, state: dict) -> Generator:
+def validate_configuration(configuration: dict):
     """
-    Fetch data from Smartsheet API and upsert it into the tables.
-    :param configuration: A dictionary containing API configuration details
-    :param state: A dictionary containing the current state of the sync process
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
     """
+    if "api_token" not in configuration:
+        raise ValueError("Missing required configuration value: api_token")
+    
+    if not configuration.get("api_token"):
+        raise ValueError("Configuration value 'api_token' cannot be empty")
+    
+    if not configuration.get("sheets") and not configuration.get("reports"):
+        raise ValueError("At least one of 'sheets' or 'reports' must be configured")
+
+
+def update(configuration: dict, state: dict):
+    """
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
+    """
+    log.warning("Example: Connectors : Smartsheet")
+    
+    # Validate configuration
+    validate_configuration(configuration)
+    
     # Parse configuration values from strings
     sheets_config = {}
     if configuration.get("sheets"):
@@ -688,7 +722,10 @@ def update(configuration: dict, state: dict) -> Generator:
                         deleted_record_id = hash_value(str(deleted_row_id))
 
                         log.fine(f"Deleting row for sheet '{sheet_name}', row {deleted_row_id}")
-                        yield op.delete(table_name, {"id": deleted_record_id})
+                        # The 'delete' operation is used to remove data from the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the primary key of the record to be deleted.
+                        op.delete(table_name, {"id": deleted_record_id})
 
                 # Process each row
                 for row in sheet_rows:
@@ -718,7 +755,10 @@ def update(configuration: dict, state: dict) -> Generator:
                         latest_sheet_modified = max(latest_sheet_modified, row_modified)
 
                         log.fine(f"Upserting row for sheet '{sheet_name}', row {row['id']}")
-                        yield op.upsert(table_name, row_record)
+                        # The 'upsert' operation is used to insert or update data in the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the record to be upserted.
+                        op.upsert(table_name, row_record)
                     except Exception as e:
                         log.warning(
                             f"Error processing row {row.get('id', 'unknown')} in sheet '{sheet_name}': {str(e)}"
@@ -733,6 +773,12 @@ def update(configuration: dict, state: dict) -> Generator:
                 state_manager.update_sheet_state(
                     sheet_id, latest_sheet_modified, current_row_id_list
                 )
+                
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state_manager.get_state())
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Error processing sheet {sheet_name} ({sheet_id}): {str(e)}")
@@ -776,7 +822,7 @@ def update(configuration: dict, state: dict) -> Generator:
                         deleted_record_id = hash_value(str(deleted_row_id))
 
                         log.fine(f"Deleting row for report '{report_name}', row {deleted_row_id}")
-                        yield op.delete(table_name, {"id": deleted_record_id})
+                        op.delete(table_name, {"id": deleted_record_id})
 
                 # Process each row
                 for row in report_rows:
@@ -800,11 +846,17 @@ def update(configuration: dict, state: dict) -> Generator:
                     row_record["id"] = hash_value(str(row["id"]))
 
                     log.fine(f"Upserting row for report '{report_name}', row {row['id']}")
-                    yield op.upsert(table_name, row_record)
+                    op.upsert(table_name, row_record)
 
                 # Update report state with current row IDs
                 current_row_id_list = list(current_row_ids)
                 state_manager.update_report_state(report_id, current_row_id_list)
+                
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state_manager.get_state())
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Error processing report {report_name} ({report_id}): {str(e)}")
@@ -813,7 +865,12 @@ def update(configuration: dict, state: dict) -> Generator:
         # Update state with current sync time and state manager
         current_sync_time = datetime.now(timezone.utc).isoformat()
         final_state = state_manager.get_state()
-        yield op.checkpoint(final_state)
+        
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(final_state)
 
         log.fine(f"Sync completed successfully at {current_sync_time}")
 
@@ -824,9 +881,12 @@ def update(configuration: dict, state: dict) -> Generator:
 
 def schema(configuration: dict):
     """
-    Define the schema for the Smartsheet tables.
-    :param configuration: A dictionary containing API configuration details
-    :return: A list of dictionaries defining the table schemas
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     if "api_token" not in configuration:
         raise ValueError("Could not find 'api_token'")

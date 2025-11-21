@@ -159,8 +159,8 @@ def update(configuration: dict, state: dict):
                 "image_url": pokemon_data.get("sprites", {}).get("front_default"),
             }
 
-            # Yield the main Pokémon record
-            yield op.upsert(table="pokemon", data=pokemon_record)
+            # Upsert the main Pokémon record
+            op.upsert(table="pokemon", data=pokemon_record)
 
             # Process types
             for type_entry in pokemon_data.get("types", []):
@@ -173,7 +173,7 @@ def update(configuration: dict, state: dict):
                     "type_name": type_data.get("name"),
                     "slot": type_entry.get("slot"),
                 }
-                yield op.upsert(table="pokemon_types", data=type_record)
+                op.upsert(table="pokemon_types", data=type_record)
 
             # Process abilities
             for ability_entry in pokemon_data.get("abilities", []):
@@ -187,7 +187,7 @@ def update(configuration: dict, state: dict):
                     "is_hidden": ability_entry.get("is_hidden"),
                     "slot": ability_entry.get("slot"),
                 }
-                yield op.upsert(table="pokemon_abilities", data=ability_record)
+                op.upsert(table="pokemon_abilities", data=ability_record)
 
             # Process stats
             for stat_entry in pokemon_data.get("stats", []):
@@ -201,7 +201,7 @@ def update(configuration: dict, state: dict):
                     "base_value": stat_entry.get("base_stat"),
                     "effort": stat_entry.get("effort"),
                 }
-                yield op.upsert(table="pokemon_stats", data=stat_record)
+                op.upsert(table="pokemon_stats", data=stat_record)
 
             processed_count += 1
 
@@ -209,7 +209,7 @@ def update(configuration: dict, state: dict):
             if processed_count % 10 == 0:
                 new_offset = offset + processed_count
                 log.info(f"Checkpointing at offset: {new_offset}")
-                yield op.checkpoint(state={"offset": new_offset})
+                op.checkpoint(state={"offset": new_offset})
 
         # Final checkpoint at the end
         new_offset = offset + processed_count
@@ -220,13 +220,13 @@ def update(configuration: dict, state: dict):
             new_offset = 0
 
         log.info(f"Final checkpoint at offset: {new_offset}")
-        yield op.checkpoint(state={"offset": new_offset})
+        op.checkpoint(state={"offset": new_offset})
 
     except Exception as e:
         log.severe("Error during sync process", e)
         # Still checkpoint to avoid reprocessing the same data
         new_offset = offset + processed_count
-        yield op.checkpoint(state={"offset": new_offset})
+        op.checkpoint(state={"offset": new_offset})
 
 
 # Create the connector instance
