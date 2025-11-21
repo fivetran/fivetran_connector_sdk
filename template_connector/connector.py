@@ -74,7 +74,9 @@ def schema(configuration: dict):
     return [
         {
             "table": "table_name",  # Name of the table in the destination, required.
-            "primary_key": ["id"],  # Primary key column(s) for the table, optional. Only required when you want to define primary keys. If not provided, fivetran computes _fivetran_id from all column values.
+            "primary_key": [
+                "id"
+            ],  # Primary key column(s) for the table, optional. Only required when you want to define primary keys. If not provided, fivetran computes _fivetran_id from all column values.
             "columns": {  # Definition of columns and their types, optional.
                 "id": "STRING",  # Contains a dictionary of column names and data types
                 # For any columns whose names are not provided here, e.g. id, their data types will be inferred based on the data provided during upsert.
@@ -122,8 +124,12 @@ def update(configuration: dict, state: dict):
             record_updated_at = record.get("updated_at")
 
             # Update only if record_updated_time is greater than current new_sync_time
-            if new_updated_at is None or (record_updated_at and record_updated_at > new_updated_at):
-                new_updated_at = record_updated_at  # Assuming the API returns the data in ascending order
+            if new_updated_at is None or (
+                record_updated_at and record_updated_at > new_updated_at
+            ):
+                new_updated_at = (
+                    record_updated_at  # Assuming the API returns the data in ascending order
+                )
 
         # Update state with the current sync time for the next run
         new_state = {"last_updated_at": new_updated_at}
