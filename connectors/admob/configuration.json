@@ -1,0 +1,12 @@
+{
+  "client_id": "<YOUR_ADMOB_OAUTH_CLIENT_ID>",
+  "client_secret": "<YOUR_ADMOB_OAUTH_CLIENT_SECRET>",
+  "refresh_token": "<YOUR_ADMOB_OAUTH_REFRESH_TOKEN>",
+  "sync_frequency_hours": "<YOUR_ADMOB_API_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_ADMOB_API_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_ADMOB_API_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_ADMOB_API_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_ADMOB_API_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_ADMOB_API_ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_ADMOB_API_ENABLE_DEBUG_LOGGING>"
+}
