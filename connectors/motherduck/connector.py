@@ -9,12 +9,13 @@ See Best Practices:
 https://fivetran.com/docs/connectors/connector-sdk/best-practices
 """
 
-import json  # For reading configuration values and serializing data
 import hashlib  # For generating row-level checksums
-import duckdb  # DuckDB client used for MotherDuck connections
+import json  # For reading configuration values and serializing data
 import time  # For retry/wait logic
 from datetime import datetime, timezone  # For timestamp handling
-from typing import Dict, List, Any  # Type hints
+from typing import Any, Dict, List  # Type hints
+
+import duckdb  # DuckDB client used for MotherDuck connections
 
 # Fivetran SDK imports
 from fivetran_connector_sdk import Connector
@@ -352,7 +353,11 @@ def connect(token: str, database: str = None):
     Returns:
         DuckDB connection object
     """
-    conn_str = f"md:{database}?motherduck_token={token}" if database else f"md:?motherduck_token={token}"
+    conn_str = (
+        f"md:{database}?motherduck_token={token}"
+        if database
+        else f"md:?motherduck_token={token}"
+    )
 
     log.info(f"Connecting to MotherDuck ({database or 'default DB'})")
 
