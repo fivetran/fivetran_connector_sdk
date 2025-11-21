@@ -155,7 +155,7 @@ def fetch_news_page(
     backoff_factor: float = 0.75,
     status_forcelist: Optional[set] = None,
     timeout: int = 20,
-) -> Tuple[int, int, int]:
+) -> Tuple[int, int]:
     """
     Fetches one page of articles from the GNewsAPI, normalizes the data,
     and performs upserts into the destination table.
@@ -379,4 +379,5 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
 
