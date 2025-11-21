@@ -600,6 +600,8 @@ def update(configuration: dict, state: dict):
     :param configuration: A dictionary containing API configuration details
     :param state: A dictionary containing the current state of the sync process
     """
+    log.warning("Example: Connectors : Smartsheet")
+    
     # Parse configuration values from strings
     sheets_config = {}
     if configuration.get("sheets"):
