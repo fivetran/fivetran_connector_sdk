@@ -199,38 +199,32 @@ def update(configuration: dict, state: dict):
     base_url = configuration.get("base_url")
     sync_time = state.get("last_sync_time", "1990-01-01T00:00:00")
 
-    try:
-        page = 1
-        per_page = __PAGE_SIZE
-        # Allow connector configuration to override the timestamp query param name
-        # if Awardco uses a different parameter name (e.g., `updated_after`).
-        updated_since_param = configuration.get("updated_since_param", "updated_since")
+    page = 1
+    per_page = __PAGE_SIZE
+    # Allow connector configuration to override the timestamp query param name
+    # if Awardco uses a different parameter name (e.g., `updated_after`).
+    updated_since_param = configuration.get("updated_since_param", "updated_since")
 
-        while True:
-            # Pass the last checkpointed sync time so the API can return only
-            # records updated since that timestamp. This avoids full table scans.
-            users = fetch_users(
-                base_url,
-                api_key,
-                page,
-                per_page,
-                last_sync_time=sync_time,
-                updated_since_param=updated_since_param,
-            )
-            if not users:
-                break
+    while True:
+        # Pass the last checkpointed sync time so the API can return only
+        # records updated since that timestamp. This avoids full table scans.
+        users = fetch_users(
+            base_url,
+            api_key,
+            page,
+            per_page,
+            last_sync_time=sync_time,
+            updated_since_param=updated_since_param,
+        )
+        if not users:
+            break
 
-            sync_time = process_user_page(users, sync_time)
-            checkpoint_sync_state(sync_time)
-            if len(users) < per_page:
-                break
+        sync_time = process_user_page(users, sync_time)
+        checkpoint_sync_state(sync_time)
+        if len(users) < per_page:
+            break
 
-            page += 1
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
-
-
+        page += 1
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
