@@ -754,6 +754,12 @@ def update(configuration: dict, state: dict):
                 state_manager.update_sheet_state(
                     sheet_id, latest_sheet_modified, current_row_id_list
                 )
+                
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state_manager.get_state())
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Error processing sheet {sheet_name} ({sheet_id}): {str(e)}")
@@ -826,6 +832,12 @@ def update(configuration: dict, state: dict):
                 # Update report state with current row IDs
                 current_row_id_list = list(current_row_ids)
                 state_manager.update_report_state(report_id, current_row_id_list)
+                
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state_manager.get_state())
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Error processing report {report_name} ({report_id}): {str(e)}")
