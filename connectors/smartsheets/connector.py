@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from fivetran_connector_sdk import Connector
@@ -594,7 +594,7 @@ class DataTypeHandler:
 # Remove custom ID generation - use Smartsheet's natural IDs like other connectors
 
 
-def update(configuration: dict, state: dict) -> Generator:
+def update(configuration: dict, state: dict):
     """
     Fetch data from Smartsheet API and upsert it into the tables.
     :param configuration: A dictionary containing API configuration details
@@ -687,7 +687,7 @@ def update(configuration: dict, state: dict) -> Generator:
                         deleted_record_id = hash_value(str(deleted_row_id))
 
                         log.fine(f"Deleting row for sheet '{sheet_name}', row {deleted_row_id}")
-                        yield op.delete(table_name, {"id": deleted_record_id})
+                        op.delete(table_name, {"id": deleted_record_id})
 
                 # Process each row
                 for row in sheet_rows:
@@ -717,7 +717,7 @@ def update(configuration: dict, state: dict) -> Generator:
                         latest_sheet_modified = max(latest_sheet_modified, row_modified)
 
                         log.fine(f"Upserting row for sheet '{sheet_name}', row {row['id']}")
-                        yield op.upsert(table_name, row_record)
+                        op.upsert(table_name, row_record)
                     except Exception as e:
                         log.warning(
                             f"Error processing row {row.get('id', 'unknown')} in sheet '{sheet_name}': {str(e)}"
@@ -775,7 +775,7 @@ def update(configuration: dict, state: dict) -> Generator:
                         deleted_record_id = hash_value(str(deleted_row_id))
 
                         log.fine(f"Deleting row for report '{report_name}', row {deleted_row_id}")
-                        yield op.delete(table_name, {"id": deleted_record_id})
+                        op.delete(table_name, {"id": deleted_record_id})
 
                 # Process each row
                 for row in report_rows:
@@ -799,7 +799,7 @@ def update(configuration: dict, state: dict) -> Generator:
                     row_record["id"] = hash_value(str(row["id"]))
 
                     log.fine(f"Upserting row for report '{report_name}', row {row['id']}")
-                    yield op.upsert(table_name, row_record)
+                    op.upsert(table_name, row_record)
 
                 # Update report state with current row IDs
                 current_row_id_list = list(current_row_ids)
@@ -812,7 +812,7 @@ def update(configuration: dict, state: dict) -> Generator:
         # Update state with current sync time and state manager
         current_sync_time = datetime.now(timezone.utc).isoformat()
         final_state = state_manager.get_state()
-        yield op.checkpoint(final_state)
+        op.checkpoint(final_state)
 
         log.fine(f"Sync completed successfully at {current_sync_time}")
 
