@@ -35,7 +35,7 @@ Validation rules
 - `updated_since_param` (optional): Name of the query parameter the AwardCo API expects for incremental filtering. Defaults to `updated_since`. Set this to `updated_after` or another name if your API requires it.
 
 Implementation reference
-- Validation — `awardco-users-connector/connector.py:13`
+- Validation — `awardco-users-connector/connector.py:70-81`
 - Config usage — `awardco-users-connector/connector.py:58`
 
 ## Requirements file
