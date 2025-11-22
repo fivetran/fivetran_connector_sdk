@@ -175,7 +175,7 @@ class ODataClient:
         url = self._build_request_url(base_path=entity_set, query_options=query_options)
 
         if additional_headers:
-            self.session.headers.update(additional_headers)
+            self.session.build_headers.update(additional_headers)
 
         try:
             if handle_pagination:
@@ -325,7 +325,7 @@ class ODataClient:
         Decodes the multipart response and processes each part.
         """
         log.info(f"Processing batch response with {len(self.batch_requests)} requests")
-        content_type = response.headers.get("Content-Type", "")
+        content_type = response.build_headers.get("Content-Type", "")
 
         if "multipart/mixed" not in content_type:
             log.severe(f"Invalid content type: {content_type}")
