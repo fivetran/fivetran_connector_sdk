@@ -321,9 +321,7 @@ def build_incremental_query(table_name: str, last_created: str) -> str:
         # Convert ISO timestamp to TiDB format
         tidb_timestamp = last_created.replace("T", " ").replace("Z", "")
         escaped_table = escape_table_name(table_name)
-        query = (
-            f"SELECT * FROM {escaped_table} WHERE created_at > :last_created ORDER BY created_at LIMIT :limit OFFSET :offset"
-        )
+        query = f"SELECT * FROM {escaped_table} WHERE created_at > :last_created ORDER BY created_at LIMIT :limit OFFSET :offset"
         params = {"last_created": tidb_timestamp}
         return query, params
     except Exception as e:
@@ -509,6 +507,7 @@ def fetch_and_upsert_data(
             )
             # Persist updated timestamp to state
             update_state_timestamp(state, table_name, max_seen_timestamp)
+            op.checkpoint(state)
             page += 1
     except Exception as e:
         # Query execution failed, likely due to missing column
@@ -690,6 +689,8 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
+    log.warning("Example: DATABASE : TIDB")
+
     # Validate configuration early
     validate_configuration(configuration)
 

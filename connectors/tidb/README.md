@@ -47,7 +47,7 @@ Configuration parameters:
 - `TIDB_PASS` (required): Password for the TiDB user.
 - `TIDB_PORT` (required): Port number for TiDB connection.
 - `TIDB_DATABASE` (required): Name of your TiDB database.
-- `TABLES_PRIMARY_KEY_COLUMNS` (optional): A JSON object where keys are table names and values are the primary key column names.
+- `TABLES_PRIMARY_KEY_COLUMNS` (required): A JSON object where keys are table names and values are the primary key column names.
 
 Example:
 ```json
@@ -80,7 +80,7 @@ Example content:
 
 ```
 pytidb>=0.0.11
-certifi==2025.8.3
+certifi>=2025.8.3
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -98,7 +98,7 @@ To set up authentication:
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
 ## Pagination
-The connector does not currently implement pagination and loads all matching rows into memory at once when performing incremental reads. This approach may cause memory issues for large tables. For production use, it is strongly recommended to implement batching or pagination (for example, using LIMIT/OFFSET or keyset pagination) in the `fetch_and_upsert_data` function to process data in manageable chunks. If a table uses a different incremental column or requires cursor-based pagination at the source, modify `fetch_and_upsert_data` accordingly.
+The connector implements offset-based pagination using LIMIT/OFFSET in the `fetch_and_upsert_data` function, processing data in batches of 50 rows at a time. This approach helps manage memory usage and allows incremental reads of large tables without loading all matching rows into memory at once. If you need to adjust the batch size or use a different pagination strategy (such as keyset pagination), you can modify the relevant logic in `fetch_and_upsert_data`. For tables that require a different incremental column or cursor-based pagination, update the function accordingly.
 
 ## Data handling
 - Rows are fetched and passed to `process_row` for normalization.
