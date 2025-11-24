@@ -221,7 +221,7 @@ def update(configuration: dict, state: dict):
         if search_results and "error" in search_results:
             # If an error is returned (e.g., non-network/transient failure),
             # raise a final error.
-            raise Exception(search_results["error"])
+            raise ValueError(f"API returned an error: {search_results['error']}")
 
         sync_results(search_results)
 
@@ -254,11 +254,11 @@ if __name__ == "__main__":
             not configuration.get("api_key") or configuration.get("api_key") == "YOUR_CLIENT_ID"
         )
         if check_config:
-            log.warning("Please update configuration.json " "with actual api_key and api_secret.")
+            log.warning("Please update configuration.json with actual api_key and api_secret.")
 
         connector.debug(configuration=configuration)
 
     except FileNotFoundError:
-        log.severe("Error: configuration.json not found. " "Please create it for local testing.")
+        log.severe("Error: configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"An unexpected error occurred during debug execution: {e}")
