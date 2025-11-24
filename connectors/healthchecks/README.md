@@ -100,7 +100,7 @@ The connector implements comprehensive error-handling strategies (refer to the `
 
 The connector creates four tables in your destination:
 
-### checks
+### check
 
 Contains health check configurations and monitoring settings.
 
@@ -134,14 +134,14 @@ Contains health check configurations and monitoring settings.
 | channels | STRING | Comma-separated list of integration channel IDs |
 | timeout | INT | Expected period in seconds |
 
-### pings
+### ping
 
 Contains check-in events for health checks.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | ping_id | STRING | Unique identifier for the ping (composite: check_uuid + n) |
-| check_uuid | STRING | Foreign key to the checks table |
+| check_uuid | STRING | Foreign key to the check table |
 | n | INT | Sequential ping number |
 | type | STRING | Type of ping (success, fail, start, etc.) |
 | date | UTC_DATETIME | Timestamp when the ping was received |
@@ -151,18 +151,18 @@ Contains check-in events for health checks.
 | ua | STRING | User agent string |
 | duration | FLOAT | Duration in seconds (for success pings) |
 
-### flips
+### flip
 
 Contains status change events for health checks.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | flip_id | STRING | Unique identifier for the status change (composite: check_uuid + timestamp) |
-| check_uuid | STRING | Foreign key to the checks table |
+| check_uuid | STRING | Foreign key to the check table |
 | timestamp | UTC_DATETIME | When the status change occurred |
 | up | INT | Status after the flip (1 for up, 0 for down) |
 
-### integrations
+### integration
 
 Contains notification channel configurations.
 

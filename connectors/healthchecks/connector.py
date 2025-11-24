@@ -63,6 +63,31 @@ def get_headers(api_key: str):
     return {"X-Api-Key": api_key, "Content-Type": "application/json"}
 
 
+def handle_retryable_error(attempt: int, error_message: str, error_context: str):
+    """
+    Handle retryable errors with exponential backoff or raise if retries exhausted.
+    This function consolidates retry logic for both HTTP status codes and network exceptions.
+    Args:
+        attempt: The current attempt number (0-indexed).
+        error_message: The error message to log and include in exceptions.
+        error_context: Additional context about the error type (e.g., "Network error", "Request exception").
+    Raises:
+        RuntimeError: If no retries remain after the error.
+    """
+    is_last_attempt = attempt >= __MAX_RETRIES - 1
+
+    if is_last_attempt:
+        log.severe(f"{error_context} after {__MAX_RETRIES} attempts: {error_message}")
+        raise RuntimeError(f"{error_context} after {__MAX_RETRIES} attempts: {error_message}")
+
+    # Calculate exponential backoff delay and retry
+    delay = __BASE_DELAY_SECONDS * (2**attempt)
+    log.warning(
+        f"{error_context}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {error_message}"
+    )
+    time.sleep(delay)
+
+
 def make_api_request(url: str, api_key: str):
     """
     Make an API request with retry logic and exponential backoff.
@@ -76,64 +101,35 @@ def make_api_request(url: str, api_key: str):
         RuntimeError: If the API request fails after all retry attempts.
     """
     headers = get_headers(api_key)
-    last_error = None
 
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers, timeout=30)
 
+            # Success case - return immediately
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code in __RETRYABLE_STATUS_CODES:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            else:
+
+            # Non-retryable error - fail fast
+            if response.status_code not in __RETRYABLE_STATUS_CODES:
                 log.severe(
                     f"API request failed with status {response.status_code}: {response.text}"
                 )
                 raise RuntimeError(f"API returned {response.status_code}: {response.text}")
 
+            # Retryable status code - handle retry or raise
+            error_message = f"Request failed with status {response.status_code}"
+            handle_retryable_error(attempt, error_message, "Failed to fetch data")
+
         except (requests.Timeout, requests.ConnectionError) as e:
-            last_error = e
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Network error occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(f"Network error after {__MAX_RETRIES} attempts: {str(e)}")
+            # Network-level errors are retryable
+            handle_retryable_error(attempt, str(e), "Network error")
+
         except requests.RequestException as e:
-            last_error = e
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Request exception after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(f"Request exception after {__MAX_RETRIES} attempts: {str(e)}")
+            # Other request exceptions are retryable
+            handle_retryable_error(attempt, str(e), "Request exception")
 
     # Fallback: should never reach here, but ensures function always returns or raises
-    log.severe(
-        f"Unexpected: Exhausted all retry attempts without returning or raising. Last error: {last_error}"
-    )
     raise RuntimeError(f"Failed to complete API request after {__MAX_RETRIES} attempts")
 
 
@@ -328,10 +324,10 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
-        {"table": "checks", "primary_key": ["uuid"]},
-        {"table": "pings", "primary_key": ["ping_id"]},
-        {"table": "flips", "primary_key": ["flip_id"]},
-        {"table": "integrations", "primary_key": ["id"]},
+        {"table": "check", "primary_key": ["uuid"]},
+        {"table": "ping", "primary_key": ["ping_id"]},
+        {"table": "flip", "primary_key": ["flip_id"]},
+        {"table": "integration", "primary_key": ["id"]},
     ]
 
 
@@ -383,7 +379,7 @@ def update(configuration: dict, state: dict):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="checks", data=flattened_check)
+        op.upsert(table="check", data=flattened_check)
 
         check_uuid = check.get("uuid")
 
@@ -394,7 +390,7 @@ def update(configuration: dict, state: dict):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="pings", data=flattened_ping)
+            op.upsert(table="ping", data=flattened_ping)
 
         flips = fetch_check_flips(check_uuid, api_key)
         for flip in flips:
@@ -403,7 +399,7 @@ def update(configuration: dict, state: dict):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="flips", data=flattened_flip)
+            op.upsert(table="flip", data=flattened_flip)
 
         # Checkpoint after each check is processed to save incremental progress.
         # This ensures that if the sync is interrupted, already-processed checks won't be re-processed.
@@ -422,7 +418,7 @@ def update(configuration: dict, state: dict):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="integrations", data=flattened_integration)
+        op.upsert(table="integration", data=flattened_integration)
 
     log.info(f"Completed syncing {len(integrations)} integrations")
 
