@@ -33,6 +33,7 @@ __CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
 __DATE_FORMAT = "%m/%d/%Y"  # SAM.gov API date format
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_BASE = 2  # Base delay for exponential backoff (seconds)
+__INCREMENTAL_WINDOW_DAYS = 30  # Default overlap window for incremental syncs to capture updates
 
 
 def validate_configuration(configuration: dict):
@@ -338,7 +339,7 @@ def process_breakout_tables(opportunity: Dict[str, Any]):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="naics_codes", data=naics)
+        op.upsert(table="naics_code", data=naics)
 
     # Process links breakout table
     links_records = extract_links_records(opportunity)
@@ -346,7 +347,7 @@ def process_breakout_tables(opportunity: Dict[str, Any]):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="links", data=link)
+        op.upsert(table="link", data=link)
 
     # Process resource links breakout table
     resource_links_records = extract_resource_links_records(opportunity)
@@ -354,7 +355,7 @@ def process_breakout_tables(opportunity: Dict[str, Any]):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="resource_links", data=resource_link)
+        op.upsert(table="resource_link", data=resource_link)
 
 
 def make_api_request(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -516,108 +517,128 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-
     return [
         {
-            "table": "opportunities",
-            "primary_key": ["notice_id"],  # SAM.gov notice ID as primary key
+            "table": "opportunity",
+            "primary_key": ["notice_id"],
             "columns": {
-                "notice_id": "STRING",  # Primary key - unique identifier for each opportunity
-                # Main opportunity fields
-                "title": "STRING",
-                "solicitation_number": "STRING",
-                "full_parent_path_name": "STRING",
-                "full_parent_path_code": "STRING",
-                "posted_date": "STRING",
-                "type": "STRING",
-                "base_type": "STRING",
-                "archive_type": "STRING",
-                "archive_date": "STRING",
-                "type_of_set_aside_description": "STRING",
-                "type_of_set_aside": "STRING",
-                "response_dead_line": "STRING",
-                "naics_code": "STRING",  # Primary NAICS code
-                "classification_code": "STRING",
-                "active": "STRING",
-                "description": "STRING",
-                "organization_type": "STRING",
-                "additional_info_link": "STRING",
-                "ui_link": "STRING",
-                # Flattened office address fields
-                "office_address_zipcode": "STRING",
-                "office_address_city": "STRING",
-                "office_address_country_code": "STRING",
-                "office_address_state": "STRING",
-                # Flattened place of performance fields
-                "place_of_performance_street_address": "STRING",
-                "place_of_performance_street_address2": "STRING",
-                "place_of_performance_city_code": "STRING",
-                "place_of_performance_city_name": "STRING",
-                "place_of_performance_state_code": "STRING",
-                "place_of_performance_state_name": "STRING",
-                "place_of_performance_country_code": "STRING",
-                "place_of_performance_country_name": "STRING",
-                "place_of_performance_zip": "STRING",
-                # Flattened award fields (if present)
-                "award_number": "STRING",
+                # Define award_amount with DECIMAL type for precision in financial data
                 "award_amount": {"type": "DECIMAL", "precision": 15, "scale": 2},
-                "award_date": "STRING",
-                "award_awardee_name": "STRING",
-                "award_awardee_uei_sam": "STRING",
-                "award_awardee_location_street_address": "STRING",
-                "award_awardee_location_street_address2": "STRING",
-                "award_awardee_location_city_code": "STRING",
-                "award_awardee_location_city_name": "STRING",
-                "award_awardee_location_state_code": "STRING",
-                "award_awardee_location_state_name": "STRING",
-                "award_awardee_location_country_code": "STRING",
-                "award_awardee_location_country_name": "STRING",
-                "award_awardee_location_zip": "STRING",
             },
         },
         {
             "table": "point_of_contact",
-            "primary_key": ["notice_id", "contact_index"],  # Composite primary key
-            "columns": {
-                "notice_id": "STRING",  # Foreign key to opportunities table
-                "contact_index": "LONG",  # Index to maintain order
-                "fax": "STRING",
-                "type": "STRING",
-                "email": "STRING",
-                "phone": "STRING",
-                "title": "STRING",
-                "full_name": "STRING",
-            },
+            "primary_key": ["notice_id", "contact_index"],
         },
         {
-            "table": "naics_codes",
-            "primary_key": ["notice_id", "code_index"],  # Composite primary key
-            "columns": {
-                "notice_id": "STRING",  # Foreign key to opportunities table
-                "naics_code": "STRING",  # The NAICS code value
-                "code_index": "LONG",  # Index to maintain order
-            },
+            "table": "naics_code",
+            "primary_key": ["notice_id", "code_index"],
         },
         {
-            "table": "links",
-            "primary_key": ["notice_id", "link_index"],  # Composite primary key
-            "columns": {
-                "notice_id": "STRING",  # Foreign key to opportunities table
-                "link_index": "LONG",  # Index to maintain order
-                "rel": "STRING",
-                "href": "STRING",
-            },
+            "table": "link",
+            "primary_key": ["notice_id", "link_index"],
         },
         {
-            "table": "resource_links",
-            "primary_key": ["notice_id", "link_index"],  # Composite primary key
-            "columns": {
-                "notice_id": "STRING",  # Foreign key to opportunities table
-                "resource_link": "STRING",  # The resource link URL
-                "link_index": "LONG",  # Index to maintain order
-            },
+            "table": "resource_link",
+            "primary_key": ["notice_id", "link_index"],
         },
     ]
+
+
+def calculate_sync_date_range(configuration: dict, state: dict) -> tuple:
+    """
+    Calculate the date range for syncing based on sync mode (initial vs incremental).
+    Args:
+        configuration: Configuration dictionary with sync settings.
+        state: State dictionary tracking sync progress.
+    Returns:
+        Tuple of (posted_from, posted_to) date strings in MM/dd/yyyy format.
+    Raises:
+        ValueError: If required configuration is missing.
+    """
+    sync_mode = state.get("sync_mode", configuration.get("sync_mode", "initial"))
+    initial_sync_completed = state.get("initial_sync_completed", False)
+
+    # Initial/Historical Sync Mode
+    if sync_mode == "initial" or not initial_sync_completed:
+        posted_from = configuration.get("posted_from")
+        posted_to = configuration.get("posted_to")
+
+        if not posted_from or not posted_to:
+            raise ValueError(
+                "For initial sync, posted_from and posted_to are required in configuration"
+            )
+
+        # Validate the configuration dates
+        validate_configuration(configuration=configuration)
+        log.info(f"Initial sync mode: syncing from {posted_from} to {posted_to}")
+        return posted_from, posted_to
+
+    # Incremental Sync Mode
+    last_posted_to = state.get("last_posted_to")
+    if not last_posted_to:
+        raise ValueError(
+            "Incremental sync requires last_posted_to in state. Run initial sync first."
+        )
+
+    # Use default incremental window for overlap
+    incremental_window_days = __INCREMENTAL_WINDOW_DAYS
+
+    # Calculate new window with overlap to capture updates
+    last_posted_to_date = datetime.strptime(last_posted_to, __DATE_FORMAT)
+    posted_from_date = last_posted_to_date - timedelta(days=incremental_window_days)
+    posted_from = posted_from_date.strftime(__DATE_FORMAT)
+
+    # Use current date as end date
+    posted_to_date = datetime.now()
+    posted_to = posted_to_date.strftime(__DATE_FORMAT)
+
+    # Check if window exceeds 1-year API limit
+    date_diff = posted_to_date - posted_from_date
+    if date_diff.days >= 365:
+        # Adjust to 364-day window (API requires LESS than 365 days)
+        posted_to_date = posted_from_date + timedelta(days=364)
+        posted_to = posted_to_date.strftime(__DATE_FORMAT)
+        date_diff = posted_to_date - posted_from_date
+        log.warning(
+            f"Date range exceeded 1-year limit. Adjusted to: {posted_from} to {posted_to} "
+            f"(364 days - will continue in next sync)"
+        )
+
+    log.info(
+        f"Incremental sync mode: syncing from {posted_from} to {posted_to} "
+        f"(overlap: {incremental_window_days} days, window: {date_diff.days} days)"
+    )
+    return posted_from, posted_to
+
+
+def process_single_opportunity(opportunity: dict, current_offset: int, index: int):
+    """
+    Process a single opportunity record and all its breakout tables.
+    Args:
+        opportunity: Raw opportunity data from API.
+        current_offset: Current pagination offset for logging.
+        index: Index of opportunity in current page for logging.
+    Raises:
+        Exception: If processing fails (caller should handle).
+    """
+    # Validate that we have the required notice_id
+    if not opportunity.get("noticeId"):
+        log.warning(
+            f"Skipping opportunity {index + 1} at offset {current_offset}: missing noticeId"
+        )
+        return
+
+    # Process and format the main opportunity record
+    formatted_record = process_main_opportunity_record(opportunity)
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="opportunity", data=formatted_record)
+
+    # Process all breakout tables for this opportunity
+    process_breakout_tables(opportunity)
 
 
 def update(configuration: dict, state: dict):
@@ -629,7 +650,6 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
-
     log.info("SAM.gov Opportunities Connector: Starting sync")
 
     # Extract API key (always required)
@@ -637,62 +657,8 @@ def update(configuration: dict, state: dict):
     if not api_key:
         raise ValueError("Missing required configuration parameter: api_key")
 
-    # Determine sync mode: initial vs incremental
-    sync_mode = state.get("sync_mode", configuration.get("sync_mode", "initial"))
-    initial_sync_completed = state.get("initial_sync_completed", False)
-
-    # Calculate date range based on sync mode
-    if sync_mode == "initial" or not initial_sync_completed:
-        # Initial/Historical Sync Mode: Use configuration dates
-        posted_from = configuration.get("posted_from")
-        posted_to = configuration.get("posted_to")
-
-        if not posted_from or not posted_to:
-            raise ValueError(
-                "For initial sync, posted_from and posted_to are required in configuration"
-            )
-
-        # Validate the configuration dates
-        validate_configuration(configuration=configuration)
-
-        log.info(f"Initial sync mode: syncing from {posted_from} to {posted_to}")
-
-    else:
-        # Incremental Sync Mode: Auto-calculate window with overlap
-        last_posted_to = state.get("last_posted_to")
-        if not last_posted_to:
-            raise ValueError(
-                "Incremental sync requires last_posted_to in state. Run initial sync first."
-            )
-
-        # Get incremental window configuration (default 30 days overlap)
-        incremental_window_days = int(configuration.get("incremental_window_days", "30"))
-
-        # Calculate new window with overlap to capture updates
-        last_posted_to_date = datetime.strptime(last_posted_to, __DATE_FORMAT)
-        posted_from_date = last_posted_to_date - timedelta(days=incremental_window_days)
-        posted_from = posted_from_date.strftime(__DATE_FORMAT)
-
-        # Use current date as end date
-        posted_to_date = datetime.now()
-        posted_to = posted_to_date.strftime(__DATE_FORMAT)
-
-        # Check if window exceeds 1-year API limit
-        date_diff = posted_to_date - posted_from_date
-        if date_diff.days >= 365:
-            # Adjust to 364-day window (API requires LESS than 365 days, not equal to 365)
-            posted_to_date = posted_from_date + timedelta(days=364)
-            posted_to = posted_to_date.strftime(__DATE_FORMAT)
-            date_diff = posted_to_date - posted_from_date  # Recalculate after adjustment
-            log.warning(
-                f"Date range exceeded 1-year limit. Adjusted to: {posted_from} to {posted_to} "
-                f"(364 days - will continue in next sync)"
-            )
-
-        log.info(
-            f"Incremental sync mode: syncing from {posted_from} to {posted_to} "
-            f"(overlap: {incremental_window_days} days, window: {date_diff.days} days)"
-        )
+    # Calculate date range based on sync mode (initial vs incremental)
+    posted_from, posted_to = calculate_sync_date_range(configuration, state)
 
     # Get the state variable for pagination (resuming interrupted syncs)
     last_offset = state.get("last_offset", 0)
@@ -702,7 +668,6 @@ def update(configuration: dict, state: dict):
 
     try:
         current_offset = last_offset
-        records_processed_this_run = 0
 
         while True:
             # Fetch a page of opportunities data from SAM.gov API
@@ -728,26 +693,7 @@ def update(configuration: dict, state: dict):
             # Process each opportunity record with individual error handling
             for i, opportunity in enumerate(opportunities):
                 try:
-                    # Validate that we have the required notice_id
-                    if not opportunity.get("noticeId"):
-                        log.warning(
-                            f"Skipping opportunity {i + 1} at offset {current_offset}: missing noticeId"
-                        )
-                        continue
-
-                    # Process and format the main opportunity record
-                    formatted_record = process_main_opportunity_record(opportunity)
-
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The first argument is the name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table="opportunities", data=formatted_record)
-
-                    # Process all breakout tables for this opportunity
-                    process_breakout_tables(opportunity)
-
-                    records_processed_this_run += 1
-
+                    process_single_opportunity(opportunity, current_offset, i)
                 except Exception as e:
                     # Log the error but continue processing other records
                     notice_id = opportunity.get("noticeId", "unknown")

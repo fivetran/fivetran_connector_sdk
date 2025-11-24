@@ -31,8 +31,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
   "api_key": "<YOUR_SAM_GOV_API_KEY>",
   "posted_from": "<MM/DD/YYYY_START_DATE>",
   "posted_to": "<MM/DD/YYYY_END_DATE_WITHIN_ONE_YEAR>",
-  "sync_mode": "initial",
-  "incremental_window_days": "30"
+  "sync_mode": "initial"
 }
 ```
 
@@ -41,7 +40,6 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 - `posted_from`: Start date for initial sync in MM/dd/yyyy format (required for first sync)
 - `posted_to`: End date for initial sync in MM/dd/yyyy format (required for first sync)
 - `sync_mode`: Sync mode - "initial" for historical backfill or "incremental" for ongoing sync (optional, defaults to "initial")
-- `incremental_window_days`: Number of days to overlap in incremental syncs to capture updates (optional, defaults to "30")
 
 ### Important date range limitation
 - The date range between `posted_from` and `posted_to` must be less than 1 year (maximum 364 days)
@@ -57,15 +55,15 @@ The connector supports hybrid sliding window incremental sync:
 - After completion, automatically switches to incremental mode
 
 **Incremental Sync** (Subsequent Runs):
-- Automatically calculates date window using `last_posted_to` from previous sync minus `incremental_window_days` overlap
+- Automatically calculates date window using `last_posted_to` from previous sync minus a 30-day overlap window
 - Advances to the current date, capturing new opportunities and updates
 - If the date range exceeds one year, automatically chunks into 364-day windows
 
 ### Overlap window strategy
-- Default 30-day overlap ensures recent opportunity updates are captured
-- Configurable via `incremental_window_days` parameter
-- Smaller overlap (7 days) = more API-efficient but shorter update window
-- Larger overlap (90 days) = captures more updates but uses more API calls
+- Default 30-day overlap window ensures recent opportunity updates are captured
+- The overlap window is configured in the code (constant `__INCREMENTAL_WINDOW_DAYS = 30`)
+- Smaller overlap = more API-efficient but shorter update window
+- Larger overlap = captures more updates but uses more API calls
 
 ### Example progression
 ```
@@ -97,12 +95,12 @@ The connector implements pagination using the SAM.gov API's `limit` and `offset`
 ## Data handling
 The connector processes SAM.gov opportunity data through several transformation steps (refer to the `process_main_opportunity_record` and `process_breakout_tables` functions):
 
-1. Main opportunities table - Stores core opportunity information with flattened nested objects
+1. Main opportunity table - Stores core opportunity information with flattened nested objects
 2. Breakout tables - Separate tables for array data with foreign key relationships:
   - `point_of_contact` - Contact information for each opportunity
-  - `naics_codes` - NAICS classification codes
-  - `links` - API self-reference links
-  - `resource_links` - Document and resource URLs
+  - `naics_code` - NAICS classification codes
+  - `link` - API self-reference links
+  - `resource_link` - Document and resource URLs
 
 Flattening strategy (implemented in the `flatten_dict` function):
 - Nested objects like `placeOfPerformance` become `place_of_performance_*` columns
@@ -139,33 +137,34 @@ Additional features:
 ## Tables created
 The connector creates the following tables (refer to the `schema` function):
 
-### opportunities
+### opportunity
 - Primary key: `notice_id`
 - Description: Core opportunity information with flattened nested objects
 - Key columns: title, solicitation_number, posted_date, type, naics_code, response_dead_line, organization_type, office_address fields, place_of_performance fields, award fields
+- Note: `award_amount` field is defined as DECIMAL(15,2) for financial precision
 
 ### point_of_contact
 - Primary key: `notice_id`, `contact_index`
 - Description: Contact information for each opportunity
-- Foreign key: `notice_id` references opportunities table
+- Foreign key: `notice_id` references opportunity table
 - Key columns: type, full_name, email, phone, fax, title
 
-### naics_codes
+### naics_code
 - Primary key: `notice_id`, `code_index`
 - Description: NAICS classification codes for each opportunity
-- Foreign key: `notice_id` references opportunities table
+- Foreign key: `notice_id` references opportunity table
 - Key columns: naics_code
 
-### links
+### link
 - Primary key: `notice_id`, `link_index`
 - Description: API reference links
-- Foreign key: `notice_id` references opportunities table
+- Foreign key: `notice_id` references opportunity table
 - Key columns: rel, href
 
-### resource_links
+### resource_link
 - Primary key: `notice_id`, `link_index`
 - Description: Document and resource URLs
-- Foreign key: `notice_id` references opportunities table
+- Foreign key: `notice_id` references opportunity table
 - Key columns: resource_link
 
 ## Additional considerations
