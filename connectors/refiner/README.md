@@ -91,7 +91,7 @@ The connector processes survey and response data with an optimized incremental s
 - Final checkpoint saves the complete state only after successful sync completion
 
 ### Data transformation
-- **JSON flattening** - Nested dictionaries converted to underscore-separated columns (e.g., `config.theme.color` becomes `config_theme_color`)
+- JSON flattening: Nested dictionaries converted to underscore-separated columns (e.g., `config.theme.color` becomes `config_theme_color`)
 - **Array handling** - Arrays converted to JSON strings when stored in parent tables, or normalized to child tables when appropriate
 - **Child table extraction** - Questions extracted from survey config (`config.form_elements`) and answers extracted from response data are stored in dedicated child tables to preserve relational structure
 - **Smart exclusion** - Relational data like `form_elements` is excluded from the flattened parent table to avoid duplication, as it's already normalized into the questions table
