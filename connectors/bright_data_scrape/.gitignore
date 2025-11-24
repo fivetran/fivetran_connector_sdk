@@ -17,7 +17,7 @@ fields.yaml
 state.json
 
 # Configuration with sensitive data
-# configuration.json
+configuration.json
 
 # IDE files
 .vscode/
