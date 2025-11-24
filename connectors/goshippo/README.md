@@ -45,7 +45,7 @@ This connector uses API token authentication to connect to the Goshippo API. The
 
 To obtain your API token:
 
-1. Log in to your [Goshippo account](https://apps.goshippo.com/login?).
+1. Log in to your [Goshippo account](https://apps.goshippo.com/login).
 2. Go to **Settings > API**.
 3. Copy your API token or generate a new one.
 4. Add the API token to the `configuration.json` file.
