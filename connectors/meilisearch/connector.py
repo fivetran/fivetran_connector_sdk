@@ -215,7 +215,7 @@ def make_api_request(
                 )
                 time.sleep(delay)
                 continue
-            log.severe(f"HTTP error for URL: {url}: {e}")
+            log.severe(f"HTTP error for URL: {url}", e)
             raise
         except (requests.exceptions.RequestException, ValueError) as e:
             log.severe(f"Request failed for URL: {url}: {e}")
