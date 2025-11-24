@@ -47,8 +47,9 @@ __CHECKPOINT_INTERVAL = 100  # Checkpoint every N records
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters and valid formats.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Validate the configuration dictionary to ensure it contains all required parameters
+    and valid formats. This function is called at the start of the update method to ensure
+    that the connector has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
@@ -106,7 +107,8 @@ def parse_user_date_to_iso(date_input: str) -> Optional[str]:
         return parsed_date.strftime("%Y-%m-%dT%H:%M:%SZ")
     except ValueError as e:
         raise ValueError(
-            f"Invalid date format '{date_input}'. Please use YYYY-MM-DD format (e.g., '2023-01-01'). Error: {e}"
+            f"Invalid date format '{date_input}'. Please use YYYY-MM-DD format "
+            f"(e.g., '2023-01-01'). Error: {e}"
         )
 
 
@@ -135,7 +137,8 @@ def make_api_request(
                 log.warning(f"Rate limited. Retrying in {delay:.2f} seconds...")
                 time.sleep(delay)
             elif response.status_code in [400, 404]:
-                raise ValueError(f"Client error {response.status_code}: {response.text[:200]}")
+                error_msg = f"Client error {response.status_code}: {response.text[:200]}"
+                raise ValueError(error_msg)
             elif response.status_code == 503:
                 delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
                 log.warning(f"Service unavailable. Retrying in {delay:.2f} seconds...")
@@ -146,13 +149,15 @@ def make_api_request(
 
         except requests.Timeout as e:
             if attempt == __MAX_RETRIES - 1:
-                raise ConnectionError(f"Request timeout after {__MAX_RETRIES} attempts: {e}")
+                error_msg = f"Request timeout after {__MAX_RETRIES} attempts: {e}"
+                raise ConnectionError(error_msg)
             delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
             log.warning(f"Request timeout: {e}. Retrying in {delay:.2f} seconds...")
             time.sleep(delay)
         except requests.RequestException as e:
             if attempt == __MAX_RETRIES - 1:
-                raise ConnectionError(f"Request failed after {__MAX_RETRIES} attempts: {e}")
+                error_msg = f"Request failed after {__MAX_RETRIES} attempts: {e}"
+                raise ConnectionError(error_msg)
             delay = __BASE_DELAY * (2**attempt) + random.uniform(0, 1)
             log.warning(f"Request failed: {e}. Retrying in {delay:.2f} seconds...")
             time.sleep(delay)
@@ -162,14 +167,16 @@ def make_api_request(
 
 def fetch_stations_by_state(headers: Dict[str, str], state_code: Optional[str]) -> List[str]:
     """
-    Fetch weather station IDs from NOAA API with pagination support, optionally filtered by state.
+    Fetch weather station IDs from NOAA API with pagination support, optionally filtered
+    by state.
     Args:
         headers: HTTP headers for the request including User-Agent
         state_code: Two-letter US state code to filter stations (e.g., "IL", "CA")
     Returns:
         List of station ID strings
     """
-    log.info(f"Fetching stations for state: {state_code if state_code else 'all states'}")
+    state_desc = state_code if state_code else "all states"
+    log.info(f"Fetching stations for state: {state_desc}")
 
     url = f"{__NOAA_BASE_URL}{__STATIONS_ENDPOINT}"
     params = {"limit": str(__STATIONS_LIMIT)}
@@ -326,10 +333,10 @@ def fetch_observations_for_station(
             observations_count += 1
 
             if observations_count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for ensuring
-                # that the sync process can resume from the correct position in case of next sync
-                # or interruptions. Learn more about how and where to checkpoint by reading our
-                # best practices documentation
+                # Save the progress by checkpointing the state. This is important for
+                # ensuring that the sync process can resume from the correct position in
+                # case of next sync or interruptions. Learn more about how and where to
+                # checkpoint by reading our best practices documentation
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
                 op.checkpoint(state)
 
@@ -353,10 +360,12 @@ def fetch_observations_for_station(
 
 def fetch_active_alerts(headers: Dict[str, str], alert_area: Optional[str], state: Dict) -> int:
     """
-    Fetch active weather alerts with pagination support for specified area or all US alerts if area not specified.
+    Fetch active weather alerts with pagination support for specified area or all US
+    alerts if area not specified.
     Args:
         headers: HTTP headers for the request including User-Agent
-        alert_area: US state code for filtering alerts (e.g., "IL", "CA"), None for all US alerts
+        alert_area: US state code for filtering alerts (e.g., "IL", "CA"), None for all
+                    US alerts
         state: State dictionary to checkpoint progress
     Returns:
         Number of alerts processed
@@ -444,10 +453,10 @@ def fetch_active_alerts(headers: Dict[str, str], alert_area: Optional[str], stat
             alerts_count += 1
 
             if alerts_count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for ensuring
-                # that the sync process can resume from the correct position in case of next sync
-                # or interruptions. Learn more about how and where to checkpoint by reading our
-                # best practices documentation
+                # Save the progress by checkpointing the state. This is important for
+                # ensuring that the sync process can resume from the correct position in
+                # case of next sync or interruptions. Learn more about how and where to
+                # checkpoint by reading our best practices documentation
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
                 op.checkpoint(state)
 
@@ -491,7 +500,10 @@ def get_station_ids_for_sync(
 
 
 def sync_observations_for_stations(
-    headers: Dict[str, str], station_ids: List[str], last_sync_time: Optional[str], state: Dict
+    headers: Dict[str, str],
+    station_ids: List[str],
+    last_sync_time: Optional[str],
+    state: Dict,
 ) -> int:
     """
     Sync observations from multiple weather stations with checkpoint after each station.
@@ -559,10 +571,14 @@ def update(configuration: dict, state: dict):
     alert_area = configuration.get("alert_area")
     start_date_input = configuration.get("start_date")
 
-    start_time_iso = parse_user_date_to_iso(start_date_input) if start_date_input else None
+    if start_date_input:
+        start_time_iso = parse_user_date_to_iso(start_date_input)
+    else:
+        start_time_iso = None
     last_sync_time = state.get("last_sync_time", start_time_iso)
 
-    # Capture sync start time before fetching data to prevent missing records created during sync
+    # Capture sync start time before fetching data to prevent missing records
+    # created during sync
     sync_start_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log.info(f"Starting sync at {sync_start_time}, using last sync time: {last_sync_time}")
 
@@ -580,18 +596,21 @@ def update(configuration: dict, state: dict):
         )
         total_alerts = fetch_active_alerts(headers, alert_area, current_state)
 
-        # Use sync start time as the next starting point to ensure no data is missed between syncs
+        # Use sync start time as the next starting point to ensure no data is missed
+        # between syncs
         current_state["last_sync_time"] = sync_start_time
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # Save the progress by checkpointing the state. This is important for ensuring
+        # that the sync process can resume from the correct position in case of next
+        # sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices
+        # documentation (https://fivetran.com/docs/connectors/connector-sdk/
+        # best-practices#largedatasetrecommendation).
         op.checkpoint(current_state)
 
         log.info(
             f"Sync completed. Total observations: {total_observations}, "
-            f"Total alerts: {total_alerts}. Updated state timestamp: {current_timestamp}"
+            f"Total alerts: {total_alerts}. Updated state timestamp: {sync_start_time}"
         )
 
     except ValueError as e:
@@ -606,9 +625,12 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+# This is Python's standard entry method allowing your script to be run directly from
+# the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called
+# by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your
+# connector.
 if __name__ == "__main__":
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
