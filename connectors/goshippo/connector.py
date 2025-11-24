@@ -87,11 +87,8 @@ def update(configuration: dict, state: dict):
         new_sync_time = sync_shipments(api_token, last_sync_time)
 
         new_state = {"last_sync_time": new_sync_time}
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(new_state)
+        # State checkpointing is handled within sync_shipments() after each batch/page and after the loop completes.
+        # No additional checkpoint is needed here.
 
         log.info(f"Sync completed successfully. New sync time: {new_sync_time}")
 
