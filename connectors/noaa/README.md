@@ -34,7 +34,7 @@ Minimal Configuration (fetches all available data):
 }
 ```
 
-**Full Configuration (with all optional parameters):**
+Full Configuration (with all optional parameters):
 ```json
 {
   "user_agent": "<YOUR_APPLICATION_NAME_AND_CONTACT_EMAIL>",
