@@ -66,7 +66,7 @@ This connector accesses the NOAA Weather API, which is a public API that does no
 ## Data handling
 The connector processes two types of data from the NOAA API:
 
-**Observations** - Weather station observations are fetched using the `/stations/{station_id}/observations` endpoint. The connector:
+Observations - Weather station observations are fetched using the `/stations/{station_id}/observations` endpoint. The connector:
 - Processes up to 500 observations per request per station
 - Extracts comprehensive weather metrics from the GeoJSON response
 - Normalizes nested data structures into flat columns
