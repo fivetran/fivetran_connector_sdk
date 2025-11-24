@@ -414,7 +414,7 @@ def make_api_request(
             response = perform_request(url, params, headers)
             return handle_response(url, params, response, attempt, delay)
         except requests.RequestException as exc:
-            log.severe(f"Network or HTTP error: {exc}")
+            log.severe("Network or HTTP error", exc)
             time.sleep(delay * attempt)
     # If we reach this point, all retries have been exhausted.
     raise requests.RequestException(f"Failed to fetch {url} after {retries} retries")
