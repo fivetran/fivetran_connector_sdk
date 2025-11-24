@@ -44,7 +44,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 ## Authentication
 The connector uses MailerLite API keys for authentication. To obtain your API key:
 
-1. Log in to your MailerLite account.
+1. Log in to your [MailerLite account](https://www.mailerlite.com/).
 2. Navigate to **Integrations** > **MailerLite API**.
 3. Click **Generate new token**.
 4. Enter a descriptive name for the token.
