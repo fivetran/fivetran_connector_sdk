@@ -159,6 +159,9 @@ The connector implements comprehensive error handling through multiple layers:
 ### API limitations
 - Observations limit: Fetches a maximum of 500 observations per station per sync. For best results, run syncs hourly or daily to stay within this limit.
 - Stations limit: Fetches a maximum of 500 stations per sync. Most states have fewer than 500 stations, but nationwide queries may be limited.
-- No pagination: Current implementation does not paginate through results. Best suited for frequent syncs rather than large historical backfills.
+- Pagination limitation: The NOAA API does not support pagination for observations or stations endpoints. This is an API limitation, not a connector design choice. To mitigate this, we recommend:
+  - Running syncs frequently (hourly or daily) to avoid missing data due to API limits.
+  - Filtering by state or specific stations to reduce the volume of data per sync.
+  - Avoiding large historical backfills, as only the most recent 500 records per endpoint are available per request.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
