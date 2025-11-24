@@ -191,7 +191,7 @@ def sync_results(data: dict):
             )
         except Exception as e:
             log.severe(f"Error during upsert for record: {e}")
-            
+
     log.info(f"Successfully processed and attempted to upsert {len(organic_results)} records.")
 
 
