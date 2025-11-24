@@ -8,9 +8,6 @@ The connector:
 - Flattens and enriches structured JSON responses into a compatible tabular format.  
 - Performs upserts into a single destination table (`organic_google_search_results`) using a composite primary key.
 
-Related functions in `connector.py`:  
-`schema`, `update`, `get_direct_google_search_results`, `sync_results`, `validate_configuration`.
-
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
@@ -87,10 +84,6 @@ The connector fetches search results and processes the `organic_results` section
 - Primary key: `search_metadata_id`, `position`
 - Selected columns (not exhaustive):  
   `search_metadata_id`, `position`, `title`, `link`, `displayed_link`, `snippet`, `query_date`, `query_url`, `search_parameters_q`
-
-## Additional files
-- `connector.py` – Contains all core logic: `schema`, `update`, `get_direct_google_search_results`, `sync_results`, `validate_configuration`.  
-- `configuration.json` – Contains API credentials (`api_key`, `search_query`).  
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. 
