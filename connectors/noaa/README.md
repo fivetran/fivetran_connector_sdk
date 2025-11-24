@@ -94,7 +94,7 @@ The connector implements comprehensive error handling through multiple layers:
 
 ## Tables created
 
-**OBSERVATION** - Contains weather observations from NOAA weather stations
+OBSERVATION - Contains weather observations from NOAA weather stations
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -124,7 +124,7 @@ The connector implements comprehensive error handling through multiple layers:
 | latitude | FLOAT | Station latitude |
 | longitude | FLOAT | Station longitude |
 
-**ALERT** - Contains active weather alerts from NOAA
+ALERT - Contains active weather alerts from NOAA
 
 | Column | Type | Description |
 |--------|------|-------------|

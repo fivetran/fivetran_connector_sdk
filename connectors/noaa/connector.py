@@ -47,17 +47,44 @@ __CHECKPOINT_INTERVAL = 100  # Checkpoint every N records
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
+    Validate the configuration dictionary to ensure it contains all required parameters and valid formats.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
+    # Check required parameters
     required_configs = ["user_agent"]
     for config in required_configs:
         if config not in configuration or not configuration[config]:
             raise ValueError(f"Missing required configuration parameter: {config}")
+
+    # Validate optional start_date format if provided
+    if configuration.get("start_date"):
+        try:
+            datetime.strptime(configuration["start_date"], "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("start_date must be in YYYY-MM-DD format (e.g., '2023-01-01')")
+
+    # Validate state_code format if provided (2-letter US state code)
+    if configuration.get("state_code"):
+        state_code = configuration["state_code"]
+        if not isinstance(state_code, str) or len(state_code) != 2 or not state_code.isalpha():
+            raise ValueError("state_code must be a 2-letter US state code (e.g., 'CA', 'NY')")
+
+    # Validate alert_area format if provided (2-letter US state code)
+    if configuration.get("alert_area"):
+        alert_area = configuration["alert_area"]
+        if not isinstance(alert_area, str) or len(alert_area) != 2 or not alert_area.isalpha():
+            raise ValueError("alert_area must be a 2-letter US state code (e.g., 'CA', 'NY')")
+
+    # Validate station_ids format if provided (comma-separated string)
+    if configuration.get("station_ids"):
+        station_ids = configuration["station_ids"]
+        if not isinstance(station_ids, str):
+            raise ValueError("station_ids must be a comma-separated string of station IDs")
+
     log.info("Configuration validation passed.")
 
 
@@ -135,7 +162,7 @@ def make_api_request(
 
 def fetch_stations_by_state(headers: Dict[str, str], state_code: Optional[str]) -> List[str]:
     """
-    Fetch weather station IDs from NOAA API, optionally filtered by state.
+    Fetch weather station IDs from NOAA API with pagination support, optionally filtered by state.
     Args:
         headers: HTTP headers for the request including User-Agent
         state_code: Two-letter US state code to filter stations (e.g., "IL", "CA")
@@ -149,22 +176,45 @@ def fetch_stations_by_state(headers: Dict[str, str], state_code: Optional[str]) 
     if state_code:
         params["state"] = state_code
 
-    try:
-        response_data = make_api_request(url, headers, params)
-    except (ValueError, ConnectionError) as e:
-        log.warning(f"Failed to fetch stations: {e}")
-        return []
-
-    features = response_data.get("features", [])
     station_ids = []
+    page_count = 0
 
-    for feature in features:
-        properties = feature.get("properties", {})
-        station_id = properties.get("stationIdentifier")
-        if station_id:
-            station_ids.append(station_id)
+    # Paginate through all available stations
+    while url:
+        page_count += 1
+        log.info(f"Fetching stations page {page_count}")
 
-    log.info(f"Found {len(station_ids)} stations")
+        try:
+            response_data = make_api_request(url, headers, params)
+        except (ValueError, ConnectionError) as e:
+            log.warning(f"Failed to fetch stations on page {page_count}: {e}")
+            break
+
+        features = response_data.get("features", [])
+
+        if not features:
+            log.info("No more stations to fetch")
+            break
+
+        for feature in features:
+            properties = feature.get("properties", {})
+            station_id = properties.get("stationIdentifier")
+            if station_id:
+                station_ids.append(station_id)
+
+        # Check for next page URL in pagination metadata
+        pagination = response_data.get("pagination", {})
+        next_url = pagination.get("next")
+
+        if next_url:
+            url = next_url
+            params = {}  # Next URL contains all necessary params
+            log.info("Found next page URL for stations")
+        else:
+            log.info("No more pages for stations")
+            url = None
+
+    log.info(f"Found {len(station_ids)} stations across {page_count} page(s)")
     return station_ids
 
 
@@ -187,7 +237,7 @@ def fetch_observations_for_station(
     headers: Dict[str, str], station_id: str, start_time: Optional[str], state: Dict
 ) -> int:
     """
-    Fetch weather observations for a single station.
+    Fetch weather observations for a single station with pagination support.
     Args:
         headers: HTTP headers for the request including User-Agent
         station_id: The weather station identifier (e.g., "KORD")
@@ -203,78 +253,107 @@ def fetch_observations_for_station(
     if start_time:
         params["start"] = start_time
 
-    try:
-        response_data = make_api_request(url, headers, params)
-    except ValueError as e:
-        log.warning(f"Skipping station {station_id}: {e}")
-        return 0
-
-    features = response_data.get("features", [])
     observations_count = 0
+    page_count = 0
 
-    for feature in features:
-        properties = feature.get("properties", {})
-        geometry = feature.get("geometry", {})
+    # Paginate through all available observations
+    while url:
+        page_count += 1
+        log.info(f"Fetching observations page {page_count} for station {station_id}")
 
-        observation_record = {
-            "id": properties.get("@id"),
-            "station": properties.get("station"),
-            "timestamp": properties.get("timestamp"),
-            "raw_message": properties.get("rawMessage"),
-            "text_description": properties.get("textDescription"),
-            "temperature_c": properties.get("temperature", {}).get("value"),
-            "dewpoint_c": properties.get("dewpoint", {}).get("value"),
-            "wind_direction_degrees": properties.get("windDirection", {}).get("value"),
-            "wind_speed_kmh": properties.get("windSpeed", {}).get("value"),
-            "wind_gust_kmh": properties.get("windGust", {}).get("value"),
-            "barometric_pressure_pa": properties.get("barometricPressure", {}).get("value"),
-            "sea_level_pressure_pa": properties.get("seaLevelPressure", {}).get("value"),
-            "visibility_m": properties.get("visibility", {}).get("value"),
-            "max_temperature_last_24_hours_c": properties.get("maxTemperatureLast24Hours", {}).get(
-                "value"
-            ),
-            "min_temperature_last_24_hours_c": properties.get("minTemperatureLast24Hours", {}).get(
-                "value"
-            ),
-            "precipitation_last_hour_mm": properties.get("precipitationLastHour", {}).get("value"),
-            "precipitation_last_3_hours_mm": properties.get("precipitationLast3Hours", {}).get(
-                "value"
-            ),
-            "precipitation_last_6_hours_mm": properties.get("precipitationLast6Hours", {}).get(
-                "value"
-            ),
-            "relative_humidity_percent": properties.get("relativeHumidity", {}).get("value"),
-            "wind_chill_c": properties.get("windChill", {}).get("value"),
-            "heat_index_c": properties.get("heatIndex", {}).get("value"),
-            "cloud_layers": (
-                str(properties.get("cloudLayers", [])) if properties.get("cloudLayers") else None
-            ),
-            "elevation_m": properties.get("elevation", {}).get("value"),
-            "latitude": geometry.get("coordinates", [None, None])[1],
-            "longitude": geometry.get("coordinates", [None, None])[0],
-        }
+        try:
+            response_data = make_api_request(url, headers, params)
+        except ValueError as e:
+            log.warning(f"Skipping station {station_id} on page {page_count}: {e}")
+            break
 
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="observation", data=observation_record)
-        observations_count += 1
+        features = response_data.get("features", [])
 
-        if observations_count % __CHECKPOINT_INTERVAL == 0:
-            # Save the progress by checkpointing the state. This is important for ensuring
-            # that the sync process can resume from the correct position in case of next sync
-            # or interruptions. Learn more about how and where to checkpoint by reading our
-            # best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
-            op.checkpoint(state)
+        if not features:
+            log.info(f"No more observations for station {station_id}")
+            break
 
-    log.info(f"Retrieved {observations_count} observations for station {station_id}")
+        for feature in features:
+            properties = feature.get("properties", {})
+            geometry = feature.get("geometry", {})
+
+            observation_record = {
+                "id": properties.get("@id"),
+                "station": properties.get("station"),
+                "timestamp": properties.get("timestamp"),
+                "raw_message": properties.get("rawMessage"),
+                "text_description": properties.get("textDescription"),
+                "temperature_c": properties.get("temperature", {}).get("value"),
+                "dewpoint_c": properties.get("dewpoint", {}).get("value"),
+                "wind_direction_degrees": properties.get("windDirection", {}).get("value"),
+                "wind_speed_kmh": properties.get("windSpeed", {}).get("value"),
+                "wind_gust_kmh": properties.get("windGust", {}).get("value"),
+                "barometric_pressure_pa": properties.get("barometricPressure", {}).get("value"),
+                "sea_level_pressure_pa": properties.get("seaLevelPressure", {}).get("value"),
+                "visibility_m": properties.get("visibility", {}).get("value"),
+                "max_temperature_last_24_hours_c": properties.get(
+                    "maxTemperatureLast24Hours", {}
+                ).get("value"),
+                "min_temperature_last_24_hours_c": properties.get(
+                    "minTemperatureLast24Hours", {}
+                ).get("value"),
+                "precipitation_last_hour_mm": properties.get("precipitationLastHour", {}).get(
+                    "value"
+                ),
+                "precipitation_last_3_hours_mm": properties.get("precipitationLast3Hours", {}).get(
+                    "value"
+                ),
+                "precipitation_last_6_hours_mm": properties.get("precipitationLast6Hours", {}).get(
+                    "value"
+                ),
+                "relative_humidity_percent": properties.get("relativeHumidity", {}).get("value"),
+                "wind_chill_c": properties.get("windChill", {}).get("value"),
+                "heat_index_c": properties.get("heatIndex", {}).get("value"),
+                "cloud_layers": (
+                    str(properties.get("cloudLayers", []))
+                    if properties.get("cloudLayers")
+                    else None
+                ),
+                "elevation_m": properties.get("elevation", {}).get("value"),
+                "latitude": geometry.get("coordinates", [None, None])[1],
+                "longitude": geometry.get("coordinates", [None, None])[0],
+            }
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="observation", data=observation_record)
+            observations_count += 1
+
+            if observations_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring
+                # that the sync process can resume from the correct position in case of next sync
+                # or interruptions. Learn more about how and where to checkpoint by reading our
+                # best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
+                op.checkpoint(state)
+
+        # Check for next page URL in pagination metadata
+        pagination = response_data.get("pagination", {})
+        next_url = pagination.get("next")
+
+        if next_url:
+            url = next_url
+            params = {}  # Next URL contains all necessary params
+            log.info(f"Found next page URL for station {station_id}")
+        else:
+            log.info(f"No more pages for station {station_id}")
+            url = None
+
+    log.info(
+        f"Retrieved {observations_count} observations across {page_count} page(s) for station {station_id}"
+    )
     return observations_count
 
 
 def fetch_active_alerts(headers: Dict[str, str], alert_area: Optional[str], state: Dict) -> int:
     """
-    Fetch active weather alerts for specified area or all US alerts if area not specified.
+    Fetch active weather alerts with pagination support for specified area or all US alerts if area not specified.
     Args:
         headers: HTTP headers for the request including User-Agent
         alert_area: US state code for filtering alerts (e.g., "IL", "CA"), None for all US alerts
@@ -292,76 +371,99 @@ def fetch_active_alerts(headers: Dict[str, str], alert_area: Optional[str], stat
     if alert_area:
         params["area"] = alert_area
 
-    try:
-        response_data = make_api_request(url, headers, params)
-    except ValueError as e:
-        log.warning(f"Failed to fetch alerts: {e}")
-        return 0
-
-    features = response_data.get("features", [])
     alerts_count = 0
+    page_count = 0
 
-    for feature in features:
-        properties = feature.get("properties", {})
-        geometry = feature.get("geometry")
+    # Paginate through all available alerts
+    while url:
+        page_count += 1
+        log.info(f"Fetching alerts page {page_count}")
 
-        alert_record = {
-            "id": properties.get("id"),
-            "area_desc": properties.get("areaDesc"),
-            "geocode_same": (
-                str(properties.get("geocode", {}).get("SAME", []))
-                if properties.get("geocode")
-                else None
-            ),
-            "geocode_ugc": (
-                str(properties.get("geocode", {}).get("UGC", []))
-                if properties.get("geocode")
-                else None
-            ),
-            "affected_zones": (
-                str(properties.get("affectedZones", []))
-                if properties.get("affectedZones")
-                else None
-            ),
-            "sent": properties.get("sent"),
-            "effective": properties.get("effective"),
-            "onset": properties.get("onset"),
-            "expires": properties.get("expires"),
-            "ends": properties.get("ends"),
-            "status": properties.get("status"),
-            "message_type": properties.get("messageType"),
-            "category": properties.get("category"),
-            "severity": properties.get("severity"),
-            "certainty": properties.get("certainty"),
-            "urgency": properties.get("urgency"),
-            "event": properties.get("event"),
-            "sender": properties.get("sender"),
-            "sender_name": properties.get("senderName"),
-            "headline": properties.get("headline"),
-            "description": properties.get("description"),
-            "instruction": properties.get("instruction"),
-            "response": properties.get("response"),
-            "parameters": (
-                str(properties.get("parameters", {})) if properties.get("parameters") else None
-            ),
-            "geometry_type": geometry.get("type") if geometry else None,
-        }
+        try:
+            response_data = make_api_request(url, headers, params)
+        except ValueError as e:
+            log.warning(f"Failed to fetch alerts on page {page_count}: {e}")
+            break
 
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="alert", data=alert_record)
-        alerts_count += 1
+        features = response_data.get("features", [])
 
-        if alerts_count % __CHECKPOINT_INTERVAL == 0:
-            # Save the progress by checkpointing the state. This is important for ensuring
-            # that the sync process can resume from the correct position in case of next sync
-            # or interruptions. Learn more about how and where to checkpoint by reading our
-            # best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
-            op.checkpoint(state)
+        if not features:
+            log.info("No more alerts to fetch")
+            break
 
-    log.info(f"Retrieved {alerts_count} active alerts")
+        for feature in features:
+            properties = feature.get("properties", {})
+            geometry = feature.get("geometry")
+
+            alert_record = {
+                "id": properties.get("id"),
+                "area_desc": properties.get("areaDesc"),
+                "geocode_same": (
+                    str(properties.get("geocode", {}).get("SAME", []))
+                    if properties.get("geocode")
+                    else None
+                ),
+                "geocode_ugc": (
+                    str(properties.get("geocode", {}).get("UGC", []))
+                    if properties.get("geocode")
+                    else None
+                ),
+                "affected_zones": (
+                    str(properties.get("affectedZones", []))
+                    if properties.get("affectedZones")
+                    else None
+                ),
+                "sent": properties.get("sent"),
+                "effective": properties.get("effective"),
+                "onset": properties.get("onset"),
+                "expires": properties.get("expires"),
+                "ends": properties.get("ends"),
+                "status": properties.get("status"),
+                "message_type": properties.get("messageType"),
+                "category": properties.get("category"),
+                "severity": properties.get("severity"),
+                "certainty": properties.get("certainty"),
+                "urgency": properties.get("urgency"),
+                "event": properties.get("event"),
+                "sender": properties.get("sender"),
+                "sender_name": properties.get("senderName"),
+                "headline": properties.get("headline"),
+                "description": properties.get("description"),
+                "instruction": properties.get("instruction"),
+                "response": properties.get("response"),
+                "parameters": (
+                    str(properties.get("parameters", {})) if properties.get("parameters") else None
+                ),
+                "geometry_type": geometry.get("type") if geometry else None,
+            }
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="alert", data=alert_record)
+            alerts_count += 1
+
+            if alerts_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring
+                # that the sync process can resume from the correct position in case of next sync
+                # or interruptions. Learn more about how and where to checkpoint by reading our
+                # best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices).
+                op.checkpoint(state)
+
+        # Check for next page URL in pagination metadata
+        pagination = response_data.get("pagination", {})
+        next_url = pagination.get("next")
+
+        if next_url:
+            url = next_url
+            params = {}  # Next URL contains all necessary params
+            log.info("Found next page URL for alerts")
+        else:
+            log.info("No more pages for alerts")
+            url = None
+
+    log.info(f"Retrieved {alerts_count} active alerts across {page_count} page(s)")
     return alerts_count
 
 
@@ -392,7 +494,7 @@ def sync_observations_for_stations(
     headers: Dict[str, str], station_ids: List[str], last_sync_time: Optional[str], state: Dict
 ) -> int:
     """
-    Sync observations from multiple weather stations.
+    Sync observations from multiple weather stations with checkpoint after each station.
     Args:
         headers: HTTP headers for the request including User-Agent
         station_ids: List of weather station identifiers to sync
@@ -408,11 +510,16 @@ def sync_observations_for_stations(
     log.info(f"Syncing observations from {len(station_ids)} stations")
     total_observations = 0
 
-    for station_id in station_ids:
+    for idx, station_id in enumerate(station_ids, 1):
         observations_count = fetch_observations_for_station(
             headers, station_id, last_sync_time, state
         )
         total_observations += observations_count
+
+        # Checkpoint after each station is complete to ensure efficient resumability
+        # This prevents re-processing completed stations if sync is interrupted
+        op.checkpoint(state)
+        log.info(f"Checkpointed progress after station {station_id} ({idx}/{len(station_ids)})")
 
     return total_observations
 
@@ -441,7 +548,7 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
 
-    log.info("Example: Source Examples : NOAA Weather API")
+    log.warning("Example: Source Examples : NOAA Weather API")
 
     # Validate configuration before proceeding
     validate_configuration(configuration)
@@ -455,7 +562,9 @@ def update(configuration: dict, state: dict):
     start_time_iso = parse_user_date_to_iso(start_date_input) if start_date_input else None
     last_sync_time = state.get("last_sync_time", start_time_iso)
 
-    log.info(f"Starting sync with last sync time: {last_sync_time}")
+    # Capture sync start time before fetching data to prevent missing records created during sync
+    sync_start_time = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    log.info(f"Starting sync at {sync_start_time}, using last sync time: {last_sync_time}")
 
     headers = {"User-Agent": user_agent, "Accept": "application/geo+json"}
 
@@ -471,8 +580,8 @@ def update(configuration: dict, state: dict):
         )
         total_alerts = fetch_active_alerts(headers, alert_area, current_state)
 
-        current_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        current_state["last_sync_time"] = current_timestamp
+        # Use sync start time as the next starting point to ensure no data is missed between syncs
+        current_state["last_sync_time"] = sync_start_time
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
