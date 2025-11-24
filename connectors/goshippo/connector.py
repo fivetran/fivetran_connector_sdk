@@ -135,7 +135,7 @@ def sync_shipments(api_token, last_sync_time):
             shipment_updated = shipment.get("object_updated")
 
             # Client-side filtering for incremental sync since API doesn't support filtering
-            if last_sync_time and shipment_updated and shipment_updated < last_sync_time:
+            if last_sync_time and shipment_updated and shipment_updated <= last_sync_time:
                 continue
 
             process_shipment(shipment)
