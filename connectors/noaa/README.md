@@ -27,7 +27,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Configuration file
 The connector requires only a User-Agent identifier. All other parameters are optional and can be omitted.
 
-**Minimal Configuration (fetches all available data):**
+Minimal Configuration (fetches all available data):
 ```json
 {
   "user_agent": "<YOUR_APPLICATION_NAME_AND_CONTACT_EMAIL>"
