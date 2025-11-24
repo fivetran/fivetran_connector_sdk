@@ -73,7 +73,7 @@ The connector processes two types of data from the NOAA API:
 - Uses the observation ID as the primary key for upserts
 - Checkpoints every 100 records to ensure resumability
 
-**Alerts** - Active weather alerts are fetched using the `/alerts/active` endpoint. The connector:
+Alerts - Active weather alerts are fetched using the `/alerts/active` endpoint. The connector:
 - Filters alerts by state/area if configured
 - Extracts alert metadata, including severity, urgency, and affected zones
 - Converts complex arrays and objects to string representations
