@@ -213,7 +213,7 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
             details = ""
 
         # Check if message is newer than last sync time
-        if last_sync_time and datetime.fromisoformat(event_timestamp) <= last_sync_time:
+        if last_sync_time and datetime.fromisoformat(event_timestamp) < last_sync_time:
             return None
 
         event_record = {

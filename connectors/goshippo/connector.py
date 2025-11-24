@@ -86,7 +86,6 @@ def update(configuration: dict, state: dict):
     try:
         new_sync_time = sync_shipments(api_token, last_sync_time)
 
-        new_state = {"last_sync_time": new_sync_time}
         # State checkpointing is handled within sync_shipments() after each batch/page and after the loop completes.
         # No additional checkpoint is needed here.
 
@@ -132,7 +131,7 @@ def sync_shipments(api_token, last_sync_time):
             shipment_updated = shipment.get("object_updated")
 
             # Client-side filtering for incremental sync since API doesn't support filtering
-            if last_sync_time and shipment_updated and shipment_updated <= last_sync_time:
+            if last_sync_time and shipment_updated and shipment_updated < last_sync_time:
                 continue
 
             process_shipment(shipment)
