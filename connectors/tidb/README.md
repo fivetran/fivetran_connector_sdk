@@ -48,35 +48,30 @@ Configuration parameters:
 - `TIDB_PORT` (required): Port number for TiDB connection.
 - `TIDB_DATABASE` (required): Name of your TiDB database.
 - `TABLES_PRIMARY_KEY_COLUMNS` (required): A JSON object where keys are table names and values are the primary key column names.
+- `VECTOR_TABLES_DATA` (optional): A JSON object for tables containing vector/embedding columns. Each table requires:
+  - `primary_key_column`: The primary key column name.
+  - `vector_column`: The column containing vector data.
 
 Example:
 ```json
 {
-  "customers": "customer_id",
-  "products": "product_id",
-  "transactions": "transaction_id"
-}
-```
-
-`VECTOR_TABLES_DATA` (optional): A JSON object for tables containing vector/embedding columns. Each table requires:
-- `primary_key_column`: The primary key column name.
-- `vector_column`: The column containing vector data.
-
-Example:
-```json
-{
-  "product_embeddings": {
-    "primary_key_column": "product_id",
-    "vector_column": "embedding_vector"
+  "TABLES_PRIMARY_KEY_COLUMNS": {
+    "customers": "customer_id",
+    "products": "product_id",
+    "transactions": "transaction_id"
+  },
+  "VECTOR_TABLES_DATA": {
+    "product_embeddings": {
+      "primary_key_column": "product_id",
+      "vector_column": "embedding_vector"
+    }
   }
 }
 ```
 
 ## Requirements file
 
-The `requirements.txt` file lists third-party Python packages required for this example. 
-
-Example content:
+Include the following dependencies in your `requirements.txt` file:
 
 ```
 pytidb>=0.0.11
@@ -94,6 +89,8 @@ To set up authentication:
 1. Create a TiDB user with appropriate permissions to access the required tables.
 2. Provide the username and password in the `configuration.json` file.
 3. Ensure the user has `SELECT` permissions on the tables that need to be synced.
+
+For details on creating users and granting privileges, see TiDB docs: https://docs.pingcap.com/tidb/stable/manage-users-and-privileges
 
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
