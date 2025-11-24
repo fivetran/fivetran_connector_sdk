@@ -33,7 +33,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "api_token": "<YOUR_BRIGHT_DATA_API_TOKEN>",
   "dataset_id": "<YOUR_BRIGHT_DATA_DATASET_ID>",
-  "scrape_url": "<URL_OR_COMMA_SEPARATED_URLS>"
+  "scrape_url": "<YOUR_BRIGHT_DATA_SCRAPE_URL>"
 }
 ```
 
@@ -47,6 +47,8 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   - Newline-separated: `"https://www.example.com\nhttps://www.example2.com"`
   - JSON array string: `"[\"https://www.example.com\",\"https://www.example2.com\"]"`
 
+**Note:** Some Bright Data datasets require specific query parameters to be included in the API request. The connector automatically applies dataset-specific query parameters based on the `dataset_id` value. For example, the dataset `gd_lyy3tktm25m4avu764` automatically includes `discover_by=profile_url` and `type=discover_new` parameters. This logic is implemented in the `sync_scrape_urls()` function in `connector.py`. If you need to add query parameters for additional datasets, modify the dataset-specific conditional logic in that function.
+
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
@@ -54,7 +56,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 This connector requires the following dependencies in `requirements.txt`:
 
 ```
-python-dotenv==1.2.1
 pyyaml==6.0.3
 ```
 
@@ -83,7 +84,7 @@ The connector processes data in the following order:
 5. Schema Discovery - Dynamically discovers fields from scraped data and documents them in `fields.yaml` (refer to the `collect_all_fields()` and `update_fields_yaml()` functions in helpers)
 6. Data Upsertion - Upserts processed records to the destination table (refer to the `process_and_upsert_results()` function)
 
-All data is upserted to the destination, allowing for incremental updates. The connector tracks state for synced URLs to enable efficient incremental syncs.
+All data is upserted to the destination, allowing for incremental updates. Records are uniquely identified by the combination of `url` and `result_index`, which form the primary key. The connector tracks state for synced URLs to enable efficient incremental syncs.
 
 ## Error handling
 
@@ -99,7 +100,17 @@ The connector implements comprehensive error handling:
 
 | Table Name        | Primary Key                          | Description                                                                                                                                                                                                                            |
 |-------------------|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `scrape_results`  | `url`, `result_index`, `_fivetran_synced` | Contains scraped web page data including content, metadata, and extracted fields. Each row represents a single result from a scraped URL. The `url` field identifies the source URL, `result_index` distinguishes multiple results from the same URL, and `_fivetran_synced` tracks when the record was synced. Nested JSON structures are flattened with underscore separators (e.g., `user_name`, `user_details_age`). |
+| `scrape_results`  | `url`, `result_index` | Contains scraped web page data including content, metadata, and extracted fields. Each row represents a single result from a scraped URL. The `url` field identifies the source URL, and `result_index` distinguishes multiple results from the same URL. Nested JSON structures are flattened with underscore separators (e.g., `user_name`, `user_details_age`).|
+
+## Additional files
+
+The connector uses the following additional files:
+
+- **helpers/validation.py** - Configuration parameter validation
+- **helpers/scrape.py** - Bright Data API interaction, job triggering, and snapshot polling
+- **helpers/schema_management.py** - Dynamic schema discovery and fields.yaml management
+- **helpers/data_processing.py** - Data flattening and result processing utilities
+- **helpers/common.py** - Shared constants, error handling, and response parsing utilities
 
 ## Additional considerations
 

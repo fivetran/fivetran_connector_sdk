@@ -1,17 +1,26 @@
 """Schema and fields management utilities."""
 
+# For working with file paths in a cross-platform way
 from pathlib import Path
+
+# For type hints in function signatures
 from typing import Set
 
+# For reading and writing YAML files (fields.yaml schema documentation)
 import yaml
 
+# For logging connector operations and warnings
 from fivetran_connector_sdk import Logging as log
 
 FIELDS_FILE = Path("fields.yaml")
 
 
 def _load_existing_tables() -> dict:
-    """Load existing fields.yaml file if it exists."""
+    """Load existing fields.yaml file if it exists.
+
+    Returns:
+        Dictionary with 'tables' key containing existing table definitions, or empty structure if file doesn't exist or is invalid.
+    """
     if not FIELDS_FILE.exists():
         return {"tables": {}}
 
@@ -30,7 +39,13 @@ def _load_existing_tables() -> dict:
 
 
 def _default_description(table_name: str) -> str:
-    """Generate default table description."""
+    """Generate default table description.
+
+    Args:
+        table_name: Name of the table to generate description for.
+
+    Returns:
+        Default description string for the table."""
     return (
         f"Dynamically created table '{table_name}' from Bright Data scrape results. "
         "Fields are inferred from the API response structure."

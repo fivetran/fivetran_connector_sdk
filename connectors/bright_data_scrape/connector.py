@@ -37,7 +37,6 @@ def schema(configuration: dict):
             "primary_key": [
                 "url",
                 "result_index",
-                "_fivetran_synced",
             ],
         }
     ]
@@ -98,7 +97,9 @@ def parse_scrape_urls(scrape_url_input):
                 ]
             if isinstance(parsed, str) and parsed.strip():
                 return [parsed.strip()]
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError) as e:
+            # JSON parsing failed; will try other formats. This is expected for non-JSON input.
+            log.fine(f"Failed to parse scrape_url_input as JSON: {e}. Input: {scrape_url_input!r}")
             pass
 
         # Try comma-separated format
@@ -130,13 +131,22 @@ def sync_scrape_urls(api_token, dataset_id, urls, state):
     """
     log.info(f"Starting scrape sync for {len(urls)} URL(s)")
 
-    # Fetch scrape results for all URLs in batch
-    # The Bright Data REST API processes URLs in batch and returns results in order
-    scrape_results = perform_scrape(
-        api_token=api_token,
-        dataset_id=dataset_id,
-        url=urls,
-    )
+    # Fetch scrape results for all URLs
+    # The Bright Data REST API processes URLs and returns results in order
+    # Apply dataset-specific query parameters when needed
+    if dataset_id == "gd_lyy3tktm25m4avu764":
+        scrape_results = perform_scrape(
+            api_token=api_token,
+            dataset_id=dataset_id,
+            url=urls,
+            extra_query_params={"discover_by": "profile_url", "type": "discover_new"},
+        )
+    else:
+        scrape_results = perform_scrape(
+            api_token=api_token,
+            dataset_id=dataset_id,
+            url=urls,
+        )
 
     # Normalize results to always be a list
     if not isinstance(scrape_results, list):
@@ -271,13 +281,6 @@ def process_and_upsert_results(processed_results, all_fields):
                             f"Could not convert primary key '{pk}' to {pk_type.__name__}"
                         )
                         result[pk] = pk_type() if pk_type == str else 0
-    # Log primary key errors once after processing all results
-    if primary_key_errors:
-        unique_errors = list(set(primary_key_errors))
-        log.warning(
-            f"Primary key validation issues: {', '.join(unique_errors[:3])}"
-            f"{' (and more)' if len(unique_errors) > 3 else ''}"
-        )
 
         # Build row data, ensuring primary keys have correct types
         row = {}
@@ -292,12 +295,20 @@ def process_and_upsert_results(processed_results, all_fields):
                     value = int(value)
                 else:
                     value = 0
-            row[field] = [value]
+            row[field] = value
 
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table=__SCRAPE_TABLE, data=row)
+
+    # Log primary key errors once after processing all results
+    if primary_key_errors:
+        unique_errors = list(set(primary_key_errors))
+        log.warning(
+            f"Primary key validation issues: {', '.join(unique_errors[:3])}"
+            f"{' (and more)' if len(unique_errors) > 3 else ''}"
+        )
 
 
 # Create the connector object using the schema and update functions

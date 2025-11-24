@@ -1,14 +1,24 @@
 """Bright Data Web Scraper helper functions."""
 
+# For parsing JSON responses from the Bright Data API
 import json
+
+# For adding delays between retry attempts (exponential backoff)
 import time
+
+# For type hints in function signatures
 from typing import Any, Dict, List, Union
 
+# For making HTTP requests to the Bright Data API
 import requests
+
+# For catching network and HTTP request exceptions
 from requests import RequestException
 
+# For logging connector operations, errors, and status updates
 from fivetran_connector_sdk import Logging as log
 
+# Shared constants and utilities from the common module
 from .common import (
     BRIGHT_DATA_BASE_URL,
     DEFAULT_TIMEOUT_SECONDS,
@@ -16,6 +26,79 @@ from .common import (
     extract_error_detail,
     parse_response_payload,
 )
+
+
+def _parse_large_json_array_streaming(
+    response, max_size_bytes: int = 100 * 1024 * 1024
+):
+    """
+    Parse a large JSON array response using chunked reading to manage memory.
+
+    For very large responses (>100MB), this reads the response in chunks and parses
+    incrementally. However, JSON arrays still require the full response for parsing.
+
+    Note: For truly large datasets, JSONL format is recommended as it allows
+    line-by-line streaming without loading the entire response.
+
+    Args:
+        response: requests.Response object to parse
+        max_size_bytes: Threshold for using chunked reading (default 100MB)
+
+    Returns:
+        List of parsed JSON objects, or None if not applicable/parse failed
+    """
+    content_length = response.headers.get("Content-Length")
+
+    # Only attempt chunked parsing for responses larger than threshold
+    if not content_length or int(content_length) < max_size_bytes:
+        return None
+
+    try:
+        # Read response in chunks to monitor progress and manage memory pressure
+        buffer = ""
+        chunk_count = 0
+        for chunk in response.iter_content(chunk_size=8192, decode_unicode=True):
+            if chunk:
+                buffer += chunk
+                chunk_count += 1
+                # Log progress for very large responses
+                if chunk_count % 1000 == 0:
+                    log.info(
+                        f"Reading large response: {len(buffer)} bytes read "
+                        f"({chunk_count} chunks)"
+                    )
+
+        # Verify it looks like a JSON array
+        buffer_stripped = buffer.strip()
+        if not buffer_stripped.startswith("["):
+            # Not a JSON array, fall back to standard parsing
+            return None
+
+        # Parse the accumulated JSON array
+        # Note: We still need to load it all for JSON array parsing
+        # JSONL format would be better for true streaming
+        parsed_data = json.loads(buffer_stripped)
+
+        if isinstance(parsed_data, list):
+            log.info(
+                f"Successfully parsed large JSON array with {len(parsed_data)} records "
+                f"({len(buffer)} bytes)"
+            )
+            return parsed_data
+
+    except (json.JSONDecodeError, ValueError, MemoryError) as e:
+        log.warning(
+            f"Failed to parse large JSON response: {str(e)}. "
+            f"Consider using JSONL format for very large datasets."
+        )
+        return None
+    except Exception as e:
+        log.info(
+            f"Chunked parse encountered error: {str(e)}, falling back to standard parsing"
+        )
+        return None
+
+    return None
 
 
 def perform_scrape(
@@ -26,6 +109,7 @@ def perform_scrape(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     retries: int = 3,
     backoff_factor: float = 1.5,
+    extra_query_params: Dict[str, Any] = None,
 ) -> List[Dict[str, Any]]:
     """
     Scrape URLs using Bright Data's Web Scraper REST API.
@@ -42,6 +126,8 @@ def perform_scrape(
         timeout: Request timeout in seconds
         retries: Number of retries for failed requests
         backoff_factor: Backoff factor for exponential backoff
+        extra_query_params: Optional dictionary of additional query parameters to include
+                          in the scrape trigger request (e.g., {"discover_by": "profile_url", "type": "discover_new"})
 
     Returns:
         List of scraped results (each result is a dictionary)
@@ -86,6 +172,7 @@ def perform_scrape(
         timeout=timeout,
         retries=retries,
         backoff_factor=backoff_factor,
+        extra_query_params=extra_query_params or {},
     )
 
     if not snapshot_id:
@@ -116,6 +203,7 @@ def _trigger_scrape(
     timeout: int,
     retries: int,
     backoff_factor: float,
+    extra_query_params: Dict[str, Any] = None,
 ) -> str:
     """
     Trigger a scrape job via POST /datasets/v3/trigger.
@@ -141,11 +229,10 @@ def _trigger_scrape(
         "include_errors": "true",  # Include errors report with the results
     }
 
-    # Add dataset-specific query parameters
-    # For dataset_id gd_lyy3tktm25m4avu764, add discover_by and type parameters
-    if dataset_id == "gd_lyy3tktm25m4avu764":
-        params["discover_by"] = "profile_url"
-        params["type"] = "discover_new"
+    # Add any additional query parameters from configuration
+    # This allows dataset-specific parameters to be configured rather than hardcoded
+    if extra_query_params:
+        params.update(extra_query_params)
 
     # Build request body - according to Bright Data API docs, body should be:
     # [{"url": "https://..."}, {"url": "https://..."}, ...]
@@ -298,21 +385,16 @@ def _poll_snapshot(
                 # - JSON Lines format: {"id":"..."}\n{"id":"..."}\n... (Content-Type: application/jsonl)
                 # - Single JSON object as string
                 content_type = response.headers.get("Content-Type", "").lower()
-                raw_text = response.text
-
-                # Log response details only on first attempt or when significant changes occur
-                if attempt == 1:
-                    log.info(
-                        f"Snapshot {snapshot_id[:8]}... poll response type: str, "
-                        f"Content-Type: {content_type or 'unknown'}, length: {len(raw_text)}"
-                    )
 
                 # Check if it's JSON Lines format (application/jsonl)
+                # Use streaming for JSONL to handle large responses without loading entire body into memory
                 if "jsonl" in content_type or "json-lines" in content_type:
-                    # Parse JSON Lines format - each line is a separate JSON object
+                    # Parse JSON Lines format using streaming - each line is a separate JSON object
                     results = []
                     parse_errors = []
-                    for line_num, line in enumerate(raw_text.strip().split("\n"), 1):
+                    for line_num, line in enumerate(
+                        response.iter_lines(decode_unicode=True), 1
+                    ):
                         line = line.strip()
                         if not line:
                             continue
@@ -334,6 +416,45 @@ def _poll_snapshot(
                             f"after {attempt} attempt(s)"
                         )
                         return results
+
+                # For non-JSONL responses, check content length before loading into memory
+                # Set a reasonable maximum size (e.g., 100MB) to prevent memory issues
+                content_length = response.headers.get("Content-Length")
+                max_size_bytes = 100 * 1024 * 1024  # 100MB
+                if content_length and int(content_length) > max_size_bytes:
+                    log.warning(
+                        f"Snapshot {snapshot_id[:8]}... response size ({content_length} bytes) exceeds "
+                        f"maximum recommended size ({max_size_bytes} bytes). "
+                        f"Consider using JSONL format for large datasets."
+                    )
+
+                # Log response details only on first attempt
+                if attempt == 1:
+                    size_info = (
+                        f", size: {content_length} bytes" if content_length else ""
+                    )
+                    log.info(
+                        f"Snapshot {snapshot_id[:8]}... poll response "
+                        f"Content-Type: {content_type or 'unknown'}{size_info}"
+                    )
+
+                # For very large responses, try chunked parsing for JSON arrays
+                # This reads in chunks and provides progress logging
+                if content_length and int(content_length) > max_size_bytes:
+                    chunked_data = _parse_large_json_array_streaming(
+                        response, max_size_bytes
+                    )
+                    if chunked_data is not None:
+                        log.info(
+                            f"Snapshot {snapshot_id[:8]}... ready (chunked parse with {len(chunked_data)} records) "
+                            f"after {attempt} attempt(s)"
+                        )
+                        return chunked_data
+                    # If chunked parsing failed, continue with standard parsing
+
+                # For smaller responses or when chunked parsing is not applicable,
+                # use standard parsing
+                raw_text = response.text
 
                 # Try to parse as standard JSON (array or single object)
                 try:
@@ -361,7 +482,12 @@ def _poll_snapshot(
                     # Check if it's a "not ready" status message
                     if any(
                         phrase in response_lower
-                        for phrase in ("not ready", "processing", "pending", "try again")
+                        for phrase in (
+                            "not ready",
+                            "processing",
+                            "pending",
+                            "try again",
+                        )
                     ):
                         log.info(
                             f"Snapshot {snapshot_id[:8]}... still processing: {response_data[:200]}... "
@@ -389,14 +515,15 @@ def _poll_snapshot(
                                     return [parsed_data] if parsed_data else []
                             except json.JSONDecodeError as e:
                                 # JSON parsing failed - might be JSONL format or truncated
-                                error_pos = getattr(e, 'pos', None)
+                                error_pos = getattr(e, "pos", None)
                                 error_msg = str(e)
                                 # Check if error indicates multiple objects (JSONL format)
                                 if "Extra data" in error_msg or error_pos:
                                     # Try parsing as JSONL format (line-by-line)
                                     try:
                                         results = []
-                                        for line in raw_text.strip().split("\n"):
+                                        # Process line-by-line to avoid memory issues
+                                        for line in raw_text.split("\n"):
                                             line = line.strip()
                                             if not line:
                                                 continue
@@ -412,8 +539,11 @@ def _poll_snapshot(
                                                 f"with {len(results)} records) after {attempt} attempt(s)"
                                             )
                                             return results
-                                    except Exception:
-                                        pass
+                                    except Exception as ex:
+                                        log.info(
+                                            f"Unexpected error while parsing JSONL lines for snapshot {snapshot_id[:8]}...: {ex}",
+                                            exc_info=True,
+                                        )
 
                                 log.info(
                                     f"Snapshot {snapshot_id[:8]}... JSON parse error at position {error_pos}: {error_msg}. "

@@ -1,13 +1,27 @@
 """Utilities for flattening Bright Data scrape results."""
 
+# For serializing nested data structures (lists, dicts) to JSON strings
 import json
+
+# For type hints in function signatures
 from typing import Any, Dict, List, Set
 
 
 def flatten_dict(
     data: Any, parent_key: str = "", separator: str = "_", max_depth: int = 10
 ) -> Dict[str, Any]:
-    """Flatten nested dictionaries and lists into a single level."""
+    """
+    Flatten nested dictionaries and lists into a single level.
+
+    Args:
+        data: The data structure to flatten (dict, list, or primitive).
+        parent_key: The parent key prefix for nested keys.
+        separator: The separator to use between nested key levels.
+        max_depth: Maximum nesting depth to flatten before serializing to JSON.
+
+    Returns:
+        A flattened dictionary with all nested keys combined using the separator.
+    """
     if max_depth <= 0:
         return {parent_key: json.dumps(data) if data else None}
 
@@ -33,7 +47,13 @@ def flatten_dict(
 
 
 def collect_all_fields(results: List[Dict[str, Any]]) -> Set[str]:
-    """Return the union of keys that appear across processed results."""
+    """Return the union of keys that appear across processed results.
+
+    Args:
+        results: List of processed result dictionaries.
+
+    Returns:
+        Set of all unique field names found across all results.da"""
     all_fields: Set[str] = set()
     for result in results:
         all_fields.update(result.keys())
@@ -42,11 +62,19 @@ def collect_all_fields(results: List[Dict[str, Any]]) -> Set[str]:
 
 def process_scrape_result(result: Any, url: str, result_index: int) -> Dict[str, Any]:
     """
-    Flatten an individual scrape result and add metadata columns.
+        Flatten an individual scrape result and add metadata columns.
 
     Primary key fields (url, result_index) are always preserved and never overwritten
     by values from the flattened API response, even if the response contains fields
     with the same names.
+
+    Args:
+        result: The scrape result to process (dict or other type).
+        url: The URL that was scraped.
+        result_index: The index of this result for the given URL.
+
+    Returns:
+        A flattened dictionary with metadata fields and primary keys.
     """
     base_fields = {
         "url": url,

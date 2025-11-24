@@ -1,15 +1,13 @@
 """Shared constants and utilities for Bright Data helpers."""
 
-import os
+# For type hints in function signatures
 from typing import Any
 
-from dotenv import load_dotenv
+# For type hints when working with HTTP responses
 from requests import Response
 
-load_dotenv()
 
-_DEFAULT_BASE_URL = "https://api.brightdata.com"
-BRIGHT_DATA_BASE_URL = os.getenv("BRIGHT_DATA_BASE_URL", _DEFAULT_BASE_URL)
+BRIGHT_DATA_BASE_URL = "https://api.brightdata.com"
 DEFAULT_TIMEOUT_SECONDS = 120
 RETRY_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
