@@ -160,6 +160,12 @@ def sync_shipments(api_token, last_sync_time):
             page_token = extract_page_token(next_url)
         has_more_data = bool(next_url)
 
+    # Save the progress by checkpointing the state after the pagination loop completes.
+    # This ensures that all progress is saved, even if the last batch is smaller than the checkpoint interval.
+    if records_processed > 0 and records_processed % __CHECKPOINT_INTERVAL != 0:
+        checkpoint_state = {"last_sync_time": new_sync_time}
+        op.checkpoint(checkpoint_state)
+        log.info(f"Final checkpoint after processing {records_processed} records")
     log.info(f"Total records processed: {records_processed}")
     return new_sync_time or last_sync_time
 
