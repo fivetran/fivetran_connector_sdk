@@ -31,7 +31,6 @@ __BASE_DELAY_SECONDS = 2
 __REQUEST_TIMEOUT_SECONDS = 30
 __CHECKPOINT_INTERVAL = 100
 __PAGE_SIZE = 25
-__MAX_PAGE_SIZE = 100
 
 
 def schema(configuration: dict):
