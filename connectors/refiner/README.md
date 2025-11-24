@@ -99,7 +99,7 @@ The connector processes survey and response data with an optimized incremental s
 - **Type safety** - Configuration validation ensures required fields exist before processing
 
 ### Key functions
-- `validate_configuration()` - Validates required API key configuration
+- `validate_configuration()`: Validates required API key configuration
 - `make_api_request()` - Centralized API calling with retry logic and error handling
 - `flatten_dict()` - Recursive JSON structure flattening for table columns with smart exclusion of relational data
 - `fetch_surveys()` - Main survey sync with pagination, question extraction, and page-level checkpointing
