@@ -146,6 +146,64 @@ def encode_cursor(offset: int = 0, reverse: int = 0, position: int = 0) -> str:
     return encoded
 
 
+def handle_http_error(error: requests.exceptions.HTTPError, attempt: int):
+    """
+    Handle HTTP errors with retry logic or fail-fast behavior.
+    Args:
+        error: The HTTP error that occurred.
+        attempt: Current attempt number (0-indexed).
+    Raises:
+        RuntimeError: For permanent errors or after exhausting retries.
+    """
+    status_code = error.response.status_code
+
+    # Fail fast for permanent errors
+    if status_code in [400, 401, 403, 404]:
+        log.severe(f"API request failed with status {status_code}: {str(error)}")
+        raise RuntimeError(f"Failed to fetch shipments: {str(error)}")
+
+    # Handle retryable errors
+    is_last_attempt = attempt >= __MAX_RETRIES - 1
+    if is_last_attempt:
+        log.severe(
+            f"Failed to fetch shipments after {__MAX_RETRIES} attempts. Status: {status_code}"
+        )
+        if error.response is not None:
+            log.severe(f"Response content: {error.response.text[:__ERROR_LOG_MAX_LENGTH]}")
+        raise RuntimeError(
+            f"API returned {status_code} after {__MAX_RETRIES} attempts: {str(error)}"
+        )
+
+    # Retry with exponential backoff
+    delay = min(60, __BASE_DELAY_SECONDS * (2**attempt))
+    log.warning(
+        f"Request failed with status {status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+    )
+    time.sleep(delay)
+
+
+def handle_network_error(error: Exception, attempt: int):
+    """
+    Handle network errors (timeout, connection) with retry logic.
+    Args:
+        error: The network error that occurred.
+        attempt: Current attempt number (0-indexed).
+    Raises:
+        RuntimeError: After exhausting all retries.
+    """
+    is_last_attempt = attempt >= __MAX_RETRIES - 1
+    if is_last_attempt:
+        log.severe(f"Failed to fetch shipments after {__MAX_RETRIES} attempts: {str(error)}")
+        raise RuntimeError(f"Failed to fetch shipments: {str(error)}")
+
+    # Retry with exponential backoff
+    delay = min(60, __BASE_DELAY_SECONDS * (2**attempt))
+    log.warning(
+        f"Connection error, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+    )
+    time.sleep(delay)
+
+
 def fetch_shipments_page(
     username: str,
     password: str,
@@ -192,40 +250,10 @@ def fetch_shipments_page(
             return json_response
 
         except requests.exceptions.HTTPError as e:
-            # Fail fast for permanent errors
-            if e.response.status_code in [400, 401, 403, 404]:
-                log.severe(f"API request failed with status {e.response.status_code}: {str(e)}")
-                raise RuntimeError(f"Failed to fetch shipments: {str(e)}")
-
-            # Retry for transient errors
-            if attempt < __MAX_RETRIES - 1:
-                delay = min(60, __BASE_DELAY_SECONDS * (2**attempt))
-                log.warning(
-                    f"Request failed with status {e.response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(
-                    f"Failed to fetch shipments after {__MAX_RETRIES} attempts. Status: {e.response.status_code}"
-                )
-                if e.response is not None:
-                    log.severe(f"Response content: {e.response.text[:__ERROR_LOG_MAX_LENGTH]}")
-                raise RuntimeError(
-                    f"API returned {e.response.status_code} after {__MAX_RETRIES} attempts: {str(e)}"
-                )
+            handle_http_error(e, attempt)
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = min(60, __BASE_DELAY_SECONDS * (2**attempt))
-                log.warning(
-                    f"Connection error, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Failed to fetch shipments after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(f"Failed to fetch shipments: {str(e)}")
+            handle_network_error(e, attempt)
 
     # This should never be reached due to the exception handling above, but added for type safety
     raise RuntimeError("Failed to fetch shipments: Maximum retries exceeded")
@@ -381,6 +409,255 @@ def flatten_shipment_data(shipment: dict) -> dict:
     return flattened
 
 
+def process_parcel_documents(shipment_id: str, parcel_id: str, documents: list):
+    """
+    Process and upsert parcel documents to the parcel_document table.
+    Args:
+        shipment_id: The shipment ID foreign key.
+        parcel_id: The parcel ID foreign key.
+        documents: List of document dictionaries.
+    """
+    for document in documents:
+        doc_data = {
+            "shipment_id": shipment_id,
+            "parcel_id": parcel_id,
+            "document_type": document.get("type"),
+            "link": document.get("link"),
+            "size": document.get("size"),
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="parcel_document", data=doc_data)
+
+
+def process_parcel_items(shipment_id: str, parcel_id: str, parcel_items: list):
+    """
+    Process and upsert parcel items and their properties to breakout tables.
+    Args:
+        shipment_id: The shipment ID foreign key.
+        parcel_id: The parcel ID foreign key.
+        parcel_items: List of item dictionaries.
+    """
+    for item in parcel_items:
+        # Flatten item weight and price
+        item_weight = item.get("weight", {})
+        item_price = item.get("price", {})
+
+        item_data = {
+            "shipment_id": shipment_id,
+            "parcel_id": parcel_id,
+            "item_sku": item.get("sku"),
+            "item_id": item.get("item_id"),
+            "item_description": item.get("description"),
+            "item_quantity": item.get("quantity"),
+            "item_weight_value": item_weight.get("value"),
+            "item_weight_unit": item_weight.get("unit"),
+            "item_price_value": item_price.get("value"),
+            "item_price_currency": item_price.get("currency"),
+            "item_hs_code": item.get("hs_code"),
+            "item_origin_country": item.get("origin_country"),
+            "item_product_id": item.get("product_id"),
+            "item_mid_code": item.get("mid_code"),
+            "item_material_content": item.get("material_content"),
+            "item_intended_use": item.get("intended_use"),
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="parcel_item", data=item_data)
+
+        # Process item properties
+        properties = item.get("properties", {})
+        for prop_name, prop_value in properties.items():
+            prop_data = {
+                "shipment_id": shipment_id,
+                "parcel_id": parcel_id,
+                "item_sku": item.get("sku"),
+                "item_id": item.get("item_id"),
+                "property_name": prop_name,
+                "property_value": str(
+                    prop_value
+                ),  # Convert to string to handle different data types
+            }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="item_property", data=prop_data)
+
+
+def process_parcel_label_notes(shipment_id: str, parcel_id: str, label_notes: list):
+    """
+    Process and upsert parcel label notes to the parcel_label_note table.
+    Args:
+        shipment_id: The shipment ID foreign key.
+        parcel_id: The parcel ID foreign key.
+        label_notes: List of label note strings.
+    """
+    for i, note in enumerate(label_notes):
+        note_data = {
+            "shipment_id": shipment_id,
+            "parcel_id": parcel_id,
+            "note_order": i,
+            "note_text": note,
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="parcel_label_note", data=note_data)
+
+
+def process_single_parcel(shipment_id: str, parcel: dict):
+    """
+    Process a single parcel and all its related data (documents, items, notes).
+    Args:
+        shipment_id: The shipment ID foreign key.
+        parcel: Single parcel dictionary from API.
+    """
+    parcel_id = parcel.get("id")
+
+    parcel_data = {
+        "shipment_id": shipment_id,
+        "parcel_id": parcel_id,
+        "created_at": parcel.get("created_at"),
+        "updated_at": parcel.get("updated_at"),
+        "announced_at": parcel.get("announced_at"),
+        "tracking_number": parcel.get("tracking_number"),
+        "tracking_url": parcel.get("tracking_url"),
+    }
+
+    # Flatten parcel status
+    status = parcel.get("status", {})
+    parcel_data.update(
+        {"status_message": status.get("message"), "status_code": status.get("code")}
+    )
+
+    # Flatten parcel dimensions
+    dimensions = parcel.get("dimensions", {})
+    parcel_data.update(
+        {
+            "dimensions_length": dimensions.get("length"),
+            "dimensions_width": dimensions.get("width"),
+            "dimensions_height": dimensions.get("height"),
+            "dimensions_unit": dimensions.get("unit"),
+        }
+    )
+
+    # Flatten parcel weight
+    weight = parcel.get("weight", {})
+    parcel_data.update({"weight_value": weight.get("value"), "weight_unit": weight.get("unit")})
+
+    # Flatten additional insured price
+    insured_price = parcel.get("additional_insured_price", {})
+    parcel_data.update(
+        {
+            "insured_price_value": insured_price.get("value"),
+            "insured_price_currency": insured_price.get("currency"),
+        }
+    )
+
+    # Flatten additional carrier data
+    carrier_data = parcel.get("additional_carrier_data", {})
+    parcel_data.update(
+        {
+            "awb_tracking_number": carrier_data.get("awb_tracking_number"),
+            "box_number": carrier_data.get("box_number"),
+        }
+    )
+
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
+    op.upsert(table="shipment_parcel", data=parcel_data)
+
+    # Process parcel's nested arrays
+    process_parcel_documents(shipment_id, parcel_id, parcel.get("documents", []))
+    process_parcel_items(shipment_id, parcel_id, parcel.get("parcel_items", []))
+    process_parcel_label_notes(shipment_id, parcel_id, parcel.get("label_notes", []))
+
+
+def process_customs_tax_numbers(shipment_id: str, tax_numbers: dict):
+    """
+    Process and upsert customs tax numbers for sender, receiver, and importer.
+    Args:
+        shipment_id: The shipment ID foreign key.
+        tax_numbers: Dictionary containing sender, receiver, and importer tax numbers.
+    """
+    # Process sender tax numbers
+    sender_taxes = tax_numbers.get("sender", [])
+    for tax in sender_taxes:
+        tax_data = {
+            "shipment_id": shipment_id,
+            "tax_type": "sender",
+            "tax_name": tax.get("name"),
+            "tax_country_code": tax.get("country_code"),
+            "tax_number": tax.get("value"),
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="customs_tax_number", data=tax_data)
+
+    # Process receiver tax numbers
+    receiver_taxes = tax_numbers.get("receiver", [])
+    for tax in receiver_taxes:
+        tax_data = {
+            "shipment_id": shipment_id,
+            "tax_type": "receiver",
+            "tax_name": tax.get("name"),
+            "tax_country_code": tax.get("country_code"),
+            "tax_number": tax.get("value"),
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="customs_tax_number", data=tax_data)
+
+    # Process importer of record tax numbers
+    importer_taxes = tax_numbers.get("importer_of_record", [])
+    for tax in importer_taxes:
+        tax_data = {
+            "shipment_id": shipment_id,
+            "tax_type": "importer_of_record",
+            "tax_name": tax.get("name"),
+            "tax_country_code": tax.get("country_code"),
+            "tax_number": tax.get("value"),
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="customs_tax_number", data=tax_data)
+
+
+def process_customs_information(shipment_id: str, customs: dict):
+    """
+    Process and upsert customs declarations and tax numbers.
+    Args:
+        shipment_id: The shipment ID foreign key.
+        customs: Customs information dictionary.
+    """
+    if not customs:
+        return
+
+    # Process customs declarations
+    declarations = customs.get("additional_declaration_statements", [])
+    for i, declaration in enumerate(declarations):
+        decl_data = {
+            "shipment_id": shipment_id,
+            "declaration_sequence": i,
+            "declaration_text": declaration,
+        }
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="customs_declaration", data=decl_data)
+
+    # Process tax numbers
+    tax_numbers = customs.get("tax_numbers", {})
+    if tax_numbers:
+        process_customs_tax_numbers(shipment_id, tax_numbers)
+
+
 def process_shipment_arrays(shipment_id: str, shipment: dict):
     """
     Process array fields from shipment data and upsert to breakout tables.
@@ -391,138 +668,7 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
     # Process parcels array
     parcels = shipment.get("parcels", [])
     for parcel in parcels:
-        parcel_data = {
-            "shipment_id": shipment_id,
-            "parcel_id": parcel.get("id"),
-            "created_at": parcel.get("created_at"),
-            "updated_at": parcel.get("updated_at"),
-            "announced_at": parcel.get("announced_at"),
-            "tracking_number": parcel.get("tracking_number"),
-            "tracking_url": parcel.get("tracking_url"),
-        }
-
-        # Flatten parcel status
-        status = parcel.get("status", {})
-        parcel_data.update(
-            {"status_message": status.get("message"), "status_code": status.get("code")}
-        )
-
-        # Flatten parcel dimensions
-        dimensions = parcel.get("dimensions", {})
-        parcel_data.update(
-            {
-                "dimensions_length": dimensions.get("length"),
-                "dimensions_width": dimensions.get("width"),
-                "dimensions_height": dimensions.get("height"),
-                "dimensions_unit": dimensions.get("unit"),
-            }
-        )
-
-        # Flatten parcel weight
-        weight = parcel.get("weight", {})
-        parcel_data.update(
-            {"weight_value": weight.get("value"), "weight_unit": weight.get("unit")}
-        )
-
-        # Flatten additional insured price
-        insured_price = parcel.get("additional_insured_price", {})
-        parcel_data.update(
-            {
-                "insured_price_value": insured_price.get("value"),
-                "insured_price_currency": insured_price.get("currency"),
-            }
-        )
-
-        # Flatten additional carrier data
-        carrier_data = parcel.get("additional_carrier_data", {})
-        parcel_data.update(
-            {
-                "awb_tracking_number": carrier_data.get("awb_tracking_number"),
-                "box_number": carrier_data.get("box_number"),
-            }
-        )
-
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="shipment_parcel", data=parcel_data)
-
-        # Process parcel documents
-        documents = parcel.get("documents", [])
-        for document in documents:
-            doc_data = {
-                "shipment_id": shipment_id,
-                "parcel_id": parcel.get("id"),
-                "document_type": document.get("type"),
-                "link": document.get("link"),
-                "size": document.get("size"),
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="parcel_document", data=doc_data)
-
-        # Process parcel items
-        parcel_items = parcel.get("parcel_items", [])
-        for item in parcel_items:
-            # Flatten item weight and price
-            item_weight = item.get("weight", {})
-            item_price = item.get("price", {})
-
-            item_data = {
-                "shipment_id": shipment_id,
-                "parcel_id": parcel.get("id"),
-                "item_sku": item.get("sku"),
-                "item_id": item.get("item_id"),
-                "item_description": item.get("description"),
-                "item_quantity": item.get("quantity"),
-                "item_weight_value": item_weight.get("value"),
-                "item_weight_unit": item_weight.get("unit"),
-                "item_price_value": item_price.get("value"),
-                "item_price_currency": item_price.get("currency"),
-                "item_hs_code": item.get("hs_code"),
-                "item_origin_country": item.get("origin_country"),
-                "item_product_id": item.get("product_id"),
-                "item_mid_code": item.get("mid_code"),
-                "item_material_content": item.get("material_content"),
-                "item_intended_use": item.get("intended_use"),
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="parcel_item", data=item_data)
-
-            # Process item properties
-            properties = item.get("properties", {})
-            for prop_name, prop_value in properties.items():
-                prop_data = {
-                    "shipment_id": shipment_id,
-                    "parcel_id": parcel.get("id"),
-                    "item_sku": item.get("sku"),
-                    "item_id": item.get("item_id"),
-                    "property_name": prop_name,
-                    "property_value": str(
-                        prop_value
-                    ),  # Convert to string to handle different data types
-                }
-                # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="item_property", data=prop_data)
-
-        # Process label notes
-        label_notes = parcel.get("label_notes", [])
-        for i, note in enumerate(label_notes):
-            note_data = {
-                "shipment_id": shipment_id,
-                "parcel_id": parcel.get("id"),
-                "note_order": i,
-                "note_text": note,
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="parcel_label_note", data=note_data)
+        process_single_parcel(shipment_id, parcel)
 
     # Process shipment errors
     errors = shipment.get("errors", [])
@@ -540,68 +686,9 @@ def process_shipment_arrays(shipment_id: str, shipment: dict):
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="shipment_error", data=error_data)
 
-    # Process customs declarations (if present)
+    # Process customs information
     customs = shipment.get("customs_information", {})
-    if customs:
-        declarations = customs.get("additional_declaration_statements", [])
-        for i, declaration in enumerate(declarations):
-            decl_data = {
-                "shipment_id": shipment_id,
-                "declaration_sequence": i,
-                "declaration_text": declaration,
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="customs_declaration", data=decl_data)
-
-        # Process tax numbers
-        tax_numbers = customs.get("tax_numbers", {})
-
-        # Process sender tax numbers
-        sender_taxes = tax_numbers.get("sender", [])
-        for tax in sender_taxes:
-            tax_data = {
-                "shipment_id": shipment_id,
-                "tax_type": "sender",
-                "tax_name": tax.get("name"),
-                "tax_country_code": tax.get("country_code"),
-                "tax_number": tax.get("value"),
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="customs_tax_number", data=tax_data)
-
-        # Process receiver tax numbers
-        receiver_taxes = tax_numbers.get("receiver", [])
-        for tax in receiver_taxes:
-            tax_data = {
-                "shipment_id": shipment_id,
-                "tax_type": "receiver",
-                "tax_name": tax.get("name"),
-                "tax_country_code": tax.get("country_code"),
-                "tax_number": tax.get("value"),
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="customs_tax_number", data=tax_data)
-
-        # Process importer of record tax numbers
-        importer_taxes = tax_numbers.get("importer_of_record", [])
-        for tax in importer_taxes:
-            tax_data = {
-                "shipment_id": shipment_id,
-                "tax_type": "importer_of_record",
-                "tax_name": tax.get("name"),
-                "tax_country_code": tax.get("country_code"),
-                "tax_number": tax.get("value"),
-            }
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="customs_tax_number", data=tax_data)
+    process_customs_information(shipment_id, customs)
 
 
 def schema(configuration: dict):
