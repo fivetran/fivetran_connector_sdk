@@ -102,7 +102,7 @@ The connector creates the following tables in the destination:
 | `EVENT` | `transactionID` | Email delivery events (sent, opened, clicked, bounced). |
 | `CAMPAIGN_STATISTICS` | `name` | Campaign performance statistics. |
 | `FILE` | `name` | Uploaded files and attachments. |
-| `DOMAIN` | domain | Verified sending domains. |
+| `DOMAIN` | `domain` | Verified sending domains. |
 | `SUPPRESSION` | `email` | All suppressed email addresses. |
 | `BOUNCE` | `email` | Bounced email addresses. |
 | `COMPLAINT` | `email` | Spam complaint email addresses. |
