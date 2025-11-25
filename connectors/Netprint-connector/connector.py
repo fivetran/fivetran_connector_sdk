@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 # For handling exponential backoff in retries
 import time
 
-from typing import Optional, Dict, Any, Iterable, Set # for type hints
+from typing import Optional, Dict, Any, Iterable, Set  # for type hints
 
 __DEFAULT_PAGE_SIZE = 200
 __DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
