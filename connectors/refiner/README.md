@@ -171,7 +171,7 @@ The connector creates the following tables in your destination:
 - Key timestamp fields: `completed_at`, `last_shown_at`, `last_data_reception_at`, `created_at`, `updated_at`
 - Score field for NPS/rating responses
 
-**answers** table:
+`answers` table:
 - Answer values for each question in a response
 - Foreign key: `response_uuid` (references responses.uuid)
 - Composite primary key: `response_uuid`, `question_id`
