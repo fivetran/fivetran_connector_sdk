@@ -177,7 +177,7 @@ The connector creates the following tables in your destination:
 - Composite primary key: `response_uuid`, `question_id`
 - `answer_value` stored as string or JSON depending on data type
 
-**respondents** table:
+`respondents` table:
 - User/contact information keyed by user ID for joins with product usage data
 - Primary key: `user_id`
 - Populated from both response data (via `fetch_respondent()`) and dedicated contacts endpoint (via `fetch_contacts()`)
