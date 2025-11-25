@@ -6,12 +6,11 @@ This example demonstrates how to use the Fivetran Connector SDK to extract purch
 This connector uses the SAP Ariba Sandbox API for illustration, but it can be adapted for production tenants by updating the configuration values.
 
 ## Requirements
-- Supported Python versions: https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
   - Windows: 10 or later (64-bit only)
-  - macOS: 13 or later
-  - Linux: Ubuntu 20.04+, Debian 10+, Amazon Linux 2+
-- SAP Ariba API key with permission to access purchase order endpoints
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 Refer to the Connector SDK Setup Guide to get started: https://fivetran.com/docs/connectors/connector-sdk/setup-guide
