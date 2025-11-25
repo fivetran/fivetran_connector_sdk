@@ -2,7 +2,7 @@
 This example shows how to pull recent news articles from the GNews API service
 and load them into a destination using the Fivetran Connector SDK.
 
-This Fivetran Connector uses the GNewsAPI search endpoint to retrieve
+This Fivetran Connector uses the GNewsAPI search endpoint to retrievea
 articles for a given search term and date range. This connector demonstrates:
 - Robust API communication with exponential backoff and retries for transient
   HTTP and network errors (e.g., 429, 5xx).
@@ -236,10 +236,7 @@ def fetch_news_page(
                     log.severe(f"Failed to upsert record: {rec}\nError: {e}")
                     continue
 
-            log.info(
-                f"Fetched {total_results} articles, upserted {upserts_count} "
-                f"from page {page}. totalResults={total_results}"
-            )
+            log.info(f"Upserted {upserts_count} " f"from page {page}")
             return upserts_count, total_results
 
         except (requests.Timeout, requests.ConnectionError) as e:
@@ -375,4 +372,3 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
-
