@@ -164,7 +164,7 @@ The connector creates the following tables in your destination:
 - Composite primary key: `survey_uuid`, `question_id`
 - Columns: `question_text`, `question_type`, `required`, `options` (JSON)
 
-**responses** table:
+`responses` table:
 - Individual survey submissions
 - Foreign keys: `survey_uuid` (references surveys.uuid), `user_id` (references respondents.user_id)
 - Primary key: `uuid`
