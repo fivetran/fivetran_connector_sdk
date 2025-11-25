@@ -95,7 +95,7 @@ For details on creating users and granting privileges, see TiDB docs: https://do
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
 ## Pagination
-The connector implements offset-based pagination using LIMIT/OFFSET in the `fetch_and_upsert_data` function, processing data in batches of 50 rows at a time. This approach helps manage memory usage and allows incremental reads of large tables without loading all matching rows into memory at once. If you need to adjust the batch size or use a different pagination strategy (such as keyset pagination), you can modify the relevant logic in `fetch_and_upsert_data`. For tables that require a different incremental column or cursor-based pagination, update the function accordingly.
+The connector implements offset-based pagination using Limit/Offset in the `fetch_and_upsert_data` function, processing data in batches of 50 rows at a time. This approach helps manage memory usage and allows incremental reads of large tables without loading all matching rows into memory at once. If you need to adjust the batch size or use a different pagination strategy (such as keyset pagination), you can modify the relevant logic in `fetch_and_upsert_data`. For tables that require a different incremental column or cursor-based pagination, update the function accordingly.
 
 ## Data handling
 - Rows are fetched and passed to `process_row` for normalization.
