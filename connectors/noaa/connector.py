@@ -352,6 +352,11 @@ def fetch_observations_for_station(
             log.info(f"No more pages for station {station_id}")
             url = None
 
+    # Checkpoint after the loop if there are remaining records not yet checkpointed
+    if observations_count > 0 and observations_count % __CHECKPOINT_INTERVAL != 0:
+        op.checkpoint(state)
+        log.info(f"Final checkpoint for station {station_id} with {observations_count} records")
+
     log.info(
         f"Retrieved {observations_count} observations across {page_count} page(s) for station {station_id}"
     )
@@ -471,6 +476,11 @@ def fetch_active_alerts(headers: Dict[str, str], alert_area: Optional[str], stat
         else:
             log.info("No more pages for alerts")
             url = None
+
+    # Checkpoint after the loop if there are remaining records not yet checkpointed
+    if alerts_count > 0 and alerts_count % __CHECKPOINT_INTERVAL != 0:
+        op.checkpoint(state)
+        log.info(f"Final checkpoint for alerts with {alerts_count} records")
 
     log.info(f"Retrieved {alerts_count} active alerts across {page_count} page(s)")
     return alerts_count

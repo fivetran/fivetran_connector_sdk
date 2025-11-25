@@ -48,7 +48,7 @@ Full Configuration (with all optional parameters):
 ### Configuration parameters
 
 - `user_agent` (required): Your application name and contact information (e.g., "MyWeatherApp (contact@example.com)"). The National Weather Service requires this to identify your application.
-- `state_code` (optional): Two-letter US state code to automatically fetch all weather stations in that state (e.g., "IL", "CA"). Default behavior if omitted: fetches up to 500 stations from all states (API limit).
+- `state_code` (optional): Two-letter US state code to automatically fetch all weather stations in that state (e.g., "IL", "CA"). Default behavior if omitted: fetches all stations from all states using pagination (500 stations per page).
 - `station_ids` (optional): Comma-separated list of specific weather station identifiers (e.g., "KORD, KMDW, KPWK"). This takes precedence over state_code if both are provided. Default behavior if omitted: uses state_code logic or fetches from all states.
 - `alert_area` (optional): Two-letter US state code for filtering weather alerts (e.g., "IL", "CA"). Default behavior if omitted: fetches all active weather alerts across the United States.
 - `start_date` (optional): Date in YYYY-MM-DD format to start syncing observations from (e.g., "2025-01-01"). Default behavior if omitted: starts syncing from the current time (no historical backfill).
@@ -67,7 +67,8 @@ This connector accesses the NOAA Weather API, which is a public API that does no
 The connector processes two types of data from the NOAA API:
 
 Observations - Weather station observations are fetched using the `/stations/{station_id}/observations` endpoint. The connector:
-- Processes up to 500 observations per request per station
+- Implements pagination to fetch ALL observations (500 observations per page)
+- Continues fetching pages until all observations are retrieved
 - Extracts comprehensive weather metrics from the GeoJSON response
 - Normalizes nested data structures into flat columns
 - Uses the observation ID as the primary key for upserts
@@ -155,13 +156,4 @@ ALERT - Contains active weather alerts from NOAA
 | geometry_type | STRING | Geometry type for affected area |
 
 ## Additional considerations
-
-### API limitations
-- Observations limit: Fetches a maximum of 500 observations per station per sync. For best results, run syncs hourly or daily to stay within this limit.
-- Stations limit: Fetches a maximum of 500 stations per sync. Most states have fewer than 500 stations, but nationwide queries may be limited.
-- Pagination limitation: The NOAA API does not support pagination for observations or stations endpoints. This is an API limitation, not a connector design choice. To mitigate this, we recommend:
-  - Running syncs frequently (hourly or daily) to avoid missing data due to API limits.
-  - Filtering by state or specific stations to reduce the volume of data per sync.
-  - Avoiding large historical backfills, as only the most recent 500 records per endpoint are available per request.
-
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
