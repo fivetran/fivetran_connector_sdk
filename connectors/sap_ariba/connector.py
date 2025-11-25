@@ -41,6 +41,7 @@ __PAGE_OFFSET = "$skip"
 
 # Schema Definitions
 
+
 def get_order_columns():
     """Return the column schema definition for the 'order' table."""
     return {
@@ -120,10 +121,10 @@ def update(configuration: dict, state: dict):
     """
     validate_configuration(configuration)
     log.warning("Starting SAP Ariba Purchase Order sync (Full Sync)")
-    
+
     # Store the sync start time in ISO format for the 'last_updated_at' column.
     sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    
+
     headers = {
         "APIKey": configuration.get("api_key"),
         "Accept": "application/json",
@@ -134,10 +135,11 @@ def update(configuration: dict, state: dict):
     # Execute sync for both tables.
     sync_orders(params.copy(), headers, state, sync_start)
     sync_items(params.copy(), headers, state, sync_start)
-    
+
     # Final checkpoint after both tables are synced.
     op.checkpoint(state)
     log.info("SAP Ariba sync completed successfully.")
+
 
 def validate_configuration(configuration: dict):
     """
@@ -162,7 +164,7 @@ def sync_orders(params: dict, headers: dict, state: dict, sync_start: str):
     """
     table = "order"
     log.info(f"Starting full sync for table: {table}")
-    
+
     # Reset offset to 0 for a full table sync.
     params[__PAGE_OFFSET] = 0
     if table not in state:
@@ -182,16 +184,18 @@ def sync_items(params: dict, headers: dict, state: dict, sync_start: str):
     """
     table = "item"
     log.info(f"Starting full sync for table: {table}")
-    
+
     # Reset offset to 0 for a full table sync.
     params[__PAGE_OFFSET] = 0
     if table not in state:
         state[table] = {}
-        
+
     sync_rows(table, params, headers, state, get_item_columns(), sync_start)
 
 
-def sync_rows(table: str, params: dict, headers: dict, state: dict, allowed_columns: dict, sync_start: str):
+def sync_rows(
+    table: str, params: dict, headers: dict, state: dict, allowed_columns: dict, sync_start: str
+):
     """
     Iteratively fetch and upsert paginated data from the SAP Ariba API.
 
@@ -213,7 +217,7 @@ def sync_rows(table: str, params: dict, headers: dict, state: dict, allowed_colu
         data = make_api_request(endpoint, params=params, headers=headers)
         if not data:
             break
-        
+
         # Determine total records count from the first page response.
         if data.get("firstPage"):
             total = data.get("count", 0)
@@ -228,7 +232,7 @@ def sync_rows(table: str, params: dict, headers: dict, state: dict, allowed_colu
             record = filter_columns(item, allowed_columns)
             record["rowId"] = count
             record["last_updated_at"] = sync_start
-            
+
             op.upsert(table=table, data=record)
 
         # Checkpoint the state periodically to save progress.
@@ -239,10 +243,12 @@ def sync_rows(table: str, params: dict, headers: dict, state: dict, allowed_colu
         params[__PAGE_OFFSET] += __RECORDS_PER_PAGE
 
 
-def make_api_request(endpoint: str, params: dict, headers: dict, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
+def make_api_request(
+    endpoint: str, params: dict, headers: dict, retries=__MAX_RETRIES, delay=__RETRY_DELAY
+):
     """
     Perform a GET request with retry logic and exponential backoff.
-    
+
     Handles rate limiting (429) and server errors (5xx) by retrying.
     Args:
         endpoint (str): The specific API path.
@@ -278,7 +284,7 @@ def make_api_request(endpoint: str, params: dict, headers: dict, retries=__MAX_R
         except requests.RequestException as e:
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
-            
+
     raise requests.RequestException(f"Failed after {retries} retries")
 
 
@@ -292,17 +298,17 @@ def filter_columns(record: dict, allowed_columns: dict) -> dict:
         Filtered dictionary.
     """
     filtered = {}
-    
+
     for col, col_type in allowed_columns.items():
         if col == "rowId":
             continue
-            
+
         if col_type == "UTC_DATETIME":
             filtered[col] = convert_to_iso(record.get(col))
-            
+
         elif col in record:
             filtered[col] = record[col]
-            
+
     return filtered
 
 
@@ -318,13 +324,14 @@ def convert_to_iso(date_str: str) -> str | None:
     """
     if not date_str:
         return None
-        
+
     try:
         dt = datetime.strptime(date_str, "%d %b %Y %I:%M:%S %p")
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        
+
     except ValueError:
         return date_str
+
 
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
