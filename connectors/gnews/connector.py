@@ -257,7 +257,6 @@ def fetch_all_news(
     from_date: str,
     api_key: str,
     *,
-    page_size: int = 100,
     sort_by: str = "popularity",
     endpoint: str = __GNEWSAPI_ENDPOINT,
     max_pages: Optional[int] = None,
@@ -266,7 +265,6 @@ def fetch_all_news(
     Iterates through all available pages of results for a given query.
 
     Stops when:
-        - The current page returns fewer than `page_size` results.
         - All known results (totalResults) have been fetched.
         - max_pages limit (if specified) has been reached.
 
@@ -274,7 +272,6 @@ def fetch_all_news(
         query (str): Search keyword or phrase.
         from_date (str): Date filter for results.
         api_key (str): API key for authentication.
-        page_size (int): Number of articles per page.
         sort_by (str): Sort order.
         endpoint (str): GNewsAPI endpoint.
         max_pages (int | None): Optional hard cap for paging.
@@ -296,7 +293,6 @@ def fetch_all_news(
             from_date=from_date,
             api_key=api_key,
             page=page,
-            page_size=page_size,
             sort_by=sort_by,
             endpoint=endpoint,
         )
@@ -379,3 +375,4 @@ if __name__ == "__main__":
         log.severe("configuration.json not found. Please create it for local testing.")
     except Exception as e:
         log.severe(f"Unexpected error during debug execution: {e}")
+
