@@ -6,19 +6,32 @@ See Technical Reference:
 https://fivetran.com/docs/connectors/connector-sdk/technical-reference
 """
 
-import base64
+# For reading configuration from a JSON file
 import json
-import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, Optional, Set
 
-import requests
+# For encoding authentication credentials (e.g., username%password%4)
+import base64
+
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-DEFAULT_PAGE_SIZE = 200
-DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
+# For making HTTP requests to Dgraph GraphQL API (provided by SDK runtime)
+import requests
+
+# For handling datetime parsing and formatting
+from datetime import datetime, timezone
+
+# For handling exponential backoff in retries
+import time
+
+__DEFAULT_PAGE_SIZE = 200
+__DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
 _MAX_RETRIES = 3
 
 
@@ -36,7 +49,7 @@ def __parse_date(val: Optional[str]) -> datetime:
 class NetPrintAPI:
     """Minimal API wrapper for NetPrint WebService."""
 
-    def __init__(self, username: str, password: str, base_url: str = DEFAULT_BASE_URL):
+    def __init__(self, username: str, password: str, base_url: str = __DEFAULT_BASE_URL):
         self.base_url = base_url.rstrip("/") + "/"
         auth_string = f"{username}%{password}%4"
         encoded = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
@@ -88,7 +101,7 @@ class NetPrintAPI:
     def get_folder_size(self):
         return self._request("core/folderSize")
 
-    def iter_files(self, page_size: int = DEFAULT_PAGE_SIZE) -> Iterable[Dict[str, Any]]:
+    def iter_files(self, page_size: int = __DEFAULT_PAGE_SIZE) -> Iterable[Dict[str, Any]]:
         from_count = 0
         while True:
             res = self._request(
@@ -161,8 +174,8 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
     username = configuration["username"]
     password = configuration["password"]
-    page_size = int(configuration.get("PAGE_SIZE", DEFAULT_PAGE_SIZE))
-    base_url = configuration.get("BASE_URL", DEFAULT_BASE_URL)
+    page_size = int(configuration.get("PAGE_SIZE", __DEFAULT_PAGE_SIZE))
+    base_url = configuration.get("BASE_URL", __DEFAULT_BASE_URL)
 
     api = NetPrintAPI(username, password, base_url)
     _sync_static_tables(api)
