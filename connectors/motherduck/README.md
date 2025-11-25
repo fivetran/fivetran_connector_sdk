@@ -1,8 +1,8 @@
 # MotherDuck Connector Example
 
-## Connector Overview
+## Connector overview
 
-This connector demonstrates how to extract data from MotherDuck (DuckDB Cloud) databases and upsert it into your Fivetran destination using the Fivetran Connector SDK.
+This connector example demonstrates how to extract data from MotherDuck (DuckDB Cloud) databases and upsert it into your Fivetran destination using the Fivetran Connector SDK.
 
 The connector connects to a MotherDuck workspace using an authentication token, discovers schemas and tables, and supports both incremental syncs (based on a timestamp column like `updated_at`) and full reimports for tables without incremental fields.
 
@@ -10,13 +10,13 @@ It automatically detects schema changes, computes checksums for delete detection
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating system:
-    * Windows: 10 or later (64-bit only)
-    * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+    - Windows: 10 or later (64-bit only)
+    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
-## Getting Started
+## Getting started
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
@@ -30,7 +30,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Periodically checkpoints to ensure resumable incremental syncs.
 - Converts DuckDB data types to Fivetran-compatible schema types automatically.
 
-## Configuration File
+## Configuration file
 
 The connector uses a `configuration.json` file to store database connection settings.
 
@@ -43,18 +43,18 @@ The connector uses a `configuration.json` file to store database connection sett
 }
 ```
 
-| Field | Required | Description |
-|--------|-----------|-------------|
-| `motherduck_token` | Yes | Authentication token for connecting to MotherDuck. |
-| `database_name` | No | Name of the MotherDuck database (defaults to your default DB). |
-| `schema_name` | No | Schema to filter tables (optional). |
-| `incremental_column` | No | Name of the incremental timestamp column (defaults to `updated_at`). |
+Configuration parameters:
+
+- `motherduck_token` (required) - Authentication token for connecting to MotherDuck.
+- `database_name` (optional) - Name of the MotherDuck database (defaults to your default DB).
+- `schema_name` (optional) - Schema to filter tables.
+- `incremental_column` (optional) - Name of the incremental timestamp column (defaults to `updated_at`).
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ---
 
-## Requirements File
+## Requirements file
 
 The connector requires the `duckdb` package to connect to MotherDuck databases.
 
@@ -62,8 +62,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-The connector authenticates to MotherDuck using an access token.  
-The connection string is formatted as:
+The connector authenticates to MotherDuck using an access token. The connection string is formatted as:
 
 ```
 md:<YOUR_DATABASE_NAME>?motherduck_token=<YOUR_MOTHERDUCK_TOKEN>
@@ -85,7 +84,7 @@ Refer to the following functions:
 
 Pagination is controlled by the `__BATCH_SIZE` constant (default: `10,000` rows per batch).
 
-## Data Handling
+## Data handling
 
 Data extraction and loading follow this workflow:
 
@@ -101,21 +100,22 @@ Data extraction and loading follow this workflow:
 
 All datetime, list, and JSON values are serialized in a Fivetran-compatible format using the `serialize()` function.
 
-## Error Handling
+## Error handling
 
 The connector implements robust error handling throughout the sync process:
 
-- Connection Errors: Captured and logged in `connect()`; raises exceptions if connection fails.
-- Schema Discovery Errors: Skips problematic tables gracefully and logs warnings.
-- Query Errors: Logs and continues when invalid SQL is encountered during column or table lookups.
-- Serialization Errors: Handles non-JSON serializable data types (e.g., datetime, binary).
-- Delete Detection: Uses checksums to detect and remove missing records safely.
+- Connection errors: Captured and logged in `connect()`; raises exceptions if connection fails.
+- Schema discovery errors: Skips problematic tables gracefully and logs warnings.
+- Query errors: Logs and continues when invalid SQL is encountered during column or table lookups.
+- Serialization errors: Handles non-JSON serializable data types (e.g., datetime, binary).
+- Delete detection: Uses checksums to detect and remove missing records safely.
 
 All errors and warnings are logged via `fivetran_connector_sdk.Logging`.
 
-## Tables Created
+## Tables created
 
 This connector dynamically replicates all tables from the configured database and schema.  
+
 The resulting tables follow this naming convention:
 ```
 <database_name>_<schema_name>_<table_name>
@@ -125,11 +125,11 @@ The resulting tables follow this naming convention:
 
 | Destination Table     | Description |
 |-----------------------|-------------|
-| `testdb_main_orders`  | Orders table from schema `main`. |
-| `testdb_analytics_customers` | Customers table from schema `analytics`. |
-| `testdb_sales_transactions`  | Transactions table synced incrementally using `updated_at`. |
+| `TESTDB_MAIN_ORDERS`  | `ORDERS` table from schema `main`. |
+| `TESTDB_ANALYTICS_CUSTOMERS` | `CUSTOMERS` table from schema `analytics`. |
+| `TESTDB_SALES_TRANSACTIONS`  | `TRANSACTIONS` table synced incrementally using `updated_at`. |
 
-## Additional Considerations
+## Additional considerations
 
 - Tables must include a timestamp column (like `updated_at`) to support incremental syncs.
 - The connector auto-detects primary keys using simple naming heuristics (`id`, `*_id`, or `pk`).
