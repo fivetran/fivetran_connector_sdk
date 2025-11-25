@@ -153,7 +153,7 @@ The connector creates the following tables in your destination:
 
 ### Schema details
 
-**surveys** table:
+`surveys` table:
 - Contains flattened survey configuration and metadata
 - Nested config properties are flattened to underscore-separated columns
 - Primary key: `uuid`
