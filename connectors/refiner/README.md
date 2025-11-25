@@ -158,7 +158,7 @@ The connector creates the following tables in your destination:
 - Nested config properties are flattened to underscore-separated columns
 - Primary key: `uuid`
 
-**questions** table:
+`questions` table:
 - Extracted from survey `config.form_elements`
 - Foreign key: `survey_uuid` (references surveys.uuid)
 - Composite primary key: `survey_uuid`, `question_id`
