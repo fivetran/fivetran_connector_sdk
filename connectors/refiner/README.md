@@ -83,8 +83,8 @@ The connector processes survey and response data with an optimized incremental s
 - `respondents` - User/contact information keyed by user ID (parent for responses)
 
 ### Incremental sync strategy
-- **Responses**: Incremental sync using `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
-- **Surveys and Contacts**: Full sync on every run (the Refiner API does not support date filtering for these endpoints)
+- Responses: Incremental sync using `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
+- Surveys and Contacts: Full sync on every run (the Refiner API does not support date filtering for these endpoints)
 - Initial response sync uses `start_date` from configuration (if provided) or EPOCH time (1970-01-01T00:00:00Z) as fallback
 - Checkpoint every 1000 records during large response syncs to enable resumability
 - Checkpoint after each page for surveys and contacts to preserve progress
