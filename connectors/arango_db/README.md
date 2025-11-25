@@ -40,6 +40,7 @@ Configuration parameters:
 - `database` (requried): Your ArangoDB database name.
 - `username` (requried):  Your ArangoDB username.
 - `password` (requried): Your ArangoDB password.
+
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
