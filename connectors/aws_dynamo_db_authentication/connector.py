@@ -69,7 +69,7 @@ def schema(configuration: dict):
             }
             schema.append(table_schema)
     except Exception as e:
-        log.severe(str(e))
+        log.severe("Failed to get schema", e)
 
     return schema
 
@@ -108,7 +108,7 @@ def update(configuration: dict, state: dict):
 
         log.info("Finished syncing...")
     except Exception as e:
-        log.severe(str(e))
+        log.severe("Sync failed", e)
         raise
 
 

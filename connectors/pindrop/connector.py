@@ -278,7 +278,7 @@ def parse_csv_data(csv_data: str, report_type: str, report_date: str):
         return records
 
     except Exception as e:
-        log.severe(f"Failed to parse CSV data for {report_type} on {report_date}: {str(e)}")
+        log.severe(f"Failed to parse CSV data for {report_type} on {report_date}", e)
         return []
 
 
@@ -333,14 +333,15 @@ def fetch_report_data(token_manager: OAuth2TokenManager, report_type: str, repor
 
             except Exception as retry_error:
                 log.severe(
-                    f"Failed to fetch {report_type} report for {report_date} even after token refresh: {str(retry_error)}"
+                    f"Failed to fetch {report_type} report for {report_date} even after token refresh",
+                    retry_error,
                 )
                 return []
         else:
-            log.severe(f"Failed to fetch {report_type} report for {report_date}: {str(e)}")
+            log.severe(f"Failed to fetch {report_type} report for {report_date}", e)
             return []
     except Exception as e:
-        log.severe(f"Failed to fetch {report_type} report for {report_date}: {str(e)}")
+        log.severe(f"Failed to fetch {report_type} report for {report_date}", e)
         return []
 
 
@@ -365,9 +366,10 @@ def generate_reports_to_process(state: dict, is_initial_sync: bool):
         try:
             start_date = datetime.strptime(__INITIAL_SYNC_START_DATE, "%Y-%m-%d").date()
             log.info(f"Initial sync: generating reports from {start_date} to {today}")
-        except ValueError:
+        except ValueError as e:
             log.severe(
-                f"Invalid INITIAL_SYNC_START_DATE format: {__INITIAL_SYNC_START_DATE}. Expected YYYY-MM-DD"
+                f"Invalid INITIAL_SYNC_START_DATE format: {__INITIAL_SYNC_START_DATE}. Expected YYYY-MM-DD",
+                e,
             )
             return []
     else:
@@ -479,7 +481,7 @@ def _process_report(
         return len(records)
 
     except Exception as e:
-        log.severe(f"Error processing {report_type} for {report_date}: {str(e)}")
+        log.severe(f"Error processing {report_type} for {report_date}", e)
         return 0
 
 
@@ -559,7 +561,7 @@ def update(configuration: dict, state: dict):
 
     except Exception as e:
         # In case of an exception, raise a runtime error
-        log.severe(f"Sync failed with error: {str(e)}")
+        log.severe("Sync failed with error", e)
         raise RuntimeError(f"Failed to sync Pindrop data: {str(e)}")
 
 
