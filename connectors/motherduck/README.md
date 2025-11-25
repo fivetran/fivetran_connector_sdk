@@ -53,8 +53,6 @@ Configuration parameters:
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
----
-
 ## Requirements file
 
 The connector requires the `duckdb` package to connect to MotherDuck databases.
