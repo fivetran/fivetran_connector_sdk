@@ -2,11 +2,12 @@
 This connector demonstrates how to fetch purchase order data from the SAP Ariba API and
 upsert it into a Fivetran destination using the Connector SDK.
 
-See the Technical Reference documentation:
-https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+The sync is performed via full table replication using offset-based pagination.
+Note: Incremental filtering is not supported by the current sandbox environment.
 
-See the Best Practices documentation:
-https://fivetran.com/docs/connectors/connector-sdk/best-practices
+See the Fivetran Connector SDK documentation:
+- Technical Reference: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+- Best Practices: https://fivetran.com/docs/connectors/connector-sdk/best-practices
 """
 
 # For reading configuration from a JSON file
@@ -38,138 +39,10 @@ __RECORDS_PER_PAGE = 100
 __CHECKPOINT_INTERVAL = 1000
 __PAGE_OFFSET = "$skip"
 
-
-def schema(configuration: dict):
-    return [
-        {
-            "table": "order",
-            "primary_key": ["payloadId", "revision", "rowId"],
-            "columns": get_order_columns(),
-        },
-        {
-            "table": "item",
-            "primary_key": ["documentNumber", "lineNumber", "rowId"],
-            "columns": get_item_columns(),
-        },
-    ]
-
-
-def update(configuration: dict, state: dict):
-    validate_configuration(configuration)
-    log.warning("Example: connectors : sap_ariba")
-    sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    headers = {
-        "APIKey": configuration.get("api_key"),
-        "Accept": "application/json",
-        "DataServiceVersion": "2.0",
-    }
-    params = {"$top": __RECORDS_PER_PAGE, "$count": True}
-
-    sync_orders(params.copy(), headers, state, sync_start)
-    sync_items(params.copy(), headers, state, sync_start)
-
-
-def validate_configuration(configuration: dict):
-    if "api_key" not in configuration:
-        raise ValueError("Missing required configuration: api_key")
-
-
-def sync_orders(params, headers, state, sync_start):
-    table = "order"
-    params[__PAGE_OFFSET] = 0
-    if table not in state:
-        state[table] = {}
-    sync_rows(table, params, headers, state, get_order_columns(), sync_start)
-    op.checkpoint(state)
-
-
-def sync_items(params, headers, state, sync_start):
-    table = "item"
-    params[__PAGE_OFFSET] = 0
-    if table not in state:
-        state[table] = {}
-    sync_rows(table, params, headers, state, get_item_columns(), sync_start)
-    op.checkpoint(state)
-
-
-def sync_rows(table, params, headers, state, allowed_columns, sync_start):
-    count = 0
-    total = None
-
-    while total is None or count < total:
-        data = make_api_request(table, params=params, headers=headers)
-        if not data:
-            break
-        if data.get("firstPage"):
-            total = data.get("count", 0)
-            log.info(f"Total records to process for {table}: {total}")
-
-        items = data.get("content", [])
-        if not items:
-            break
-
-        for item in items:
-            count += 1
-            record = filter_columns(item, allowed_columns)
-            record["rowId"] = count
-            record["last_updated_at"] = sync_start
-            op.upsert(table=table, data=record)
-
-        if count % __CHECKPOINT_INTERVAL == 0:
-            op.checkpoint(state)
-
-        params[__PAGE_OFFSET] += __RECORDS_PER_PAGE
-
-
-def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
-    url = f"{__BASE_URL}{endpoint}"
-    for attempt in range(1, retries + 1):
-        try:
-            response = requests.get(url, params=params, headers=headers)
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:
-                wait = delay * attempt
-                log.warning(f"Rate limit hit. Retrying in {wait}s...")
-                time.sleep(wait)
-            elif 400 <= response.status_code < 500:
-                response.raise_for_status()
-            elif 500 <= response.status_code < 600:
-                log.warning(f"Server error {response.status_code}, retrying...")
-                time.sleep(delay * attempt)
-            else:
-                raise requests.HTTPError(
-                    f"Unexpected HTTP status code: {response.status_code}", response=response
-                )
-        except requests.RequestException as e:
-            log.severe(f"Network error: {e}")
-            time.sleep(delay * attempt)
-    raise requests.RequestException(f"Failed after {retries} retries")
-
-
-def filter_columns(record: dict, allowed_columns: dict) -> dict:
-    filtered = {}
-    for col, col_type in allowed_columns.items():
-        if col == "rowId":
-            continue
-        if col_type == "UTC_DATETIME":
-            filtered[col] = convert_to_iso(record.get(col))
-        elif col in record:
-            filtered[col] = record[col]
-    return filtered
-
-
-def convert_to_iso(date_str):
-    if not date_str:
-        return None
-    try:
-        dt = datetime.strptime(date_str, "%d %b %Y %I:%M:%S %p")
-        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except ValueError:
-        return date_str
-
+# Schema Definitions
 
 def get_order_columns():
+    """Return the column schema definition for the 'order' table."""
     return {
         "documentNumber": "STRING",
         "orderDate": "UTC_DATETIME",
@@ -193,6 +66,7 @@ def get_order_columns():
 
 
 def get_item_columns():
+    """Return the column schema definition for the 'item' table."""
     return {
         "documentNumber": "STRING",
         "lineNumber": "INT",
@@ -217,11 +91,252 @@ def get_item_columns():
     }
 
 
-# Create the connector object
+def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    Args:
+        configuration: Connector configuration settings.
+    """
+    return [
+        {
+            "table": "order",
+            "primary_key": ["payloadId", "revision", "rowId"],
+            "columns": get_order_columns(),
+        },
+        {
+            "table": "item",
+            "primary_key": ["documentNumber", "lineNumber", "rowId"],
+            "columns": get_item_columns(),
+        },
+    ]
+
+
+def update(configuration: dict, state: dict):
+    """
+    Define the update function which controls how your connector fetches data (Full Sync).
+    Args:
+        configuration: Connector configuration settings.
+        state: The connector's persisted state dictionary.
+    """
+    validate_configuration(configuration)
+    log.warning("Starting SAP Ariba Purchase Order sync (Full Sync)")
+    
+    # Store the sync start time in ISO format for the 'last_updated_at' column.
+    sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    
+    headers = {
+        "APIKey": configuration.get("api_key"),
+        "Accept": "application/json",
+        "DataServiceVersion": "2.0",
+    }
+    params = {"$top": __RECORDS_PER_PAGE, "$count": True}
+
+    # Execute sync for both tables.
+    sync_orders(params.copy(), headers, state, sync_start)
+    sync_items(params.copy(), headers, state, sync_start)
+    
+    # Final checkpoint after both tables are synced.
+    op.checkpoint(state)
+    log.info("SAP Ariba sync completed successfully.")
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure all required parameters are present.
+    Args:
+        configuration: Configuration dictionary.
+    Raises:
+        ValueError: If 'api_key' is missing.
+    """
+    if "api_key" not in configuration:
+        raise ValueError("Missing required configuration: api_key")
+
+
+def sync_orders(params: dict, headers: dict, state: dict, sync_start: str):
+    """
+    Initiates a full sync for 'order' table data.
+    Args:
+        params: API query parameters.
+        headers: HTTP headers.
+        state: State dictionary.
+        sync_start: Sync start timestamp string.
+    """
+    table = "order"
+    log.info(f"Starting full sync for table: {table}")
+    
+    # Reset offset to 0 for a full table sync.
+    params[__PAGE_OFFSET] = 0
+    if table not in state:
+        state[table] = {}
+
+    sync_rows(table, params, headers, state, get_order_columns(), sync_start)
+
+
+def sync_items(params: dict, headers: dict, state: dict, sync_start: str):
+    """
+    Initiates a full sync for 'item' (line-item) table data.
+    Args:
+        params: API query parameters.
+        headers: HTTP headers.
+        state: State dictionary.
+        sync_start: Sync start timestamp string.
+    """
+    table = "item"
+    log.info(f"Starting full sync for table: {table}")
+    
+    # Reset offset to 0 for a full table sync.
+    params[__PAGE_OFFSET] = 0
+    if table not in state:
+        state[table] = {}
+        
+    sync_rows(table, params, headers, state, get_item_columns(), sync_start)
+
+
+def sync_rows(table: str, params: dict, headers: dict, state: dict, allowed_columns: dict, sync_start: str):
+    """
+    Iteratively fetch and upsert paginated data from the SAP Ariba API.
+
+    Handles pagination, column filtering, and periodic checkpointing.
+    Args:
+        table (str): The table/entity name.
+        params (dict): API query parameters (including page offset).
+        headers (dict): HTTP headers.
+        state (dict): State dictionary for checkpointing.
+        allowed_columns (dict): Destination column schema.
+        sync_start (str): Timestamp for 'last_updated_at'.
+    """
+    count = 0
+    total = None
+    endpoint = table
+
+    # Loop until all records are processed (count < total).
+    while total is None or count < total:
+        data = make_api_request(endpoint, params=params, headers=headers)
+        if not data:
+            break
+        
+        # Determine total records count from the first page response.
+        if data.get("firstPage"):
+            total = data.get("count", 0)
+            log.info(f"Total records to process for {table}: {total}")
+
+        items = data.get("content", [])
+        if not items:
+            break
+
+        for item in items:
+            count += 1
+            record = filter_columns(item, allowed_columns)
+            record["rowId"] = count
+            record["last_updated_at"] = sync_start
+            
+            op.upsert(table=table, data=record)
+
+        # Checkpoint the state periodically to save progress.
+        if count % __CHECKPOINT_INTERVAL == 0:
+            op.checkpoint(state)
+
+        # Increment the offset parameter for the next page fetch.
+        params[__PAGE_OFFSET] += __RECORDS_PER_PAGE
+
+
+def make_api_request(endpoint: str, params: dict, headers: dict, retries=__MAX_RETRIES, delay=__RETRY_DELAY):
+    """
+    Perform a GET request with retry logic and exponential backoff.
+    
+    Handles rate limiting (429) and server errors (5xx) by retrying.
+    Args:
+        endpoint (str): The specific API path.
+        params (dict): Query parameters.
+        headers (dict): HTTP headers.
+        retries (int, optional): Max number of retries.
+        delay (int, optional): Base delay for exponential backoff.
+    Returns:
+        dict: Parsed JSON content.
+    Raises:
+        requests.RequestException: If the request fails after all retries.
+    """
+    url = f"{__BASE_URL}{endpoint}"
+    for attempt in range(1, retries + 1):
+        try:
+            response = requests.get(url, params=params, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                wait = delay * attempt
+                log.warning(f"Rate limit hit. Retrying in {wait}s...")
+                time.sleep(wait)
+            elif 400 <= response.status_code < 500:
+                # Client errors (other than 429) raise immediately.
+                response.raise_for_status()
+            elif 500 <= response.status_code < 600:
+                log.warning(f"Server error {response.status_code}, retrying...")
+                time.sleep(delay * attempt)
+            else:
+                raise requests.HTTPError(
+                    f"Unexpected HTTP status code: {response.status_code}", response=response
+                )
+        except requests.RequestException as e:
+            log.severe(f"Network error: {e}")
+            time.sleep(delay * attempt)
+            
+    raise requests.RequestException(f"Failed after {retries} retries")
+
+
+def filter_columns(record: dict, allowed_columns: dict) -> dict:
+    """
+    Filter record fields and transform UTC_DATETIME fields to ISO 8601 format.
+    Args:
+        record: Raw record dictionary from the API.
+        allowed_columns: Dictionary of allowed column names and their types.
+    Returns:
+        Filtered dictionary.
+    """
+    filtered = {}
+    
+    for col, col_type in allowed_columns.items():
+        if col == "rowId":
+            continue
+            
+        if col_type == "UTC_DATETIME":
+            filtered[col] = convert_to_iso(record.get(col))
+            
+        elif col in record:
+            filtered[col] = record[col]
+            
+    return filtered
+
+
+def convert_to_iso(date_str: str) -> str | None:
+    """
+    Convert a common SAP Ariba date string format to ISO 8601 format.
+
+    Parses 'DD Mon YYYY HH:MM:SS AM/PM' and outputs 'YYYY-MM-DDTHH:MM:SSZ'.
+    Args:
+        date_str (str): The SAP API date string.
+    Returns:
+        str or None: The ISO 8601 formatted string, None, or the original string.
+    """
+    if not date_str:
+        return None
+        
+    try:
+        dt = datetime.strptime(date_str, "%d %b %Y %I:%M:%S %p")
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        
+    except ValueError:
+        return date_str
+
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
-# Local debug block
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    with open("configuration.json") as f:
-        config = json.load(f)
-    connector.debug(config)
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
+    connector.debug(configuration=configuration)
