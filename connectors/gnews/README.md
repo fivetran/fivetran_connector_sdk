@@ -37,6 +37,13 @@ The `configuration.json` file provides the GNews credentials and query parameter
 
 Note: Ensure that `configuration.json` is not committed to version control.  
 
+## Requirements file
+
+This connector does not require any additional packages beyond those provided by the Fivetran environment.
+
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
+
 ## Data handling
 
 - Data normalization: `normalize_articles` flattens each `articles[*]` object and maps:
