@@ -14,12 +14,12 @@ This example demonstrates how to build a Fivetran Connector SDK integration for 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- GNews Search: Fetches news for a given `search_term` and `from_date` via `/api/v4/search`.  
-- Pagination: Iterates over pages until the end of the result set or an optional `max_pages` cap.  
-- Error handling: Retries transient failures (429/5xx and network timeouts) with exponential backoff and jitter.  
-- Data normalization: Flattens `articles[*]` and maps fields to stable column names (`image` → `urlToImage`).  
-- Schema: Defines one destination table — `news_stories` with primary key (`url`, `publishedAt`).  
-- Logging: Uses `fivetran_connector_sdk.Logging` for structured info and error logs, including plan-limit messages.
+- Fetches news for a given `search_term` and `from_date` via `/api/v4/search`.  
+- Iterates over pages until the end of the result set or an optional `max_pages` cap.  
+- Retries transient failures (429/5xx and network timeouts) with exponential backoff and jitter.  
+- Flattens `articles[*]` and maps fields to stable column names (`image` → `urlToImage`).  
+- Defines one destination table — `news_stories` with primary key (`url`, `publishedAt`).  
+- Uses `fivetran_connector_sdk.Logging` for structured info and error logs, including plan-limit messages.
 
 ## Configuration file
 The `configuration.json` file provides the GNews credentials and query parameters required for API requests.
@@ -37,42 +37,36 @@ The `configuration.json` file provides the GNews credentials and query parameter
 
 Note: Ensure that `configuration.json` is not committed to version control.  
 
-
 ## Requirements file
+
 The `requirements.txt` file lists external libraries needed for this connector.
+
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Data handling
-- Normalization: `normalize_articles` flattens each `articles[*]` object and maps:
-  - `image` → `urlToImage` (to keep parity with existing schema/column names)
+
+- Data normalization: `normalize_articles` flattens each `articles[*]` object and maps:
+  - `image` → `urlToImage` (to keep parity with existing schema/column names
   - Persists only scalar fields (nested values are JSON-encoded strings)
-
-- Upserts: Each record is written via `op.upsert(...)` to `news_stories`.
-
+- Upserts: Each record is written via `op.upsert(...)` to `NEWS_STORIES`.
 - Stop conditions: `fetch_all_news` stops when:
   - Fewer than `page_size` results are returned, or  
   - `page * page_size >= totalArticles`, or  
   - `max_pages` is reached, or  
-  - A page returns zero results.
-
+  - A page returns zero results
 
 ## Error handling
-- Transient errors (429/5xx, timeouts, connection issues):  
-  Retried up to 5 times with exponential backoff and small random jitter.
 
-- Fatal errors:  
-  Non-200 responses (not in the retry allowlist) raise immediately after logging.
+- Transient error handling (429/5xx, timeouts, connection issues): Retries up to 5 times with exponential backoff and small random jitter.
+- Fatal error handling: Non-200 responses (not in the retry allowlist) raise immediately after logging.
 
 ## Tables created
-**Summary of the table replicated**
 
-### `news_stories`
+The connector creates the `NEWS_STORIES` table.
+
+### NEWS_STORIES
 - Primary key: `url`, `publishedAt`
-- Selected columns (not exhaustive):  
-  `url`, `publishedAt`, `title`, `description`, `content`, `urlToImage`,  
-  `source_id`, `source_name`, `author`, `query`
+- Sample columns: `url`, `publishedAt`, `title`, `description`, `content`, `urlToImage`, `source_id`, `source_name`, `author`, `query`
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-
