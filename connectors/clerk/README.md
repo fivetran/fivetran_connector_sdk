@@ -5,7 +5,6 @@ This connector integrates with the Clerk API to synchronize user data into your 
 
 Clerk is a user authentication and management platform that provides APIs for managing users, their email addresses, phone numbers, social accounts, and authentication methods. 
 
-
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
@@ -16,17 +15,15 @@ Clerk is a user authentication and management platform that provides APIs for ma
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-
 ## Features
 - Fetches user data from the Clerk API `/v1/users` endpoint
-- Incremental sync support using `created_at_after` parameter to fetch only newly created users (defaults to January 1, 1990 for initial sync)
+- Incremental sync support using `created_at_after` parameter to fetch only newly created users (defaults to January 1, 1990 for the initial sync)
 - Automatic pagination using offset-based pagination (limit and offset parameters)
 - Flattens nested JSON objects into the main table using underscore notation
 - Separates nested arrays into child tables with foreign key relationships
 - Implements retry logic with exponential backoff for transient errors
 - Checkpoints state every 1000 records to enable resumption on interruption
 - Memory-efficient processing using generator functions to avoid loading all the data at once
-
 
 ## Configuration file
 The configuration file contains the API key required to authenticate with the Clerk API.
@@ -41,7 +38,6 @@ Configuration parameters:
 - `api_key` (required): Your Clerk API secret key.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
-
 
 ## Requirements file
 This connector example uses standard libraries provided by Python and does not require any additional packages.
@@ -58,6 +54,7 @@ To obtain your Clerk API key:
 4. Add this key to your `configuration.json` file.
 
 ## Pagination
+
 The connector implements offset-based pagination using the Clerk API's `limit` and `offset` query parameters.
 
 Pagination details:
@@ -69,6 +66,7 @@ Pagination details:
 The pagination logic is implemented as a generator function to avoid loading all data into memory at once, which is critical for handling large datasets efficiently.
 
 ## Data handling
+
 The connector processes Clerk user data with sophisticated flattening logic to normalize nested structures.
 
 Main table flattening:
@@ -89,8 +87,8 @@ Data type inference:
 The connector implements comprehensive error handling with retry logic.
 
 Retry strategy:
-- Maximum 3 retry attempts for transient errors (configurable via `__MAX_RETRIES` constant)
-- Exponential backoff strategy: waits 2^attempt seconds between retries
+- Maximum 3 retry attempts for transient errors (configurable via `__MAX_RETRIES`)
+- Exponential backoff strategy is to wait `2^attempt` seconds between retries
 - Rate limit (429) errors trigger automatic retry with exponential backoff
 - Server errors (5xx) are retried, client errors (4xx) fail immediately
 
