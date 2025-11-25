@@ -76,11 +76,11 @@ Pagination logic is implemented in:
 The connector processes survey and response data with an optimized incremental sync strategy:
 
 ### Tables and relationships
-- **surveys** - Survey metadata including configuration (parent table)
-- **questions** - Questions extracted from survey config (child of surveys)
-- **responses** - Individual survey responses (linked to surveys and respondents)
-- **answers** - Answer data for each question in a response (child of responses)
-- **respondents** - User/contact information keyed by user ID (parent for responses)
+- `surveys` - Survey metadata including configuration (parent table)
+- `questions` - Questions extracted from survey config (child of surveys)
+- `responses` - Individual survey responses (linked to surveys and respondents)
+- `answers` - Answer data for each question in a response (child of responses)
+- `respondents` - User/contact information keyed by user ID (parent for responses)
 
 ### Incremental sync strategy
 - **Responses**: Incremental sync using `last_response_sync` timestamp from state to fetch only new/updated responses since last successful sync
