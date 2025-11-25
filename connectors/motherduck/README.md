@@ -28,6 +28,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Performs full table reimports for tables without incremental fields.
 - Detects deletions using checksum-based soft delete logic.
 - Periodically checkpoints to ensure resumable incremental syncs.
+- The connector is idempotent and safe for repeated runs — unchanged records will not be reloaded.
 - Converts DuckDB data types to Fivetran-compatible schema types automatically.
 
 ## Configuration file
@@ -98,7 +99,10 @@ Data extraction and loading follow this workflow:
 6. Rows missing in the source are deleted via `op.delete()`.
 7. The connector checkpoints state after each sync using `op.checkpoint()` for reliable resumption.
 
-All datetime, list, and JSON values are serialized in a Fivetran-compatible format using the `serialize()` function.
+Important data handling considerations:
+
+- The connector auto-detects primary keys using simple naming heuristics (`id`, `*_id`, or `pk`).
+- All datetime, list, and JSON values are serialized in a Fivetran-compatible format using the `serialize()` function.
 
 ## Error handling
 
@@ -130,10 +134,5 @@ The resulting tables follow this naming convention:
 | `TESTDB_SALES_TRANSACTIONS`  | `TRANSACTIONS` table synced incrementally using `updated_at`. |
 
 ## Additional considerations
-
-- Tables must include a timestamp column (like `updated_at`) to support incremental syncs.
-- The connector auto-detects primary keys using simple naming heuristics (`id`, `*_id`, or `pk`).
-- Batch size and incremental column can be customized in configuration.
-- The connector is idempotent and safe for repeated runs — unchanged records will not be reloaded.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
