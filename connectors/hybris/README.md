@@ -84,7 +84,7 @@ This connector uses OAuth2 client credentials grant flow for authentication:
    - Client secret
    - Token endpoint URL
 
-2. Authentication flow (handled automatically by the connector - see `get_oauth_token()` function, lines 115-133):
+2. Authentication flow (handled automatically by the connector - see `get_oauth_token()` function, lines 112-136):
    - Connector sends POST request to token endpoint with client credentials
    - Hybris API responds with access token
    - Access token is used in Authorization header for all subsequent API requests
@@ -137,7 +137,7 @@ The connector transforms nested Hybris API responses into a flattened relational
 
 
 ## Error handling
-The connector implements multi-level error handling for robustness (see `update()` function, lines 396-413):
+The connector implements multi-level error handling for robustness (see `update()` function, lines 355-372):
 
 ### Authentication errors
 - Catches OAuth2 token acquisition failures
@@ -150,13 +150,13 @@ The connector implements multi-level error handling for robustness (see `update(
 - Logs failed page numbers and error details
 - Re-raises exception with context
 
-### Individual order errors (see `update()` function, lines 439-448)
+### Individual order errors (see `update()` function, lines 419-423)
 - Try-catch block around `process_single_order()` calls
 - Logs warning with order number and error details
 - Continues processing remaining orders (isolated failure handling)
 - Ensures one failed order doesn't stop the entire sync
 
-### Configuration validation (see `validate_configuration()`, lines 87-112)
+### Configuration validation (see `validate_configuration()`, lines 89-109)
 - Validates presence of all required configuration keys before API calls
 - Raises `ValueError` with clear message listing missing keys
 - Prevents runtime errors from missing credentials
@@ -164,7 +164,7 @@ The connector implements multi-level error handling for robustness (see `update(
 ### Empty response handling
 - Checks for `paginationData` in API response (line 415)
 - Logs warning and returns gracefully if no data available
-- Handles empty order lists on individual pages (lines 434-436)
+- Handles empty order lists on individual pages (lines 412-415)
 
 
 ## Tables created
