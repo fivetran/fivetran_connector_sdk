@@ -1,8 +1,8 @@
-# Crypto.com Connector
+# Crypto.com Connector Example
 
 ## Connector overview
 
-The Crypto.com Connector is a comprehensive data integration solution that extracts cryptocurrency trading data, wallet information, and market data from the Crypto.com Exchange API v1. This connector provides real-time and historical data for cryptocurrency portfolio tracking, trading analysis, and market monitoring.
+The Crypto.com connector is a comprehensive data integration solution that extracts cryptocurrency trading data, wallet information, and market data from the Crypto.com Exchange API v1. This connector provides real-time and historical data for cryptocurrency portfolio tracking, trading analysis, and market monitoring.
 
 The connector fetches data from multiple Crypto.com Exchange API v1 endpoints including:
 - Exchange Information – All available trading pairs, symbols, and market rules
@@ -50,7 +50,7 @@ The connector requires the following configuration parameters in `configuration.
 }
 ```
 
-### Configuration Parameters
+### Configuration parameters
 
 | Parameter | Description | Required | Default |
 |-----------|-------------|----------|---------|
@@ -65,7 +65,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 The connector uses API key authentication with HMAC SHA256 signatures according to the [Crypto.com Exchange API v1 specification](https://exchange-docs.crypto.com/exchange/v1/rest-ws/index.html#common-api-reference) (Refer to `create_signature()` function).
 
-### Obtaining API Credentials
+### Obtaining API credentials
 
 1. Create a Crypto.com Exchange account.
 2. Navigate to API Management in your account settings.
@@ -75,37 +75,37 @@ The connector uses API key authentication with HMAC SHA256 signatures according 
 
 Note: Read permissions are required for all data extraction. Trade permissions are optional and only needed for order management.
 
-The signature is created using: `HMAC-SHA256(api_secret, method + id + api_key + paramsString + nonce)` - Refer to `create_signature()` and `create_signature_old()` functions
+The signature is created using`HMAC-SHA256(api_secret, method + id + api_key + paramsString + nonce)` - refer to the `create_signature()` and `create_signature_old()` functions.
 
 ## Pagination
 
 The connector handles pagination efficiently (Refer to `process_in_batches()` function):
 
-- Public Endpoints – Fetched once per sync with time-based intervals - Refer to `should_sync_endpoint()` function
-- Private Endpoints – Always synced on every run - Refer to `update()` function private endpoints section
-- Order History – Uses incremental sync with time-based pagination - Refer to `fetch_order_history()` function
-- Rate Limiting – Implements 100ms delays between requests and batch processing - Refer to `__RATE_LIMIT_DELAY` constant and `apply_rate_limit()` function
+- Public endpoints – Fetched once per sync with time-based intervals - Refer to `should_sync_endpoint()` function
+- Private endpoints – Always synced on every run - Refer to `update()` function private endpoints section
+- Order history – Uses incremental sync with time-based pagination - Refer to `fetch_order_history()` function
+- Rate limiting – Implements 100ms delays between requests and batch processing - Refer to `__RATE_LIMIT_DELAY` constant and `apply_rate_limit()` function
 
 ## Data handling
 
 The connector processes and transforms data as follows (Refer to `schema()` function):
 
-- Schema Mapping – Maps API response fields to standardized table schemas - Refer to individual fetch functions (e.g., `fetch_instruments()`, `fetch_tickers()`)
-- Data Type Conversion – Automatically converts lists and dictionaries to JSON strings for Fivetran SDK compatibility - Refer to `clean_order_data()` function
-- Incremental Sync – Order history uses state-based incremental sync to fetch only new data - Refer to `fetch_order_history()` function with timestamp parameters
-- Time Zone Handling – All timestamps are handled in UTC - Refer to `time.time()` usage throughout the connector
-- Data Cleaning – Complex nested data structures are preserved as JSON strings - Refer to `clean_order_data()` function
+- Schema mapping – Maps API response fields to standardized table schemas - Refer to individual fetch functions (e.g., `fetch_instruments()`, `fetch_tickers()`)
+- Data type conversion – Automatically converts lists and dictionaries to JSON strings for Fivetran SDK compatibility - Refer to `clean_order_data()` function
+- Incremental sync – Order history uses state-based incremental sync to fetch only new data - Refer to `fetch_order_history()` function with timestamp parameters
+- Time zone handling – All timestamps are handled in UTC - Refer to `time.time()` usage throughout the connector
+- Data cleaning – Complex nested data structures are preserved as JSON strings - Refer to `clean_order_data()` function
 
 ## Error handling
 
 The connector implements comprehensive error handling strategies (Refer to `make_authenticated_request` function):
 
-- Retry Logic – Exponential backoff for transient errors (up to 3 attempts) - Refer to `__MAX_RETRIES` constant and retry loop
-- Rate Limit Handling – Automatic retry with increasing delays for rate limit errors - Refer to `apply_rate_limit()` function
-- Authentication Errors – Clear error messages for invalid credentials - Refer to `validate_configuration()` function
-- Data Validation – Type checking and conversion for Fivetran SDK compatibility - Refer to `clean_order_data()` function
+- Retry logic – Exponential backoff for transient errors (up to 3 attempts) - Refer to `__MAX_RETRIES` constant and retry loop
+- Rate limit handling – Automatic retry with increasing delays for rate limit errors - Refer to `apply_rate_limit()` function
+- Authentication errors – Clear error messages for invalid credentials - Refer to `validate_configuration()` function
+- Data validation – Type checking and conversion for Fivetran SDK compatibility - Refer to `clean_order_data()` function
 - Logging – Detailed logging at INFO, WARNING, and SEVERE levels - Refer to `log_message()` function
-- Graceful Degradation – Continues processing other endpoints if one fails - Refer to `update()` function error handling
+- Graceful degradation – Continues processing other endpoints if one fails - Refer to `update()` function error handling
 
 ## Tables created
 
@@ -143,14 +143,14 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 
 ### Known limitations
 
-- API Rate Limits – Crypto.com has rate limits that may affect sync speed
-- Data Volume – Large accounts may require longer sync times
-- API Permissions – Some data may not be available depending on account permissions
-- Time Range – Order history defaults to 60 days for initial sync, then incremental
+- API rate limits – Crypto.com has rate limits that may affect sync speed
+- Data volume – Large accounts may require longer sync times
+- API permissions – Some data may not be available depending on account permissions
+- Time range – Order history defaults to 60 days for initial sync, then incremental
 
 ### Troubleshooting
 
-- No Data – Check API credentials and permissions
-- Rate Limit Errors – The connector automatically retries with exponential backoff
-- Sync Failures – Check logs for detailed error messages
-- Missing Data – Verify account has trading activity and sufficient permissions
+- No data – Check API credentials and permissions
+- Rate limit errors – The connector automatically retries with exponential backoff
+- Sync failures – Check logs for detailed error messages
+- Missing data – Verify account has trading activity and sufficient permissions
