@@ -137,7 +137,7 @@ The connector transforms nested Hybris API responses into a flattened relational
 
 
 ## Error handling
-The connector implements multi-level error handling for robustness (see `update()` function, lines 396-413):
+The connector implements multi-level error handling for robustness (see `update()` function, lines 355-372):
 
 ### Authentication errors
 - Catches OAuth2 token acquisition failures
