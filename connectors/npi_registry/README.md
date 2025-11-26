@@ -50,7 +50,7 @@ To generate your API URL:
 1. Visit the [NPPES API Demo Page](https://npiregistry.cms.hhs.gov/demo-api).
 2. Enter your search criteria (provider name, location, taxonomy, etc.).
 3. Set the Limit parameter to 200 (the API's maximum allowed value).
-4. Click Submit to generate the API URL.
+4. Click **Submit** to generate the API URL.
 5. Copy the complete URL from the demo interface.
 6. Paste it into the `configuration.json` file as the value for `api_url`.
 
