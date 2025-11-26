@@ -82,72 +82,72 @@ The connector creates four tables in the destination:
 
 ### SITE
 
-| Column | Data Type | Primary Key |
-|--------|-----------|-------------|
-| id | STRING | Yes |
-| site_id | STRING | No |
-| name | STRING | No |
-| custom_domain | STRING | No |
-| url | STRING | No |
-| admin_url | STRING | No |
-| screenshot_url | STRING | No |
-| created_at | UTC_DATETIME | No |
-| updated_at | UTC_DATETIME | No |
-| user_id | STRING | No |
-| state | STRING | No |
-| plan | STRING | No |
-| account_name | STRING | No |
-| account_slug | STRING | No |
+| Column         | Data Type    | Primary Key |
+|----------------|--------------|-------------|
+| id             | STRING       | Yes         |
+| site_id        | STRING       | No          |
+| name           | STRING       | No          |
+| custom_domain  | STRING       | No          |
+| url            | STRING       | No          |
+| admin_url      | STRING       | No          |
+| screenshot_url | STRING       | No          |
+| created_at     | UTC_DATETIME | No          |
+| updated_at     | UTC_DATETIME | No          |
+| user_id        | STRING       | No          |
+| state          | STRING       | No          |
+| plan           | STRING       | No          |
+| account_name   | STRING       | No          |
+| account_slug   | STRING       | No          |
 
 ### DEPLOY
 
-| Column | Data Type | Primary Key |
-|--------|-----------|-------------|
-| id | STRING | Yes |
-| site_id | STRING | No |
-| name | STRING | No |
-| state | STRING | No |
-| url | STRING | No |
-| deploy_url | STRING | No |
-| admin_url | STRING | No |
-| created_at | UTC_DATETIME | No |
-| updated_at | UTC_DATETIME | No |
-| published_at | UTC_DATETIME | No |
-| branch | STRING | No |
-| commit_ref | STRING | No |
-| commit_url | STRING | No |
-| context | STRING | No |
-| review_url | STRING | No |
-| screenshot_url | STRING | No |
+| Column         | Data Type    | Primary Key |
+|----------------|--------------|-------------|
+| id             | STRING       | Yes         |
+| site_id        | STRING       | No          |
+| name           | STRING       | No          |
+| state          | STRING       | No          |
+| url            | STRING       | No          |
+| deploy_url     | STRING       | No          |
+| admin_url      | STRING       | No          |
+| created_at     | UTC_DATETIME | No          |
+| updated_at     | UTC_DATETIME | No          |
+| published_at   | UTC_DATETIME | No          |
+| branch         | STRING       | No          |
+| commit_ref     | STRING       | No          |
+| commit_url     | STRING       | No          |
+| context        | STRING       | No          |
+| review_url     | STRING       | No          |
+| screenshot_url | STRING       | No          |
 
 ### FORM
 
-| Column | Data Type | Primary Key |
-|--------|-----------|-------------|
-| id | STRING | Yes |
-| site_id | STRING | No |
-| name | STRING | No |
-| paths | STRING | No |
-| submission_count | INTEGER | No |
-| fields | STRING | No |
-| created_at | UTC_DATETIME | No |
+| Column           | Data Type    | Primary Key |
+|------------------|--------------|-------------|
+| id               | STRING       | Yes         |
+| site_id          | STRING       | No          |
+| name             | STRING       | No          |
+| paths            | STRING       | No          |
+| submission_count | INTEGER      | No          |
+| fields           | STRING       | No          |
+| created_at       | UTC_DATETIME | No          |
 
 ### SUBMISSION
 
-| Column      | Data Type     | Primary Key |
-|-------------|--------------|-------------|
-| id          | STRING       | Yes         |
-| number      | INTEGER      | No          |
-| email       | STRING       | No          |
-| name        | STRING       | No          |
-| first_name  | STRING       | No          |
-| last_name   | STRING       | No          |
-| company     | STRING       | No          |
-| summary     | STRING       | No          |
-| body        | STRING       | No          |
-| data        | JSON         | No          |
-| created_at  | UTC_DATETIME | No          |
-| site_url    | STRING       | No          |
+| Column     | Data Type    | Primary Key |
+|------------|--------------|-------------|
+| id         | STRING       | Yes         |
+| number     | INTEGER      | No          |
+| email      | STRING       | No          |
+| name       | STRING       | No          |
+| first_name | STRING       | No          |
+| last_name  | STRING       | No          |
+| company    | STRING       | No          |
+| summary    | STRING       | No          |
+| body       | STRING       | No          |
+| data       | JSON         | No          |
+| created_at | UTC_DATETIME | No          |
+| site_url   | STRING       | No          |
 
 ## Additional considerations
 
