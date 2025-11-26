@@ -123,9 +123,9 @@ The connector transforms nested Hybris API responses into a flattened relational
 1. Extract order number as primary key
 2. Flatten main order object into `orders_raw` table
 3. Process related entities in separate functions:
-   - `process_payment_transactions()` (lines 174-191) - Payment transaction records
-   - `process_order_entries()` (lines 194-245) - Line items and bundle entries
-   - `process_promotion_results()` (lines 248-268) - Promotion/discount records
+   - `process_payment_transactions()` (lines 166-188) - Payment transaction records
+   - `process_order_entries()` (lines 191-233) - Line items and bundle entries
+   - `process_promotion_results()` (lines 236-259) - Promotion/discount records
 4. Generate composite keys for child records (e.g., `orderKey_transactionId`)
 5. Upsert records to destination tables
 
