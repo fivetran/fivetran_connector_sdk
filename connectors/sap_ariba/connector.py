@@ -94,9 +94,11 @@ def get_item_columns():
 
 def schema(configuration: dict):
     """
-    Define the schema function which lets you configure the schema your connector delivers.
-    Args:
-        configuration: Connector configuration settings.
+    Define the schema function which lets you configure the schema your connector delivers. 
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema 
+    Args: 
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -114,10 +116,12 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function which controls how your connector fetches data (Full Sync).
-    Args:
-        configuration: Connector configuration settings.
-        state: The connector's persisted state dictionary.
+    Define the update function which lets you configure how your connector fetches data. 
+    See the technical reference documentation for more details on the update function: 
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update 
+    Args: 
+        configuration: a dictionary that holds the configuration settings for the connector. 
+        state: a dictionary that holds the state of the connector.
     """
     validate_configuration(configuration)
     log.warning("Starting SAP Ariba Purchase Order sync (Full Sync)")
@@ -233,10 +237,17 @@ def sync_rows(
             record["rowId"] = count
             record["last_updated_at"] = sync_start
 
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table=table, data=record)
 
         # Checkpoint the state periodically to save progress.
         if count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume 
+            # from the correct position in case of next sync or interruptions. 
+            # Learn more about how and where to checkpoint by reading our best practices documentation 
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
 
         # Increment the offset parameter for the next page fetch.
