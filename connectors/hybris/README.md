@@ -164,7 +164,7 @@ The connector implements multi-level error handling for robustness (see `update(
 ### Empty response handling
 - Checks for `paginationData` in API response (line 415)
 - Logs warning and returns gracefully if no data available
-- Handles empty order lists on individual pages (lines 434-436)
+- Handles empty order lists on individual pages (lines 412-415)
 
 
 ## Tables created
