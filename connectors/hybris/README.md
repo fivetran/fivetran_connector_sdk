@@ -119,7 +119,7 @@ The connector transforms nested Hybris API responses into a flattened relational
 - Null/empty values: Replaced with `'N/A'` placeholder for consistency
 - Date filters: URL-encoded for API compatibility (see `build_date_filters()`, lines 139-163)
 
-### Data processing flow (see `process_single_order()`, lines 291-309, and related functions)
+### Data processing flow (see `process_single_order()`, lines 262-287, and related functions)
 1. Extract order number as primary key
 2. Flatten main order object into `orders_raw` table
 3. Process related entities in separate functions:
