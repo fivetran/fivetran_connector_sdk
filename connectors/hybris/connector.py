@@ -23,7 +23,7 @@ from fivetran_connector_sdk import Operations as op
 import requests
 from requests.auth import HTTPBasicAuth
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any
 
 # Constants
 BATCH_SIZE_LIMIT = 1000  # Prevent memory issues with large datasets
