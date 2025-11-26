@@ -72,7 +72,7 @@ The connector handles data as follows (see the `update()` function):
 
 ## Error handling
 
-`validate_configuration()` verifies all required configuration keys before any work begins and raises descriptive errors when values are missing.`connect_oracle()` catches invalid port values, and the `update()` function logs connection failures with `log.severe()` before re-raising the exception.During syncs, the connector wraps Oracle interactions in a `try/finally` block to ensure the database connection is closed, and it checkpoints progress with `op.checkpoint()` to prevent re-processing if an error occurs mid-batch.
+`validate_configuration()` verifies all required configuration keys before any work begins and raises descriptive errors when values are missing.`connect_oracle()` catches invalid port values, and the `update()` function logs connection failures with `log.severe()` before re-raising the exception. During syncs, the connector wraps Oracle interactions in a `try/finally` block to ensure the database connection is closed, and it checkpoints progress with `op.checkpoint()` to prevent re-processing if an error occurs mid-batch.
 
 ## Tables created
 
@@ -94,4 +94,4 @@ This connector doesn’t require any additional files, apart from the standard o
 
 ## Additional considerations
 
-The examples provided are intended to help you effectively use Fivetran's Connector SDK.While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.For inquiries, please reach out to our Support team.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples.For inquiries, please reach out to our Support team.
