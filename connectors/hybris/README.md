@@ -117,7 +117,7 @@ The connector transforms nested Hybris API responses into a flattened relational
   - Example: `{"user": {"name": "John"}}` becomes `{"user_name": "John"}`
 - Lists/arrays: JSON-serialized as strings for storage
 - Null/empty values: Replaced with `'N/A'` placeholder for consistency
-- Date filters: URL-encoded for API compatibility (see `build_date_filters()`, lines 150-171)
+- Date filters: URL-encoded for API compatibility (see `build_date_filters()`, lines 139-163)
 
 ### Data processing flow (see `process_single_order()`, lines 291-309, and related functions)
 1. Extract order number as primary key
