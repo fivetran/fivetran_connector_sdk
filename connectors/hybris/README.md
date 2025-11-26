@@ -156,7 +156,7 @@ The connector implements multi-level error handling for robustness (see `update(
 - Continues processing remaining orders (isolated failure handling)
 - Ensures one failed order doesn't stop the entire sync
 
-### Configuration validation (see `validate_configuration()`, lines 87-112)
+### Configuration validation (see `validate_configuration()`, lines 89-109)
 - Validates presence of all required configuration keys before API calls
 - Raises `ValueError` with clear message listing missing keys
 - Prevents runtime errors from missing credentials
