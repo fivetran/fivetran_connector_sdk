@@ -54,7 +54,7 @@ The connector supports hybrid sliding window incremental sync:
 - Uses `posted_from` and `posted_to` dates from configuration for historical backfill
 - After completion, automatically switches to incremental mode
 
-**Incremental Sync** (Subsequent Runs):
+Incremental Sync (Subsequent Runs):
 - Automatically calculates date window using `last_posted_to` from previous sync minus a 30-day overlap window
 - Advances to the current date, capturing new opportunities and updates
 - If the date range exceeds one year, automatically chunks into 364-day windows
