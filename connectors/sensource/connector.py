@@ -110,7 +110,7 @@ def get_access_token(client_id: str, client_secret: str) -> str:
         return access_token
 
     except requests.exceptions.RequestException as e:
-        log.severe(f"Authentication request failed: {str(e)}")
+        log.severe("Authentication request failed", e)
         raise ConnectionError(f"Failed to authenticate with Sensource API: {str(e)}")
 
 
@@ -395,7 +395,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         """
         Handle exceptions by raising a runtime error with descriptive message.
         """
-        log.severe(f"Sync failed with error: {str(e)}")
+        log.severe("Sync failed with error", e)
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
@@ -443,7 +443,7 @@ def make_request_with_retry(method, url, **kwargs):
                 time.sleep(delay)
                 continue
             else:
-                log.severe(f"Request failed: {str(e)}")
+                log.severe("Request failed", e)
                 raise ConnectionError(f"Request failed: {str(e)}")
 
     # This should never be reached, but ensures all code paths return or raise
