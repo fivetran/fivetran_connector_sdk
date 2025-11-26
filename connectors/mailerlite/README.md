@@ -63,11 +63,11 @@ The connector checks for pagination continuation tokens and breaks the loop when
 ## Incremental sync
 The connector implements client-side incremental sync for subscribers and campaigns using timestamp-based filtering:
 
-- State tracking - The connector stores `last_sync_timestamp` and maximum `updated_at` timestamps for each entity in the state
-- Client-side filtering - During subsequent syncs, the connector fetches all records from the API but only upserts records with `updated_at` timestamps newer than the last sync
-- Skipped records - Unchanged records are skipped to reduce database write operations
-- Timestamp conversion - ISO 8601 timestamps from the API are converted to milliseconds since epoch for comparison (refer to the `iso_to_timestamp()` function)
-- Generic implementation - The `sync_paginated_data()` function accepts an `enable_incremental` parameter to enable incremental sync for any entity
+- State tracking: The connector stores `last_sync_timestamp` and maximum `updated_at` timestamps for each entity in the state
+- Client-side filtering: During subsequent syncs, the connector fetches all records from the API but only upserts records with `updated_at` timestamps newer than the last sync
+- Skipped records: Unchanged records are skipped to reduce database write operations
+- Timestamp conversion: ISO 8601 timestamps from the API are converted to milliseconds since epoch for comparison (refer to the `iso_to_timestamp()` function)
+- Generic implementation: The `sync_paginated_data()` function accepts an `enable_incremental` parameter to enable incremental sync for any entity
 
 Note: MailerLite API does not support server-side timestamp filtering, so the connector must fetch all records and perform client-side filtering. This ensures data completeness while minimizing database operations.
 
