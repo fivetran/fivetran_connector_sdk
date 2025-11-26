@@ -95,7 +95,7 @@ This connector uses OAuth2 client credentials grant flow for authentication:
    - Access to order fields including: orders, entries, paymentTransactions, allPromotionResults, bundleEntries
 
 ## Pagination
-The connector implements offset-based pagination to handle large order datasets (see `update()` function, lines 426-458, and `fetch_orders_page()` function, lines 315-340):
+The connector implements offset-based pagination to handle large order datasets (see `update()` function, lines 325-358, and `fetch_orders_page()` function, lines 290-320):
 
 - Pagination method: Page number-based (offset pagination)
 - Page processing: Each page is fetched, processed, and checkpointed before moving to the next
