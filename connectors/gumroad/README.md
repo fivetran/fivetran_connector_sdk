@@ -52,7 +52,7 @@ To set up authentication:
 
 1. Log in to your [Gumroad account] (https://gumroad.com).
 
-2. Navigate to **Settings** > **Advanced** > Applications**.
+2. Navigate to **Settings** > **Advanced** > **Applications**.
 
 3. Click **Create new application** and fill in the required details.
 
