@@ -1,7 +1,7 @@
 # Astronomer Airflow Cloud API Connector Example
 
 ## Connector overview
-This connector demonstrates how to fetch DAGs, DAG Runs, and Task Instances metadata from [Astronomer’s Airflow API](https://www.astronomer.io/docs/astro/airflow-api/) and sync it to your destination using the Fivetran Connector SDK.
+This connector demonstrates how to fetch DAGs, DAG Runs, and Task Instances metadata from [Astronomer’s Airflow API](https://www.astronomer.io/docs/astro/airflow-api/) and sync it to your destination using the Fivetran Connector SDK. It is compatible with both Astronomer Cloud and self-hosted Airflow APIs.
 
 The connector supports incremental synchronization by tracking `logical_date` timestamps for DAG Runs, handles pagination, and includes robust retry logic for API rate limits and transient errors.
 
@@ -27,7 +27,9 @@ Refer to the [Fivetran Connector SDK Setup Guide](https://fivetran.com/docs/conn
     - DAG metadata (`/api/v2/dags`)
     - DAG Runs (`/api/v2/dags/{dag_id}/dagRuns`)
     - Task Instances (`/api/v2/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances`)
+    - Extendable to include Airflow Variables, Pools, or XComs by adding additional API calls.
 - Supports incremental synchronization using `logical_date` cursors.
+-     To optimize incremental syncs, the connector limits initial backfills to the last 7 days by default.
 - Handles pagination automatically for large result sets.
 - Retries rate-limited or transient API errors with exponential backoff.
 - Logs all synchronization activity and state checkpoints.
@@ -176,9 +178,5 @@ Primary key: (`dag_id`, `dag_run_id`, `task_id`, `try_number`)
 | `_synced_at` | UTC_DATETIME | Timestamp of the connector sync. |
 
 ## Additional considerations
-- The connector is compatible with both **Astronomer Cloud** and **self-hosted Airflow** APIs.
-- To optimize incremental syncs, the connector limits initial backfills to the last 7 days by default.
-- Extendable to include **Airflow Variables**, **Pools**, or **XComs** by adding additional API calls.
-- Designed for **educational and demonstration purposes** using the **Fivetran Connector SDK**.
 
-For inquiries, please reach out to **Fivetran Support**.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
