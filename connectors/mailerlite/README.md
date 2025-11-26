@@ -55,8 +55,8 @@ The API key is passed as a Bearer token in the Authorization header for all API 
 ## Pagination
 The connector implements two pagination strategies based on MailerLite API endpoint requirements:
 
-- Cursor-based pagination - Used for subscribers and group subscribers endpoints. The connector processes data in batches and uses the `next_cursor` from the response metadata to fetch subsequent pages (refer to the `sync_paginated_data()` and `sync_group_subscribers()` functions).
-- Page-based pagination - Used for groups, fields, and campaigns endpoints. The connector increments page numbers to fetch all data (refer to the `sync_paginated_data()` and `sync_groups()` functions).
+- Cursor-based pagination: Used for subscribers and group subscribers endpoints. The connector processes data in batches and uses the `next_cursor` from the response metadata to fetch subsequent pages (refer to the `sync_paginated_data()` and `sync_group_subscribers()` functions).
+- Page-based pagination: Used for groups, fields, and campaigns endpoints. The connector increments page numbers to fetch all data (refer to the `sync_paginated_data()` and `sync_groups()` functions).
 
 The connector checks for pagination continuation tokens and breaks the loop when no more data is available. The generic `sync_paginated_data()` function handles both pagination types, reducing code duplication.
 
