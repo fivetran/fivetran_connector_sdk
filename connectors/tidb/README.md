@@ -1,7 +1,7 @@
 # TiDB Connector Example
 
 ## Connector overview
-This example demonstrates a source connector that reads rows from a TiDB database and upserts them into the Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
+This example demonstrates a source connector that reads rows from a TiDB database and upserts them into a Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
 Use cases: Incremental sync of application tables, vector/embedding export for ML workflows, and incremental change capture for analytics.
 
 ## Contributor
@@ -24,7 +24,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Robust error handling with per-table error markers stored in the connector `state`.
 
 ## Configuration file
-- The connector expects a `configuration.json` file when running locally.
+The connector expects a `configuration.json` file when running locally.
 
 ```
 {
@@ -95,7 +95,7 @@ For details on creating users and granting privileges, see TiDB docs: https://do
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
 ## Pagination
-The connector implements offset-based pagination using Limit/Offset in the `fetch_and_upsert_data` function, processing data in batches of 50 rows at a time. This approach helps manage memory usage and allows incremental reads of large tables without loading all matching rows into memory at once. If you need to adjust the batch size or use a different pagination strategy (such as keyset pagination), you can modify the relevant logic in `fetch_and_upsert_data`. For tables that require a different incremental column or cursor-based pagination, update the function accordingly.
+The connector implements offset-based pagination using the limit and offset parameters in the `fetch_and_upsert_data` function, processing data in batches of 50 rows at a time. This approach helps manage memory usage and allows incremental reads of large tables without loading all matching rows into memory at once. If you need to adjust the batch size or use a different pagination strategy (such as keyset pagination), you can modify the relevant logic in `fetch_and_upsert_data`. For tables that require a different incremental column or cursor-based pagination, update the function accordingly.
 
 ## Data handling
 - Rows are fetched and passed to `process_row` for normalization.
