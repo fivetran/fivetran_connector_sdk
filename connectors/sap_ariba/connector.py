@@ -22,7 +22,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# For making HTTP requests to Dgraph GraphQL API (provided by SDK runtime)
+# For making HTTP requests to SAP Ariba
 import requests
 
 # For handling datetime parsing and formatting
@@ -124,7 +124,7 @@ def update(configuration: dict, state: dict):
         state: a dictionary that holds the state of the connector.
     """
     validate_configuration(configuration)
-    log.warning("Starting SAP Ariba Purchase Order sync (Full Sync)")
+    log.warning("Example: Source Examples - SAP Ariba")
 
     # Store the sync start time in ISO format for the 'last_updated_at' column.
     sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
