@@ -84,7 +84,7 @@ This connector uses OAuth2 client credentials grant flow for authentication:
    - Client secret
    - Token endpoint URL
 
-2. Authentication flow (handled automatically by the connector - see `get_oauth_token()` function, lines 115-133):
+2. Authentication flow (handled automatically by the connector - see `get_oauth_token()` function, lines 112-136):
    - Connector sends POST request to token endpoint with client credentials
    - Hybris API responds with access token
    - Access token is used in Authorization header for all subsequent API requests
