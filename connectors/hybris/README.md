@@ -129,7 +129,7 @@ The connector transforms nested Hybris API responses into a flattened relational
 4. Generate composite keys for child records (e.g., `orderKey_transactionId`)
 5. Upsert records to destination tables
 
-### State management (see `update()` function, lines 383-391)
+### State management (see `update()` function, lines 346-352)
 - Cursor format: Timestamp string `"YYYY-MM-DD HH:MM:SS"`
 - Default lookback: 30 days from current date if no state exists
 - State update: Updated to current sync time after each page
