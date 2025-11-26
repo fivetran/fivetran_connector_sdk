@@ -150,7 +150,7 @@ The connector implements multi-level error handling for robustness (see `update(
 - Logs failed page numbers and error details
 - Re-raises exception with context
 
-### Individual order errors (see `update()` function, lines 439-448)
+### Individual order errors (see `update()` function, lines 419-423)
 - Try-catch block around `process_single_order()` calls
 - Logs warning with order number and error details
 - Continues processing remaining orders (isolated failure handling)
