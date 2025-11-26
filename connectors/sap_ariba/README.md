@@ -1,7 +1,7 @@
 # SAP Ariba Purchase Orders Connector Example
 
 ## Connector overview
-This example demonstrates how to use the Fivetran Connector SDK to extract purchase order and line-item data from the SAP Ariba API. The connector retrieves purchase order headers and details, processes them into row-oriented records, and loads them into a Fivetran destination. It also supports incremental syncing, paging, timestamp normalization, and retry logic.
+This example demonstrates how to use the Fivetran Connector SDK to extract purchase order and line-item data from the SAP Ariba API. The connector retrieves purchase order headers and details, processes them into row-oriented records, and loads them into a Fivetran destination. It also supports paging, timestamp normalization, and retry logic.
 
 This connector uses the SAP Ariba Sandbox API for illustration, but it can be adapted for production tenants by updating the configuration values.
 
@@ -13,7 +13,7 @@ This connector uses the SAP Ariba Sandbox API for illustration, but it can be ad
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
-Refer to the Connector SDK Setup Guide to get started: https://fivetran.com/docs/connectors/connector-sdk/setup-guide
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
 - Fetches purchase order and item data from the SAP Ariba API.
@@ -57,7 +57,7 @@ The connector retrieves, parses, normalizes, and loads SAP Ariba data into desti
 Refer to `update()` and `filter_columns()` in `connector.py`.
 
 ## Error handling
-The connector includes automatic retry logic for transient errors and rate-limited responses. Error handling is performed in `make_api_request()`, which uses backoff logic, raises authentication errors, and logs unexpected responses. Network errors are retried with incremental delay.
+The connector includes automatic retry logic for transient errors and rate-limited responses. Error handling is performed in `make_api_request()`, which uses backoff logic, raises authentication errors, and logs unexpected responses. 
 
 ## Tables created
 The connector creates two destination tables summarizing the SAP Ariba purchase order and item entities.
@@ -69,4 +69,4 @@ Contains purchase order header-level information, including identifiers, parties
 Contains line-item details linked to each purchase order, including product descriptions, quantities, codes, and delivery information.
 
 ## Additional considerations
-This example demonstrates how to work with timestamp conversion, pagination, stateful incremental syncing, and API retry patterns. It may require modifications before being used in production environments. For assistance, contact Fivetran Support.
+This example demonstrates how to work with timestamp conversion, pagination, and API retry patterns. It may require modifications before being used in production environments. For assistance, contact Fivetran Support.
