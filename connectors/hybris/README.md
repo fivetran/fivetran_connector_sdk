@@ -112,7 +112,7 @@ The connector implements offset-based pagination to handle large order datasets 
 ## Data handling
 The connector transforms nested Hybris API responses into a flattened relational structure suitable for data warehousing:
 
-### Data transformation (see `flatten_dict()` function, lines 48-84)
+### Data transformation (see `flatten_dict()` function, lines 49-86)
 - Nested dictionaries: Recursively flattened with underscore-separated keys
   - Example: `{"user": {"name": "John"}}` becomes `{"user_name": "John"}`
 - Lists/arrays: JSON-serialized as strings for storage
