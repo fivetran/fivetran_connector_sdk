@@ -71,7 +71,7 @@ def schema(configuration: dict):
         {
             "table": "orders_entries_bundle_entries",
             "primary_key": ["order_key"],
-        }
+        },
     ]
 
 
@@ -187,7 +187,7 @@ def _make_api_request_with_retry(
     url: str,
     headers: Optional[Dict[str, str]] = None,
     data: Optional[Dict[str, Any]] = None,
-    auth: Optional[HTTPBasicAuth] = None
+    auth: Optional[HTTPBasicAuth] = None,
 ) -> requests.Response:
     """
     Make an API request with retry logic and exponential backoff.
@@ -271,11 +271,7 @@ def get_oauth_token(token_url: str, client_id: str, client_secret: str) -> str:
 
     try:
         token_response = _make_api_request_with_retry(
-            method="POST",
-            url=token_url,
-            headers=headers,
-            data=token_data,
-            auth=auth
+            method="POST", url=token_url, headers=headers, data=token_data, auth=auth
         )
         return token_response.json()["access_token"]
     except requests.exceptions.RequestException as e:
@@ -324,7 +320,11 @@ def process_payment_transactions(order_key: str, order_data: Dict[str, Any]) -> 
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="orders_payment_transactions",
-                data={"order_key": payment_transaction_order_key, "order_num": order_key, **payment_data}
+                data={
+                    "order_key": payment_transaction_order_key,
+                    "order_num": order_key,
+                    **payment_data,
+                },
             )
 
 
@@ -345,7 +345,7 @@ def process_order_entries(order_key: str, order_data: Dict[str, Any]) -> None:
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="orders_entries",
-                data={"order_key": order_entries_key, "order_num": order_key, **entry_data}
+                data={"order_key": order_entries_key, "order_num": order_key, **entry_data},
             )
 
             # Process bundle entries within this entry
@@ -353,7 +353,9 @@ def process_order_entries(order_key: str, order_data: Dict[str, Any]) -> None:
                 for bundle in entry["bundleEntries"]:
                     bundle_data = {}
                     flatten_dict("bundleEntries", bundle, bundle_data)
-                    bundle_order_key = f"{order_key}_{entry["orderLineNumber"]}_{bundle["orderLineNumber"]}"
+                    bundle_order_key = (
+                        f"{order_key}_{entry["orderLineNumber"]}_{bundle["orderLineNumber"]}"
+                    )
                     entry_line = entry["orderLineNumber"]
                     # The "upsert" operation is used to insert or update data in the destination table.
                     # The first argument is the name of the destination table.
@@ -364,8 +366,8 @@ def process_order_entries(order_key: str, order_data: Dict[str, Any]) -> None:
                             "order_key": bundle_order_key,
                             "order_num": order_key,
                             "entry_line": entry_line,
-                            **bundle_data
-                        }
+                            **bundle_data,
+                        },
                     )
 
 
@@ -387,7 +389,7 @@ def process_promotion_results(order_key: str, order_data: Dict[str, Any]) -> Non
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(
                     table="orders_all_promotion_results",
-                    data={"order_key": promo_order_key, "order_num": order_key, **promotion_data}
+                    data={"order_key": promo_order_key, "order_num": order_key, **promotion_data},
                 )
 
 
@@ -406,7 +408,7 @@ def process_single_order(order: Dict[str, Any]) -> None:
     # The second argument is a dictionary containing the record to be upserted.
     op.upsert(
         table="orders_raw",
-        data={"order_key": order_data["order_key"], "order_num": order_key, **order_data}
+        data={"order_key": order_data["order_key"], "order_num": order_key, **order_data},
     )
 
     # Process related entities
@@ -443,7 +445,7 @@ def fetch_initial_page_and_metadata(
     api_endpoint: str,
     from_date_cursor: str,
     to_date_cursor: str,
-    headers: Dict[str, str]
+    headers: Dict[str, str],
 ) -> tuple:
     """
     Fetch first page of orders and extract pagination metadata.
@@ -513,7 +515,7 @@ def fetch_orders_page(
     page: int,
     from_date_cursor: str,
     to_date_cursor: str,
-    headers: Dict[str, str]
+    headers: Dict[str, str],
 ) -> Dict[str, Any]:
     """
     Fetch a single page of orders from the API with retry logic.
@@ -532,11 +534,7 @@ def fetch_orders_page(
     url = f"{api_url}{api_endpoint}&page={page}&{from_date_cursor}&{to_date_cursor}"
     log.info(f"{url} - API Call Count: {page + 1}")
 
-    response = _make_api_request_with_retry(
-        method="GET",
-        url=url,
-        headers=headers
-    )
+    response = _make_api_request_with_retry(method="GET", url=url, headers=headers)
     return response.json()
 
 
@@ -570,12 +568,16 @@ def update(configuration: dict, state: dict):
     headers = initialize_api_session(
         token_url=configuration["prod_token_url"],
         client_id=configuration["prod_client_id"],
-        client_secret=configuration["prod_client_secret"]
+        client_secret=configuration["prod_client_secret"],
     )
 
     # Fetch first page and extract pagination metadata
     response_data, num_pages, page_size, total_results = fetch_initial_page_and_metadata(
-        api_url=api_url, api_endpoint=api_endpoint, from_date_cursor=from_date_cursor, to_date_cursor=to_date_cursor, headers=headers
+        api_url=api_url,
+        api_endpoint=api_endpoint,
+        from_date_cursor=from_date_cursor,
+        to_date_cursor=to_date_cursor,
+        headers=headers,
     )
 
     if response_data is None:
@@ -589,8 +591,8 @@ def update(configuration: dict, state: dict):
             "run_key": str(current_date),
             "page_size": str(page_size),
             "totalNumberOfPages": str(num_pages),
-            "totalNumberOfResults": str(total_results)
-        }
+            "totalNumberOfResults": str(total_results),
+        },
     )
 
     # Process all pages
@@ -600,14 +602,21 @@ def update(configuration: dict, state: dict):
         if current_page > 0:
             try:
                 response_data = fetch_orders_page(
-                    api_url=api_url, api_endpoint=api_endpoint, page=current_page, from_date_cursor=from_date_cursor, to_date_cursor=to_date_cursor, headers=headers
+                    api_url=api_url,
+                    api_endpoint=api_endpoint,
+                    page=current_page,
+                    from_date_cursor=from_date_cursor,
+                    to_date_cursor=to_date_cursor,
+                    headers=headers,
                 )
             except requests.exceptions.RequestException as e:
                 log.severe(f"Failed to fetch page {current_page}: {e}")
                 raise requests.exceptions.RequestException(f"Error accessing API: {e}") from e
 
         # Process all orders on the current page
-        process_orders_on_page(orders_list=response_data.get("orders", []), page_number=current_page)
+        process_orders_on_page(
+            orders_list=response_data.get("orders", []), page_number=current_page
+        )
 
         # Checkpoint after each page
         updated_state = {"cursor": current_date.strftime("%Y-%m-%d %H:%M:%S")}
