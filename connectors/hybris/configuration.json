@@ -1,7 +1,7 @@
 {
-  "prod_client_id": "<YOUR_PROD_CLIENT_ID>",
-  "prod_client_secret": "<YOUR_PROD_CLIENT_SECRET>",
-  "prod_api_url": "<YOUR_PROD_API_URL>",
-  "prod_token_url": "<YOUR_PROD_TOKEN_URL>",
-  "api_endpoint_o": "<YOUR_API_ENDPOINT>"
+  "prod_client_id": "<YOUR_HYBRIS_PROD_CLIENT_ID>",
+  "prod_client_secret": "<YOUR_HYBRIS_PROD_CLIENT_SECRET>",
+  "prod_api_url": "<YOUR_HYBRIS_PROD_API_URL>",
+  "prod_token_url": "<YOUR_HYBRIS_PROD_TOKEN_URL>",
+  "orders_api_endpoint": "<YOUR_HYBRIS_API_ENDPOINT>"
 }
