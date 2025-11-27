@@ -36,7 +36,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Individual order error isolation (failed orders don't stop the sync)
 
 ## Configuration file
-The following configuration keys must be defined in `configuration.json`:
+The following configuration must be defined in `configuration.json`:
 
 ```json
 {
@@ -64,7 +64,6 @@ This connector does not require any external Python dependencies beyond the pre-
 The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment and are sufficient for this connector's operation.
 
 Note: To avoid dependency conflicts, do not declare `fivetran_connector_sdk` or `requests` in your `requirements.txt` file.
-
 
 ## Authentication
 
@@ -126,7 +125,7 @@ The connector transforms nested Hybris API responses into a flattened relational
 - Checkpoint frequency: After processing each page of orders
 
 ## Error handling
-The connector implements multi-level error handling for robustness (see `update()` function):
+The connector implements multi-level error handling for robustness (see the `update()` function):
 
 ### Authentication errors
 - Catches OAuth2 token acquisition failures
