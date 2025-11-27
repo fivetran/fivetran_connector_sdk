@@ -8,9 +8,10 @@
 
 *If a particular section is not relevant to your example (e.g. Error Handling \- your example doesn’t have any special error handling, Additional Files \- your example doesn’t have any additional files), delete that heading from the README.*
 
-*Notate what section relates to what function in the connector.py using the function name or specific line block. (e.g. Error Handling \- Refer to def handle_critical_error(error_message, error_details=None),  Pagination \- Refer to lines 150-175)*
+*Notate what section relates to what function in the connector.py using the function name (e.g. Error handling \- Refer to `def handle_critical_error(error_message, error_details=None)`)*
 
 *Do not use Title Case for any heading level other than H1 (a single top-level heading with a single `#`).*
+*Do not use Title Case in plain text that is used as unformatted subheading or item title, only capitalize the first word of subheading/item title (e.g., \- Rate limit errors – The connector automatically retries with exponential backoff, \- Data volume – Large accounts may require longer sync times, Incremental sync:).*
 *Do not use **bold** text anywhere except for UI elements controls like tabs, menus, buttons, fields, etc.*
 *Do not use nested bulleted lists for descriptions - write the description inline, for example, "- `mock\_api.py` – A simulated API for testing data retrieval."*
 *Use the following format for notes: "Note: note text"; omit the double quotes.*
