@@ -86,8 +86,8 @@ def _normalize_primitive_value(value: Any) -> Any:
     is_empty_value = value is None or value == ""
     if is_empty_value:
         return "N/A"
-    else:
-        return value
+
+    return value
 
 
 def _handle_dict_value(prefix: str, data: dict, result: Dict[str, Any]) -> None:
@@ -196,7 +196,7 @@ def _make_api_request_with_retry(
         url (str): URL to request
         headers (Optional[Dict[str, str]]): HTTP headers
         data (Optional[Dict[str, Any]]): Request body data
-        auth (Optional[HTTPBasicAuth]): Authentication objec
+        auth (Optional[HTTPBasicAuth]): Authentication object
     Returns:
         requests.Response: Successful response object
     Raises:
@@ -229,7 +229,10 @@ def _make_api_request_with_retry(
             else:
                 log.severe(f"Request failed after {__MAX_RETRIES} attempts")
 
-    raise last_exception
+    if last_exception is not None:
+        raise last_exception
+    else:
+        raise RuntimeError("All retry attempts failed, but no exception was captured.")
 
 
 def validate_configuration(configuration: Dict[str, Any]) -> None:
@@ -584,7 +587,9 @@ def update(configuration: dict, state: dict):
         log.warning("No data to process for the given date range.")
         return
 
-    # Record run history
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(
         table="orders_run_history",
         data={
