@@ -496,7 +496,7 @@ def process_orders_on_page(orders_list: list, page_number: int) -> None:
         page_number (int): Current page number for logging
 
     Note:
-        Errors processing individual orders are logged but don"t stop processing
+        Errors processing individual orders are logged but do not stop processing
     """
     if not orders_list:
         log.info(f"No orders found on page {page_number}")
@@ -623,15 +623,22 @@ def update(configuration: dict, state: dict):
             orders_list=response_data.get("orders", []), page_number=current_page
         )
 
-        # Checkpoint after each page
-        updated_state = {"cursor": current_date.strftime("%Y-%m-%d %H:%M:%S")}
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
+        # Call checkpoint to let fivetran know it is safe to update the data in the destination
+        # We do not update the state with current date here to avoid skipping data in case of interruptions.
+        # After processing all pages, we will update the state with the current date to ensure data integrity in this case.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint(state=updated_state)
+        op.checkpoint(state=state)
 
         current_page += 1
+
+    # update the state with the current date after processing all pages
+    updated_state = {"cursor": current_date.strftime("%Y-%m-%d %H:%M:%S")}
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+    op.checkpoint(state=updated_state)
 
     log.info(f"Completed processing {num_pages} page(s) with {total_results} total records")
 
@@ -641,7 +648,7 @@ connector = Connector(update=update, schema=schema)
 
 
 # Check if the script is being run as the main module.
-# This is Python"s standard entry method allowing your script to be run directly from the command line or IDE "run" button.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
