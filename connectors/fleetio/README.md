@@ -1,7 +1,6 @@
 # Fleetio Connector Example
 
 The Fleetio Connector allows Fleetio customers to easily pull their data into their destination databases with Fivetran.
-This example was built by the Fleetio team, who approved adding it to this repository.
 For more information about Fleetio, check out [Fleetio site](https://www.fleetio.com) or [contact Fleetio](https://www.fleetio.com/contact)!
 If you need more details about the endpoints pulled by the connector, visit Fleetio's [API docs](https://developer.fleetio.com/docs/category/api).
 
@@ -9,6 +8,11 @@ If you need more details about the endpoints pulled by the connector, visit Flee
 
 This connector allows Fleetio customers on a [Professional Plan](https://www.fleetio.com/pricing) or above to bring in their most crucial data into any destination systems.
 With their data all in one place, a customer can create custom reporting for insight into the operation of their fleets.
+
+## Accreditation
+
+This example was contributed by [Fleetio](https://www.fleetio.com/).
+
 
 ## Requirements
 
