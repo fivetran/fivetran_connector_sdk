@@ -21,6 +21,9 @@ from fivetran_connector_sdk import Operations as op
 # For handling time delays during retries
 import time
 
+# For file system operations
+import os
+
 # For making HTTP requests
 import requests
 
@@ -121,7 +124,7 @@ def make_api_request_with_retry(url: str, headers: Optional[Dict[str, str]] = No
         url (str): URL to request
         headers (Optional[Dict[str, str]]): HTTP headers
     Returns:
-        requests.Response: Successful response object
+        str: Successful response text content
     Raises:
         requests.exceptions.RequestException: If all retry attempts fail
     """
@@ -174,8 +177,6 @@ def delete_file(file_path: str):
     Args:
         file_path (str): Path to the file to be deleted
     """
-    import os
-
     try:
         os.remove(file_path)
         log.info(f"Deleted file: {file_path}")
@@ -343,11 +344,6 @@ def schema(configuration: dict):
             "primary_key": ["hasid"],
             "columns": {"created_at": "UTC_DATETIME"},
         },
-        {
-            "table": "table_using_polars_non_batched",
-            "primary_key": ["hasid"],
-            "columns": {"created_at": "UTC_DATETIME"},
-        },
     ]
 
 
@@ -376,15 +372,23 @@ def update(configuration: dict, state: dict):
     csv_content = make_api_request_with_retry(url=api_url, headers=headers)
     csv_path = save_csv_locally(csv_content=csv_content)
 
-    # Upsert data using Dask
-    _upsert_with_dask(csv_path, table_name="table_using_dask", state=state)
+    try:
+        # Upsert data using Dask
+        _upsert_with_dask(csv_path, table_name="table_using_dask", state=state)
 
-    # Upsert data using Pandas with PyArrow engine
-    _upsert_with_pandas_pyarrow(csv_path, table_name="table_using_pandas_pyarrow", state=state)
+        # Upsert data using Pandas with PyArrow engine
+        _upsert_with_pandas_pyarrow(csv_path, table_name="table_using_pandas_pyarrow", state=state)
 
-    # Upsert data using Polars
-    # It is recommended to use Polars for high-volume CSV processing due to its performance and low memory usage.
-    _upsert_with_polars(csv_path, table_name="table_ using_polars", state=state)
+        # Upsert data using Polars
+        # It is recommended to use Polars for high-volume CSV processing due to its performance and low memory usage.
+        _upsert_with_polars(csv_path, table_name="table_using_polars", state=state)
+
+    except Exception as e:
+        raise RuntimeError(f"Error during upsert operations: {e}")
+
+    finally:
+        # Clean up the temporary CSV file
+        delete_file(csv_path)
 
 
 # Create the connector object using the schema and update functions
