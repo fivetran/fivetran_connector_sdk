@@ -125,14 +125,14 @@ def get_api_response(params, headers, configuration):
                 response.raise_for_status()
                 response_page = response.json()
             except rq.exceptions.RequestException as e:
-                log.severe(f"HTTP request failed: {e}")
+                log.severe("HTTP request failed", e)
                 raise
             except ValueError as e:
-                log.severe(f"Failed to parse JSON response: {e}")
+                log.severe("Failed to parse JSON response", e)
                 raise
             return response_page
     except Exception as e:
-        log.severe(f"SSH tunnel or API call failed: {e}")
+        log.severe("SSH tunnel or API call failed", e)
         raise
 
 
