@@ -30,7 +30,7 @@ The `configuration.json` file contains the connection details for your Apache Pu
   "tenant": "<YOUR_APACHE_PULSAR_TENANT>",
   "namespace": "<YOUR_APACHE_PULSAR_NAMESPACE>",
   "topics": "<YOUR_TOPICS_COMMA_SEPARATED>",
-  "auth_token": "<YOUR_APACHE_PULSAR_AUTH_TOKEN_IF_REQUIRED>"
+  "auth_token": "<YOUR_OPTIONAL_APACHE_PULSAR_AUTH_TOKEN>"
 }
 ```
 
