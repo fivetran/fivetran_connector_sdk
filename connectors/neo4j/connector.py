@@ -36,19 +36,12 @@ def schema(configuration: dict):
             "primary_key": ["username"],  # Primary key(s) of the table
             "columns": {
                 "username": "STRING",
-                "followers_count": "INT",
-                "following_count": "INT",
-                "location": "STRING",
-                "name": "STRING",
-                "profile_image_url": "STRING",
-                "url": "STRING",
-                "betweenness": "FLOAT",
             },
         },  # Columns not defined in schema will be inferred
         {
             "table": "tweet_hashtags",
             "primary_key": ["tweet_id"],
-            "columns": {"tweet_id": "STRING", "hashtag_name": "STRING"},
+            "columns": {"tweet_id": "STRING"},
         },
     ]
 

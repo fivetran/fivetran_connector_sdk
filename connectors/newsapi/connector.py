@@ -35,8 +35,6 @@ def schema(configuration: dict):
             "columns": {
                 "source": "STRING",
                 "published_at": "UTC_DATETIME",
-                "author": "STRING",
-                "title": "STRING",
             },
         }
     ]

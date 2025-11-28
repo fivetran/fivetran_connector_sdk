@@ -96,8 +96,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "value": "FLOAT",
                 "created_at": "UTC_DATETIME",
             },
         }

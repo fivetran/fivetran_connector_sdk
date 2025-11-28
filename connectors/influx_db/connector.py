@@ -185,7 +185,7 @@ def schema(configuration: dict):
             "table": TABLE_NAME,  # Name of the table in the destination, required.
             "primary_key": [],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
-                "ants": "INT",  # Contains a dictionary of column names and data types
+                "ants": "INT",
                 "bees": "INT",
                 "location": "STRING",
                 "time": "STRING",

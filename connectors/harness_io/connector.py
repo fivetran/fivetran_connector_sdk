@@ -54,9 +54,6 @@ def schema(configuration: dict):
             "primary_key": ["identifier"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "identifier": "STRING",  # Contains a dictionary of column names and data types
-                "orgIdentifier": "STRING",
-                "name": "STRING",
-                "description": "STRING",
                 "isFavorite": "BOOLEAN",
                 "modules": "JSON",
                 "tags": "JSON",
@@ -75,20 +72,13 @@ def schema(configuration: dict):
             "primary_key": ["uuid"],
             "columns": {
                 "uuid": "STRING",
-                "name": "STRING",
-                "accountId": "STRING",
                 "scope": "JSON",
-                "type": "STRING",
-                "budgetAmount": "DOUBLE",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "mean_time_to_resolution",
             "columns": {
-                "mean_time": "DOUBLE",
                 "unit": "STRING",
-                "band": "STRING",
-                "total_incidents": "INT",
             },
         },
     ]
