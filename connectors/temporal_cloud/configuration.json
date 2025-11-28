@@ -1,0 +1,7 @@
+{
+  "endpoint": "<YOUR_TEMPORAL_CLOUD_ENDPOINT>",
+  "namespace": "<YOUR_TEMPORAL_CLOUD_NAMESPACE>",
+  "api_key": "<YOUR_TEMPORAL_CLOUD_API_KEY>",
+  "tls": "<YOUR_TLS_OPTION>",
+  "page_size": "<YOUR_PAGE_SIZE>"
+}
