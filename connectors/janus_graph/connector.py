@@ -149,7 +149,7 @@ def get_vertex_labels(gremlin_client):
     try:
         result = execute_gremlin_query_with_retry(gremlin_client, query)
         return result if result else []
-    except Exception as e:
+    except (GremlinServerError, ConnectionError, RuntimeError) as e:
         log.warning(f"Failed to retrieve vertex labels, using fallback: {str(e)}")
         # Fallback: get labels from actual vertices
         fallback_query = "g.V().label().dedup().toList()"
@@ -341,6 +341,9 @@ def sync_multi_valued_properties(
                     "property_value": str(value),
                     "property_index": idx,
                 }
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=property_record)
 
 
@@ -373,6 +376,8 @@ def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp)
         }
 
         # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table=__TABLE_VERTICES, data=vertex_record)
 
         # Sync multi-valued properties to separate table
@@ -477,6 +482,8 @@ def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp):
         }
 
         # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table=__TABLE_EDGES, data=edge_record)
 
         # Sync multi-valued properties to separate table
