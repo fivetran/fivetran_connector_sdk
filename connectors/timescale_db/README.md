@@ -95,8 +95,6 @@ The schemas for these tables are as follows:
   "primary_key": ["sensor_id"],  
   "columns":{
     "sensor_id": "INT",
-    "temperature": "FLOAT",
-    "humidity": "FLOAT",
     "time": "UTC_DATETIME"
   }
 }
@@ -108,7 +106,6 @@ The schemas for these tables are as follows:
   "primary_key": ["id"],
   "columns": {
     "id": "INT",
-    "sensor_id": "INT",
     "embedding_type": "STRING",
     "vector_data": "JSON",
     "created_at": "UTC_DATETIME"

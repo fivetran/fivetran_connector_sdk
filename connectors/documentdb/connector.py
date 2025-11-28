@@ -243,9 +243,6 @@ def schema(configuration: dict):
             "primary_key": ["_id"],
             "columns": {
                 "_id": "STRING",
-                "name": "STRING",
-                "email": "STRING",
-                "status": "STRING",
                 "created_at": "UTC_DATETIME",
                 "updated_at": "UTC_DATETIME",
                 "metadata": "JSON",
@@ -256,10 +253,6 @@ def schema(configuration: dict):
             "primary_key": ["_id"],
             "columns": {
                 "_id": "STRING",
-                "user_id": "STRING",
-                "order_number": "STRING",
-                "total_amount": "FLOAT",
-                "status": "STRING",
                 "created_at": "UTC_DATETIME",
                 "updated_at": "UTC_DATETIME",
                 "items": "JSON",

@@ -91,9 +91,6 @@ The connector creates a single table named `customers` with the following schema
   "primary_key": ["customer_id"],
   "columns": {
     "customer_id": "INT",
-    "first_name": "STRING",
-    "last_name": "STRING",
-    "email": "STRING",
     "updated_at": "UTC_DATETIME"
   }
 }

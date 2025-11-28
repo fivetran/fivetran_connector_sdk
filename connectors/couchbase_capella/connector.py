@@ -113,11 +113,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "country": "STRING",
-                "type": "STRING",
-                "callsign": "STRING",
-                "iata": "STRING",
                 "icao": "STRING",
             },
         }

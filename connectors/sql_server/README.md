@@ -87,8 +87,6 @@ The connector creates an `EMPLOYEE_DETAILS` table:
   "primary_key": ["employee_id"],
   "columns": {
     "employee_id": "INT",
-    "first_name": "STRING",
-    "last_name": "STRING",
     "hire_date": "NAIVE_DATE",
     "salary": "LONG",
     "updated_time": "NAIVE_DATETIME"

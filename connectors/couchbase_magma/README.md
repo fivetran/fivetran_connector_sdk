@@ -81,12 +81,6 @@ The `schema()` function defines the structure of the destination table:
     "primary_key": ["id"],
     "columns": {
         "id": "INT",
-        "name": "STRING",
-        "country": "STRING",
-        "type": "STRING",
-        "callsign": "STRING",
-        "iata": "STRING",
-        "icao": "STRING",
         "created_at": "UTC_DATETIME",
     },
 }

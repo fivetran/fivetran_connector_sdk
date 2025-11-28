@@ -38,10 +38,7 @@ def schema(configuration: dict):
             "table": "customers",  # Name of the table in the destination.
             "primary_key": ["customer_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
-                "customer_id": "INT",  # Integer column for the customer_id.
-                "first_name": "STRING",  # String column for the first name.
-                "last_name": "STRING",  # String column for the last name.
-                "email": "STRING",  # String column for the email.
+                "customer_id": "INT",  # INT column for the customer id.
                 "updated_at": "UTC_DATETIME",  # UTC date-time column for the updated_at.
                 # In this example we are using `updated_at` as the replication key
             },
