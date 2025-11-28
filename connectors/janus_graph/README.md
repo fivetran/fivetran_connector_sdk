@@ -37,7 +37,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-**For development (without authentication):**
+For development (without authentication):
 ```json
 {
   "gremlin_server_url": "ws://localhost:8182/gremlin",
