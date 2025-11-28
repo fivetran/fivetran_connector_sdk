@@ -56,10 +56,10 @@ For production (with authentication):
 ```
 
 ### Configuration parameters
-- `gremlin_server_url` (required) - The WebSocket URL of your Gremlin Server (e.g., `ws://localhost:8182/gremlin` for development or `wss://your-server:8182/gremlin` for production with SSL)
-- `traversal_source` (required) - The graph traversal source name, typically `g` (default traversal source in JanusGraph)
-- `username` (optional) - Username for authenticated connections to the Gremlin Server
-- `password` (optional) - Password for authenticated connections to the Gremlin Server
+- `gremlin_server_url` (required): The WebSocket URL of your Gremlin Server (e.g., `ws://localhost:8182/gremlin` for development or `wss://your-server:8182/gremlin` for production with SSL)
+- `traversal_source` (required): The graph traversal source name, typically `g` (default traversal source in JanusGraph)
+- `username` (optional): Username for authenticated connections to the Gremlin Server
+- `password` (optional): Password for authenticated connections to the Gremlin Server
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
