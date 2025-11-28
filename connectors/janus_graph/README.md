@@ -155,7 +155,7 @@ Retry mechanism (refer to `execute_gremlin_query_with_retry()` function in conne
 - Logs each retry attempt with a warning level for monitoring
 - Raises `RuntimeError` after exhausting all retry attempts
 
-**Error scenarios handled:**
+Error scenarios handled:
 - Connection failures to Gremlin Server (network issues, server restarts)
 - Query timeout errors for long-running graph traversals
 - Server-side errors during query execution
