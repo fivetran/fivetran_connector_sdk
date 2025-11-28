@@ -172,10 +172,10 @@ The connector creates four tables in your destination warehouse:
 
 | Table | Primary Key | Description | Key Columns |
 |-------|-------------|-------------|-------------|
-| **vertices** | `vertex_id` | Stores all vertices (nodes) from the JanusGraph database with their properties. | `vertex_id` (STRING), `vertex_label` (STRING), plus dynamic property columns |
-| **edges** | `edge_id` | Stores all edges (relationships) from the JanusGraph database with their properties. | `edge_id` (STRING), `edge_label` (STRING), `in_vertex_id` (STRING), `out_vertex_id` (STRING), plus dynamic property columns |
-| **vertex_properties** | `[vertex_id, property_key, property_index]` | Stores multi-valued properties for vertices (only created when vertices have properties with multiple values). | `vertex_id` (STRING), `property_key` (STRING), `property_value` (STRING), `property_index` (INT) |
-| **edge_properties** | `[edge_id, property_key, property_index]` | Stores multi-valued properties for edges (only created when edges have properties with multiple values). | `edge_id` (STRING), `property_key` (STRING), `property_value` (STRING), `property_index` (INT) |
+| `vertices` | `vertex_id` | Stores all vertices (nodes) from the JanusGraph database with their properties. | `vertex_id` (STRING), `vertex_label` (STRING), plus dynamic property columns |
+| `edges` | `edge_id` | Stores all edges (relationships) from the JanusGraph database with their properties. | `edge_id` (STRING), `edge_label` (STRING), `in_vertex_id` (STRING), `out_vertex_id` (STRING), plus dynamic property columns |
+| `vertex_properties` | `[vertex_id, property_key, property_index]` | Stores multi-valued properties for vertices (only created when vertices have properties with multiple values). | `vertex_id` (STRING), `property_key` (STRING), `property_value` (STRING), `property_index` (INT) |
+| `edge_properties` | `[edge_id, property_key, property_index]` | Stores multi-valued properties for edges (only created when edges have properties with multiple values). | `edge_id` (STRING), `property_key` (STRING), `property_value` (STRING), `property_index` (INT) |
 
 ### Detailed schema
 
