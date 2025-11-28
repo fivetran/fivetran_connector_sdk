@@ -298,7 +298,7 @@ def fetch_fda_data(configuration: dict, state: dict) -> List[Dict]:
             time.sleep(request_delay)
 
         except Exception as e:
-            log.severe(f"Error fetching data: {str(e)}")
+            log.severe("Error fetching data", e)
             raise RuntimeError(f"Failed to fetch FDA data: {str(e)}")
 
     log.info(f"Total records fetched and processed: {total_processed}")
@@ -392,7 +392,7 @@ def update(configuration: dict, state: dict):
 
     except Exception as e:
         # In case of an exception, raise a runtime error
-        log.severe(f"Failed to sync FDA tobacco data: {str(e)}")
+        log.severe("Failed to sync FDA tobacco data", e)
         raise RuntimeError(f"Failed to sync FDA tobacco data: {str(e)}")
 
 

@@ -257,7 +257,7 @@ def process_endpoint(
             op.upsert(table=main_table, data=flattened_item_data)
             main_upserted += 1
         except Exception as e:
-            log.severe(f"Failed to upsert record in {main_table}: {e}")
+            log.severe(f"Failed to upsert record in {main_table}", e)
 
         # Process breakout table if configured
         if breakout_config:
@@ -274,7 +274,8 @@ def process_endpoint(
                     breakout_upserted += 1
                 except Exception as e:
                     log.severe(
-                        f"Failed to upsert {breakout_config['source_key']} for {main_table} {item.get('id')}: {e}"
+                        f"Failed to upsert {breakout_config['source_key']} for {main_table} {item.get('id')}",
+                        e,
                     )
 
     log.info(f"Upserted {main_upserted} records into {main_table}")
