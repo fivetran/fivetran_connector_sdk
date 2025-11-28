@@ -82,7 +82,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector supports both authenticated and unauthenticated connections to the Gremlin Server API using WebSocket connections.
 
-**Development mode (no authentication):**
+- Development mode (no authentication):
 - JanusGraph's Gremlin Server runs without authentication by default
 - Use `ws://` protocol in `gremlin_server_url`
 - Omit `username` and `password` from configuration
