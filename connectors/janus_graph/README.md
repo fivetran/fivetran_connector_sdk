@@ -161,7 +161,7 @@ Error scenarios handled:
 - Server-side errors during query execution
 - Schema discovery failures with automatic fallback to data-driven discovery
 
-**Fail-fast behavior:**
+Fail-fast behavior:
 - Configuration validation fails immediately on missing required parameters
 - Final exception raised after all retries are exhausted to alert Fivetran
 - Client connection cleanup in `finally` block to prevent resource leaks
