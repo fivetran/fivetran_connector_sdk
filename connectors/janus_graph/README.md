@@ -45,7 +45,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-**For production (with authentication):**
+For production (with authentication):
 ```json
 {
   "gremlin_server_url": "<YOUR_GREMLIN_SERVER_URL>",
