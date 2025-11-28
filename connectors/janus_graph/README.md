@@ -138,7 +138,7 @@ The connector transforms JanusGraph graph data into four relational tables optim
 - State tracks separate timestamps: `vertices_last_updated_at` and `edges_last_updated_at`
 - Falls back to full sync if `updated_at` property is not available
 
-**Schema discovery** (refer to schema discovery functions in connector.py):
+### Schema discovery (refer to schema discovery functions in connector.py)
 - Queries JanusGraph management API for vertex labels, edge labels, and property keys
 - Uses fallback queries to discover labels from actual data if the management API fails
 - Minimal schema definition with primary keys and core columns
