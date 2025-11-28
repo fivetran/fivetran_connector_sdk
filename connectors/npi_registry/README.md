@@ -70,19 +70,6 @@ The NPPES NPI Registry API is a public API that does not require authentication.
 
 The connector implements offset-based pagination using the `skip` parameter. Refer to the `fetch_npi_data` function in `connector.py`.
 
-The pagination logic works as follows:
-
-- The connector uses the API URL provided in the configuration
-- It automatically appends or modifies the `skip` parameter for each page
-- The `skip` parameter starts at 0 and increments by the number of results returned
-- The maximum skip value allowed by the API is 1000
-- Each request returns results based on the `limit` parameter in your API URL (API maximum: 200)
-- API Limitation: The API can return a maximum of 1,200 records total (6 pages × 200 results) per query
-- The connector continues fetching pages until no more results are returned or the max skip is reached
-- If your search criteria matches more than 1,200 providers, you will need to refine your search to get specific records
-- The current skip offset is stored in the state and checkpointed periodically
-- If the sync is interrupted, it resumes from the last checkpointed offset
-
 ## Data handling
 
 The connector processes the nested JSON response from the NPI Registry API and flattens it into seven relational tables. Refer to the `process_provider_record` and `upsert_child_records` functions in `connector.py`.
