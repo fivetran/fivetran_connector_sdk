@@ -1,6 +1,5 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 # This example shows how to sync data from the Fleetio API using the Fivetran Connector SDK.
-# This example was built by the Fleetio team, who approved adding it to this repository.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
@@ -175,7 +174,7 @@ def make_api_request(base_url, path, headers, params=None):
         return response.json()
 
     except requests.RequestException as e:
-        log.severe(f"API call failed: {str(e)}")
+        log.severe("API call failed", e)
         return None
 
 
