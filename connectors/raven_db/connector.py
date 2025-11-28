@@ -27,6 +27,8 @@ from typing import Optional, List, Dict, Any, Tuple
 import base64
 import tempfile
 import os
+
+# For exponential backoff delays during retry logic
 import time
 
 __DEFAULT_BATCH_SIZE = 100
@@ -37,24 +39,47 @@ __EARLIEST_TIMESTAMP = "1990-01-01T00:00:00.0000000Z"
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This function validates both the presence and format of configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
         ValueError: if any required configuration parameter is missing or invalid.
     """
 
-    # Validate required configuration parameters
+    # Validate required configuration parameters are present
     required_configs = ["ravendb_urls", "database_name", "certificate_base64"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+        if not configuration[key] or not str(configuration[key]).strip():
+            raise ValueError(f"Configuration value for {key} cannot be empty")
 
     # Validate that ravendb_urls contains at least one valid URL
     ravendb_urls = configuration.get("ravendb_urls", "")
     urls = [u.strip() for u in ravendb_urls.split(",") if u.strip()]
     if not urls:
         raise ValueError("No valid RavenDB URLs provided")
+
+    # Validate URL format (should start with http:// or https://)
+    for url in urls:
+        if not url.startswith(("http://", "https://")):
+            raise ValueError(
+                f"Invalid URL format: {url}. URLs must start with http:// or https://"
+            )
+
+    # Validate database_name is not empty and contains valid characters
+    database_name = configuration.get("database_name", "").strip()
+    if not database_name:
+        raise ValueError("database_name cannot be empty")
+
+    # Validate certificate_base64 is valid base64-encoded string
+    certificate_base64 = configuration.get("certificate_base64", "")
+    try:
+        decoded = base64.b64decode(certificate_base64, validate=True)
+        if not decoded:
+            raise ValueError("certificate_base64 decodes to empty content")
+    except Exception as e:
+        raise ValueError(f"certificate_base64 must be a valid base64-encoded string: {e}")
 
 
 def flatten_dict(data: dict, prefix: str = "", separator: str = "_") -> dict:
@@ -256,7 +281,7 @@ def fetch_documents_batch(
     """
     retry_count = 0
 
-    while retry_count <= max_retries:
+    while retry_count < max_retries:
         try:
             with store.open_session() as session:
                 # Build RQL query using helper function
@@ -296,7 +321,7 @@ def fetch_documents_batch(
 
         except (ConnectionError, TimeoutError, RavenException) as e:
             retry_count += 1
-            if retry_count > max_retries:
+            if retry_count >= max_retries:
                 log.severe(
                     f"Failed to fetch batch from collection {collection_name} at skip {skip} "
                     f"after {max_retries} retries: {e}"
@@ -307,6 +332,7 @@ def fetch_documents_batch(
                 )
 
             # Exponential backoff: 1s, 2s, 4s, etc.
+            # Using retry_count (which starts at 1 after first failure) to calculate backoff
             backoff_seconds = 2 ** (retry_count - 1)
             log.warning(
                 f"Transient error fetching batch from collection {collection_name} at skip {skip}: {e}. "
@@ -342,10 +368,9 @@ def process_document_batch(documents, collection_name):
         # Flatten nested document structure
         flattened_doc = flatten_dict(document)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table=collection_name.lower(), data=flattened_doc)
         processed_count += 1
 
@@ -471,13 +496,12 @@ def sync_collection_data(store, collection_name, batch_size, initial_last_modifi
 
 def update(configuration: dict, state: dict):
     """
-     Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
-        state: A dictionary containing state information from previous runs
-        The state dictionary is empty for the first sync or for any full re-sync
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
 
     log.warning("Example: Source Examples - RavenDB")

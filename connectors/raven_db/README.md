@@ -34,19 +34,15 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ```json
 {
   "ravendb_urls": "<YOUR_RAVENDB_CLOUD_URL>",
-  "database_name": "<YOUR_RAVENDB_DATABASE_NAME>",
-  "collection_name": "<YOUR_RAVENDB_COLLECTION_NAME>",
-  "batch_size": "<YOUR_BATCH_SIZE>",
-  "certificate_base64": "<YOUR_RAVENDB_BASE64_ENCODED_CERTIFICATE>"
+  "database_name": "<YOUR_DATABASE_NAME>",
+  "certificate_base64": "<YOUR_BASE64_ENCODED_CERTIFICATE>"
 }
 ```
 
 ### Configuration parameters
-- `ravendb_urls` (required): Your RavenDB Cloud URL(s). For clusters, provide comma-separated URLs
+- `ravendb_urls` (required): Your RavenDB Cloud URLs. For clusters, provide comma-separated URLs
 - `database_name` (required): Name of the RavenDB database to sync from
 - `certificate_base64` (required): Base64-encoded client certificate (PEM format)
-- `collection_name` (optional): Collection name to sync (defaults to "Orders")
-- `batch_size` (optional): Number of documents to fetch per batch (defaults to 100)
 
 Important: The certificate must be provided as a base64-encoded PEM certificate string
 
@@ -106,12 +102,12 @@ The connector processes data with the following approach:
 ## Error handling
 
 The connector implements the following error-handling strategies:
-- Validates configuration parameters before attempting connection
-- Provides detailed error messages for connection and certificate failures
+- Validates configuration parameters before attempting connection (refer to `validate_configuration()` function)
+- Provides detailed error messages for connection and certificate failures (refer to `create_document_store()` function)
+- Implements retry logic with exponential backoff for transient failures (ConnectionError, TimeoutError, RavenException) in `fetch_documents_batch()` function
 - Wraps data fetching operations in try/except blocks with informative error messages
-- Gracefully handles pagination issues that may occur with large datasets
 - Implements regular checkpointing to minimize data loss in case of failures
-- Proper resource cleanup with DocumentStore closure in the finally block
+- Proper resource cleanup with DocumentStore closure and temporary certificate file removal in the finally block
 
 ## Tables created
 
