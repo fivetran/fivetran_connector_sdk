@@ -27,12 +27,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Incremental synchronization - Automatically detects and uses `updated_at` property on vertices and edges for efficient incremental syncs. Falls back to full sync if the property is not present.
-- Pagination support - Handles large graph datasets efficiently using Gremlin `range()` step with configurable batch size (default 1000 records per batch).
-- Schema discovery - Automatically discovers vertex labels, edge labels, and property keys from JanusGraph management API.
-- Multi-valued property handling - Creates separate property tables for vertices and edges with multi-valued properties, maintaining property order with indexes.
-- Relationship preservation - Captures graph structure by storing `in_vertex_id` and `out_vertex_id` in the edges table for relationship analytics.
-- Retry logic - Implements an exponential backoff retry mechanism for transient Gremlin server failures.
+- Incremental synchronization: Automatically detects and uses `updated_at` property on vertices and edges for efficient incremental syncs. Falls back to full sync if the property is not present.
+- Pagination support: Handles large graph datasets efficiently using Gremlin `range()` step with configurable batch size (default 1000 records per batch).
+- Schema discovery: Automatically discovers vertex labels, edge labels, and property keys from JanusGraph management API.
+- Multi-valued property handling: Creates separate property tables for vertices and edges with multi-valued properties, maintaining property order with indexes.
+- Relationship preservation: Captures graph structure by storing `in_vertex_id` and `out_vertex_id` in the edges table for relationship analytics.
+- Retry logic: Implements an exponential backoff retry mechanism for transient Gremlin server failures.
 - Checkpoint management - Automatically checkpoints the state after each batch to enable resume capability on interruptions.
 
 ## Configuration file
