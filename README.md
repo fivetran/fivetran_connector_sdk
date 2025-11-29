@@ -44,6 +44,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 These connectors are ready to use out of the box, requiring minimal modifications to get started.
 
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
+- [admob](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/admob) - This example shows how to sync advertising data from Google AdMob API including publisher accounts, network reports.The connector supports incremental synchronization using date-based cursors and handles OAuth2 authentication with automatic token refresh.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
 - [aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/aws_athena/using_boto3) - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
