@@ -97,15 +97,19 @@ def update(configuration: dict, state: dict):
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+# Allow running this script directly for local debugging.
+# This example loads configuration.json from the project directory so it
+# works in most IDEs and command-line environments without additional setup.
+#
+# For advanced use cases that require a custom configuration file path
+# (for example, when debugging with IDE script arguments), see the
+# "Configuration in different environments" section of the Connector SDK documentation.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
+    # Load configuration from configuration.json when running locally
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+
+    # Run the connector in debug mode with the provided configuration
     connector.debug(configuration=configuration)
 
 # Resulting table:
