@@ -231,6 +231,8 @@ def update(configuration: dict, state: dict):
             break
 
         page += 1
+
+
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
