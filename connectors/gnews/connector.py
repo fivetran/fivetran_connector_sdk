@@ -143,6 +143,28 @@ def normalize_articles(page_json: Dict[str, Any], query: str) -> List[Dict[str, 
     return rows
 
 
+def upsert_news_stories(rows: List[Dict[str, Any]]) -> int:
+    """
+    Upserts normalized news stories into the destination table.
+    Returns:
+        The number of records upserted.
+    """
+    upserts_count = 0
+    for record in rows:
+        try:
+            # The 'upsert' operation is used to insert or update data
+            # in the destination table. The first argument is the
+            # name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="news_stories", data=record)
+            upserts_count += 1
+        except Exception as e:
+            log.severe(f"Failed to upsert record: {record}\nError: {e}")
+            continue
+
+    return upserts_count
+
+
 def fetch_news_page(
     query: str,
     from_date: str,
@@ -221,21 +243,8 @@ def fetch_news_page(
             # Extract and normalize article data.
             total_results = int(data.get("totalArticles", 0))
             rows = normalize_articles(data, query)
-
-            # Upsert normalized rows to destination.
-            upserts_count = 0
-            for rec in rows:
-                try:
-                    # The 'upsert' operation is used to insert or update data
-                    # in the destination table. The first argument is the
-                    # name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table="news_stories", data=rec)
-                    upserts_count += 1
-                except Exception as e:
-                    log.severe(f"Failed to upsert record: {rec}\nError: {e}")
-                    continue
-
+            upserts_count = upsert_news_stories(rows)
+          
             log.info(f"Upserted {upserts_count} " f"from page {page}")
             return upserts_count, total_results
 
@@ -335,7 +344,7 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
-    log.warning("Example: API : GNews Search")
+    log.warning("Example: Connectors - GNews Search")
     validate_configuration(configuration)
 
     api_key = configuration["api_key"]
@@ -358,17 +367,9 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
 
-    try:
-        with open("configuration.json", "r") as f:
-            configuration = json.load(f)
-
-        if not configuration.get("api_key"):
-            log.warning("Please update configuration.json with a valid api_key")
-
-        connector.debug(configuration=configuration)
-
-    except FileNotFoundError:
-        log.severe("configuration.json not found. Please create it for local testing.")
-    except Exception as e:
-        log.severe(f"Unexpected error during debug execution: {e}")
+    # Test the connector locally
+    connector.debug(configuration=configuration)
