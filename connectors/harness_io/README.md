@@ -90,9 +90,6 @@ The schema for this table is as follows:
       "primary_key": ["identifier"],
       "columns": {
         "identifier": "STRING",
-        "orgIdentifier": "STRING",
-        "name": "STRING",
-        "description": "STRING",
         "isFavorite": "BOOLEAN",
         "modules": "JSON",
         "tags": "JSON"
@@ -121,11 +118,7 @@ The schema for this table is as follows:
       "primary_key": ["uuid"],
       "columns": {
         "uuid": "STRING",
-        "name": "STRING",
-        "accountId": "STRING",
-        "scope": "JSON",
-        "type": "STRING",
-        "budgetAmount": "DOUBLE"
+        "scope": "JSON"
       }
     }
     ```
@@ -136,10 +129,7 @@ The schema for this table is as follows:
     {
       "table": "mean_time_to_resolution",
       "columns": {
-        "mean_time": "DOUBLE",
-        "unit": "STRING",
-        "band": "STRING",
-        "total_incidents": "INT"
+        "unit": "STRING"
       }
     }
     ```

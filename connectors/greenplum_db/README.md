@@ -68,6 +68,20 @@ The connector includes error handling for database connection issues. In the `Gr
 
 The connector also performs validation of required configuration parameters in the `schema()` function to ensure all necessary credentials are provided before attempting to connect to the database.
 
+## Tables created
+The connector creates the following table in the destination:
+
+```json
+{
+    "table": "sample_table",
+    "primary_key": ["datid"],
+    "columns": {
+        "datid": "INT",
+        "query_start": "UTC_DATETIME"
+    }
+}
+```
+
 ## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

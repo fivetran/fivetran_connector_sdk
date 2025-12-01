@@ -31,14 +31,14 @@ def schema(configuration: dict):
 
     return [
         {
-            "table": "users",  # Name of the table
+            "table": "user",  # Name of the table
             "primary_key": ["username"],  # Primary key(s) of the table
             "columns": {
                 "username": "STRING",
             },
         },  # Columns not defined in schema will be inferred
         {
-            "table": "tweet_hashtags",
+            "table": "tweet_hashtag",
             "primary_key": ["tweet_id"],
             "columns": {"tweet_id": "STRING"},
         },
@@ -125,7 +125,7 @@ def process_users(session, state):
     for record in results:
         # You can preprocess and modify the record to suit your needs.
         # An upsert operation to insert/update the record in the "users" table.
-        op.upsert(table="users", data=record)
+        op.upsert(table="user", data=record)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -178,7 +178,7 @@ def process_tweet_hashtags(session, state, batch_size=100):
         for record in results:
             record = record.data()
             # An upsert operation
-            op.upsert(table="tweet_hashtags", data=record)
+            op.upsert(table="tweet_hashtag", data=record)
 
         # skip the processed records
         skip += batch_size
