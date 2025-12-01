@@ -244,7 +244,6 @@ def fetch_news_page(
             total_results = int(data.get("totalArticles", 0))
             rows = normalize_articles(data, query)
             upserts_count = upsert_news_stories(rows)
-          
             log.info(f"Upserted {upserts_count} " f"from page {page}")
             return upserts_count, total_results
 
@@ -373,3 +372,4 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
+
