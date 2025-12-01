@@ -38,6 +38,7 @@ __DEFAULT_PAGE_SIZE = 40
 __MAX_RETRIES = 3
 __BASE_DELAY_SECONDS = 1
 __ERROR_LOG_MAX_LENGTH = 500
+__REQUEST_TIMEOUT_SECONDS = 30
 
 
 def get_base_url(configuration: dict) -> str:
@@ -235,7 +236,9 @@ def fetch_shipments_page(
 
     for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS
+            )
             response.raise_for_status()
 
             json_response = response.json()
