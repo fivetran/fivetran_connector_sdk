@@ -99,16 +99,18 @@ The connector implements offset-based pagination to handle large order datasets 
 - Memory efficiency: Processes one page at a time, preventing memory overflow with large datasets
 
 ## Data handling
-The connector transforms nested Hybris API responses into a flattened relational structure suitable for data warehousing:
+The connector transforms nested Hybris API responses into a flattened relational structure suitable for data warehousing. See sections below for further details.
 
-### Data transformation (see the `flatten_dict()` function)
+### Data transformation
 - Nested dictionaries: Recursively flattened with underscore-separated keys
   - Example: `{"user": {"name": "John"}}` becomes `{"user_name": "John"}`
 - Lists/arrays: JSON-serialized as strings for storage
 - Null/empty values: Replaced with `'N/A'` placeholder for consistency
 - Date filters: URL-encoded for API compatibility (see `build_date_filters()`)
 
-### Data processing flow (see the `process_single_order()` and related functions)
+See the `flatten_dict()` function for further details.
+
+### Data processing flow
 1. Extract order number as primary key
 2. Flatten main order object into `orders_raw` table
 3. Process related entities in separate functions:
@@ -118,11 +120,15 @@ The connector transforms nested Hybris API responses into a flattened relational
 4. Generate composite keys for child records (e.g., `orderKey_transactionId`)
 5. Upsert records to destination tables
 
-### State management (see the `update()` function)
+See the `process_single_order()` and related functions for further details.
+
+### State management 
 - Cursor format: Timestamp string `"YYYY-MM-DD HH:MM:SS"`
 - Default lookback: 30 days from current date if no state exists
 - State update: Updated to current sync time after each page
 - Checkpoint frequency: After processing each page of orders
+
+See the `update()` function for further details.
 
 ## Error handling
 The connector implements multi-level error handling for robustness (see the `update()` function):
