@@ -234,6 +234,7 @@ def update(configuration: dict, state: dict):
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
+
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
