@@ -30,8 +30,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 {
   "api_key": "<YOUR_SAM_GOV_API_KEY>",
   "posted_from": "<MM/DD/YYYY_START_DATE>",
-  "posted_to": "<MM/DD/YYYY_END_DATE_WITHIN_ONE_YEAR>",
-  "sync_mode": "initial"
+  "posted_to": "<MM/DD/YYYY_END_DATE_WITHIN_ONE_YEAR>"
 }
 ```
 
@@ -39,7 +38,6 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 - `api_key`: Your SAM.gov public API key (required)
 - `posted_from`: Start date for initial sync in MM/dd/yyyy format (required for first sync)
 - `posted_to`: End date for initial sync in MM/dd/yyyy format (required for first sync)
-- `sync_mode`: Sync mode - "initial" for historical backfill or "incremental" for ongoing sync (optional, defaults to "initial")
 
 ### Important date range limitation
 - The date range between `posted_from` and `posted_to` must be less than 1 year (maximum 364 days)
