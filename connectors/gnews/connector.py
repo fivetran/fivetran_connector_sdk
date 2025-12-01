@@ -372,4 +372,3 @@ if __name__ == "__main__":
 
     # Test the connector locally
     connector.debug(configuration=configuration)
-
