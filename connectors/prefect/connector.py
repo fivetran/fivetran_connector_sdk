@@ -13,6 +13,7 @@ for details.
 
 # For reading configuration from a JSON file
 import json
+from typing import Any
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -158,9 +159,7 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
                 handle_retryable_error(attempt, error_msg)
                 continue
 
-            log.severe(
-                f"API request failed with status {response.status_code}: {response.text}"
-            )
+            log.severe(f"API request failed with status {response.status_code}: {response.text}")
             raise RuntimeError(f"API request failed: {response.status_code} - {response.text}")
 
         except requests.exceptions.Timeout:
@@ -177,12 +176,12 @@ def make_api_request(url: str, headers: dict, payload: dict) -> dict:
 
 
 def filter_records(
-    response_data: list, cursor_field: str, cursor_value: str, endpoint: str
-) -> list:
+    response_data: dict, cursor_field: str, cursor_value: str, endpoint: str
+) -> list[Any] | dict:
     """
     Filter records based on cursor value for incremental sync.
     Args:
-        response_data: List of records from API response.
+        response_data: Dictionary or list of records from API response.
         cursor_field: Field name to use for filtering.
         cursor_value: Cursor value from last sync.
         endpoint: API endpoint path for logging.
@@ -346,16 +345,13 @@ def sync_resource(base_url: str, headers: dict, state: dict, table_name: str):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be
-# run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this
-# method is not called by Fivetran when executing your connector in
-# production.
-# Please test using the Fivetran debug command prior to finalizing
-# and deploying your connector.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
+
     # Test the connector locally
     connector.debug(configuration=configuration)
