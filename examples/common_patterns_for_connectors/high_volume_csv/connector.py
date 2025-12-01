@@ -42,6 +42,8 @@ import pandas as pd
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __INITIAL_RETRY_DELAY = 1  # Initial delay in seconds for retries
 __MAX_RETRY_DELAY = 16  # Maximum delay in seconds between retries
+__PYARROW_STRING_DATA_TYPE = "string[pyarrow]"
+__DASK_BLOCK_SIZE = "128MB"
 
 
 def validate_configuration(configuration: dict):
@@ -194,7 +196,7 @@ def _upsert_with_dask(csv_path: str, table_name: str, state):
     """
     dataframe = dd.read_csv(
         csv_path,
-        blocksize="128MB",  # This can be altered based on your data. Adjust for optimal partition size.
+        blocksize=__DASK_BLOCK_SIZE,  # This can be altered based on your data. Adjust for optimal partition size.
         dtype={  # It is suggested to define the columns and datatypes to avoid dtype inference overhead. This makes the read faster.
             "hasid": "object",
             "name": "object",
@@ -286,16 +288,12 @@ def _upsert_with_pandas_pyarrow(csv_path: str, table_name: str, state):
         engine="pyarrow",  # Using pyarrow engine for better performance on large CSVs
         usecols=["hasid", "name", "city", "created_at"],  # Read only necessary columns
         dtype={  # It is suggested to define the columns and datatypes to avoid dtype inference overhead. This makes the read faster.
-            "hasid": "string[pyarrow]",
-            "name": "string[pyarrow]",
-            "city": "string[pyarrow]",
-            "created_at": "string[pyarrow]",
+            "hasid": __PYARROW_STRING_DATA_TYPE,
+            "name": __PYARROW_STRING_DATA_TYPE,
+            "city": __PYARROW_STRING_DATA_TYPE,
+            "created_at": __PYARROW_STRING_DATA_TYPE,
         },
     )
-
-    dataframe = dataframe.astype(
-        "string"
-    )  # Keep simple dtypes for fast iteration. Complex dtypes slow down iteration.
 
     # Upsert each row in the DataFrame. Using itertuples for efficient row iteration.
     for row in dataframe.itertuples(index=False):
