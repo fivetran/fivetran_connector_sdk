@@ -76,7 +76,7 @@ Recommendations
 - Consider retries and rate-limit handling if the AwardCo API enforces limits.
 
 ## Tables created
-- `user` — Primary key: `employeeId`.
+- `USER` — Primary key: `employeeId`.
 
 Example fields: `employeeId`, `firstName`, `lastName`, `email`, `balance`, `currencyCode`, `updated_at`, `created_at`.
 
