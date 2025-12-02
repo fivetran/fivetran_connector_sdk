@@ -67,7 +67,7 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
             # Calculate backoff time: 2^attempt, but cap at max interval
             backoff = min(2**attempt, __MAX_RETRY_INTERVAL)
             log.warning(
-                f"Request failed: {str(e)}. Retrying in {backoff} seconds... (Attempt {attempt} of {MAX_ATTEMPTS})"
+                f"Request failed: {str(e)}. Retrying in {backoff} seconds... (Attempt {attempt} of {__MAX_ATTEMPTS})"
             )
             time.sleep(backoff)
 
