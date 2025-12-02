@@ -25,8 +25,8 @@ import time
 __PAGE_SIZE = 100
 # Maximum number of total attempts for a request (including the first attempt).
 # Set to 3 by default which means up to 3 attempts will be made.
-MAX_ATTEMPTS = 3
-MAX_RETRY_INTERVAL = 60  # seconds
+__MAX_ATTEMPTS = 3
+__MAX_RETRY_INTERVAL = 60  # seconds
 
 
 def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.Response:
