@@ -28,7 +28,7 @@ Configuration keys uploaded to Fivetran come from `configuration.json` (string v
 {
   "api_key": "<YOUR_AWARDCO_API_KEY>",
   "base_url": "<YOUR_AWARDCO_BASE_URL>",
-  "updated_since_param": "updated_since"
+  "updated_since_param": "<OPTIONAL_QUERY_PARAM_NAME_DEFAULT_UPDATED_SINCE>"
 }
 ```
 
