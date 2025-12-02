@@ -47,7 +47,7 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
     """
     last_exception = None
 
-    for attempt in range(1, MAX_ATTEMPTS + 1):
+    for attempt in range(1, __MAX_ATTEMPTS + 1):
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
