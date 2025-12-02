@@ -60,7 +60,7 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
                     raise
             last_exception = e
             # If this was the last allowed attempt, log and raise
-            if attempt == MAX_ATTEMPTS:
+            if attempt == __MAX_ATTEMPTS:
                 log.severe(f"Max attempts ({MAX_ATTEMPTS}) exceeded. Last error: {str(e)}")
                 raise last_exception
 
