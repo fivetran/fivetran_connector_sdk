@@ -74,7 +74,7 @@ Refer to the flattening functions `flatten_site_record()`, `flatten_deploy_recor
 
 The connector implements comprehensive error handling with retry logic for transient errors. It retries failed requests up to 3 times with exponential backoff starting at 1 second. HTTP status codes 429, 500, 502, 503, and 504 are treated as retryable errors, while 404 responses return empty results and other 4xx errors fail immediately.
 
-Refer to the `fetch_paginated_data()` and `fetch_data()` functions for error handling implementation details. 
+Refer to the `make_api_request_with_retry()` function for error handling implementation details.
 
 ## Tables created
 
