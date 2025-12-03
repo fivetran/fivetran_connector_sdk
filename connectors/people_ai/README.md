@@ -93,7 +93,7 @@ Functions responsible for pagination:
 ## Tables created
 Summary of tables replicated.
 
-### activity
+### `ACTIVITY`
 - Primary key: `uid`  
 - Selected columns (not exhaustive):  
   `uid`, `sub_type`, `created_at`, `activity_type`, `updated_at`
