@@ -42,7 +42,7 @@ The `configuration.json` file provides API credentials required for authenticati
 - `api_key`: Your People.ai API key (client ID).  
 - `api_secret`: Your People.ai API secret (client secret).
 
-### Notes
+Note: Ensure that `configuration.json` is not committed to version control. Both configuration values are required; the connector will raise an error if either is missing.
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
 
