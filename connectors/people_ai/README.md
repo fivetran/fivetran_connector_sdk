@@ -91,7 +91,7 @@ Functions responsible for pagination:
 - Logging: Uses `fivetran_connector_sdk.Logging` for all status, error, and retry messages.
 
 ## Tables created
-Summary of tables replicated.
+This connector creates two tables, `ACTIVITY` and `PARTICIPANTS`.
 
 ### `ACTIVITY`
 - Primary key: `uid`  
