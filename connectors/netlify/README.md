@@ -66,7 +66,12 @@ The connector implements pagination for endpoints that return large datasets. Re
 
 ## Data handling
 
-The connector processes data from four main Netlify API endpoints and transforms the nested JSON responses into flattened table structures suitable for data warehousing. Single-level nested objects are flattened into the parent table, while complex nested structures like form fields and submission data are stored as JSON strings. 
+The connector processes data from four main Netlify API endpoints and transforms the nested JSON responses into flattened table structures suitable for data warehousing. Single-level nested objects are flattened into the parent table, while complex nested structures like form fields and submission data are stored as JSON strings.
+
+The processing logic is organized into focused helper functions to maintain code clarity:
+- `process_site_child_records()` - Orchestrates pagination through sites and their child records
+- `process_child_records_for_site()` - Handles both paginated and non-paginated child record endpoints
+- `process_child_records_batch()` - Processes individual batches of records with checkpointing
 
 Refer to the flattening functions `flatten_site_record()`, `flatten_deploy_record()`, `flatten_form_record()`, and `flatten_submission_record()` for more details.
 
@@ -74,7 +79,11 @@ Refer to the flattening functions `flatten_site_record()`, `flatten_deploy_recor
 
 The connector implements comprehensive error handling with retry logic for transient errors. It retries failed requests up to 3 times with exponential backoff starting at 1 second. HTTP status codes 429, 500, 502, 503, and 504 are treated as retryable errors, while 404 responses return empty results and other 4xx errors fail immediately.
 
-Refer to the `make_api_request_with_retry()` function for error handling implementation details.
+The error handling logic is organized into focused helper functions:
+- `make_api_request_with_retry()` - Main entry point for API requests with retry logic
+- `handle_api_response()` - Processes HTTP responses and determines the appropriate action
+- `handle_retryable_error()` - Implements exponential backoff for transient failures
+- `handle_request_exception()` - Manages network-level exceptions with retry logic
 
 ## Tables created
 

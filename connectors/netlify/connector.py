@@ -275,52 +275,19 @@ def process_site_child_records(
             site_id = site.get("id")
             endpoint = endpoint_template.format(site_id=site_id)
 
-            # Fetch child records based on pagination mode
-            if child_records_paginated:
-                # Child records are paginated - fetch page by page
-                page = 1
-                while True:
-                    records = fetch_paginated_data(
-                        endpoint=endpoint,
-                        api_token=api_token,
-                        page=page,
-                        per_page=__PAGINATION_LIMIT,
-                    )
-
-                    if not records:
-                        break
-
-                    record_count, last_timestamp = process_child_records_batch(
-                        records=records,
-                        initial_last_timestamp=initial_last_timestamp,
-                        last_timestamp=last_timestamp,
-                        record_count=record_count,
-                        flatten_function=flatten_function,
-                        timestamp_field=timestamp_field,
-                        table_name=table_name,
-                        state_key=state_key,
-                        state=state,
-                    )
-
-                    page += 1
-            else:
-                # Child records are not paginated - fetch all at once
-                records = fetch_data(endpoint=endpoint, api_token=api_token)
-
-                if not records:
-                    continue
-
-                record_count, last_timestamp = process_child_records_batch(
-                    records=records,
-                    initial_last_timestamp=initial_last_timestamp,
-                    last_timestamp=last_timestamp,
-                    record_count=record_count,
-                    flatten_function=flatten_function,
-                    timestamp_field=timestamp_field,
-                    table_name=table_name,
-                    state_key=state_key,
-                    state=state,
-                )
+            record_count, last_timestamp = process_child_records_for_site(
+                endpoint=endpoint,
+                api_token=api_token,
+                child_records_paginated=child_records_paginated,
+                initial_last_timestamp=initial_last_timestamp,
+                last_timestamp=last_timestamp,
+                record_count=record_count,
+                flatten_function=flatten_function,
+                timestamp_field=timestamp_field,
+                table_name=table_name,
+                state_key=state_key,
+                state=state,
+            )
 
         sites_page += 1
 
@@ -334,6 +301,83 @@ def process_site_child_records(
     op.checkpoint(state)
 
     return record_count
+
+
+def process_child_records_for_site(
+    endpoint: str,
+    api_token: str,
+    child_records_paginated: bool,
+    initial_last_timestamp: Optional[str],
+    last_timestamp: Optional[str],
+    record_count: int,
+    flatten_function,
+    timestamp_field: str,
+    table_name: str,
+    state_key: str,
+    state: dict,
+):
+    """
+    Process child records for a single site, handling both paginated and non-paginated endpoints.
+    Args:
+        endpoint: The API endpoint to fetch child records from.
+        api_token: The API token for authentication.
+        child_records_paginated: If True, child records are paginated; if False, fetched in single request.
+        initial_last_timestamp: The initial last synced timestamp from state.
+        last_timestamp: The current last timestamp being tracked.
+        record_count: The current count of processed records.
+        flatten_function: Function to flatten API records.
+        timestamp_field: The field name containing the record timestamp.
+        table_name: The destination table name.
+        state_key: The state dictionary key for tracking sync progress.
+        state: The state dictionary.
+    Returns:
+        Tuple of (updated_record_count, updated_last_timestamp).
+    """
+    if child_records_paginated:
+        # Process paginated child records
+        page = 1
+        while True:
+            records = fetch_paginated_data(
+                endpoint=endpoint,
+                api_token=api_token,
+                page=page,
+                per_page=__PAGINATION_LIMIT,
+            )
+
+            if not records:
+                break
+
+            record_count, last_timestamp = process_child_records_batch(
+                records=records,
+                initial_last_timestamp=initial_last_timestamp,
+                last_timestamp=last_timestamp,
+                record_count=record_count,
+                flatten_function=flatten_function,
+                timestamp_field=timestamp_field,
+                table_name=table_name,
+                state_key=state_key,
+                state=state,
+            )
+
+            page += 1
+    else:
+        # Process non-paginated child records
+        records = fetch_data(endpoint=endpoint, api_token=api_token)
+
+        if records:
+            record_count, last_timestamp = process_child_records_batch(
+                records=records,
+                initial_last_timestamp=initial_last_timestamp,
+                last_timestamp=last_timestamp,
+                record_count=record_count,
+                flatten_function=flatten_function,
+                timestamp_field=timestamp_field,
+                table_name=table_name,
+                state_key=state_key,
+                state=state,
+            )
+
+    return record_count, last_timestamp
 
 
 def process_child_records_batch(
@@ -475,49 +519,83 @@ def make_api_request_with_retry(url: str, api_token: str):
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code in [429, 500, 502, 503, 504]:
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY_SECONDS * (2**attempt)
-                    log.warning(
-                        f"Request failed with status {response.status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {response.status_code} - {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"API returned {response.status_code} after {__MAX_RETRIES} attempts: {response.text}"
-                    )
-            elif response.status_code == 404:
-                return []
-            else:
-                log.severe(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
-                raise RuntimeError(
-                    f"API request failed with status {response.status_code}: {response.text}"
-                )
+            return handle_api_response(response, attempt)
 
         except requests.exceptions.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY_SECONDS * (2**attempt)
-                log.warning(
-                    f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(
-                    f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(e)}"
-                )
+            handle_request_exception(e, attempt)
 
     return []
+
+
+def handle_api_response(response, attempt: int):
+    """
+    Handle the API response and determine next action based on status code.
+    Args:
+        response: The HTTP response object from the API request.
+        attempt: The current retry attempt number (0-indexed).
+    Returns:
+        A list of records from the API response, or an empty list if resource not found.
+    Raises:
+        RuntimeError: If the request fails permanently or after all retries.
+    """
+    if response.status_code == 200:
+        return response.json()
+
+    if response.status_code == 404:
+        return []
+
+    if response.status_code in [429, 500, 502, 503, 504]:
+        return handle_retryable_error(response.status_code, response.text, attempt)
+
+    log.severe(f"API request failed with status {response.status_code}: {response.text}")
+    raise RuntimeError(f"API request failed with status {response.status_code}: {response.text}")
+
+
+def handle_retryable_error(status_code: int, response_text: str, attempt: int):
+    """
+    Handle retryable errors with exponential backoff.
+    Args:
+        status_code: The HTTP status code from the failed request.
+        response_text: The response text from the failed request.
+        attempt: The current retry attempt number (0-indexed).
+    Raises:
+        RuntimeError: If this was the last retry attempt.
+    """
+    if attempt >= __MAX_RETRIES - 1:
+        log.severe(
+            f"Failed to fetch data after {__MAX_RETRIES} attempts. Last status: {status_code} - {response_text}"
+        )
+        raise RuntimeError(
+            f"API returned {status_code} after {__MAX_RETRIES} attempts: {response_text}"
+        )
+
+    delay = __BASE_DELAY_SECONDS * (2**attempt)
+    log.warning(
+        f"Request failed with status {status_code}, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+    )
+    time.sleep(delay)
+
+
+def handle_request_exception(exception: requests.exceptions.RequestException, attempt: int):
+    """
+    Handle request exceptions with retry logic.
+    Args:
+        exception: The exception that occurred during the request.
+        attempt: The current retry attempt number (0-indexed).
+    Raises:
+        RuntimeError: If this was the last retry attempt.
+    """
+    if attempt >= __MAX_RETRIES - 1:
+        log.severe(f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(exception)}")
+        raise RuntimeError(
+            f"Failed to fetch data after {__MAX_RETRIES} attempts: {str(exception)}"
+        )
+
+    delay = __BASE_DELAY_SECONDS * (2**attempt)
+    log.warning(
+        f"Request exception occurred, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES}): {str(exception)}"
+    )
+    time.sleep(delay)
 
 
 def fetch_paginated_data(endpoint: str, api_token: str, page: int, per_page: int):
