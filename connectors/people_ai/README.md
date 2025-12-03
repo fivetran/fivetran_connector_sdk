@@ -98,7 +98,7 @@ Summary of tables replicated.
 - Selected columns (not exhaustive):  
   `uid`, `sub_type`, `created_at`, `activity_type`, `updated_at`
 
-### participants
+### `PARTICIPANTS`
 - Primary key: `uid`, `email`  
 - Selected columns (not exhaustive):  
   `uid`, `email`, `status`, `name`, `ingested_at`, `phone_number`
