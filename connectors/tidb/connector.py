@@ -354,8 +354,11 @@ def execute_query_with_retry(cursor, query, params=None):
         except Exception as e:
             if attempt == __MAX_RETRIES - 1:
                 raise
-            sleep_time = min(60, 2 ** attempt)
-            log.warning(f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: %s", str(e))
+            sleep_time = min(60, 2**attempt)
+            log.warning(
+                f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: %s",
+                str(e),
+            )
             time.sleep(sleep_time)
 
     # Handle different result types
@@ -668,9 +671,7 @@ def sync_vector_tables(
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
             except Exception:
-                log.severe(
-                    f"Failed to checkpoint state after vector-table error for {table_name}"
-                )
+                log.severe(f"Failed to checkpoint state after vector-table error for {table_name}")
 
 
 def close_connection(connection: TiDBClient):
