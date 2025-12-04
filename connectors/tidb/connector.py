@@ -349,7 +349,8 @@ def execute_query_with_retry(cursor, query, params=None):
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            return query_result(cursor, query, params)
+            query_result = cursor.query(query, params)
+            return query_result
         except Exception as e:
             if attempt == __MAX_RETRIES - 1:
                 raise
