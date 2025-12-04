@@ -55,16 +55,12 @@ Configuration parameters:
 Example:
 ```json
 {
-  "TIDB_HOST":"gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
-  "TIDB_USER":"dihtiwj3.root",
-  "TIDB_PASS":"password",
-  "TIDB_PORT":"4000",
-  "TIDB_DATABASE":"test",
-  "TABLES_PRIMARY_KEY_COLUMNS": {
-    "customers": "customer_id",
-    "products": "product_id",
-    "transactions": "transaction_id"
-  },
+  "TIDB_HOST": "gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
+  "TIDB_USER": "dihtiwj3.root",
+  "TIDB_PASS": "password",
+  "TIDB_PORT": "4000",
+  "TIDB_DATABASE": "test",
+  "TABLES_PRIMARY_KEY_COLUMNS": "{\"customers\": \"customer_id\", \"products\": \"product_id\", \"transactions\": \"transaction_id\"}",
   "VECTOR_TABLES_DATA": {
     "product_embeddings": {
       "primary_key_column": "product_id",
