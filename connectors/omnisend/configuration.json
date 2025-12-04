@@ -1,0 +1,13 @@
+{
+  "api_key": "<YOUR_OMNISEND_API_KEY>",
+  "sync_frequency_hours": "<YOUR_OMNISEND_API_SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<YOUR_OMNISEND_API_INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<YOUR_OMNISEND_API_MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<YOUR_OMNISEND_API_REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<YOUR_OMNISEND_API_RETRY_ATTEMPTS>",
+  "enable_incremental_sync": "<YOUR_OMNISEND_API_ENABLE_INCREMENTAL_SYNC>",
+  "enable_debug_logging": "<YOUR_OMNISEND_API_ENABLE_DEBUG_LOGGING>",
+  "sync_products": "<YOUR_OMNISEND_API_SYNC_PRODUCTS>",
+  "sync_contacts": "<YOUR_OMNISEND_API_SYNC_CONTACTS>",
+  "sync_campaigns": "<YOUR_OMNISEND_API_SYNC_CAMPAIGNS>"
+}
