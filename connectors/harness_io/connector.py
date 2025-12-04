@@ -54,7 +54,6 @@ def schema(configuration: dict):
             "primary_key": ["identifier"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "identifier": "STRING",  # Contains a dictionary of column names and data types
-                "isFavorite": "BOOLEAN",
                 "modules": "JSON",
                 "tags": "JSON",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred

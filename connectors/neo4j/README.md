@@ -103,7 +103,7 @@ The connector implements comprehensive error handling:
 
 ## Tables created
 
-### USER
+### `USER`
 The schema for the `USER` table is as follows:
 
 ```json
@@ -116,7 +116,7 @@ The schema for the `USER` table is as follows:
 }
 ```
 
-### TWEET_HASHTAG
+### `TWEET_HASHTAG`
 The schema for the `TWEET_HASHTAG` table is as follows:
 
 ```json

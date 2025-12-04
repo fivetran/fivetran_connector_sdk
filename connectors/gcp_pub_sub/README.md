@@ -78,7 +78,7 @@ To obtain a service account key:
 
 4. Create a new service account or select an existing one.
 
-5. Click Add Key > Create New Key and select JSON format.
+5. Click **Add Key > Create New Key** and select JSON format.
 
 6. Copy the entire JSON content and paste it as a string in the `service_key` field of `configuration.json`.
 

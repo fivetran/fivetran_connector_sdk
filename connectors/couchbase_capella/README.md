@@ -85,7 +85,6 @@ The `schema()` function defines the structure of the destination table:
     "primary_key": ["id"],
     "columns": {
         "id": "INT",
-        "icao": "STRING",
     },
 }
 ```

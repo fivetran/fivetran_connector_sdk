@@ -91,7 +91,7 @@ The connector implements error handling for:
 
 ## Tables created
 
-### TEST_TABLE
+### `TEST_TABLE`
 The `TEST_TABLE` table contains dummy data with the following schema:
 
 ```json

@@ -113,7 +113,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
-                "icao": "STRING",
             },
         }
     ]

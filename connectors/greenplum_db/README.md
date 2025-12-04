@@ -69,7 +69,7 @@ The connector includes error handling for database connection issues. In the `Gr
 The connector also performs validation of required configuration parameters in the `schema()` function to ensure all necessary credentials are provided before attempting to connect to the database.
 
 ## Tables created
-The connector creates the following table in the destination:
+The connector creates a single table,  `SAMPLE_TABLE`, in the destination:
 
 ```json
 {

@@ -109,7 +109,7 @@ The connector implements the following error handling strategies:
 
 ## Tables created
 
-### SAMPLE_TABLE
+### `SAMPLE_TABLE`
 The `SAMPLE_TABLE` contains sample data from the Cassandra database. The schema for the table is defined as follows:
 
 ```json

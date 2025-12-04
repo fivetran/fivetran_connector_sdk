@@ -90,7 +90,6 @@ The schema for this table is as follows:
       "primary_key": ["identifier"],
       "columns": {
         "identifier": "STRING",
-        "isFavorite": "BOOLEAN",
         "modules": "JSON",
         "tags": "JSON"
       }
