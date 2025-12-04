@@ -82,7 +82,7 @@ def get_auth_headers(configuration: dict):
     return headers
 
 
-def _should_retry_request(exception: Exception) -> bool:
+def should_retry_request(exception: Exception) -> bool:
     """
     Determine if a request should be retried based on the exception.
     Args:
@@ -106,7 +106,7 @@ def _should_retry_request(exception: Exception) -> bool:
     return False
 
 
-def _calculate_retry_delay(attempt: int) -> float:
+def calculate_retry_delay(attempt: int) -> float:
     """
     Calculate exponential backoff delay for retry attempts.
     Args:
@@ -126,7 +126,7 @@ def make_api_request_with_retry(url: str, headers: Optional[Dict[str, str]] = No
         url (str): URL to request
         headers (Optional[Dict[str, str]]): HTTP headers
     Returns:
-        str: Successful response text content
+        str: file path to the saved CSV content
     Raises:
         requests.exceptions.RequestException: If all retry attempts fail
     """
@@ -134,18 +134,19 @@ def make_api_request_with_retry(url: str, headers: Optional[Dict[str, str]] = No
 
     for attempt in range(__MAX_RETRIES):
         try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
-            return response.text
+            with requests.get(url, headers=headers, stream=True) as response:
+                response.raise_for_status()
+                temp_file_path = save_csv_locally(response)
+                return temp_file_path
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             last_exception = e
 
-            if not _should_retry_request(e):
+            if not should_retry_request(e):
                 raise
 
             if attempt < __MAX_RETRIES - 1:
-                delay = _calculate_retry_delay(attempt)
+                delay = calculate_retry_delay(attempt)
                 log.warning(
                     f"Request failed (attempt {attempt + 1}/{__MAX_RETRIES}): {e}. Retrying in {delay}s..."
                 )
@@ -156,18 +157,20 @@ def make_api_request_with_retry(url: str, headers: Optional[Dict[str, str]] = No
     raise last_exception
 
 
-def save_csv_locally(csv_content: str) -> str:
+def save_csv_locally(response) -> str:
     """
     Save CSV content received from API to a file for further processing.
     Args:
-        csv_content (str): CSV content as a string
+        response : Response object from the API request
     Returns:
         str: Path to the saved CSV file
     """
     with tempfile.NamedTemporaryFile(
         delete=False, suffix=".csv", mode="w", encoding="utf-8"
     ) as temp_file:
-        temp_file.write(csv_content)
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                temp_file.write(chunk)
         temp_file_path = temp_file.name
 
     return temp_file_path
@@ -186,7 +189,7 @@ def delete_file(file_path: str):
         log.warning(f"Error deleting file {file_path}: {e}")
 
 
-def _upsert_with_dask(csv_path: str, table_name: str, state):
+def upsert_with_dask(csv_path: str, table_name: str, state):
     """
     Upsert using Dask, one row at a time, in a scalable way.
     Args:
@@ -198,12 +201,12 @@ def _upsert_with_dask(csv_path: str, table_name: str, state):
         csv_path,
         blocksize=__DASK_BLOCK_SIZE,  # This can be altered based on your data. Adjust for optimal partition size.
         dtype={  # It is suggested to define the columns and datatypes to avoid dtype inference overhead. This makes the read faster.
-            "hasid": "object",
+            "has_id": "object",
             "name": "object",
             "city": "object",
             "created_at": "object",
         },
-        usecols=["hasid", "name", "city", "created_at"],  # Read only necessary columns
+        usecols=["has_id", "name", "city", "created_at"],  # Read only necessary columns
         assume_missing=True,  # This avoids unnecessary type upcasting and dtype churn. You can remove this if your data is clean.
     )
 
@@ -231,7 +234,7 @@ def _upsert_with_dask(csv_path: str, table_name: str, state):
     op.checkpoint(state)
 
 
-def _upsert_with_polars(csv_path: str, table_name: str, state):
+def upsert_with_polars(csv_path: str, table_name: str, state):
     """
     Upsert using Polars, one row at a time, in a scalable way.
     It is recommended to use Polars for high-volume CSV processing due to its performance and low memory usage.
@@ -245,7 +248,7 @@ def _upsert_with_polars(csv_path: str, table_name: str, state):
     csv_reader = pl.read_csv_batched(
         csv_path,
         has_header=True,
-        columns=["hasid", "name", "city", "created_at"],
+        columns=["has_id", "name", "city", "created_at"],
         low_memory=True,
     )
 
@@ -275,7 +278,7 @@ def _upsert_with_polars(csv_path: str, table_name: str, state):
     op.checkpoint(state)
 
 
-def _upsert_with_pandas_pyarrow(csv_path: str, table_name: str, state):
+def upsert_with_pandas_pyarrow(csv_path: str, table_name: str, state):
     """
     Upsert using Pandas with PyArrow engine, one row at a time.
     Args:
@@ -286,9 +289,9 @@ def _upsert_with_pandas_pyarrow(csv_path: str, table_name: str, state):
     dataframe = pd.read_csv(
         csv_path,
         engine="pyarrow",  # Using pyarrow engine for better performance on large CSVs
-        usecols=["hasid", "name", "city", "created_at"],  # Read only necessary columns
+        usecols=["has_id", "name", "city", "created_at"],  # Read only necessary columns
         dtype={  # It is suggested to define the columns and datatypes to avoid dtype inference overhead. This makes the read faster.
-            "hasid": __PYARROW_STRING_DATA_TYPE,
+            "has_id": __PYARROW_STRING_DATA_TYPE,
             "name": __PYARROW_STRING_DATA_TYPE,
             "city": __PYARROW_STRING_DATA_TYPE,
             "created_at": __PYARROW_STRING_DATA_TYPE,
@@ -299,7 +302,7 @@ def _upsert_with_pandas_pyarrow(csv_path: str, table_name: str, state):
     for row in dataframe.itertuples(index=False):
         # Prepare the record for upserting
         record = {
-            "hasid": row.hasid,
+            "has_id": row.has_id,
             "name": row.name,
             "city": row.city,
             "created_at": row.created_at,
@@ -329,17 +332,17 @@ def schema(configuration: dict):
     return [
         {
             "table": "table_using_dask",
-            "primary_key": ["hasid"],
+            "primary_key": ["has_id"],
             "columns": {"created_at": "UTC_DATETIME"},
         },
         {
             "table": "table_using_pandas_pyarrow",
-            "primary_key": ["hasid"],
+            "primary_key": ["has_id"],
             "columns": {"created_at": "UTC_DATETIME"},
         },
         {
             "table": "table_using_polars",
-            "primary_key": ["hasid"],
+            "primary_key": ["has_id"],
             "columns": {"created_at": "UTC_DATETIME"},
         },
     ]
@@ -367,19 +370,18 @@ def update(configuration: dict, state: dict):
     headers = get_auth_headers(configuration)
 
     # Make API request with retry logic and save the response CSV content in a file
-    csv_content = make_api_request_with_retry(url=api_url, headers=headers)
-    csv_path = save_csv_locally(csv_content=csv_content)
+    csv_path = make_api_request_with_retry(url=api_url, headers=headers)
 
     try:
         # Upsert data using Dask
-        _upsert_with_dask(csv_path, table_name="table_using_dask", state=state)
+        upsert_with_dask(csv_path, table_name="table_using_dask", state=state)
 
         # Upsert data using Pandas with PyArrow engine
-        _upsert_with_pandas_pyarrow(csv_path, table_name="table_using_pandas_pyarrow", state=state)
+        upsert_with_pandas_pyarrow(csv_path, table_name="table_using_pandas_pyarrow", state=state)
 
         # Upsert data using Polars
         # It is recommended to use Polars for high-volume CSV processing due to its performance and low memory usage.
-        _upsert_with_polars(csv_path, table_name="table_using_polars", state=state)
+        upsert_with_polars(csv_path, table_name="table_using_polars", state=state)
 
     except Exception as e:
         raise RuntimeError(f"Error during upsert operations: {e}")

@@ -73,18 +73,18 @@ This example does not implement pagination as it processes a single CSV file fet
 ## Data handling
 The connector demonstrates three different approaches for processing high-volume CSV data:
 
-### Approach 1: Dask (function `_upsert_with_dask`)
+### Approach 1: Dask (function `upsert_with_dask`)
 - Reads CSV in partitions using blocksize="128MB" for parallel processing. You can adjust the blocksize based on your data.
 - Processes each partition sequentially.
 - Defines explicit data types to avoid type inference overhead.
 - Uses `itertuples()` for efficient row iteration.
 
-### Approach 2: Pandas with PyArrow (function `_upsert_with_pandas_pyarrow`)
+### Approach 2: Pandas with PyArrow (function `upsert_with_pandas_pyarrow`)
 - Uses PyArrow engine for faster CSV reading.
 - Loads only necessary columns using `usecols`.
 - Defines explicit PyArrow string types for better performance.
 
-### Approach 3: Polars (Recommended) (function `_upsert_with_polars`)
+### Approach 3: Polars (Recommended) (function `upsert_with_polars`)
 - Uses batched reading with `pl.read_csv_batched()` for memory efficiency.
 - Reads specified columns only.
 - Enables `low_memory=True` for minimal memory footprint.
@@ -104,7 +104,7 @@ The connector implements comprehensive error handling:
 
 ## Tables created
 
-The connector creates four tables demonstrating different processing approaches:
+The connector creates three tables demonstrating different processing approaches:
 
 - `TABLE_USING_DASK` : Contains data processed using Dask's distributed dataframe approach.
 
