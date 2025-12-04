@@ -617,7 +617,7 @@ def sync_regular_tables(
             )
         except Exception as t_err:
             # Log table-level errors but continue with other tables
-            log.severe(f"Unhandled error processing table: {table_name}.", t_err)
+            log.severe(f"Unhandled error processing table: {table_name}. {t_err}")
             state[f"{table_name}_last_error"] = str(t_err)
             try:
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
