@@ -345,8 +345,8 @@ def execute_query_with_retry(cursor, query, params=None):
         Exception: If query execution fails
     """
     for attempt in range(__MAX_RETRIES):
-    try:
-        return execute_query(cursor, query, params)
+        try:
+            return execute_query(cursor, query, params)
     except Exception as e:
         if attempt == __MAX_RETRIES - 1:
             raise
