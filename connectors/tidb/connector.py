@@ -426,7 +426,7 @@ def process_and_upsert_rows(
 
         except Exception as row_err:
             # Log row-level errors and continue processing other rows
-            log.severe("Error processing row for table %s: %s", table_name, row_err)
+            log.severe(f"Error processing row for table {table_name}: {row_err}")
 
             # Store sample of problematic row for debugging
             try:
@@ -495,7 +495,7 @@ def fetch_and_upsert_data(
         page = 0
         query, params = build_incremental_query(table_name, last_created)
     except Exception as e:
-        log.severe("Failed to build query for table %s: %s", table_name, e)
+        log.severe(f"Failed to build query for table {table_name}: {e}")
         return
     try:
         while True:
@@ -514,7 +514,7 @@ def fetch_and_upsert_data(
             page += 1
     except Exception as e:
         # Query execution failed, likely due to missing column
-        log.severe(f"Failed to execute query for table {table_name}.", e)
+        log.severe(f"Failed to execute query for table {table_name}. {e}")
         state[f"{table_name}_last_error"] = str(e)
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
@@ -555,7 +555,7 @@ def create_tidb_connection(configuration: Dict[str, Any]) -> TiDBClient:
         connection = TiDBClient.connect(TIDB_DATABASE_URL)
         return connection
     except Exception as e:
-        log.severe("Failed to create TiDB connection: %s", e)
+        log.severe(f"Failed to create TiDB connection: {e}")
         raise
 
 
@@ -626,7 +626,7 @@ def sync_regular_tables(
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
                 op.checkpoint(state)
             except Exception:
-                log.severe("Failed to checkpoint state after table-level error for %s", table_name)
+                log.severe(f"Failed to checkpoint state after table-level error for {table_name}")
 
 
 def sync_vector_tables(
@@ -655,7 +655,7 @@ def sync_vector_tables(
             )
         except Exception as t_err:
             # Log vector table errors but continue with other tables
-            log.severe("Unhandled error processing vector table %s: %s", table_name, t_err)
+            log.severe(f"Unhandled error processing vector table {table_name}: {t_err}")
             state[f"{table_name}_last_error"] = str(t_err)
             try:
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -665,7 +665,7 @@ def sync_vector_tables(
                 op.checkpoint(state)
             except Exception:
                 log.severe(
-                    "Failed to checkpoint state after vector-table error for %s", table_name
+                    f"Failed to checkpoint state after vector-table error for {table_name}"
                 )
 
 
@@ -701,7 +701,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
     try:
         connection = create_tidb_connection(configuration=configuration)
     except Exception as conn_err:
-        log.severe("Could not connect to TiDB: %s", conn_err)
+        log.severe(f"Could not connect to TiDB: {conn_err}")
         state["last_connection_error"] = str(conn_err)
         try:
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -710,7 +710,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
         except Exception:
-            log.severe("Failed to checkpoint state after connection error.")
+            ("Failed to checkpoint state after connection error.")
         raise
 
     # Get tables to sync
