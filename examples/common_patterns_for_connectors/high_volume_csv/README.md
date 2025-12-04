@@ -74,7 +74,7 @@ This example does not implement pagination as it processes a single CSV file fet
 The connector demonstrates three different approaches for processing high-volume CSV data:
 
 ### Approach 1: Dask (function `upsert_with_dask`)
-- Reads CSV in partitions using blocksize="128MB" for parallel processing. You can adjust the blocksize based on your data.
+- Reads CSV in partitions using `blocksize="128MB"` for parallel processing. You can adjust the blocksize based on your data.
 - Processes each partition sequentially.
 - Defines explicit data types to avoid type inference overhead.
 - Uses `itertuples()` for efficient row iteration.
