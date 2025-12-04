@@ -2,9 +2,13 @@
 
 ## Connector overview
 This example demonstrates a source connector that reads rows from a TiDB database and upserts them into a Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
-Use cases: Incremental sync of application tables, vector/embedding export for ML workflows, and incremental change capture for analytics.
 
-## Accreditation
+The connector is well suited for the following use cases: 
+- Incremental sync of application tables
+- Vector/embedding export for ML workflows
+- Incremental change capture for analytics
+
+## Contributor
 This example was contributed by [Nikhil Mankani](https://www.linkedin.com/in/nikhilmankani/).
 
 ## Requirements
@@ -71,10 +75,10 @@ This connector uses username and password authentication to connect to TiDB. The
 To set up authentication:
 
 1. Create a TiDB user with appropriate permissions to access the required tables.
-2. Provide the username and password in the `configuration.json` file.
-3. Ensure the user has `SELECT` permissions on the tables that need to be synced.
+2. Ensure the user has `SELECT` permissions on the tables you want to sync.
+3. Provide the username and password in the `configuration.json` file.
 
-For details on creating users and granting privileges, see TiDB docs: https://docs.pingcap.com/tidb/stable/manage-users-and-privileges
+For details on creating users and granting privileges, see [TiDB documentation](https://docs.pingcap.com/tidb/stable/manage-users-and-privileges).
 
 Note: For production usage, use secure secret storage and avoid checking credentials into source control.
 
@@ -105,6 +109,7 @@ Example schema for a typical configuration:
 ```
 
 For vector tables (if configured), the schema includes typed JSON columns:
+
 ```json
 {
   "table": "product_embeddings",
@@ -114,9 +119,6 @@ For vector tables (if configured), the schema includes typed JSON columns:
   }
 }
 ```
-
-## Additional files
-This example does not include additional files beyond the main connector script and configuration.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
