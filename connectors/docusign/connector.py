@@ -716,7 +716,6 @@ def _process_envelope(configuration: dict, envelope: Dict[str, Any]):
         "subject": str(envelope.get("emailSubject", "")),
         "expire_after": str(envelope.get("expireAfter", "")),
         "contract_cycle_time_hours": "",
-        "conversion_status": str(envelope.get("status", "")),
     }
 
     if envelope.get("status") == "completed":
