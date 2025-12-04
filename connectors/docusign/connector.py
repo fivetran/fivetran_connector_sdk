@@ -461,8 +461,15 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]):
             # Filter templates that have been modified since last sync
             for template in templates:
                 last_modified = template.get("lastModified", "")
-                if last_modified and last_modified > last_sync_time:
-                    yield template
+                if last_modified:
+                    try:
+                        modified_dt = datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
+                        sync_dt = datetime.fromisoformat(last_sync_time.replace("Z", "+00:00"))
+                        if modified_dt > sync_dt:
+                            yield template
+                    except ValueError:
+                        # If parsing fails, include the template to be safe
+                        yield template
 
             start_position += len(templates)
 
