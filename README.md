@@ -172,7 +172,6 @@ These are graded examples designed to help you get started with the Connector SD
 
 </details>
 
-
 ### Common SDK patterns
 
 These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as authentication, error handling, data extraction, and more. you can find these examples under `/examples/common_patterns_for_connectors`.
