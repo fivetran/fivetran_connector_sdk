@@ -4,7 +4,7 @@
 
 This connector extracts data from the DocuSign eSignature API. It is designed to sync key objects related to the electronic signature process, including envelopes, recipients, documents (including their binary content), audit events, and templates. The extracted data can be used in a destination to enable analytics for Sales, Legal, Operations, and other teams tracking contract lifecycles, signature status, and compliance.
 
-## Accreditation
+## Contributor
 
 This example was contributed by [Arpit Kumar Khatri](https://github.com/ArpitKhatri1). The connector was developed as part of the [AI Accelerate](https://ai-accelerate.devpost.com/) hackathon.
 
@@ -89,7 +89,8 @@ Data is processed within the `update` function and its various `fetch_*` helper 
 
 This connector creates the following tables in the destination, as defined in the `schema` function:
 
-  `ENVELOPES`:
+### ENVELOPES
+
   ```json
   {
     
@@ -112,7 +113,8 @@ This connector creates the following tables in the destination, as defined in th
 }
 ```
 
-  `RECIPIENTS`:
+### RECIPIENTS
+
   ```json
   {
   "table": "recipients",
@@ -131,7 +133,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `ENHANCED_RECIPIENTS`:
+
+### ENHANCED_RECIPIENTS
+
   ```json
   {
   "table": "enhanced_recipients",
@@ -153,7 +157,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `AUDIT_EVENTS`:
+
+### AUDIT_EVENTS
+  
   ```json
   {
   "table": "audit_events",
@@ -172,7 +178,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `ENVELOPE_NOTIFICATIONS`:
+
+### ENVELOPE_NOTIFICATIONS
+  
   ```json
   {
   "table": "envelope_notifications",
@@ -189,7 +197,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `DOCUMENTS`:
+
+### DOCUMENTS
+
   ```json
   {
   "table": "documents",
@@ -206,7 +216,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `DOCUMENT_CONTENTS`:
+
+### DOCUMENT_CONTENTS
+
   ```json
   {
   "table": "document_contents",
@@ -221,7 +233,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `TEMPLATES`:
+
+### TEMPLATES
+
   ```json
   {
   "table": "templates",
@@ -238,7 +252,9 @@ This connector creates the following tables in the destination, as defined in th
   }
 }
 ```
-  `CUSTOM_FIELDS`:
+
+### CUSTOM_FIELDS
+  
   ```json
   {
   "table": "custom_fields",
