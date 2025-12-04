@@ -715,7 +715,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
             # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
         except Exception:
-            ("Failed to checkpoint state after connection error.")
+            log.severe("Failed to checkpoint state after connection error.")
         raise
 
     # Get tables to sync
