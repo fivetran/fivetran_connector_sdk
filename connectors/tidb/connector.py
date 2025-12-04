@@ -549,10 +549,10 @@ def create_tidb_connection(configuration: Dict[str, Any]) -> TiDBClient:
     database = configuration["TIDB_DATABASE"]
 
     try:
-        TIDB_DATABASE_URL = (
+        tidb_database_url = (
             f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}?ssl_ca={certifi.where()}"
         )
-        connection = TiDBClient.connect(TIDB_DATABASE_URL)
+        connection = TiDBClient.connect(tidb_database_url)
         return connection
     except Exception as e:
         log.severe(f"Failed to create TiDB connection: {e}")
