@@ -29,6 +29,9 @@ from pytidb import TiDBClient
 # For timestamp parsing/normalization
 from datetime import datetime, timezone
 
+# For time delays during retries
+import time
+
 
 # Module-level constants
 __TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
@@ -346,7 +349,7 @@ def execute_query_with_retry(cursor, query, params=None):
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            return execute_query(cursor, query, params)
+            return query_result(cursor, query, params)
         except Exception as e:
             if attempt == __MAX_RETRIES - 1:
                 raise
@@ -501,7 +504,7 @@ def fetch_and_upsert_data(
         while True:
             params["limit"] = __BATCH_SIZE
             params["offset"] = __BATCH_SIZE * page
-            rows = execute_query(cursor, query, params)
+            rows = execute_query_with_retry(cursor, query, params)
             if not rows:
                 break
             # Process rows and track maximum timestamp
