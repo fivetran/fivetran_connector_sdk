@@ -4,7 +4,7 @@
 This example demonstrates a source connector that reads rows from a TiDB database and upserts them into a Fivetran destination using the Connector SDK. It supports incremental replication based on a `created_at` timestamp, vector column parsing (optional), and stores per-table progress in the connector `state`.
 Use cases: Incremental sync of application tables, vector/embedding export for ML workflows, and incremental change capture for analytics.
 
-## Contributor
+## Accreditation
 This example was contributed by [Nikhil Mankani](https://www.linkedin.com/in/nikhilmankani/).
 
 ## Requirements
