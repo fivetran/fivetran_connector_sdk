@@ -344,15 +344,15 @@ def execute_query_with_retry(cursor, query, params=None):
     Raises:
         Exception: If query execution fails
     """
-    for attempt in range(__MAX_RETRIES):
-        try:
-            return execute_query(cursor, query, params)
-    except Exception as e:
-        if attempt == __MAX_RETRIES - 1:
-            raise
-        sleep_time = min(60, 2 ** attempt)
-        log.warning(f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: %s", str(e))
-        time.sleep(sleep_time)
+     for attempt in range(__MAX_RETRIES):
+         try:
+             return execute_query(cursor, query, params)
+         except Exception as e:
+             if attempt == __MAX_RETRIES - 1:
+                 raise
+             sleep_time = min(60, 2 ** attempt)
+             log.warning(f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: %s", str(e))
+             time.sleep(sleep_time)
 
     # Handle different result types
     if hasattr(query_result, "to_list"):
