@@ -35,6 +35,7 @@ __TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "T
 __REQUIRED_CONFIG_KEYS = __TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]
 __FALLBACK_TIMESTAMP = datetime(1990, 1, 1, tzinfo=timezone.utc)
 __BATCH_SIZE = 50
+__MAX_RETRIES = 3
 
 
 def validate_configuration(configuration: Dict[str, Any]):
@@ -328,9 +329,7 @@ def build_incremental_query(table_name: str, last_created: str) -> str:
         raise ValueError(f"Failed to build query for table {table_name}") from e
 
 
-def execute_query(
-    cursor: TiDBClient, query: str, params: Optional[Dict[str, Any]] = None
-) -> List[Dict[str, Any]]:
+def execute_query_with_retry(cursor, query, params=None):
     """
     Execute a query and return results as list of dictionaries.
 
@@ -345,11 +344,15 @@ def execute_query(
     Raises:
         Exception: If query execution fails
     """
+    for attempt in range(__MAX_RETRIES):
     try:
-        query_result = cursor.query(query, params)
-    except Exception:
-        # Re-raise the exception so caller can handle logging / checkpointing
-        raise
+        return execute_query(cursor, query, params)
+    except Exception as e:
+        if attempt == __MAX_RETRIES - 1:
+            raise
+        sleep_time = min(60, 2 ** attempt)
+        log.warning(f"Query failed, retry {attempt + 1}/{__MAX_RETRIES} after {sleep_time}s: %s", str(e))
+        time.sleep(sleep_time)
 
     # Handle different result types
     if hasattr(query_result, "to_list"):
