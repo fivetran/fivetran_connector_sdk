@@ -313,7 +313,7 @@ def build_incremental_query(table_name: str, last_created: str) -> str:
         last_created: Last processed timestamp in ISO format
 
     Returns:
-        Tuple of (query string with named placeholders, params dict)
+        Tuple of (SQL query string, parameters dictionary)
 
     Raises:
         ValueError: If query building fails
