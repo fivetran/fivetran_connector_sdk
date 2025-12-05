@@ -76,11 +76,11 @@ The connector processes the nested JSON response from the NPI Registry API and f
 
 Data transformation process:
 
-1. The API returns a JSON array of provider results
-2. Each provider record contains nested objects and arrays
-3. The connector extracts the main provider information and creates a record in the `provider` table
-4. Nested arrays (addresses, taxonomies, identifiers, etc.) are flattened into separate child tables using a generic function
-5. Each child table includes the NPI number as a foreign key for joining
+1. The API returns a JSON array of provider results.
+2. Each provider record contains nested objects and arrays.
+3. The connector extracts the main provider information and creates a record in the `provider` table.
+4. Nested arrays (addresses, taxonomies, identifiers, etc.) are flattened into separate child tables using a generic function.
+5. Each child table includes the NPI number as a foreign key for joining.
 6. All data types are inferred by Fivetran except for primary keys which are explicitly defined
 
 Flattening functions:
