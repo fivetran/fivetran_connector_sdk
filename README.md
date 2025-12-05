@@ -41,7 +41,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ## Examples
 
-> Note: To simplify the processeses of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+> Note: To simplify the processes of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
 
 ### Community connectors
 
@@ -174,7 +174,7 @@ These are graded examples designed to help you get started with the Connector SD
 
 ### Common SDK patterns
 
-These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as authentication, error handling, data extraction, and more. you can find these examples under `/examples/common_patterns_for_connectors`.
+These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as authentication, error handling, data extraction, and more. You can find these examples under `/examples/common_patterns_for_connectors`.
 
 <details class="details-heading" open="open">
 <summary>List of connectors for common SDK patterns</summary>
@@ -217,7 +217,7 @@ These examples demonstrate common patterns and best practices for building conne
 - [page_number](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/page_number) - This is a simple example for how to work with page-number-based pagination for a REST API.
 - [complex_error_handling_multithreading](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/complex_error_handling_multithreading) - This example demonstrates how to implement next-page URL pagination with multithreading for parallel record processing. It includes comprehensive error handling strategies such as circuit breaker pattern, retry logic with exponential backoff, error categorization, graceful degradation, and thread-safe operations for building resilient connectors.
 
-#### Database–specific patterns
+#### Database-specific patterns
 
 - [key_based_replication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/key_based_replication) - This example shows key-based replication from database sources. Replication keys are columns that are used to identify new and updated data for replication. When you set a table to use Incremental Replication, you’ll also need to define a replication key for that table.
 - [schema_from_database](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/schema_from_database) - This example shows how to extract tables (columns, data types, etc.) from a schema present in Snowflake database and use this to generate the connector schema. This approach ensures that the tables in your connector match those in your source database without having to manually define each field.
@@ -253,10 +253,10 @@ These examples demonstrate common patterns and best practices for building conne
 
 ### Private Preview examples
 
-These examples rely on features that are currently in Private preview. To enable them for your connector, please contact Fivetran professional services.
+These examples rely on features that are currently in Private preview. To enable these features for your connector, please contact Fivetran professional services.
 
 <details open>
-<summary>List of connectors that use Private Preview features</summary>
+<summary>List of Private Preview examples</summary>
 
 - [Importing External Libraries and Drivers](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/private_preview_features/importing_external_drivers)
   - This feature enables you to install drivers in your connector environment by writing a `installation.sh` file in the `drivers` folder, in the same directory as your connector.py file. This script will be executed at the time of deploying your connector, before your connector.py is run to sync your data.
