@@ -336,39 +336,6 @@ def fetch_envelope_notifications(configuration: dict, envelope_id: str) -> List[
         return []
 
 
-def fetch_enhanced_recipients(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
-    """
-    Fetch recipients with full status history, reminders, declines.
-    Args:
-        configuration: A dictionary containing the connector configuration.
-        envelope_id: The ID of the envelope.
-    Returns:
-        A list of dictionaries representing enhanced recipients.
-    """
-    base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
-    url = f"{base_url}/envelopes/{envelope_id}/recipients"
-
-    try:
-        data = make_api_request(url, headers)
-        recipients: List[Dict[str, Any]] = []
-        for recipient_type in [
-            "signers",
-            "carbon_copies",
-            "certified_deliveries",
-            "in_person_signers",
-        ]:
-            type_recipients = data.get(recipient_type, [])
-            for r in type_recipients:
-                r["recipient_type"] = recipient_type
-                r["envelope_id"] = envelope_id
-                recipients.append(r)
-        return recipients
-    except Exception as exc:
-        log.warning(f"Could not fetch enhanced recipients for envelope {envelope_id}: {exc}")
-        return []
-
-
 def fetch_recipients_for_envelope(configuration: dict, envelope_id: str) -> List[Dict[str, Any]]:
     """
     Fetch recipients data for a specific envelope.
@@ -556,7 +523,7 @@ def _upsert_enhanced_recipients(configuration: dict, envelope_id: str):
         configuration: A dictionary containing the connector configuration.
         envelope_id: The ID of the envelope.
     """
-    enhanced_recipients = fetch_enhanced_recipients(configuration, envelope_id)
+    enhanced_recipients = fetch_recipients_for_envelope(configuration, envelope_id)
     for er in enhanced_recipients:
         if er.get("recipientId"):
             # The 'upsert' operation is used to insert or update data in the destination table.
