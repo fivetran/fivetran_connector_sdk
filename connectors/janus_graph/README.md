@@ -132,7 +132,7 @@ The connector transforms JanusGraph graph data into four relational tables optim
 - Preserves property ordering using `property_index` for list-type properties
 - Automatically infers column data types from property values
 
-**Incremental sync logic** (refer to `check_updated_at_property()` function in connector.py):
+### Incremental sync logic (refer to `check_updated_at_property()` function in connector.py)
 - On first sync, checks if vertices/edges have `updated_at` property
 - If present, uses timestamp-based filtering for subsequent syncs: `g.V().has('updated_at', gt(last_checkpoint))`
 - State tracks separate timestamps: `vertices_last_updated_at` and `edges_last_updated_at`
