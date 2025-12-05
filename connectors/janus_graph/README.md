@@ -125,7 +125,7 @@ g.V().range(0, 1000)
 
 The connector transforms JanusGraph graph data into four relational tables optimized for warehouse analytics:
 
-**Data transformation approach:**
+### Data transformation approach
 - Flattens single-valued properties directly into vertex and edge tables as columns
 - Creates separate property tables for multi-valued properties to avoid data loss
 - Converts all vertex and edge IDs to strings for consistent identifier handling
