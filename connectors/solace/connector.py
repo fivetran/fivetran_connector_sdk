@@ -100,7 +100,7 @@ class SolaceAuth:
                 log.info(f"Successfully connected to Solace at {self.host}")
 
             except Exception as e:
-                log.severe(f"Failed to connect to Solace: {e}")
+                log.severe("Failed to connect to Solace", e)
                 raise RuntimeError(f"Solace connection failed: {e}")
 
         return self.messaging_service
@@ -174,7 +174,7 @@ def fetch_events_messaging(
         log.info(f"{method_name}: Fetched {len(events)} events from messaging API")
 
     except Exception as e:
-        log.severe(f"{method_name}: Error fetching events via messaging API: {e}")
+        log.severe(f"{method_name}: Error fetching events via messaging API", e)
     finally:
         if receiver is not None:
             receiver.terminate()
@@ -231,7 +231,7 @@ def process_message(message: InboundMessage, last_sync_time: datetime) -> Option
         return event_record
 
     except Exception as e:
-        log.severe(f"Error processing message: {e}")
+        log.severe("Error processing message", e)
         return None
 
 
@@ -300,7 +300,7 @@ def sync_events(config: dict, state: dict) -> Generator:
             try:
                 op.upsert(table="solace_events", data=event)
             except Exception as e:
-                log.severe(f"{method_name}: Error upserting event {event.get('event_id')}: {e}")
+                log.severe(f"{method_name}: Error upserting event {event.get('event_id')}", e)
 
         # Update state with latest timestamp
         latest_timestamp = max(event["timestamp"] for event in events)
@@ -309,7 +309,7 @@ def sync_events(config: dict, state: dict) -> Generator:
         log.info(f"{method_name}: Successfully processed {len(events)} events")
 
     except Exception as e:
-        log.severe(f"{method_name}: Error during sync: {e}")
+        log.severe(f"{method_name}: Error during sync", e)
         raise
 
     # Checkpoint state
