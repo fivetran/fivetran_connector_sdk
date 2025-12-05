@@ -286,13 +286,15 @@ Checkpoints   | 1
 ## ⚡ Performance Optimization
 
 ### Rate Limiting
+
 ```python
 # Example rate limit handling
 import time
 
+
 def handle_rate_limit(response):
     if response.status_code == 429:
-        retry_after = int(response.headers.get('Retry-After', 60))
+        retry_after = int(response.build_headers.get('Retry-After', 60))
         log.warning(f"Rate limited, waiting {retry_after} seconds")
         time.sleep(retry_after)
         return True
@@ -446,9 +448,10 @@ def sanitize_data(record):
 ```
 
 #### 3. Rate Limit Issues
+
 ```python
 # Monitor rate limits
-remaining_calls = int(response.headers.get('X-RateLimit-Remaining', 0))
+remaining_calls = int(response.build_headers.get('X-RateLimit-Remaining', 0))
 if remaining_calls < 10:
     log.warning(f"Rate limit approaching: {remaining_calls} calls left")
 ```
