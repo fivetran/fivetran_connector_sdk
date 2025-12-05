@@ -87,7 +87,7 @@ This connector supports both authenticated and unauthenticated connections to th
 - Use `ws://` protocol in `gremlin_server_url`
 - Omit `username` and `password` from configuration
 
-**Production mode (with authentication):**
+- Production mode (with authentication):
 1. Configure authentication on your JanusGraph Gremlin Server by editing `gremlin-server.yaml`:
     - Add authentication handler (e.g., Simple Authentication)
     - Configure username and password credentials
