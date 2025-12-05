@@ -244,12 +244,12 @@ def process_messages_from_reader(reader, table_name: str, topic: str, state: dic
 
             if messages_processed % __CHECKPOINT_INTERVAL == 0:
                 serialized_id = last_message_id.serialize().hex()
-                updated_state = {**state, state_key: serialized_id}
+                state[state_key] = serialized_id
                 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                 # from the correct position in case of next sync or interruptions.
                 # Learn more about how and where to checkpoint by reading our best practices documentation
                 # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(updated_state)
+                op.checkpoint(state)
                 log.info(f"Checkpointed after {messages_processed} messages for topic {topic}")
 
         except pulsar.Timeout:
@@ -303,9 +303,12 @@ def sync_topic(client, tenant: str, namespace: str, topic: str, state: dict) -> 
         # Final checkpoint after processing all messages
         if last_message_id:
             serialized_id = last_message_id.serialize().hex()
-            updated_state = {**state, state_key: serialized_id}
-            op.checkpoint(updated_state)
             state[state_key] = serialized_id
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
 
         log.info(f"✓ Synced {messages_processed} messages from topic {topic}")
         reader.close()
