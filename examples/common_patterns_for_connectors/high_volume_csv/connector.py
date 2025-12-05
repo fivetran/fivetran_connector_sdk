@@ -77,7 +77,6 @@ def get_auth_headers(configuration: dict):
     # Create the auth string
     headers = {
         "Authorization": f"apiKey {api_key}",
-        "Content-Type": "text/csv",
     }
     return headers
 
