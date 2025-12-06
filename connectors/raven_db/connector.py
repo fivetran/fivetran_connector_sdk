@@ -18,7 +18,7 @@ from fivetran_connector_sdk import Operations as op
 
 # Import the RavenDB Python SDK for connecting to RavenDB database
 from ravendb import DocumentStore
-from ravendb.exceptions.exceptions import RavenException
+from ravendb.exceptions.raven_exceptions import RavenException
 
 # For handling type hints
 from typing import Optional, List, Dict, Any, Tuple
