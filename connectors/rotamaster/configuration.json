@@ -1,0 +1,16 @@
+{
+  "api_key": "<YOUR_ROTAMASTER_API_KEY>",
+  "sync_frequency_hours": "<SYNC_FREQUENCY_HOURS>",
+  "initial_sync_days": "<INITIAL_SYNC_DAYS>",
+  "max_records_per_page": "<MAX_RECORDS_PER_PAGE>",
+  "request_timeout_seconds": "<REQUEST_TIMEOUT_SECONDS>",
+  "retry_attempts": "<RETRY_ATTEMPTS>",
+  "enable_people_sync": "<ENABLE_PEOPLE_SYNC>",
+  "enable_teams_sync": "<ENABLE_TEAMS_SYNC>",
+  "enable_roles_sync": "<ENABLE_ROLES_SYNC>",
+  "include_active_people": "<INCLUDE_ACTIVE_PEOPLE>",
+  "include_archived_people": "<INCLUDE_ARCHIVED_PEOPLE>",
+  "include_suspended_people": "<INCLUDE_SUSPENDED_PEOPLE>",
+  "include_deleted_people": "<INCLUDE_DELETED_PEOPLE>",
+  "enable_debug_logging": "<ENABLE_DEBUG_LOGGING>"
+}
