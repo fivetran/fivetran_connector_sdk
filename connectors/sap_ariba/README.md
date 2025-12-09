@@ -65,7 +65,7 @@ The connector creates two destination tables summarizing the SAP Ariba purchase 
 ### `ORDER`
 Contains purchase order header-level information, including identifiers, parties, amounts, and document metadata.
 
-### item
+### `ITEM`
 Contains line-item details linked to each purchase order, including product descriptions, quantities, codes, and delivery information.
 
 ## Additional considerations
