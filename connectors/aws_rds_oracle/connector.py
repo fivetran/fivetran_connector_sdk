@@ -6,6 +6,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+# For reading configuration from a JSON file
+import json
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
