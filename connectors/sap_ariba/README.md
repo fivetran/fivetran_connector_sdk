@@ -62,7 +62,7 @@ The connector includes automatic retry logic for transient errors and rate-limit
 ## Tables created
 The connector creates two destination tables summarizing the SAP Ariba purchase order and item entities.
 
-### order
+### `ORDER`
 Contains purchase order header-level information, including identifiers, parties, amounts, and document metadata.
 
 ### item
