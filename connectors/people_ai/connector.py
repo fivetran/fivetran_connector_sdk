@@ -375,6 +375,7 @@ def get_access_token(api_key: str, api_secret: str) -> str:
     resp.raise_for_status()
     return resp.json()["access_token"]
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -388,6 +389,7 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+
 
 def update(configuration: dict, state: dict):
     """
