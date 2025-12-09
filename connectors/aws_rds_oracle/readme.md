@@ -53,7 +53,7 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 ## Authentication
 
-This connector uses username and password authentication to connect to Oracle.The credentials are specified in the configuration file and passed to the `oracledb.connect()` function (see the `connect_oracle()` function).
+This connector uses username and password authentication to connect to Oracle. The credentials are specified in the configuration file and passed to the `oracledb.connect()` function (see the `connect_oracle()` function).
 
 To set up authentication:
 
