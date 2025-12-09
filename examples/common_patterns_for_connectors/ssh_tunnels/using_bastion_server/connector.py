@@ -141,7 +141,7 @@ def upsert_data_from_database(
     try:
         private_key = paramiko.RSAKey.from_private_key(key_stream, password=bastion_passphrase)
     except Exception as e:
-        log.severe(f"Failed to load SSH private key: {e}")
+        log.severe("Failed to load SSH private key", e)
         raise
 
     try:
@@ -165,7 +165,7 @@ def upsert_data_from_database(
             # Fetch data and upsert into destination
             fetch_and_upsert_data(database_connection=connection, state=state)
     except Exception as e:
-        log.severe(f"Failed to connect to the database or execute query: {e}")
+        log.severe("Failed to connect to the database or execute query", e)
         raise
 
 

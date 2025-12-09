@@ -130,10 +130,10 @@ def make_api_request(url: str, headers: dict, params: Optional[dict] = None) -> 
                 )
                 time.sleep(delay)
                 continue
-            log.severe(f"HTTP error for URL: {url}: {e}")
+            log.severe(f"HTTP error for URL: {url}", e)
             raise
         except (requests.exceptions.RequestException, ValueError) as e:
-            log.severe(f"Request failed for URL: {url}: {e}")
+            log.severe(f"Request failed for URL: {url}", e)
             raise
 
     raise requests.exceptions.RequestException(
@@ -260,7 +260,7 @@ def sync_deployments(
                 break
 
         except Exception as e:
-            log.severe(f"Error syncing deployments: {e}")
+            log.severe("Error syncing deployments", e)
             raise
 
     log.info(f"Synced {deployments_synced} deployments")
