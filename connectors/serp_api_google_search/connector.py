@@ -264,7 +264,7 @@ if __name__ == "__main__":
             not configuration.get("api_key") or configuration.get("api_key") == "YOUR_CLIENT_ID"
         )
         if check_config:
-            log.warning("Please update configuration.json with actual api_key and api_secret.")
+            log.warning("Please update configuration.json with actual api_key and search_query.")
 
         connector.debug(configuration=configuration)
 
