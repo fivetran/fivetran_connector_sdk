@@ -182,7 +182,13 @@ def _checkpoint_if_needed(
         return
 
     checkpoint_dt = latest_sync_dt or fallback_sync_dt or __DEFAULT_SYNC_DATETIME
+
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint({"last_sync_time": _format_timestamp(checkpoint_dt)})
+
     log.info(f"Checkpointed state after {processed_rows} rows for table {full_table_name}")
 
 
@@ -305,7 +311,12 @@ def update(configuration: dict, state: dict) -> None:
             conn.close()
 
     final_state = {"last_sync_time": _format_timestamp(new_sync_time_dt)}
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(final_state)
+    
     log.info("Update function completed successfully")
 
 
