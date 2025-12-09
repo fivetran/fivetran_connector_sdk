@@ -370,6 +370,19 @@ def get_access_token(api_key: str, api_secret: str) -> str:
     resp.raise_for_status()
     return resp.json()["access_token"]
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["api_key", "api_secret"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
 
 def update(configuration: dict, state: dict):
     """
@@ -384,6 +397,8 @@ def update(configuration: dict, state: dict):
                The state dictionary is empty for the first sync or for any
                full re-sync.
     """
+    log.warning("Example: CONNECTORS : PEOPLE_AI")
+    validate_configuration(configuration)
 
     # Define a closure function for re-authentication to pass to sync functions
     api_key = configuration["api_key"]
