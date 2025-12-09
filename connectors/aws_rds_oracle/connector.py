@@ -4,7 +4,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 """
 
 # For datetime parsing and formatting of timestamp values
-from datetime import datetime
+from datetime import datetime, time
 
 # For type hints to improve code clarity and enable static type checking
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -38,6 +38,7 @@ __DEFAULT_PORT = 1521
 __FETCH_BATCH_SIZE = 500
 __CHECKPOINT_INTERVAL = 1000
 __DEFAULT_SYNC_DATETIME = datetime(1970, 1, 1, 0, 0, 0)
+__MAX_RETRIES = 5
 
 
 def validate_configuration(configuration: dict) -> None:
@@ -288,12 +289,18 @@ def update(configuration: dict, state: dict) -> None:
     new_sync_time_dt = last_sync_time_dt
 
     conn: Optional["oracledb.Connection"] = None
+    for attempt in range(__MAX_RETRIES):
     try:
         conn = connect_oracle(configuration=configuration)
         log.info("Connected to Oracle database")
-    except Exception as exc:
-        log.severe(f"Oracle connection failed: {exc}")
-        raise
+        break
+    except (oracledb.OperationalError, oracledb.DatabaseError) as exc:
+        if attempt == __MAX_RETRIES - 1:
+            log.severe(f"Oracle connection failed after {__MAX_RETRIES} attempts: {exc}")
+            raise
+        sleep_time = min(60, 2 ** attempt)
+        log.warning(f"Connection attempt {attempt + 1}/{__MAX_RETRIES} failed, retrying in {sleep_time}s: {exc}")
+        time.sleep(sleep_time)
 
     try:
         for table_def in __TABLES:
@@ -316,7 +323,7 @@ def update(configuration: dict, state: dict) -> None:
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(final_state)
-    
+
     log.info("Update function completed successfully")
 
 
