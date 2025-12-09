@@ -32,7 +32,7 @@ The connector requires the following configuration parameters in `configuration.
 ```json
 {
 "host": "<YOUR_RDS_ORACLE_HOST>",
-"port": "1521",
+"port": "<YOUR_AWS_RDS_ORACLE_PORT_DEFAULT_1521>",
 "service_name": "<YOUR_SERVICE_NAME>",
 "user": "<YOUR_DB_USERNAME>",
 "password": "<YOUR_DB_PASSWORD>"
@@ -78,7 +78,7 @@ The connector handles data as follows (see the `update()` function):
 
 ## Error handling
 
-`validate_configuration()` verifies all required configuration keys before any work begins and raises descriptive errors when values are missing.`connect_oracle()` catches invalid port values, and the `update()` function logs connection failures with `log.severe()` before re-raising the exception. During syncs, the connector wraps Oracle interactions in a `try/finally` block to ensure the database connection is closed, and it checkpoints progress with `op.checkpoint()` to prevent re-processing if an error occurs mid-batch.
+`validate_configuration()` verifies all required configuration keys before any work begins and raises descriptive errors when values are missing. `connect_oracle()` catches invalid port values, and the `update()` function logs connection failures with `log.severe()` before re-raising the exception. During syncs, the connector wraps Oracle interactions in a `try/finally` block to ensure the database connection is closed, and it checkpoints progress with `op.checkpoint()` to prevent re-processing if an error occurs mid-batch.
 
 ## Tables created
 

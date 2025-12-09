@@ -3,7 +3,10 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
 
+# For datetime parsing and formatting of timestamp values
 from datetime import datetime
+
+# For type hints to improve code clarity and enable static type checking
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # For reading configuration from a JSON file
@@ -153,6 +156,9 @@ def _apply_row_operations(table_name: str, record: Dict[str, Any]) -> Optional[d
         Parsed datetime for LAST_UPDATED if available.
     """
 
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(table=table_name, data=record)
     return _parse_timestamp(record.get("LAST_UPDATED"))
 
@@ -252,14 +258,14 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
 
 def update(configuration: dict, state: dict) -> None:
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    Define the update function which lets you configure how your connector fetches data.
     See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details.
-        state: A dictionary containing state information from previous runs.
-        The state dictionary is empty for the first sync or for any full re-sync.
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
+    log.warning("Example: Connector : AWS RDS Oracle")
 
     log.info("Starting AWS RDS Oracle update sync")
 
