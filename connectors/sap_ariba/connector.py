@@ -304,11 +304,11 @@ def make_api_request(
                 raise requests.HTTPError(
                     f"Unexpected HTTP status code: {response.status_code}", response=response
                 )
-        except requests.RequestException as e:
-            if attempt == retries:
-                raise
-            log.severe(f"Network error: {e}")
-            time.sleep(delay * attempt)
+    except requests.RequestException as e:
+        if attempt == retries:
+            raise
+        log.severe(f"Network error: {e}")
+        time.sleep(delay * attempt)
 
 
 
