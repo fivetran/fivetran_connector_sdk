@@ -9,7 +9,7 @@ The connector:
 - Upserts all records into their respective destination tables (`activity`, `participants`).
 
 Related functions in `connector.py`:  
-`schema`, `update`, `get_page`, `sync_base_activities`, `sync_activity_type`, `get_access_token`, `validate_configuration`.
+`schema`, `update`, `get_page`, `sync_base_activities`, `sync_activity_type`, `get_access_token`.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -102,7 +102,7 @@ This connector creates two tables, `ACTIVITY` and `PARTICIPANTS`.
   `uid`, `email`, `status`, `name`, `ingested_at`, `phone_number`
 
 ## Additional files
-- `connector.py` – Contains all core logic: `schema`, `update`, `get_page`, `sync_base_activities`, `sync_activity_type`, `get_access_token`, and `validate_configuration`.  
+- `connector.py` – Contains all core logic: `schema`, `update`, `get_page`, `sync_base_activities`, `sync_activity_type`, `get_access_token`.
 - `configuration.json` – Contains API credentials (`api_key`, `api_secret`).  
 - `requirements.txt` – Lists any third-party Python libraries required (e.g., `requests`).
 
