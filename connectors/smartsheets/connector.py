@@ -27,7 +27,13 @@ from datetime import datetime, timezone
 # The schema function takes one parameter:
 # - configuration: a dictionary that holds the configuration settings for the connector.
 def schema(configuration: dict):
-    return [{"table": "smartsheet_table_name", "primary_key": ["id"], "columns": {"id": "STRING"}}]
+    return [
+        {
+            "table": "smartsheet_table_name",
+            "primary_key": ["id"],
+            "columns": {"id": "STRING"},
+        }
+    ]
 
 
 # Define the update function, which is a required function, and is called by Fivetran during each sync.

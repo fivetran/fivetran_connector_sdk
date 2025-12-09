@@ -92,12 +92,8 @@ The connector creates three tables in your destination:
 - `excel_data_calamine`: Contains data upserted using the `calamine` engine with `pandas`.
 - `excel_data_openpyxl`: Contains data upserted using the `openpyxl` library.
 
-The schema for all three tables is identical, with the following columns:
+The schema for all three tables is identical, with the following defined columns:
 - `id`: Unique identifier for each row.
-- `name`: Name of the person.
-- `age`: Age of the person.
-- `country`: Country of residence.
-- `email`: Email address of the person.
 - `timestamp`: Record timestamp.
 
 ## Additional considerations

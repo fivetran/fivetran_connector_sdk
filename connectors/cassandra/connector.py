@@ -165,7 +165,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
-                "name": "STRING",
                 "created_at": "UTC_DATETIME",
             },
         }
