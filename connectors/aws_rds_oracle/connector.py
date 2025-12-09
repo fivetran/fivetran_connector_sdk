@@ -120,7 +120,7 @@ def _build_incremental_query(columns: List[str], full_table_name: str) -> str:
     select_clause = ", ".join(columns)
     return (
         f"SELECT {select_clause} FROM {full_table_name} "
-        "WHERE LAST_UPDATED > TO_TIMESTAMP(:last_sync_time, 'YYYY-MM-DD HH24:MI:SS') "
+        "WHERE LAST_UPDATED >= TO_TIMESTAMP(:last_sync_time, 'YYYY-MM-DD HH24:MI:SS') "
         "ORDER BY LAST_UPDATED"
     )
 
