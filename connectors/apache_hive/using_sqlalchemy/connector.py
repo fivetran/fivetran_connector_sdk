@@ -169,7 +169,7 @@ def schema(configuration: dict):
         {
             "table": TABLE_NAME,
             "primary_key": ["id"],
-            "columns": {"id": "INT", "name": "STRING", "age": "INT", "created_at": "UTC_DATETIME"},
+            "columns": {"id": "INT", "created_at": "UTC_DATETIME"},
         }
     ]
 

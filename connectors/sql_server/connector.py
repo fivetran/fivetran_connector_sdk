@@ -38,11 +38,9 @@ def schema(configuration: dict):
             "table": "employee_details",  # Name of the table in the destination.
             "primary_key": ["employee_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
-                "employee_id": "INT",  # Integer column for the employee_id.
-                "first_name": "STRING",  # String column for the first name.
-                "last_name": "STRING",  # String column for the last name.
+                "employee_id": "INT",  # String column for the first name.
                 "hire_date": "NAIVE_DATE",  # NAIVE_DATE column for the hire_date.
-                "salary": "LONG",  # Integer column for the salary.
+                "salary": "LONG",
                 "updated_time": "NAIVE_DATETIME",  # Datetime of row update
             },
         }
