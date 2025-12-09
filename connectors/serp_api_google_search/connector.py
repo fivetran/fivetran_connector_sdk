@@ -194,20 +194,30 @@ def sync_results(data: dict):
 
     log.info(f"Successfully processed and attempted to upsert {len(organic_results)} records.")
 
-
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["api_key", "search_query"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+            
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure
-    how your connector fetches data.
-    See the technical reference documentation for more details
-    on the update function: https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
+    Define the update function which lets you configure how your connector fetches data.
+    See the technical reference documentation for more details on the update function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details.
-        state: A dictionary containing state information from previous runs.
-               The state dictionary is empty for the first sync or for any
-               full re-sync.
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that holds the state of the connector.
     """
+    validate_configuration(configuration)
 
     api_key = configuration["api_key"]
     search_query = configuration["search_query"]
