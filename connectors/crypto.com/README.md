@@ -126,7 +126,6 @@ The connector creates the following tables in your destination:
 
 ## Additional files
 
-Some connectors include additional files to modularize functionality. Provide a description of each additional file and its purpose:
 
 - `crypto_connector.log` – Log file generated when file logging is enabled in the configuration
 
