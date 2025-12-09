@@ -46,6 +46,7 @@ from tenacity import (
     retry_if_exception
 )
 
+
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
     Define the schema function which lets you configure the schema your connector delivers.
