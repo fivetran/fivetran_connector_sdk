@@ -50,7 +50,7 @@ These are ready-to-use connectors, requiring minimal modifications to get starte
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>
 
-- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
+- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This example shows how to connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [arango_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/arango_db) - This example demonstrates how to sync data from ArangoDB, a native multi-model database combining document, graph, and key-value capabilities. The connector syncs document collections (airports, points-of-interest) and edge collections (flights) with offset-based pagination and checkpointing. You need to provide your ArangoDB credentials for this example to work.
 - [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
@@ -183,7 +183,7 @@ These examples demonstrate common patterns and best practices for building conne
 <summary>List of connectors for common SDK patterns</summary>
 
 #### Authentication
-- [api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key) - This is a simple example of how to work with API Key authentication for a REST API.
+- [api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key) - This is a simple example of how to work with API key authentication for a REST API.
 - [certificate](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/certificate) - Certificate-based client authentication examples
   - [using_base64_encoded_certificate](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/certificate/using_base64_encoded_certificate) - It is an example of using base64-encoded strings for certificate-based authentication. The script includes functions to decode the certificate and key and use them to authenticate API requests.
   - [retrieve_from_aws](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/certificate/retrieve_from_aws) - It is an example of how to retrieve the certificate from AWS S3 bucket and use it for certificate-based authentication.
