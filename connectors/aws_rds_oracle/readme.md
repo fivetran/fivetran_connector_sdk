@@ -30,7 +30,13 @@ Refer to the [Connector SDK setup guide](https://fivetran.com/docs/connectors/co
 The connector requires the following configuration parameters in `configuration.json`:
 
 ```json
-{  "host": "<YOUR_RDS_ORACLE_HOST>",  "port": "1521",  "service_name": "<YOUR_SERVICE_NAME>",  "user": "<YOUR_DB_USERNAME>",  "password": "<YOUR_DB_PASSWORD>"}
+{
+"host": "<YOUR_RDS_ORACLE_HOST>",
+"port": "1521",
+"service_name": "<YOUR_SERVICE_NAME>",
+"user": "<YOUR_DB_USERNAME>",
+"password": "<YOUR_DB_PASSWORD>"
+}
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -79,7 +85,15 @@ The connector handles data as follows (see the `update()` function):
 The connector is configured to sync the following table (see the `TABLES` list in `connector.py`):
 
 ```json
-{  "table": "FIVETRAN_LOGMINER_TEST",  "primary_key": ["ID"],  "columns": {    "ID": "INT",    "NAME": "STRING",    "LAST_UPDATED": "UTC_DATETIME"  }}
+{
+"table": "FIVETRAN_LOGMINER_TEST",
+"primary_key": ["ID"],
+"columns": {
+    "ID": "INT",
+    "NAME": "STRING",
+    "LAST_UPDATED": "UTC_DATETIME"
+  }
+}
 ```
 
 You can add more tables to the `TABLES` list in `connector.py` as needed.
