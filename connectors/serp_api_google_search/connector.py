@@ -245,7 +245,7 @@ def update(configuration: dict, state: dict):
         # Raising an exception here will fail the sync,
         # which is correct for a fatal error
         raise
-    except Exception as e:
+    except ValueError as e:
         log.severe(f"An error occurred during sync: {e}")
         raise
 
