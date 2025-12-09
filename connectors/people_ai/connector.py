@@ -425,7 +425,7 @@ def update(configuration: dict, state: dict):
         access_token=access_token,
         reauth_func=reauthenticate,  # Pass the reauth function
         op=op,
-        limit=100000,
+        limit=1000,
     )
     total_records_synced += count
 
