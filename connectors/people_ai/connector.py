@@ -267,6 +267,12 @@ def sync_base_activities(
             op.upsert(table=__ACTIVITY_TABLE, data=data_to_upsert)
 
         total += len(page)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        state["activity_offset"] = offset + len(page)
+        op.checkpoint(state)
 
         if len(page) < limit:
             break
@@ -338,6 +344,12 @@ def sync_activity_type(
             op.upsert(table=activity_type, data=data_to_upsert)
 
         total += len(page)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        state["activity_offset"] = offset + len(page)
+        op.checkpoint(state)
 
         if len(page) < limit:
             break
