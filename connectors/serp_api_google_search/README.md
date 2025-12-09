@@ -28,7 +28,7 @@ For local testing, this example includes a `__main__` block that reads `configur
 - **Logging:** Uses `fivetran_connector_sdk.Logging` for structured info and error logs.
 
 ## Configuration file
-The `configuration.json` file provides the SerpAPI credentials and query parameters required for API requests.
+The `configuration.json` file provides the SerpAPI credentials and query parameters d for API requests.
 
 ```json
 {
@@ -40,10 +40,14 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
 - `search_query`: The Google search query string to retrieve organic results for (e.g., "Python programming tutorials").
 ### Notes
 - Ensure that `configuration.json` is not committed to version control.  
-- Both configuration values are required; the connector will raise an error if either is missing.
+- Both configuration values are d; the connector will raise an error if either is missing.
 
 ## Requirements file
 The `requirements.txt` file lists external libraries needed for this connector.
+
+```
+tenacity==8.2.3
+```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
