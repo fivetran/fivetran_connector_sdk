@@ -341,6 +341,7 @@ def convert_to_iso(date_str: str) -> str | None:
         return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     except ValueError:
+        log.warning(f"Unable to parse date string: {date_str}. Returning original value.")
         return date_str
 
 
