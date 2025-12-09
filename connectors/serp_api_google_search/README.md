@@ -36,8 +36,8 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
   "search_query": "<YOUR_SEARCH_QUERY>"
 }
 ```
-- `api_key`: Your SerpAPI API key (client ID).  
-- `search_query`: The query you are looking to get data on
+- `api_key`: Your SerpAPI API key for authentication.  
+- `search_query`: The Google search query string to retrieve organic results for (e.g., "Python programming tutorials").
 ### Notes
 - Ensure that `configuration.json` is not committed to version control.  
 - Both configuration values are required; the connector will raise an error if either is missing.
