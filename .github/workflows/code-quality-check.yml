@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - name: Install dependencies
         run: |
@@ -82,6 +82,7 @@ jobs:
               lines = []
 
           print("### 🧹 Python Code Quality Check\n")
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
 
           if not lines:
               print("✅ No issues found in Python Files.")
@@ -89,7 +90,6 @@ jobs:
           else:
               issue_present = True
               print("⚠️ **Flake8 has detected issues, please fix the issues before merging:**")
-              run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
               print(f"\n📎 [Download full report from workflow artifacts]({run_url}).")  
               print()
               print("📌 _Only Python files changed in this PR were checked._")

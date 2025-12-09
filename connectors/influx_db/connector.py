@@ -51,8 +51,7 @@ def create_influx_client(configuration: dict):
 
 def handle_timestamp(value):
     """
-    This function handles the conversion of timestamp values to UTC ISO format.
-    It ensures that the timestamp is in a strict ISO 8601 format with 'Z' for UTC.
+    This function handles the conversion of timestamp values to UTC datetime object.
     If the value is not a datetime object, it returns the value as is.
     """
     if isinstance(value, datetime):
@@ -61,9 +60,6 @@ def handle_timestamp(value):
             value = value.replace(tzinfo=timezone.utc)
         else:
             value = value.astimezone(timezone.utc)
-        # Convert to ISO format and replace "+00:00" with "Z" to match strict ISO 8601 UTC format.
-        value = value.isoformat().replace("+00:00", "Z")
-
     return value
 
 
@@ -91,23 +87,46 @@ def upsert_record_batch(num_rows, record_batch, column_names, table_name, last_u
             # Store the processed value in the row dictionary.
             row_dict[col] = value
 
-        # Update the latest upserted timestamp if the current row's timestamp is greater.
-        if "time" in row_dict and row_dict["time"] > latest_upserted_timestamp:
-            latest_upserted_timestamp = row_dict["time"]
-
         # The 'upsert' operation is used to insert or update the data in the destination table.
         # The op.upsert method is called with two arguments:
         # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted.
         op.upsert(table=table_name, data=row_dict)
 
+        # Update the latest upserted timestamp if the current row's timestamp is greater.
+        if "time" in row_dict:
+            fetched_time = row_dict.get("time")
+            if fetched_time > latest_upserted_timestamp:
+                latest_upserted_timestamp = fetched_time
+
     # Update the latest upserted timestamp in the state.
-    new_state = {"last_upserted_timestamp": latest_upserted_timestamp}
+    new_state = {"last_upserted_timestamp": latest_upserted_timestamp.isoformat()}
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(new_state)
+
+
+def parse_state_timestamp(timestamp_str):
+    """
+    Parse the last_timestamp from the state dictionary.
+    If the timestamp is not present or invalid, return a default datetime.
+    Args:
+        timestamp_str: a string representing the last processed timestamp
+    Returns:
+        A datetime object representing the last processed timestamp.
+    """
+    if not timestamp_str:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
+    try:
+        # Handle possible 'Z'
+        timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        if timestamp_str.tzinfo is None:
+            timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+        return timestamp_str
+    except ValueError:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def execute_query_and_upsert(client, database, query, table_name, last_upserted_timestamp):
@@ -124,6 +143,7 @@ def execute_query_and_upsert(client, database, query, table_name, last_upserted_
         last_upserted_timestamp: the timestamp of the last upserted record, used for incremental syncs
     """
     try:
+        last_upserted_timestamp = parse_state_timestamp(timestamp_str=last_upserted_timestamp)
         # Execute the query in chunk mode to handle large datasets efficiently.
         # This prevents memory overflow issues.
         record_iterator = client.query(

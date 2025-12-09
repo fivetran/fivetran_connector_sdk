@@ -57,13 +57,32 @@ def process_row(columns, row):
     """
     row_data = {}
     for col_name, value in zip(columns, row):
-        # Convert the datetime objects to ISO format strings
-        if isinstance(value, datetime):
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            value = value.isoformat()
+        # Convert the datetime objects to timezone-aware datetime objects in UTC timezone
+        if isinstance(value, datetime) and value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
         row_data[col_name] = value
     return row_data
+
+
+def parse_state_timestamp(timestamp_str):
+    """
+    Parse the last_timestamp from the state dictionary.
+    If the timestamp is not present or invalid, return a default datetime.
+    Args:
+        timestamp_str: a string representing the last processed timestamp
+    Returns:
+        A datetime object representing the last processed timestamp.
+    """
+    if not timestamp_str:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
+    try:
+        # Handle possible 'Z'
+        timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        if timestamp_str.tzinfo is None:
+            timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+        return timestamp_str
+    except ValueError:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int = 1000):
@@ -77,6 +96,7 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
     """
     # Get the last created timestamp from the state for incremental sync.
     last_created = state.get("last_created", "1990-01-01T00:00:00Z")
+    last_created_timestamp = parse_state_timestamp(timestamp_str=last_created)
 
     # Convert ISO format to Hive-compatible timestamp format
     # Remove 'Z' and 'T' to make it compatible with Hive timestamp format
@@ -109,13 +129,13 @@ def fetch_and_upsert_data(cursor, table_name: str, state: dict, batch_size: int 
 
             # Update the last_created state with the maximum created_at value.
             # This is used to track the last created record for incremental sync.
-            if row_data.get("created_at") and row_data["created_at"] > last_created:
-                last_created = row_data["created_at"]
+            if row_data.get("created_at") and row_data["created_at"] > last_created_timestamp:
+                last_created_timestamp = row_data["created_at"]
 
         # Update the state with the last created timestamp
         # The checkpoint method will be called after processing each batch of rows.
         # This checkpointing logic requires records to be iterated in ascending order, hence the ORDER BY clause in the SQL query
-        new_state = {"last_created": last_created}
+        new_state = {"last_created": last_created_timestamp.isoformat()}
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -150,7 +170,7 @@ def schema(configuration: dict):
         {
             "table": TABLE_NAME,
             "primary_key": ["id"],
-            "columns": {"id": "INT", "name": "STRING", "age": "INT", "created_at": "UTC_DATETIME"},
+            "columns": {"id": "INT", "created_at": "UTC_DATETIME"},
         }
     ]
 

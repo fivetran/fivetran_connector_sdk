@@ -188,7 +188,7 @@ def sync_referrers(base_url, headers, repository, sync_time, state):
             "referrer": referrer.get("referrer"),
             "count": referrer.get("count"),
             "uniques": referrer.get("uniques"),
-            "fetch_date": datetime.now(timezone.utc).date().isoformat(),
+            "fetch_date": datetime.now(timezone.utc).date(),
         }
         op.upsert("repository_referrers", data)
 
@@ -212,7 +212,7 @@ def sync_paths(base_url, headers, repository, sync_time, state):
             "title": path_data.get("title"),
             "count": path_data.get("count"),
             "uniques": path_data.get("uniques"),
-            "fetch_date": datetime.now(timezone.utc).date().isoformat(),
+            "fetch_date": datetime.now(timezone.utc).date(),
         }
         op.upsert("repository_paths", data)
 
@@ -230,7 +230,7 @@ def make_api_request(url, headers):
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            log.severe(f"API request failed on attempt {attempt}: {str(e)}")
+            log.severe(f"API request failed on attempt {attempt}", e)
             if hasattr(e.response, "status_code") and e.response.status_code == 403:
                 log.severe("Access forbidden. Ensure your token has the proper access.")
                 return None

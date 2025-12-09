@@ -68,7 +68,6 @@ The connector uses cursor-based pagination via the `updated_time` column. Batchi
 ## Data handling
 - The connector only syncs records where `updated_time > last_checkpoint_time`.
 - All fields are explicitly mapped in the schema.
-- `hire_date` and `updated_time` are converted to the appropriate formats for sync.
 - Sync state is updated to the latest `updated_time` seen in the batch.
 
 
@@ -88,8 +87,6 @@ The connector creates an `EMPLOYEE_DETAILS` table:
   "primary_key": ["employee_id"],
   "columns": {
     "employee_id": "INT",
-    "first_name": "STRING",
-    "last_name": "STRING",
     "hire_date": "NAIVE_DATE",
     "salary": "LONG",
     "updated_time": "NAIVE_DATETIME"
