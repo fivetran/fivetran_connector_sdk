@@ -45,7 +45,6 @@ The `configuration.json` file provides the SerpAPI credentials and query paramet
 ## Requirements file
 The `requirements.txt` file lists external libraries needed for this connector.
 
-- `requests` is needed to get HTTP requests
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## API calls
