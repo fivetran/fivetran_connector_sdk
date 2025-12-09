@@ -290,17 +290,17 @@ def update(configuration: dict, state: dict) -> None:
 
     conn: Optional["oracledb.Connection"] = None
     for attempt in range(__MAX_RETRIES):
-    try:
-        conn = connect_oracle(configuration=configuration)
-        log.info("Connected to Oracle database")
-        break
-    except (oracledb.OperationalError, oracledb.DatabaseError) as exc:
-        if attempt == __MAX_RETRIES - 1:
-            log.severe(f"Oracle connection failed after {__MAX_RETRIES} attempts: {exc}")
-            raise
-        sleep_time = min(60, 2 ** attempt)
-        log.warning(f"Connection attempt {attempt + 1}/{__MAX_RETRIES} failed, retrying in {sleep_time}s: {exc}")
-        time.sleep(sleep_time)
+        try:
+            conn = connect_oracle(configuration=configuration)
+            log.info("Connected to Oracle database")
+            break
+        except (oracledb.OperationalError, oracledb.DatabaseError) as exc:
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(f"Oracle connection failed after {__MAX_RETRIES} attempts: {exc}")
+                raise
+            sleep_time = min(60, 2 ** attempt)
+            log.warning(f"Connection attempt {attempt + 1}/{__MAX_RETRIES} failed, retrying in {sleep_time}s: {exc}")
+            time.sleep(sleep_time)
 
     try:
         for table_def in __TABLES:
