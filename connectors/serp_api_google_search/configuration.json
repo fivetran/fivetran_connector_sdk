@@ -1,4 +1,4 @@
 {
-    "api_key": "<YOUR_API_KEY>",
-    "search_query": "<YOUR_GOOGLE_SEARCH_QUERY>"
+  "api_key": "<YOUR_SERPAPI_API_KEY>",
+  "search_query": "<YOUR_SEARCH_QUERY>"
 }
