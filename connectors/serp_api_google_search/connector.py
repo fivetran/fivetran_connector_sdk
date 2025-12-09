@@ -261,7 +261,7 @@ def update(configuration: dict, state: dict):
 
     except requests.exceptions.RequestException as e:
         # This catches the error if the API call fails even after all 5 retries
-        log.severe(f"Fatal API error after all retries" " for query" f"'{search_query}': {e}")
+        log.severe(f"Fatal API error after all retries for query '{search_query}': {e}")
         # Raising an exception here will fail the sync,
         # which is correct for a fatal error
         raise
