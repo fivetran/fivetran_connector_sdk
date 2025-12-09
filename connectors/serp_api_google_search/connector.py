@@ -49,12 +49,9 @@ from tenacity import (
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
     """
-    Define the schema function which lets you configure the schema
-    your connector delivers.
-    See the technical reference documentation
-    for more details on the schema function:
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
