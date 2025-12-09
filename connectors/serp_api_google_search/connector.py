@@ -177,17 +177,14 @@ def sync_results(data: dict):
         }
 
         # 4. Perform the upsert operation
-        try:
-            # The 'upsert' operation is used to insert or update data
-            # in the destination table. The first argument is the
-            # name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(
-                table="organic_google_search_results",
-                data=enriched_record,
-            )
-        except Exception as e:
-            log.severe(f"Error during upsert for record: {e}")
+        # The 'upsert' operation is used to insert or update data
+        # in the destination table. The first argument is the
+        # name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(
+            table="organic_google_search_results",
+            data=enriched_record,
+        )
 
     log.info(f"Successfully processed and attempted to upsert {len(organic_results)} records.")
 
