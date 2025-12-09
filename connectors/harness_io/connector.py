@@ -54,10 +54,6 @@ def schema(configuration: dict):
             "primary_key": ["identifier"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "identifier": "STRING",  # Contains a dictionary of column names and data types
-                "orgIdentifier": "STRING",
-                "name": "STRING",
-                "description": "STRING",
-                "isFavorite": "BOOLEAN",
                 "modules": "JSON",
                 "tags": "JSON",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
@@ -75,20 +71,13 @@ def schema(configuration: dict):
             "primary_key": ["uuid"],
             "columns": {
                 "uuid": "STRING",
-                "name": "STRING",
-                "accountId": "STRING",
                 "scope": "JSON",
-                "type": "STRING",
-                "budgetAmount": "DOUBLE",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "mean_time_to_resolution",
             "columns": {
-                "mean_time": "DOUBLE",
                 "unit": "STRING",
-                "band": "STRING",
-                "total_incidents": "INT",
             },
         },
     ]
@@ -269,25 +258,25 @@ def update(configuration: dict, state: dict):
         # Fetch and upsert all projects for the user
         upsert_all_projects_for_user(api_handler=api_handler, state=state)
     except Exception as e:
-        log.severe(f"Error fetching user projects data: {e}")
+        log.severe("Error fetching user projects data", e)
 
     try:
         # Fetch and upsert all connectors
         upsert_all_connectors(api_handler=api_handler, state=state)
     except Exception as e:
-        log.severe(f"Error fetching connectors data: {e}")
+        log.severe("Error fetching connectors data", e)
 
     try:
         # Fetch and upsert all budgets
         upsert_all_budgets(api_handler=api_handler, state=state)
     except Exception as e:
-        log.severe(f"Error fetching budgets data: {e}")
+        log.severe("Error fetching budgets data", e)
 
     try:
         # Fetch and upsert mean time to resolution data
         upsert_mean_time_to_resolution(api_handler=api_handler, state=state)
     except Exception as e:
-        log.severe(f"Error fetching mean time to resolution data: {e}")
+        log.severe("Error fetching mean time to resolution data", e)
 
 
 # Create the connector object using the schema and update functions
