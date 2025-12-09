@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector demonstrates how to sync records from an AWS RDS Oracle database using the Fivetran Connector SDK.It establishes a connection to an Oracle instance and incrementally extracts table data based on an update timestamp, transforming the records into a standardized format for loading into the destination.
+This connector demonstrates how to sync records from an AWS RDS Oracle database using the Fivetran Connector SDK. It establishes a connection to an Oracle instance and incrementally extracts table data based on an update timestamp, transforming the records into a standardized format for loading into the destination.
 
 ## Accreditation
 
