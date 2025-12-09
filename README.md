@@ -45,7 +45,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ### Community connectors
 
-These are ready-to-use full connectors, requiring minimal modifications to get started.
+These are ready-to-use connectors, requiring minimal modifications to get started.
 
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>
