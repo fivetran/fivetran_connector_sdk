@@ -294,8 +294,9 @@ def make_api_request(
                 log.warning(f"Rate limit hit. Retrying in {wait}s...")
                 time.sleep(wait)
             elif 400 <= response.status_code < 500:
-                # Client errors (other than 429) raise immediately.
-                response.raise_for_status()
+            # Client errors (other than 429) should fail immediately without retry
+            log.severe(f"Client error {response.status_code}: {response.text}")
+            response.raise_for_status()
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
@@ -304,10 +305,11 @@ def make_api_request(
                     f"Unexpected HTTP status code: {response.status_code}", response=response
                 )
         except requests.RequestException as e:
-            log.severe("Network error", e)
+            if attempt == retries:
+                raise
+            log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
 
-    raise requests.RequestException(f"Failed after {retries} retries")
 
 
 def filter_columns(record: dict, allowed_columns: dict) -> dict:
