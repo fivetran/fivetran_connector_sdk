@@ -32,8 +32,8 @@ import time
 
 from typing import Optional, Dict, Any, Iterable, Set  # for type hints
 
-__DEFAULT_PAGE_SIZE = 200
-__DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
+_DEFAULT_PAGE_SIZE = 200
+_DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
 _MAX_RETRIES = 3
 
 
@@ -51,7 +51,7 @@ def __parse_date(val: Optional[str]) -> datetime:
 class NetPrintAPI:
     """Minimal API wrapper for NetPrint WebService."""
 
-    def __init__(self, username: str, password: str, base_url: str = __DEFAULT_BASE_URL):
+    def __init__(self, username: str, password: str, base_url: str = _DEFAULT_BASE_URL):
         self.base_url = base_url.rstrip("/") + "/"
         auth_string = f"{username}%{password}%4"
         encoded = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
@@ -103,7 +103,7 @@ class NetPrintAPI:
     def get_folder_size(self):
         return self._request("core/folderSize")
 
-    def iter_files(self, page_size: int = __DEFAULT_PAGE_SIZE) -> Iterable[Dict[str, Any]]:
+    def iter_files(self, page_size: int = _DEFAULT_PAGE_SIZE) -> Iterable[Dict[str, Any]]:
         from_count = 0
         while True:
             res = self._request(
@@ -176,8 +176,8 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
     username = configuration["username"]
     password = configuration["password"]
-    page_size = int(configuration.get("PAGE_SIZE", __DEFAULT_PAGE_SIZE))
-    base_url = configuration.get("BASE_URL", __DEFAULT_BASE_URL)
+    page_size = int(configuration.get("PAGE_SIZE", _DEFAULT_PAGE_SIZE))
+    base_url = configuration.get("BASE_URL", _DEFAULT_BASE_URL)
 
     api = NetPrintAPI(username, password, base_url)
     _sync_static_tables(api)
