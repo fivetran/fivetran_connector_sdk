@@ -41,7 +41,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ## Examples
 
-> Note: To simplify the processes of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
+> Note: To simplify the processes of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern with Connector SDK operations, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
 
 ### Community connectors
 
