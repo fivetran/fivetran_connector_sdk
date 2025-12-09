@@ -35,8 +35,6 @@ def schema(configuration: dict):
             "columns": {
                 "source": "STRING",
                 "published_at": "UTC_DATETIME",
-                "author": "STRING",
-                "title": "STRING",
             },
         }
     ]
@@ -122,8 +120,6 @@ def sync_items(base_url, headers, params, state, topic):
         # Iterate over each user in the 'items' list and performs an upsert operation.
         # The 'upsert' operation inserts the data into the destination.
         # Update the state with the 'updatedAt' timestamp of the current item.
-        summary_first_item = {"title": items[0]["title"], "source": items[0]["source"]}
-
         for a in items:
             op.upsert(
                 table="article",
@@ -194,12 +190,11 @@ def should_continue_pagination(params, response_page):
     total_pages = divmod(int(response_page["totalResults"]), int(params["pageSize"]))[0] + 1
 
     # 100 results is a temporary limit for dev API -- this limit can be removed if you have a paid API key
-    if (
-        current_page
-        and total_pages
-        and current_page < total_pages
-        and current_page * int(params["pageSize"]) < 100
-    ):
+    page_check = current_page and total_pages
+    page_check = page_check and current_page < total_pages
+    page_check = page_check and current_page * int(params["pageSize"]) < 100
+
+    if page_check:
         # Increment the page number for the next request in params
         params["page"] = current_page + 1
     else:
