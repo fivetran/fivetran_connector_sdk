@@ -49,7 +49,7 @@ The connector requires the `oracledb` package to connect to Oracle databases.
 oracledb==3.3.0
 ```
 
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment.To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
