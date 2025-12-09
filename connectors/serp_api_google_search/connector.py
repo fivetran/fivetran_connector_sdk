@@ -214,6 +214,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.
     """
+    log.warning("Example: CONNECTORS : SERP_API_GOOGLE_SEARCH")
     validate_configuration(configuration)
 
     api_key = configuration["api_key"]
