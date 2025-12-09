@@ -63,14 +63,35 @@ def schema(configuration: dict) -> List[Dict[str, Any]]:
     ]
 
 
-# Used for retry logic
+def is_retryable_error(exception: Exception) -> bool:
+    """
+    Only retry on network issues and 5xx server errors.
+    - ConnectionError / Timeout: usually transient → retry
+    - HTTPError:
+        * 5xx: server-side → retry
+        * 4xx: client-side (bad request, auth, etc.) → do NOT retry
+    """
+    # Network / timeout issues
+    if isinstance(exception, (requests.exceptions.ConnectionError,
+                              requests.exceptions.Timeout)):
+        return True
+
+    # HTTP status errors
+    if isinstance(exception, requests.exceptions.HTTPError):
+        response = exception.response
+        # Be defensive in case response is None
+        if response is not None and 500 <= response.status_code < 600:
+            return True
+        return False
+
+    # Other RequestException types are treated as non-retryable
+    return False
+
 @retry(
-    # Start with 1 sec, double up to 60 sec
     wait=wait_exponential(min=1, max=60),
-    stop=stop_after_attempt(5),  # Try up to 5 times
-    # Retry only on specific network/server errors (5xx)
-    retry=retry_if_exception_type(requests.exceptions.RequestException),
-    reraise=True,  # Re-raise the exception after the final failed attempt
+    stop=stop_after_attempt(5),
+    retry=retry_if_exception(is_retryable_error),
+    reraise=True,
 )
 def get_direct_google_search_results(query: str, api_key: str) -> dict:
     """
