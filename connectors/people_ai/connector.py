@@ -206,7 +206,7 @@ def get_page(
 
 
 def sync_base_activities(
-    access_token: str, reauth_func: Callable[[], str], op: op, *, limit: int = 50
+    access_token: str, state: dict, reauth_func: Callable[[], str], op: op, *, limit: int = 50
 ) -> int:
     """
     Handles the full pagination and upsert logic for the base /activities endpoint.
@@ -214,6 +214,9 @@ def sync_base_activities(
 
     Args:
         access_token (str): The authentication token required for API access.
+        state (dict): A dictionary containing state information from previous runs.
+               The state dictionary is empty for the first sync or for any
+               full re-sync.
         reauth_func (Callable[[], str]): A function that, when called,
             performs reauthentication and returns a new access token. Used on 401 errors.
         op (op): A database or storage operation object used to perform
@@ -277,6 +280,7 @@ def sync_base_activities(
 
 def sync_activity_type(
     access_token: str,
+    state: dict,
     reauth_func: Callable[[], str],
     op: op,
     activity_type: str,
@@ -290,6 +294,9 @@ def sync_activity_type(
 
     Args:
         access_token (str): The authentication token required for API access.
+        state: A dictionary containing state information from previous runs.
+               The state dictionary is empty for the first sync or for any
+               full re-sync.
         reauth_func (Callable[[], str]): A function that, when called,
             performs reauthentication and returns a new access token. Used on 401 errors.
         op (op): A database or storage operation object used to perform
@@ -430,6 +437,7 @@ def update(configuration: dict, state: dict):
     log.info("\n--- Starting synchronization for activity table ---")
     count = sync_base_activities(
         access_token=access_token,
+        state=state,
         reauth_func=reauthenticate,  # Pass the reauth function
         op=op,
         limit=1000,
@@ -443,6 +451,7 @@ def update(configuration: dict, state: dict):
     for activity_type in __ACTIVITY_TYPES:
         count = sync_activity_type(
             access_token=access_token,
+            state=state,
             reauth_func=reauthenticate,  # Pass the reauth function
             op=op,
             activity_type=activity_type,
