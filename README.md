@@ -146,7 +146,7 @@ These are ready-to-use connectors, requiring minimal modifications to get starte
 
 ### Quickstart examples
 
-These are graded examples designed to help you get started with the Connector SDK quickly. There are several examples available under `/examples`.
+These examples are designed to help you get started with the Connector SDK quickly. There are about a dozen examples available under `/examples/quickstart_examples`.
 
 <details class="details-heading" open="open">
 <summary>List of quickstart examples</summary>
