@@ -37,20 +37,13 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # The unused imports 'Sequence' and 'Literal' have been removed.
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable, Optional
 
 # Import time module to handle time-related tasks, such as delays.
 import time
 
 # Import requests to make HTTP calls to API
 import requests
-
-# Import Callable for reauth
-import Callable
-
-# Import Optional to annotate variables
-# or return types that can be None
-import Optional
 
 
 # --- Configuration ---
