@@ -293,7 +293,7 @@ def make_api_request(
                     f"Unexpected HTTP status code: {response.status_code}", response=response
                 )
         except requests.RequestException as e:
-            log.severe(f"Network error: {e}")
+            log.severe("Network error", e)
             time.sleep(delay * attempt)
 
     raise requests.RequestException(f"Failed after {retries} retries")
