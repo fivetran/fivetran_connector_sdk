@@ -34,7 +34,6 @@ from typing import Optional, Dict, Any, Iterable, Set  # for type hints
 
 _DEFAULT_PAGE_SIZE = 200
 _DEFAULT_BASE_URL = "https://api-s.printing.ne.jp/usr/webservice/api/"
-_MAX_RETRIES = 3
 
 
 def __parse_date(val: Optional[str]) -> datetime:
