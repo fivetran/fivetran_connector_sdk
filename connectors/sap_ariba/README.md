@@ -34,7 +34,7 @@ Example:
 Key descriptions:
 - `api_key` (required) – SAP Ariba API key used for authentication.
 
-Note: Do not check the `configuration.json` file into version control.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 The `requirements.txt` file lists additional Python dependencies used by the connector. This example does not require any external libraries beyond those preinstalled in the Fivetran execution environment.
