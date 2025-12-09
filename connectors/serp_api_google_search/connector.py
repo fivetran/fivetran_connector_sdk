@@ -74,8 +74,7 @@ def is_retryable_error(exception: Exception) -> bool:
         * 4xx: client-side (bad request, auth, etc.) → do NOT retry
     """
     # Network / timeout issues
-    if isinstance(exception, (requests.exceptions.ConnectionError,
-                              requests.exceptions.Timeout)):
+    if isinstance(exception, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
         return True
 
     # HTTP status errors
@@ -88,6 +87,7 @@ def is_retryable_error(exception: Exception) -> bool:
 
     # Other RequestException types are treated as non-retryable
     return False
+
 
 @retry(
     wait=wait_exponential(min=1, max=60),
@@ -211,6 +211,7 @@ def sync_results(data: dict):
 
     log.info(f"Successfully processed and attempted to upsert {len(organic_results)} records.")
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -224,7 +225,8 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
-            
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function which lets you configure how your connector fetches data.
@@ -252,7 +254,7 @@ def update(configuration: dict, state: dict):
             raise ValueError(f"API returned an error: {search_results['error']}")
 
         sync_results(search_results)
-        
+
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
