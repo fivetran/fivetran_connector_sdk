@@ -137,11 +137,12 @@ def fetch_emails_from_api(url: str, headers: dict, params: Optional[dict] = None
 
 def validate_configuration(configuration: dict) -> None:
     """
-    Validate the configuration settings for the connector.
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If required configuration parameters are missing or invalid.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     api_token = configuration.get("api_token")
 
