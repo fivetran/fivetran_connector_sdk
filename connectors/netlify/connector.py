@@ -85,7 +85,7 @@ def should_skip_record(last_timestamp: Optional[str], current_timestamp: Optiona
     Returns:
         True if the record should be skipped, False otherwise.
     """
-    return last_timestamp and current_timestamp and current_timestamp <= last_timestamp
+    return last_timestamp and current_timestamp and current_timestamp < last_timestamp
 
 
 def update_timestamp(last_timestamp: Optional[str], current_timestamp: Optional[str]):
@@ -519,12 +519,13 @@ def make_api_request_with_retry(url: str, api_token: str):
     for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers)
-            return handle_api_response(response, attempt)
+            result = handle_api_response(response, attempt)
+            if result is not None:
+                return result
+            # If result is None, continue to next retry attempt
 
         except requests.exceptions.RequestException as e:
             handle_request_exception(e, attempt)
-
-    return []
 
 
 def handle_api_response(response, attempt: int):
@@ -545,7 +546,8 @@ def handle_api_response(response, attempt: int):
         return []
 
     if response.status_code in [429, 500, 502, 503, 504]:
-        return handle_retryable_error(response.status_code, response.text, attempt)
+        handle_retryable_error(response.status_code, response.text, attempt)
+        return None  # Continue to next retry attempt
 
     log.severe(f"API request failed with status {response.status_code}: {response.text}")
     raise RuntimeError(f"API request failed with status {response.status_code}: {response.text}")
