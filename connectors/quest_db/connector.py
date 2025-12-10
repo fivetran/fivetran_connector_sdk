@@ -223,7 +223,7 @@ def build_sync_query(
         SQL query string.
     """
     if last_timestamp:
-        return f"SELECT * FROM {table_name} WHERE {timestamp_col} > '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
+        return f"SELECT * FROM {table_name} WHERE {timestamp_col} >= '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
     return f"SELECT * FROM {table_name} ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
 
 
