@@ -390,9 +390,10 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
 
     log.info(f"Email sync completed. Total new emails synced: {total_new_emails_count}")
     # Return the newest email ID (first email from this sync) for next incremental sync
+    if newest_email_id is None and last_synced_email_id is None:
+        log.warning("No emails were synced and no previous state exists. Returning None as sync cursor.")
+        return None
     return newest_email_id if newest_email_id else last_synced_email_id
-
-
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
