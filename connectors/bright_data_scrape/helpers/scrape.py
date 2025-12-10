@@ -27,9 +27,12 @@ from .common import (
     parse_response_payload,
 )
 
+MAX_RESPONSE_SIZE_BYTES = 100 * 1024 * 1024
+CHUNK_SIZE_BYTES = 8192
+
 
 def _parse_large_json_array_streaming(
-    response, max_size_bytes: int = 100 * 1024 * 1024
+    response, max_size_bytes: int = MAX_RESPONSE_SIZE_BYTES
 ):
     """
     Parse a large JSON array response using chunked reading to manage memory.
@@ -57,7 +60,9 @@ def _parse_large_json_array_streaming(
         # Read response in chunks to monitor progress and manage memory pressure
         buffer = ""
         chunk_count = 0
-        for chunk in response.iter_content(chunk_size=8192, decode_unicode=True):
+        for chunk in response.iter_content(
+            chunk_size=CHUNK_SIZE_BYTES, decode_unicode=True
+        ):
             if chunk:
                 buffer += chunk
                 chunk_count += 1
@@ -341,6 +346,7 @@ def _poll_snapshot(
     snapshot_id: str,
     poll_interval: int,
     timeout: int,
+    max_attempts: int = 1000,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Poll the snapshot endpoint until status is "ready" or "failed".
@@ -352,12 +358,13 @@ def _poll_snapshot(
         snapshot_id: Snapshot ID to poll
         poll_interval: Interval between polling attempts in seconds
         timeout: Request timeout in seconds
+        max_attempts: Maximum number of polling attempts before raising an error (default: 1000)
 
     Returns:
         Snapshot data when ready (dict or list)
 
     Raises:
-        RuntimeError: If snapshot fails or request errors occur
+        RuntimeError: If snapshot fails or request errors occur, or if max_attempts is exceeded
     """
     headers = {
         "Authorization": f"Bearer {api_token}",
@@ -369,7 +376,7 @@ def _poll_snapshot(
     }
 
     attempt = 0
-    while True:
+    while attempt < max_attempts:
         attempt += 1
         try:
             response = requests.get(
@@ -420,7 +427,7 @@ def _poll_snapshot(
                 # For non-JSONL responses, check content length before loading into memory
                 # Set a reasonable maximum size (e.g., 100MB) to prevent memory issues
                 content_length = response.headers.get("Content-Length")
-                max_size_bytes = 100 * 1024 * 1024  # 100MB
+                max_size_bytes = MAX_RESPONSE_SIZE_BYTES
                 if content_length and int(content_length) > max_size_bytes:
                     log.warning(
                         f"Snapshot {snapshot_id[:8]}... response size ({content_length} bytes) exceeds "
@@ -568,8 +575,7 @@ def _poll_snapshot(
                         # Extract data from response
                         # Data might be in "data", "records", "results" keys
                         snapshot_data = (
-                            response_data.get("data") or response_data.get("records") or response_data.get("results") or response_data
-                        )
+                            response_data.get("data") or response_data.get("records") or response_data.get("results") or response_data)
 
                         # If no data key, remove status/metadata fields and use remaining fields as data
                         if snapshot_data is None:
@@ -676,3 +682,7 @@ def _poll_snapshot(
         # Wait before next attempt
         # until we receive a ready/failed status or an error occurs
         time.sleep(poll_interval)
+
+    raise RuntimeError(
+        f"Snapshot {snapshot_id[:8]} polling timeed out after {max_attempts} attempts"
+    )
