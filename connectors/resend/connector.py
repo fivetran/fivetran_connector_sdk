@@ -375,10 +375,6 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
                 log.info(f"No more emails to sync. Total synced: {emails_synced_count}")
                 break
 
-            # No more emails in this page
-            if not emails:
-                break
-
             # Set up pagination for next page
             params["after"] = last_page_email_id
             log.info(f"Fetching next page after email ID: {last_page_email_id}")
