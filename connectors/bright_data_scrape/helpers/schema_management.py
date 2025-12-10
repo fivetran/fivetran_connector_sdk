@@ -13,6 +13,7 @@ import yaml
 from fivetran_connector_sdk import Logging as log
 
 FIELDS_FILE = Path("fields.yaml")
+TABLES_KEY = "tables"
 
 
 def _load_existing_tables() -> dict:
@@ -22,20 +23,20 @@ def _load_existing_tables() -> dict:
         Dictionary with 'tables' key containing existing table definitions, or empty structure if file doesn't exist or is invalid.
     """
     if not FIELDS_FILE.exists():
-        return {"tables": {}}
+        return {TABLES_KEY: {}}
 
     try:
         with FIELDS_FILE.open("r", encoding="utf-8") as yaml_file:
             data = yaml.safe_load(yaml_file) or {}
     except (IOError, yaml.YAMLError) as exc:
-        log.info(f"Warning: Could not read existing fields.yaml: {str(exc)}")
-        return {"tables": {}}
+        log.warning(f"Warning: Could not read existing fields.yaml: {str(exc)}")
+        return {TABLES_KEY: {}}
 
-    tables = data.get("tables", {})
+    tables = data.get(TABLES_KEY, {})
     if not isinstance(tables, dict):
-        log.info("Warning: Unexpected fields.yaml structure. Resetting tables section.")
+        log.warning("Warning: Unexpected fields.yaml structure. Resetting tables section.")
         tables = {}
-    return {"tables": tables}
+    return {TABLES_KEY: tables}
 
 
 def _default_description(table_name: str) -> str:
@@ -66,7 +67,7 @@ def update_fields_yaml(fields: Set[str], table_name: str) -> None:
     sorted_fields = sorted(list(fields))
 
     fields_data = _load_existing_tables()
-    tables = fields_data.setdefault("tables", {})
+    tables = fields_data.setdefault(TABLES_KEY, {})
     table_entry = tables.setdefault(
         table_name,
         {
