@@ -55,14 +55,9 @@ The connector uses Bearer token authentication with Resend API keys. To obtain y
 Note: Resend API keys are shown only once upon creation. Store them securely.
 
 ## Pagination
-The connector implements Resend's cursor-based pagination system using the `after` parameter. It processes emails in pages and uses the `has_more` flag to determine if additional pages exist. The connector uses the last email ID from each page to fetch subsequent pages. Refer to the `sync_emails` function.
+The connector implements Resend's cursor-based pagination system using the `after` parameter. It processes emails in pages and uses the `has_more` flag to determine if additional pages exist. The connector uses the last email ID from each page to fetch subsequent pages.
 
-The Resend API returns emails sorted by creation date in descending order (newest first). This ordering is leveraged for efficient incremental syncing.
-
-## Incremental sync
-The connector implements incremental syncing to efficiently fetch only new emails since the last sync. 
-
-The strategy works as follows:
+The Resend API returns emails sorted by creation date in descending order (newest first). This ordering is leveraged for efficient incremental syncing as follows:
 
 For the first sync, the connector fetches all emails using pagination and saves the newest (first) email ID to state. For subsequent syncs, the connector fetches emails starting from the newest and stops when it reaches the previously synced email ID. The state management stores the newest email ID from each sync in `files/state.json` for the next sync. Checkpointing creates checkpoints every 50 emails with the newest email ID for recovery.
 
@@ -71,7 +66,8 @@ Since the Resend API returns emails sorted newest-first without date filtering, 
 Note: Refer to the `sync_emails` function for the implementation.
 
 ## Data handling
-The connector processes email data from the `/emails` endpoint which contains email metadata including sender, recipients, subject, timestamps, and delivery status. All nested JSON structures are flattened using the `flatten_dict` function to create optimal table schemas. Arrays are converted to JSON strings for storage.
+The connector processes email data from the `/emails` endpoint which contains email metadata including sender, recipients, subject, timestamps, and delivery status. All nested JSON structures are flattened using the `flatten_dict` function to create optimal table schemas.
+Array fields (such as `to`, `cc`, `bcc`, and `reply_to`) are serialized to JSON strings for storage. This approach ensures compatibility with flat table schemas but requires downstream parsing if you need to access individual array elements.
 
 ## Error handling
 The connector implements comprehensive error handling strategies. Refer to the `fetch_emails_from_api` function:

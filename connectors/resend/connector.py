@@ -47,7 +47,7 @@ def flatten_dict(data: dict, prefix: str = "", separator: str = "_") -> dict:
         separator: Separator to use between nested keys
 
     Returns:
-        A flattened dictionary
+        A flattened dictionary with nested objects flattened and arrays converted to JSON strings
     """
     flattened = {}
 
@@ -181,6 +181,9 @@ def update(configuration: dict, state: dict):
     """
 
     log.warning("Example: API Connector : Resend Emails Connector")
+
+    # Validate configuration before proceeding
+    validate_configuration(configuration)
 
     # Extract configuration parameters
     api_token = configuration.get("api_token")
@@ -387,10 +390,16 @@ def sync_emails(headers: dict, last_synced_email_id: Optional[str] = None) -> Op
 
     log.info(f"Email sync completed. Total new emails synced: {total_new_emails_count}")
     # Return the newest email ID (first email from this sync) for next incremental sync
+    # Handle edge case: if no emails exist in the account (first sync with empty dataset)
     if newest_email_id is None and last_synced_email_id is None:
-        log.warning("No emails were synced and no previous state exists. Returning None as sync cursor.")
+        log.warning(
+            "No emails were synced and no previous state exists. Returning None as sync cursor."
+        )
         return None
+    # If no new emails in this sync but we have previous state, keep the previous cursor
     return newest_email_id if newest_email_id else last_synced_email_id
+
+
 # This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
