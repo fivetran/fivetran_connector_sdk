@@ -253,7 +253,7 @@ def validate_configuration(configuration: Dict[str, Any]) -> None:
 
     missing_keys = [key for key in required_keys if key not in configuration]
     if missing_keys:
-        raise ValueError(f"Missing required configuration keys: {", ".join(missing_keys)}")
+        raise ValueError(f"Missing required configuration keys: {', '.join(missing_keys)}")
 
 
 def get_oauth_token(token_url: str, client_id: str, client_secret: str) -> str:
