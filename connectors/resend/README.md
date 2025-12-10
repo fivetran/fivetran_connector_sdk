@@ -100,7 +100,7 @@ The connector creates a single table named `EMAIL` with the following columns:
 | `reply_to` | STRING | Reply-to addresses (JSON array) |
 | `scheduled_at` | STRING | Scheduled send time (if applicable) |
 
-The table uses `id` as the primary key. The connector automatically infers additional column types from the API response data.
+The table uses `id` as the primary key. The following columns are commonly present in the email data (actual columns may vary based on API response).
 
 Note: Detailed event tracking (such as opens, clicks, individual event timestamps) is not available through the List Emails API. Resend provides this data through webhooks, which is outside the scope of this connector.
 
