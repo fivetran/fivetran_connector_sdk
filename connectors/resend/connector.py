@@ -17,7 +17,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # For making HTTP API requests (provided by SDK runtime)
-import requests  # For making HTTP API requests (provided by SDK runtime)
+import requests
 
 # For handling time operations and timestamps
 import time
