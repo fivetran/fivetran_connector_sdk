@@ -39,12 +39,7 @@ from typing import List, Dict, Any  # For type hints in function signatures
 import requests
 
 # For implementing exponential backoff retry logic with API requests
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception
-)
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 
 def schema(configuration: dict) -> List[Dict[str, Any]]:
