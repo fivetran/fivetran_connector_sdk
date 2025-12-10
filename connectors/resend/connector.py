@@ -281,6 +281,9 @@ def process_email_batch(
 
     for idx, email in enumerate(emails):
         email_id = email.get("id")
+        if not email_id:
+            log.warning(f"Skipping email at index {idx} without ID: {email}")
+            continue
 
         # Track the newest email ID
         newest_email_id = track_newest_email_id(idx, email_id, newest_email_id)
