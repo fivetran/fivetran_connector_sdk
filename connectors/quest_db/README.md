@@ -46,7 +46,7 @@ The connector requires the following configuration parameters:
 Configuration parameters:
 
 
-- `tables`  (required) - Comma-separated list of table names to sync (e.g., `SENSOR_DATA`,`MARKET_TICSK`)
+- `tables`  (required) - Comma-separated list of table names to sync (e.g., `SENSOR_DATA`, `MARKET_TICKS`)
 - `host` (optional) - QuestDB server hostname or IP address (defaults to `localhost`)
 - `port` (optional) - QuestDB REST API port (defaults to `9000`)
 - `username` (optional) - QuestDB username for HTTP basic authentication
