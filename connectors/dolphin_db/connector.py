@@ -14,10 +14,10 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import the required libraries
-import datetime
 import json
 import pydolphindb  # This is used to connect to DolphinDB
-import pandas as pd
+import pandas as pd  # This is used for data manipulation
+from datetime import datetime, timezone  # This is used for handling timestamps
 
 # Define the batch size for fetching data from DolphinDB in batches
 BATCH_SIZE = 1000
@@ -38,21 +38,39 @@ def validate_configuration(configuration: dict):
 def serialize_row_data(row: dict):
     """
     Serialize the row data to ensure it is in the correct format for upserting.
-    This function converts datetime objects to ISO strings.
+    This function converts pandas timestamp objects to python datetime objects.
     You can modify this function to handle other data types as needed.
     Args:
         row: a dictionary representing a single row of data.
     Returns:
-        A serialized dictionary with datetime objects converted to strings.
+        A serialized dictionary with datetime objects.
     """
     for key, value in row.items():
-        if isinstance(value, datetime.datetime):
-            row[key] = value.isoformat()  # Convert datetime to ISO format string
-        elif isinstance(value, pd.Timestamp):
-            row[key] = (
-                value.to_pydatetime().isoformat()
-            )  # Convert pandas Timestamp to ISO format string
+        if isinstance(value, pd.Timestamp):
+            row[key] = value.to_pydatetime()  # Convert pandas Timestamp to python datetime object
     return row
+
+
+def parse_state_timestamp(state):
+    """
+    Parse the last_timestamp from the state dictionary.
+    If the timestamp is not present or invalid, return a default datetime.
+    Args:
+        state: a dictionary containing state information from previous runs
+    Returns:
+        A datetime object representing the last processed timestamp.
+    """
+    timestamp_str = state.get("last_timestamp")
+    if not timestamp_str:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
+    try:
+        # Handle possible 'Z'
+        timestamp_str = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        if timestamp_str.tzinfo is None:
+            timestamp_str = timestamp_str.replace(tzinfo=timezone.utc)
+        return timestamp_str
+    except ValueError:
+        return datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 def create_dolphin_client(configuration: dict):
@@ -91,7 +109,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         batch_size: the number of rows to fetch in each batch
     """
     # Initialize the last_timestamp from the state or set a default value
-    last_timestamp = state.get("last_timestamp", "1990-01-01T00:00:00")
+    last_timestamp = parse_state_timestamp(state=state)
 
     # Execute the query to fetch data from the DolphinDB table
     cursor.execute(query)
@@ -126,7 +144,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
                 # Update the last_timestamp if the current row's timestamp is greater
                 last_timestamp = upsert_row["timestamp"]
 
-        state["last_timestamp"] = last_timestamp
+        state["last_timestamp"] = last_timestamp.isoformat()
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -134,7 +152,7 @@ def execute_query_and_upsert(cursor, query, table_name, state, batch_size=1000):
         op.checkpoint(state)
 
     # After processing all rows, update the state with the last processed timestamp and checkpoint it
-    state["last_timestamp"] = last_timestamp
+    state["last_timestamp"] = last_timestamp.isoformat()
     op.checkpoint(state)
 
 
@@ -199,8 +217,8 @@ def update(configuration, state):
     # The query is ordered by timestamp to ensure the data is processed in chronological order. This is important for data consistency.
     # You can modify this query to suit your needs
     dolphin_query = f"""
-    select symbol, timestamp, price, volume 
-    from loadTable('dfs://{database_name}', '{table_name}') 
+    select symbol, timestamp, price, volume
+    from loadTable('dfs://{database_name}', '{table_name}')
     where timestamp > nanotimestamp("{last_timestamp.replace("-", ".")}")
     order by timestamp
     """

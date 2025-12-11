@@ -115,7 +115,7 @@ def upsert_fetched_rows(session, keyspace: str, table_name: str, state: dict):
         record = {
             "id": str(row.id),
             "name": row.name,
-            "created_at": row_created_at.isoformat() if row.created_at else None,
+            "created_at": row_created_at if row.created_at else None,
         }
 
         # Upsert the record into destination and increment the record count
@@ -165,7 +165,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
-                "name": "STRING",
                 "created_at": "UTC_DATETIME",
             },
         }
