@@ -32,6 +32,9 @@ import time
 # For encoding authentication credentials
 import base64
 
+# For validating SQL identifiers
+import re
+
 # Batch size for pagination
 __BATCH_SIZE = 1000
 
@@ -50,17 +53,42 @@ __REQUEST_TIMEOUT_SEC = 60
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
+    Validate the configuration dictionary to ensure it contains all required parameters with valid values.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     required_configs = ["host", "port", "tables"]
     for key in required_configs:
-        if key not in configuration:
+        if key not in configuration or not configuration[key]:
             raise ValueError(f"Missing required configuration value: {key}")
+
+    # Validate port is a valid integer
+    try:
+        port = int(configuration["port"])
+        if port < 1 or port > 65535:
+            raise ValueError(f"Port must be between 1 and 65535, got {port}")
+    except (ValueError, TypeError):
+        raise ValueError(f"Port must be a valid integer, got {configuration['port']}")
+
+    # Validate batch_size if provided
+    if "batch_size" in configuration:
+        try:
+            batch_size = int(configuration["batch_size"])
+            if batch_size < 1:
+                raise ValueError(f"batch_size must be positive, got {batch_size}")
+        except (ValueError, TypeError):
+            raise ValueError(
+                f"batch_size must be a valid integer, got {configuration['batch_size']}"
+            )
+
+    # Validate username/password together
+    username = configuration.get("username")
+    password = configuration.get("password")
+    if (username and not password) or (password and not username):
+        raise ValueError("Both username and password must be provided for authentication")
 
 
 def schema(configuration: dict):
@@ -80,6 +108,18 @@ def schema(configuration: dict):
             schemas.append({"table": table_name, "primary_key": ["_fivetran_synced_key"]})
 
     return schemas
+
+
+def validate_identifier(identifier: str) -> bool:
+    """
+    Validate SQL identifier to prevent SQL injection.
+    Args:
+        identifier: SQL identifier (table name or column name) to validate.
+    Returns:
+        True if identifier is valid, False otherwise.
+    """
+    # Allow only alphanumeric characters and underscores, must start with letter or underscore
+    return bool(re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", identifier))
 
 
 def build_questdb_url(configuration: dict, query: str) -> str:
@@ -160,7 +200,7 @@ def handle_response_status(response: requests.Response, attempt: int) -> Any | N
     raise RuntimeError(f"Query execution failed: {response.status_code} - {response.text}")
 
 
-def execute_questdb_query(configuration: dict, query: str) -> Any | None:
+def execute_questdb_query(configuration: dict, query: str) -> Any:
     """
     Execute a SQL query against QuestDB REST API with retry logic.
     Args:
@@ -187,25 +227,9 @@ def execute_questdb_query(configuration: dict, query: str) -> Any | None:
         except requests.RequestException as e:
             handle_retry_logic(attempt, f"Request exception: {str(e)}")
 
-    return None
-
-
-def get_table_columns(configuration: dict, table_name: str) -> list:
-    """
-    Get column information for a QuestDB table.
-    Args:
-        configuration: Configuration dictionary.
-        table_name: Name of the table.
-    Returns:
-        List of column dictionaries with name and type.
-    """
-    query = f"SELECT * FROM {table_name} LIMIT 0"
-    try:
-        response = execute_questdb_query(configuration, query)
-        return response.get("columns", [])
-    except (RuntimeError, requests.RequestException, KeyError, ValueError) as e:
-        log.warning(f"Failed to get columns for table {table_name}: {str(e)}")
-        return []
+    # If we've exhausted all retries, raise an exception
+    log.severe(f"Failed to execute query after {__MAX_RETRIES} attempts")
+    raise RuntimeError(f"Failed to execute query after {__MAX_RETRIES} attempts")
 
 
 def build_sync_query(
@@ -221,7 +245,14 @@ def build_sync_query(
         batch_size: Number of records per batch.
     Returns:
         SQL query string.
+    Raises:
+        ValueError: If table_name or timestamp_col contain invalid characters.
     """
+    if not validate_identifier(table_name):
+        raise ValueError(f"Invalid table name: {table_name}")
+    if not validate_identifier(timestamp_col):
+        raise ValueError(f"Invalid column name: {timestamp_col}")
+
     if last_timestamp:
         return f"SELECT * FROM {table_name} WHERE {timestamp_col} >= '{last_timestamp}' ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
     return f"SELECT * FROM {table_name} ORDER BY {timestamp_col} LIMIT {offset},{batch_size}"
@@ -243,7 +274,12 @@ def find_timestamp_index(column_names: list, timestamp_col: str) -> int | None:
 
 
 def transform_row_to_record(
-    row: list, column_names: list, timestamp_idx: int | None, table_name: str, row_idx: int
+    row: list,
+    column_names: list,
+    timestamp_idx: int | None,
+    table_name: str,
+    row_idx: int,
+    offset: int,
 ) -> tuple[dict, str | None]:
     """
     Transform a row from QuestDB response into a record dictionary.
@@ -252,7 +288,8 @@ def transform_row_to_record(
         column_names: List of column names.
         timestamp_idx: Index of timestamp column.
         table_name: Name of the table.
-        row_idx: Row index for generating unique key.
+        row_idx: Row index within the current batch.
+        offset: Global offset for this batch to ensure unique keys across all batches.
     Returns:
         Tuple of (record dictionary, row timestamp value).
     """
@@ -265,7 +302,7 @@ def transform_row_to_record(
             if idx == timestamp_idx:
                 row_timestamp = value
 
-    record["_fivetran_synced_key"] = f"{table_name}_{row_timestamp}_{row_idx}"
+    record["_fivetran_synced_key"] = f"{table_name}_{row_timestamp}_{offset + row_idx}"
     return record, row_timestamp
 
 
@@ -283,22 +320,26 @@ def checkpoint_if_needed(
         Reset counter (0 if checkpointed, unchanged otherwise).
     """
     if records_since_checkpoint >= __CHECKPOINT_INTERVAL:
-        new_state = state.copy()
         if max_timestamp:
-            new_state[f"{table_name}_last_timestamp"] = max_timestamp
-        new_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+            state[f"{table_name}_last_timestamp"] = max_timestamp
+        state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-        op.checkpoint(new_state)
+        op.checkpoint(state)
         log.info(f"Checkpointed at timestamp {max_timestamp} for {table_name}")
         return 0
     return records_since_checkpoint
 
 
 def process_batch(
-    dataset: list, columns: list, timestamp_col: str, table_name: str, max_timestamp: str | None
+    dataset: list,
+    columns: list,
+    timestamp_col: str,
+    table_name: str,
+    max_timestamp: str | None,
+    offset: int,
 ) -> tuple[int, str | None]:
     """
     Process a batch of records and upsert to destination.
@@ -308,6 +349,7 @@ def process_batch(
         timestamp_col: Name of timestamp column.
         table_name: Name of the table.
         max_timestamp: Current maximum timestamp.
+        offset: Global offset for this batch to ensure unique keys across all batches.
     Returns:
         Tuple of (number of records processed, new maximum timestamp).
     """
@@ -318,7 +360,7 @@ def process_batch(
 
     for row_idx, row in enumerate(dataset):
         record, row_timestamp = transform_row_to_record(
-            row, column_names, timestamp_idx, table_name, row_idx
+            row, column_names, timestamp_idx, table_name, row_idx, offset
         )
 
         if row_timestamp and (new_max_timestamp is None or row_timestamp > new_max_timestamp):
@@ -374,7 +416,7 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
 
             # Process batch of records
             batch_records, max_timestamp = process_batch(
-                dataset, columns, timestamp_col, table_name, max_timestamp
+                dataset, columns, timestamp_col, table_name, max_timestamp, offset
             )
             total_records += batch_records
             records_since_checkpoint += batch_records
@@ -395,15 +437,14 @@ def sync_table_data(configuration: dict, table_name: str, state: dict) -> int:
             raise RuntimeError(f"Failed to sync table {table_name}: {str(e)}")
 
     # Final checkpoint
-    final_state = state.copy()
     if max_timestamp:
-        final_state[f"{table_name}_last_timestamp"] = max_timestamp
-    final_state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+        state[f"{table_name}_last_timestamp"] = max_timestamp
+    state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(final_state)
+    op.checkpoint(state)
 
     log.info(f"Completed sync for {table_name}, total records: {total_records}")
     return total_records

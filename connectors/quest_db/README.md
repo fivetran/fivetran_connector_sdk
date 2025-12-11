@@ -33,13 +33,13 @@ The connector requires the following configuration parameters:
 
 ```json
 {
-  "host": "<YOUR_QUESTDB_HOST_DEFAULT_LOCALHOST>",
-  "port": "<YOUR_QUESTDB_REST_API_PORT_DEFAULT_9000>",
-  "username": "<YOUR_QUESTDB_USERNAME_OPTIONAL>",
-  "password": "<YOUR_QUESTDB_PASSWORD_OPTIONAL>",
+  "host": "<YOUR_QUESTDB_HOST>",
+  "port": "<YOUR_QUESTDB_REST_API_PORT>",
+  "username": "<YOUR_QUESTDB_USERNAME>",
+  "password": "<YOUR_QUESTDB_PASSWORD>",
   "tables": "<COMMA_SEPARATED_TABLE_NAMES_TO_SYNC>",
-  "batch_size": "<BATCH_SIZE_FOR_PAGINATION_DEFAULT_1000>",
-  "timestamp_column": "<TIMESTAMP_COLUMN_NAME_DEFAULT_TIMESTAMP>"
+  "batch_size": "<BATCH_SIZE_FOR_PAGINATION>",
+  "timestamp_column": "<TIMESTAMP_COLUMN_NAME>"
 }
 ```
 
