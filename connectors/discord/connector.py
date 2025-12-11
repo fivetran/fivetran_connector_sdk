@@ -40,6 +40,7 @@ __BASE_DELAY = 1  # Base delay in seconds for API request retries
 __RATE_LIMIT_DELAY = 1  # Additional delay when rate limited
 __BATCH_SIZE = 100  # Number of records to process in each batch
 __CHECKPOINT_INTERVAL = 50  # Checkpoint every N records for large datasets
+__DISCORD_API_MAX_MEMBERS_LIMIT = 1000  # Max members per request as per Discord API
 
 # Discord API base URL
 __DISCORD_API_BASE = "https://discord.com/api/v10"
@@ -71,18 +72,11 @@ def validate_configuration(configuration: dict):
         raise ValueError("Bot token cannot be empty")
 
     # Check if token already has proper prefix
-    if not bot_token.startswith(("Bot ", "Bearer ")):
+    if not bot_token.startswith("Bot "):
         log.info("Bot token missing prefix, adding 'Bot ' prefix automatically")
         configuration["bot_token"] = f"Bot {bot_token}"
     else:
         log.info("Bot token already has proper prefix")
-
-    # Set default values for optional parameters
-    configuration.setdefault("sync_all_guilds", "true")
-    configuration.setdefault("guild_ids", "")
-    configuration.setdefault("exclude_guild_ids", "")
-    configuration.setdefault("sync_messages", "true")
-    configuration.setdefault("message_limit", "1000")
 
 
 def get_discord_headers(bot_token: str) -> dict:
@@ -98,6 +92,71 @@ def get_discord_headers(bot_token: str) -> dict:
         "Content-Type": "application/json",
         "User-Agent": "Fivetran-Discord-Connector/1.0",
     }
+
+
+def _handle_rate_limit(response: requests.Response, attempt: int) -> None:
+    """
+    Handle Discord API rate limit (429) responses.
+    Args:
+        response: The HTTP response with 429 status
+        attempt: Current retry attempt number
+    """
+    retry_after = float(response.headers.get("Retry-After", __RATE_LIMIT_DELAY))
+    log.warning(
+        f"Rate limited. Waiting {retry_after} seconds before retry "
+        f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+    )
+    time.sleep(retry_after)
+
+
+def _handle_server_error(response: requests.Response, attempt: int) -> None:
+    """
+    Handle Discord API server errors (5xx) with exponential backoff.
+    Args:
+        response: The HTTP response with 5xx status
+        attempt: Current retry attempt number
+    Raises:
+        RuntimeError: If this is the final retry attempt
+    """
+    if attempt < __MAX_RETRIES - 1:
+        delay = __BASE_DELAY * (2**attempt)
+        log.warning(
+            f"Server error {response.status_code}, retrying in {delay} seconds "
+            f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+        )
+        time.sleep(delay)
+    else:
+        log.severe(
+            f"Server error {response.status_code} after {__MAX_RETRIES} attempts: "
+            f"{response.text}"
+        )
+        raise RuntimeError(
+            f"Discord API returned {response.status_code} after {__MAX_RETRIES} attempts"
+        )
+
+
+def _handle_request_exception(exception: Exception, attempt: int) -> None:
+    """
+    Handle request exceptions with exponential backoff.
+    Args:
+        exception: The exception that occurred
+        attempt: Current retry attempt number
+    Raises:
+        RuntimeError: If this is the final retry attempt
+    """
+    if attempt < __MAX_RETRIES - 1:
+        delay = __BASE_DELAY * (2**attempt)
+        log.warning(
+            f"Request failed: {str(exception)}, retrying in {delay} seconds "
+            f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+        )
+        time.sleep(delay)
+    else:
+        log.severe(f"Request failed after {__MAX_RETRIES} attempts: {str(exception)}")
+        raise RuntimeError(
+            f"Discord API request failed after {__MAX_RETRIES} attempts: "
+            f"{str(exception)}"
+        )
 
 
 def make_discord_request(
@@ -120,34 +179,12 @@ def make_discord_request(
 
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code == 429:  # Rate limited
-                retry_after = float(
-                    response.headers.get("Retry-After", __RATE_LIMIT_DELAY)
-                )
-                log.warning(
-                    f"Rate limited. Waiting {retry_after} seconds before retry "
-                    f"(attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(retry_after)
+            elif response.status_code == 429:
+                _handle_rate_limit(response, attempt)
                 continue
-            elif response.status_code in [500, 502, 503, 504]:  # Server errors
-                if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_DELAY * (2**attempt)  # Exponential backoff
-                    log.warning(
-                        f"Server error {response.status_code}, retrying in {delay} "
-                        f"seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
-                    )
-                    time.sleep(delay)
-                    continue
-                else:
-                    log.severe(
-                        f"Server error {response.status_code} after "
-                        f"{__MAX_RETRIES} attempts: {response.text}"
-                    )
-                    raise RuntimeError(
-                        f"Discord API returned {response.status_code} after "
-                        f"{__MAX_RETRIES} attempts"
-                    )
+            elif response.status_code in [500, 502, 503, 504]:
+                _handle_server_error(response, attempt)
+                continue
             else:
                 log.severe(f"Discord API error {response.status_code}: {response.text}")
                 raise RuntimeError(
@@ -155,20 +192,8 @@ def make_discord_request(
                 )
 
         except requests.exceptions.RequestException as e:
-            if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_DELAY * (2**attempt)
-                log.warning(
-                    f"Request failed: {str(e)}, retrying in {delay} seconds "
-                    f"(attempt {attempt + 1}/{__MAX_RETRIES})"
-                )
-                time.sleep(delay)
-                continue
-            else:
-                log.severe(f"Request failed after {__MAX_RETRIES} attempts: {str(e)}")
-                raise RuntimeError(
-                    f"Discord API request failed after {__MAX_RETRIES} attempts: "
-                    f"{str(e)}"
-                )
+            _handle_request_exception(e, attempt)
+            continue
 
     raise RuntimeError(f"Discord API request failed after {__MAX_RETRIES} attempts")
 
@@ -273,7 +298,7 @@ def fetch_guild_channels(guild_id: str, headers: dict) -> List[dict]:
     return result if isinstance(result, list) else []
 
 
-def fetch_guild_members(guild_id: str, headers: dict, limit: int = 1000) -> List[dict]:
+def fetch_guild_members(guild_id: str, headers: dict, limit: int = __DISCORD_API_MAX_MEMBERS_LIMIT) -> List[dict]:
     """
     Fetch guild members from Discord API.
     Args:
@@ -284,13 +309,13 @@ def fetch_guild_members(guild_id: str, headers: dict, limit: int = 1000) -> List
         list: List of member data from Discord API
     """
     url = f"{__DISCORD_API_BASE}/guilds/{guild_id}/members"
-    params = {"limit": min(limit, 1000)}  # Discord API max limit is 1000
+    params = {"limit": min(limit, __DISCORD_API_MAX_MEMBERS_LIMIT)}  # Discord API max limit is 1000
     result = make_discord_request(url, headers, params)
     return result if isinstance(result, list) else []
 
 
 def fetch_channel_messages(
-    channel_id: str, headers: dict, after: Optional[str] = None, limit: int = 100
+    channel_id: str, headers: dict, after: Optional[str] = None, limit: int = __BATCH_SIZE
 ) -> List[dict]:
     """
     Fetch messages from a Discord channel.
@@ -303,7 +328,7 @@ def fetch_channel_messages(
         list: List of message data from Discord API
     """
     url = f"{__DISCORD_API_BASE}/channels/{channel_id}/messages"
-    params: Dict[str, Any] = {"limit": min(limit, 100)}  # Discord API max limit is 100
+    params: Dict[str, Any] = {"limit": min(limit, __BATCH_SIZE)}  # Discord API max limit is 100
     if after:
         params["after"] = after
 
@@ -667,7 +692,7 @@ def process_single_guild(
                             channel_id,
                             headers,
                             after=last_message_id,
-                            limit=min(100, message_limit - messages_fetched),
+                            limit=min(__BATCH_SIZE, message_limit - messages_fetched),
                         )
 
                         if not messages_data:
