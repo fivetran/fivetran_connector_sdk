@@ -1,0 +1,7 @@
+{
+  "workday_url": "http://localhost:5001",
+  "username": "test_user",
+  "password": "test_password",
+  "tenant": "TestTenant",
+  "effective_start_date": "2025-06-01"
+}
