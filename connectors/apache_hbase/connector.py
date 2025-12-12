@@ -112,9 +112,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",
-                "name": "STRING",
-                "age": "INT",
-                "city": "STRING",
                 "created_at": "UTC_DATETIME",
             },
         }
