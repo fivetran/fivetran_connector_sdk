@@ -1,0 +1,4 @@
+{
+  "api_key": "<YOUR_REFINER_API_KEY>",
+  "start_date": "<OPTIONAL_START_DATE_UTC_ISO8601_FORMAT>"
+}
