@@ -49,8 +49,6 @@ def schema(configuration: dict):
             "primary_key": ["transaction_id"],  # Primary key column(s) for the table, optional.
             "columns": {  # Definition of columns and their types, optional.
                 "transaction_id": "STRING",  # Contains a dictionary of column names and data types
-                "transaction_amount": "DOUBLE",
-                "transaction_status": "STRING",
                 "created_at": "NAIVE_DATETIME",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         }
