@@ -1,5 +1,5 @@
 """
-This connector extracts data from DocuSign eSignature API to enable
+This connector extracts data from Docusign eSignature API to enable
 analytics for Sales, Legal and other departments and teams.
 See the Technical Reference documentation:
 https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
@@ -17,7 +17,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# For making HTTP API requests to DocuSign (provided by SDK runtime)
+# For making HTTP API requests to Docusign (provided by SDK runtime)
 import requests
 
 # For handling date and time operations
@@ -111,14 +111,14 @@ def schema(configuration: dict):
     ]
 
 
-def get_docusign_headers(configuration: dict) -> Dict[str, str]:
+def get_Docusign_headers(configuration: dict) -> Dict[str, str]:
     """
-    Generate authentication headers for DocuSign API.
+    Generate authentication headers for Docusign API.
     Uses OAuth2 authentication with access token.
     Args:
         configuration: A dictionary containing the connector configuration.
     Returns:
-        A dictionary of HTTP headers for DocuSign API requests.
+        A dictionary of HTTP headers for Docusign API requests.
     """
     return {
         "Authorization": f"Bearer {configuration['access_token']}",
@@ -129,12 +129,12 @@ def get_docusign_headers(configuration: dict) -> Dict[str, str]:
 
 def get_base_url(configuration: dict) -> str:
     """
-    Construct the base URL for DocuSign API calls.
+    Construct the base URL for Docusign API calls.
     Uses the account ID and base URL from configuration.
     Args:
         configuration: A dictionary containing the connector configuration.
     Returns:
-        The base URL string for DocuSign API endpoints.
+        The base URL string for Docusign API endpoints.
     """
     return f"{configuration['base_url']}/v2.1/accounts/{configuration['account_id']}"
 
@@ -143,7 +143,7 @@ def make_api_request(
     url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
-    Make API request to DocuSign with retry logic and exponential backoff.
+    Make API request to Docusign with retry logic and exponential backoff.
     Args:
         url: The API endpoint URL
         headers: Request headers including authentication
@@ -241,7 +241,7 @@ def fetch_envelopes(configuration: dict, state: Dict[str, Any]):
         state: A dictionary containing state information.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
 
     params = {
         "from_date": state.get("last_sync_time", __DEFAULT_START_DATE),
@@ -298,7 +298,7 @@ def fetch_audit_events(configuration: dict, envelope_id: str) -> List[Dict[str, 
         A list of dictionaries representing audit events.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/envelopes/{envelope_id}/audit_events"
 
     try:
@@ -322,7 +322,7 @@ def fetch_envelope_notifications(configuration: dict, envelope_id: str) -> List[
         A list of dictionaries representing envelope notifications.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/envelopes/{envelope_id}/notification"
 
     try:
@@ -346,7 +346,7 @@ def fetch_recipients_for_envelope(configuration: dict, envelope_id: str) -> List
         A list of dictionaries representing recipients.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/envelopes/{envelope_id}/recipients"
 
     try:
@@ -381,7 +381,7 @@ def fetch_documents_for_envelope(configuration: dict, envelope_id: str) -> List[
         A list of dictionaries representing documents.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/envelopes/{envelope_id}/documents"
 
     try:
@@ -408,7 +408,7 @@ def fetch_templates(configuration: dict, state: Dict[str, Any]):
         A generator yielding dictionaries representing templates.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/templates"
     params = {"count": __BATCH_SIZE}
 
@@ -472,7 +472,7 @@ def fetch_custom_fields_for_envelope(
         A list of dictionaries representing custom fields.
     """
     base_url = get_base_url(configuration)
-    headers = get_docusign_headers(configuration)
+    headers = get_Docusign_headers(configuration)
     url = f"{base_url}/envelopes/{envelope_id}/custom_fields"
 
     try:
@@ -757,10 +757,10 @@ def update(configuration: dict, state: Dict[str, Any]):
     function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing DocuSign API connection details
+        configuration: A dictionary containing Docusign API connection details
         state: A dictionary containing state information from previous runs
     """
-    log.warning("Example: Source Examples - DocuSign: eSignature API Connector")
+    log.warning("Example: Source Examples - Docusign: eSignature API Connector")
     validate_configuration(configuration)
     try:
         if not state:
@@ -800,7 +800,7 @@ def update(configuration: dict, state: Dict[str, Any]):
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync data: {str(exc)}")
 
-    log.info("DocuSign connector update completed successfully")
+    log.info("Docusign connector update completed successfully")
 
 
 # Create the connector object using the schema and update functions
