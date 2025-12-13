@@ -527,6 +527,10 @@ def make_api_request_with_retry(url: str, api_token: str):
         except requests.exceptions.RequestException as e:
             handle_request_exception(e, attempt)
 
+    # If we've exhausted all retries without returning, raise an error
+    log.severe(f"Failed to fetch data from {url} after {__MAX_RETRIES} attempts")
+    raise RuntimeError(f"Failed to fetch data after {__MAX_RETRIES} attempts")
+
 
 def handle_api_response(response, attempt: int):
     """
