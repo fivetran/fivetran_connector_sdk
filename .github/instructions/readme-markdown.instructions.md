@@ -23,6 +23,7 @@ The correct format and style would be as follows:
 
 - There should be only one H1 heading in the file, and it should use Title Case, for example: # Connector SDK Somecompany API Connector Example
 - All other headings should use Sentence case, for example: ## Requirements file
+- Do not use numbers in headingds: WRONG: "## 4. Best practices", CORRECT: "## Best practices"
 
 ## Lists:
 
@@ -44,6 +45,8 @@ The comments and suggestion you make should be deduplicated, for example - if yo
 
 
 ---
+
+The structure and rules below must only be honored during review for 'README.md' files, and they should be ignored for 'AGENTS*.md' and 'ft-csdk*.md' files. 
 
 # Copilot Review Instructions: Connector SDK Example README.md
 
