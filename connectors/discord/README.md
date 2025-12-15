@@ -69,6 +69,7 @@ This connector uses Discord bot token authentication (Refer to `validate_configu
 2. Create a bot:
    - Click Add Bot if no bot exists.
    - Make a note of the bot token. 
+     > **Warning:** The bot token is a sensitive credential that grants access to your Discord bot. **Do not share this token with anyone or post it publicly.** Keep it secure and never check it into version control or expose it in public repositories.
 3. Set bot permissions:
    - In the Bot section, scroll down to Privileged Gateway Intents.
    - Enable Server Members Intent (required for member data).
