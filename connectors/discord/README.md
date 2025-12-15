@@ -60,7 +60,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses Discord bot token authentication (Refer to `validate_configuration` function, lines 41-73, and `get_discord_headers` function, lines 76-84). To set up authentication:
+This connector uses Discord bot token authentication (Refer to `validate_configuration` function, and `get_discord_headers` function). To set up authentication:
 
 1. Create a Discord application:
    - Go to [Discord Developer Portal](https://discord.com/developers/applications).
@@ -92,7 +92,7 @@ The connector processes data in batches and checkpoints progress every 50 record
 
 ## Data handling
 
-The connector processes and normalizes Discord data for optimal analysis (Refer to `process_guild_data`, `process_channel_data`, `process_member_data`, and `process_message_data` functions, lines 201-357):
+The connector processes and normalizes Discord data for optimal analysis (Refer to `process_guild_data`, `process_channel_data`, `process_member_data`, and `process_message_data` functions):
 
 - JSON Serialization: Complex objects (mentions, attachments, embeds) are stored as JSON strings
 - Timestamp Normalization: All timestamps are converted to ISO format with UTC timezone
@@ -110,7 +110,7 @@ The connector processes and normalizes Discord data for optimal analysis (Refer 
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (Refer to `make_discord_request` function, lines 77-137):
+The connector implements comprehensive error handling strategies (Refer to `make_discord_request` function):
 
 - Rate Limiting: Automatic retry with exponential backoff when rate limited
 - Server Errors: Retry logic for 5xx HTTP status codes
