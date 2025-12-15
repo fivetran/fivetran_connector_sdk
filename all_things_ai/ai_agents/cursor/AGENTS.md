@@ -46,8 +46,8 @@ def schema(configuration: dict):
 ```
 
 2. LOGGING - CRITICAL: Use EXACT method names
-- ✅ **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- ❌ **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
+- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
 
 ```python
 # FINE - Detailed debugging information
@@ -64,9 +64,9 @@ log.severe(f"Error details: {error_details}")
 ```
 
 3. TYPE HINTS - CRITICAL: Use simple built-in types only
-- ✅ **CORRECT:** `def update(configuration: dict, state: dict):`
-- ✅ **CORRECT:** `def schema(configuration: dict):`
-- ❌ **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **CORRECT:** `def schema(configuration: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
 - **NEVER** use `op.Operation` in type hints - it doesn't exist
 - **ALWAYS** use simple `dict` and `list` built-in types
 
