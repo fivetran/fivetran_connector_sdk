@@ -93,10 +93,7 @@ The connector creates a `CUSTOMERS` table:
   "table": "customers",
   "primary_key": ["customer_id"],
   "columns": {
-    "customer_id": "STRING",
-    "first_name": "STRING",
-    "last_name": "STRING",
-    "email": "STRING"
+    "customer_id": "STRING"
   }
 }
 ```
