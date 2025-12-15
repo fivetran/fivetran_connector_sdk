@@ -1,5 +1,5 @@
 ---
-applyTo: "examples/source_examples/**/*README*.md,connectors/**/*README*.md"
+applyTo: "examples/source_examples/**/*README*.md,connectors/**/*README*.md,all_things_ai/ai_agents/**/*AGENTS*.md"
 ---
 
 # Copilot Review Instructions for Fivetran Documentation
@@ -14,7 +14,9 @@ Example of wrong format and style:
 
 "- **API example**
    - This example shows how to sync data using an API key and secret."
+
 The correct format and style would be as follows:
+
 "- API example - This example shows how to sync data using an API key and secret."
 
 ## Headings:
