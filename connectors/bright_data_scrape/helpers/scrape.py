@@ -684,5 +684,5 @@ def _poll_snapshot(
         time.sleep(poll_interval)
 
     raise RuntimeError(
-        f"Snapshot {snapshot_id[:8]} polling timeed out after {max_attempts} attempts"
+        f"Snapshot {snapshot_id[:8]} polling timed out after {max_attempts} attempts"
     )
