@@ -20,13 +20,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Multi-guild support: Automatically discovers and processes all guilds the bot has access to (Refer to `fetch_user_guilds` function, lines 140-150)
-- Guild filtering: Configure which guilds to sync with include/exclude lists (Refer to `filter_guilds` function, lines 153-198)
+- Multi-guild support: Automatically discovers and processes all guilds the bot has access to (Refer to the `fetch_user_guilds` function)
+- Guild filtering: Configure which guilds to sync with include/exclude lists (Refer to the `filter_guilds` function)
 - Guild data: Complete server information including settings, features, and metadata
 - Channel management: All channel types (text, voice, category, etc.) with permissions and settings
 - Member analytics: User profiles, roles, join dates, and activity status
 - Message history: Comprehensive message data with attachments, embeds, and reactions
-- Incremental sync: Efficient updates using message timestamps and state management (Refer to `process_single_guild` function, lines 463-588)
+- Incremental sync: Efficient updates using message timestamps and state management (Refer to the `process_single_guild` function)
 - Rate limit handling: Intelligent retry logic with exponential backoff
 - Error recovery: Robust error handling with detailed logging
 - AI/ML optimized: Structured data perfect for community analysis and sentiment tracking
