@@ -154,14 +154,11 @@ def _handle_request_exception(exception: Exception, attempt: int) -> None:
     else:
         log.severe(f"Request failed after {__MAX_RETRIES} attempts: {str(exception)}")
         raise RuntimeError(
-            f"Discord API request failed after {__MAX_RETRIES} attempts: "
-            f"{str(exception)}"
+            f"Discord API request failed after {__MAX_RETRIES} attempts: " f"{str(exception)}"
         )
 
 
-def make_discord_request(
-    url: str, headers: dict, params: Optional[dict] = None
-) -> dict:
+def make_discord_request(url: str, headers: dict, params: Optional[dict] = None) -> dict:
     """
     Make a request to the Discord API with retry logic and rate limit handling.
     Args:
@@ -187,9 +184,7 @@ def make_discord_request(
                 continue
             else:
                 log.severe(f"Discord API error {response.status_code}: {response.text}")
-                raise RuntimeError(
-                    f"Discord API returned {response.status_code}: {response.text}"
-                )
+                raise RuntimeError(f"Discord API returned {response.status_code}: {response.text}")
 
         except requests.exceptions.RequestException as e:
             _handle_request_exception(e, attempt)
@@ -234,16 +229,12 @@ def filter_guilds(guilds: List[dict], configuration: dict) -> List[dict]:
     # Parse specific guild IDs if provided
     specific_ids = set()
     if specific_guild_ids:
-        specific_ids = {
-            gid.strip() for gid in specific_guild_ids.split(",") if gid.strip()
-        }
+        specific_ids = {gid.strip() for gid in specific_guild_ids.split(",") if gid.strip()}
 
     # Parse excluded guild IDs if provided
     excluded_ids = set()
     if exclude_guild_ids:
-        excluded_ids = {
-            gid.strip() for gid in exclude_guild_ids.split(",") if gid.strip()
-        }
+        excluded_ids = {gid.strip() for gid in exclude_guild_ids.split(",") if gid.strip()}
 
     filtered_guilds = []
     for guild in guilds:
@@ -253,9 +244,7 @@ def filter_guilds(guilds: List[dict], configuration: dict) -> List[dict]:
 
         # Skip if in excluded list
         if guild_id in excluded_ids:
-            log.info(
-                f"Excluding guild: {guild.get('name', 'Unknown')} (ID: {guild_id})"
-            )
+            log.info(f"Excluding guild: {guild.get('name', 'Unknown')} (ID: {guild_id})")
             continue
 
         # If specific guilds are specified, only include those
@@ -265,8 +254,7 @@ def filter_guilds(guilds: List[dict], configuration: dict) -> List[dict]:
         filtered_guilds.append(guild)
 
     log.info(
-        f"Filtered {len(guilds)} guilds down to {len(filtered_guilds)} guilds "
-        f"for processing"
+        f"Filtered {len(guilds)} guilds down to {len(filtered_guilds)} guilds " f"for processing"
     )
     return filtered_guilds
 
@@ -298,7 +286,9 @@ def fetch_guild_channels(guild_id: str, headers: dict) -> List[dict]:
     return result if isinstance(result, list) else []
 
 
-def fetch_guild_members(guild_id: str, headers: dict, limit: int = __DISCORD_API_MAX_MEMBERS_LIMIT) -> List[dict]:
+def fetch_guild_members(
+    guild_id: str, headers: dict, limit: int = __DISCORD_API_MAX_MEMBERS_LIMIT
+) -> List[dict]:
     """
     Fetch guild members from Discord API.
     Args:
@@ -309,7 +299,9 @@ def fetch_guild_members(guild_id: str, headers: dict, limit: int = __DISCORD_API
         list: List of member data from Discord API
     """
     url = f"{__DISCORD_API_BASE}/guilds/{guild_id}/members"
-    params = {"limit": min(limit, __DISCORD_API_MAX_MEMBERS_LIMIT)}  # Discord API max limit is 1000
+    params = {
+        "limit": min(limit, __DISCORD_API_MAX_MEMBERS_LIMIT)
+    }  # Discord API max limit is 1000
     result = make_discord_request(url, headers, params)
     return result if isinstance(result, list) else []
 
@@ -349,10 +341,10 @@ def process_guild_data(guild_data: dict) -> dict:
         guild_data["welcome_screen"] = json.dumps(guild_data["welcome_screen"])
     if guild_data.get("stickers"):
         guild_data["stickers"] = json.dumps(guild_data["stickers"])
-    
+
     # Add metadata fields
     guild_data["synced_at"] = datetime.now(timezone.utc).isoformat()
-    
+
     return guild_data
 
 
@@ -367,7 +359,7 @@ def process_channel_data(channel_data: dict, guild_id: str) -> dict:
     """
     # Add guild_id to associate channel with its guild
     channel_data["guild_id"] = guild_id
-    
+
     # Serialize nested objects that need JSON encoding
     if channel_data.get("permission_overwrites"):
         channel_data["permission_overwrites"] = json.dumps(channel_data["permission_overwrites"])
@@ -375,10 +367,10 @@ def process_channel_data(channel_data: dict, guild_id: str) -> dict:
         channel_data["available_tags"] = json.dumps(channel_data["available_tags"])
     if channel_data.get("default_reaction_emoji"):
         channel_data["default_reaction_emoji"] = json.dumps(channel_data["default_reaction_emoji"])
-    
+
     # Add metadata fields
     channel_data["synced_at"] = datetime.now(timezone.utc).isoformat()
-    
+
     return channel_data
 
 
@@ -409,25 +401,25 @@ def process_member_data(member_data: dict, guild_id: str) -> dict:
     member_data["avatar_decoration"] = user.get("avatar_decoration")
     member_data["premium_type"] = user.get("premium_type")
     member_data["public_flags"] = user.get("public_flags")
-    
+
     # Rename conflicting 'flags' field from user to avoid collision
     if "flags" in user:
         member_data["user_flags"] = user["flags"]
-    
+
     # Rename member flags field to avoid confusion
     if "flags" in member_data:
         member_data["flags_member"] = member_data.pop("flags")
-    
+
     # Add guild_id to associate member with its guild
     member_data["guild_id"] = guild_id
-    
+
     # Serialize roles array
     if member_data.get("roles"):
         member_data["roles"] = json.dumps(member_data["roles"])
-    
+
     # Add metadata fields
     member_data["synced_at"] = datetime.now(timezone.utc).isoformat()
-    
+
     return member_data
 
 
@@ -443,10 +435,10 @@ def process_message_data(message_data: dict, channel_id: str) -> dict:
     # Extract author_id from nested author object
     author = message_data.pop("author", {})
     message_data["author_id"] = author.get("id")
-    
+
     # Add channel_id to associate message with its channel
     message_data["channel_id"] = channel_id
-    
+
     # Serialize array fields that need JSON encoding
     if message_data.get("mentions"):
         message_data["mentions"] = json.dumps(message_data["mentions"])
@@ -466,7 +458,7 @@ def process_message_data(message_data: dict, channel_id: str) -> dict:
         message_data["sticker_items"] = json.dumps(message_data["sticker_items"])
     if message_data.get("stickers"):
         message_data["stickers"] = json.dumps(message_data["stickers"])
-    
+
     # Serialize nested object fields that need JSON encoding
     if message_data.get("activity"):
         message_data["activity"] = json.dumps(message_data["activity"])
@@ -482,10 +474,10 @@ def process_message_data(message_data: dict, channel_id: str) -> dict:
         message_data["thread"] = json.dumps(message_data["thread"])
     if message_data.get("role_subscription_data"):
         message_data["role_subscription_data"] = json.dumps(message_data["role_subscription_data"])
-    
+
     # Add metadata fields
     message_data["synced_at"] = datetime.now(timezone.utc).isoformat()
-    
+
     return message_data
 
 
@@ -502,15 +494,10 @@ def schema(configuration: dict):
             connector.
     """
     return [
-        {"table": "guild", 
-         "primary_key": ["id"]},
-        {"table": "channel", 
-         "primary_key": ["id"]},
-        {"table": "member", 
-         "primary_key": ["user_id", 
-                         "guild_id"]},
-        {"table": "message", 
-         "primary_key": ["id"]},
+        {"table": "guild", "primary_key": ["id"]},
+        {"table": "channel", "primary_key": ["id"]},
+        {"table": "member", "primary_key": ["user_id", "guild_id"]},
+        {"table": "message", "primary_key": ["id"]},
     ]
 
 
@@ -602,9 +589,7 @@ def _process_channel_messages(
     channel_name = channel.get("name", "unknown")
     messages_fetched = 0
 
-    log.info(
-        f"Processing messages for channel: {channel_name} in guild: {guild_name}"
-    )
+    log.info(f"Processing messages for channel: {channel_name} in guild: {guild_name}")
 
     while messages_fetched < message_limit:
         try:
@@ -741,17 +726,13 @@ def process_single_guild(
         # Fetch and process channels
         log.info(f"Fetching channel data for guild: {guild_name}")
         channels_data = fetch_guild_channels(guild_id, headers)
-        processed_count = _process_channels(
-            channels_data, guild_id, processed_count, state
-        )
+        processed_count = _process_channels(channels_data, guild_id, processed_count, state)
         log.info(f"Processed {len(channels_data)} channels for guild: {guild_name}")
 
         # Fetch and process members
         log.info(f"Fetching member data for guild: {guild_name}")
         members_data = fetch_guild_members(guild_id, headers)
-        processed_count = _process_members(
-            members_data, guild_id, processed_count, state
-        )
+        processed_count = _process_members(members_data, guild_id, processed_count, state)
         log.info(f"Processed {len(members_data)} members for guild: {guild_name}")
 
         # Fetch and process messages
@@ -821,17 +802,13 @@ def _process_single_guild_with_error_handling(
         log.info(f"Starting processing of guild: {guild_name} (ID: {guild_id})")
 
         # Process this guild
-        guild_state = process_single_guild(
-            guild_data, headers, configuration, state
-        )
+        guild_state = process_single_guild(guild_data, headers, configuration, state)
 
         # Update guild-specific state
         guilds_state[guild_id] = guild_state
         records_processed = guild_state.get("processed_count", 0)
 
-        log.info(
-            f"Completed processing guild: {guild_name} - {records_processed} records"
-        )
+        log.info(f"Completed processing guild: {guild_name} - {records_processed} records")
 
         # Save the progress by checkpointing the state. This is important for
         # ensuring that the sync process can resume from the correct position in
@@ -841,9 +818,7 @@ def _process_single_guild_with_error_handling(
         return records_processed
 
     except Exception as e:
-        log.severe(
-            f"Failed to process guild {guild_name} (ID: {guild_id}): {str(e)}"
-        )
+        log.severe(f"Failed to process guild {guild_name} (ID: {guild_id}): {str(e)}")
         # Continue with other guilds even if one fails
         return 0
 
