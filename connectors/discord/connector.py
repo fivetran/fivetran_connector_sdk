@@ -777,6 +777,134 @@ def process_single_guild(
         raise
 
 
+def _fetch_and_filter_guilds(headers: dict, configuration: dict) -> tuple:
+    """
+    Fetch all guilds and filter based on configuration.
+    Args:
+        headers: API request headers
+        configuration: Configuration dictionary
+    Returns:
+        tuple: (all_guilds, filtered_guilds_to_process)
+    """
+    log.info("Fetching all guilds the bot has access to")
+    all_guilds = fetch_user_guilds(headers)
+    log.info(f"Found {len(all_guilds)} guilds the bot has access to")
+
+    guilds_to_process = filter_guilds(all_guilds, configuration)
+    log.info(f"Processing {len(guilds_to_process)} guilds after filtering")
+
+    return all_guilds, guilds_to_process
+
+
+def _process_single_guild_with_error_handling(
+    guild_data: dict,
+    headers: dict,
+    configuration: dict,
+    state: dict,
+    guilds_state: dict,
+) -> int:
+    """
+    Process a single guild with error handling and state updates.
+    Args:
+        guild_data: Guild data from Discord API
+        headers: API request headers
+        configuration: Configuration dictionary
+        state: Current state dictionary
+        guilds_state: Dictionary to accumulate guild states
+    Returns:
+        int: Number of records processed for this guild
+    """
+    guild_id = guild_data.get("id")
+    guild_name = guild_data.get("name", "Unknown")
+
+    try:
+        log.info(f"Starting processing of guild: {guild_name} (ID: {guild_id})")
+
+        # Process this guild
+        guild_state = process_single_guild(
+            guild_data, headers, configuration, state
+        )
+
+        # Update guild-specific state
+        guilds_state[guild_id] = guild_state
+        records_processed = guild_state.get("processed_count", 0)
+
+        log.info(
+            f"Completed processing guild: {guild_name} - {records_processed} records"
+        )
+
+        # Save the progress by checkpointing the state. This is important for
+        # ensuring that the sync process can resume from the correct position in
+        # case of next sync or interruptions.
+        op.checkpoint(state=state)
+
+        return records_processed
+
+    except Exception as e:
+        log.severe(
+            f"Failed to process guild {guild_name} (ID: {guild_id}): {str(e)}"
+        )
+        # Continue with other guilds even if one fails
+        return 0
+
+
+def _process_all_guilds(
+    guilds_to_process: List[dict],
+    headers: dict,
+    configuration: dict,
+    state: dict,
+    guilds_state: dict,
+) -> int:
+    """
+    Process all guilds and track total records processed.
+    Args:
+        guilds_to_process: List of guilds to process
+        headers: API request headers
+        configuration: Configuration dictionary
+        state: Current state dictionary
+        guilds_state: Dictionary to accumulate guild states
+    Returns:
+        int: Total number of records processed across all guilds
+    """
+    total_processed_count = 0
+
+    for guild_data in guilds_to_process:
+        records_processed = _process_single_guild_with_error_handling(
+            guild_data, headers, configuration, state, guilds_state
+        )
+        total_processed_count += records_processed
+
+    return total_processed_count
+
+
+def _finalize_sync(
+    guilds_state: dict, total_processed_count: int, num_guilds: int, state: dict
+) -> None:
+    """
+    Finalize the sync by updating global state and checkpointing.
+    Args:
+        guilds_state: Final guild states
+        total_processed_count: Total records processed
+        num_guilds: Number of guilds processed
+        state: Current state dictionary
+    """
+    # Update global state
+    new_state = {
+        "last_sync_time": datetime.now(timezone.utc).isoformat(),
+        "guilds": guilds_state,
+        "total_processed_count": total_processed_count,
+    }
+
+    # Save the progress by checkpointing the state. This is important for
+    # ensuring that the sync process can resume from the correct position in
+    # case of next sync or interruptions.
+    op.checkpoint(state=new_state)
+    log.info(
+        f"Discord Connector: Multi-guild sync completed successfully. "
+        f"Processed {total_processed_count} total records across {num_guilds} guilds"
+    )
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by
@@ -800,75 +928,25 @@ def update(configuration: dict, state: dict):
 
     # Get state variables for multi-guild sync
     guilds_state = state.get("guilds", {})
-    total_processed_count = 0
 
     try:
         # Create headers for Discord API requests
         headers = get_discord_headers(bot_token)
 
-        # Fetch all guilds the bot has access to
-        log.info("Fetching all guilds the bot has access to")
-        all_guilds = fetch_user_guilds(headers)
-        log.info(f"Found {len(all_guilds)} guilds the bot has access to")
-
-        # Filter guilds based on configuration
-        guilds_to_process = filter_guilds(all_guilds, configuration)
-        log.info(f"Processing {len(guilds_to_process)} guilds after filtering")
+        # Fetch all guilds and filter based on configuration
+        all_guilds, guilds_to_process = _fetch_and_filter_guilds(headers, configuration)
 
         if not guilds_to_process:
             log.warning("No guilds to process after filtering")
             return
 
-        # Process each guild
-        for guild_data in guilds_to_process:
-            guild_id = guild_data.get("id")
-            guild_name = guild_data.get("name", "Unknown")
-
-            try:
-                log.info(f"Starting processing of guild: {guild_name} (ID: {guild_id})")
-
-                # Process this guild
-                guild_state = process_single_guild(
-                    guild_data, headers, configuration, state
-                )
-
-                # Update guild-specific state
-                guilds_state[guild_id] = guild_state
-                total_processed_count += guild_state.get("processed_count", 0)
-
-                log.info(
-                    f"Completed processing guild: {guild_name} - "
-                    f"{guild_state.get('processed_count', 0)} records"
-                )
-
-                # Save the progress by checkpointing the state. This is important for
-                # ensuring that the sync process can resume from the correct position in
-                # case of next sync or interruptions.
-                op.checkpoint(state=state)
-
-            except Exception as e:
-                log.severe(
-                    f"Failed to process guild {guild_name} (ID: {guild_id}): {str(e)}"
-                )
-                # Continue with other guilds even if one fails
-                continue
-
-        # Update global state
-        new_state = {
-            "last_sync_time": datetime.now(timezone.utc).isoformat(),
-            "guilds": guilds_state,
-            "total_processed_count": total_processed_count,
-        }
-
-        # Save the progress by checkpointing the state. This is important for
-        # ensuring that the sync process can resume from the correct position in
-        # case of next sync or interruptions.
-        op.checkpoint(state=new_state)
-        log.info(
-            f"Discord Connector: Multi-guild sync completed successfully. "
-            f"Processed {total_processed_count} total records across "
-            f"{len(guilds_to_process)} guilds"
+        # Process all guilds
+        total_processed_count = _process_all_guilds(
+            guilds_to_process, headers, configuration, state, guilds_state
         )
+
+        # Finalize the sync
+        _finalize_sync(guilds_state, total_processed_count, len(guilds_to_process), state)
 
     except Exception as e:
         log.severe(f"Discord Connector: Multi-guild sync failed with error: {str(e)}")
