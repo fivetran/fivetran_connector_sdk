@@ -39,7 +39,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 The `requirements.txt` file lists additional Python dependencies used by the connector. This example does not require any external libraries beyond those preinstalled in the Fivetran execution environment.
 
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed. Do not include them in your `requirements.txt`.
 
 ## Authentication
 The connector authenticates using a single API key passed through HTTP headers. The API key is supplied by the `api_key` field in `configuration.json` and is applied to all API requests.
