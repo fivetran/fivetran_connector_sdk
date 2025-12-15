@@ -639,7 +639,7 @@ def _process_channel_messages(
                     log.info(f"Checkpointed at {processed_count} records")
 
             # If we got fewer messages than requested, we've reached the end
-            if len(messages_data) < 100:
+            if len(messages_data) < __BATCH_SIZE:
                 break
 
         except Exception as e:
