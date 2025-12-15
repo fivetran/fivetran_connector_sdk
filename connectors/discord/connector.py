@@ -514,6 +514,197 @@ def schema(configuration: dict):
     ]
 
 
+def _process_channels(
+    channels_data: List[dict], guild_id: str, processed_count: int, state: dict
+) -> int:
+    """
+    Process and upsert all channels for a guild.
+    Args:
+        channels_data: List of channel data
+        guild_id: The Discord guild ID
+        processed_count: Current count of processed records
+        state: Current state dictionary
+    Returns:
+        int: Updated count of processed records
+    """
+    for channel_data in channels_data:
+        processed_channel = process_channel_data(channel_data, guild_id)
+        # The 'upsert' operation is used to insert or update data in the destination
+        # table. This ensures that if a guild already exists, it will be updated with
+        # the latest information.
+        op.upsert(table="channel", data=processed_channel)
+        processed_count += 1
+
+        if processed_count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for
+            # ensuring that the sync process can resume from the correct position in
+            # case of next sync or interruptions.
+            op.checkpoint(state=state)
+            log.info(f"Checkpointed at {processed_count} records")
+
+    return processed_count
+
+
+def _process_members(
+    members_data: List[dict], guild_id: str, processed_count: int, state: dict
+) -> int:
+    """
+    Process and upsert all members for a guild.
+    Args:
+        members_data: List of member data
+        guild_id: The Discord guild ID
+        processed_count: Current count of processed records
+        state: Current state dictionary
+    Returns:
+        int: Updated count of processed records
+    """
+    for member_data in members_data:
+        processed_member = process_member_data(member_data, guild_id)
+        # The 'upsert' operation is used to insert or update data in the destination
+        # table. This ensures that if a guild already exists, it will be updated with
+        # the latest information.
+        op.upsert(table="member", data=processed_member)
+        processed_count += 1
+
+        if processed_count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for
+            # ensuring that the sync process can resume from the correct position in
+            # case of next sync or interruptions.
+            op.checkpoint(state=state)
+            log.info(f"Checkpointed at {processed_count} records")
+
+    return processed_count
+
+
+def _process_channel_messages(
+    channel: dict,
+    guild_name: str,
+    headers: dict,
+    last_message_id: Optional[str],
+    message_limit: int,
+    processed_count: int,
+    state: dict,
+) -> tuple:
+    """
+    Process messages for a single channel with pagination.
+    Args:
+        channel: Channel data
+        guild_name: Name of the guild
+        headers: API request headers
+        last_message_id: Last processed message ID for resumption
+        message_limit: Maximum messages to fetch
+        processed_count: Current count of processed records
+        state: Current state dictionary
+    Returns:
+        tuple: (updated_processed_count, last_message_id, messages_fetched)
+    """
+    channel_id = channel["id"]
+    channel_name = channel.get("name", "unknown")
+    messages_fetched = 0
+
+    log.info(
+        f"Processing messages for channel: {channel_name} in guild: {guild_name}"
+    )
+
+    while messages_fetched < message_limit:
+        try:
+            messages_data = fetch_channel_messages(
+                channel_id,
+                headers,
+                after=last_message_id,
+                limit=min(__BATCH_SIZE, message_limit - messages_fetched),
+            )
+
+            if not messages_data:
+                break
+
+            for message_data in messages_data:
+                processed_message = process_message_data(message_data, channel_id)
+                # The 'upsert' operation is used to insert or update data in the destination
+                # table. This ensures that if a guild already exists, it will be updated with
+                # the latest information.
+                op.upsert(table="message", data=processed_message)
+                processed_count += 1
+                messages_fetched += 1
+                last_message_id = message_data["id"]
+
+                if processed_count % __CHECKPOINT_INTERVAL == 0:
+                    # Save the progress by checkpointing the state. This is important for
+                    # ensuring that the sync process can resume from the correct position in
+                    # case of next sync or interruptions.
+                    op.checkpoint(state=state)
+                    log.info(f"Checkpointed at {processed_count} records")
+
+            # If we got fewer messages than requested, we've reached the end
+            if len(messages_data) < 100:
+                break
+
+        except Exception as e:
+            log.warning(
+                f"Error fetching messages for channel {channel_name} in "
+                f"guild {guild_name}: {str(e)}"
+            )
+            break
+
+    return processed_count, last_message_id, messages_fetched
+
+
+def _process_guild_messages(
+    channels_data: List[dict],
+    guild_name: str,
+    headers: dict,
+    configuration: dict,
+    processed_count: int,
+    last_message_sync: dict,
+    state: dict,
+) -> int:
+    """
+    Process messages for all text channels in a guild.
+    Args:
+        channels_data: List of all channels
+        guild_name: Name of the guild
+        headers: API request headers
+        configuration: Configuration dictionary
+        processed_count: Current count of processed records
+        last_message_sync: Dictionary tracking last message ID per channel
+        state: Current state dictionary
+    Returns:
+        int: Updated count of processed records
+    """
+    sync_messages = configuration.get("sync_messages", "true").lower() == "true"
+    if not sync_messages:
+        return processed_count
+
+    log.info(f"Fetching message data for guild: {guild_name}")
+    text_channels = [
+        ch for ch in channels_data if ch.get("type") in [0, 5]
+    ]  # Text and news channels
+    message_limit = int(configuration.get("message_limit", "1000"))
+
+    for channel in text_channels:
+        channel_id = channel["id"]
+        channel_name = channel.get("name", "unknown")
+        last_message_id = last_message_sync.get(channel_id)
+
+        processed_count, last_message_id, messages_fetched = _process_channel_messages(
+            channel,
+            guild_name,
+            headers,
+            last_message_id,
+            message_limit,
+            processed_count,
+            state,
+        )
+
+        last_message_sync[channel_id] = last_message_id
+        log.info(
+            f"Processed {messages_fetched} messages for channel: "
+            f"{channel_name} in guild: {guild_name}"
+        )
+
+    return processed_count
+
+
 def process_single_guild(
     guild_data: dict, headers: dict, configuration: dict, state: dict
 ) -> dict:
@@ -550,129 +741,29 @@ def process_single_guild(
         # Fetch and process channels
         log.info(f"Fetching channel data for guild: {guild_name}")
         channels_data = fetch_guild_channels(guild_id, headers)
-
-        for channel_data in channels_data:
-            processed_channel = process_channel_data(channel_data, guild_id)
-            # The 'upsert' operation is used to insert or update data in the destination
-            # table. This ensures that if a channel already exists, it will be updated
-            # with the latest information.
-            op.upsert(table="channel", data=processed_channel)
-            processed_count += 1
-
-            # Checkpoint every N records for large datasets
-            if processed_count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for
-                # ensuring that the sync process can resume from the correct position in
-                # case of next sync or interruptions.
-                op.checkpoint(state=state)
-                log.info(f"Checkpointed at {processed_count} records")
-
+        processed_count = _process_channels(
+            channels_data, guild_id, processed_count, state
+        )
         log.info(f"Processed {len(channels_data)} channels for guild: {guild_name}")
 
         # Fetch and process members
         log.info(f"Fetching member data for guild: {guild_name}")
         members_data = fetch_guild_members(guild_id, headers)
-
-        for member_data in members_data:
-            processed_member = process_member_data(member_data, guild_id)
-            # The 'upsert' operation is used to insert or update data in the destination
-            # table. This ensures that if a member already exists, it will be updated
-            # with the latest information.
-            op.upsert(table="member", data=processed_member)
-            processed_count += 1
-
-            # Checkpoint every N records for large datasets
-            if processed_count % __CHECKPOINT_INTERVAL == 0:
-                # Save the progress by checkpointing the state. This is important for
-                # ensuring that the sync process can resume from the correct position in
-                # case of next sync or interruptions.
-                op.checkpoint(state=state)
-                log.info(f"Checkpointed at {processed_count} records")
-
+        processed_count = _process_members(
+            members_data, guild_id, processed_count, state
+        )
         log.info(f"Processed {len(members_data)} members for guild: {guild_name}")
 
-        # Fetch and process messages if enabled
-        sync_messages = configuration.get("sync_messages", "true").lower() == "true"
-        if sync_messages:
-            log.info(f"Fetching message data for guild: {guild_name}")
-            text_channels = [
-                ch for ch in channels_data if ch.get("type") in [0, 5]
-            ]  # Text and news channels
-            message_limit = int(configuration.get("message_limit", "1000"))
-
-            for channel in text_channels:
-                channel_id = channel["id"]
-                channel_name = channel.get("name", "unknown")
-
-                log.info(
-                    f"Processing messages for channel: {channel_name} in guild: "
-                    f"{guild_name}"
-                )
-
-                # Get last message ID for this channel from state
-                last_message_id = last_message_sync.get(channel_id)
-                messages_fetched = 0
-
-                # Pagination logic: Fetch messages in batches to avoid memory overflow
-                # This ensures that the connector does not load all data into memory at
-                # once
-                while messages_fetched < message_limit:
-                    try:
-                        # Fetch messages for this channel using cursor-based pagination
-                        # The 'after' parameter ensures we only get messages newer than
-                        # the last processed message
-                        messages_data = fetch_channel_messages(
-                            channel_id,
-                            headers,
-                            after=last_message_id,
-                            limit=min(__BATCH_SIZE, message_limit - messages_fetched),
-                        )
-
-                        if not messages_data:
-                            break
-
-                        for message_data in messages_data:
-                            processed_message = process_message_data(
-                                message_data, channel_id
-                            )
-                            # The 'upsert' operation is used to insert or update data in
-                            # the destination table. This ensures that if a message
-                            # already exists, it will be updated with the latest
-                            # information.
-                            op.upsert(table="message", data=processed_message)
-                            processed_count += 1
-                            messages_fetched += 1
-
-                            # Update last message ID for this channel
-                            last_message_id = message_data["id"]
-
-                            # Checkpoint every N records for large datasets
-                            if processed_count % __CHECKPOINT_INTERVAL == 0:
-                                # Save the progress by checkpointing the state. This is
-                                # important for ensuring that the sync process can
-                                # resume
-                                # from the correct position in case of next sync or
-                                # interruptions.
-                                op.checkpoint(state=state)
-                                log.info(f"Checkpointed at {processed_count} records")
-
-                        # If we got fewer messages than requested, we've reached the end
-                        if len(messages_data) < 100:
-                            break
-
-                    except Exception as e:
-                        log.warning(
-                            f"Error fetching messages for channel {channel_name} in "
-                            f"guild {guild_name}: {str(e)}"
-                        )
-                        break
-
-                # Update state with last message ID for this channel
-                last_message_sync[channel_id] = last_message_id
-                log.info(
-                    f"Processed {messages_fetched} messages for channel: "
-                    f"{channel_name} in guild: {guild_name}"
-                )
+        # Fetch and process messages
+        processed_count = _process_guild_messages(
+            channels_data,
+            guild_name,
+            headers,
+            configuration,
+            processed_count,
+            last_message_sync,
+            state,
+        )
 
         # Return updated guild state
         return {
@@ -750,7 +841,6 @@ def update(configuration: dict, state: dict):
                     f"{guild_state.get('processed_count', 0)} records"
                 )
 
-                # Checkpoint after each guild to ensure progress is saved.
                 # Save the progress by checkpointing the state. This is important for
                 # ensuring that the sync process can resume from the correct position in
                 # case of next sync or interruptions.
@@ -770,7 +860,6 @@ def update(configuration: dict, state: dict):
             "total_processed_count": total_processed_count,
         }
 
-        # Final checkpoint with updated state
         # Save the progress by checkpointing the state. This is important for
         # ensuring that the sync process can resume from the correct position in
         # case of next sync or interruptions.
