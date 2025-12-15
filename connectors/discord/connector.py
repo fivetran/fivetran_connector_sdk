@@ -70,7 +70,7 @@ def validate_configuration(configuration: dict):
     bot_token = configuration.get("bot_token", "")
     if not bot_token:
         raise ValueError("Bot token cannot be empty")
-    
+
     # Validate bot token format (should be a string)
     if not isinstance(bot_token, str):
         raise ValueError("Bot token must be a string")
@@ -79,10 +79,10 @@ def validate_configuration(configuration: dict):
 def _normalize_bot_token(bot_token: str) -> str:
     """
     Normalize the bot token by adding the "Bot " prefix if needed.
-    
+
     Args:
         bot_token: The raw bot token from configuration
-        
+
     Returns:
         str: The normalized bot token with "Bot " prefix
     """
