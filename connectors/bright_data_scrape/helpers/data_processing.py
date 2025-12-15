@@ -62,7 +62,7 @@ def collect_all_fields(results: List[Dict[str, Any]]) -> Set[str]:
 
 def process_scrape_result(result: Any, url: str, result_index: int) -> Dict[str, Any]:
     """
-        Flatten an individual scrape result and add metadata columns.
+    Flatten an individual scrape result and add metadata columns.
 
     Primary key fields (url, result_index) are always preserved and never overwritten
     by values from the flattened API response, even if the response contains fields
