@@ -1,6 +1,5 @@
 ---
 applyTo: "examples/source_examples/**/*README*.md,connectors/**/*README*.md,all_things_ai/ai_agents/**/*AGENTS*.md,all_things_ai/ai_agents/claude_code/.claude/agents/ft-csdk*.md"
-"
 ---
 
 # Copilot Review Instructions for Fivetran Documentation
