@@ -37,7 +37,7 @@ The connector requires the following configuration parameters in `configuration.
 
 ```json
 {
-  "bot_token": "YOUR_DISCORD_BOT_TOKEN"
+  "bot_token": "<YOUR_DISCORD_BOT_TOKEN>"
 }
 ```
 
@@ -60,7 +60,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses Discord bot token authentication (Refer to `validate_configuration` function, and `get_discord_headers` function). To set up authentication:
+This connector uses Discord bot token authentication (Refer to `validate_configuration` function, and `_normalize_bot_token` function). To set up authentication:
 
 1. Create a Discord application:
    - Go to [Discord Developer Portal](https://discord.com/developers/applications).
@@ -69,7 +69,6 @@ This connector uses Discord bot token authentication (Refer to `validate_configu
 2. Create a bot:
    - Click Add Bot if no bot exists.
    - Make a note of the bot token. 
-   - Add the "Bot" prefix to your token: `Bot YOUR_TOKEN_HERE`
 3. Set bot permissions:
    - In the Bot section, scroll down to Privileged Gateway Intents.
    - Enable Server Members Intent (required for member data).

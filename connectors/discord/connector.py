@@ -58,7 +58,7 @@ def validate_configuration(configuration: dict):
             connector.
 
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     # Validate required configuration parameters
     required_configs = ["bot_token"]
@@ -66,17 +66,32 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate and normalize bot token format
+    # Validate bot token is not empty
     bot_token = configuration.get("bot_token", "")
     if not bot_token:
         raise ValueError("Bot token cannot be empty")
+    
+    # Validate bot token format (should be a string)
+    if not isinstance(bot_token, str):
+        raise ValueError("Bot token must be a string")
 
-    # Check if token already has proper prefix
+
+def _normalize_bot_token(bot_token: str) -> str:
+    """
+    Normalize the bot token by adding the "Bot " prefix if needed.
+    
+    Args:
+        bot_token: The raw bot token from configuration
+        
+    Returns:
+        str: The normalized bot token with "Bot " prefix
+    """
     if not bot_token.startswith("Bot "):
         log.info("Bot token missing prefix, adding 'Bot ' prefix automatically")
-        configuration["bot_token"] = f"Bot {bot_token}"
+        return f"Bot {bot_token}"
     else:
         log.info("Bot token already has proper prefix")
+        return bot_token
 
 
 def get_discord_headers(bot_token: str) -> dict:
@@ -516,9 +531,10 @@ def _process_channels(
     """
     for channel_data in channels_data:
         processed_channel = process_channel_data(channel_data, guild_id)
-        # The 'upsert' operation is used to insert or update data in the destination
-        # table. This ensures that if a guild already exists, it will be updated with
-        # the latest information.
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="channel", data=processed_channel)
         processed_count += 1
 
@@ -547,9 +563,10 @@ def _process_members(
     """
     for member_data in members_data:
         processed_member = process_member_data(member_data, guild_id)
-        # The 'upsert' operation is used to insert or update data in the destination
-        # table. This ensures that if a guild already exists, it will be updated with
-        # the latest information.
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="member", data=processed_member)
         processed_count += 1
 
@@ -605,9 +622,10 @@ def _process_channel_messages(
 
             for message_data in messages_data:
                 processed_message = process_message_data(message_data, channel_id)
-                # The 'upsert' operation is used to insert or update data in the destination
-                # table. This ensures that if a guild already exists, it will be updated with
-                # the latest information.
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted,
                 op.upsert(table="message", data=processed_message)
                 processed_count += 1
                 messages_fetched += 1
@@ -716,9 +734,10 @@ def process_single_guild(
     try:
         # Process guild data
         processed_guild = process_guild_data(guild_data)
-        # The 'upsert' operation is used to insert or update data in the destination
-        # table. This ensures that if a guild already exists, it will be updated with
-        # the latest information.
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The op.upsert method is called with two arguments:
+        # - The first argument is the name of the table to upsert the data into.
+        # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="guild", data=processed_guild)
         processed_count += 1
         log.info(f"Processed guild: {processed_guild['name']}")
@@ -861,19 +880,17 @@ def _finalize_sync(
         guilds_state: Final guild states
         total_processed_count: Total records processed
         num_guilds: Number of guilds processed
-        state: Current state dictionary
+        state: Current state dictionary to update
     """
-    # Update global state
-    new_state = {
-        "last_sync_time": datetime.now(timezone.utc).isoformat(),
-        "guilds": guilds_state,
-        "total_processed_count": total_processed_count,
-    }
+    # Update the original state dictionary with final values
+    state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+    state["guilds"] = guilds_state
+    state["total_processed_count"] = total_processed_count
 
     # Save the progress by checkpointing the state. This is important for
     # ensuring that the sync process can resume from the correct position in
     # case of next sync or interruptions.
-    op.checkpoint(state=new_state)
+    op.checkpoint(state=state)
     log.info(
         f"Discord Connector: Multi-guild sync completed successfully. "
         f"Processed {total_processed_count} total records across {num_guilds} guilds"
@@ -892,14 +909,15 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Discord Connector: Starting multi-guild sync process")
     log.warning("Example: Multi-Guild Discord Connector : Discord API Integration")
+    log.info("Discord Connector: Starting multi-guild sync process")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
 
-    # Extract configuration parameters
-    bot_token = configuration.get("bot_token", "")
+    # Extract and normalize configuration parameters
+    raw_bot_token = configuration.get("bot_token", "")
+    bot_token = _normalize_bot_token(raw_bot_token)
 
     # Get state variables for multi-guild sync
     guilds_state = state.get("guilds", {})
