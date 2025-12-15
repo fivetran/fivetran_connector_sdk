@@ -344,52 +344,16 @@ def process_guild_data(guild_data: dict) -> dict:
     Returns:
         dict: Processed guild data
     """
-    return {
-        "id": guild_data.get("id"),
-        "name": guild_data.get("name"),
-        "description": guild_data.get("description"),
-        "icon": guild_data.get("icon"),
-        "splash": guild_data.get("splash"),
-        "discovery_splash": guild_data.get("discovery_splash"),
-        "owner_id": guild_data.get("owner_id"),
-        "region": guild_data.get("region"),
-        "afk_channel_id": guild_data.get("afk_channel_id"),
-        "afk_timeout": guild_data.get("afk_timeout"),
-        "verification_level": guild_data.get("verification_level"),
-        "default_message_notifications": guild_data.get(
-            "default_message_notifications"
-        ),
-        "explicit_content_filter": guild_data.get("explicit_content_filter"),
-        "mfa_level": guild_data.get("mfa_level"),
-        "application_id": guild_data.get("application_id"),
-        "system_channel_id": guild_data.get("system_channel_id"),
-        "system_channel_flags": guild_data.get("system_channel_flags"),
-        "rules_channel_id": guild_data.get("rules_channel_id"),
-        "max_presences": guild_data.get("max_presences"),
-        "max_members": guild_data.get("max_members"),
-        "vanity_url_code": guild_data.get("vanity_url_code"),
-        "premium_tier": guild_data.get("premium_tier"),
-        "premium_subscription_count": guild_data.get("premium_subscription_count"),
-        "preferred_locale": guild_data.get("preferred_locale"),
-        "public_updates_channel_id": guild_data.get("public_updates_channel_id"),
-        "max_video_channel_users": guild_data.get("max_video_channel_users"),
-        "approximate_member_count": guild_data.get("approximate_member_count"),
-        "approximate_presence_count": guild_data.get("approximate_presence_count"),
-        "welcome_screen": (
-            json.dumps(guild_data.get("welcome_screen"))
-            if guild_data.get("welcome_screen")
-            else None
-        ),
-        "nsfw_level": guild_data.get("nsfw_level"),
-        "stickers": (
-            json.dumps(guild_data.get("stickers"))
-            if guild_data.get("stickers")
-            else None
-        ),
-        "premium_progress_bar_enabled": guild_data.get("premium_progress_bar_enabled"),
-        "created_at": None,  # Discord doesn't provide creation date in guild data
-        "synced_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Serialize nested objects that need JSON encoding
+    if guild_data.get("welcome_screen"):
+        guild_data["welcome_screen"] = json.dumps(guild_data["welcome_screen"])
+    if guild_data.get("stickers"):
+        guild_data["stickers"] = json.dumps(guild_data["stickers"])
+    
+    # Add metadata fields
+    guild_data["synced_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return guild_data
 
 
 def process_channel_data(channel_data: dict, guild_id: str) -> dict:
@@ -401,47 +365,21 @@ def process_channel_data(channel_data: dict, guild_id: str) -> dict:
     Returns:
         dict: Processed channel data
     """
-    return {
-        "id": channel_data.get("id"),
-        "guild_id": guild_id,
-        "name": channel_data.get("name"),
-        "type": channel_data.get("type"),
-        "topic": channel_data.get("topic"),
-        "bitrate": channel_data.get("bitrate"),
-        "user_limit": channel_data.get("user_limit"),
-        "rate_limit_per_user": channel_data.get("rate_limit_per_user"),
-        "position": channel_data.get("position"),
-        "permission_overwrites": (
-            json.dumps(channel_data.get("permission_overwrites"))
-            if channel_data.get("permission_overwrites")
-            else None
-        ),
-        "parent_id": channel_data.get("parent_id"),
-        "nsfw": channel_data.get("nsfw"),
-        "rtc_region": channel_data.get("rtc_region"),
-        "video_quality_mode": channel_data.get("video_quality_mode"),
-        "default_auto_archive_duration": channel_data.get(
-            "default_auto_archive_duration"
-        ),
-        "flags": channel_data.get("flags"),
-        "available_tags": (
-            json.dumps(channel_data.get("available_tags"))
-            if channel_data.get("available_tags")
-            else None
-        ),
-        "default_reaction_emoji": (
-            json.dumps(channel_data.get("default_reaction_emoji"))
-            if channel_data.get("default_reaction_emoji")
-            else None
-        ),
-        "default_thread_rate_limit_per_user": channel_data.get(
-            "default_thread_rate_limit_per_user"
-        ),
-        "default_sort_order": channel_data.get("default_sort_order"),
-        "default_forum_layout": channel_data.get("default_forum_layout"),
-        "created_at": None,  # Discord doesn't provide creation date in channel data
-        "synced_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Add guild_id to associate channel with its guild
+    channel_data["guild_id"] = guild_id
+    
+    # Serialize nested objects that need JSON encoding
+    if channel_data.get("permission_overwrites"):
+        channel_data["permission_overwrites"] = json.dumps(channel_data["permission_overwrites"])
+    if channel_data.get("available_tags"):
+        channel_data["available_tags"] = json.dumps(channel_data["available_tags"])
+    if channel_data.get("default_reaction_emoji"):
+        channel_data["default_reaction_emoji"] = json.dumps(channel_data["default_reaction_emoji"])
+    
+    # Add metadata fields
+    channel_data["synced_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return channel_data
 
 
 def process_member_data(member_data: dict, guild_id: str) -> dict:
@@ -453,38 +391,44 @@ def process_member_data(member_data: dict, guild_id: str) -> dict:
     Returns:
         dict: Processed member data
     """
-    user = member_data.get("user", {})
-    return {
-        "user_id": user.get("id"),
-        "guild_id": guild_id,
-        "username": user.get("username"),
-        "discriminator": user.get("discriminator"),
-        "global_name": user.get("global_name"),
-        "avatar": user.get("avatar"),
-        "bot": user.get("bot", False),
-        "system": user.get("system", False),
-        "mfa_enabled": user.get("mfa_enabled", False),
-        "banner": user.get("banner"),
-        "accent_color": user.get("accent_color"),
-        "locale": user.get("locale"),
-        "verified": user.get("verified", False),
-        "email": user.get("email"),
-        "flags": user.get("flags"),
-        "premium_type": user.get("premium_type"),
-        "public_flags": user.get("public_flags"),
-        "nick": member_data.get("nick"),
-        "avatar_decoration": user.get("avatar_decoration"),
-        "roles": json.dumps(member_data.get("roles", [])),
-        "joined_at": member_data.get("joined_at"),
-        "premium_since": member_data.get("premium_since"),
-        "deaf": member_data.get("deaf", False),
-        "mute": member_data.get("mute", False),
-        "flags_member": member_data.get("flags"),
-        "pending": member_data.get("pending"),
-        "permissions": member_data.get("permissions"),
-        "communication_disabled_until": member_data.get("communication_disabled_until"),
-        "synced_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Flatten user data into member_data for easier querying
+    user = member_data.pop("user", {})
+    member_data["user_id"] = user.get("id")
+    member_data["username"] = user.get("username")
+    member_data["discriminator"] = user.get("discriminator")
+    member_data["global_name"] = user.get("global_name")
+    member_data["avatar"] = user.get("avatar")
+    member_data["bot"] = user.get("bot", False)
+    member_data["system"] = user.get("system", False)
+    member_data["mfa_enabled"] = user.get("mfa_enabled", False)
+    member_data["banner"] = user.get("banner")
+    member_data["accent_color"] = user.get("accent_color")
+    member_data["locale"] = user.get("locale")
+    member_data["verified"] = user.get("verified", False)
+    member_data["email"] = user.get("email")
+    member_data["avatar_decoration"] = user.get("avatar_decoration")
+    member_data["premium_type"] = user.get("premium_type")
+    member_data["public_flags"] = user.get("public_flags")
+    
+    # Rename conflicting 'flags' field from user to avoid collision
+    if "flags" in user:
+        member_data["user_flags"] = user["flags"]
+    
+    # Rename member flags field to avoid confusion
+    if "flags" in member_data:
+        member_data["flags_member"] = member_data.pop("flags")
+    
+    # Add guild_id to associate member with its guild
+    member_data["guild_id"] = guild_id
+    
+    # Serialize roles array
+    if member_data.get("roles"):
+        member_data["roles"] = json.dumps(member_data["roles"])
+    
+    # Add metadata fields
+    member_data["synced_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return member_data
 
 
 def process_message_data(message_data: dict, channel_id: str) -> dict:
@@ -496,69 +440,53 @@ def process_message_data(message_data: dict, channel_id: str) -> dict:
     Returns:
         dict: Processed message data
     """
-    author = message_data.get("author", {})
-    return {
-        "id": message_data.get("id"),
-        "channel_id": channel_id,
-        "author_id": author.get("id"),
-        "content": message_data.get("content"),
-        "timestamp": message_data.get("timestamp"),
-        "edited_timestamp": message_data.get("edited_timestamp"),
-        "tts": message_data.get("tts", False),
-        "mention_everyone": message_data.get("mention_everyone", False),
-        "mentions": json.dumps(message_data.get("mentions", [])),
-        "mention_roles": json.dumps(message_data.get("mention_roles", [])),
-        "mention_channels": json.dumps(message_data.get("mention_channels", [])),
-        "attachments": json.dumps(message_data.get("attachments", [])),
-        "embeds": json.dumps(message_data.get("embeds", [])),
-        "reactions": json.dumps(message_data.get("reactions", [])),
-        "nonce": message_data.get("nonce"),
-        "pinned": message_data.get("pinned", False),
-        "webhook_id": message_data.get("webhook_id"),
-        "type": message_data.get("type"),
-        "activity": (
-            json.dumps(message_data.get("activity"))
-            if message_data.get("activity")
-            else None
-        ),
-        "application": (
-            json.dumps(message_data.get("application"))
-            if message_data.get("application")
-            else None
-        ),
-        "application_id": message_data.get("application_id"),
-        "message_reference": (
-            json.dumps(message_data.get("message_reference"))
-            if message_data.get("message_reference")
-            else None
-        ),
-        "flags": message_data.get("flags"),
-        "referenced_message": (
-            json.dumps(message_data.get("referenced_message"))
-            if message_data.get("referenced_message")
-            else None
-        ),
-        "interaction": (
-            json.dumps(message_data.get("interaction"))
-            if message_data.get("interaction")
-            else None
-        ),
-        "thread": (
-            json.dumps(message_data.get("thread"))
-            if message_data.get("thread")
-            else None
-        ),
-        "components": json.dumps(message_data.get("components", [])),
-        "sticker_items": json.dumps(message_data.get("sticker_items", [])),
-        "stickers": json.dumps(message_data.get("stickers", [])),
-        "position": message_data.get("position"),
-        "role_subscription_data": (
-            json.dumps(message_data.get("role_subscription_data"))
-            if message_data.get("role_subscription_data")
-            else None
-        ),
-        "synced_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Extract author_id from nested author object
+    author = message_data.pop("author", {})
+    message_data["author_id"] = author.get("id")
+    
+    # Add channel_id to associate message with its channel
+    message_data["channel_id"] = channel_id
+    
+    # Serialize array fields that need JSON encoding
+    if message_data.get("mentions"):
+        message_data["mentions"] = json.dumps(message_data["mentions"])
+    if message_data.get("mention_roles"):
+        message_data["mention_roles"] = json.dumps(message_data["mention_roles"])
+    if message_data.get("mention_channels"):
+        message_data["mention_channels"] = json.dumps(message_data["mention_channels"])
+    if message_data.get("attachments"):
+        message_data["attachments"] = json.dumps(message_data["attachments"])
+    if message_data.get("embeds"):
+        message_data["embeds"] = json.dumps(message_data["embeds"])
+    if message_data.get("reactions"):
+        message_data["reactions"] = json.dumps(message_data["reactions"])
+    if message_data.get("components"):
+        message_data["components"] = json.dumps(message_data["components"])
+    if message_data.get("sticker_items"):
+        message_data["sticker_items"] = json.dumps(message_data["sticker_items"])
+    if message_data.get("stickers"):
+        message_data["stickers"] = json.dumps(message_data["stickers"])
+    
+    # Serialize nested object fields that need JSON encoding
+    if message_data.get("activity"):
+        message_data["activity"] = json.dumps(message_data["activity"])
+    if message_data.get("application"):
+        message_data["application"] = json.dumps(message_data["application"])
+    if message_data.get("message_reference"):
+        message_data["message_reference"] = json.dumps(message_data["message_reference"])
+    if message_data.get("referenced_message"):
+        message_data["referenced_message"] = json.dumps(message_data["referenced_message"])
+    if message_data.get("interaction"):
+        message_data["interaction"] = json.dumps(message_data["interaction"])
+    if message_data.get("thread"):
+        message_data["thread"] = json.dumps(message_data["thread"])
+    if message_data.get("role_subscription_data"):
+        message_data["role_subscription_data"] = json.dumps(message_data["role_subscription_data"])
+    
+    # Add metadata fields
+    message_data["synced_at"] = datetime.now(timezone.utc).isoformat()
+    
+    return message_data
 
 
 def schema(configuration: dict):
