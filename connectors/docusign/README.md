@@ -1,8 +1,8 @@
-# DocuSign eSignature Connector Example
+# Docusign eSignature Connector Example
 
 ## Connector overview
 
-This connector extracts data from the DocuSign eSignature API. It is designed to sync key objects related to the electronic signature process, including envelopes, recipients, documents (including their binary content), audit events, and templates. The extracted data can be used in a destination to enable analytics for Sales, Legal, Operations, and other teams tracking contract lifecycles, signature status, and compliance.
+This connector extracts data from the Docusign eSignature API. It is designed to sync key objects related to the electronic signature process, including envelopes, recipients, documents (including their binary content), audit events, and templates. The extracted data can be used in a destination to enable analytics for Sales, Legal, Operations, and other teams tracking contract lifecycles, signature status, and compliance.
 
 ## Contributor
 
@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-  - Extracts core DocuSign resources such as envelopes and templates and their related child objects.
+  - Extracts core Docusign resources such as envelopes and templates and their related child objects.
   - Incremental sync based on timestamp tracking.
   - Pagination and performance: uses offset-based pagination with sensible batch sizes to efficiently iterate large result sets.
   - Resiliency and partial-failure handling: per-envelope sub-resource failures are logged and skipped so a single broken item does not stop the entire sync.
@@ -40,9 +40,9 @@ The configuration for this connector is defined in `configuration.json`.
 }
 ```
 Configuration parameters:
-  - access_token (required) - The OAuth2 access token for authenticating with the DocuSign API.
-  - base_url (required) - The base URL for the DocuSign API (e.g., `https://demo.docusign.net/restapi` for demo or `https://na3.docusign.net/restapi` for production).
-  - account_id (required) - The Account ID for your DocuSign account.
+  - access_token (required) - The OAuth2 access token for authenticating with the Docusign API.
+  - base_url (required) - The base URL for the Docusign API (e.g., `https://demo.docusign.net/restapi` for demo or `https://na3.docusign.net/restapi` for production).
+  - account_id (required) - The Account ID for your Docusign account.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -57,9 +57,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 This connector authenticates using an OAuth2 bearer token. The token is provided in `configuration.json` and used in the `get_docusign_headers` function to create the required `Authorization` header for all API requests.
 
 To obtain credentials:
-1.  Configure an OAuth integration within your DocuSign account (e.g., using JWT Grant or Authorization Code Grant).
+1.  Configure an OAuth integration within your Docusign account (e.g., using JWT Grant or Authorization Code Grant).
 2.  Generate a valid `access_token`.
-3.  Find your `account_id` and correct `base_url` (e.g., `demo.docusign.net` or `na3.docusign.net`) from your DocuSign Admin panel.
+3.  Find your `account_id` and correct `base_url` (e.g., `demo.docusign.net` or `na3.docusign.net`) from your Docusign Admin panel.
 4.  Add these three values to the `configuration.json` file.
 
 ## Pagination
