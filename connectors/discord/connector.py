@@ -502,10 +502,15 @@ def schema(configuration: dict):
             connector.
     """
     return [
-        {"table": "guild", "primary_key": ["id"]},
-        {"table": "channel", "primary_key": ["id"]},
-        {"table": "member", "primary_key": ["user_id", "guild_id"]},
-        {"table": "message", "primary_key": ["id"]},
+        {"table": "guild", 
+         "primary_key": ["id"]},
+        {"table": "channel", 
+         "primary_key": ["id"]},
+        {"table": "member", 
+         "primary_key": ["user_id", 
+                         "guild_id"]},
+        {"table": "message", 
+         "primary_key": ["id"]},
     ]
 
 
