@@ -23,7 +23,7 @@ The correct format and style would be as follows:
 
 - There should be only one H1 heading in the file, and it should use Title Case, for example: # Connector SDK Somecompany API Connector Example
 - All other headings should use Sentence case, for example: ## Requirements file
-- Do not use numbers in headingds: WRONG: "## 4. Best practices", CORRECT: "## Best practices"
+- Do not use numbers in headings: WRONG: "## 4. Best practices", CORRECT: "## Best practices"
 
 ## Lists:
 
