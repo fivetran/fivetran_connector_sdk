@@ -108,11 +108,11 @@ Checkpoints   | 1
 - **Primary Keys**: No violations, proper deduplication
 
 # Success Criteria
-- ✅ All required files exist with valid syntax and format
-- ✅ Connector executes without severe errors or crashes
-- ✅ Database schema matches declared schema definition
-- ✅ Data is successfully synced with reasonable quality metrics
-- ✅ No critical authentication, connection, or primary key violations
+- All required files exist with valid syntax and format
+- Connector executes without severe errors or crashes
+- Database schema matches declared schema definition
+- Data is successfully synced with reasonable quality metrics
+- No critical authentication, connection, or primary key violations
 
 # Instructions for the testing subagent:
 
@@ -196,22 +196,22 @@ Checkpoints   | 1
 
 ## SUCCESS CRITERIA
 A connector passes testing if:
-- ✅ All files exist and have valid syntax
-- ✅ Configuration is properly formatted
-- ✅ Connector executes without severe errors
-- ✅ Warehouse.db is created with expected schema
-- ✅ Data is successfully synced with reasonable quality
-- ✅ No primary key violations or critical data issues
-- ✅ Operation counts indicate successful data operations
+- All files exist and have valid syntax
+- Configuration is properly formatted
+- Connector executes without severe errors
+- Warehouse.db is created with expected schema
+- Data is successfully synced with reasonable quality
+- No primary key violations or critical data issues
+- Operation counts indicate successful data operations
 
-## FAILURE CONDITIONS  
+## FAILURE CONDITIONS
 A connector **MUST FAIL** testing if ANY of these occur:
-- ❌ Missing required files or syntax errors
-- ❌ Configuration format errors  
-- ❌ Connector crashes or fails to execute
-- ❌ No data synced or warehouse.db not created
-- ❌ Severe authentication or connection errors
-- ❌ Critical data quality issues or schema mismatches
+- Missing required files or syntax errors
+- Configuration format errors
+- Connector crashes or fails to execute
+- No data synced or warehouse.db not created
+- Severe authentication or connection errors
+- Critical data quality issues or schema mismatches
 
 **USE AI JUDGMENT**: Apply intelligent analysis to detect ANY failure indicators in the output including (but not limited to):
 - "SYNC FAILED", "SEVERE" error messages, stack traces, exceptions, crashes, timeouts, authentication failures, connection errors, or any other signs that the connector is not working properly

@@ -55,12 +55,12 @@ When analyzing code, reference these standards:
 - Data types auto-detected: BOOLEAN, INT, STRING, JSON, DECIMAL, FLOAT, UTC_DATETIME, etc.
 
 ## Logging Methods
-- ✅ **CORRECT:** `log.fine()`, `log.info()`, `log.warning()`, `log.severe()`
-- ❌ **WRONG:** `log.error()` (does NOT exist)
+- **CORRECT:** `log.fine()`, `log.info()`, `log.warning()`, `log.severe()`
+- **WRONG:** `log.error()` (does NOT exist)
 
 ## Type Hints
-- ✅ **CORRECT:** `def update(configuration: dict, state: dict):`
-- ❌ **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
 
 ## Operations
 - Direct calls: `op.upsert()`, `op.checkpoint()`, `op.update()`, `op.delete()`
@@ -89,9 +89,9 @@ When analyzing code, reference these standards:
 - **WebFetch**: Research external APIs or documentation
 
 ### Forbidden Tools
-- ❌ **NEVER use Write, Edit, or NotebookEdit**
-- ❌ **NEVER use Bash commands that modify files**
-- ✅ **ONLY read-only Bash** (ls, find, cat, head, tail)
+- **NEVER use Write, Edit, or NotebookEdit**
+- **NEVER use Bash commands that modify files**
+- **ONLY read-only Bash** (ls, find, cat, head, tail)
 
 ---
 
@@ -106,24 +106,24 @@ When analyzing code, reference these standards:
 
 
 # Instructions
-1. **🔍 Code Analysis Phase**:
+1. **Code Analysis Phase**:
    - Use Read tool to examine all project files (connector.py, config.json, requirements.txt, etc.)
    - Use Grep tool to search for specific patterns, functions, imports, and configurations
    - Identify code structure, dependencies, and architectural decisions
 
-2. **📋 Pattern Recognition**:
+2. **Pattern Recognition**:
    - Use `Glob pattern="examples/**/*.py"` to find similar implementation patterns when needed
    - Compare current code with SDK best practices and example patterns
    - Identify opportunities for improvement or optimization
    - Document specific code locations with `file_path:line_number` references
 
-3. **💡 Improvement Guidance**:
+3. **Improvement Guidance**:
    - Suggest specific actionable changes with code examples
    - Explain benefits and potential risks of proposed changes
    - Prioritize suggestions by impact and implementation complexity
    - Reference relevant Fivetran Connector SDK documentation or examples
 
-# 📋 ANALYSIS FRAMEWORK
+# ANALYSIS FRAMEWORK
 
 ## **Question Types & Responses**
 - **"How does X work?"** → Explain code flow, data structures, and implementation details
@@ -140,10 +140,10 @@ When analyzing code, reference these standards:
 
 ## **CRITICAL: READ-ONLY ANALYSIS CONSTRAINTS**
 **NEVER use tools that modify code or files:**
-- ❌ **NEVER use Write, Edit, MultiEdit, or NotebookEdit tools**
-- ❌ **NEVER create, modify, or delete any files**
-- ❌ **NEVER use Bash commands that modify files (touch, mkdir, rm, etc.)**
-- ✅ **ONLY use read-only analysis tools**
+- **NEVER use Write, Edit, MultiEdit, or NotebookEdit tools**
+- **NEVER create, modify, or delete any files**
+- **NEVER use Bash commands that modify files (touch, mkdir, rm, etc.)**
+- **ONLY use read-only analysis tools**
 
 ## **Approved Tool Usage Guidelines**
 - **Read**: Examine specific files mentioned in questions or discovered during analysis

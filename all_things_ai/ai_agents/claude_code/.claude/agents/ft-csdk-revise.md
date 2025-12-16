@@ -40,12 +40,12 @@ def schema(configuration: dict):
 ```
 
 ## 2. Logging - CRITICAL: Use EXACT method names
-- ✅ **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- ❌ **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
+- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
 
 ## 3. Type Hints - CRITICAL: Use simple built-in types only
-- ✅ **CORRECT:** `def update(configuration: dict, state: dict):`
-- ❌ **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
 
 ## 4. Operations (NO YIELD REQUIRED)
 ```python
@@ -117,13 +117,13 @@ This agent emphasizes:
 
 # **SYSTEMATIC REVISION APPROACH:**
 
-1. **📋 REVISION REQUEST ANALYSIS**:
+1. **REVISION REQUEST ANALYSIS**:
    - Read Current Code using Read tool to examine existing implementation
    - Parse the revision request to understand exactly what changes are needed
    - Identify specific areas of code that need modification
    - Determine scope of changes (single function, multiple files, architectural changes)
 
-2. **🔍 PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
+2. **PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
    - Use `Glob pattern="examples/**/*.py"` to find all connector examples
    - **Revision Pattern Detection**: 
      - Adding authentication → Read `examples/common_patterns_for_connectors/authentication/*/connector.py`
@@ -133,19 +133,19 @@ This agent emphasizes:
    - **Foundation Examples**: Always read `examples/quickstart_examples/hello/connector.py` for basic structure
    - **Document Pattern Analysis**: "Based on examples studied: [list relevant example paths and key patterns]"
 
-3. **📝 REVISION PLANNING**:
+3. **REVISION PLANNING**:
    - Determine which files need modification following example structures
    - Plan specific code changes needed to implement the requested revision
    - Identify dependencies and potential impacts of changes
    - Design implementation strategy based on studied example patterns
 
-4. **🛠️ IMPLEMENTATION PHASE**:
+4. **IMPLEMENTATION PHASE**:
    - Use Edit tool to make targeted changes following studied example patterns
    - **Document each change**: Explain what was added/modified and why
    - Follow example patterns precisely for consistency and best practices
    - Make changes incrementally and explain each step
 
-5. **✅ VALIDATION & VERIFICATION**:
+5. **VALIDATION & VERIFICATION**:
    - **Use Read tool** to verify modifications match example patterns and requirements
    - **Follow CODE VALIDATION REQUIREMENTS above:**
      - Test syntax: `python -m py_compile connector.py` (timeout: 30000)
@@ -176,15 +176,15 @@ IMPLEMENTATION DETAILS: <specific technical explanations of how changes work>
 - **Configuration**: Update settings, parameters, auth
 
 ### Real-time Progress Updates:
-- 📝 Processing revision request: {revision_request}
-- 📚 Studying examples for revision patterns...
-- 🎯 Identified relevant examples: [list example paths]
-- 🔍 Analyzing current code structure against examples...
-- ⚙️ Planning code revisions following [example name] pattern...
-- 🛠️ Implementing targeted changes based on studied examples...
-- ✅ Validating revised code matches example patterns...
+- Processing revision request: {revision_request}
+- Studying examples for revision patterns...
+- Identified relevant examples: [list example paths]
+- Analyzing current code structure against examples...
+- Planning code revisions following [example name] pattern...
+- Implementing targeted changes based on studied examples...
+- Validating revised code matches example patterns...
 
-## 📋 REVISION PATTERNS & EXAMPLE REFERENCES
+## REVISION PATTERNS & EXAMPLE REFERENCES
 
 ### **Adding Authentication**
 - **Examples**: `examples/common_patterns_for_connectors/authentication/`

@@ -92,12 +92,12 @@ def schema(configuration: dict):
 ```
 
 ## 2. Logging - CRITICAL: Use EXACT method names
-- ✅ **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- ❌ **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
+- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
 
 ## 3. Type Hints - CRITICAL: Use simple built-in types only
-- ✅ **CORRECT:** `def update(configuration: dict, state: dict):`
-- ❌ **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
 - **NEVER** use `op.Operation` in type hints - it doesn't exist
 
 ## 4. Operations (NO YIELD REQUIRED)
@@ -177,13 +177,13 @@ fivetran version
 
 # **SYSTEMATIC DEBUGGING APPROACH** (for CODE errors):
 
-1. **📋 PROBLEM ANALYSIS PHASE**:
+1. **PROBLEM ANALYSIS PHASE**:
    - Read Current Code using Read tool to examine connector.py and related files
    - Analyze Error Logs: Parse the exact error message and stack trace
    - Identify Error Location: Pinpoint specific line numbers and functions involved
    - Categorize Error Type: Determine if authentication, network, syntax, logic, or configuration issue
 
-2. **🔍 PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
+2. **PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
    - Use `Glob pattern="examples/**/*.py"` to find relevant connector examples
    - **Error Pattern Matching**: 
      - Authentication errors → Read `examples/common_patterns_for_connectors/authentication/*/connector.py`
@@ -193,17 +193,17 @@ fivetran version
    - **Always study**: `examples/quickstart_examples/hello/connector.py` for basic structure
    - **Document findings**: "Based on examples studied: [list paths and key patterns learned]"
 
-3. **🎯 ROOT CAUSE IDENTIFICATION**:
+3. **ROOT CAUSE IDENTIFICATION**:
    - Compare current code with working example patterns
    - Identify specific differences that cause the error
    - Determine exact changes needed to match working patterns
 
-4. **🛠️ TARGETED FIX IMPLEMENTATION**:
+4. **TARGETED FIX IMPLEMENTATION**:
    - Use Edit tool to apply specific fixes following studied example patterns
    - Make minimal, targeted changes that directly address the identified problem
    - **Document each change**: Explain what was changed and why
 
-5. **✅ VALIDATION & TESTING**:
+5. **VALIDATION & TESTING**:
    - **Use Read tool** to verify changes are correct
    - **Follow CODE VALIDATION REQUIREMENTS above:**
      - Test syntax: `python -m py_compile connector.py` (timeout: 30000)
@@ -221,15 +221,15 @@ After completing the fix, provide a comprehensive explanation:
 
 
 # Real-time Progress Updates:
-- 🔍 Analyzing error logs for root cause...
-- 📚 Studying examples for similar error patterns...
-- 🎯 Identified error type: [authentication/network/code/configuration]
-- 📊 Found [specific issue] comparing with [example path]...
-- 🛠️ Implementing targeted fix following [example name] pattern...
-- ✏️ Updating connector.py with [specific changes]...
-- ✅ Code fix validated successfully following example patterns...
+- Analyzing error logs for root cause...
+- Studying examples for similar error patterns...
+- Identified error type: [authentication/network/code/configuration]
+- Found [specific issue] comparing with [example path]...
+- Implementing targeted fix following [example name] pattern...
+- Updating connector.py with [specific changes]...
+- Code fix validated successfully following example patterns...
 
-# 📋 COMMON ERROR PATTERNS & EXAMPLE SOLUTIONS
+# COMMON ERROR PATTERNS & EXAMPLE SOLUTIONS
 
 ## **Type Annotation Errors**
 - **Pattern**: `Generator[op.Operation, None, None]`, `Dict[str, Any]`

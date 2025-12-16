@@ -67,12 +67,12 @@ def update(configuration: dict, state: dict):
 ```
 
 ### **CRITICAL TYPE ANNOTATION RULES:**
-- **✅ CORRECT Function Signatures:**
+- **CORRECT Function Signatures:**
 ```python
 def update(configuration: dict, state: dict):
 def schema(configuration: dict):
 ```
-- **❌ FORBIDDEN Type Annotations:**
+- **FORBIDDEN Type Annotations:**
   - `Generator[op.Operation, None, None]` - op.Operation class doesn't exist
   - `Dict[str, Any]` - Use simple `dict` instead
 
@@ -81,7 +81,7 @@ def schema(configuration: dict):
 - Update: Use `op.update(table, modified)` for updating existing records
 - Delete: Use `op.delete(table, keys)` for marking records as deleted
 - Checkpoint: Use `op.checkpoint(state)` for incremental syncs
-- **✅ CORRECT Operations Usage:** Use `op.upsert()`, `op.checkpoint()` directly without type hints
+- **CORRECT Operations Usage:** Use `op.upsert()`, `op.checkpoint()` directly without type hints
 
 ### State Management and Checkpointing:
 - Implement checkpoint logic after each batch of operations
@@ -136,8 +136,8 @@ def schema(configuration: dict):
 ```
 
 ## 2. Logging - CRITICAL: Use EXACT method names
-- ✅ **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- ❌ **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
+- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
 
 ```python
 # FINE - Detailed debugging information, verbose logging
@@ -154,10 +154,10 @@ log.severe(f"Error details: {error_details}")
 ```
 
 ## 3. Type Hints - CRITICAL: Use simple built-in types only
-- ✅ **CORRECT:** `def update(configuration: dict, state: dict):`
-- ✅ **CORRECT:** `def schema(configuration: dict):`
-- ❌ **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
-- ❌ **WRONG:** `from typing import Generator, Dict, List, Any`
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **CORRECT:** `def schema(configuration: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **WRONG:** `from typing import Generator, Dict, List, Any`
 - **NEVER** use `op.Operation` in type hints - it doesn't exist
 - **NEVER** use `Generator` return type annotations
 - **ALWAYS** use simple `dict` and `list` built-in types like the SDK examples
@@ -267,7 +267,7 @@ This agent emphasizes:
 # Instructions for the subagent
 1. **Analyze Requirements**: Use WebFetch tool if API documentation URLs are provided in description
 
-2. **🔍 MANDATORY: Study Relevant Examples First** (Use Glob and Read tools for local examples):
+2. **MANDATORY: Study Relevant Examples First** (Use Glob and Read tools for local examples):
    - Use `Glob pattern="examples/**/*.py"` to find all connector examples
    - **Authentication Pattern Detection**:
      - If task involves API keys → Read `examples/common_patterns_for_connectors/authentication/api_key/connector.py`
@@ -287,7 +287,7 @@ This agent emphasizes:
    - Append specific example path to fetch via WebFetch tool
    - See EXAMPLE CATEGORIZATION GUIDE section below for specific GitHub URLs
 
-3. **📋 Document Pattern Analysis**: Before coding, explicitly state:
+3. **Document Pattern Analysis**: Before coding, explicitly state:
    - "Based on examples studied: [list relevant example paths]"  
    - "Key patterns identified: [authentication method, pagination type, etc.]"
    - "Source schema analysis: [table structure, data types, relationships]"
@@ -301,15 +301,15 @@ This agent emphasizes:
 5. **Validate Code**: Use Read tool to verify generated files are correct
 
 ## Real-time Progress Updates:
-- 🔍 Analyzing project requirements and API documentation...
-- 📚 Studying relevant examples from ../../../../examples/ directory...
-- 🎯 Identified patterns: [authentication method, data patterns, source type]
-- ⚙️ Generating connector.py following [specific example] structure...  
-- 📝 Creating configuration.json with authentication fields...
-- ✅ Validating generated Python code syntax...
-- 💾 Saving connector files to project directory...
+- Analyzing project requirements and API documentation...
+- Studying relevant examples from ../../../../examples/ directory...
+- Identified patterns: [authentication method, data patterns, source type]
+- Generating connector.py following [specific example] structure...
+- Creating configuration.json with authentication fields...
+- Validating generated Python code syntax...
+- Saving connector files to project directory...
 
-# 📋 EXAMPLE CATEGORIZATION GUIDE
+# EXAMPLE CATEGORIZATION GUIDE
 
 **Note:** Use local paths with Glob/Read when available. For WebFetch alternative, append path to GitHub base URL.
 
@@ -370,12 +370,12 @@ This agent emphasizes:
 
 4. **Pattern Documentation**: Before generating code, explicitly document:
    ```
-   📚 Examples studied: 
+   Examples studied:
    - [path1]: [key pattern learned]
-   - [path2]: [key pattern learned] 
+   - [path2]: [key pattern learned]
    - [path3]: [key pattern learned]
-   
-   🎯 Implementation approach:
+
+   Implementation approach:
    - Authentication: [method] following [example name]
    - Data processing: [pattern] based on [example name]
    - Error handling: [approach] from [example name]
@@ -443,11 +443,11 @@ Before completing the task, the subagent MUST validate its work:
 6. **Example Pattern Conformance**: Verify generated code follows the studied example patterns
 
 ## Success Criteria:
-✅ All files created with Write tool and returned in structured format
-✅ Code follows BEST PRACTICES (schema, logging, type hints, operations)
-✅ Configuration is flat with string values only (sensitive fields only)
-✅ Code validation requirements met (syntax check, import test)
-✅ Configuration matches example patterns studied
-✅ Documentation is comprehensive and clear
+- All files created with Write tool and returned in structured format
+- Code follows BEST PRACTICES (schema, logging, type hints, operations)
+- Configuration is flat with string values only (sensitive fields only)
+- Code validation requirements met (syntax check, import test)
+- Configuration matches example patterns studied
+- Documentation is comprehensive and clear
 
 **CRITICAL**: If any validation check fails, re-generate the affected files before providing final response.
