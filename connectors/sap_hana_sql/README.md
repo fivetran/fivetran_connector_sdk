@@ -97,8 +97,6 @@ The connector implements error handling in several key areas:
 This connector replicates the `sales` table which contains sales information with the following schema:
 
 - `transaction_id` (STRING) - Primary key
-- `transaction_amount` (DOUBLE) - Transaction amount
-- `status` (STRING) - Status of transaction
 - `created_at` (NAIVE_DATE) - The creation date of transaction
 
 ## Additional considerations

@@ -174,7 +174,7 @@ def update(configuration: dict, state: dict):
                 op.upsert(table="forecast", data=forecast)
 
         except Exception as e:
-            log.severe(f"Unexpected error occurred while processing ZIP code {zip_code}: {str(e)}")
+            log.severe(f"Unexpected error occurred while processing ZIP code {zip_code}", e)
             raise
 
     # Update the cursor to the end time of the current period.
