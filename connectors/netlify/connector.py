@@ -547,6 +547,7 @@ def handle_api_response(response, attempt: int):
         return response.json()
 
     if response.status_code == 404:
+        log.info("Resource not found (404), returning empty list")
         return []
 
     if response.status_code in [429, 500, 502, 503, 504]:
