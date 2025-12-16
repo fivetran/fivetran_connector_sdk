@@ -808,7 +808,7 @@ def _process_single_guild_with_error_handling(
         # Save the progress by checkpointing the state. This is important for
         # ensuring that the sync process can resume from the correct position in
         # case of next sync or interruptions.
-        op.checkpoint(state=state)
+        op.checkpoint(state=guild_state)
 
         return records_processed
 
