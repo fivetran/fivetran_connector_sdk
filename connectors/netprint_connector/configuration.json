@@ -1,0 +1,5 @@
+{
+  "username": "<YOUR_NETPRINT_USERNAME>",
+  "password": "<YOUR_NETPRINT_PASSWORD>",
+  "BASE_URL": "<NETPRINT_API_BASE_URL>"
+}
