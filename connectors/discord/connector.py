@@ -120,53 +120,31 @@ def _handle_rate_limit(response: requests.Response, attempt: int) -> None:
     time.sleep(retry_after)
 
 
-def _handle_server_error(response: requests.Response, attempt: int) -> None:
+def _handle_retry_with_backoff(
+    error_message: str, attempt: int, error_detail: Optional[str] = None
+) -> None:
     """
-    Handle Discord API server errors (5xx) with exponential backoff.
+    Handle retries with exponential backoff for API failures.
     Args:
-        response: The HTTP response with 5xx status
+        error_message: Description of the error that occurred
         attempt: Current retry attempt number
+        error_detail: Additional error details to log on final attempt
     Raises:
         RuntimeError: If this is the final retry attempt
     """
     if attempt < __MAX_RETRIES - 1:
         delay = __BASE_DELAY * (2**attempt)
         log.warning(
-            f"Server error {response.status_code}, retrying in {delay} seconds "
+            f"{error_message}, retrying in {delay} seconds "
             f"(attempt {attempt + 1}/{__MAX_RETRIES})"
         )
         time.sleep(delay)
     else:
-        log.severe(
-            f"Server error {response.status_code} after {__MAX_RETRIES} attempts: "
-            f"{response.text}"
-        )
-        raise RuntimeError(
-            f"Discord API returned {response.status_code} after {__MAX_RETRIES} attempts"
-        )
-
-
-def _handle_request_exception(exception: Exception, attempt: int) -> None:
-    """
-    Handle request exceptions with exponential backoff.
-    Args:
-        exception: The exception that occurred
-        attempt: Current retry attempt number
-    Raises:
-        RuntimeError: If this is the final retry attempt
-    """
-    if attempt < __MAX_RETRIES - 1:
-        delay = __BASE_DELAY * (2**attempt)
-        log.warning(
-            f"Request failed: {str(exception)}, retrying in {delay} seconds "
-            f"(attempt {attempt + 1}/{__MAX_RETRIES})"
-        )
-        time.sleep(delay)
-    else:
-        log.severe(f"Request failed after {__MAX_RETRIES} attempts: {str(exception)}")
-        raise RuntimeError(
-            f"Discord API request failed after {__MAX_RETRIES} attempts: " f"{str(exception)}"
-        )
+        error_log = error_message
+        if error_detail:
+            error_log = f"{error_message}: {error_detail}"
+        log.severe(f"{error_log} after {__MAX_RETRIES} attempts")
+        raise RuntimeError(f"{error_message} after {__MAX_RETRIES} attempts")
 
 
 def make_discord_request(url: str, headers: dict, params: Optional[dict] = None) -> dict:
@@ -191,14 +169,16 @@ def make_discord_request(url: str, headers: dict, params: Optional[dict] = None)
                 _handle_rate_limit(response, attempt)
                 continue
             elif response.status_code in [500, 502, 503, 504]:
-                _handle_server_error(response, attempt)
+                _handle_retry_with_backoff(
+                    f"Server error {response.status_code}", attempt, response.text
+                )
                 continue
             else:
                 log.severe(f"Discord API error {response.status_code}: {response.text}")
                 raise RuntimeError(f"Discord API returned {response.status_code}: {response.text}")
 
         except requests.exceptions.RequestException as e:
-            _handle_request_exception(e, attempt)
+            _handle_retry_with_backoff(f"Request failed: {str(e)}", attempt)
             continue
 
     raise RuntimeError(f"Discord API request failed after {__MAX_RETRIES} attempts")
