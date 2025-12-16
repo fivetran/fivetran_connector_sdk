@@ -789,7 +789,7 @@ def _fetch_and_filter_guilds(headers: dict, configuration: dict) -> tuple:
     guilds_to_process = filter_guilds(all_guilds, configuration)
     log.info(f"Processing {len(guilds_to_process)} guilds after filtering")
 
-    return all_guilds, guilds_to_process
+    return guilds_to_process
 
 
 def _process_single_guild_with_error_handling(
@@ -921,8 +921,8 @@ def update(configuration: dict, state: dict):
         # Create headers for Discord API requests
         headers = get_discord_headers(bot_token)
 
-        # Fetch all guilds and filter based on configuration
-        all_guilds, guilds_to_process = _fetch_and_filter_guilds(headers, configuration)
+        # Fetch all guilds to process and filter based on configuration
+        guilds_to_process = _fetch_and_filter_guilds(headers, configuration)
 
         if not guilds_to_process:
             log.warning("No guilds to process after filtering")
