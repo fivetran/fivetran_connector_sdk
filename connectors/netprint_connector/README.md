@@ -32,16 +32,15 @@ The connector reads configuration values from `configuration.json`. These settin
 {
   "username": "<YOUR_NETPRINT_USERNAME>",
   "password": "<YOUR_NETPRINT_PASSWORD>",
-  "BASE_URL": "<NETPRINT_API_BASE_URL>",
-  "PAGE_SIZE": "<NUMBER_OF_RECORDS_PER_PAGE>"
+  "BASE_URL": "<NETPRINT_API_BASE_URL>"
 }
 ```
 
-Key	Required	Description
-username	Yes	Your NetPrint account username.
-password	Yes	Your NetPrint account password.
-BASE_URL	No	The base URL for the NetPrint API (defaults to the production API).
-PAGE_SIZE	No	Number of records retrieved per page from the API (default is 200).
+| Key | Required | Description |
+| --- | -------- | ----------- |
+| username | Yes | Your NetPrint account username. |
+| password | Yes | Your NetPrint account password. |
+| BASE_URL | No | The base URL for the NetPrint API (defaults to the production API). |
 
 Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
@@ -51,15 +50,18 @@ The requirements.txt file lists only external dependencies that are not preinsta
 In this example, the connector does not require any additional dependencies, so your requirements.txt should either be empty or omitted.
 
 Do not include:
-
-fivetran_connector_sdk
-
-requests
+- `fivetran_connector_sdk`
+- `requests`
 
 These are already available in the environment.
 
 ## Authentication
-The connector authenticates to the NetPrint API using a Base64‐encoded header.
+The connector authenticates to the NetPrint API using a Base64-encoded header (`X-NPS-Authorization`) that contains the username, password, and a service identifier.
+
+To set up authentication:
+1. Obtain your NetPrint account credentials (username and password).
+2. Add your credentials to the `configuration.json` file.
+3. The connector will automatically encode these credentials in the required format for API authentication.
 
 ## Pagination
 Pagination is handled in the NetPrintAPI.iter_files() function. The connector uses the fromCount and showCount parameters to retrieve data in pages of a configurable size (PAGE_SIZE, default 200).
@@ -87,13 +89,14 @@ Fetches data from three endpoints:
   - known_keys (list of previously seen accessKey values)
 
 Example state:
-
-json
-Copy code
-"files": {
-  "last_synced_at": "2025-10-21T09:00:00Z",
-  "known_keys": ["AK1", "AK2", "AK3"]
+```json
+{
+  "files": {
+    "last_synced_at": "2025-10-21T09:00:00Z",
+    "known_keys": ["AK1", "AK2", "AK3"]
+  }
 }
+```
 
 ## Error handling
 The connector implements error handling for network and API-related issues:
@@ -109,21 +112,25 @@ Logs and skips invalid JSON.
 Raises errors for other unexpected HTTP responses.
 
 ## Tables created
-system_info
-Column	Description
-Dynamic fields	Vary by API response.
-_fivetran_deleted	Always false.
 
-folder_usage
-Column	Description
-Dynamic fields	Vary by API response.
-_fivetran_deleted	Always false.
+### system_info
+| Column | Description |
+| ------ | ----------- |
+| Dynamic fields | Vary by API response. |
+| _fivetran_deleted | Always false. |
 
-files
-Column	Description
-accessKey	Primary key identifying each file.
-_fivetran_deleted	Boolean flag for soft deletes.
-Other fields	Include filename, upload timestamp, size, etc.
+### folder_usage
+| Column | Description |
+| ------ | ----------- |
+| Dynamic fields | Vary by API response. |
+| _fivetran_deleted | Always false. |
+
+### files
+| Column | Description |
+| ------ | ----------- |
+| accessKey | Primary key identifying each file. |
+| _fivetran_deleted | Boolean flag for soft deletes. |
+| Other fields | Include filename, upload timestamp, size, etc. |
 
 ## Additional considerations
-The provided example is intended to help you effectively use the Fivetran Connector SDK. While the connector logic has been tested, Fivetran cannot be held responsible for any unexpected or negative consequences arising from its use. For support, please reach out to the Fivetran Support team.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
