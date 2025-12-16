@@ -73,7 +73,7 @@ Content-Type: application/json
 
 ### How to obtain your API key
 1. Log in to your [Linear account](https://linear.app/).
-2. Go to Settings → API Keys.
+2. Go to **Settings → API Keys**.
 3. Generate a personal API key and copy it.
 4. Add it to your `configuration.json` file under `linear_api_key`.
 
@@ -136,7 +136,7 @@ The connector processes and syncs Linear data using the following workflow:
 
 ---
 
-## Isolated Endpoint Sync
+## Isolated endpoint sync
 A major feature of this connector is Isolated Endpoint Sync.  
 Each entity (issues, projects, teams, users, comments) runs independently in isolation.
 
@@ -159,8 +159,8 @@ IsolatedEndpointSync detected failed endpoints -> issues: 500 Internal Server Er
 
 ## Error handling
 The connector implements robust error handling for API and sync operations:
-- HTTP Errors (4xx/5xx) – Logged and raised immediately.
-- GraphQL Errors – Logged with full error details and halted for that entity only.
+- HTTP errors (4xx/5xx) – Logged and raised immediately.
+- GraphQL errors – Logged with full error details and halted for that entity only.
 - Network Failures – Automatically retried with incremental delays.
 - Partial Failures – Isolated by entity; other syncs continue running.
 - Rate Limits – The Linear API’s standard 400 requests/minute limit is respected.
@@ -171,12 +171,12 @@ The connector implements robust error handling for API and sync operations:
 The connector creates a table for each synced entity.
 
 | Table name | Primary key | Description |
-|-------------|--------------|-------------|
-| `issues` | `id` | Tracks issues with created, updated, and archived timestamps. |
-| `projects` | `id` | Stores project metadata and lifecycle data. |
-| `teams` | `id` | Contains team metadata and relationships. |
-| `users` | `id` | Captures user accounts and updates. |
-| `comments` | `id` | Stores comment text and timestamps. |
+|------------|--------------|-------------|
+| `ISSUES`   | `id` | Tracks issues with created, updated, and archived timestamps. |
+| `PROJECTS` | `id` | Stores project metadata and lifecycle data. |
+| `TEAMS`    | `id` | Contains team metadata and relationships. |
+| `USERS`    | `id` | Captures user accounts and updates. |
+| `COMMENTS` | `id` | Stores comment text and timestamps. |
 
 Each table includes:
 - `id`
@@ -187,9 +187,6 @@ Each table includes:
 ---
 
 ## Additional considerations
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-- Incremental syncs depend on the `updatedAt` field — ensure it exists for all entities.
+- The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, questions, and assistance, please reach out to our Support team.- Incremental syncs depend on the `updatedAt` field — ensure it exists for all entities.
 - Soft deletes use the `archivedAt` timestamp; archived records are removed from destinations.
 - The connector is designed for educational and demonstration purposes using the Fivetran Connector SDK.
-
-For assistance or questions, contact Fivetran Support.
