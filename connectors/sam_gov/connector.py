@@ -34,6 +34,7 @@ __DATE_FORMAT = "%m/%d/%Y"  # SAM.gov API date format
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_BASE = 2  # Base delay for exponential backoff (seconds)
 __INCREMENTAL_WINDOW_DAYS = 30  # Default overlap window for incremental syncs to capture updates
+__MAX_DATE_RANGE_DAYS = 365  # Maximum date range allowed by SAM.gov API (in days)
 
 
 def validate_configuration(configuration: dict):
@@ -64,11 +65,11 @@ def validate_configuration(configuration: dict):
 
         # Check that date range does not exceed 1 year (365 days)
         date_diff = posted_to_date - posted_from_date
-        if date_diff.days > 365:
+        if date_diff.days > __MAX_DATE_RANGE_DAYS:
             raise ValueError(
                 f"Date range between posted_from and posted_to cannot exceed 1 year. "
                 f"Current range is {date_diff.days} days. "
-                f"SAM.gov API limitation: maximum 1 year (365 days) between dates."
+                f"SAM.gov API limitation: maximum 1 year ({__MAX_DATE_RANGE_DAYS} days) between dates."
             )
 
     except ValueError as e:
@@ -122,10 +123,10 @@ def extract_point_of_contact_records(opportunity_data: Dict[str, Any]) -> List[D
     notice_id = opportunity_data.get("noticeId")
 
     if "pointOfContact" in opportunity_data and opportunity_data["pointOfContact"]:
-        for i, contact in enumerate(opportunity_data["pointOfContact"]):
+        for contact_index, contact in enumerate(opportunity_data["pointOfContact"]):
             contact_record = {
                 "notice_id": notice_id,  # Foreign key to main table
-                "contact_index": i,  # To maintain order
+                "contact_index": contact_index,  # To maintain order
                 **contact,
             }
             contacts.append(contact_record)
@@ -147,11 +148,11 @@ def extract_naics_codes_records(opportunity_data: Dict[str, Any]) -> List[Dict[s
     notice_id = opportunity_data.get("noticeId")
 
     if "naicsCodes" in opportunity_data and opportunity_data["naicsCodes"]:
-        for i, naics_code in enumerate(opportunity_data["naicsCodes"]):
+        for code_index, naics_code in enumerate(opportunity_data["naicsCodes"]):
             naics_record = {
                 "notice_id": notice_id,  # Foreign key to main table
                 "naics_code": naics_code,
-                "code_index": i,  # To maintain order
+                "code_index": code_index,  # To maintain order
             }
             naics_records.append(naics_record)
 
@@ -172,10 +173,10 @@ def extract_links_records(opportunity_data: Dict[str, Any]) -> List[Dict[str, An
     notice_id = opportunity_data.get("noticeId")
 
     if "links" in opportunity_data and opportunity_data["links"]:
-        for i, link in enumerate(opportunity_data["links"]):
+        for link_index, link in enumerate(opportunity_data["links"]):
             link_record = {
                 "notice_id": notice_id,  # Foreign key to main table
-                "link_index": i,  # To maintain order
+                "link_index": link_index,  # To maintain order
                 **link,
             }
             links_records.append(link_record)
@@ -197,11 +198,11 @@ def extract_resource_links_records(opportunity_data: Dict[str, Any]) -> List[Dic
     notice_id = opportunity_data.get("noticeId")
 
     if "resourceLinks" in opportunity_data and opportunity_data["resourceLinks"]:
-        for i, resource_link in enumerate(opportunity_data["resourceLinks"]):
+        for link_index, resource_link in enumerate(opportunity_data["resourceLinks"]):
             resource_link_record = {
                 "notice_id": notice_id,  # Foreign key to main table
                 "resource_link": resource_link,
-                "link_index": i,  # To maintain order
+                "link_index": link_index,  # To maintain order
             }
             resource_links_records.append(resource_link_record)
 
