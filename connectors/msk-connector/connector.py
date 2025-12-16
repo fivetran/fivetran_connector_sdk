@@ -36,7 +36,7 @@ _RETRY_DELAY = 1  # Initial retry delay in seconds
 _PAGE_SIZE = 100  # Number of records per page
 _WORKDAY_NAMESPACE = "urn:com.workday/bsvc"
 _SOAP_ENVELOPE_NS = "http://schemas.xmlsoap.org/soap/envelope/"
-_WORKDAY_API_VERSION = "v44.1"
+_WORKDAY_API_VERSION = "v42.0"
 
 
 def validate_configuration(configuration: dict) -> None:
@@ -137,18 +137,18 @@ def _generate_daily_dates(start_date: datetime, end_date: datetime) -> List[str]
 def make_soap_request(
     url: str,
     soap_body: str,
-    username: str,
-    password: str,
+    username: str = None,
+    password: str = None,
+    tenant: str = None,
 ) -> str:
     """Make a SOAP POST request to Workday API with retry logic and exponential backoff.
 
     Args:
         url: The Workday API endpoint URL
-        soap_body: The SOAP envelope XML body
-        username: Workday username for authentication
-        password: Workday password for authentication
+        soap_body: The SOAP envelope XML body (includes authentication in SOAP Header)
+        username: Workday username for HTTP Basic Auth
+        password: Workday password for HTTP Basic Auth
         tenant: Workday tenant name
-
     Returns:
         str: XML response from the SOAP service
 
@@ -157,18 +157,59 @@ def make_soap_request(
     """
     headers = {
         "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": "",
+        "SOAPAction": "Get_Positions",
         "User-Agent": "Fivetran-Workday-Connector/1.0",
     }
 
-    # Workday uses HTTP Basic Authentication
-    auth = HTTPBasicAuth(username, password)
+    # Workday requires both HTTP Basic Auth AND SOAP Header authentication
+    # HTTP Basic Auth also needs username@tenant format
+    auth = None
+    if username and password and tenant:
+        auth = HTTPBasicAuth(f"{username}@{tenant}", password)
 
     for attempt in range(_MAX_RETRIES):
         try:
             response = requests.post(url, headers=headers, data=soap_body, auth=auth, timeout=60)
+
+            # Check for HTTP errors
+            if response.status_code >= 400:
+                # Try to extract error details from response
+                error_details = response.text[:500] if response.text else "No response body"
+                log.warning(f"Workday API returned HTTP {response.status_code}: {error_details}")
+
             response.raise_for_status()
             return response.text
+
+        except requests.exceptions.HTTPError as e:
+            # Extract more details from HTTP errors
+            error_msg = str(e)
+            if hasattr(e.response, "text") and e.response.text:
+                # Try to parse SOAP fault if present
+                try:
+                    root = ET.fromstring(e.response.text)
+                    fault_string = root.find(
+                        ".//{http://schemas.xmlsoap.org/soap/envelope/}faultstring"
+                    ) or root.find(
+                        ".//SOAP:faultstring",
+                        {"SOAP": "http://schemas.xmlsoap.org/soap/envelope/"},
+                    )
+                    if fault_string is not None and fault_string.text:
+                        error_msg = f"SOAP Fault: {fault_string.text}"
+                except:
+                    # If not SOAP, include first 500 chars of response
+                    error_msg = f"{str(e)}\nResponse: {e.response.text[:500]}"
+
+            if attempt == _MAX_RETRIES - 1:
+                raise RuntimeError(
+                    f"Workday SOAP request failed after {_MAX_RETRIES} attempts: {error_msg}"
+                )
+
+            # Exponential backoff
+            delay = _RETRY_DELAY * (2**attempt)
+            log.warning(
+                f"Workday SOAP request attempt {attempt + 1} failed, retrying in {delay}s: {error_msg}"
+            )
+            time.sleep(delay)
 
         except requests.exceptions.RequestException as e:
             if attempt == _MAX_RETRIES - 1:
@@ -194,11 +235,14 @@ def _get_workday_api_url(workday_url: str, tenant: str) -> str:
     Returns:
         The full API URL for HCM operations
     """
-    # Workday API endpoint format: https://{workday_url}/ccx/service/{tenant}/Human_Resources/v{version}
-    return f"{workday_url}/ccx/service/{tenant}/Human_Resources/{_WORKDAY_API_VERSION}"
+    # Workday API endpoint format: https://{workday_url}/ccx/service/{tenant}/Staffing/v{version}
+    return f"{workday_url}/ccx/service/{tenant}/Staffing/{_WORKDAY_API_VERSION}"
 
 
 def _create_get_positions_soap_envelope(
+    username: str,
+    password: str,
+    tenant: str,
     page: int = 1,
     count: int = _PAGE_SIZE,
     effective_date: Optional[str] = None,
@@ -212,6 +256,9 @@ def _create_get_positions_soap_envelope(
     """Create a SOAP envelope for Get_Positions_Request.
 
     Args:
+        username: Workday username for authentication
+        password: Workday password for authentication
+        tenant: Workday tenant name (will be appended to username as username@tenant)
         page: Page number for pagination
         count: Number of records per page
         effective_date: Effective date for the query (YYYY-MM-DD format)
@@ -267,17 +314,25 @@ def _create_get_positions_soap_envelope(
            </wd:Response_Group>"""
 
     envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
-<env:Envelope
-   xmlns:env="{_SOAP_ENVELOPE_NS}"
+<SOAP:Envelope
+   xmlns:SOAP="{_SOAP_ENVELOPE_NS}"
    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-   <env:Body>
+   <SOAP:Header>
+       <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
+           <wsse:UsernameToken wsu:Id="UsernameToken-1">
+               <wsse:Username>{username}@{tenant}</wsse:Username>
+               <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">{password}</wsse:Password>
+           </wsse:UsernameToken>
+       </wsse:Security>
+   </SOAP:Header>
+   <SOAP:Body>
        <wd:Get_Positions_Request xmlns:wd="{_WORKDAY_NAMESPACE}" wd:version="{_WORKDAY_API_VERSION}">
            {request_references}
            {response_filter}
            {response_group}
        </wd:Get_Positions_Request>
-   </env:Body>
-</env:Envelope>"""
+   </SOAP:Body>
+</SOAP:Envelope>"""
     return envelope
 
 
@@ -299,14 +354,18 @@ def _parse_soap_response(
 
         # Register namespaces
         namespaces = {
-            "env": _SOAP_ENVELOPE_NS,
+            "SOAP": _SOAP_ENVELOPE_NS,
             "wd": _WORKDAY_NAMESPACE,
         }
 
         # Check for SOAP faults
-        fault = root.find(".//env:Fault", namespaces)
+        fault = root.find(".//SOAP:Fault", namespaces) or root.find(
+            ".//{http://schemas.xmlsoap.org/soap/envelope/}Fault"
+        )
         if fault is not None:
-            fault_string = root.find(".//env:faultstring", namespaces)
+            fault_string = root.find(".//SOAP:faultstring", namespaces) or root.find(
+                ".//{http://schemas.xmlsoap.org/soap/envelope/}faultstring"
+            )
             error_msg = fault_string.text if fault_string is not None else "Unknown SOAP fault"
             raise RuntimeError(f"Workday SOAP fault: {error_msg}")
 
@@ -804,6 +863,9 @@ def get_positions_data(
 
             try:
                 soap_body = _create_get_positions_soap_envelope(
+                    username=username,
+                    password=password,
+                    tenant=tenant,
                     page=page,
                     count=_PAGE_SIZE,
                     effective_date=effective_date_str,
@@ -812,7 +874,10 @@ def get_positions_data(
                     ),  # Only use position_ids on first page
                 )
 
-                xml_response = make_soap_request(api_url, soap_body, username, password)
+                # Workday requires both SOAP Header and HTTP Basic Auth
+                xml_response = make_soap_request(
+                    api_url, soap_body, username=username, password=password, tenant=tenant
+                )
                 records, has_more_pages, total_pages = _parse_soap_response(
                     xml_response, effective_date_str
                 )
