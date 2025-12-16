@@ -20,10 +20,10 @@ This agent specializes in:
 - Code revision and refactoring patterns
 - Feature enhancement strategies
 - Reference Documentation:
-  * [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  * [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
-  * [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
-  * [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
 ---
 

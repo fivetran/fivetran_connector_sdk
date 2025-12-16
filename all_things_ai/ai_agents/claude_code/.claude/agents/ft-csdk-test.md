@@ -39,9 +39,9 @@ This agent specializes in:
 - DuckDB warehouse.db analysis
 - Data quality assessment
 - Reference Documentation:
-  * [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  * [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
-  * [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
 ---
 

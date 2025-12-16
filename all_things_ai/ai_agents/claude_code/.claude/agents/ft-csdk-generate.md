@@ -20,12 +20,12 @@ This agent specializes in:
 - Data integration patterns and best practices
 - Authentication and security protocols
 - Reference Documentation:
-  * [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  * [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
-  * [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
-  * [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
-  * [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
-  * [Working with Connector SDK](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk)
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+  - [Working with Connector SDK](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk)
 
 # INITIAL ASSESSMENT
 - Analyze requirements and constraints

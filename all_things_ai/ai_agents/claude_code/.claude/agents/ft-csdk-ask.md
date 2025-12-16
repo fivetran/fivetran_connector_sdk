@@ -38,11 +38,11 @@ This agent specializes in:
 - Code analysis and pattern recognition
 - Best practices and optimization strategies
 - Reference Documentation:
-  * [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  * [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
-  * [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
-  * [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
-  * [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
 ---
 
