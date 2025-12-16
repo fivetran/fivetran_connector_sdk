@@ -1,9 +1,9 @@
 # Comet Opik Connector Example
 
-## Connector Overview
+## Connector overview
 
 This connector retrieves observability data from the [Comet Opik API](https://www.comet.com/opik) and syncs it into your Fivetran destination.  
-It pulls metadata about **projects**, **datasets**, and **dataset items** from Comet Opik’s private REST API to enable monitoring, analytics, and reporting on machine learning data assets.
+It pulls metadata about projects, datasets, and dataset items from Comet Opik’s private REST API to enable monitoring, analytics, and reporting on machine learning data assets.
 
 The connector supports:
 - Secure authentication via API key and workspace headers.
@@ -14,17 +14,17 @@ The connector supports:
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* Operating System:
-    * Windows 10 or later
-    * macOS 13 (Ventura) or later
-    * Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
-* Active **Comet Opik account** with API access.
-* A valid **Comet Opik API key** and **workspace name**.
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating System:
+  - Windows 10 or later
+  - macOS 13 (Ventura) or later
+  - Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
+- Active Comet Opik account with API access.
+- A valid Comet Opik API key and workspace name.
 
 ---
 
-## Getting Started
+## Getting started
 
 Refer to the [Fivetran Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) for installation and setup instructions.
 
@@ -32,19 +32,19 @@ Refer to the [Fivetran Connector SDK Setup Guide](https://fivetran.com/docs/conn
 
 ## Features
 
-- Connects securely to **Comet Opik** via API key and workspace headers.
+- Connects securely to Comet Opik via API key and workspace headers.
 - Fetches:
-    - **Projects** with metadata such as creator, timestamps, and visibility.
-    - **Datasets** within each workspace.
-    - **Dataset items** (inputs, outputs, metadata) for each dataset.
-- Handles **rate limiting (HTTP 429)** and retries with exponential backoff.
-- Implements **checkpointing** for reliable and resumable syncs.
+    - Projects with metadata such as creator, timestamps, and visibility.
+    - Datasets within each workspace.
+    - Dataset items (inputs, outputs, metadata) for each dataset.
+- Handles rate limiting (HTTP 429) and retries with exponential backoff.
+- Implements checkpointing for reliable and resumable syncs.
 - Converts timestamps to ISO 8601 UTC format.
 - Logs detailed information for monitoring and troubleshooting.
 
 ---
 
-## Configuration File
+## Configuration file
 
 The connector requires the following configuration parameters:
 
@@ -55,9 +55,9 @@ The connector requires the following configuration parameters:
 }
 ```
 
-### Parameter Descriptions
-- **COMET_OPIK_API_KEY**: Your Comet Opik API key for authorization.
-- **COMET_OPIK_WORKSPACE**: The workspace name used to scope your API access.
+## Configuration parameters
+- COMET_OPIK_API_KEY: Your Comet Opik API key for authorization.
+- COMET_OPIK_WORKSPACE: The workspace name used to scope your API access.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -75,11 +75,11 @@ Accept: application/json
 User-Agent: fivetran-connector-sdk-opik/1.1
 ```
 
-### How to obtain credentials:
-1. Log in to your **Comet Opik** account.
-2. Navigate to **API Settings → API Keys**.
+## How to obtain credentials:
+1. Log in to your Comet Opik account.
+2. Navigate to **API Settings** → **API Keys**.
 3. Create or copy your existing API key.
-4. Identify your **workspace name** from your account dashboard.
+4. Identify your workspace name from your account dashboard.
 5. Add both values to your `configuration.json`.
 
 ---
@@ -96,26 +96,26 @@ Pagination behavior:
 
 ---
 
-## Data Handling
+## Data handling
 
 The connector performs the following operations during synchronization:
 
-1. **Projects**
+- Projects
     - Fetched via `/projects`.
     - Extracts fields such as `id`, `name`, `visibility`, timestamps, and creator.
     - Upserts rows into the `opik_project` table.
 
-2. **Datasets**
+- Datasets
     - Fetched via `/datasets`.
     - Captures dataset-level metadata such as `id`, `name`, visibility, and creation timestamps.
     - Upserts into the `opik_dataset` table.
 
-3. **Dataset Items**
+- Dataset Items
     - For each dataset, retrieves dataset items via `/datasets/{dataset_id}/items`.
     - Extracts `inputs`, `outputs`, and `metadata`.
     - Stores results in the `opik_dataset_item` table.
 
-4. **Checkpointing**
+- Checkpointing
     - Saves progress using:
       ```python
       op.checkpoint(state)
@@ -127,11 +127,11 @@ The connector performs the following operations during synchronization:
 ## Error Handling
 
 The connector includes robust error handling and retry mechanisms:
-- **Rate Limits (HTTP 429):** Automatically waits and retries after the `Retry-After` delay.
-- **HTTP Errors:** Retries failed requests up to three times with exponential backoff.
-- **Network Issues:** Logs network exceptions and retries safely.
-- **Schema Changes:** Logs warnings when response fields change or are missing.
-- **Timeouts:** Each request has a default timeout of 60 seconds.
+- Rate Limits (HTTP 429): Automatically waits and retries after the `Retry-After` delay.
+- HTTP Errors: Retries failed requests up to three times with exponential backoff.
+- Network Issues: Logs network exceptions and retries safely.
+- Schema Changes: Logs warnings when response fields change or are missing.
+- Timeouts: Each request has a default timeout of 60 seconds.
 
 All errors are logged via the Fivetran logging system for visibility and diagnostics.
 
@@ -148,7 +148,7 @@ Comet Opik sync complete
 
 The connector creates three destination tables:
 
-### **1. opik_project**
+## 1. opik_project
 Primary key: `project_id`
 
 | Column | Type | Description |
@@ -164,7 +164,7 @@ Primary key: `project_id`
 
 ---
 
-### **2. opik_dataset**
+## 2. opik_dataset
 Primary key: `dataset_id`
 
 | Column | Type | Description |
@@ -180,7 +180,7 @@ Primary key: `dataset_id`
 
 ---
 
-### **3. opik_dataset_item**
+## 3. opik_dataset_item
 Primary key: `item_id`
 
 | Column | Type | Description |
@@ -195,11 +195,6 @@ Primary key: `item_id`
 
 ---
 
-## **Additional Considerations**
+## Additional Considerations
 
-- Incremental syncs can be added using timestamps or IDs for future scalability.
-- Handles both paginated and non-paginated endpoints dynamically.
-- Compatible with **Comet Opik Cloud** or self-hosted instances (where applicable).
-- Designed for **educational and demonstration purposes** using the **Fivetran Connector SDK**.
-
-For inquiries or support, contact **Fivetran Support**.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

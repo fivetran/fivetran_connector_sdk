@@ -3,22 +3,31 @@ Fivetran Connector SDK — Comet Opik (Observability)
 Final version: correct headers, pagination, and logging.
 """
 
-import json
-import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional
-import requests
+import json  # For reading and writing JSON payloads (config, API responses, state)
+import time  # For implementing retry delays, backoff, and simple timing logic
+from datetime import datetime, timezone  # For working with timezone-aware UTC timestamps
+from typing import Any, Dict, Iterable, List, Optional  # Type hints for generic values, mappings, iterables, and optional fields
+import requests  # HTTP client used to make REST/GraphQL calls to external APIs
+
+# Import required classes from fivetran_connector_sdk.
+# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
+
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-BASE_URL = "https://www.comet.com/opik/api/v1/private"
-UA = "fivetran-connector-sdk-opik/1.1"
+__BASE_URL = "https://www.comet.com/opik/api/v1/private"
+__USER_AGENT = "fivetran-connector-sdk-opik/1.1"
+__MAX_RETRIES = 3
+__RETRY_BASE_DELAY_SECONDS = 2
 
 
 def now_utc_iso() -> str:
     """
-    Converts current utc time to iso
+    Convert current UTC time to ISO 8601 format.
     """
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -26,35 +35,42 @@ def now_utc_iso() -> str:
 def norm_ts(x: Any) -> Optional[str]:
     """
     Normalize timestamp
-    Args: param x: timestamp
+    Args:
+        x: timestamp
+    Returns:
+        ISO 8601 formatted timestamp string or None if input is empty.
     """
     if not x:
         return None
     try:
         dt = datetime.fromisoformat(str(x).replace("Z", "+00:00"))
         return dt.replace(microsecond=0).isoformat()
-    except Exception:
+    except (ValueError, TypeError, OverflowError) as e:
+        log.warning(f"Failed to normalize timestamp {x!r}: {type(e).__name__} - {e}")
         return str(x)
 
 
 # ------------------- Client -------------------
 class OpikClient:
     def __init__(self, api_key: str, workspace: str, timeout: int = 60):
-        self.base = BASE_URL
+        self.base = __BASE_URL
         self.timeout = timeout
         self.s = requests.Session()
         self.s.headers.update({
             "authorization": api_key,
             "Comet-Workspace": workspace,
             "accept": "application/json",
-            "user-agent": UA,
+            "user-agent": __USER_AGENT,
         })
 
-    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Optional[Any]:
         """
-        Make GET request
-        Args: param path: path to sync
-              param params: request parameters
+        Make GET request to Opik API with retry logic.
+        Args:
+            path: API endpoint path to request.
+            params: Optional query parameters for the request
+        Returns:
+            JSON response data from the API.
         """
         url = f"{self.base}{path}"
         for attempt in range(1, 4):
@@ -70,26 +86,37 @@ class OpikClient:
             except requests.HTTPError as e:
                 # Log the status and limited snippet of response
                 log.warning(f"HTTP {r.status_code if hasattr(r,'status_code') else '?'} {url}: {str(e)[:120]}")
-                if attempt >= 3:
+                if attempt >= __MAX_RETRIES:
                     raise
-                time.sleep(2 * attempt)
+                time.sleep(__RETRY_BASE_DELAY_SECONDS * attempt)
 
     def list_projects(self) -> Iterable[Dict[str, Any]]:
         """
-        List contents of projects endpoint
+        List all projects from the Opik API.
+        Returns:
+            Iterable of project dictionaries.
         """
         data = self.get("/projects") or {}
         return data.get("content", [])
 
     def list_datasets(self) -> Iterable[Dict[str, Any]]:
         """
-        List contents of datasets endpoint
+        List all datasets from the Opik API.
+        Returns:
+            Iterable of dataset dictionaries.
         """
         data = self.get("/datasets") or {}
         return data.get("content", [])
 
     def list_dataset_items(self, dataset_id: str) -> Iterable[Dict[str, Any]]:
-        """Some Opik deployments reject page/size params; fetch once without them."""
+        """
+        List all items for a specific dataset.
+        Note: Some Opik deployments reject page/size params; fetches without pagination.
+        Args:
+            dataset_id: Unique identifier of the dataset.
+        Returns:
+            Iterable of dataset item dictionaries.
+        """
         try:
             data = self.get(f"/datasets/{dataset_id}/items") or {}
             items = data.get("content") or data.get("items") or []
@@ -169,9 +196,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
         # The 'upsert' operation is used to insert or update data in a table.
         # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+        # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted
-        op.upsert("comet_pik_project", {
+        op.upsert("opik_project", {
             "project_id": p.get("id"),
             "name": p.get("name"),
             "visibility": p.get("visibility"),
@@ -188,9 +215,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
         # The 'upsert' operation is used to insert or update data in a table.
         # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+        # - The first argument is the name of the table to upsert the data into.
         # - The second argument is a dictionary containing the data to be upserted
-        op.upsert("comet_opik_dataset", {
+        op.upsert("opik_dataset", {
             "dataset_id": d.get("id"),
             "name": d.get("name"),
             "visibility": d.get("visibility"),
@@ -206,9 +233,9 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
 
             # The 'upsert' operation is used to insert or update data in a table.
             # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into, in this case, "hello".
+            # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted
-            op.upsert("comet_opik_dataset_item", {
+            op.upsert("opik_dataset_item", {
                 "item_id": str(item.get("id")),
                 "dataset_id": d.get("id"),
                 "inputs": item.get("inputs"),
