@@ -219,9 +219,9 @@ def get_all_responses(start_date, end_date, token, brand_id):
     """
     offset = 0
     limit = 100
-    total = float("inf")  # Initialize to inf to ensure the loop runs at least once
+    total = None  # unknown initially
 
-    while offset < total:  # Use 'offset < total' for a cleaner loop condition
+    while True:
         # 1. Fetch the page using the helper function
         try:
             response = _fetch_page_with_retries(start_date, end_date, offset, token, brand_id)
@@ -230,7 +230,7 @@ def get_all_responses(start_date, end_date, token, brand_id):
             raise  # Re-raise the exception from the helper
 
         # 2. Process the response
-        if total == float("inf"):
+        if total is None:
             # First successful call, set the actual total
             total = response.get("total")
 
@@ -248,8 +248,11 @@ def get_all_responses(start_date, end_date, token, brand_id):
         # 4. Prepare for next page
         offset += limit
 
-    log.info("All responses fetched successfully.")
+        # ---- loop exit condition ----
+        if total is not None and offset >= total:
+            break
 
+    log.info("All responses fetched successfully.")
 
 def get_scrunch_performance(start_date, end_date, token, brand_id):
     """
