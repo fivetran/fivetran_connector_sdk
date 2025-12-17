@@ -137,14 +137,14 @@ def update(configuration: dict, state: dict):
     params = {"$top": __RECORDS_PER_PAGE, "$count": True}
 
     # Execute sync for both tables.
-    sync_orders(params.copy(), headers, state, sync_start)
+    sync_table(params.copy(), "order", headers, state, sync_start)
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
-    sync_items(params.copy(), headers, state, sync_start)
+    sync_table(params.copy(), "item", headers, state, sync_start)
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -166,44 +166,32 @@ def validate_configuration(configuration: dict):
         raise ValueError("Missing required configuration: api_key")
 
 
-def sync_orders(params: dict, headers: dict, state: dict, sync_start: str):
+def sync_table(params: dict, table:str, headers: dict, state: dict, sync_start: str):
     """
-    Initiates a full sync for 'order' table data.
+    Initiates a full sync for a table, either 'item' or the 'order' data.
     Args:
         params: API query parameters.
         headers: HTTP headers.
         state: State dictionary.
         sync_start: Sync start timestamp string.
     """
-    table = "order"
     log.info(f"Starting full sync for table: {table}")
+
+    # set variable for which columns to get when syncing rows
+    if table == "order" :
+        columns = get_order_columns()
+    if table == "item" :
+        columns = get_item_columns()
+    else: 
+        log.severe(f"Table {table} is not supported for sync.")
+        return
 
     # Reset offset to 0 for a full table sync.
     params[__PAGE_OFFSET] = 0
     if table not in state:
         state[table] = {}
 
-    sync_rows(table, params, headers, state, get_order_columns(), sync_start)
-
-
-def sync_items(params: dict, headers: dict, state: dict, sync_start: str):
-    """
-    Initiates a full sync for 'item' (line-item) table data.
-    Args:
-        params: API query parameters.
-        headers: HTTP headers.
-        state: State dictionary.
-        sync_start: Sync start timestamp string.
-    """
-    table = "item"
-    log.info(f"Starting full sync for table: {table}")
-
-    # Reset offset to 0 for a full table sync.
-    params[__PAGE_OFFSET] = 0
-    if table not in state:
-        state[table] = {}
-
-    sync_rows(table, params, headers, state, get_item_columns(), sync_start)
+    sync_rows(table, params, headers, state, columns, sync_start)
 
 
 def sync_rows(
