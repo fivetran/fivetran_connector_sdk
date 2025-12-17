@@ -151,8 +151,6 @@ def update(configuration: dict, state: dict):
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
 
-    # Final checkpoint after both tables are synced.
-    op.checkpoint(state)
     log.info("SAP Ariba sync completed successfully.")
 
 
