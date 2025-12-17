@@ -560,12 +560,10 @@ def _poll_snapshot(
                     if status == "ready":
                         # Extract data from response
                         # Data might be in "data", "records", "results" keys
-                        snapshot_data = (
-                            response_data.get("data")
-                            or response_data.get("records")
-                            or response_data.get("results")
-                            or response_data
-                        )
+                        for key in ("data", "records", "results"):
+                            if key in response_data and response_data[key] is not None:
+                                snapshot_data = response_data[key]
+                                break
 
                         # If no data key, remove status/metadata fields and use remaining fields as data
                         if snapshot_data is None:
