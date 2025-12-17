@@ -4,7 +4,14 @@
 
 This Discord API connector enables you to extract comprehensive data from Discord servers (guilds) using the Discord API. The connector fetches server information, channels, members, and messages, making it ideal for community analytics, moderation insights, and engagement tracking.
 
-The connector supports both full and incremental syncs, with intelligent rate limiting and error handling to ensure reliable data extraction from Discord's API. It's particularly well-suited for AI/ML applications that need to analyze community interactions, sentiment analysis, and user behavior patterns.
+The connector supports both full and incremental syncs, with intelligent rate limiting and error handling to ensure reliable data extraction from Discord's API.
+
+This connector is particularly well-suited for the following AI/ML use cases:
+- Community analytics: Server growth, engagement patterns, and activity trends
+- Sentiment analysis: Message content analysis and user sentiment tracking
+- Moderation insights: Automated moderation and content policy analysis
+- User behavior: Member activity patterns and interaction analysis
+- Content analysis: Attachment and embed analysis for content categorization
 
 ## Requirements
 
@@ -94,11 +101,11 @@ The connector processes data in batches and checkpoints progress every 50 record
 
 The connector processes and normalizes Discord data for optimal analysis (Refer to `process_guild_data`, `process_channel_data`, `process_member_data`, and `process_message_data` functions):
 
-- JSON Serialization: Complex objects (mentions, attachments, embeds) are stored as JSON strings
-- Timestamp Normalization: All timestamps are converted to ISO format with UTC timezone
-- Data Type Consistency: Ensures consistent data types across all records
-- Null Handling: Gracefully handles missing or null values from the API
-- Schema Evolution: Automatically adapts to new Discord API fields
+- JSON serialization: Complex objects (mentions, attachments, embeds) are stored as JSON strings
+- Timestamp normalization: All timestamps are converted to ISO format with UTC timezone
+- Data type consistency: Ensures consistent data types across all records
+- Null handling: Gracefully handles missing or null values from the API
+- Schema evolution: Automatically adapts to new Discord API fields
 
 ### Data Processing Pipeline
 
@@ -112,19 +119,19 @@ The connector processes and normalizes Discord data for optimal analysis (Refer 
 
 The connector implements comprehensive error handling strategies (refer to `make_discord_request` function):
 
-- Rate Limiting: Automatic retry with exponential backoff when rate limited
-- Server Errors: Retry logic for 5xx HTTP status codes
-- Network Issues: Timeout handling and connection error recovery
-- Data Validation: Graceful handling of malformed API responses
-- State Recovery: Checkpoint-based state management for sync resumption
+- Rate limiting: Automatic retry with exponential backoff when rate limited
+- Server errors: Retry logic for 5xx HTTP status codes
+- Network issues: Timeout handling and connection error recovery
+- Data validation: Graceful handling of malformed API responses
+- State recovery: Checkpoint-based state management for sync resumption
 
 ### Error Types Handled
 
-- 429 Rate Limited: Waits for retry-after header duration
-- 500-504 Server Errors: Exponential backoff retry strategy
-- Network Timeouts: 30-second timeout with retry logic
-- Invalid Responses: JSON parsing error handling
-- Missing Permissions: Clear error messages for authentication issues
+- 429 rate limited: Waits for retry-after header duration
+- 500-504 server errors: Exponential backoff retry strategy
+- Network timeouts: 30-second timeout with retry logic
+- Invalid responses: JSON parsing error handling
+- Missing permissions: Clear error messages for authentication issues
 
 ## Tables created
 
@@ -164,12 +171,3 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 - Incremental sync: Only new/updated data is fetched on subsequent runs
 - Memory management: Large datasets are processed without loading everything into memory
 - Checkpointing: Regular state saves ensure sync reliability and resumption
-
-### AI/ML Use Cases
-
-This connector is particularly well-suited for:
-- Community Analytics: Server growth, engagement patterns, and activity trends
-- Sentiment Analysis: Message content analysis and user sentiment tracking
-- Moderation Insights: Automated moderation and content policy analysis
-- User Behavior: Member activity patterns and interaction analysis
-- Content Analysis: Attachment and embed analysis for content categorization
