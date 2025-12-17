@@ -138,7 +138,7 @@ The connector implements multi-level error handling for robustness (see the `upd
 - Logs at `log.severe()` level with error details
 - Re-raises exception to stop sync (cannot proceed without authentication)
 
-### API request errors (see the `fetch_orders_page()` and `_make_api_request_with_retry()`)
+### API request errors (see `fetch_orders_page()` and `_make_api_request_with_retry()`)
 - Catches `requests.exceptions.RequestException` for network/HTTP errors
 - Uses `response.raise_for_status()` to catch 4xx/5xx HTTP status codes
 - Logs failed page numbers and error details
