@@ -329,7 +329,7 @@ def _serialize_json_fields(data: dict, fields: List[str]) -> None:
     for field in fields:
         if data.get(field):
             data[field] = json.dumps(data[field])
-            
+
 
 def process_guild_data(guild_data: dict) -> dict:
     """
@@ -743,14 +743,14 @@ def process_single_guild(
         raise
 
 
-def _fetch_and_filter_guilds(headers: dict, configuration: dict) -> tuple:
+def _fetch_and_filter_guilds(headers: dict, configuration: dict) -> List[dict]:
     """
     Fetch all guilds and filter based on configuration.
     Args:
         headers: API request headers
         configuration: Configuration dictionary
     Returns:
-        tuple: (all_guilds, filtered_guilds_to_process)
+        List[dict]: Filtered list of guilds to process
     """
     log.info("Fetching all guilds the bot has access to")
     all_guilds = fetch_user_guilds(headers)
