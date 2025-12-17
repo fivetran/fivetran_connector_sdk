@@ -9,7 +9,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element
 from calendar import monthrange
@@ -30,10 +30,10 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Constants
-_CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
+_CHECKPOINT_INTERVAL = 500  # Checkpoint every 500 records
 _MAX_RETRIES = 3
 _RETRY_DELAY = 1  # Initial retry delay in seconds
-_PAGE_SIZE = 100  # Number of records per page
+_PAGE_SIZE = 999  # Number of records per page
 _WORKDAY_NAMESPACE = "urn:com.workday/bsvc"
 _SOAP_ENVELOPE_NS = "http://schemas.xmlsoap.org/soap/envelope/"
 _WORKDAY_API_VERSION = "v42.0"
@@ -181,48 +181,64 @@ def make_soap_request(
             return response.text
 
         except requests.exceptions.HTTPError as e:
-            # Extract more details from HTTP errors
-            error_msg = str(e)
-            if hasattr(e.response, "text") and e.response.text:
-                # Try to parse SOAP fault if present
-                try:
-                    root = ET.fromstring(e.response.text)
-                    fault_string = root.find(
-                        ".//{http://schemas.xmlsoap.org/soap/envelope/}faultstring"
-                    ) or root.find(
-                        ".//SOAP:faultstring",
-                        {"SOAP": "http://schemas.xmlsoap.org/soap/envelope/"},
-                    )
-                    if fault_string is not None and fault_string.text:
-                        error_msg = f"SOAP Fault: {fault_string.text}"
-                except:
-                    # If not SOAP, include first 500 chars of response
-                    error_msg = f"{str(e)}\nResponse: {e.response.text[:500]}"
-
+            error_msg = _extract_http_error_message(e)
             if attempt == _MAX_RETRIES - 1:
                 raise RuntimeError(
                     f"Workday SOAP request failed after {_MAX_RETRIES} attempts: {error_msg}"
                 )
-
-            # Exponential backoff
-            delay = _RETRY_DELAY * (2**attempt)
-            log.warning(
-                f"Workday SOAP request attempt {attempt + 1} failed, retrying in {delay}s: {error_msg}"
-            )
-            time.sleep(delay)
+            _handle_retry(attempt, error_msg)
 
         except requests.exceptions.RequestException as e:
             if attempt == _MAX_RETRIES - 1:
                 raise RuntimeError(
                     f"Workday SOAP request failed after {_MAX_RETRIES} attempts: {str(e)}"
                 )
+            _handle_retry(attempt, str(e))
 
-            # Exponential backoff
-            delay = _RETRY_DELAY * (2**attempt)
-            log.warning(
-                f"Workday SOAP request attempt {attempt + 1} failed, retrying in {delay}s: {str(e)}"
-            )
-            time.sleep(delay)
+
+def _extract_http_error_message(error: requests.exceptions.HTTPError) -> str:
+    """Extract detailed error message from HTTP error response.
+
+    Args:
+        error: HTTPError exception
+
+    Returns:
+        Error message string
+    """
+    error_msg = str(error)
+    if not (hasattr(error, "response") and error.response and error.response.text):
+        return error_msg
+
+    # Try to parse SOAP fault if present
+    try:
+        root = ET.fromstring(error.response.text)
+        fault_string = root.find(
+            ".//{http://schemas.xmlsoap.org/soap/envelope/}faultstring"
+        ) or root.find(
+            ".//SOAP:faultstring",
+            {"SOAP": "http://schemas.xmlsoap.org/soap/envelope/"},
+        )
+        if fault_string is not None and fault_string.text:
+            return f"SOAP Fault: {fault_string.text}"
+    except Exception:
+        pass
+
+    # If not SOAP, include first 500 chars of response
+    return f"{error_msg}\nResponse: {error.response.text[:500]}"
+
+
+def _handle_retry(attempt: int, error_msg: str) -> None:
+    """Handle retry logic with exponential backoff.
+
+    Args:
+        attempt: Current attempt number (0-indexed)
+        error_msg: Error message to log
+    """
+    delay = _RETRY_DELAY * (2**attempt)
+    log.warning(
+        f"Workday SOAP request attempt {attempt + 1} failed, retrying in {delay}s: {error_msg}"
+    )
+    time.sleep(delay)
 
 
 def _get_workday_api_url(workday_url: str, tenant: str) -> str:
@@ -338,7 +354,7 @@ def _create_get_positions_soap_envelope(
 
 def _parse_soap_response(
     xml_response: str, effective_date: Optional[str] = None
-) -> tuple[List[Dict], bool, int]:
+) -> Tuple[List[Dict], bool, int]:
     """Parse Workday SOAP XML response and extract position data.
 
     Args:
@@ -762,20 +778,218 @@ def _extract_position_data(
         return None
 
 
+def _determine_sync_start_date(
+    last_sync_time: Optional[str], configuration: dict
+) -> Tuple[datetime, bool]:
+    """Determine the start date and sync type for the sync operation.
+
+    Args:
+        last_sync_time: ISO timestamp of the last successful sync
+        configuration: Configuration dictionary
+
+    Returns:
+        Tuple of (start_date, is_incremental_sync)
+    """
+    if last_sync_time:
+        try:
+            start_date = datetime.fromisoformat(last_sync_time.replace("Z", "+00:00"))
+            return start_date, True
+        except Exception:
+            log.warning(
+                f"Invalid last_sync_time format: {last_sync_time}, using effective_start_date"
+            )
+
+    # Use effective_start_date for initial sync
+    effective_start_date_str = configuration.get("effective_start_date")
+    if not effective_start_date_str:
+        raise ValueError("effective_start_date is required in configuration for initial sync")
+
+    try:
+        start_date = datetime.strptime(effective_start_date_str, "%Y-%m-%d").replace(
+            tzinfo=timezone.utc
+        )
+        return start_date, False
+    except ValueError:
+        raise ValueError(
+            f"Invalid effective_start_date format: {effective_start_date_str}. Expected YYYY-MM-DD"
+        )
+
+
+def _get_effective_dates_for_sync(
+    start_date: datetime, end_date: datetime, is_incremental: bool
+) -> Tuple[List[str], str, str]:
+    """Generate effective dates and return sync metadata.
+
+    Args:
+        start_date: Start date for the sync
+        end_date: End date for the sync
+        is_incremental: Whether this is an incremental sync
+
+    Returns:
+        Tuple of (effective_dates, iteration_type, date_description)
+    """
+    if is_incremental:
+        effective_dates = _generate_daily_dates(start_date, end_date)
+        return effective_dates, "daily", "day"
+    else:
+        effective_dates = _generate_monthly_dates(start_date, end_date)
+        return effective_dates, "monthly", "month"
+
+
+def _fetch_and_process_page(
+    api_url: str,
+    username: str,
+    password: str,
+    tenant: str,
+    effective_date_str: str,
+    page: int,
+    position_ids: Optional[List[str]],
+    total_processed_container: Optional[List[int]] = None,
+) -> Tuple[List[Dict], bool, int]:
+    """Fetch a single page of position data and process it.
+
+    Args:
+        api_url: Workday API URL
+        username: Workday username
+        password: Workday password
+        tenant: Workday tenant
+        effective_date_str: Effective date string
+        page: Page number
+        position_ids: Optional position IDs to filter
+        total_processed_container: Optional mutable list containing total processed count.
+                                 If provided, records will be processed and container updated.
+
+    Returns:
+        Tuple of (records, has_more_pages, total_pages)
+    """
+    soap_body = _create_get_positions_soap_envelope(
+        username=username,
+        password=password,
+        tenant=tenant,
+        page=page,
+        count=_PAGE_SIZE,
+        effective_date=effective_date_str,
+        position_ids=position_ids if page == 1 else None,
+    )
+
+    xml_response = make_soap_request(
+        api_url, soap_body, username=username, password=password, tenant=tenant
+    )
+    records, has_more_pages, total_pages = _parse_soap_response(xml_response, effective_date_str)
+
+    if records and total_processed_container:
+        total_processed_container[0] = _process_position_records(
+            records, total_processed_container[0]
+        )
+
+    return records, has_more_pages, total_pages
+
+
+def _checkpoint_after_page(page: int, total_records_processed: int) -> None:
+    """Checkpoint progress after processing a page.
+
+    Args:
+        page: Current page number
+        total_records_processed: Total records processed so far
+    """
+    try:
+        checkpoint_state = {"records_processed": total_records_processed}
+        op.checkpoint(checkpoint_state)
+        log.fine(
+            f"Checkpointed after processing page {page} ({total_records_processed} total records)"
+        )
+    except Exception as e:
+        log.warning(f"Checkpoint failed after page {page}: {str(e)}")
+        log.warning("Continuing sync - final checkpoint will be attempted at completion")
+
+
+def _fetch_all_pages_for_date(
+    api_url: str,
+    username: str,
+    password: str,
+    tenant: str,
+    effective_date_str: str,
+    position_ids: Optional[List[str]],
+    total_processed_container: Optional[List[int]] = None,
+) -> int:
+    """Fetch all pages for a given effective date.
+
+    Args:
+        api_url: Workday API URL
+        username: Workday username
+        password: Workday password
+        tenant: Workday tenant
+        effective_date_str: Effective date string
+        position_ids: Optional position IDs to filter
+        total_processed_container: Optional mutable list containing total processed count.
+                                 If provided, records will be processed and container updated.
+
+    Returns:
+        Total number of records processed for this date
+    """
+    page = 1
+    has_more_data = True
+    records_for_date = 0
+
+    while has_more_data:
+        log.fine(f"Fetching Workday positions data for {effective_date_str}, page {page}")
+
+        try:
+            records, has_more_pages, total_pages = _fetch_and_process_page(
+                api_url=api_url,
+                username=username,
+                password=password,
+                tenant=tenant,
+                effective_date_str=effective_date_str,
+                page=page,
+                position_ids=position_ids,
+                total_processed_container=total_processed_container,
+            )
+
+            if not records:
+                has_more_data = False
+                continue
+
+            records_for_date += len(records)
+
+            # Checkpoint using the container's total if available, otherwise use local count
+            checkpoint_count = (
+                total_processed_container[0] if total_processed_container else records_for_date
+            )
+            _checkpoint_after_page(page, checkpoint_count)
+
+            has_more_data = has_more_pages
+            page += 1
+
+            log.fine(
+                f"Fetched and processed {len(records)} positions from page {page - 1} of {total_pages} for {effective_date_str}"
+            )
+
+        except Exception as e:
+            log.warning(f"Failed to fetch data for {effective_date_str}, page {page}: {str(e)}")
+            raise
+
+    return records_for_date
+
+
 def get_positions_data(
     configuration: dict,
     last_sync_time: Optional[str] = None,
     position_ids: Optional[List[str]] = None,
-) -> List[Dict]:
+    total_processed_container: Optional[List[int]] = None,
+) -> int:
     """Fetch position data from Workday API with monthly iteration for initial sync and daily iteration for incremental sync.
+    Processes records incrementally as they are fetched instead of accumulating them all.
 
     Args:
         configuration: Configuration dictionary containing API credentials and settings
         last_sync_time: ISO timestamp of the last successful sync for incremental updates
         position_ids: Optional list of specific position IDs to query
+        total_processed_container: Optional mutable list containing total processed count.
+                                 If provided, records will be processed incrementally and container updated.
 
     Returns:
-        List of position data records
+        Total number of records fetched and processed
 
     Raises:
         RuntimeError: If API requests fail
@@ -787,127 +1001,50 @@ def get_positions_data(
 
     api_url = _get_workday_api_url(workday_url, tenant)
 
-    # Determine start date and iteration mode
-    is_incremental_sync = last_sync_time is not None
-
-    if is_incremental_sync:
-        # Incremental sync: start from last sync time, use daily iteration
-        try:
-            start_date = datetime.fromisoformat(last_sync_time.replace("Z", "+00:00"))
-        except Exception:
-            log.warning(
-                f"Invalid last_sync_time format: {last_sync_time}, using effective_start_date"
-            )
-            start_date = None
-            is_incremental_sync = False
-    else:
-        # Initial sync: use effective_start_date from configuration, use monthly iteration
-        start_date = None
-
-    # Get effective_start_date from configuration if start_date is not set
-    if start_date is None:
-        effective_start_date_str = configuration.get("effective_start_date")
-        if not effective_start_date_str:
-            raise ValueError("effective_start_date is required in configuration for initial sync")
-        try:
-            start_date = datetime.strptime(effective_start_date_str, "%Y-%m-%d").replace(
-                tzinfo=timezone.utc
-            )
-        except ValueError:
-            raise ValueError(
-                f"Invalid effective_start_date format: {effective_start_date_str}. Expected YYYY-MM-DD"
-            )
-
-    # End date is current date
+    # Determine start date and sync type
+    start_date, is_incremental_sync = _determine_sync_start_date(last_sync_time, configuration)
     end_date = datetime.now(timezone.utc)
 
-    # Generate list of effective dates based on sync type
-    if is_incremental_sync:
-        # Incremental sync: use daily iteration
-        effective_dates = _generate_daily_dates(start_date, end_date)
-        iteration_type = "daily"
-        date_description = "day"
-    else:
-        # Initial sync: use monthly iteration (last day of each month)
-        effective_dates = _generate_monthly_dates(start_date, end_date)
-        iteration_type = "monthly"
-        date_description = "month"
+    # Generate effective dates based on sync type
+    effective_dates, iteration_type, date_description = _get_effective_dates_for_sync(
+        start_date, end_date, is_incremental_sync
+    )
 
     if not effective_dates:
         log.warning(
             f"No {iteration_type} dates to process between {start_date.date()} and {end_date.date()}"
         )
-        return []
+        return 0
 
     log.fine(
         f"Processing {len(effective_dates)} {date_description}s from {effective_dates[0]} to {effective_dates[-1]} ({iteration_type} iteration)"
     )
 
-    all_records = []
+    total_records_processed = 0
 
     # Iterate through each effective date
     for effective_date_str in effective_dates:
-        if is_incremental_sync:
-            log.fine(f"Fetching positions for effective date: {effective_date_str} (daily sync)")
-        else:
-            log.fine(
-                f"Fetching positions for effective date: {effective_date_str} (last day of month)"
-            )
+        sync_type_msg = "daily sync" if is_incremental_sync else "last day of month"
+        log.fine(f"Fetching positions for effective date: {effective_date_str} ({sync_type_msg})")
 
         # Fetch all pages for this effective date
-        page = 1
-        has_more_data = True
-
-        while has_more_data:
-            log.fine(f"Fetching Workday positions data for {effective_date_str}, page {page}")
-
-            try:
-                soap_body = _create_get_positions_soap_envelope(
-                    username=username,
-                    password=password,
-                    tenant=tenant,
-                    page=page,
-                    count=_PAGE_SIZE,
-                    effective_date=effective_date_str,
-                    position_ids=(
-                        position_ids if page == 1 else None
-                    ),  # Only use position_ids on first page
-                )
-
-                # Workday requires both SOAP Header and HTTP Basic Auth
-                xml_response = make_soap_request(
-                    api_url, soap_body, username=username, password=password, tenant=tenant
-                )
-                records, has_more_pages, total_pages = _parse_soap_response(
-                    xml_response, effective_date_str
-                )
-
-                if not records:
-                    has_more_data = False
-                    continue
-
-                all_records.extend(records)
-
-                # Check if more pages are available
-                has_more_data = has_more_pages
-                page += 1
-
-                log.fine(
-                    f"Fetched {len(records)} positions from page {page - 1} of {total_pages} for {effective_date_str}"
-                )
-
-            except Exception as e:
-                log.warning(
-                    f"Failed to fetch data for {effective_date_str}, page {page}: {str(e)}"
-                )
-                raise
+        records_for_date = _fetch_all_pages_for_date(
+            api_url=api_url,
+            username=username,
+            password=password,
+            tenant=tenant,
+            effective_date_str=effective_date_str,
+            position_ids=position_ids,
+            total_processed_container=total_processed_container,
+        )
+        total_records_processed += records_for_date
 
         log.fine(f"Completed fetching positions for effective date {effective_date_str}")
 
     log.fine(
-        f"Fetched {len(all_records)} Workday position records total across {len(effective_dates)} {date_description}s"
+        f"Fetched and processed {total_records_processed} Workday position records total across {len(effective_dates)} {date_description}s"
     )
-    return all_records
+    return total_records_processed
 
 
 def schema(configuration: dict) -> List[Dict]:
@@ -930,17 +1067,21 @@ def schema(configuration: dict) -> List[Dict]:
     ]
 
 
-def _process_position_records(position_records: List[Dict]) -> int:
+def _process_position_records(position_records: List[Dict], total_processed: int = 0) -> int:
     """Process position records and return the count of processed records.
+    This function processes records without intermediate checkpoints for better performance.
 
     Args:
         position_records: List of position records to process
+        total_processed: Total number of records processed so far (for tracking)
 
     Returns:
-        Number of records processed
+        Number of records processed (including the ones in this batch)
     """
-    records_processed = 0
+    records_processed = total_processed
 
+    # Process all records without intermediate checkpoints for better performance
+    # Checkpoints will be done after each page completes
     for record in position_records:
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The op.upsert method is called with two arguments:
@@ -948,18 +1089,6 @@ def _process_position_records(position_records: List[Dict]) -> int:
         # - The second argument is a dictionary containing the data to be upserted,
         op.upsert(table="positions", data=record)
         records_processed += 1
-
-        # Checkpoint progress at regular intervals
-        if records_processed % _CHECKPOINT_INTERVAL == 0:
-            checkpoint_state = {
-                "records_processed": records_processed,
-            }
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(checkpoint_state)
-            log.fine(f"Checkpointed after processing {records_processed} position records")
 
     return records_processed
 
@@ -982,12 +1111,17 @@ def update(configuration: dict, state: dict) -> None:
 
     # Get the state variable for incremental sync
     last_sync_time = state.get("last_sync_time")
-    records_processed = 0
+    records_processed = state.get("records_processed", 0)
+
+    # Track total processed records for checkpointing using a mutable container
+    total_processed_container = [records_processed]
 
     try:
-        # Fetch and process position data
-        position_records = get_positions_data(configuration, last_sync_time)
-        records_processed = _process_position_records(position_records)
+        # Fetch and process position data incrementally
+        total_fetched = get_positions_data(
+            configuration, last_sync_time, total_processed_container=total_processed_container
+        )
+        records_processed = total_processed_container[0]
 
         # Final checkpoint with the latest sync time
         final_state = {
