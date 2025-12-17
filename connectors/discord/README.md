@@ -1,4 +1,4 @@
-# Discord API Connector
+# Discord Connector Example
 
 ## Connector overview
 
