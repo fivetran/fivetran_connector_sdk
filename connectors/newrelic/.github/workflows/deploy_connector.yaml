@@ -1,0 +1,81 @@
+name: Deploy New Relic Connector
+
+env:
+  PYTHON_VERSION: '3.11'
+  WORKING_DIRECTORY: '.'
+  CONNECTOR_NAME: 'New Relic'
+  CONFIG_FILE: 'configuration.json'
+  EXCLUDED_DEPENDENCIES: '^requests\b'
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'examples/source_examples/newrelic/**' # Trigger only if changes are in the newrelic-connector directory
+
+jobs:
+  deploy-fivetran-connector:
+    runs-on: ubuntu-latest
+    environment: Fivetran
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Change Directory & List Files
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "Deploying ${{ env.CONNECTOR_NAME }} connector from ${{ env.WORKING_DIRECTORY }} directory"
+          ls -la
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fivetran-connector-sdk
+
+      - name: Install requirements.txt
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ -e requirements.txt ]; then
+            echo '{"level":"INFO", "message": "Pip installing requirements.txt", "message-origin": "connector_sdk"}'
+            pip install -r <(grep -v '${{ env.EXCLUDED_DEPENDENCIES }}' requirements.txt)
+          fi
+
+      - name: Create Configuration File
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          echo "{
+            \"api_key\": \"${{ secrets.NEWRELIC_API_KEY }}\", 
+            \"account_id\": \"${{ secrets.NEWRELIC_ACCOUNT_ID }}\",
+            \"region\": \"${{ secrets.NEWRELIC_REGION }}\",
+            \"sync_frequency_minutes\": \"${{ vars.SYNC_FREQUENCY_MINUTES || '15' }}\",
+            \"initial_sync_days\": \"${{ vars.INITIAL_SYNC_DAYS || '90' }}\",
+            \"max_records_per_query\": \"${{ vars.MAX_RECORDS_PER_QUERY || '1000' }}\",
+            \"enable_apm_data\": \"${{ vars.ENABLE_APM_DATA || 'true' }}\",
+            \"enable_infrastructure_data\": \"${{ vars.ENABLE_INFRASTRUCTURE_DATA || 'true' }}\",
+            \"enable_browser_data\": \"${{ vars.ENABLE_BROWSER_DATA || 'true' }}\",
+            \"enable_mobile_data\": \"${{ vars.ENABLE_MOBILE_DATA || 'true' }}\",
+            \"enable_synthetic_data\": \"${{ vars.ENABLE_SYNTHETIC_DATA || 'true' }}\",
+            \"timeout_seconds\": \"${{ vars.TIMEOUT_SECONDS || '30' }}\",
+            \"retry_attempts\": \"${{ vars.RETRY_ATTEMPTS || '3' }}\",
+            \"retry_delay_seconds\": \"${{ vars.RETRY_DELAY_SECONDS || '5' }}\",
+            \"data_quality_threshold\": \"${{ vars.DATA_QUALITY_THRESHOLD || '0.95' }}\",
+            \"alert_on_errors\": \"${{ vars.ALERT_ON_ERRORS || 'true' }}\",
+            \"log_level\": \"${{ vars.LOG_LEVEL || 'INFO' }}\"
+          }" > ${{ env.CONFIG_FILE }}
+
+      - name: Deploy Fivetran Connector
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        env:
+          FIVETRAN_API_KEY: ${{ secrets.FIVETRAN_API_KEY }}
+          FIVETRAN_DESTINATION: ${{ vars.FIVETRAN_DEV_DESTINATION }}
+          FIVETRAN_CONNECTION: ${{ vars.NEWRELIC_DEV }}
+        run: |
+          echo "Deploying ${{ env.CONNECTOR_NAME }} connector"
+          fivetran deploy --api-key $FIVETRAN_API_KEY --destination $FIVETRAN_DESTINATION --connection $FIVETRAN_CONNECTION --configuration ${{ env.CONFIG_FILE }} --python-version ${{ env.PYTHON_VERSION }}
