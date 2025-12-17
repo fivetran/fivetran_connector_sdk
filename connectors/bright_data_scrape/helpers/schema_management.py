@@ -76,9 +76,7 @@ def update_fields_yaml(fields: Set[str], table_name: str) -> None:
         },
     )
 
-    table_entry["description"] = table_entry.get(
-        "description", _default_description(table_name)
-    )
+    table_entry["description"] = table_entry.get("description", _default_description(table_name))
     table_entry["fields"] = sorted_fields
 
     try:
@@ -90,8 +88,6 @@ def update_fields_yaml(fields: Set[str], table_name: str) -> None:
                 sort_keys=True,
                 allow_unicode=True,
             )
-        log.info(
-            f"Updated fields.yaml with {len(fields)} fields for table '{table_name}'"
-        )
+        log.info(f"Updated fields.yaml with {len(fields)} fields for table '{table_name}'")
     except (IOError, yaml.YAMLError) as exc:
         log.info(f"Warning: Could not update fields.yaml: {str(exc)}")

@@ -31,9 +31,7 @@ def flatten_dict(
         for key, value in data.items():
             new_key = f"{parent_key}{separator}{key}" if parent_key else key
             if isinstance(value, dict):
-                items.extend(
-                    flatten_dict(value, new_key, separator, max_depth - 1).items()
-                )
+                items.extend(flatten_dict(value, new_key, separator, max_depth - 1).items())
             elif isinstance(value, list):
                 items.append((new_key, json.dumps(value) if value else "[]"))
             else:
@@ -97,7 +95,11 @@ def process_scrape_result(result: Any, url: str, result_index: int) -> Dict[str,
         # Remove exact match
         flattened.pop(pk_field, None)
         # Remove any nested variations (e.g., input_result_index, data_result_index)
-        keys_to_remove = [k for k in flattened.keys() if k.endswith(f"_{pk_field}") or k.startswith(f"{pk_field}_")]
+        keys_to_remove = [
+            k
+            for k in flattened.keys()
+            if k.endswith(f"_{pk_field}") or k.startswith(f"{pk_field}_")
+        ]
         for key in keys_to_remove:
             flattened.pop(key, None)
 

@@ -31,9 +31,7 @@ MAX_RESPONSE_SIZE_BYTES = 100 * 1024 * 1024
 CHUNK_SIZE_BYTES = 8192
 
 
-def _parse_large_json_array_streaming(
-    response, max_size_bytes: int = MAX_RESPONSE_SIZE_BYTES
-):
+def _parse_large_json_array_streaming(response, max_size_bytes: int = MAX_RESPONSE_SIZE_BYTES):
     """
     Parse a large JSON array response using chunked reading to manage memory.
 
@@ -60,9 +58,7 @@ def _parse_large_json_array_streaming(
         # Read response in chunks to monitor progress and manage memory pressure
         buffer = ""
         chunk_count = 0
-        for chunk in response.iter_content(
-            chunk_size=CHUNK_SIZE_BYTES, decode_unicode=True
-        ):
+        for chunk in response.iter_content(chunk_size=CHUNK_SIZE_BYTES, decode_unicode=True):
             if chunk:
                 buffer += chunk
                 chunk_count += 1
@@ -98,9 +94,7 @@ def _parse_large_json_array_streaming(
         )
         return None
     except Exception as e:
-        log.info(
-            f"Chunked parse encountered error: {str(e)}, falling back to standard parsing"
-        )
+        log.info(f"Chunked parse encountered error: {str(e)}, falling back to standard parsing")
         return None
 
     return None
@@ -280,9 +274,7 @@ def _trigger_scrape(
                         )
                         return str(snapshot_id)
                     raise RuntimeError("Trigger response missing snapshot_id field")
-                raise RuntimeError(
-                    f"Unexpected trigger response format: {response_data}"
-                )
+                raise RuntimeError(f"Unexpected trigger response format: {response_data}")
 
             # Handle 400/422 as ValueError (invalid input)
             if response.status_code in (400, 422):
@@ -399,9 +391,7 @@ def _poll_snapshot(
                     # Parse JSON Lines format using streaming - each line is a separate JSON object
                     results = []
                     parse_errors = []
-                    for line_num, line in enumerate(
-                        response.iter_lines(decode_unicode=True), 1
-                    ):
+                    for line_num, line in enumerate(response.iter_lines(decode_unicode=True), 1):
                         line = line.strip()
                         if not line:
                             continue
@@ -437,9 +427,7 @@ def _poll_snapshot(
 
                 # Log response details only on first attempt
                 if attempt == 1:
-                    size_info = (
-                        f", size: {content_length} bytes" if content_length else ""
-                    )
+                    size_info = f", size: {content_length} bytes" if content_length else ""
                     log.info(
                         f"Snapshot {snapshot_id[:8]}... poll response "
                         f"Content-Type: {content_type or 'unknown'}{size_info}"
@@ -448,9 +436,7 @@ def _poll_snapshot(
                 # For very large responses, try chunked parsing for JSON arrays
                 # This reads in chunks and provides progress logging
                 if content_length and int(content_length) > max_size_bytes:
-                    chunked_data = _parse_large_json_array_streaming(
-                        response, max_size_bytes
-                    )
+                    chunked_data = _parse_large_json_array_streaming(response, max_size_bytes)
                     if chunked_data is not None:
                         log.info(
                             f"Snapshot {snapshot_id[:8]}... ready (chunked parse with {len(chunked_data)} records) "
@@ -575,7 +561,11 @@ def _poll_snapshot(
                         # Extract data from response
                         # Data might be in "data", "records", "results" keys
                         snapshot_data = (
-                            response_data.get("data") or response_data.get("records") or response_data.get("results") or response_data)
+                            response_data.get("data")
+                            or response_data.get("records")
+                            or response_data.get("results")
+                            or response_data
+                        )
 
                         # If no data key, remove status/metadata fields and use remaining fields as data
                         if snapshot_data is None:
@@ -590,18 +580,14 @@ def _poll_snapshot(
                                 "initiation_type",
                             )
                             snapshot_data = {
-                                k: v
-                                for k, v in response_data.items()
-                                if k not in metadata_keys
+                                k: v for k, v in response_data.items() if k not in metadata_keys
                             }
 
                         # If still None, use entire response as data
                         if snapshot_data is None:
                             snapshot_data = response_data
 
-                        log.info(
-                            f"Snapshot {snapshot_id[:8]}... ready after {attempt} attempt(s)"
-                        )
+                        log.info(f"Snapshot {snapshot_id[:8]}... ready after {attempt} attempt(s)")
 
                         # Ensure we return a list
                         if isinstance(snapshot_data, list):
@@ -627,9 +613,7 @@ def _poll_snapshot(
                             error_msg = "Unknown error"
 
                         log.info(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
-                        raise RuntimeError(
-                            f"Snapshot {snapshot_id[:8]}... failed: {error_msg}"
-                        )
+                        raise RuntimeError(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
 
                     elif status in ("running", "pending", "processing", "scheduled"):
                         # Log status every 5 attempts to reduce log volume

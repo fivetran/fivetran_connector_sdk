@@ -26,9 +26,7 @@ def extract_error_detail(response: Response) -> str:
         payload = response.json()
         if isinstance(payload, dict):
             # Check for validation_errors array (400 Bad Request)
-            if "validation_errors" in payload and isinstance(
-                payload["validation_errors"], list
-            ):
+            if "validation_errors" in payload and isinstance(payload["validation_errors"], list):
                 errors = ", ".join(str(err) for err in payload["validation_errors"])
                 return f"Validation errors: {errors}"
             # Check common error fields

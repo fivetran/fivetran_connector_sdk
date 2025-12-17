@@ -9,8 +9,13 @@ and the Best Practices documentation
 import json
 
 # Helper functions for data processing, validation, and schema management
-from helpers import (collect_all_fields, perform_scrape, process_scrape_result,
-                     update_fields_yaml, validate_configuration)
+from helpers import (
+    collect_all_fields,
+    perform_scrape,
+    process_scrape_result,
+    update_fields_yaml,
+    validate_configuration,
+)
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 # For enabling Logs in your connector code
@@ -80,9 +85,7 @@ def parse_scrape_urls(scrape_url_input):
 
     if isinstance(scrape_url_input, list):
         return [
-            item.strip()
-            for item in scrape_url_input
-            if isinstance(item, str) and item.strip()
+            item.strip() for item in scrape_url_input if isinstance(item, str) and item.strip()
         ]
 
     if isinstance(scrape_url_input, str):
@@ -90,11 +93,7 @@ def parse_scrape_urls(scrape_url_input):
         try:
             parsed = json.loads(scrape_url_input)
             if isinstance(parsed, list):
-                return [
-                    item.strip()
-                    for item in parsed
-                    if isinstance(item, str) and item.strip()
-                ]
+                return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
             if isinstance(parsed, str) and parsed.strip():
                 return [parsed.strip()]
         except (json.JSONDecodeError, TypeError) as e:
@@ -104,15 +103,11 @@ def parse_scrape_urls(scrape_url_input):
 
         # Try comma-separated format
         if "," in scrape_url_input:
-            return [
-                item.strip() for item in scrape_url_input.split(",") if item.strip()
-            ]
+            return [item.strip() for item in scrape_url_input.split(",") if item.strip()]
 
         # Try newline-separated format
         if "\n" in scrape_url_input:
-            return [
-                item.strip() for item in scrape_url_input.split("\n") if item.strip()
-            ]
+            return [item.strip() for item in scrape_url_input.split("\n") if item.strip()]
 
         # Single URL
         return [scrape_url_input.strip()] if scrape_url_input.strip() else []
@@ -207,18 +202,12 @@ def process_scrape_results(scrape_results, urls):
         )
         for result_idx, result in enumerate(scrape_results):
             if isinstance(result, dict):
-                result_url = (
-                    result.get("input", {}).get("url") or result.get("url") or url
-                )
-                processed_results.append(
-                    process_scrape_result(result, result_url, result_idx)
-                )
+                result_url = result.get("input", {}).get("url") or result.get("url") or url
+                processed_results.append(process_scrape_result(result, result_url, result_idx))
             elif isinstance(result, list):
                 for item_idx, item in enumerate(result):
                     result_url = (
-                        item.get("input", {}).get("url")
-                        if isinstance(item, dict)
-                        else url
+                        item.get("input", {}).get("url") if isinstance(item, dict) else url
                     )
                     processed_results.append(
                         process_scrape_result(item, result_url or url, item_idx)
@@ -231,9 +220,7 @@ def process_scrape_results(scrape_results, urls):
                 result = scrape_results[url_idx]
                 if isinstance(result, list):
                     for item_idx, item in enumerate(result):
-                        processed_results.append(
-                            process_scrape_result(item, url, item_idx)
-                        )
+                        processed_results.append(process_scrape_result(item, url, item_idx))
                 else:
                     processed_results.append(process_scrape_result(result, url, 0))
             else:
