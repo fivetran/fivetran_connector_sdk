@@ -55,7 +55,7 @@ Initial Sync (First Run):
 Incremental Sync (Subsequent Runs):
 - Automatically calculates date window using `last_posted_to` from previous sync minus a 30-day overlap window
 - Advances to the current date, capturing new opportunities and updates
-- If the date range exceeds one year, automatically chunks into 364-day windows
+- If the date range exceeds one year, the connector automatically chunks the range into successive 364-day windows and processes them all in a single sync run, ensuring no data is missed even after extended downtime
 
 ### Overlap window strategy
 - Default 30-day overlap window ensures recent opportunity updates are captured
@@ -65,9 +65,18 @@ Incremental Sync (Subsequent Runs):
 
 ### Example progression
 ```
-Initial Sync: [01/01/2024 - 12/31/2024] → State saves: last_posted_to = 12/31/2024
-Sync 2: [12/01/2024 - 10/30/2025] (30-day overlap) → Auto-chunked to [12/01/2024 - 11/30/2025] (364 days)
-Sync 3: [11/01/2025 - 10/30/2025] (30-day overlap from 11/30) → Captures recent data
+Initial Sync: [01/01/2024 - 12/30/2024] (364 days)
+  → State saves: last_posted_to = 12/30/2024
+
+Sync 2 (short downtime): [12/01/2024 - 03/15/2025] (30-day overlap, 104 days total)
+  → Processed in 1 window, completes in single run
+  → State saves: last_posted_to = 03/15/2025
+
+Sync 3 (long downtime - ~2 years): [02/14/2025 - 12/17/2026] (30-day overlap, 671 days total)
+  → Window 1: [02/14/2025 - 02/13/2026] (364 days)
+  → Window 2: [02/14/2026 - 12/17/2026] (306 days)
+  → Both windows processed sequentially in single sync run
+  → State saves: last_posted_to = 12/17/2026
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.

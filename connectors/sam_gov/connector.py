@@ -33,8 +33,13 @@ __CHECKPOINT_INTERVAL = 100  # Checkpoint every 100 records
 __DATE_FORMAT = "%m/%d/%Y"  # SAM.gov API date format
 __MAX_RETRIES = 3  # Maximum number of retry attempts
 __RETRY_DELAY_BASE = 2  # Base delay for exponential backoff (seconds)
+__RETRY_MAX_DELAY = 60  # Maximum retry delay in seconds (exponential backoff cap)
+__REQUEST_TIMEOUT = 30  # API request timeout in seconds
 __INCREMENTAL_WINDOW_DAYS = 30  # Default overlap window for incremental syncs to capture updates
 __MAX_DATE_RANGE_DAYS = 365  # Maximum date range allowed by SAM.gov API (in days)
+__WINDOW_SIZE_DAYS = 364  # Maximum window size for date chunking (API requires < 365 days)
+__DECIMAL_PRECISION = 15  # Precision for decimal fields (award_amount)
+__DECIMAL_SCALE = 2  # Scale for decimal fields (award_amount)
 
 
 def validate_configuration(configuration: dict):
@@ -63,13 +68,13 @@ def validate_configuration(configuration: dict):
         if posted_to_date <= posted_from_date:
             raise ValueError("posted_to date must be after posted_from date")
 
-        # Check that date range does not exceed 1 year (365 days)
+        # Check that date range does not exceed maximum window size (SAM.gov requires LESS than 365 days)
         date_diff = posted_to_date - posted_from_date
-        if date_diff.days > __MAX_DATE_RANGE_DAYS:
+        if date_diff.days >= __MAX_DATE_RANGE_DAYS:
             raise ValueError(
-                f"Date range between posted_from and posted_to cannot exceed 1 year. "
+                f"Date range between posted_from and posted_to must be less than 1 year (maximum {__WINDOW_SIZE_DAYS} days). "
                 f"Current range is {date_diff.days} days. "
-                f"SAM.gov API limitation: maximum 1 year ({__MAX_DATE_RANGE_DAYS} days) between dates."
+                f"SAM.gov API limitation: date range must be less than {__MAX_DATE_RANGE_DAYS} days."
             )
 
     except ValueError as e:
@@ -374,7 +379,7 @@ def make_api_request(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
         RuntimeError: If API request fails
     """
     try:
-        response = requests.get(url, params=params, timeout=30)
+        response = requests.get(url, params=params, timeout=__REQUEST_TIMEOUT)
 
         # Handle specific HTTP status codes
         if response.status_code == 429:
@@ -415,7 +420,7 @@ def make_api_request(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
 
     except requests.exceptions.Timeout:
         raise RuntimeError(
-            "Request timeout after 30 seconds. "
+            f"Request timeout after {__REQUEST_TIMEOUT} seconds. "
             "SAM.gov API may be experiencing slow response times. "
             "Please try again later."
         )
@@ -466,8 +471,8 @@ def make_api_request_with_retry(url: str, params: Dict[str, Any]) -> Dict[str, A
             if attempt == __MAX_RETRIES - 1:
                 break
 
-            # Calculate exponential backoff delay (capped at 60 seconds)
-            delay = min(60, __RETRY_DELAY_BASE * (2**attempt))
+            # Calculate exponential backoff delay (capped at max delay)
+            delay = min(__RETRY_MAX_DELAY, __RETRY_DELAY_BASE * (2**attempt))
             log.warning(f"API request failed on attempt {attempt + 1}/{__MAX_RETRIES}: {str(e)}")
             log.info(f"Retrying in {delay} seconds...")
             time.sleep(delay)
@@ -524,7 +529,11 @@ def schema(configuration: dict):
             "primary_key": ["notice_id"],
             "columns": {
                 # Define award_amount with DECIMAL type for precision in financial data
-                "award_amount": {"type": "DECIMAL", "precision": 15, "scale": 2},
+                "award_amount": {
+                    "type": "DECIMAL",
+                    "precision": __DECIMAL_PRECISION,
+                    "scale": __DECIMAL_SCALE,
+                },
             },
         },
         {
@@ -590,43 +599,60 @@ def calculate_sync_date_range(configuration: dict, state: dict) -> tuple:
     posted_from_date = last_posted_to_date - timedelta(days=incremental_window_days)
     posted_from = posted_from_date.strftime(__DATE_FORMAT)
 
-    # Use current date as end date
-    posted_to_date = datetime.now()
-    posted_to = posted_to_date.strftime(__DATE_FORMAT)
-
-    # Check if window exceeds 1-year API limit
-    date_diff = posted_to_date - posted_from_date
-    if date_diff.days >= 365:
-        # Adjust to 364-day window (API requires LESS than 365 days)
-        posted_to_date = posted_from_date + timedelta(days=364)
-        posted_to = posted_to_date.strftime(__DATE_FORMAT)
-        date_diff = posted_to_date - posted_from_date
-        log.warning(
-            f"Date range exceeded 1-year limit. Adjusted to: {posted_from} to {posted_to} "
-            f"(364 days - will continue in next sync)"
-        )
+    # Use current date as end date (this is the target we want to reach)
+    current_date = datetime.now()
+    posted_to = current_date.strftime(__DATE_FORMAT)
 
     log.info(
-        f"Incremental sync mode: syncing from {posted_from} to {posted_to} "
-        f"(overlap: {incremental_window_days} days, window: {date_diff.days} days)"
+        f"Incremental sync mode: target range {posted_from} to {posted_to} "
+        f"(overlap: {incremental_window_days} days)"
     )
     return posted_from, posted_to
 
 
-def process_single_opportunity(opportunity: dict, current_offset: int, index: int):
+def calculate_date_windows(posted_from: str, posted_to: str) -> List[tuple]:
+    """
+    Split a date range into windows to comply with SAM.gov API limitations.
+
+    Args:
+        posted_from: Start date in MM/dd/yyyy format
+        posted_to: End date in MM/dd/yyyy format
+
+    Returns:
+        List of (from_date, to_date) tuples, each representing a window <= __WINDOW_SIZE_DAYS days
+    """
+    from_date = datetime.strptime(posted_from, __DATE_FORMAT)
+    to_date = datetime.strptime(posted_to, __DATE_FORMAT)
+
+    windows = []
+    current_from = from_date
+
+    while current_from <= to_date:
+        # Calculate window end: either max window size from start or the target end date, whichever is earlier
+        current_to = min(current_from + timedelta(days=__WINDOW_SIZE_DAYS), to_date)
+
+        windows.append((current_from.strftime(__DATE_FORMAT), current_to.strftime(__DATE_FORMAT)))
+
+        # Move to next window (start from the day after current window end)
+        current_from = current_to + timedelta(days=1)
+
+    return windows
+
+
+def process_single_opportunity(opportunity: dict, current_offset: int, opportunity_index: int):
     """
     Process a single opportunity record and all its breakout tables.
     Args:
         opportunity: Raw opportunity data from API.
         current_offset: Current pagination offset for logging.
-        index: Index of opportunity in current page for logging.
+        opportunity_index: Index of opportunity in current page for logging.
     Raises:
         Exception: If processing fails (caller should handle).
     """
     # Validate that we have the required notice_id
     if not opportunity.get("noticeId"):
         log.warning(
-            f"Skipping opportunity {index + 1} at offset {current_offset}: missing noticeId"
+            f"Skipping opportunity {opportunity_index + 1} at offset {current_offset}: missing noticeId"
         )
         return
 
@@ -659,79 +685,116 @@ def update(configuration: dict, state: dict):
         raise ValueError("Missing required configuration parameter: api_key")
 
     # Calculate date range based on sync mode (initial vs incremental)
-    posted_from, posted_to = calculate_sync_date_range(configuration, state)
+    target_posted_from, target_posted_to = calculate_sync_date_range(configuration, state)
 
-    # Get the state variable for pagination (resuming interrupted syncs)
-    last_offset = state.get("last_offset", 0)
+    # Split the date range into windows to comply with SAM.gov API limitations
+    date_windows = calculate_date_windows(target_posted_from, target_posted_to)
+
+    log.info(
+        f"Date range spans {len(date_windows)} window(s). "
+        f"Will process each window sequentially to reach target date {target_posted_to}"
+    )
+
+    # Get the state variable for resuming across windows
+    current_window_index = state.get("current_window_index", 0)
     total_records_processed = state.get("total_records_processed", 0)
 
-    log.info(f"Resuming from offset: {last_offset}, total processed: {total_records_processed}")
-
     try:
-        current_offset = last_offset
+        # Process each date window sequentially
+        for window_index in range(current_window_index, len(date_windows)):
+            posted_from, posted_to = date_windows[window_index]
 
-        while True:
-            # Fetch a page of opportunities data from SAM.gov API
-            # The API supports pagination with limit and offset parameters
-            response_data = fetch_opportunities_page(
-                api_key=api_key,
-                posted_from=posted_from,
-                posted_to=posted_to,
-                limit=__DEFAULT_PAGE_SIZE,
-                offset=current_offset,
-            )
-
-            total_records = response_data.get("totalRecords", 0)
-            opportunities = response_data.get("opportunitiesData", [])
-
-            # Break if no more opportunities to process
-            if not opportunities:
-                log.info("No more opportunities to process")
-                break
-
-            log.info(f"Processing {len(opportunities)} opportunities from offset {current_offset}")
-
-            # Process each opportunity record with individual error handling
-            for i, opportunity in enumerate(opportunities):
-                try:
-                    process_single_opportunity(opportunity, current_offset, i)
-                except Exception as e:
-                    # Log the error but continue processing other records
-                    notice_id = opportunity.get("noticeId", "unknown")
-                    log.warning(
-                        f"Failed to process opportunity {notice_id} at offset {current_offset}: {str(e)}"
-                    )
-                    log.warning("Continuing with next opportunity...")
-                    continue
-
-            # Update pagination state after processing each page
-            current_offset += len(opportunities)
-            total_records_processed += len(opportunities)
-
-            # Save the progress by checkpointing the state after processing each page. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            checkpoint_state = {
-                "last_offset": current_offset,
-                "total_records_processed": total_records_processed,
-                "last_sync_time": datetime.now().isoformat(),
-            }
-            op.checkpoint(checkpoint_state)
             log.info(
-                f"Checkpointed at offset {current_offset}, processed {total_records_processed} total"
+                f"Processing window {window_index + 1}/{len(date_windows)}: "
+                f"{posted_from} to {posted_to}"
             )
 
-            # Check if we've processed all available records
-            if current_offset >= total_records:
-                log.info(f"Completed sync: processed all {total_records} records")
-                break
+            # Get the state variable for pagination within this window
+            last_offset = state.get("last_offset", 0)
+            window_records_processed = 0
 
-        # Final checkpoint with completion state
-        # Save state for incremental sync in next run
+            current_offset = last_offset
+
+            while True:
+                # Fetch a page of opportunities data from SAM.gov API
+                # The API supports pagination with limit and offset parameters
+                response_data = fetch_opportunities_page(
+                    api_key=api_key,
+                    posted_from=posted_from,
+                    posted_to=posted_to,
+                    limit=__DEFAULT_PAGE_SIZE,
+                    offset=current_offset,
+                )
+
+                total_records = response_data.get("totalRecords", 0)
+                opportunities = response_data.get("opportunitiesData", [])
+
+                # Break if no more opportunities to process in this window
+                if not opportunities:
+                    log.info(f"No more opportunities in window {window_index + 1}")
+                    break
+
+                log.info(
+                    f"Processing {len(opportunities)} opportunities from offset {current_offset} "
+                    f"(window {window_index + 1}/{len(date_windows)})"
+                )
+
+                # Process each opportunity record with individual error handling
+                for opportunity_index, opportunity in enumerate(opportunities):
+                    try:
+                        process_single_opportunity(opportunity, current_offset, opportunity_index)
+                    except Exception as e:
+                        # Log the error but continue processing other records
+                        notice_id = opportunity.get("noticeId", "unknown")
+                        log.warning(
+                            f"Failed to process opportunity {notice_id} at offset {current_offset}: {str(e)}"
+                        )
+                        log.warning("Continuing with next opportunity...")
+                        continue
+
+                # Update pagination state after processing each page
+                current_offset += len(opportunities)
+                window_records_processed += len(opportunities)
+                total_records_processed += len(opportunities)
+
+                # Checkpoint progress after each page (supports resumable syncs across windows)
+                checkpoint_state = {
+                    "current_window_index": window_index,
+                    "last_offset": current_offset,
+                    "total_records_processed": total_records_processed,
+                    "last_sync_time": datetime.now().isoformat(),
+                    "current_window_from": posted_from,
+                    "current_window_to": posted_to,
+                }
+
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(checkpoint_state)
+
+                log.info(
+                    f"Checkpointed at offset {current_offset} "
+                    f"(window {window_index + 1}/{len(date_windows)}, "
+                    f"processed {total_records_processed} total)"
+                )
+
+                # Check if we've processed all available records in this window
+                if current_offset >= total_records:
+                    log.info(
+                        f"Completed window {window_index + 1}/{len(date_windows)}: "
+                        f"processed {window_records_processed} records"
+                    )
+                    break
+
+            # Reset offset for the next window
+            state["last_offset"] = 0
+
+        # Final checkpoint: mark sync complete and save state for next incremental run
         final_state = {
             "last_offset": 0,  # Reset offset for next sync
-            "last_posted_to": posted_to,  # Track end date for incremental sync
+            "current_window_index": 0,  # Reset window tracking
+            "last_posted_to": target_posted_to,  # Track end date for incremental sync
             "total_records_processed": total_records_processed,
             "last_sync_time": datetime.now().isoformat(),
             "sync_mode": "incremental",  # Switch to incremental mode after first sync
@@ -746,7 +809,9 @@ def update(configuration: dict, state: dict):
         op.checkpoint(final_state)
 
         log.info(
-            f"SAM.gov sync completed successfully. Total records processed: {total_records_processed}"
+            f"SAM.gov sync completed successfully. "
+            f"Processed all {len(date_windows)} window(s). "
+            f"Total records processed: {total_records_processed}"
         )
 
     except Exception as e:
