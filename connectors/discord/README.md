@@ -20,13 +20,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Multi-guild support: Automatically discovers and processes all guilds the bot has access to (Refer to the `fetch_user_guilds` function)
-- Guild filtering: Configure which guilds to sync with include/exclude lists (Refer to the `filter_guilds` function)
+- Multi-guild support: Automatically discovers and processes all guilds the bot has access to (refer to the `fetch_user_guilds` function)
+- Guild filtering: Configure which guilds to sync with include/exclude lists (refer to the `filter_guilds` function)
 - Guild data: Complete server information including settings, features, and metadata
 - Channel management: All channel types (text, voice, category, etc.) with permissions and settings
 - Member analytics: User profiles, roles, join dates, and activity status
 - Message history: Comprehensive message data with attachments, embeds, and reactions
-- Incremental sync: Efficient updates using message timestamps and state management (Refer to the `process_single_guild` function)
+- Incremental sync: Efficient updates using message timestamps and state management (refer to the `process_single_guild` function)
 - Rate limit handling: Intelligent retry logic with exponential backoff
 - Error recovery: Robust error handling with detailed logging
 - AI/ML optimized: Structured data perfect for community analysis and sentiment tracking
@@ -43,12 +43,12 @@ The connector requires the following configuration parameters in `configuration.
 
 ### Configuration parameters
 
-- `bot_token` (required): Your Discord bot token (with or without the "bot" prefix - the connector adds it automatically if missing)
-- `sync_all_guilds` (optional): Specifies whether to sync all guilds the bot has access to (default: "true")
-- `guild_ids` (optional): Comma-separated list of specific guild IDs to sync (default: "" - sync all)
-- `exclude_guild_ids` (optional): Comma-separated list of guild IDs to exclude (default: "" - exclude none)
-- `sync_messages` (optional): Specifies whether to sync message data (default: "true")
-- `message_limit` (optional): Maximum messages per channel to sync (default: "1000")
+- `bot_token` (required): Your Discord bot token (with or without the `bot` prefix - the connector adds it automatically if missing)
+- `sync_all_guilds` (optional): Specifies whether to sync all guilds the bot has access to (default: `true`)
+- `guild_ids` (optional): Comma-separated list of specific guild IDs to sync (not set by default - sync all)
+- `exclude_guild_ids` (optional): Comma-separated list of guild IDs to exclude (not set by default - exclude none)
+- `sync_messages` (optional): Specifies whether to sync message data (default: `true`)
+- `message_limit` (optional): Maximum messages per channel to sync (default: `1000`)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -110,7 +110,7 @@ The connector processes and normalizes Discord data for optimal analysis (Refer 
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies (Refer to `make_discord_request` function):
+The connector implements comprehensive error handling strategies (refer to `make_discord_request` function):
 
 - Rate Limiting: Automatic retry with exponential backoff when rate limited
 - Server Errors: Retry logic for 5xx HTTP status codes
@@ -150,19 +150,19 @@ Complete message data including content, attachments, embeds, reactions, and met
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
-### Discord API Considerations
+### Discord API considerations
 
-- Rate Limits: Discord has strict rate limits; the connector implements intelligent retry logic
+- Rate limits: Discord has strict rate limits; the connector implements intelligent retry logic
 - Permissions: Ensure your bot has necessary intents and permissions enabled
-- Data Volume: Large servers may require multiple sync runs for complete data extraction
-- Message History: Discord API limits message history; consider your message_limit setting
+- Data volume: Large servers may require multiple sync runs for complete data extraction
+- Message history: Discord API limits message history; consider your message_limit setting
 - Privacy: Be mindful of Discord's Terms of Service and data privacy requirements
 
-### Performance Optimization
+### Performance optimization
 
-- Batch Processing: Data is processed in configurable batches for optimal performance
-- Incremental Sync: Only new/updated data is fetched on subsequent runs
-- Memory Management: Large datasets are processed without loading everything into memory
+- Batch processing: Data is processed in configurable batches for optimal performance
+- Incremental sync: Only new/updated data is fetched on subsequent runs
+- Memory management: Large datasets are processed without loading everything into memory
 - Checkpointing: Regular state saves ensure sync reliability and resumption
 
 ### AI/ML Use Cases
