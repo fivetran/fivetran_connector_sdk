@@ -270,6 +270,8 @@ def make_api_request(
         requests.RequestException: If the request fails after all retries.
     """
     url = f"{__BASE_URL}{endpoint}"
+    last_exception = None
+    
     for attempt in range(1, retries + 1):
         try:
             response = requests.get(url, params=params, headers=headers)
@@ -285,16 +287,27 @@ def make_api_request(
                 response.raise_for_status()
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
-                time.sleep(delay * attempt)
+                last_exception = requests.HTTPError(
+                    f"Server error {response.status_code} after {retries} retries", response=response
+                )
+                if attempt < retries:
+                    time.sleep(delay * attempt)
             else:
                 raise requests.HTTPError(
                     f"Unexpected HTTP status code: {response.status_code}", response=response
                 )
         except requests.RequestException as e:
+            last_exception = e
             if attempt == retries:
-                raise
+                break
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
+    
+    # Re-raise the last exception if all retries exhausted
+    if last_exception:
+        raise last_exception
+    
+    raise RuntimeError(f"API request to {endpoint} failed after {retries} retries")
 
 
 def filter_columns(record: dict, allowed_columns: dict) -> dict:
