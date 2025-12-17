@@ -72,6 +72,9 @@ SSL/TLS connections:
 1. Set `use_ssl` to `true` in the configuration to enable encrypted connections.
 2. The connector uses Python's default SSL context for secure connections.
 
+## Pagination
+This connector does not use pagination. RethinkDB cursors automatically stream data from tables without requiring pagination logic. The connector processes records sequentially using cursor iteration (refer to the `sync_table_data()` function at line 281), with checkpointing every 100 records to handle large datasets efficiently.
+
 ## Data handling
 The connector processes RethinkDB data as follows:
 
