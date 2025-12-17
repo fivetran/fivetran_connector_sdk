@@ -319,6 +319,18 @@ def fetch_channel_messages(
     return result if isinstance(result, list) else []
 
 
+def _serialize_json_fields(data: dict, fields: List[str]) -> None:
+    """
+    Serialize specified fields to JSON if they exist in the data dictionary.
+    Args:
+        data: Dictionary to modify
+        fields: List of field names to serialize to JSON
+    """
+    for field in fields:
+        if data.get(field):
+            data[field] = json.dumps(data[field])
+            
+
 def process_guild_data(guild_data: dict) -> dict:
     """
     Process and normalize guild data for Fivetran.
@@ -328,10 +340,7 @@ def process_guild_data(guild_data: dict) -> dict:
         dict: Processed guild data
     """
     # Serialize nested objects that need JSON encoding
-    if guild_data.get("welcome_screen"):
-        guild_data["welcome_screen"] = json.dumps(guild_data["welcome_screen"])
-    if guild_data.get("stickers"):
-        guild_data["stickers"] = json.dumps(guild_data["stickers"])
+    _serialize_json_fields(guild_data, ["welcome_screen", "stickers"])
 
     # Add metadata fields
     guild_data["synced_at"] = datetime.now(timezone.utc).isoformat()
@@ -352,12 +361,9 @@ def process_channel_data(channel_data: dict, guild_id: str) -> dict:
     channel_data["guild_id"] = guild_id
 
     # Serialize nested objects that need JSON encoding
-    if channel_data.get("permission_overwrites"):
-        channel_data["permission_overwrites"] = json.dumps(channel_data["permission_overwrites"])
-    if channel_data.get("available_tags"):
-        channel_data["available_tags"] = json.dumps(channel_data["available_tags"])
-    if channel_data.get("default_reaction_emoji"):
-        channel_data["default_reaction_emoji"] = json.dumps(channel_data["default_reaction_emoji"])
+    _serialize_json_fields(
+        channel_data, ["permission_overwrites", "available_tags", "default_reaction_emoji"]
+    )
 
     # Add metadata fields
     channel_data["synced_at"] = datetime.now(timezone.utc).isoformat()
@@ -405,8 +411,7 @@ def process_member_data(member_data: dict, guild_id: str) -> dict:
     member_data["guild_id"] = guild_id
 
     # Serialize roles array
-    if member_data.get("roles"):
-        member_data["roles"] = json.dumps(member_data["roles"])
+    _serialize_json_fields(member_data, ["roles"])
 
     # Add metadata fields
     member_data["synced_at"] = datetime.now(timezone.utc).isoformat()
@@ -430,41 +435,26 @@ def process_message_data(message_data: dict, channel_id: str) -> dict:
     # Add channel_id to associate message with its channel
     message_data["channel_id"] = channel_id
 
-    # Serialize array fields that need JSON encoding
-    if message_data.get("mentions"):
-        message_data["mentions"] = json.dumps(message_data["mentions"])
-    if message_data.get("mention_roles"):
-        message_data["mention_roles"] = json.dumps(message_data["mention_roles"])
-    if message_data.get("mention_channels"):
-        message_data["mention_channels"] = json.dumps(message_data["mention_channels"])
-    if message_data.get("attachments"):
-        message_data["attachments"] = json.dumps(message_data["attachments"])
-    if message_data.get("embeds"):
-        message_data["embeds"] = json.dumps(message_data["embeds"])
-    if message_data.get("reactions"):
-        message_data["reactions"] = json.dumps(message_data["reactions"])
-    if message_data.get("components"):
-        message_data["components"] = json.dumps(message_data["components"])
-    if message_data.get("sticker_items"):
-        message_data["sticker_items"] = json.dumps(message_data["sticker_items"])
-    if message_data.get("stickers"):
-        message_data["stickers"] = json.dumps(message_data["stickers"])
-
-    # Serialize nested object fields that need JSON encoding
-    if message_data.get("activity"):
-        message_data["activity"] = json.dumps(message_data["activity"])
-    if message_data.get("application"):
-        message_data["application"] = json.dumps(message_data["application"])
-    if message_data.get("message_reference"):
-        message_data["message_reference"] = json.dumps(message_data["message_reference"])
-    if message_data.get("referenced_message"):
-        message_data["referenced_message"] = json.dumps(message_data["referenced_message"])
-    if message_data.get("interaction"):
-        message_data["interaction"] = json.dumps(message_data["interaction"])
-    if message_data.get("thread"):
-        message_data["thread"] = json.dumps(message_data["thread"])
-    if message_data.get("role_subscription_data"):
-        message_data["role_subscription_data"] = json.dumps(message_data["role_subscription_data"])
+    # Serialize array and nested object fields that need JSON encoding
+    json_fields = [
+        "mentions",
+        "mention_roles",
+        "mention_channels",
+        "attachments",
+        "embeds",
+        "reactions",
+        "components",
+        "sticker_items",
+        "stickers",
+        "activity",
+        "application",
+        "message_reference",
+        "referenced_message",
+        "interaction",
+        "thread",
+        "role_subscription_data",
+    ]
+    _serialize_json_fields(message_data, json_fields)
 
     # Add metadata fields
     message_data["synced_at"] = datetime.now(timezone.utc).isoformat()
