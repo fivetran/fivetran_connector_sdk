@@ -166,7 +166,7 @@ def validate_configuration(configuration: dict):
         raise ValueError("Missing required configuration: api_key")
 
 
-def sync_table(params: dict, table:str, headers: dict, state: dict, sync_start: str):
+def sync_table(params: dict, table: str, headers: dict, state: dict, sync_start: str):
     """
     Initiates a full sync for a table, either 'item' or the 'order' data.
     Args:
@@ -178,11 +178,11 @@ def sync_table(params: dict, table:str, headers: dict, state: dict, sync_start: 
     log.info(f"Starting full sync for table: {table}")
 
     # set variable for which columns to get when syncing rows
-    if table == "order" :
+    if table == "order":
         columns = get_order_columns()
-    if table == "item" :
+    if table == "item":
         columns = get_item_columns()
-    else: 
+    else:
         log.severe(f"Table {table} is not supported for sync.")
         return
 
@@ -271,7 +271,7 @@ def make_api_request(
     """
     url = f"{__BASE_URL}{endpoint}"
     last_exception = None
-    
+
     for attempt in range(1, retries + 1):
         try:
             response = requests.get(url, params=params, headers=headers)
@@ -288,7 +288,8 @@ def make_api_request(
             elif 500 <= response.status_code < 600:
                 log.warning(f"Server error {response.status_code}, retrying...")
                 last_exception = requests.HTTPError(
-                    f"Server error {response.status_code} after {retries} retries", response=response
+                    f"Server error {response.status_code} after {retries} retries",
+                    response=response,
                 )
                 if attempt < retries:
                     time.sleep(delay * attempt)
@@ -302,11 +303,11 @@ def make_api_request(
                 break
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
-    
+
     # Re-raise the last exception if all retries exhausted
     if last_exception:
         raise last_exception
-    
+
     raise RuntimeError(f"API request to {endpoint} failed after {retries} retries")
 
 
