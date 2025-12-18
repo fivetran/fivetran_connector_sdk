@@ -183,8 +183,20 @@ def get_data(last_sync_time=None):
     # For starter template, return simple user test data
     # In production, replace this with actual API calls or database queries
     return [
-        {"id": "1", "name": "Alice", "email": "alice@example.com", "created_at": "2024-01-01T00:00:00Z", "updated_at": "2024-01-01T00:00:00Z"},
-        {"id": "2", "name": "Bob", "email": "bob@example.com", "created_at": "2024-01-01T01:00:00Z", "updated_at": "2024-01-01T01:00:00Z"},
+        {
+            "id": "1",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        },
+        {
+            "id": "2",
+            "name": "Bob",
+            "email": "bob@example.com",
+            "created_at": "2024-01-01T01:00:00Z",
+            "updated_at": "2024-01-01T01:00:00Z",
+        },
     ]
 
 
