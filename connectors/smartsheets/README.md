@@ -5,6 +5,7 @@ This connector demonstrates how to sync row-level data from Smartsheet using the
 
 
 ## Requirements
+- Python 3.9 or later (required for `hashlib.md5(usedforsecurity=False)` parameter)
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
 - Operating system:
   - Windows: 10 or later (64-bit only)
