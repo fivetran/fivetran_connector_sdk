@@ -490,7 +490,7 @@ def update(configuration: dict, state: dict):
 
     if "response_start_date" not in state:
         # Historical: 7-day initial historical sync
-        response_start_date = (datetime.now() - relativedelta(days=3)).strftime("%Y-%m-%d")
+        response_start_date = (datetime.now() - relativedelta(days=7)).strftime("%Y-%m-%d")
     else:
         # Incremental: 2-day lookback from the previous end date
         saved_state = datetime.strptime(state.get("response_start_date"), "%Y-%m-%d")
