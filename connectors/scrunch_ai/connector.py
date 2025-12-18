@@ -41,6 +41,7 @@ __API_BASE = "https://api.scrunchai.com/v1"
 __LIST_JOINER = " | "  # Delimiter used to collapse list fields into strings
 __MAX_RETRIES = 5
 __INITIAL_BACKOFF = 2  # seconds
+__CHECKPOINT_INTERVAL = 1000
 
 
 def validate_configuration(configuration: dict):
@@ -92,7 +93,7 @@ def schema(configuration: dict):
     ]
 
 
-def get_responses(start_date, end_date, offset, token, brand_id):
+def get_responses(start_date, end_date, offset, limit, token, brand_id):
     """
     Retrieve paginated response records from Scrunch.
 
@@ -108,11 +109,7 @@ def get_responses(start_date, end_date, offset, token, brand_id):
     resp = requests.get(
         f"{__API_BASE}/{brand_id}/responses",
         headers={"Authorization": f"Bearer {token}"},
-        params={
-            "start_date": start_date,
-            "end_date": end_date,
-            "offset": offset,
-        },
+        params={"start_date": start_date, "end_date": end_date, "offset": offset, "limit": limit},
     )
 
     resp.raise_for_status()
@@ -170,7 +167,7 @@ def flatten_response(rec: dict) -> dict:
     }
 
 
-def _fetch_page_with_retries(start_date, end_date, offset, token, brand_id):
+def _fetch_page_with_retries(start_date, end_date, offset, limit, token, brand_id):
     """
     Fetches a single page of responses from the API with exponential backoff retries.
     Args:
@@ -186,7 +183,7 @@ def _fetch_page_with_retries(start_date, end_date, offset, token, brand_id):
                 f"Fetching responses (offset={offset}, attempt "
                 f"{attempt + 1}/{__MAX_RETRIES})..."
             )
-            response = get_responses(start_date, end_date, offset, token, brand_id)
+            response = get_responses(start_date, end_date, offset, limit, token, brand_id)
             return response  # Success, return response
 
         except requests.exceptions.RequestException as e:
@@ -218,13 +215,16 @@ def get_all_responses(start_date, end_date, token, brand_id):
         brand_id   (str): Brand identifier for the Scrunch API endpoint.
     """
     offset = 0
-    limit = 100
+    limit = 10000
     total = None  # unknown initially
+    processed = 0
 
     while True:
         # 1. Fetch the page using the helper function
         try:
-            response = _fetch_page_with_retries(start_date, end_date, offset, token, brand_id)
+            response = _fetch_page_with_retries(
+                start_date, end_date, offset, limit, token, brand_id
+            )
         except Exception:
             # The helper function handles retries and raises if all fail
             raise  # Re-raise the exception from the helper
@@ -245,6 +245,18 @@ def get_all_responses(start_date, end_date, token, brand_id):
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="response", data=flat)
 
+        # Track total processed
+        processed += len(items)
+
+        # Checkpoint
+        if processed > 0 and processed % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state={"response_start_date": end_date})
+            log.info(f"Checkpointed after {processed} records.")
+
         # 4. Prepare for next page
         offset += limit
 
@@ -254,139 +266,192 @@ def get_all_responses(start_date, end_date, token, brand_id):
 
     log.info("All responses fetched successfully.")
 
-def get_scrunch_performance(start_date, end_date, token, brand_id):
-    """
-    Pull overall Scrunch performance aggregates and upsert into
-    'overall_scrunch_performance'.
 
-    Fields include dates, prompt/persona info, platform, branded flag, and
-    aggregate metrics.
+def get_all_performances(start_date, end_date, token, brand_id, kind: str = "scrunch"):
+    """
+    Fetch performance aggregates from Scrunch and upsert into the appropriate table.
+    Uses paginated API calls and checkpoints progress for large datasets.
 
     Args:
         start_date (str): Start date (YYYY-MM-DD).
         end_date   (str): End date   (YYYY-MM-DD).
         token      (str): Bearer token for Scrunch API.
+        brand_id   (str): Brand ID specified in configuration.
+        kind       (str): "scrunch" for overall performance,
+                          "competitor" for competitor performance.
     """
+    if kind not in ("scrunch", "competitor"):
+        raise ValueError("kind must be either 'scrunch' or 'competitor'")
+
+    if kind == "scrunch":
+        table_name = "overall_scrunch_performance"
+    else:
+        table_name = "competitor_performance"
+
+    offset = 0
+    limit = 50000
+    total = None  # unknown initially
+    processed = 0
+
+    while True:
+        # 1. Fetch the page using the helper function
+        try:
+            items = _fetch_performances_with_retries(
+                start_date, end_date, offset, token, brand_id, kind
+            )
+        except Exception:
+            # The helper function handles retries and raises if all fail
+            raise  # Re-raise the exception from the helper
+
+        if items is None or len(items) == 0:
+            log.info(f"No more {kind} records found. Finishing.")
+            break
+
+        # 2. Process the response
+        # Since 'items' is the list itself, we check its length
+        current_batch_size = len(items)
+        log.info(f"Fetched {current_batch_size} {kind} rows (offset={offset})")
+
+        # 3. Upsert items
+        for rec in items:
+            # The 'upsert' operation is used to insert or update data in the
+            # destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data
+            # - The second argument is a dictionary containing
+            #   the data to be upserted
+            op.upsert(table=table_name, data=rec)
+
+        # Track total processed
+        processed += len(items)
+
+        # Checkpoint
+        if processed > 0 and processed % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state={"response_start_date": end_date})
+            log.info(f"Checkpointed after {processed} {kind} records.")
+
+        # 4. Prepare for next page
+        offset += limit
+
+    log.info(f"All {kind} performances fetched successfully.")
+
+
+def get_performances(start_date, end_date, offset, token, brand_id, kind: str):
+    """
+    Retrieve performance aggregates (overall or competitor) from Scrunch
+    with a single HTTP request (no retries).
+
+    Args:
+        start_date (str): Start date (YYYY-MM-DD).
+        end_date   (str): End date   (YYYY-MM-DD).
+        token      (str): Bearer token for Scrunch API.
+        brand_id   (str): Brand ID specified in configuration.
+        kind       (str): "scrunch" for overall performance,
+                          "competitor" for competitor performance.
+
+    Returns:
+        list[dict]: List of performance records.
+    """
+    if kind not in ("scrunch", "competitor"):
+        raise ValueError("kind must be either 'scrunch' or 'competitor'")
 
     # Construct base URL dynamically using brand_id
     base_url = f"{__API_BASE}/{brand_id}/query"
-
-    fields = [
-        "date_week",
-        "date_month",
-        "date_year",
-        "date",
-        "prompt_id",
-        "prompt",
-        "persona_id",
-        "persona_name",
-        "ai_platform",
-        "branded",
-        "responses",
-        "brand_presence_percentage",
-        "brand_position_score",
-        "brand_sentiment_score",
-        "competitor_presence_percentage",
-    ]
-    fields_param = ",".join(fields)
-
-    query_params = f"?start_date={start_date}" f"&end_date={end_date}" f"&fields={fields_param}"
-
     headers = {"Authorization": f"Bearer {token}"}
 
-    url = f"{base_url}{query_params}"
+    if kind == "scrunch":
+        # Overall Scrunch performance configuration
+        fields = [
+            "date_week",
+            "date_month",
+            "date_year",
+            "date",
+            "prompt_id",
+            "prompt",
+            "persona_id",
+            "persona_name",
+            "ai_platform",
+            "branded",
+            "responses",
+            "brand_presence_percentage",
+            "brand_position_score",
+            "brand_sentiment_score",
+            "competitor_presence_percentage",
+        ]
+        params = {
+            "start_date": start_date,
+            "end_date": end_date,
+            "offset": offset,
+            "fields": ",".join(fields),
+        }
+    else:
+        # Competitor performance configuration
+        dims = [
+            "date",
+            "date_month",
+            "date_week",
+            "date_year",
+            "prompt_id",
+            "prompt",
+            "ai_platform",
+            "competitor_id",
+            "competitor_name",
+        ]
+        metrics = [
+            "responses",
+            "brand_presence_percentage",
+            "competitor_presence_percentage",
+        ]
+        fields = dims + metrics
+        params = {
+            "start_date": start_date,
+            "end_date": end_date,
+            "offset": offset,
+            "fields": ",".join(fields),
+            "group_by": ",".join(dims),
+        }
 
-    response = None
-    for attempt in range(__MAX_RETRIES):
-        try:
-            log.info(f"Fetching data (Attempt {attempt + 1}/{__MAX_RETRIES})...")
-            response = requests.get(url, headers=headers)
-            # This will raise an HTTPError for bad responses (4xx or 5xx)
-            response.raise_for_status()
-            break  # Break the loop if the request was successful
-        except requests.exceptions.RequestException as e:
-            # Catch network errors and HTTP errors
-            log.warning(f"Error fetching data on attempt {attempt + 1}: {e}")
-            if attempt < __MAX_RETRIES - 1:
-                # Calculate exponential backoff time
-                wait_time = __INITIAL_BACKOFF * (2**attempt)
-                log.info(f"Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-            else:
-                # Re-raise the exception on the last attempt
-                log.severe("Max retries reached. Failing.")
-                raise  # Re-raise the last exception
-
-    # Check if a successful response was obtained
-    # (should always be true if break was hit)
-    if response is None:
-        # Should not be reached if the final 'raise' is working, but safe to
-        # include
-        raise ConnectionError("Failed to fetch data after all retries.")
-
-    data = response.json()  # list[dict]
-
-    for rec in data:
-        # The 'upsert' operation is used to insert or update data in the
-        # destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data
-        # - The second argument is a dictionary containing
-        # - the data to be upserted
-        op.upsert(table="overall_scrunch_performance", data=rec)
+    resp = requests.get(base_url, headers=headers, params=params)
+    # This will raise an HTTPError for bad responses (4xx or 5xx)
+    resp.raise_for_status()
+    return resp.json()  # list[dict]
 
 
-def get_competitor_performance(start_date, end_date, token, brand_id):
+def _fetch_performances_with_retries(start_date, end_date, offset, token, brand_id, kind: str):
     """
-    Pull competitor performance aggregates and
-    upsert into 'competitor_performance'.
-
-    Fields include dates, prompt/persona info, platform, branded flag, and
-    aggregate metrics.
+    Wrapper around get_performances that adds exponential backoff retries.
 
     Args:
         start_date (str): Start date (YYYY-MM-DD).
         end_date   (str): End date   (YYYY-MM-DD).
         token      (str): Bearer token for Scrunch API.
-        brand_id   (str): Brand ID specified in configuration
+        brand_id   (str): Brand ID specified in configuration.
+        kind       (str): "scrunch" for overall performance,
+                          "competitor" for competitor performance.
+
+    Returns:
+        list[dict]: List of performance records.
     """
+    if kind not in ("scrunch", "competitor"):
+        raise ValueError("kind must be either 'scrunch' or 'competitor'")
 
-    dims = [
-        "date",
-        "date_month",
-        "date_week",
-        "date_year",
-        "prompt_id",
-        "prompt",
-        "ai_platform",
-        "competitor_id",
-        "competitor_name",
-    ]
-    metrics = [
-        "responses",
-        "brand_presence_percentage",
-        "competitor_presence_percentage",
-    ]
-    fields = dims + metrics
+    if kind == "scrunch":
+        log_prefix = "overall Scrunch performance"
+        error_suffix = "Failed to fetch data after all retries."
+    else:
+        log_prefix = "competitor performance"
+        error_suffix = "Failed to fetch competitor performance after all retries."
 
-    base_url = f"{__API_BASE}/{brand_id}/query"
-    params = {
-        "start_date": start_date,
-        "end_date": end_date,
-        "fields": ",".join(fields),
-        "group_by": ",".join(dims),
-    }
-    headers = {"Authorization": f"Bearer {token}"}
-
-    response = None
+    data = None
     for attempt in range(__MAX_RETRIES):
         try:
-            log.info(
-                "Fetching competitor performance (attempt " f"{attempt + 1}/{__MAX_RETRIES})..."
-            )
-            response = requests.get(base_url, headers=headers, params=params)
-            response.raise_for_status()
-            break  # success
+            log.info(f"Fetching {log_prefix} (attempt {attempt + 1}/{__MAX_RETRIES})...")
+            data = get_performances(start_date, end_date, offset, token, brand_id, kind)
+            return data  # success
         except requests.exceptions.RequestException as e:
             log.warning(f"Error on attempt {attempt + 1}: {e}")
             if attempt < __MAX_RETRIES - 1:
@@ -394,23 +459,13 @@ def get_competitor_performance(start_date, end_date, token, brand_id):
                 log.info(f"Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
             else:
-                log.severe("Max retries reached for competitor performance.")
+                log.severe(f"Max retries reached for {log_prefix}.")
                 raise
 
-    if response is None:
-        raise ConnectionError("Failed to fetch competitor performance after all retries.")
-
-    data = response.json()  # list[dict]
-
-    log.info(f"Upserting {len(data)} competitor performance rows...")
-    for rec in data:
-        # The 'upsert' operation is used to insert or update data in the
-        # destination table.
-        # The op.upsert method is called with two arguments:
-        # - The first argument is the name of the table to upsert the data
-        # - The second argument is a dictionary containing
-        # - the data to be upserted
-        op.upsert(table="competitor_performance", data=rec)
+    # Extremely defensive; normally we either returned data or raised above
+    if data is None:
+        raise ConnectionError(error_suffix)
+    return data
 
 
 def update(configuration: dict, state: dict):
@@ -436,7 +491,7 @@ def update(configuration: dict, state: dict):
 
     if "response_start_date" not in state:
         # Historical: 7-day initial historical sync
-        response_start_date = (datetime.now() - relativedelta(days=7)).strftime("%Y-%m-%d")
+        response_start_date = (datetime.now() - relativedelta(days=3)).strftime("%Y-%m-%d")
     else:
         # Incremental: 2-day lookback from the previous end date
         saved_state = datetime.strptime(state.get("response_start_date"), "%Y-%m-%d")
@@ -446,8 +501,8 @@ def update(configuration: dict, state: dict):
 
     # Pull and upsert responses
     get_all_responses(response_start_date, end_date, token, brand_id)
-    get_scrunch_performance(response_start_date, end_date, token, brand_id)
-    get_competitor_performance(response_start_date, end_date, token, brand_id)
+    get_all_performances(response_start_date, end_date, token, brand_id, "competitor")
+    get_all_performances(response_start_date, end_date, token, brand_id, "scrunch")
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
