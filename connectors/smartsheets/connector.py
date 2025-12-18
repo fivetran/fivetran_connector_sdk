@@ -8,7 +8,7 @@ import re
 import time
 # For flattening nested dictionaries
 from collections.abc import MutableMapping
-# For creating configuration xand state classes
+# For creating configuration and state classes
 from dataclasses import dataclass
 # For datetime operations and timezone handling
 from datetime import datetime, timedelta, timezone
@@ -92,7 +92,7 @@ class StateManager:
             This method provides a default state for new sheets, ensuring
             that the first sync will fetch all available data.
         """
-        default_time = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+        default_time = datetime.now()
         return self.sheet_states.get(
             sheet_id,
             {
@@ -221,6 +221,11 @@ class SmartsheetConfig:
 def hash_value(data):
     """
     Generate an MD5 hash for the given data.
+    
+    Note: This function uses hashlib.md5(usedforsecurity=False), which requires Python 3.9+.
+    The usedforsecurity parameter explicitly indicates that MD5 is used for non-security
+    purposes (generating consistent primary keys), not for cryptographic security.
+    
     :param data: The data to hash
     :return: The MD5 hash as a hexadecimal string
     """
@@ -598,9 +603,6 @@ class DataTypeHandler:
             return value
 
 
-# Remove custom ID generation - use Smartsheet's natural IDs like other connectors
-
-
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
@@ -615,7 +617,7 @@ def validate_configuration(configuration: dict):
     if "api_token" not in configuration:
         raise ValueError("Missing required configuration value: api_token")
     
-    if not configuration.get("api_token"):
+    if not configuration.get("api_token", "").strip():
         raise ValueError("Configuration value 'api_token' cannot be empty")
     
     if not configuration.get("sheets") and not configuration.get("reports"):
@@ -987,4 +989,4 @@ if __name__ == "__main__":
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Test the connector locally
-    connector.debug()
+    connector.debug(configuration=configuration)
