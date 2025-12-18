@@ -83,8 +83,7 @@ The connector creates a `SMARTSHEET_TABLE_NAME` table:
   "table": "smartsheet_table_name",
   "primary_key": ["id"],
   "columns": {
-    "id": "STRING",
-    // Additional columns are inferred dynamically from the sheet structure.
+    "id": "STRING"
   }
 }
 ```
