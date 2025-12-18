@@ -129,9 +129,8 @@ def update(configuration: dict, state: dict):
 
         for record in data:
             # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="users", data=record)
 
             # Update state tracking for incremental syncs
