@@ -210,11 +210,10 @@ def sync_rows(
         sync_start (str): Timestamp for 'last_updated_at'.
     """
     count = 0
-    total = None
     endpoint = table
 
-    # Loop until all records are processed (count < total).
-    while total is None or count < total:
+    # Loop through all pages of data until no more data is returned.
+    while True:
         data = make_api_request(endpoint, params=params, headers=headers)
         if not data:
             break
