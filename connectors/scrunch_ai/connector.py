@@ -290,7 +290,6 @@ def get_all_performances(start_date, end_date, token, brand_id, kind: str = "scr
 
     offset = 0
     limit = 50000
-    total = None  # unknown initially
     processed = 0
 
     while True:
