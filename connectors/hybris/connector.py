@@ -295,12 +295,12 @@ def build_date_filters(cursor: str, current_date: datetime) -> tuple:
     current_date_str = current_date.strftime("%Y-%m-%d")
 
     from_date_cursor = (
-        f"fromDate={cursor_date_str}T{cursor_dt.strftime("%H")}%3A"
-        f"{cursor_dt.strftime("%M")}%3A{cursor_dt.strftime("%S")}%2B0000"
+        f"fromDate={cursor_date_str}T{cursor_dt.strftime('%H')}%3A"
+        f"{cursor_dt.strftime('%M')}%3A{cursor_dt.strftime('%S')}%2B0000"
     )
     to_date_cursor = (
-        f"toDate={current_date_str}T{current_date.strftime("%H")}%3A"
-        f"{current_date.strftime("%M")}%3A{current_date.strftime("%S")}%2B0000"
+        f"toDate={current_date_str}T{current_date.strftime('%H')}%3A"
+        f"{current_date.strftime('%M')}%3A{current_date.strftime('%S')}%2B0000"
     )
 
     return from_date_cursor, to_date_cursor
@@ -317,7 +317,7 @@ def process_payment_transactions(order_key: str, order_data: Dict[str, Any]) -> 
         for payment in order_data["paymentTransactions"]:
             payment_data = {}
             flatten_dict("paymentTransactions", payment, payment_data)
-            payment_transaction_order_key = f"{order_key}_{payment["transactionId"]}"
+            payment_transaction_order_key = f"{order_key}_{payment['transactionId']}"
             # The "upsert" operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
@@ -342,7 +342,7 @@ def process_order_entries(order_key: str, order_data: Dict[str, Any]) -> None:
         for entry in order_data["entries"]:
             entry_data = {}
             flatten_dict("entries", entry, entry_data)
-            order_entries_key = f"{order_key}_{entry["orderLineNumber"]}"
+            order_entries_key = f"{order_key}_{entry['orderLineNumber']}"
             # The "upsert" operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
@@ -357,7 +357,7 @@ def process_order_entries(order_key: str, order_data: Dict[str, Any]) -> None:
                     bundle_data = {}
                     flatten_dict("bundleEntries", bundle, bundle_data)
                     bundle_order_key = (
-                        f"{order_key}_{entry["orderLineNumber"]}_{bundle["orderLineNumber"]}"
+                        f"{order_key}_{entry['orderLineNumber']}_{bundle['orderLineNumber']}"
                     )
                     entry_line = entry["orderLineNumber"]
                     # The "upsert" operation is used to insert or update data in the destination table.
@@ -386,7 +386,7 @@ def process_promotion_results(order_key: str, order_data: Dict[str, Any]) -> Non
             if promotion.get("promotion"):
                 promotion_data = {}
                 flatten_dict("promotion", promotion, promotion_data)
-                promo_order_key = f"{order_key}_{promotion["promotion"]["name"]}"
+                promo_order_key = f"{order_key}_{promotion['promotion']['name']}"
                 # The "upsert" operation is used to insert or update data in the destination table.
                 # The first argument is the name of the destination table.
                 # The second argument is a dictionary containing the record to be upserted.
@@ -508,7 +508,7 @@ def process_orders_on_page(orders_list: list, page_number: int) -> None:
         try:
             process_single_order(order)
         except Exception as e:
-            log.warning(f"Error processing order {order.get("orderNumber", "unknown")}: {e}")
+            log.warning(f"Error processing order {order.get('orderNumber', 'unknown')}: {e}")
             # Continue processing other orders
 
 
