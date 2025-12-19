@@ -23,7 +23,7 @@ import requests
 import time
 
 __PAGE_SIZE = 100
-__MAX_ATTEMPTS = 3 # Maximum number of request attempts
+__MAX_ATTEMPTS = 3  # Maximum number of request attempts
 __MAX_RETRY_INTERVAL = 60  # seconds
 
 
