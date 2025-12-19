@@ -56,7 +56,7 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
             # Fail fast for permanent errors (4xx client errors)
             if hasattr(e, "response") and e.response is not None:
                 if 400 <= e.response.status_code < 500:
-                    log.severe(f"Client error {e.response.status_code}: {str(e)}")
+                    log.severe(f"Client error {e.response.status_code}", e)
                     raise
             last_exception = e
             # If this was the last allowed attempt, log and raise
