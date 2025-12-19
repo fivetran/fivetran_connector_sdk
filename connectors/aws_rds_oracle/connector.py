@@ -96,10 +96,12 @@ def connect_oracle(configuration: dict) -> "oracledb.Connection":
         oracledb.Error: if the database connection cannot be established.
     """
 
-    port_value = int(configuration.get("port", __DEFAULT_PORT))
     try:
+        port_value = int(configuration.get("port", __DEFAULT_PORT))
     except (TypeError, ValueError) as exc:
-        raise ValueError(f"Invalid port value in configuration: {port_value}") from exc
+        raise ValueError(
+            f"Invalid port value in configuration: {configuration.get('port')}"
+        ) from exc
 
     dsn = oracledb.makedsn(
         host=configuration.get("host"),
