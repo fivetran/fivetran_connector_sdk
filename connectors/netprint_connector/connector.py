@@ -303,8 +303,8 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
     username = configuration["username"]
     password = configuration["password"]
-    page_size =  __DEFAULT_PAGE_SIZE
-    base_url = configuration.get("BASE_URL", __DEFAULT_BASE_URL)
+    page_size =  _DEFAULT_PAGE_SIZE
+    base_url = configuration.get("BASE_URL", _DEFAULT_BASE_URL)
 
     api = NetPrintAPI(username, password, base_url)
     sync_static_tables(api)
