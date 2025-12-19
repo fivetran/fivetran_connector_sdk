@@ -300,7 +300,7 @@ def make_api_request(
             last_exception = e
             if attempt == retries:
                 break
-            log.severe(f"Network error: {e}")
+            log.severe("Network error", e)
             time.sleep(delay * attempt)
 
     # Re-raise the last exception if all retries exhausted
