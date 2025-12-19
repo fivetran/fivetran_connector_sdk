@@ -11,7 +11,7 @@ This example is maintained by Fivetran.
 ## Requirements
 
 -   SDK prerequisites: review the [Connector SDK requirements](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) before running the example.
--   Supported Python versions: Python 3.9–3.12.
+-   Supported Python versions: Python 3.9–3.14.
 -   Supported operating systems: Windows 10 or later (64-bit only), macOS 13 (Ventura) or later on Apple Silicon (arm64) or Intel (x86_64), and Linux distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64).
 
 ## Getting started
