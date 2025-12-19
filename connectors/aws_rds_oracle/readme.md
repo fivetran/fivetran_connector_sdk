@@ -4,15 +4,13 @@
 
 This connector demonstrates how to sync records from an AWS RDS Oracle database using the Fivetran Connector SDK. It establishes a connection to an Oracle instance and incrementally extracts table data based on an update timestamp, transforming the records into a standardized format for loading into the destination.
 
-## Accreditation
-
-This example is maintained by Fivetran.
-
 ## Requirements
 
--   SDK prerequisites: review the [Connector SDK requirements](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements) before running the example.
--   Supported Python versions: Python 3.9–3.14.
--   Supported operating systems: Windows 10 or later (64-bit only), macOS 13 (Ventura) or later on Apple Silicon (arm64) or Intel (x86_64), and Linux distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64).
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
