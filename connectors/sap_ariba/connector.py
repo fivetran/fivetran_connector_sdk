@@ -180,7 +180,7 @@ def sync_table(params: dict, table: str, headers: dict, state: dict, sync_start:
     # set variable for which columns to get when syncing rows
     if table == "order":
         columns = get_order_columns()
-    if table == "item":
+    elif table == "item":
         columns = get_item_columns()
     else:
         log.severe(f"Table {table} is not supported for sync.")
