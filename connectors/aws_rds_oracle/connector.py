@@ -6,6 +6,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 # For datetime parsing and formatting of timestamp values
 from datetime import datetime, time
 
+# for implementing retry logic with delays
+import time
+
 # For type hints to improve code clarity and enable static type checking
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
