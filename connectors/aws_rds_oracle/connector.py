@@ -141,8 +141,10 @@ def _iterate_records(cursor: "oracledb.Cursor", columns: List[str]) -> Iterable[
         Dictionary representation of each record returned by the cursor.
     """
 
+    # Explicitly set the fetch size for batch retrieval
+    cursor.arraysize = __FETCH_BATCH_SIZE
     while True:
-        rows = cursor.fetchmany()
+        rows = cursor.fetchmany(__FETCH_BATCH_SIZE)
         if not rows:
             break
         for row in rows:
