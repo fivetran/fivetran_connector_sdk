@@ -61,7 +61,7 @@ def make_request_with_retry(url: str, headers: dict, params: dict) -> requests.R
             last_exception = e
             # If this was the last allowed attempt, log and raise
             if attempt == __MAX_ATTEMPTS:
-                log.severe(f"Max attempts ({__MAX_ATTEMPTS}) exceeded. Last error: {str(e)}")
+                log.severe(f"Max attempts ({__MAX_ATTEMPTS}) exceeded. Last error", e)
                 raise last_exception
 
             # Calculate backoff time: 2^attempt, but cap at max interval
