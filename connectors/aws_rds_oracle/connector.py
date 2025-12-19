@@ -93,7 +93,7 @@ def connect_oracle(configuration: dict) -> "oracledb.Connection":
         oracledb.Error: if the database connection cannot be established.
     """
 
-    port_value = configuration.get("port", __DEFAULT_PORT)
+    port_value = int(configuration.get("port", __DEFAULT_PORT))
     try:
         port = int(port_value)
     except (TypeError, ValueError) as exc:
