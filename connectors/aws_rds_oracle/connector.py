@@ -100,7 +100,7 @@ def connect_oracle(configuration: dict) -> "oracledb.Connection":
 
     dsn = oracledb.makedsn(
         host=configuration.get("host"),
-        port=port,
+        port=port_value,
         service_name=configuration.get("service_name"),
     )
     return oracledb.connect(
