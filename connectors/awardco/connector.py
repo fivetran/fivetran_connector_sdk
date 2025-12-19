@@ -23,9 +23,7 @@ import requests
 import time
 
 __PAGE_SIZE = 100
-# Maximum number of total attempts for a request (including the first attempt).
-# Set to 3 by default which means up to 3 attempts will be made.
-__MAX_ATTEMPTS = 3
+__MAX_ATTEMPTS = 3 # Maximum number of request attempts
 __MAX_RETRY_INTERVAL = 60  # seconds
 
 
