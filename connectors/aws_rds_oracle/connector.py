@@ -4,7 +4,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 """
 
 # For datetime parsing and formatting of timestamp values
-from datetime import datetime, time
+from datetime import datetime
 
 # for implementing retry logic with delays
 import time
