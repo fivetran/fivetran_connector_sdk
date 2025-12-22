@@ -70,6 +70,8 @@ Optional configuration keys:
 - `data_retention_days`: Data retention period in days (default: 730)
 - `enable_debug_logging`: Enable debug logging (true/false, default: false)
 
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
 ## Requirements file
 
 This connector does not require any additional packages beyond those provided by the Fivetran environment.
