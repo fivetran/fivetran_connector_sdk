@@ -762,8 +762,8 @@ def update(configuration: dict, state: dict):
         )
 
         # Update state with the current sync time
-        new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
-        op.checkpoint(new_state)
+        state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+        op.checkpoint(state)
 
         log.info("Trustpilot API connector sync completed successfully")
 
