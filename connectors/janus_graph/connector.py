@@ -279,7 +279,11 @@ def sync_multi_valued_properties(
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=property_record)
 
-            # Checkpoint to flush property table data after processing this multi-valued property
+            # Checkpoint to flush property table data after processing all properties for this entity
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
             op.checkpoint(state)
 
     # Checkpoint to flush property table data after processing all properties for this entity
