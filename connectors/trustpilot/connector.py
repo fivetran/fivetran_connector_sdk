@@ -10,16 +10,32 @@ and the Best Practices documentation
 (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
-# Third-party imports
+# For reading configuration from a JSON file
+import json
 
-# Fivetran SDK imports
-from fivetran_connector_sdk import Connector, Logging as log, Operations as op
+# Import required classes from fivetran_connector_sdk
+from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
+from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for API interactions
+# random: For adding jitter to exponential backoff retry delays
 import random
+
+# requests: For making HTTP requests to the Trustpilot API
 import requests
+
+# time: For implementing delays between retries and rate limit handling
 import time
+
+# datetime, timedelta, timezone: For timestamp management and calculating time ranges for API queries
 from datetime import datetime, timedelta, timezone
+
+# typing: For type hints to improve code clarity and enable static type checking
 from typing import Dict, Any, Optional
 
 _INVALID_LITERAL_ERROR = "invalid literal"
