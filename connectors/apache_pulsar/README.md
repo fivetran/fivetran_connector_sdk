@@ -1,7 +1,9 @@
 # Apache Pulsar Connector Example
 
 ## Connector overview
-This connector demonstrates how to fetch data from Apache Pulsar topics and sync it to a destination using the Fivetran Connector SDK. It supports multiple topics and uses Pulsar's Reader API to consume messages with proper checkpointing for incremental syncs. The connector is designed for organizations using Apache Pulsar who need to sync streaming data to their destination for analytics, such as clickstream events, payment transactions, and application logs.
+This connector demonstrates how to fetch data from Apache Pulsar topics and sync it to a destination using the Fivetran Connector SDK. It supports multiple topics and uses Pulsar's Reader API to consume messages with proper checkpointing for incremental syncs. 
+
+The connector is designed for organizations using Apache Pulsar who need to sync streaming data to their destination for analytics, such as clickstream events, payment transactions, and application logs.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -18,8 +20,8 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Uses Pulsar's Reader API with checkpointing to track progress and resume from last position
 - Automatically creates warehouse tables with proper data types
 - Captures Pulsar metadata (message ID, publish time, producer info) alongside payload
-- Memory efficient with configurable batch limits to prevent memory overflow
-- Robust error handling with detailed logging
+- Uses configurable batch limits to prevent memory overflow
+- Uses robust error handling with detailed logging
 
 ## Configuration file
 The `configuration.json` file contains the connection details for your Apache Pulsar cluster. Update the following keys with your Pulsar cluster details:
@@ -80,7 +82,7 @@ The connector creates one table per Pulsar topic. Each table has the following s
 | `sequence_id` | INT | Message sequence ID |
 | `synced_at` | UTC_DATETIME | When Fivetran synced this message |
 
-Refer to the `schema` function in `connector.py`.
+Fore more details, refer to the `schema` function in `connector.py`.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
