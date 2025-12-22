@@ -669,6 +669,9 @@ def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict
     """Sync business unit data."""
     log.info("Fetching business unit data...")
     for record in get_business_data(api_key, business_unit_id, configuration):
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="business_unit", data=record)
 
 
@@ -678,6 +681,9 @@ def _sync_reviews_data(
     """Sync reviews data."""
     log.info("Fetching reviews data...")
     for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration):
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="review", data=record)
 
 
@@ -686,6 +692,9 @@ def _sync_categories_data(api_key: str, configuration: dict, enable_categories: 
     if enable_categories:
         log.info("Fetching categories data...")
         for record in get_categories_data(api_key, configuration):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="category", data=record)
     else:
         log.info("Categories data fetching disabled")
@@ -702,6 +711,9 @@ def _sync_consumer_reviews_data(
     if enable_consumer_reviews and consumer_id:
         log.info("Fetching consumer reviews data...")
         for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="consumer_review", data=record)
     elif enable_consumer_reviews and not consumer_id:
         log.info("Consumer reviews data fetching disabled - no consumer_id provided")
@@ -722,6 +734,9 @@ def _sync_invitations_data(
         for record in get_invitations_data(
             api_key, business_unit_id, last_sync_time, configuration
         ):
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="invitation_link", data=record)
     else:
         log.info("Invitation links data fetching disabled")
@@ -778,6 +793,10 @@ def update(configuration: dict, state: dict):
 
     # Update state with the current sync time
     new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(new_state)
 
     log.info("Trustpilot API connector sync completed successfully")
