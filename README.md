@@ -260,11 +260,9 @@ These examples demonstrate common patterns and best practices for building conne
 
 </details>
 
-<details class="details-heading" open="open">
-<summary><h3>Workflows</h3></summary>
+#### Workflows
 
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
-</details>
 
 ### Private Preview examples
 
