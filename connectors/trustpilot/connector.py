@@ -660,7 +660,7 @@ def _log_sync_info(
         )
 
 
-def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict):
+def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict, state: dict):
     """Sync business unit data."""
     log.info("Fetching business unit data...")
     for record in get_business_data(api_key, business_unit_id, configuration):
@@ -668,10 +668,15 @@ def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="business_unit", data=record)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
 
 
 def _sync_reviews_data(
-    api_key: str, business_unit_id: str, last_sync_time: Optional[str], configuration: dict
+    api_key: str, business_unit_id: str, last_sync_time: Optional[str], configuration: dict, state: dict
 ):
     """Sync reviews data."""
     log.info("Fetching reviews data...")
@@ -680,9 +685,14 @@ def _sync_reviews_data(
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="review", data=record)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
 
 
-def _sync_categories_data(api_key: str, configuration: dict, enable_categories: bool):
+def _sync_categories_data(api_key: str, configuration: dict, enable_categories: bool, state: dict):
     """Sync categories data if enabled."""
     if enable_categories:
         log.info("Fetching categories data...")
@@ -691,6 +701,11 @@ def _sync_categories_data(api_key: str, configuration: dict, enable_categories: 
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="category", data=record)
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
     else:
         log.info("Categories data fetching disabled")
 
@@ -701,6 +716,7 @@ def _sync_consumer_reviews_data(
     last_sync_time: Optional[str],
     configuration: dict,
     enable_consumer_reviews: bool,
+    state: dict,
 ):
     """Sync consumer reviews data if enabled."""
     if enable_consumer_reviews and consumer_id:
@@ -710,6 +726,11 @@ def _sync_consumer_reviews_data(
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="consumer_review", data=record)
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
     elif enable_consumer_reviews and not consumer_id:
         log.info("Consumer reviews data fetching disabled - no consumer_id provided")
     else:
@@ -722,6 +743,7 @@ def _sync_invitations_data(
     last_sync_time: Optional[str],
     configuration: dict,
     enable_invitation_links: bool,
+    state: dict,
 ):
     """Sync invitation links data if enabled."""
     if enable_invitation_links:
@@ -733,6 +755,11 @@ def _sync_invitations_data(
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="invitation_link", data=record)
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
     else:
         log.info("Invitation links data fetching disabled")
 
@@ -762,30 +789,37 @@ def update(configuration: dict, state: dict):
 
     # Sync all data sources
     _sync_business_data(
-        config_params["api_key"], config_params["business_unit_id"], configuration
+        config_params["api_key"], config_params["business_unit_id"], configuration, state
     )
+
     _sync_reviews_data(
         config_params["api_key"],
         config_params["business_unit_id"],
         last_sync_time,
         configuration,
+        state,
     )
+
     _sync_categories_data(
-        config_params["api_key"], configuration, feature_flags["enable_categories"]
+        config_params["api_key"], configuration, feature_flags["enable_categories"], state
     )
+
     _sync_consumer_reviews_data(
         config_params["api_key"],
         config_params["consumer_id"],
         last_sync_time,
         configuration,
         feature_flags["enable_consumer_reviews"],
+        state,
     )
+
     _sync_invitations_data(
         config_params["api_key"],
         config_params["business_unit_id"],
         last_sync_time,
         configuration,
         feature_flags["enable_invitation_links"],
+        state,
     )
 
     # Update state with the current sync time
