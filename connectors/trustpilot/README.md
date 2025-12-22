@@ -33,9 +33,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Incremental syncs: Efficient data updates with checkpoint-based state management
 - Configurable filtering: Business unit and time-based filtering for focused analysis
 - Error handling: Robust error handling with comprehensive logging and validation
-- CI/CD integration: Automated deployment via GitHub Actions with parameterized configuration
-- Environment management: Secure credential management using GitHub Environments
-- Zero-downtime deployment: Seamless updates without service interruption
 
 ## Configuration file
 
