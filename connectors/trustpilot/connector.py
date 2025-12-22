@@ -11,7 +11,6 @@ and the Best Practices documentation
 """
 
 # Third-party imports
-import requests
 
 # Fivetran SDK imports
 from fivetran_connector_sdk import Connector, Logging as log, Operations as op
