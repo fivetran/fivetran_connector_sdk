@@ -49,7 +49,6 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "enable_consumer_reviews": "<YOUR_ENABLE_CONSUMER_REVIEWS>",
   "enable_invitation_links": "<YOUR_ENABLE_INVITATION_LINKS>",
   "enable_categories": "<YOUR_ENABLE_CATEGORIES>",
-  "data_retention_days": "<YOUR_DATA_RETENTION_DAYS>",
   "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
 }
 ```

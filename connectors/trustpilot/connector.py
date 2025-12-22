@@ -120,13 +120,6 @@ def __validate_numeric_ranges(configuration: dict) -> None:
     """
     numeric_validations = [
         (
-            "sync_frequency_hours",
-            4,
-            1,
-            24,
-            "Sync frequency must be between 1 and 24 hours",
-        ),
-        (
             "initial_sync_days",
             90,
             1,
