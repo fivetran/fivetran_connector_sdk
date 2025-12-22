@@ -135,7 +135,7 @@ Data Processing Features:
 - Timestamp handling: ISO format timestamp conversion and period-based grouping
 - Data aggregation: Multiple metric aggregations (counts, averages, percentages)
 - Filtering: Business unit and time-based filtering based on configuration
-- Dynamic rime ranges: Intelligent time range selection for initial vs incremental syncs
+- Dynamic time ranges: Intelligent time range selection for initial vs incremental syncs
 
 Data Flow:
 Trustpilot REST API → Requests Client → Dynamic Time Range Processing → Data Processing Functions → Fivetran Operations → Data Warehouse Tables
