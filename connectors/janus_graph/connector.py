@@ -135,28 +135,6 @@ def execute_gremlin_query_with_retry(gremlin_client, query: str, bindings: dict 
     )
 
 
-def get_vertex_labels(gremlin_client):
-    """
-    Retrieve all vertex labels from JanusGraph schema.
-
-    Args:
-        gremlin_client: The Gremlin client instance.
-
-    Returns:
-        List of vertex label names.
-    """
-    query = "mgmt = graph.openManagement(); mgmt.getVertexLabels().collect{it.name()}"
-    try:
-        result = execute_gremlin_query_with_retry(gremlin_client, query)
-        return result if result else []
-    except (GremlinServerError, ConnectionError, RuntimeError) as e:
-        log.warning(f"Failed to retrieve vertex labels, using fallback: {str(e)}")
-        # Fallback: get labels from actual vertices
-        fallback_query = "g.V().label().dedup().toList()"
-        result = execute_gremlin_query_with_retry(gremlin_client, fallback_query)
-        return result if result else []
-
-
 def flatten_properties(properties: dict) -> dict:
     """
     Flatten properties dictionary by extracting first value from lists.
@@ -300,6 +278,9 @@ def sync_multi_valued_properties(
                 # The first argument is the name of the destination table.
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=property_record)
+
+            # Checkpoint to flush property table data after processing this multi-valued property
+            op.checkpoint(state)
 
     # Checkpoint to flush property table data after processing all properties for this entity
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
