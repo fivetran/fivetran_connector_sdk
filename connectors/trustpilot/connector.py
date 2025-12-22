@@ -746,6 +746,7 @@ def update(configuration: dict, state: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
         state: a dictionary that holds the state of the connector.'
     """
+    log.warning("Example: Connectors : Trustpilot")
     log.warning("Starting Trustpilot API connector sync")
 
     # Validate the configuration
