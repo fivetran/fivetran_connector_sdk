@@ -348,7 +348,12 @@ def fetch_documents_batch(
             raise RuntimeError(
                 f"Data error while fetching batch from collection {collection_name} at skip {skip}: {str(e)}"
             )
-    return None
+
+    # This should never be reached, but if max_retries is 0 or invalid, raise an error
+    raise RuntimeError(
+        f"Failed to fetch batch from collection {collection_name} at skip {skip}: "
+        f"max_retries configuration is invalid or no attempts were made"
+    )
 
 
 def process_document_batch(documents, collection_name):
