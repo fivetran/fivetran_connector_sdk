@@ -737,57 +737,50 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Starting Trustpilot API connector sync")
 
-    try:
-        # Validate the configuration
-        validate_configuration(configuration=configuration)
+    # Validate the configuration
+    validate_configuration(configuration=configuration)
 
-        # Extract configuration parameters and feature flags
-        config_params = _extract_configuration_params(configuration)
-        feature_flags = _extract_feature_flags(configuration)
-        last_sync_time = state.get("last_sync_time")
+    # Extract configuration parameters and feature flags
+    config_params = _extract_configuration_params(configuration)
+    feature_flags = _extract_feature_flags(configuration)
+    last_sync_time = state.get("last_sync_time")
 
-        # Log sync information
-        _log_sync_info(last_sync_time, configuration, feature_flags)
+    # Log sync information
+    _log_sync_info(last_sync_time, configuration, feature_flags)
 
-        # Sync all data sources
-        _sync_business_data(
-            config_params["api_key"], config_params["business_unit_id"], configuration
-        )
-        _sync_reviews_data(
-            config_params["api_key"],
-            config_params["business_unit_id"],
-            last_sync_time,
-            configuration,
-        )
-        _sync_categories_data(
-            config_params["api_key"], configuration, feature_flags["enable_categories"]
-        )
-        _sync_consumer_reviews_data(
-            config_params["api_key"],
-            config_params["consumer_id"],
-            last_sync_time,
-            configuration,
-            feature_flags["enable_consumer_reviews"],
-        )
-        _sync_invitations_data(
-            config_params["api_key"],
-            config_params["business_unit_id"],
-            last_sync_time,
-            configuration,
-            feature_flags["enable_invitation_links"],
-        )
+    # Sync all data sources
+    _sync_business_data(
+        config_params["api_key"], config_params["business_unit_id"], configuration
+    )
+    _sync_reviews_data(
+        config_params["api_key"],
+        config_params["business_unit_id"],
+        last_sync_time,
+        configuration,
+    )
+    _sync_categories_data(
+        config_params["api_key"], configuration, feature_flags["enable_categories"]
+    )
+    _sync_consumer_reviews_data(
+        config_params["api_key"],
+        config_params["consumer_id"],
+        last_sync_time,
+        configuration,
+        feature_flags["enable_consumer_reviews"],
+    )
+    _sync_invitations_data(
+        config_params["api_key"],
+        config_params["business_unit_id"],
+        last_sync_time,
+        configuration,
+        feature_flags["enable_invitation_links"],
+    )
 
-        # Update state with the current sync time
-        state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
-        op.checkpoint(state)
+    # Update state with the current sync time
+    new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
+    op.checkpoint(new_state)
 
-        log.info("Trustpilot API connector sync completed successfully")
-
-    except Exception as e:
-        log.severe(f"Failed to sync Trustpilot data: {str(e)}")
-        raise RuntimeError(f"Failed to sync data: {str(e)}")
-
-
+    log.info("Trustpilot API connector sync completed successfully")
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
