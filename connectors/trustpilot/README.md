@@ -112,7 +112,7 @@ The connector handles data retrieval from Trustpilot REST API with efficient pag
 - Incremental syncs: Implements incremental syncs to reduce data transfer
 
 The connector implements efficient data handling by:
-- Processing complete API responses in memory
+- Streaming paginated API responses and processing records incrementally
 - Using appropriate time ranges to manage data volume
 - Implementing incremental syncs to reduce data transfer
 - Applying filters to focus on relevant data subsets
