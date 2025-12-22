@@ -38,8 +38,8 @@ from datetime import datetime, timedelta, timezone
 # typing: For type hints to improve code clarity and enable static type checking
 from typing import Dict, Any, Optional
 
-_INVALID_LITERAL_ERROR = "invalid literal"
-_TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
+__INVALID_LITERAL_ERROR = "invalid literal"
+__TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
 
 
 def __get_config_int(
@@ -148,7 +148,7 @@ def __validate_numeric_ranges(configuration: dict) -> None:
             if value < min_val or value > max_val:
                 raise ValueError(error_msg)
         except ValueError as e:
-            if _INVALID_LITERAL_ERROR in str(e):
+            if __INVALID_LITERAL_ERROR in str(e):
                 raise ValueError(f"{field} must be a valid number")
             raise
 
@@ -247,7 +247,7 @@ def execute_api_request(
     Returns:
         The response data from the API
     """
-    url = f"{_TRUSTPILOT_API_ENDPOINT}{endpoint}"
+    url = f"{__TRUSTPILOT_API_ENDPOINT}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     timeout = __get_config_int(configuration, "request_timeout_seconds", 30)
