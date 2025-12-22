@@ -157,49 +157,6 @@ def get_vertex_labels(gremlin_client):
         return result if result else []
 
 
-def get_edge_labels(gremlin_client):
-    """
-    Retrieve all edge labels from JanusGraph schema.
-
-    Args:
-        gremlin_client: The Gremlin client instance.
-
-    Returns:
-        List of edge label names.
-    """
-    query = (
-        "mgmt = graph.openManagement(); mgmt.getRelationTypes(EdgeLabel.class).collect{it.name()}"
-    )
-    try:
-        result = execute_gremlin_query_with_retry(gremlin_client, query)
-        return result if result else []
-    except Exception as e:
-        log.warning(f"Failed to retrieve edge labels, using fallback: {str(e)}")
-        # Fallback: get labels from actual edges
-        fallback_query = "g.E().label().dedup().toList()"
-        result = execute_gremlin_query_with_retry(gremlin_client, fallback_query)
-        return result if result else []
-
-
-def get_property_keys(gremlin_client):
-    """
-    Retrieve all property keys from JanusGraph schema.
-
-    Args:
-        gremlin_client: The Gremlin client instance.
-
-    Returns:
-        List of property key names.
-    """
-    query = "mgmt = graph.openManagement(); mgmt.getRelationTypes(PropertyKey.class).collect{it.name()}"
-    try:
-        result = execute_gremlin_query_with_retry(gremlin_client, query)
-        return result if result else []
-    except Exception as e:
-        log.warning(f"Failed to retrieve property keys: {str(e)}")
-        return []
-
-
 def flatten_properties(properties: dict) -> dict:
     """
     Flatten properties dictionary by extracting first value from lists.
@@ -314,7 +271,7 @@ def update_latest_timestamp(latest_timestamp, flattened_props: dict, has_updated
 
 
 def sync_multi_valued_properties(
-    entity_id: str, properties: dict, table_name: str, id_field_name: str
+    entity_id: str, properties: dict, table_name: str, id_field_name: str, state: dict
 ):
     """
     Sync multi-valued properties to separate table.
@@ -322,14 +279,12 @@ def sync_multi_valued_properties(
     This function processes multi-valued properties (lists with more than one value) and creates
     separate records for each value to maintain proper relational structure in the destination.
 
-    Note: Checkpointing is handled at the batch level by the calling function (sync_vertices or
-    sync_edges), which ensures all properties for a batch of entities are saved together.
-
     Args:
         entity_id: The entity ID (vertex or edge).
         properties: Dictionary of properties.
         table_name: Name of the properties table.
         id_field_name: Name of the ID field (vertex_id or edge_id).
+        state: The state dictionary for checkpointing.
     """
     for property_key, property_value in properties.items():
         if isinstance(property_value, list) and len(property_value) > 1:
@@ -346,8 +301,15 @@ def sync_multi_valued_properties(
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=property_record)
 
+    # Checkpoint to flush property table data after processing all properties for this entity
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    op.checkpoint(state)
 
-def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp):
+
+def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp, state: dict):
     """
     Process a batch of vertices and upsert them to destination tables.
 
@@ -355,6 +317,7 @@ def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp)
         vertices: List of vertex records from Gremlin query.
         has_updated_at: Whether to track updated_at timestamps.
         latest_timestamp: Current latest timestamp.
+        state: The state dictionary for checkpointing.
 
     Returns:
         Tuple of (updated_latest_timestamp, count_processed).
@@ -381,7 +344,9 @@ def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp)
         op.upsert(table=__TABLE_VERTICES, data=vertex_record)
 
         # Sync multi-valued properties to separate table
-        sync_multi_valued_properties(vertex_id, properties, __TABLE_VERTEX_PROPERTIES, "vertex_id")
+        sync_multi_valued_properties(
+            vertex_id, properties, __TABLE_VERTEX_PROPERTIES, "vertex_id", state
+        )
 
         # Track latest timestamp
         latest_timestamp = update_latest_timestamp(
@@ -425,7 +390,7 @@ def sync_vertices(gremlin_client, state: dict, has_updated_at: bool):
 
         # Process batch of vertices
         latest_timestamp, batch_count = process_vertex_batch(
-            results, has_updated_at, latest_timestamp
+            results, has_updated_at, latest_timestamp, state
         )
         total_synced += batch_count
 
@@ -449,7 +414,7 @@ def sync_vertices(gremlin_client, state: dict, has_updated_at: bool):
     return latest_timestamp
 
 
-def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp):
+def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp, state: dict):
     """
     Process a batch of edges and upsert them to destination tables.
 
@@ -457,6 +422,7 @@ def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp):
         edges: List of edge records from Gremlin query.
         has_updated_at: Whether to track updated_at timestamps.
         latest_timestamp: Current latest timestamp.
+        state: The state dictionary for checkpointing.
 
     Returns:
         Tuple of (updated_latest_timestamp, count_processed).
@@ -487,7 +453,9 @@ def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp):
         op.upsert(table=__TABLE_EDGES, data=edge_record)
 
         # Sync multi-valued properties to separate table
-        sync_multi_valued_properties(edge_id, properties, __TABLE_EDGE_PROPERTIES, "edge_id")
+        sync_multi_valued_properties(
+            edge_id, properties, __TABLE_EDGE_PROPERTIES, "edge_id", state
+        )
 
         # Track latest timestamp
         latest_timestamp = update_latest_timestamp(
@@ -531,7 +499,7 @@ def sync_edges(gremlin_client, state: dict, has_updated_at: bool):
 
         # Process batch of edges
         latest_timestamp, batch_count = process_edge_batch(
-            results, has_updated_at, latest_timestamp
+            results, has_updated_at, latest_timestamp, state
         )
         total_synced += batch_count
 
@@ -673,12 +641,19 @@ def update(configuration: dict, state: dict):
         # Sync vertices
         vertices_timestamp = sync_vertices(gremlin_client, state, vertices_have_updated_at)
 
+        # Checkpoint after vertices sync to preserve progress before syncing edges
+        if vertices_timestamp:
+            state["vertices_last_updated_at"] = vertices_timestamp
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state)
+
         # Sync edges
         edges_timestamp = sync_edges(gremlin_client, state, edges_have_updated_at)
 
         # Update final state
-        if vertices_timestamp:
-            state["vertices_last_updated_at"] = vertices_timestamp
         if edges_timestamp:
             state["edges_last_updated_at"] = edges_timestamp
 
