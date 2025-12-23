@@ -39,7 +39,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 The `requirements.txt` file lists additional Python dependencies used by the connector. This example does not require any external libraries beyond those preinstalled in the Fivetran execution environment.
 
-
 ## Authentication
 The connector authenticates using a single API key passed through HTTP headers. The API key is supplied by the `api_key` field in `configuration.json` and is applied to all API requests.
 
@@ -60,9 +59,9 @@ The connector includes automatic retry logic for transient errors and rate-limit
 
 ## Tables created
 
-The connector creates two destination tables from SAP Ariba purchase order data (refer to the `schema()` function):
+The connector creates the `ORDER` and `ITEM` tables in the destination from SAP Ariba purchase order data (refer to the `schema()` function for more details):
 
-### `order` table
+### ORDER
 
 - Primary key: `payloadId`, `revision`, `rowId`
 - Columns:
@@ -86,7 +85,7 @@ The connector creates two destination tables from SAP Ariba purchase order data 
   - `rowId` (INT): Unique row identifier for this sync
   - `last_updated_at` (UTC_DATETIME): Timestamp of last sync
 
-### `item` table
+### ITEM
 
 - Primary key: `documentNumber`, `lineNumber`, `rowId`
 - Columns:
