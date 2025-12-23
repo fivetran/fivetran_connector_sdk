@@ -42,14 +42,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
   "business_unit_id": "<YOUR_BUSINESS_UNIT_ID>",
   "consumer_id": "<YOUR_CONSUMER_ID>",
   "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
-  "max_records_per_page": "<YOUR_MAX_RECORDS_PER_PAGE>",
-  "request_timeout_seconds": "<YOUR_REQUEST_TIMEOUT_SECONDS>",
-  "retry_attempts": "<YOUR_RETRY_ATTEMPTS>",
-  "enable_incremental_sync": "<YOUR_ENABLE_INCREMENTAL_SYNC>",
   "enable_consumer_reviews": "<YOUR_ENABLE_CONSUMER_REVIEWS>",
   "enable_invitation_links": "<YOUR_ENABLE_INVITATION_LINKS>",
-  "enable_categories": "<YOUR_ENABLE_CATEGORIES>",
-  "enable_debug_logging": "<YOUR_ENABLE_DEBUG_LOGGING>"
+  "enable_categories": "<YOUR_ENABLE_CATEGORIES>"
 }
 ```
 
@@ -60,15 +55,9 @@ Required configuration keys:
 Optional configuration keys:
 - `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews (required only when `enable_consumer_reviews` is true)
 - `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
-- `max_records_per_page`: Maximum records per API page (1-100, default: 100)
-- `request_timeout_seconds`: API request timeout in seconds (default: 30)
-- `retry_attempts`: Number of retry attempts for failed requests (default: 3)
-- `enable_incremental_sync`: Enable incremental sync (true/false, default: true)
 - `enable_consumer_reviews`: Enable consumer reviews data fetching (true/false, default: false)
 - `enable_invitation_links`: Enable invitation links data fetching (true/false, default: true)
 - `enable_categories`: Enable categories data fetching (true/false, default: true)
-- `data_retention_days`: Data retention period in days (default: 730)
-- `enable_debug_logging`: Enable debug logging (true/false, default: false)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
