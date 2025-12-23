@@ -63,7 +63,7 @@ def __get_config_int(
         min_val: Minimum allowed value
         max_val: Maximum allowed value
     Returns:
-        Validated integer value
+        int: Validated integer value.
     """
     if not configuration:
         return default
