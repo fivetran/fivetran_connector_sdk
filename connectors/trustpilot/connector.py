@@ -347,7 +347,7 @@ def get_reviews_data(
         for review in reviews:
             yield __map_review_data(review, business_unit_id)
 
-        if len(reviews) < max_records:
+        if len(reviews) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
 
@@ -510,7 +510,7 @@ def get_consumers_data(
         for review in reviews:
             yield __map_consumer_review_data(review, consumer_id)
 
-        if len(reviews) < max_records:
+        if len(reviews) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
 
@@ -579,7 +579,7 @@ def get_invitations_data(
         for invitation_link in invitation_links:
             yield __map_invitation_data(invitation_link, business_unit_id)
 
-        if len(invitation_links) < max_records:
+        if len(invitation_links) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
 
