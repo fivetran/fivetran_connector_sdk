@@ -144,17 +144,41 @@ def __validate_numeric_ranges(configuration: dict) -> None:
             raise
 
 
+def __validate_boolean_flags(configuration: dict) -> None:
+    """
+    Validate boolean flag configuration parameters.
+    Args:
+        configuration: Configuration dictionary
+    Raises:
+        ValueError: If boolean flag values are not valid strings
+    """
+    boolean_flags = [
+        "enable_consumer_reviews",
+        "enable_invitation_links",
+        "enable_categories",
+    ]
+
+    for flag in boolean_flags:
+        if flag in configuration:
+            value = str(configuration.get(flag, "")).strip().lower()
+            if value not in ("true", "false"):
+                raise ValueError(
+                    f"{flag} must be either 'true' or 'false', got '{configuration.get(flag)}'"
+                )
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     __validate_required_fields(configuration)
     __validate_consumer_fields(configuration)
     __validate_numeric_ranges(configuration)
+    __validate_boolean_flags(configuration)
 
 
 def __calculate_wait_time(
