@@ -59,13 +59,58 @@ Refer to `update()` and `filter_columns()` in `connector.py`.
 The connector includes automatic retry logic for transient errors and rate-limited responses. Error handling is performed in `make_api_request()`, which uses backoff logic, raises authentication errors, and logs unexpected responses. 
 
 ## Tables created
-The connector creates two destination tables summarizing the SAP Ariba purchase order and item entities.
 
-### `ORDER`
-Contains purchase order header-level information, including identifiers, parties, amounts, and document metadata.
+The connector creates two destination tables from SAP Ariba purchase order data (refer to the `schema()` function):
 
-### `ITEM`
-Contains line-item details linked to each purchase order, including product descriptions, quantities, codes, and delivery information.
+### `order` table
+
+- Primary key: `payloadId`, `revision`, `rowId`
+- Columns:
+  - `documentNumber` (STRING): Purchase order document number
+  - `orderDate` (UTC_DATETIME): Date the purchase order was created
+  - `supplierName` (STRING): Name of the supplier
+  - `supplierANID` (STRING): Supplier's Ariba Network ID
+  - `buyerANID` (STRING): Buyer's Ariba Network ID
+  - `customerName` (STRING): Name of the customer
+  - `systemId` (STRING): System identifier
+  - `payloadId` (STRING): Unique payload identifier
+  - `revision` (STRING): Document revision number
+  - `endpointId` (STRING): Endpoint identifier
+  - `created` (UTC_DATETIME): Timestamp when record was created
+  - `status` (STRING): Current status of the purchase order
+  - `documentStatus` (STRING): Document status
+  - `amount` (DOUBLE): Purchase order amount
+  - `numberOfInvoices` (INT): Count of associated invoices
+  - `invoiced_amount` (DOUBLE): Total invoiced amount
+  - `company_code` (STRING): Company code
+  - `rowId` (INT): Unique row identifier for this sync
+  - `last_updated_at` (UTC_DATETIME): Timestamp of last sync
+
+### `item` table
+
+- Primary key: `documentNumber`, `lineNumber`, `rowId`
+- Columns:
+  - `documentNumber` (STRING): Reference to parent purchase order number
+  - `lineNumber` (INT): Line item number within the purchase order
+  - `quantity` (DOUBLE): Ordered quantity
+  - `unitOfMeasure` (STRING): Unit of measurement for quantity
+  - `supplierPart` (STRING): Supplier's part number
+  - `buyerPartId` (STRING): Buyer's part identifier
+  - `manufacturerPartId` (STRING): Manufacturer's part identifier
+  - `description` (STRING): Item description
+  - `itemShipToName` (STRING): Ship-to location name
+  - `itemShipToStreet` (STRING): Ship-to street address
+  - `itemShipToCity` (STRING): Ship-to city
+  - `itemShipToState` (STRING): Ship-to state or province
+  - `itemShipToPostalCode` (STRING): Ship-to postal code
+  - `itemShipToCountry` (STRING): Ship-to country
+  - `isoCountryCode` (STRING): ISO country code for ship-to location
+  - `itemShipToCode` (STRING): Ship-to location code
+  - `itemLocation` (STRING): Item location identifier
+  - `requestedDeliveryDate` (UTC_DATETIME): Requested delivery date
+  - `requestedShipmentDate` (UTC_DATETIME): Requested shipment date
+  - `rowId` (INT): Unique row identifier for this sync
+  - `last_updated_at` (UTC_DATETIME): Timestamp of last sync
 
 ## Additional considerations
 This example demonstrates how to work with timestamp conversion, pagination, and API retry patterns. It may require modifications before being used in production environments. For assistance, contact Fivetran Support.
