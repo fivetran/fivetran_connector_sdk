@@ -813,7 +813,6 @@ def _sync_invitations_data(
     """Sync invitation links data if enabled."""
     if enable_invitation_links:
         log.info("Fetching invitation links data...")
-        __CHECKPOINT_INTERVAL = 100
         record_count = 0
         for record in get_invitations_data(
             api_key, business_unit_id, last_sync_time, configuration, state
