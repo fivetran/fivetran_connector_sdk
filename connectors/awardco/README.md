@@ -36,7 +36,7 @@ Configuration keys uploaded to Fivetran come from `configuration.json` (string v
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-### Validation rules
+Configuration parameters:
 - `api_key` (required): AwardCo API key.
 - `base_url` (required): AwardCo API base URL. Do not include a trailing `/api` because the connector appends the endpoint path (for example, `/api/users`).
 - `updated_since_param` (optional): Name of the query parameter the AwardCo API expects for incremental filtering. Defaults to `updated_since`. Set this to `updated_after` or another name if your API requires it.
