@@ -242,7 +242,9 @@ def execute_api_request(
 
     for attempt in range(__RETRY_ATTEMPTS):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS
+            )
 
             if response.status_code == 429:
                 __handle_rate_limit(attempt, response)
@@ -590,7 +592,7 @@ def schema(configuration: dict):
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.'   
+        configuration: a dictionary that holds the configuration settings for the connector.'
     """
     return [
         {"table": "review", "primary_key": ["review_id", "business_unit_id"]},
@@ -626,7 +628,7 @@ def _extract_feature_flags(configuration: dict) -> Dict[str, bool]:
         ),
         "enable_categories": (
             str(configuration.get("enable_categories", "true")).lower() == "true"
-        )
+        ),
     }
 
 
@@ -657,7 +659,11 @@ def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict
 
 
 def _sync_reviews_data(
-    api_key: str, business_unit_id: str, last_sync_time: Optional[str], configuration: dict, state: dict
+    api_key: str,
+    business_unit_id: str,
+    last_sync_time: Optional[str],
+    configuration: dict,
+    state: dict,
 ):
     """Sync reviews data."""
     log.info("Fetching reviews data...")
@@ -812,6 +818,8 @@ def update(configuration: dict, state: dict):
     op.checkpoint(new_state)
 
     log.info("Trustpilot API connector sync completed successfully")
+
+
 # Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
