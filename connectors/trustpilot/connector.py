@@ -270,7 +270,9 @@ def get_time_range(
         last_sync_time: Last sync timestamp for incremental sync
         configuration: Optional configuration dictionary for initial sync days
     Returns:
-        Dictionary with start and end time parameters
+        A dictionary containing the time range for the API query with the following keys:
+            start: ISO 8601 UTC datetime string representing the start of the time range.
+            end: ISO 8601 UTC datetime string representing the end of the time range.
     """
     end_time = datetime.now(timezone.utc).isoformat()
 
