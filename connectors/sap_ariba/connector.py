@@ -293,6 +293,7 @@ def make_api_request(
                 )
                 if attempt < retries:
                     time.sleep(delay * attempt)
+                    continue
             else:
                 raise requests.HTTPError(
                     f"Unexpected HTTP status code: {response.status_code}", response=response
