@@ -44,6 +44,7 @@ __TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
 __MAX_RECORDS_PER_PAGE = 100
 __REQUEST_TIMEOUT_SECONDS = 30
 __RETRY_ATTEMPTS = 3
+__CHECKPOINT_INTERVAL = 100  # for state checkpointing
 
 
 def __get_config_int(
@@ -427,21 +428,49 @@ def __map_category_data(category: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def get_categories_data(api_key: str, configuration: Optional[Dict[str, Any]] = None):
+def get_categories_data(
+    api_key: str,
+    configuration: Optional[Dict[str, Any]] = None,
+    state: Optional[Dict[str, Any]] = None,
+):
     """
-    Fetch categories data from Trustpilot.
+    Fetch categories data from Trustpilot using streaming approach.
     Args:
         api_key: Trustpilot API key
         configuration: Optional configuration dictionary
+        state: Optional state dictionary to track pagination
     Yields:
         Individual category records
     """
     endpoint = "/categories"
-    response = execute_api_request(endpoint, api_key, configuration=configuration)
 
-    if response and "categories" in response:
-        for category in response["categories"]:
+    params = {
+        "perPage": __MAX_RECORDS_PER_PAGE,
+        "page": 1,
+    }
+
+    # Resume from saved page if available
+    if state and "categories_page" in state:
+        params["page"] = state["categories_page"]
+
+    page = params["page"]
+    while True:
+        params["page"] = page
+        response = execute_api_request(endpoint, api_key, params, configuration)
+
+        categories = response.get("categories", [])
+        if not categories:
+            break
+
+        for category in categories:
             yield __map_category_data(category)
+
+        if len(categories) < __MAX_RECORDS_PER_PAGE:
+            break
+        page += 1
+        # Update state with current page for pagination resumption
+        if state is not None:
+            state["categories_page"] = page
 
 
 def __map_consumer_review_data(review: Dict[str, Any], consumer_id: str) -> Dict[str, Any]:
@@ -694,15 +723,22 @@ def _sync_reviews_data(
 ):
     """Sync reviews data."""
     log.info("Fetching reviews data...")
+    record_count = 0
     for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration, state):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="review", data=record)
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        record_count += 1
+        # Checkpoint after processing a batch of records to optimize checkpoint frequency
+        if record_count % __CHECKPOINT_INTERVAL == 0:
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            op.checkpoint(state)
+    # Checkpoint after all records are processed to ensure final batch is persisted
+    if record_count > 0:
         op.checkpoint(state)
 
 
@@ -710,15 +746,22 @@ def _sync_categories_data(api_key: str, configuration: dict, enable_categories: 
     """Sync categories data if enabled."""
     if enable_categories:
         log.info("Fetching categories data...")
-        for record in get_categories_data(api_key, configuration):
+        record_count = 0
+        for record in get_categories_data(api_key, configuration, state):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="category", data=record)
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            record_count += 1
+            # Checkpoint after processing a batch of records to optimize checkpoint frequency
+            if record_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+        # Checkpoint after all records are processed to ensure final batch is persisted
+        if record_count > 0:
             op.checkpoint(state)
     else:
         log.info("Categories data fetching disabled")
@@ -735,15 +778,23 @@ def _sync_consumer_reviews_data(
     """Sync consumer reviews data if enabled."""
     if enable_consumer_reviews and consumer_id:
         log.info("Fetching consumer reviews data...")
+        __CHECKPOINT_INTERVAL = 100
+        record_count = 0
         for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration, state):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="consumer_review", data=record)
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            record_count += 1
+            # Checkpoint after processing a batch of records to optimize checkpoint frequency
+            if record_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+        # Checkpoint after all records are processed to ensure final batch is persisted
+        if record_count > 0:
             op.checkpoint(state)
     elif enable_consumer_reviews and not consumer_id:
         log.info("Consumer reviews data fetching disabled - no consumer_id provided")
@@ -762,6 +813,8 @@ def _sync_invitations_data(
     """Sync invitation links data if enabled."""
     if enable_invitation_links:
         log.info("Fetching invitation links data...")
+        __CHECKPOINT_INTERVAL = 100
+        record_count = 0
         for record in get_invitations_data(
             api_key, business_unit_id, last_sync_time, configuration, state
         ):
@@ -769,10 +822,16 @@ def _sync_invitations_data(
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="invitation_link", data=record)
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+            record_count += 1
+            # Checkpoint after processing a batch of records to optimize checkpoint frequency
+            if record_count % __CHECKPOINT_INTERVAL == 0:
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                op.checkpoint(state)
+        # Checkpoint after all records are processed to ensure final batch is persisted
+        if record_count > 0:
             op.checkpoint(state)
     else:
         log.info("Invitation links data fetching disabled")
@@ -841,6 +900,7 @@ def update(configuration: dict, state: dict):
     state.pop("reviews_page", None)
     state.pop("consumer_reviews_page", None)
     state.pop("invitations_page", None)
+    state.pop("categories_page", None)
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
