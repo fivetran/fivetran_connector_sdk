@@ -236,7 +236,7 @@ def execute_api_request(
         params: Optional query parameters
         configuration: Optional configuration dictionary for timeout and retry settings
     Returns:
-        The response data from the API
+        A dictionary containing the parsed JSON response data from the Trustpilot API.
     """
     url = f"{__TRUSTPILOT_API_ENDPOINT}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
