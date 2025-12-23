@@ -7,13 +7,13 @@ import json
 import time
 
 # For type hints in function signatures
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 # For making HTTP requests to the Bright Data API
 import requests
 
 # For catching network and HTTP request exceptions
-from requests import RequestException
+from requests import RequestException, Response
 
 # For logging connector operations, errors, and status updates
 from fivetran_connector_sdk import Logging as log
@@ -370,6 +370,7 @@ def _poll_snapshot(
     attempt = 0
     while attempt < max_attempts:
         attempt += 1
+
         try:
             response = requests.get(
                 f"{BRIGHT_DATA_BASE_URL}/datasets/v3/snapshot/{snapshot_id}",
@@ -379,279 +380,29 @@ def _poll_snapshot(
             )
 
             if response.status_code == 200:
-                # According to Bright Data API, when ready the response can be:
-                # - An array of objects: [{"id": "...", ...}, ...] (Content-Type: application/json)
-                # - JSON Lines format: {"id":"..."}\n{"id":"..."}\n... (Content-Type: application/jsonl)
-                # - Single JSON object as string
-                content_type = response.headers.get("Content-Type", "").lower()
-
-                # Check if it's JSON Lines format (application/jsonl)
-                # Use streaming for JSONL to handle large responses without loading entire body into memory
-                if "jsonl" in content_type or "json-lines" in content_type:
-                    # Parse JSON Lines format using streaming - each line is a separate JSON object
-                    results = []
-                    parse_errors = []
-                    for line_num, line in enumerate(response.iter_lines(decode_unicode=True), 1):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            parsed_obj = json.loads(line)
-                            results.append(parsed_obj)
-                        except json.JSONDecodeError as e:
-                            # Collect parse errors to log once after the loop
-                            parse_errors.append((line_num, str(e), line[:200]))
-                            # Continue with other lines even if one fails
-                    if parse_errors:
-                        log.warning(
-                            f"Snapshot {snapshot_id[:8]}... JSONL parse errors on {len(parse_errors)} line(s). "
-                            f"First error: line {parse_errors[0][0]}: {parse_errors[0][1]}"
-                        )
-                    if results:
-                        log.info(
-                            f"Snapshot {snapshot_id[:8]}... ready (JSONL format with {len(results)} records) "
-                            f"after {attempt} attempt(s)"
-                        )
-                        return results
-
-                # For non-JSONL responses, check content length before loading into memory
-                # Set a reasonable maximum size (e.g., 100MB) to prevent memory issues
-                content_length = response.headers.get("Content-Length")
-                max_size_bytes = MAX_RESPONSE_SIZE_BYTES
-                if content_length and int(content_length) > max_size_bytes:
-                    log.warning(
-                        f"Snapshot {snapshot_id[:8]}... response size ({content_length} bytes) exceeds "
-                        f"maximum recommended size ({max_size_bytes} bytes). "
-                        f"Consider using JSONL format for large datasets."
-                    )
-
                 # Log response details only on first attempt
                 if attempt == 1:
-                    size_info = f", size: {content_length} bytes" if content_length else ""
-                    log.info(
-                        f"Snapshot {snapshot_id[:8]}... poll response "
-                        f"Content-Type: {content_type or 'unknown'}{size_info}"
-                    )
+                    _log_initial_response_info(response, snapshot_id)
 
-                # For very large responses, try chunked parsing for JSON arrays
-                # This reads in chunks and provides progress logging
-                if content_length and int(content_length) > max_size_bytes:
-                    chunked_data = _parse_large_json_array_streaming(response, max_size_bytes)
-                    if chunked_data is not None:
-                        log.info(
-                            f"Snapshot {snapshot_id[:8]}... ready (chunked parse with {len(chunked_data)} records) "
-                            f"after {attempt} attempt(s)"
-                        )
-                        return chunked_data
-                    # If chunked parsing failed, continue with standard parsing
+                # Parse and handle the response
+                snapshot_data = _parse_snapshot_response(response, snapshot_id, attempt)
 
-                # For smaller responses or when chunked parsing is not applicable,
-                # use standard parsing
-                raw_text = response.text
-
-                # Try to parse as standard JSON (array or single object)
-                try:
-                    # Try requests' built-in JSON parser first
-                    response_data = response.json()
-                except (ValueError, json.JSONDecodeError):
-                    # If that fails, try manual parsing of the raw text
-                    try:
-                        response_data = json.loads(raw_text)
-                    except (json.JSONDecodeError, ValueError):
-                        # If both fail, use raw text for further processing
-                        response_data = raw_text
-
-                # If response is a list (array of objects), snapshot is ready
-                if isinstance(response_data, list):
-                    log.info(
-                        f"Snapshot {snapshot_id[:8]}... ready (array response with {len(response_data)} records) "
-                        f"after {attempt} attempt(s)"
-                    )
-                    return response_data
-
-                # If response is a string, try to parse it as JSON
-                if isinstance(response_data, str):
-                    response_lower = response_data.lower()
-                    # Check if it's a "not ready" status message
-                    if any(
-                        phrase in response_lower
-                        for phrase in (
-                            "not ready",
-                            "processing",
-                            "pending",
-                            "try again",
-                        )
-                    ):
-                        log.info(
-                            f"Snapshot {snapshot_id[:8]}... still processing: {response_data[:200]}... "
-                            f"(attempt {attempt})"
-                        )
-                        # Continue to sleep and retry
-                    else:
-                        # Try parsing as JSON - check if string looks like JSON (starts with { or [)
-                        trimmed_text = response_data.strip()
-                        if trimmed_text.startswith(("{", "[")):
-                            try:
-                                parsed_data = json.loads(response_data)
-                                # If parsed successfully, it's data - return it
-                                log.info(
-                                    f"Snapshot {snapshot_id[:8]}... ready (parsed JSON string response, "
-                                    f"{len(parsed_data) if isinstance(parsed_data, list) else 1} records) "
-                                    f"after {attempt} attempt(s)"
-                                )
-                                # Normalize to list format
-                                if isinstance(parsed_data, list):
-                                    return parsed_data
-                                elif isinstance(parsed_data, dict):
-                                    return [parsed_data]
-                                else:
-                                    return [parsed_data] if parsed_data else []
-                            except json.JSONDecodeError as e:
-                                # JSON parsing failed - might be JSONL format or truncated
-                                error_pos = getattr(e, "pos", None)
-                                error_msg = str(e)
-                                # Check if error indicates multiple objects (JSONL format)
-                                if "Extra data" in error_msg or error_pos:
-                                    # Try parsing as JSONL format (line-by-line)
-                                    try:
-                                        results = []
-                                        # Process line-by-line to avoid memory issues
-                                        for line in raw_text.split("\n"):
-                                            line = line.strip()
-                                            if not line:
-                                                continue
-                                            try:
-                                                parsed_obj = json.loads(line)
-                                                results.append(parsed_obj)
-                                            except json.JSONDecodeError:
-                                                # Skip invalid lines silently - errors logged above
-                                                continue
-                                        if results:
-                                            log.info(
-                                                f"Snapshot {snapshot_id[:8]}... ready (detected JSONL format "
-                                                f"with {len(results)} records) after {attempt} attempt(s)"
-                                            )
-                                            return results
-                                    except Exception as ex:
-                                        log.info(
-                                            f"Unexpected error while parsing JSONL lines for snapshot {snapshot_id[:8]}...: {ex}",
-                                            exc_info=True,
-                                        )
-
-                                log.info(
-                                    f"Snapshot {snapshot_id[:8]}... JSON parse error at position {error_pos}: {error_msg}. "
-                                    f"Response length: {len(response_data)}. "
-                                    f"First 500 chars: {response_data[:500]}..."
-                                )
-                                # If it looks like JSON but parsing failed, might be truncated or malformed
-                                # Continue polling in case it's incomplete data
-                        else:
-                            # Doesn't look like JSON - might be a plain text status message
-                            log.info(
-                                f"Snapshot {snapshot_id[:8]}... string response (not JSON-like): "
-                                f"{response_data[:200]}..."
-                            )
-                            # Continue polling in case it's just a status message
-
-                # If response is a dict, check for status
-                elif isinstance(response_data, dict):
-                    status = response_data.get("status", "").lower()
-
-                    if status == "ready":
-                        # Extract data from response
-                        # Data might be in "data", "records", "results" keys
-                        for key in ("data", "records", "results"):
-                            if key in response_data and response_data[key] is not None:
-                                snapshot_data = response_data[key]
-                                break
-
-                        # If no data key, remove status/metadata fields and use remaining fields as data
-                        if snapshot_data is None:
-                            metadata_keys = (
-                                "status",
-                                "id",
-                                "snapshot_id",
-                                "created",
-                                "dataset_id",
-                                "customer_id",
-                                "cost",
-                                "initiation_type",
-                            )
-                            snapshot_data = {
-                                k: v for k, v in response_data.items() if k not in metadata_keys
-                            }
-
-                        # If still None, use entire response as data
-                        if snapshot_data is None:
-                            snapshot_data = response_data
-
-                        log.info(f"Snapshot {snapshot_id[:8]}... ready after {attempt} attempt(s)")
-
-                        # Ensure we return a list
-                        if isinstance(snapshot_data, list):
-                            return snapshot_data
-                        elif isinstance(snapshot_data, dict):
-                            # If single dict, wrap in list
-                            return [snapshot_data]
-                        else:
-                            # Other types, wrap in list
-                            return [snapshot_data] if snapshot_data is not None else []
-
-                    elif status == "failed":
-                        # Extract error message
-                        error_msg = None
-                        for key in ("error", "warning", "message", "detail", "details"):
-                            if key in response_data:
-                                error_value = response_data[key]
-                                if error_value:
-                                    error_msg = str(error_value)
-                                    break
-
-                        if not error_msg:
-                            error_msg = "Unknown error"
-
-                        log.info(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
-                        raise RuntimeError(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
-
-                    elif status in ("running", "pending", "processing", "scheduled"):
-                        # Log status every 5 attempts to reduce log volume
-                        if attempt % 5 == 0:
-                            log.info(
-                                f"Snapshot {snapshot_id[:8]}... status: {status} "
-                                f"(attempt {attempt})"
-                            )
-                    else:
-                        # Dict response but no status field or unknown status
-                        # Might be data wrapped in a dict - check if it looks like data
-                        if "status" not in response_data:
-                            # Log once when treating as data
-                            if attempt == 1:
-                                log.info(
-                                    f"Snapshot {snapshot_id[:8]}... dict response without status, "
-                                    f"treating as data"
-                                )
-                            # Could be data - return it wrapped in list
-                            return [response_data] if response_data else []
-                        else:
-                            # Log unknown status every 5 attempts
-                            if attempt % 5 == 0:
-                                log.info(
-                                    f"Snapshot {snapshot_id[:8]}... status: {status} "
-                                    f"(attempt {attempt})"
-                                )
+                if snapshot_data is not None:
+                    # Snapshot is ready, return the data
+                    log.info(f"Snapshot {snapshot_id[:8]}... ready after {attempt} attempt(s)")
+                    return snapshot_data
+                else:
+                    # Snapshot is still processing, continue polling
+                    _log_polling_progress(snapshot_id, attempt, response)
+                    time.sleep(poll_interval)
+                    continue
 
             elif response.status_code == 404:
                 error_msg = f"Snapshot {snapshot_id[:8]}... not found"
                 log.info(error_msg)
                 raise RuntimeError(error_msg)
-
             else:
-                error_detail = extract_error_detail(response)
-                log.info(
-                    f"Error polling snapshot {snapshot_id[:8]}... "
-                    f"(status {response.status_code}): {error_detail}"
-                )
-                response.raise_for_status()
+                _handle_non_200_response(response, snapshot_id, attempt)
 
         except RequestException as exc:
             # Log network errors every 5 attempts to reduce log volume
@@ -661,10 +412,294 @@ def _poll_snapshot(
                     f"Retrying (attempt {attempt})"
                 )
 
-        # Wait before next attempt
-        # until we receive a ready/failed status or an error occurs
-        time.sleep(poll_interval)
+            time.sleep(poll_interval)
 
     raise RuntimeError(
         f"Snapshot {snapshot_id[:8]} polling timed out after {max_attempts} attempts"
     )
+
+
+def _log_initial_response_info(response: Response, snapshot_id: str) -> None:
+    """Log initial response details."""
+    content_length = response.headers.get("Content-Length")
+    content_type = response.headers.get("Content-Type", "").lower()
+
+    size_info = f", size: {content_length} bytes" if content_length else ""
+    log.info(
+        f"Snapshot {snapshot_id[:8]}... poll response "
+        f"Content-Type: {content_type or 'unknown'}{size_info}"
+    )
+
+
+def _parse_snapshot_response(
+    response: Response, snapshot_id: str, attempt: int
+) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+    """
+    Parse snapshot response and return data if ready, None if still processing.
+
+    Returns:
+        Snapshot data if ready, None if still processing.
+    """
+    content_type = response.headers.get("Content-Type", "").lower()
+
+    # Handle JSONL format
+    if "jsonl" in content_type or "json-lines" in content_type:
+        return _parse_jsonl_response(response, snapshot_id, attempt)
+
+    # Check for large responses
+    content_length = response.headers.get("Content-Length")
+    max_size_bytes = MAX_RESPONSE_SIZE_BYTES
+    if content_length and int(content_length) > max_size_bytes:
+        log.warning(
+            f"Snapshot {snapshot_id[:8]}... response size ({content_length} bytes) exceeds "
+            f"maximum recommended size ({max_size_bytes} bytes). "
+            f"Consider using JSONL format for large datasets."
+        )
+
+        # Try chunked parsing for large JSON arrays
+        chunked_data = _parse_large_json_array_streaming(response, max_size_bytes)
+        if chunked_data is not None:
+            log.info(
+                f"Snapshot {snapshot_id[:8]}... ready (chunked parse with {len(chunked_data)} records) "
+                f"after {attempt} attempt(s)"
+            )
+            return chunked_data
+
+    # Parse standard JSON response
+    return _parse_json_response(response, snapshot_id, attempt)
+
+
+def _parse_jsonl_response(
+    response: Response, snapshot_id: str, attempt: int
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Parse JSON Lines format response.
+
+    Returns:
+        List of parsed objects if data is ready, None if still processing.
+    """
+    results = []
+    parse_errors = []
+
+    for line_num, line in enumerate(response.iter_lines(decode_unicode=True), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            parsed_obj = json.loads(line)
+            results.append(parsed_obj)
+        except json.JSONDecodeError as e:
+            parse_errors.append((line_num, str(e), line[:200]))
+
+    if parse_errors:
+        log.warning(
+            f"Snapshot {snapshot_id[:8]}... JSONL parse errors on {len(parse_errors)} line(s). "
+            f"First error: line {parse_errors[0][0]}: {parse_errors[0][1]}"
+        )
+
+    if results:
+        log.info(
+            f"Snapshot {snapshot_id[:8]}... ready (JSONL format with {len(results)} records) "
+            f"after {attempt} attempt(s)"
+        )
+        return results
+
+    return None
+
+
+def _parse_json_response(
+    response: Response, snapshot_id: str, attempt: int
+) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+    """
+    Parse standard JSON response (array, object, or string).
+
+    Returns:
+        Snapshot data if ready, None if still processing.
+    """
+    # Try to parse response as JSON
+    try:
+        response_data = response.json()
+    except (ValueError, json.JSONDecodeError):
+        # If standard parsing fails, try raw text
+        return _parse_text_response(response.text, snapshot_id, attempt)
+
+    # Handle based on response type
+    if isinstance(response_data, list):
+        log.info(
+            f"Snapshot {snapshot_id[:8]}... ready (array response with {len(response_data)} records) "
+            f"after {attempt} attempt(s)"
+        )
+        return response_data
+
+    elif isinstance(response_data, dict):
+        return _parse_dict_response(response_data, snapshot_id, attempt)
+
+    elif isinstance(response_data, str):
+        return _parse_text_response(response_data, snapshot_id, attempt)
+
+    # Unknown type - treat as data
+    return [response_data] if response_data else []
+
+
+def _parse_text_response(
+    text: str, snapshot_id: str, attempt: int
+) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+    """
+    Parse text response (could be JSON string or plain text status).
+
+    Returns:
+        Snapshot data if ready, None if still processing.
+    """
+    text_lower = text.lower()
+
+    # Check if it's a "not ready" status message
+    if any(phrase in text_lower for phrase in ("not ready", "processing", "pending", "try again")):
+        return None
+
+    # Try parsing as JSON
+    trimmed_text = text.strip()
+    if not (trimmed_text.startswith(("{", "["))):
+        # Doesn't look like JSON
+        log.info(
+            f"Snapshot {snapshot_id[:8]}... string response (not JSON-like): " f"{text[:200]}..."
+        )
+        return None
+
+    try:
+        parsed_data = json.loads(text)
+        # Normalize to list format
+        if isinstance(parsed_data, list):
+            return parsed_data
+        elif isinstance(parsed_data, dict):
+            return [parsed_data]
+        else:
+            return [parsed_data] if parsed_data else []
+    except json.JSONDecodeError as e:
+        # Try parsing as JSONL format
+        log.warning(f"Snapshot {snapshot_id[:8]}... JSON decode error: {str(e)}")
+        return _parse_text_as_jsonl(text, snapshot_id, attempt)
+
+
+def _parse_text_as_jsonl(
+    text: str, snapshot_id: str, attempt: int
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Attempt to parse text as JSONL format.
+    """
+    results = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            parsed_obj = json.loads(line)
+            results.append(parsed_obj)
+        except json.JSONDecodeError:
+            continue
+
+    if results:
+        log.info(
+            f"Snapshot {snapshot_id[:8]}... ready (detected JSONL format "
+            f"with {len(results)} records) after {attempt} attempt(s)"
+        )
+        return results
+
+    return None
+
+
+def _parse_dict_response(
+    data: Dict[str, Any], snapshot_id: str, attempt: int
+) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+    """
+    Parse dictionary response, checking status and extracting data.
+
+    Returns:
+        Snapshot data if ready, None if still processing.
+    """
+    status = data.get("status", "").lower()
+
+    if status == "ready":
+        return _extract_data_from_dict(data)
+
+    elif status == "failed":
+        error_msg = _extract_error_message(data)
+        log.info(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
+        raise RuntimeError(f"Snapshot {snapshot_id[:8]}... failed: {error_msg}")
+
+    elif status in ("running", "pending", "processing", "scheduled"):
+        # Still processing
+        return None
+
+    else:
+        # No status field or unknown status
+        if "status" not in data:
+            # Could be data - return it wrapped in list
+            return [data] if data else []
+        else:
+            # Unknown status - continue polling
+            return None
+
+
+def _extract_data_from_dict(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract snapshot data from response dictionary.
+    """
+    # Try common data keys
+    snapshot_data = data.get("data") or data.get("records") or data.get("results") or data
+
+    # If no specific data key, remove metadata fields
+    if snapshot_data is data:
+        metadata_keys = (
+            "status",
+            "id",
+            "snapshot_id",
+            "created",
+            "dataset_id",
+            "customer_id",
+            "cost",
+            "initiation_type",
+        )
+        snapshot_data = {k: v for k, v in data.items() if k not in metadata_keys}
+
+    # Normalize to list format
+    if isinstance(snapshot_data, list):
+        return snapshot_data
+    elif isinstance(snapshot_data, dict):
+        return [snapshot_data]
+    else:
+        return [snapshot_data] if snapshot_data is not None else []
+
+
+def _extract_error_message(data: Dict[str, Any]) -> str:
+    """Extract error message from response dictionary."""
+    for key in ("error", "warning", "message", "detail", "details"):
+        if key in data:
+            error_value = data[key]
+            if error_value:
+                return str(error_value)
+    return "Unknown error"
+
+
+def _log_polling_progress(snapshot_id: str, attempt: int, response: Response) -> None:
+    """Log polling progress based on attempt count."""
+    if attempt % 5 == 0:
+        try:
+            response_data = response.json()
+            if isinstance(response_data, dict):
+                status = response_data.get("status", "")
+                if status:
+                    log.info(
+                        f"Snapshot {snapshot_id[:8]}... status: {status} " f"(attempt {attempt})"
+                    )
+        except (ValueError, json.JSONDecodeError):
+            log.info(f"Snapshot {snapshot_id[:8]}... still processing (attempt {attempt})")
+
+
+def _handle_non_200_response(response: Response, snapshot_id: str, attempt: int) -> None:
+    """Handle non-200 HTTP responses."""
+    error_detail = extract_error_detail(response)
+    log.info(
+        f"Error polling snapshot {snapshot_id[:8]}... "
+        f"(status {response.status_code}): {error_detail}"
+    )
+    response.raise_for_status()

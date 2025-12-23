@@ -29,11 +29,6 @@ def extract_error_detail(response: Response) -> str:
             if "validation_errors" in payload and isinstance(payload["validation_errors"], list):
                 errors = ", ".join(str(err) for err in payload["validation_errors"])
                 return f"Validation errors: {errors}"
-            # Check common error fields
-            for key in ("error", "message", "detail", "details"):
-                if key in payload:
-                    return str(payload[key])
-            return str(payload)
         return str(payload)
     except ValueError:
         return response.text

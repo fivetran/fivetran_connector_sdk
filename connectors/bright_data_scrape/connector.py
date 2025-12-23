@@ -90,17 +90,11 @@ def parse_scrape_urls(scrape_url_input):
 
     if isinstance(scrape_url_input, str):
         # Try parsing as JSON first
-        try:
-            parsed = json.loads(scrape_url_input)
-            if isinstance(parsed, list):
-                return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
-            if isinstance(parsed, str) and parsed.strip():
-                return [parsed.strip()]
-        except (json.JSONDecodeError, TypeError) as e:
-            # JSON parsing failed; will try other formats. This is expected for non-JSON input.
-            log.fine(f"Failed to parse scrape_url_input as JSON: {e}. Input: {scrape_url_input!r}")
-            pass
-
+        parsed = json.loads(scrape_url_input)
+        if isinstance(parsed, list):
+            return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
+        if isinstance(parsed, str) and parsed.strip():
+            return [parsed.strip()]
         # Try comma-separated format
         if "," in scrape_url_input:
             return [item.strip() for item in scrape_url_input.split(",") if item.strip()]

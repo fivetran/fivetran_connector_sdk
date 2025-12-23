@@ -51,7 +51,7 @@ def collect_all_fields(results: List[Dict[str, Any]]) -> Set[str]:
         results: List of processed result dictionaries.
 
     Returns:
-        Set of all unique field names found across all results.da"""
+        Set of all unique field names found across all results."""
     all_fields: Set[str] = set()
     for result in results:
         all_fields.update(result.keys())
