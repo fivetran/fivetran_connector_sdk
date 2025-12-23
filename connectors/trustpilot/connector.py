@@ -330,7 +330,7 @@ def get_reviews_data(
         configuration: Optional configuration dictionary
         state: Optional state dictionary to track pagination
     Yields:
-        Individual review records
+        Individual review records as dictionaries.
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = f"/business-units/{business_unit_id}/reviews"
