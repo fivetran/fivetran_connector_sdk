@@ -835,13 +835,17 @@ def update(configuration: dict, state: dict):
         state,
     )
 
-    # Update state with the current sync time
-    new_state = {"last_sync_time": datetime.now(timezone.utc).isoformat()}
+    # Update state with the current sync time for next incremental sync
+    state["last_sync_time"] = datetime.now(timezone.utc).isoformat()
+    # Clear pagination page markers to reset to page 1 for next sync
+    state.pop("reviews_page", None)
+    state.pop("consumer_reviews_page", None)
+    state.pop("invitations_page", None)
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(new_state)
+    op.checkpoint(state)
 
     log.info("Trustpilot API connector sync completed successfully")
 
