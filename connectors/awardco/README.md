@@ -3,7 +3,7 @@ Awardco is an employee recognition platform. The Awardco API typically exposes R
 
 Authentication is performed via an API key supplied in request headers. Common behaviors include paginated responses, timestamp fields for change tracking, and conventional HTTP status codes. 
 
-Refer to [AwardCo documentation](https://www.awardco.com/) for additional details and production configurations.
+Refer to [Awardco documentation](https://www.awardco.com/) for additional details and production configurations.
 
 ## Connector overview
 This example connector uses the Fivetran Connector SDK to sync AwardCo user data into your destination. It performs incremental syncs based on a timestamp cursor, upserts user rows into a single `USER` table, and emits checkpoints for reliable resumption. It also supports paginated requests and can pass a timestamp filter to the AwardCo API so only changed records are returned (avoiding full table scans). There is a local mock mode for offline development and testing.
