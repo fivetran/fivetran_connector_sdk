@@ -1,11 +1,11 @@
-# This is a Fivetran Connector SDK implementation for SAM.gov Opportunities API.
 """
+This is a Fivetran Connector SDK implementation for SAM.gov Opportunities API.
 This connector fetches government contracting opportunities from the SAM.gov API.
 It supports pagination and incremental sync to efficiently replicate opportunity data
 including nested contact information, place of performance details, and related links.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 
 # Import required classes from fivetran_connector_sdk
