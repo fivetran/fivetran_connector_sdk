@@ -724,7 +724,9 @@ def _sync_reviews_data(
     """Sync reviews data."""
     log.info("Fetching reviews data...")
     record_count = 0
-    for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration, state):
+    for record in get_reviews_data(
+        api_key, business_unit_id, last_sync_time, configuration, state
+    ):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
@@ -780,7 +782,9 @@ def _sync_consumer_reviews_data(
         log.info("Fetching consumer reviews data...")
         __CHECKPOINT_INTERVAL = 100
         record_count = 0
-        for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration, state):
+        for record in get_consumers_data(
+            api_key, consumer_id, last_sync_time, configuration, state
+        ):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
