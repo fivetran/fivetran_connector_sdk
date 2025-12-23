@@ -280,7 +280,6 @@ def update(configuration: dict, state: dict) -> None:
     """
     log.warning("Example: Connector : AWS RDS Oracle")
 
-
     validate_configuration(configuration=configuration)
 
     raw_last_sync_time = state.get("last_sync_time")
