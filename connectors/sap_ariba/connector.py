@@ -171,6 +171,7 @@ def sync_table(params: dict, table: str, headers: dict, state: dict, sync_start:
     Initiates a full sync for a table, either 'item' or the 'order' data.
     Args:
         params: API query parameters.
+        table: The table/entity name.
         headers: HTTP headers.
         state: State dictionary.
         sync_start: Sync start timestamp string.
