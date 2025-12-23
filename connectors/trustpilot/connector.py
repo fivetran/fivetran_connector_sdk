@@ -38,8 +38,12 @@ from datetime import datetime, timedelta, timezone
 # typing: For type hints to improve code clarity and enable static type checking
 from typing import Dict, Any, Optional
 
+# Constants
 __INVALID_LITERAL_ERROR = "invalid literal"
 __TRUSTPILOT_API_ENDPOINT = "https://api.trustpilot.com/v1"
+__MAX_RECORDS_PER_PAGE = 100
+__REQUEST_TIMEOUT_SECONDS = 30
+__RETRY_ATTEMPTS = 3
 
 
 def __get_config_int(
@@ -125,14 +129,7 @@ def __validate_numeric_ranges(configuration: dict) -> None:
             1,
             365,
             "Initial sync days must be between 1 and 365",
-        ),
-        (
-            "max_records_per_page",
-            100,
-            1,
-            100,
-            "Max records per page must be between 1 and 100",
-        ),
+        )
     ]
 
     for field, default, min_val, max_val, error_msg in numeric_validations:
@@ -243,12 +240,9 @@ def execute_api_request(
     url = f"{__TRUSTPILOT_API_ENDPOINT}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    timeout = __get_config_int(configuration, "request_timeout_seconds", 30)
-    retry_attempts = __get_config_int(configuration, "retry_attempts", 3)
-
-    for attempt in range(retry_attempts):
+    for attempt in range(__RETRY_ATTEMPTS):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=timeout)
+            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
 
             if response.status_code == 429:
                 __handle_rate_limit(attempt, response)
@@ -258,7 +252,7 @@ def execute_api_request(
             return response.json()
 
         except requests.exceptions.RequestException as e:
-            __handle_request_error(attempt, retry_attempts, e, endpoint)
+            __handle_request_error(attempt, __RETRY_ATTEMPTS, e, endpoint)
             continue
 
     raise RuntimeError("Unexpected error in API request execution")
@@ -333,10 +327,9 @@ def get_reviews_data(
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = f"/business-units/{business_unit_id}/reviews"
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
 
     params = {
-        "perPage": max_records,
+        "perPage": __MAX_RECORDS_PER_PAGE,
         "page": 1,
         "start": time_range["start"],
         "end": time_range["end"],
@@ -496,10 +489,9 @@ def get_consumers_data(
     """
     endpoint = f"/consumers/{consumer_id}/reviews"
     time_range = get_time_range(last_sync_time, configuration)
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
 
     params = {
-        "perPage": max_records,
+        "perPage": __MAX_RECORDS_PER_PAGE,
         "page": 1,
         "orderBy": "createdat.desc",
         "start": time_range["start"],
@@ -567,10 +559,9 @@ def get_invitations_data(
     """
     time_range = get_time_range(last_sync_time, configuration)
     endpoint = f"/business-units/{business_unit_id}/invitation-links"
-    max_records = __get_config_int(configuration, "max_records_per_page", 100)
 
     params = {
-        "perPage": max_records,
+        "perPage": __MAX_RECORDS_PER_PAGE,
         "page": 1,
         "start": time_range["start"],
         "end": time_range["end"],
@@ -635,10 +626,7 @@ def _extract_feature_flags(configuration: dict) -> Dict[str, bool]:
         ),
         "enable_categories": (
             str(configuration.get("enable_categories", "true")).lower() == "true"
-        ),
-        "enable_debug_logging": (
-            str(configuration.get("enable_debug_logging", "false")).lower() == "true"
-        ),
+        )
     }
 
 
@@ -651,13 +639,6 @@ def _log_sync_info(
     else:
         initial_days = str(configuration.get("initial_sync_days", "90"))
         log.info(f"Initial sync: fetching all available data (last {initial_days} days)")
-
-    if feature_flags["enable_debug_logging"]:
-        log.info(
-            f"Configuration: consumer_reviews={feature_flags['enable_consumer_reviews']}, "
-            f"invitation_links={feature_flags['enable_invitation_links']}, "
-            f"categories={feature_flags['enable_categories']}"
-        )
 
 
 def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict, state: dict):
