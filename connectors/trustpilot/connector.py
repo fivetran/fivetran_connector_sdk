@@ -782,7 +782,6 @@ def _sync_consumer_reviews_data(
     """Sync consumer reviews data if enabled."""
     if enable_consumer_reviews and consumer_id:
         log.info("Fetching consumer reviews data...")
-        __CHECKPOINT_INTERVAL = 100
         record_count = 0
         for record in get_consumers_data(
             api_key, consumer_id, last_sync_time, configuration, state
