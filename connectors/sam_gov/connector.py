@@ -7,7 +7,6 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
-
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
