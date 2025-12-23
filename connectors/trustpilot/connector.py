@@ -316,6 +316,7 @@ def get_reviews_data(
     business_unit_id: str,
     last_sync_time: Optional[str] = None,
     configuration: Optional[Dict[str, Any]] = None,
+    state: Optional[Dict[str, Any]] = None,
 ):
     """
     Fetch reviews data from Trustpilot using streaming approach.
@@ -324,6 +325,7 @@ def get_reviews_data(
         business_unit_id: Business unit ID
         last_sync_time: Last sync timestamp for incremental sync
         configuration: Optional configuration dictionary
+        state: Optional state dictionary to track pagination
     Yields:
         Individual review records
     """
@@ -337,7 +339,11 @@ def get_reviews_data(
         "end": time_range["end"],
     }
 
-    page = 1
+    # Resume from saved page if available
+    if state and "reviews_page" in state:
+        params["page"] = state["reviews_page"]
+
+    page = params["page"]
     while True:
         params["page"] = page
         response = execute_api_request(endpoint, api_key, params, configuration)
@@ -352,6 +358,9 @@ def get_reviews_data(
         if len(reviews) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
+        # Update state with current page for pagination resumption
+        if state is not None:
+            state["reviews_page"] = page
 
 
 def __map_business_data(response: Dict[str, Any], business_unit_id: str) -> Dict[str, Any]:
@@ -478,6 +487,7 @@ def get_consumers_data(
     consumer_id: str,
     last_sync_time: Optional[str] = None,
     configuration: Optional[Dict[str, Any]] = None,
+    state: Optional[Dict[str, Any]] = None,
 ):
     """
     Fetch consumer reviews data from Trustpilot Consumer API.
@@ -486,6 +496,7 @@ def get_consumers_data(
         consumer_id: Consumer ID to fetch reviews for
         last_sync_time: Last sync timestamp for incremental sync
         configuration: Optional configuration dictionary
+        state: Optional state dictionary to track pagination
     Yields:
         Individual consumer review records
     """
@@ -500,7 +511,11 @@ def get_consumers_data(
         "end": time_range["end"],
     }
 
-    page = 1
+    # Resume from saved page if available
+    if state and "consumer_reviews_page" in state:
+        params["page"] = state["consumer_reviews_page"]
+
+    page = params["page"]
     while True:
         params["page"] = page
         response = execute_api_request(endpoint, api_key, params, configuration)
@@ -515,6 +530,9 @@ def get_consumers_data(
         if len(reviews) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
+        # Update state with current page for pagination resumption
+        if state is not None:
+            state["consumer_reviews_page"] = page
 
 
 def __map_invitation_data(
@@ -548,6 +566,7 @@ def get_invitations_data(
     business_unit_id: str,
     last_sync_time: Optional[str] = None,
     configuration: Optional[Dict[str, Any]] = None,
+    state: Optional[Dict[str, Any]] = None,
 ):
     """
     Fetch invitation links data from Trustpilot.
@@ -556,6 +575,7 @@ def get_invitations_data(
         business_unit_id: Business unit ID
         last_sync_time: Last sync timestamp for incremental sync
         configuration: Optional configuration dictionary
+        state: Optional state dictionary to track pagination
     Yields:
         Individual invitation link records
     """
@@ -569,7 +589,11 @@ def get_invitations_data(
         "end": time_range["end"],
     }
 
-    page = 1
+    # Resume from saved page if available
+    if state and "invitations_page" in state:
+        params["page"] = state["invitations_page"]
+
+    page = params["page"]
     while True:
         params["page"] = page
         response = execute_api_request(endpoint, api_key, params, configuration)
@@ -584,6 +608,9 @@ def get_invitations_data(
         if len(invitation_links) < __MAX_RECORDS_PER_PAGE:
             break
         page += 1
+        # Update state with current page for pagination resumption
+        if state is not None:
+            state["invitations_page"] = page
 
 
 def schema(configuration: dict):
@@ -667,7 +694,7 @@ def _sync_reviews_data(
 ):
     """Sync reviews data."""
     log.info("Fetching reviews data...")
-    for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration):
+    for record in get_reviews_data(api_key, business_unit_id, last_sync_time, configuration, state):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
@@ -708,7 +735,7 @@ def _sync_consumer_reviews_data(
     """Sync consumer reviews data if enabled."""
     if enable_consumer_reviews and consumer_id:
         log.info("Fetching consumer reviews data...")
-        for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration):
+        for record in get_consumers_data(api_key, consumer_id, last_sync_time, configuration, state):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
@@ -736,7 +763,7 @@ def _sync_invitations_data(
     if enable_invitation_links:
         log.info("Fetching invitation links data...")
         for record in get_invitations_data(
-            api_key, business_unit_id, last_sync_time, configuration
+            api_key, business_unit_id, last_sync_time, configuration, state
         ):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
