@@ -17,6 +17,7 @@ This example connector uses the Fivetran Connector SDK to sync Awardco user data
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
 ## Features
 - Incremental sync based on `updated_at` timestamp
 - Pagination support for large datasets
@@ -24,7 +25,9 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Configurable timestamp query parameter for API compatibility
 
 ## Configuration file
-Configuration keys uploaded to Fivetran come from `configuration.json` (string values only):
+The connector reads configuration values from `configuration.json` (string values only).
+
+Example:
 
 ```
 {
@@ -51,36 +54,40 @@ This connector does not require any additional packages beyond those provided by
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-This connector uses an API key. The request includes the key in the `apiKey` header when calling the AwardCo API. To obtain the API key, do the following:
+This connector uses an API key. The request includes the key in the `apiKey` header when calling the Awardco API. 
 
-### Steps
-1. Obtain an API key from your AwardCo administrator or developer portal.
+To obtain the API key, do the following:
+
+1. Obtain an API key from your Awardco administrator or developer portal.
 2. Set `api_key` in `configuration.json`.
-3. Set `base_url` (for example, `https://api.awardco.com`).
+3. Set `base_url` (for example, `https://api.awardco.com`) in `configuration.json`.
 
-### Reference
-Refer to the `make_request_with_retry()` and `fetch_users()` functions in `connector.py` for implementation details. See also `awardco-users-connector/connector.py:58` and `awardco-users-connector/connector.py:72`.
+Note: Refer to the `make_request_with_retry()` and `fetch_users()` functions in `connector.py` for implementation details. See also `awardco-users-connector/connector.py:58` and `awardco-users-connector/connector.py:72`.
 
 ## Pagination
-This connector implements simple page-based pagination. The `update` loop requests pages from the users endpoint and processes each page in turn. If the AwardCo API supports a query parameter for returning only records updated since a timestamp, the connector will pass the checkpointed `last_sync_time` on every page request to avoid full-table scans.
+This connector implements simple page-based pagination. The `update` loop requests pages from the users endpoint and processes each page in turn. If the Awardco API supports a query parameter for returning only records updated since a timestamp, the connector will pass the checkpointed `last_sync_time` on every page request to avoid full-table scans.
 
 ## Data handling
-- Table mapping: All user records are upserted into the `user` table.
+- Table mapping: All user records are upserted into the `USER` table.
 - Primary key: `employeeId`.
 - Incremental field: `updated_at` (the maximum value is stored as `last_sync_time`).
 - State management: The connector writes a checkpoint with `last_sync_time` after processing each page.
 
 ## Error handling
-The connector validates configuration and wraps network and processing steps in a try/except, surfacing failures with a clear error message. Logging uses the SDK logger for observability.
+The connector validates the configuration and wraps network and processing steps in a try/except, surfacing failures with a clear error message. Logging uses the [Connector SDK logger](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-logs) for observability.
 
-Recommendations
+Recommendations:
 - Add `log.severe(...)` on critical failures where appropriate.
-- Consider retries and rate-limit handling if the AwardCo API enforces limits.
+- Consider retries and rate-limit handling if the Awardco API enforces limits.
 
 ## Tables created
-- `USER` — Primary key: `employeeId`.
 
-Example fields: `employeeId`, `firstName`, `lastName`, `email`, `balance`, `currencyCode`, `updated_at`, `created_at`.
+The connector creates the `USER` table. 
+
+### USER
+
+- Primary key: `employeeId`.
+- Example columns: `employeeId`, `firstName`, `lastName`, `email`, `balance`, `currencyCode`, `updated_at`, `created_at`.
 
 After a debug run, validate the DuckDB output (default: `warehouse.db`) and check operation counts in the CLI summary.
 
