@@ -280,7 +280,6 @@ def update(configuration: dict, state: dict) -> None:
     """
     log.warning("Example: Connector : AWS RDS Oracle")
 
-    log.info("Starting AWS RDS Oracle update sync")
 
     validate_configuration(configuration=configuration)
 
