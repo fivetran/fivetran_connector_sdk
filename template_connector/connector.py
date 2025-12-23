@@ -1,6 +1,6 @@
 """ADD ONE LINE DESCRIPTION OF YOUR CONNECTOR HERE.
-For example: This connector demonstrates how to fetch data from XYZ source and upsert it into destination using ABC library.
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+For example: This connector demonstrates a working starter template that syncs simple user data.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
@@ -13,7 +13,7 @@ from fivetran_connector_sdk import Connector
 # For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 """ ADD YOUR SOURCE-SPECIFIC IMPORTS HERE
@@ -23,7 +23,7 @@ Add comment for each import to explain its purpose for users to follow.
 
 
 """
-GUIDELINES TO FOLLOW WHILE WRITING AN EXAMPLE CONNECTOR:
+GUIDELINES TO FOLLOW WHILE WRITING A CONNECTOR:
 - Import only the necessary modules and libraries to keep the code clean and efficient.
 - Use clear, consistent and descriptive names for your functions and variables.
 - For constants and global variables, use uppercase letters with underscores (e.g. CHECKPOINT_INTERVAL, TABLE_NAME).
@@ -54,30 +54,37 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
-
     # Validate required configuration parameters
-    required_configs = ["param1", "param2", "param3"]
-    for key in required_configs:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
+    # No configuration required for this starter connector.
+    # When building your own connector, uncomment and modify the example below:
+    #
+    # required_configs = ["api_key", "base_url"]
+    # for key in required_configs:
+    #     if key not in configuration:
+    #         raise ValueError(f"Missing required configuration value: {key}")
+    pass
 
 
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
 
     return [
         {
-            "table": "table_name",  # Name of the table in the destination, required.
-            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "table": "users",  # Name of the table in the destination, required.
+            "primary_key": [
+                "id"
+            ],  # Primary key column(s) for the table. We recommend defining a primary_key for each table. If not provided, fivetran computes _fivetran_id from all column values.
             "columns": {  # Definition of columns and their types, optional.
-                "id": "STRING",  # Contains a dictionary of column names and data types
-            },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
+                "id": "STRING",  # Example: defining the id column type. You can define column types when needed.
+                # For any columns whose names are not provided here, their data types will be inferred based on the data provided during upsert.
+                # We recommend not defining all columns here to allow for schema evolution.
+            },
         },
     ]
 
@@ -93,60 +100,102 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
 
-    log.warning("Example: <TYPE_OF_EXAMPLE> : <NAME_OF_THE_EXAMPLE>")
-
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    # Extract configuration parameters as required
-    param1 = configuration.get("param1")
+    # Extract configuration parameters as needed
+    # TODO: Extract your configuration parameters here
+    # Example: api_key = configuration.get("api_key")
 
     # Get the state variable for the sync, if needed
-    last_sync_time = state.get("last_sync_time")
-    new_sync_time = last_sync_time
+    # This is useful for incremental syncs to keep track of the last synced record or timestamp.
+    # For example, you might want to track the last updated timestamp to fetch only new or updated records since the last sync.
+    # For the first sync, state will be empty JSON object: {}
+    # You can modify this logic based on your specific use case.
+    # For more information on state management, refer to: https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithstatejsonfile
+    last_updated_at = state.get("last_updated_at")
+    new_updated_at = last_updated_at
+
     try:
-        data = get_data(last_sync_time, param1)
+        # Fetch data from your source
+        # TODO: Replace get_data() with your actual data fetching logic
+        data = get_data(last_updated_at)
+
+        if not data:
+            log.info("No new data to sync")
+            return
+
+        log.info(f"Processing {len(data)} record(s)")
+
         for record in data:
-
             # The 'upsert' operation is used to insert or update data in the destination table.
-            # The op.upsert method is called with two arguments:
-            # - The first argument is the name of the table to upsert the data into.
-            # - The second argument is a dictionary containing the data to be upserted,
-            op.upsert(table="table_name", data=record)
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="users", data=record)
 
-            record_time = record.get("updated_at")
+            # Update state tracking for incremental syncs
+            record_updated_at = record.get("updated_at")
 
-            # Update only if record_time is greater than current new_sync_time
-            if new_sync_time is None or (record_time and record_time > new_sync_time):
-                new_sync_time = record_time  # Assuming the API returns the data in ascending order
+            # Update only if record_updated_time is greater than current new_sync_time
+            if new_updated_at is None or (
+                record_updated_at and record_updated_at > new_updated_at
+            ):
+                new_updated_at = (
+                    record_updated_at  # Assuming the API returns the data in ascending order
+                )
 
         # Update state with the current sync time for the next run
-        new_state = {"last_sync_time": new_sync_time}
+        new_state = {"last_updated_at": new_updated_at}
+
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
         # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(new_state)
+        log.info(f"Data synced successfully. Last updated at: {new_updated_at}")
 
     except Exception as e:
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
-def get_data(last_sync_time, param1):
+def get_data(last_sync_time=None):
     """
     This function simulates fetching data from a source.
     In a real-world scenario, this would involve making API calls or database queries.
+
+    TODO: Replace this with your actual data fetching logic.
+    - Add pagination if your source supports it
+    - Filter by last_sync_time for incremental syncs
+    - Add retry logic for API calls
+    - Handle rate limiting
+
     Args:
-        last_sync_time: The last sync time to fetch data from.
-        param1: A configuration parameter that might be used to filter or modify the data fetching logic.
+        last_sync_time: The last sync time to fetch data from (for incremental syncs).
+                        None for full syncs.
     Returns:
         A list of dictionaries representing the data to be upserted.
     """
     # Simulate data fetching logic
+    # For starter template, return simple user test data
+    # In production, replace this with actual API calls or database queries
     return [
-        {"id": "1", "data": "example_data_1", "updated_at": "2023-10-01T00:00:00Z"},
-        {"id": "2", "data": "example_data_2", "updated_at": "2023-10-01T01:00:00Z"},
+        {
+            "id": "1",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        },
+        {
+            "id": "2",
+            "name": "Bob",
+            "email": "bob@example.com",
+            "created_at": "2024-01-01T01:00:00Z",
+            "updated_at": "2024-01-01T01:00:00Z",
+        },
     ]
 
 
@@ -155,8 +204,14 @@ connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:

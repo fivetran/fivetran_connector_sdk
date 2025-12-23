@@ -28,10 +28,7 @@ def schema(configuration: dict):
             "table": "customers",  # Name of the table in the destination.
             "primary_key": ["customer_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
-                "customer_id": "STRING",  # Integer column for the customer_id.
-                "first_name": "STRING",  # String column for the first name.
-                "last_name": "STRING",  # String column for the last name.
-                "email": "STRING",  # String column for the email.
+                "customer_id": "STRING",  # String column for the first name.
             },
         }
     ]

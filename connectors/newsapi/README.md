@@ -95,9 +95,7 @@ The connector creates an `ARTICLE` table:
   "primary_key": ["source", "published_at"],
   "columns": {
     "source": "STRING",
-    "published_at": "UTC_DATETIME",
-    "author": "STRING",
-    "title": "STRING"
+    "published_at": "UTC_DATETIME"
   }
 }
 
