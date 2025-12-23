@@ -665,7 +665,15 @@ def schema(configuration: dict):
 
 
 def _extract_configuration_params(configuration: dict) -> Dict[str, str]:
-    """Extract and validate configuration parameters."""
+    """
+    Extract API credentials and business unit ID from configuration.
+    
+    Args:
+        configuration: Configuration dictionary with api_key, business_unit_id, and optional consumer_id.
+    
+    Returns:
+        Dictionary with api_key, business_unit_id, and consumer_id (empty string if not provided).
+    """
     return {
         "api_key": str(configuration.get("api_key", "")),
         "business_unit_id": str(configuration.get("business_unit_id", "")),
@@ -676,7 +684,18 @@ def _extract_configuration_params(configuration: dict) -> Dict[str, str]:
 
 
 def _extract_feature_flags(configuration: dict) -> Dict[str, bool]:
-    """Extract feature flags from configuration."""
+    """
+    Extract feature flags to control optional data source syncing.
+    
+    Parses enable_consumer_reviews, enable_invitation_links, and enable_categories flags
+    from configuration, converting string values to booleans (case-insensitive).
+    
+    Args:
+        configuration: Configuration dictionary with optional feature flags (default to 'true').
+    
+    Returns:
+        Dictionary with boolean flags for each optional data source.
+    """
     return {
         "enable_consumer_reviews": (
             str(configuration.get("enable_consumer_reviews", "true")).lower() == "true"
@@ -691,9 +710,18 @@ def _extract_feature_flags(configuration: dict) -> Dict[str, bool]:
 
 
 def _log_sync_info(
-    last_sync_time: Optional[str], configuration: dict, feature_flags: Dict[str, bool]
+    last_sync_time: Optional[str], configuration: dict
 ):
-    """Log sync information and configuration details."""
+    """
+    Log sync type (initial or incremental) for operational visibility.
+    
+    Args:
+        last_sync_time: Timestamp of last sync, or None for initial sync.
+        configuration: Configuration dictionary with initial_sync_days setting.
+    
+    Logs either "Incremental sync: fetching data since {timestamp}" or
+    "Initial sync: fetching all available data (last {days} days)".
+    """
     if last_sync_time:
         log.info(f"Incremental sync: fetching data since {last_sync_time}")
     else:
@@ -702,7 +730,24 @@ def _log_sync_info(
 
 
 def _sync_business_data(api_key: str, business_unit_id: str, configuration: dict, state: dict):
-    """Sync business unit data."""
+    """
+    Sync business unit data from Trustpilot API and upsert into destination table.
+    
+    Fetches a single business unit record containing metadata like trust score,
+    star rating, and review counts. Checkpoints after each record (typically just one).
+    
+    Args:
+        api_key: Trustpilot API authentication key.
+        business_unit_id: Unique identifier for the business unit.
+        configuration: Connector configuration dictionary.
+        state: Dictionary maintaining connector state for checkpointing.
+    
+    Returns:
+        None. Updates are persisted through op.upsert() and op.checkpoint() operations.
+    
+    Raises:
+        RuntimeError: If API request fails after all retry attempts are exhausted.
+    """
     log.info("Fetching business unit data...")
     for record in get_business_data(api_key, business_unit_id, configuration):
         # The 'upsert' operation is used to insert or update data in the destination table.
@@ -723,7 +768,36 @@ def _sync_reviews_data(
     configuration: dict,
     state: dict,
 ):
-    """Sync reviews data."""
+    """
+    Sync reviews data from Trustpilot API and upsert into destination table.
+    
+    Fetches review records from the Trustpilot API for a given business unit,
+    supporting both initial and incremental syncs. Records are checkpointed in batches
+    to optimize I/O performance while ensuring reliable progress tracking.
+    
+    Args:
+        api_key: Trustpilot API authentication key.
+        business_unit_id: Unique identifier for the business unit to fetch reviews from.
+        last_sync_time: ISO 8601 UTC timestamp of the last successful sync, used for incremental syncs.
+                       If None, performs initial sync based on initial_sync_days configuration.
+        configuration: Dictionary containing connector configuration settings including:
+                      - initial_sync_days: Number of days to look back on initial sync (default: 90)
+                      - Other API-related settings.
+        state: Dictionary maintaining connector state including:
+               - last_sync_time: Timestamp of last completed sync.
+               - reviews_page: Current page number for pagination resumption on retry.
+    
+    Returns:
+        None. Updates are persisted through op.upsert() and op.checkpoint() operations.
+    
+    Raises:
+        RuntimeError: If API request fails after all retry attempts are exhausted.
+    
+    Note:
+        - Pagination state is tracked in 'reviews_page' key to enable resumption on failure.
+        - Checkpoints occur every __CHECKPOINT_INTERVAL (100) records and at completion.
+        - Each record is mapped to review schema before upsertion.
+    """
     log.info("Fetching reviews data...")
     record_count = 0
     for record in get_reviews_data(
@@ -747,7 +821,32 @@ def _sync_reviews_data(
 
 
 def _sync_categories_data(api_key: str, configuration: dict, enable_categories: bool, state: dict):
-    """Sync categories data if enabled."""
+    """
+    Sync category data from Trustpilot API and upsert into destination table.
+    
+    Fetches category records from the Trustpilot API, supporting pagination and resumption
+    on retry. Records are checkpointed in batches to optimize I/O performance while ensuring
+    reliable progress tracking. Category syncing is optional and controlled by feature flag.
+    
+    Args:
+        api_key: Trustpilot API authentication key.
+        configuration: Dictionary containing connector configuration settings.
+        enable_categories: Boolean flag to control whether category data should be synced.
+        state: Dictionary maintaining connector state including:
+               - categories_page: Current page number for pagination resumption on retry.
+    
+    Returns:
+        None. Updates are persisted through op.upsert() and op.checkpoint() operations.
+    
+    Raises:
+        RuntimeError: If API request fails after all retry attempts are exhausted.
+    
+    Note:
+        - Pagination state is tracked in 'categories_page' key to enable resumption on failure.
+        - Checkpoints occur every __CHECKPOINT_INTERVAL (100) records and at completion.
+        - If enable_categories is False, function logs disabled status and returns early.
+        - Each record is mapped to category schema before upsertion.
+    """
     if enable_categories:
         log.info("Fetching categories data...")
         record_count = 0
@@ -779,7 +878,39 @@ def _sync_consumer_reviews_data(
     enable_consumer_reviews: bool,
     state: dict,
 ):
-    """Sync consumer reviews data if enabled."""
+    """
+    Sync consumer reviews data from Trustpilot Consumer API and upsert into destination table.
+    
+    Fetches review records from the Trustpilot Consumer API for a given consumer,
+    supporting both initial and incremental syncs. Records are checkpointed in batches
+    to optimize I/O performance while ensuring reliable progress tracking. Consumer reviews
+    syncing is optional and controlled by feature flag; requires valid consumer_id.
+    
+    Args:
+        api_key: Trustpilot API authentication key.
+        consumer_id: Unique identifier for the consumer to fetch reviews from.
+        last_sync_time: ISO 8601 UTC timestamp of the last successful sync, used for incremental syncs.
+                       If None, performs initial sync based on initial_sync_days configuration.
+        configuration: Dictionary containing connector configuration settings including:
+                      - initial_sync_days: Number of days to look back on initial sync (default: 90)
+                      - Other API-related settings.
+        enable_consumer_reviews: Boolean flag to control whether consumer review data should be synced.
+        state: Dictionary maintaining connector state including:
+               - last_sync_time: Timestamp of last completed sync.
+               - consumer_reviews_page: Current page number for pagination resumption on retry.
+    
+    Returns:
+        None. Updates are persisted through op.upsert() and op.checkpoint() operations.
+    
+    Raises:
+        RuntimeError: If API request fails after all retry attempts are exhausted.
+    
+    Note:
+        - Pagination state is tracked in 'consumer_reviews_page' key to enable resumption on failure.
+        - Checkpoints occur every __CHECKPOINT_INTERVAL (100) records and at completion.
+        - If enable_consumer_reviews is False or consumer_id is empty, function logs disabled status and returns early.
+        - Each record is mapped to consumer review schema before upsertion.
+    """
     if enable_consumer_reviews and consumer_id:
         log.info("Fetching consumer reviews data...")
         record_count = 0
@@ -815,7 +946,39 @@ def _sync_invitations_data(
     enable_invitation_links: bool,
     state: dict,
 ):
-    """Sync invitation links data if enabled."""
+    """
+    Sync invitation links data from Trustpilot API and upsert into destination table.
+    
+    Fetches invitation link records from the Trustpilot API for a given business unit,
+    supporting both initial and incremental syncs. Records are checkpointed in batches
+    to optimize I/O performance while ensuring reliable progress tracking. Invitation links
+    syncing is optional and controlled by feature flag.
+    
+    Args:
+        api_key: Trustpilot API authentication key.
+        business_unit_id: Unique identifier for the business unit to fetch invitation links from.
+        last_sync_time: ISO 8601 UTC timestamp of the last successful sync, used for incremental syncs.
+                       If None, performs initial sync based on initial_sync_days configuration.
+        configuration: Dictionary containing connector configuration settings including:
+                      - initial_sync_days: Number of days to look back on initial sync (default: 90)
+                      - Other API-related settings.
+        enable_invitation_links: Boolean flag to control whether invitation link data should be synced.
+        state: Dictionary maintaining connector state including:
+               - last_sync_time: Timestamp of last completed sync.
+               - invitations_page: Current page number for pagination resumption on retry.
+    
+    Returns:
+        None. Updates are persisted through op.upsert() and op.checkpoint() operations.
+    
+    Raises:
+        RuntimeError: If API request fails after all retry attempts are exhausted.
+    
+    Note:
+        - Pagination state is tracked in 'invitations_page' key to enable resumption on failure.
+        - Checkpoints occur every __CHECKPOINT_INTERVAL (100) records and at completion.
+        - If enable_invitation_links is False, function logs disabled status and returns early.
+        - Each record is mapped to invitation link schema before upsertion.
+    """
     if enable_invitation_links:
         log.info("Fetching invitation links data...")
         record_count = 0
