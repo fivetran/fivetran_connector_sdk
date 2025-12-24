@@ -48,7 +48,7 @@ The configuration requires your SAM.gov API key and date range for opportunity p
 ### Sync strategy
 The connector supports hybrid sliding window incremental sync:
 
-Initial Sync (First Run):
+Initial sync (first run):
 - Uses `posted_from` and `posted_to` dates from configuration for historical backfill
 - After completion, automatically switches to incremental mode
 
