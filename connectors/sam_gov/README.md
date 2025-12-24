@@ -52,7 +52,7 @@ Initial Sync (First Run):
 - Uses `posted_from` and `posted_to` dates from configuration for historical backfill
 - After completion, automatically switches to incremental mode
 
-Incremental Sync (Subsequent Runs):
+Incremental sync (subsequent runs):
 - Automatically calculates date window using `last_posted_to` from previous sync minus a 30-day overlap window
 - Advances to the current date, capturing new opportunities and updates
 - If the date range exceeds one year, the connector automatically chunks the range into successive 364-day windows and processes them all in a single sync run, ensuring no data is missed even after extended downtime
