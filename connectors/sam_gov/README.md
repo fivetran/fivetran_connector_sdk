@@ -60,7 +60,7 @@ Incremental Sync (Subsequent Runs):
 ### Overlap window strategy
 - Default 30-day overlap window ensures recent opportunity updates are captured
 - The overlap window is configured in the code as a constant named __INCREMENTAL_WINDOW_DAYS with a value of 30
-- Smaller overlap = more API-efficient but shorter update window
+- A smaller overlap makes the sync more API-efficient but reduces the time window in which updates are detected
 - A larger overlap captures more late or out-of-order updates but increases the number of API calls
 
 ### Example progression
