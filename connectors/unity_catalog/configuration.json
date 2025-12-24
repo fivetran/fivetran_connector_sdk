@@ -1,0 +1,5 @@
+{
+  "api_base": "<BASE URL>",
+  "access_token": "<PAT>",
+  "page_size": "100"
+}
