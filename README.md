@@ -47,10 +47,8 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 These are ready-to-use connectors, requiring minimal modifications to get started.
 
-<details class="details-heading" open="open">
-<summary>List of community connectors</summary>
-
-- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This example shows how to connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
+- [adform](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/adform) - This is an example of how we can connect and sync data from Adform by using Connector SDK. You will need your Adform API key and client ID for this example to work.
+- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_pulsar](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_pulsar) - This example demonstrates how to fetch data from Apache Pulsar topics and sync it to a data warehouse using Connector SDK. It supports multiple topics, uses Pulsar's Reader API for message consumption, and implements proper checkpointing for incremental syncs.
 - [arango_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/arango_db) - This example demonstrates how to sync data from ArangoDB, a native multi-model database combining document, graph, and key-value capabilities. The connector syncs document collections (airports, points-of-interest) and edge collections (flights) with offset-based pagination and checkpointing. You need to provide your ArangoDB credentials for this example to work.
