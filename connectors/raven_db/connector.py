@@ -198,6 +198,7 @@ def create_document_store(configuration: dict) -> Tuple[DocumentStore, str]:
 def build_rql_query(
     collection_name: str,
     last_modified: Optional[str] = None,
+    last_document_id: Optional[str] = None,
     skip: int = 0,
     take: int = __DEFAULT_BATCH_SIZE,
 ) -> str:
@@ -207,6 +208,7 @@ def build_rql_query(
     Args:
         collection_name: The name of the collection to query.
         last_modified: The last modified timestamp for incremental sync filtering.
+        last_document_id: The last document ID for cursor-based pagination.
         skip: Number of records to skip (for pagination).
         take: Number of records to fetch in this batch.
     Returns:
@@ -216,12 +218,17 @@ def build_rql_query(
     # RavenDB groups documents into collections based on ID prefix (e.g., "Orders/1-A")
     rql = f"from '{collection_name}'"
 
-    # Add filter for incremental sync if last_modified provided
-    if last_modified:
-        rql += f" where @metadata.'@last-modified' > '{last_modified}'"
+    # Add filter for incremental sync with compound cursor (timestamp + document ID)
+    if last_modified and last_document_id:
+        # Use >= for timestamp and > for document ID to handle same-timestamp documents
+        # This ensures we don't skip documents with the same timestamp as the last processed one
+        rql += f" where (@metadata.'@last-modified' > '{last_modified}' or (@metadata.'@last-modified' = '{last_modified}' and @metadata.'@id' > '{last_document_id}'))"
+    elif last_modified:
+        # First sync after initial state, use >= to be inclusive
+        rql += f" where @metadata.'@last-modified' >= '{last_modified}'"
 
-    # Add ordering for consistent results
-    rql += " order by @metadata.'@last-modified'"
+    # Add ordering for consistent results - order by timestamp, then by ID as tiebreaker
+    rql += " order by @metadata.'@last-modified', @metadata.'@id'"
 
     # Add pagination
     rql += f" limit {skip}, {take}"
@@ -250,6 +257,7 @@ def fetch_documents_batch(
     store: DocumentStore,
     collection_name: str,
     last_modified: Optional[str] = None,
+    last_document_id: Optional[str] = None,
     skip: int = 0,
     take: int = __DEFAULT_BATCH_SIZE,
     max_retries: int = 3,
@@ -267,13 +275,14 @@ def fetch_documents_batch(
         store (DocumentStore): The RavenDB DocumentStore instance.
         collection_name (str): The name of the collection to fetch data from.
         last_modified (str, optional): The last modified timestamp from the previous sync.
+        last_document_id (str, optional): The last document ID for cursor-based pagination.
         skip (int): Number of records to skip (for pagination).
         take (int): Number of records to fetch in this batch.
         max_retries (int): Maximum number of retry attempts for transient failures.
 
     Returns:
         Tuple[List[Dict[str, Any]], bool]: A tuple containing:
-            - List of documents (limited to 'take' size) sorted by LastModified
+            - List of documents (limited to 'take' size) sorted by LastModified and ID
             - Boolean indicating if more data exists
 
     Raises:
@@ -284,8 +293,8 @@ def fetch_documents_batch(
     while retry_count < max_retries:
         try:
             with store.open_session() as session:
-                # Build RQL query using helper function
-                rql = build_rql_query(collection_name, last_modified, skip, take)
+                # Build RQL query using helper function with compound cursor
+                rql = build_rql_query(collection_name, last_modified, last_document_id, skip, take)
 
                 # Execute raw RQL query and get iterator (does not load all results into memory)
                 query_result = session.advanced.raw_query(rql, object_type=dict)
@@ -382,24 +391,28 @@ def process_document_batch(documents, collection_name):
     return processed_count
 
 
-def extract_last_modified_timestamp(documents):
+def extract_cursor_from_last_document(documents):
     """
-    Extract the LastModified timestamp from the last document in a batch.
+    Extract the cursor (LastModified timestamp and document ID) from the last document in a batch.
 
     Args:
         documents (list): List of document dictionaries.
 
     Returns:
-        str or None: The LastModified timestamp from the last document, or None if not found.
+        tuple: (last_modified, last_document_id) where both are strings or None if documents is empty.
     """
     if not documents:
-        return None
+        return None, None
 
     last_document = documents[-1]
-    return last_document.get("LastModified")
+    last_modified = last_document.get("LastModified")
+    last_document_id = last_document.get("Id")
+    return last_modified, last_document_id
 
 
-def process_single_batch(store, collection_name, last_modified, skip, batch_size):
+def process_single_batch(
+    store, collection_name, last_modified, last_document_id, skip, batch_size
+):
     """
     Fetch and process a single batch of documents from RavenDB.
 
@@ -407,52 +420,60 @@ def process_single_batch(store, collection_name, last_modified, skip, batch_size
         store (DocumentStore): The RavenDB DocumentStore instance.
         collection_name (str): Name of the collection to fetch from.
         last_modified (str): Timestamp for incremental sync filtering.
+        last_document_id (str): Document ID for cursor-based pagination.
         skip (int): Number of records to skip for pagination.
         batch_size (int): Number of records to fetch in this batch.
 
     Returns:
-        tuple: (processed_count, new_last_modified, has_more_data) where:
+        tuple: (processed_count, new_last_modified, new_last_document_id, has_more_data) where:
             - processed_count (int): Number of documents processed
             - new_last_modified (str): Updated last modified timestamp
+            - new_last_document_id (str): Updated last document ID
             - has_more_data (bool): Whether more data exists to fetch
     """
     # Fetch document batch from RavenDB
     documents, has_more_data = fetch_documents_batch(
-        store, collection_name, last_modified, skip, batch_size
+        store, collection_name, last_modified, last_document_id, skip, batch_size
     )
 
     if not documents:
         log.info("No more documents to process")
-        return 0, last_modified, False
+        return 0, last_modified, last_document_id, False
 
     # Process all documents in the batch
     processed_count = process_document_batch(documents, collection_name)
 
-    # Extract the latest timestamp from this batch
-    new_last_modified = extract_last_modified_timestamp(documents)
+    # Extract the cursor (timestamp and document ID) from this batch
+    new_last_modified, new_last_document_id = extract_cursor_from_last_document(documents)
     if not new_last_modified:
         new_last_modified = last_modified
+    if not new_last_document_id:
+        new_last_document_id = last_document_id
 
-    return processed_count, new_last_modified, has_more_data
+    return processed_count, new_last_modified, new_last_document_id, has_more_data
 
 
-def sync_collection_data(store, collection_name, batch_size, initial_last_modified):
+def sync_collection_data(
+    store, collection_name, batch_size, initial_last_modified, initial_last_document_id
+):
     """
-    Sync all data from a RavenDB collection using batch processing with pagination.
+    Sync all data from a RavenDB collection using batch processing with cursor-based pagination.
 
     This function orchestrates the batch-by-batch processing of documents, handling
-    pagination, state updates, and checkpointing.
+    pagination with a compound cursor (timestamp + document ID), state updates, and checkpointing.
 
     Args:
         store (DocumentStore): The RavenDB DocumentStore instance.
         collection_name (str): Name of the collection to sync.
         batch_size (int): Number of documents to process per batch.
         initial_last_modified (str): Starting timestamp for incremental sync.
+        initial_last_document_id (str): Starting document ID for cursor-based pagination.
 
     Returns:
         tuple: (total_row_count, total_batch_count) with sync statistics.
     """
     last_modified = initial_last_modified
+    last_document_id = initial_last_document_id
     total_row_count = 0
     batch_count = 0
     skip = 0
@@ -464,32 +485,35 @@ def sync_collection_data(store, collection_name, batch_size, initial_last_modifi
         batch_count += 1
         log.info(f"Processing batch {batch_count}, skip: {skip}")
 
-        # Process a single batch
-        batch_row_count, new_last_modified, has_more_data = process_single_batch(
-            store, collection_name, last_modified, skip, batch_size
+        # Process a single batch with compound cursor
+        batch_row_count, new_last_modified, new_last_document_id, has_more_data = (
+            process_single_batch(
+                store, collection_name, last_modified, last_document_id, skip, batch_size
+            )
         )
 
         # Update state if we processed any documents
         if batch_row_count > 0:
             total_row_count += batch_row_count
 
-            # Check if last_modified changed (incremental sync scenario)
-            if new_last_modified != last_modified:
-                # Reset skip to 0 when last_modified changes
-                # The @last-modified filter handles incrementing through data
+            # Check if cursor changed (timestamp or document ID)
+            if new_last_modified != last_modified or new_last_document_id != last_document_id:
+                # Reset skip to 0 when cursor changes
+                # The compound cursor filter handles incrementing through data
                 skip = 0
                 last_modified = new_last_modified
+                last_document_id = new_last_document_id
             else:
-                # Only increment skip when last_modified hasn't changed
-                # (initial sync or multiple batches at same timestamp)
+                # Only increment skip when cursor hasn't changed
+                # (initial sync or multiple batches at same cursor position - shouldn't happen with proper cursor)
                 skip += batch_size
 
             # Checkpoint after each complete batch to ensure consistent state
-            save_state(last_modified)
+            save_state(last_modified, last_document_id)
 
             log.info(
                 f"Completed batch {batch_count}: processed {batch_row_count} documents, "
-                f"total processed: {total_row_count}, last modified: {last_modified}"
+                f"total processed: {total_row_count}, last modified: {last_modified}, last document ID: {last_document_id}"
             )
         else:
             # No documents processed but has_more_data is True
@@ -521,10 +545,11 @@ def update(configuration: dict, state: dict):
         collection_name = configuration.get("collection_name", __DEFAULT_COLLECTION_NAME)
         batch_size = int(configuration.get("batch_size", __DEFAULT_BATCH_SIZE))
         last_modified = state.get("last_modified", __EARLIEST_TIMESTAMP)
+        last_document_id = state.get("last_document_id", None)
 
-        # Sync all collection data
+        # Sync all collection data using compound cursor (timestamp + document ID)
         total_row_count, total_batch_count = sync_collection_data(
-            store, collection_name, batch_size, last_modified
+            store, collection_name, batch_size, last_modified, last_document_id
         )
 
         log.info(
@@ -551,13 +576,14 @@ def update(configuration: dict, state: dict):
                 log.warning(f"Failed to remove temporary certificate file: {cleanup_err}")
 
 
-def save_state(new_last_modified):
+def save_state(new_last_modified, new_last_document_id):
     """
-    Save the current sync state by checkpointing.
+    Save the current sync state by checkpointing with compound cursor.
     Args:
         new_last_modified: The latest LastModified timestamp processed.
+        new_last_document_id: The latest document ID processed.
     """
-    new_state = {"last_modified": new_last_modified}
+    new_state = {"last_modified": new_last_modified, "last_document_id": new_last_document_id}
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
