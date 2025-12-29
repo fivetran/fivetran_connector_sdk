@@ -118,21 +118,12 @@ The connector processes and syncs Linear data using the following workflow:
 
 2. Upserts
     - New or modified records are written via:
-      ```python
-      op.upsert(entity, record)
-      ```
 
 3. Deletes
     - Records with non-null `archivedAt` are soft-deleted via:
-      ```python
-      op.delete(entity, {"id": record["id"]})
-      ```
 
 4. Checkpointing
     - The connector tracks `last_updated` for each entity independently:
-      ```python
-      yield op.checkpoint({"issues": {"last_updated": "2025-10-26T00:00:00Z"}})
-      ```
 
 ---
 
@@ -187,6 +178,7 @@ Each table includes:
 ---
 
 ## Additional considerations
-- The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, questions, and assistance, please reach out to our Support team.- Incremental syncs depend on the `updatedAt` field — ensure it exists for all entities.
+- The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, questions, and assistance, please reach out to our Support team
+- - Incremental syncs depend on the `updatedAt` field — ensure it exists for all entities.
 - Soft deletes use the `archivedAt` timestamp; archived records are removed from destinations.
 - The connector is designed for educational and demonstration purposes using the Fivetran Connector SDK.

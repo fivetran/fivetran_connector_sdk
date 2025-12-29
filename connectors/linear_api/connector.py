@@ -121,6 +121,7 @@ def update(configuration: Dict[str, Any], state: Dict[str, Any]):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: API : Linear API")
     api_key = configuration.get("linear_api_key")
     if not api_key:
         raise ValueError("linear_api_key is required")
@@ -261,7 +262,7 @@ class IsolatedEndpointSync:
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
-connector = Connector(update=update)
+connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
