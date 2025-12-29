@@ -55,6 +55,7 @@ These are ready-to-use connectors, requiring minimal modifications to get starte
 - [apache_pulsar](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_pulsar) - This example demonstrates how to fetch data from Apache Pulsar topics and sync it to a data warehouse using Connector SDK. It supports multiple topics, uses Pulsar's Reader API for message consumption, and implements proper checkpointing for incremental syncs.
 - [arango_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/arango_db) - This example demonstrates how to sync data from ArangoDB, a native multi-model database combining document, graph, and key-value capabilities. The connector syncs document collections (airports, points-of-interest) and edge collections (flights) with offset-based pagination and checkpointing. You need to provide your ArangoDB credentials for this example to work.
 - [apache_hive/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_sqlalchemy) - This example shows how you can sync data from Apache Hive by using Connector SDK and SQLAlchemy with PyHive.
+- [awardco](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/awardco) - This example shows how to sync data from Awardco with the Connector SDK. You will need to provide an API key for this example to work.
 - [aws_athena/using_boto3](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/aws_athena/using_boto3) - This is an example of how we can sync data from AWS Athena by using Connector SDK using Boto3.
 - [aws_athena/using_sqlalchemy](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/aws_athena/using_sqlalchemy) - This is an example of how we can sync data from AWS Athena by using Connector SDK using SQLAlchemy with PyAthena.
 - [aws_dynamo_db_authentication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/aws_dynamo_db_authentication) - This is an example of how we can connect and sync data from AWS DynamoDB by using Connector SDK.
@@ -350,4 +351,3 @@ As with other new connectors, SDK connectors have a [14-day trial period](https:
 
 ## Maintenance
 The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.
-
