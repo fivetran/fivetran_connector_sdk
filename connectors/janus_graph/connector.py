@@ -249,20 +249,20 @@ def update_latest_timestamp(latest_timestamp, flattened_props: dict, has_updated
 
 
 def sync_multi_valued_properties(
-    entity_id: str, properties: dict, table_name: str, id_field_name: str, state: dict
+    entity_id: str, properties: dict, table_name: str, id_field_name: str
 ):
     """
     Sync multi-valued properties to separate table.
 
     This function processes multi-valued properties (lists with more than one value) and creates
     separate records for each value to maintain proper relational structure in the destination.
+    Checkpointing is handled at the batch level by the calling function.
 
     Args:
         entity_id: The entity ID (vertex or edge).
         properties: Dictionary of properties.
         table_name: Name of the properties table.
         id_field_name: Name of the ID field (vertex_id or edge_id).
-        state: The state dictionary for checkpointing.
     """
     for property_key, property_value in properties.items():
         if isinstance(property_value, list) and len(property_value) > 1:
@@ -278,20 +278,6 @@ def sync_multi_valued_properties(
                 # The first argument is the name of the destination table.
                 # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=property_record)
-
-            # Checkpoint to flush property table data after processing all properties for this entity
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-            op.checkpoint(state)
-
-    # Checkpoint to flush property table data after processing all properties for this entity
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-    op.checkpoint(state)
 
 
 def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp, state: dict):
@@ -329,9 +315,7 @@ def process_vertex_batch(vertices: list, has_updated_at: bool, latest_timestamp,
         op.upsert(table=__TABLE_VERTICES, data=vertex_record)
 
         # Sync multi-valued properties to separate table
-        sync_multi_valued_properties(
-            vertex_id, properties, __TABLE_VERTEX_PROPERTIES, "vertex_id", state
-        )
+        sync_multi_valued_properties(vertex_id, properties, __TABLE_VERTEX_PROPERTIES, "vertex_id")
 
         # Track latest timestamp
         latest_timestamp = update_latest_timestamp(
@@ -438,9 +422,7 @@ def process_edge_batch(edges: list, has_updated_at: bool, latest_timestamp, stat
         op.upsert(table=__TABLE_EDGES, data=edge_record)
 
         # Sync multi-valued properties to separate table
-        sync_multi_valued_properties(
-            edge_id, properties, __TABLE_EDGE_PROPERTIES, "edge_id", state
-        )
+        sync_multi_valued_properties(edge_id, properties, __TABLE_EDGE_PROPERTIES, "edge_id")
 
         # Track latest timestamp
         latest_timestamp = update_latest_timestamp(
