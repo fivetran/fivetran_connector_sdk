@@ -519,7 +519,7 @@ def check_updated_at_property(gremlin_client):
         Tuple of (vertices_have_updated_at, edges_have_updated_at).
     """
     # Check vertices
-    vertex_query = "g.V().limit(1).has('updated_at').count()"
+    vertex_query = "g.V().has('updated_at').limit(1).count()"
     try:
         vertex_result = execute_gremlin_query_with_retry(gremlin_client, vertex_query)
         vertices_have_updated_at = vertex_result[0] > 0 if vertex_result else False
@@ -528,7 +528,7 @@ def check_updated_at_property(gremlin_client):
         vertices_have_updated_at = False
 
     # Check edges
-    edge_query = "g.E().limit(1).has('updated_at').count()"
+    edge_query = "g.E().has('updated_at').limit(1).count()"
     try:
         edge_result = execute_gremlin_query_with_retry(gremlin_client, edge_query)
         edges_have_updated_at = edge_result[0] > 0 if edge_result else False
