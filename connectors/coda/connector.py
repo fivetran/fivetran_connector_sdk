@@ -9,10 +9,9 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 import requests  # For making HTTP requests to the Iterate API
-import json  # For reading configuration from a JSON file
 import time  # For handling retries and delays
 from datetime import datetime, timezone  # For handling date and time operations
-import re
+import re # For converting field names to snake_case format
 
 __BASE_URL = "https://coda.io/apis/v1"  # Base URL for Coda API
 __MAX_RETRIES = 3  # Number of retries for API calls
@@ -52,11 +51,11 @@ def make_api_request(endpoint, params, headers, retries=__MAX_RETRIES, delay=__R
                 log.warning(f"Server error {response.status_code}, retrying...")
                 time.sleep(delay * attempt)
             else:
-                raise Exception(f"Unexpected response: {response.status_code}")
+                raise RuntimeError(f"Unexpected response: {response.status_code}")
         except requests.RequestException as e:
             log.severe(f"Network error: {e}")
             time.sleep(delay * attempt)
-    raise Exception(f"Failed to fetch {url} after {retries} retries")
+    raise RuntimeError(f"Failed to fetch {url} after {retries} retries")
 
 
 def sync_rows(table_name, params, headers, last_updated_at, state, doc_id):
@@ -175,10 +174,18 @@ def sync_customer_feedback(params, headers, state, sync_start, doc_id):
 
 
 def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+
     return [
         {
             "table": "order",  # Name of the table in the destination, required.
-            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "primary_key": ["row_id"],  # Primary key column(s) for the table, optional.
             "columns": {
                 "id": "string",
                 "region": "string",
@@ -191,7 +198,7 @@ def schema(configuration: dict):
         },
         {
             "table": "customer_feedback",  # Name of the table in the destination, required.
-            "primary_key": ["id"],  # Primary key column(s) for the table, optional.
+            "primary_key": ["row_id"],  # Primary key column(s) for the table, optional.
             "columns": {
                 "id": "string",
                 "customer_id": "string",
@@ -204,14 +211,17 @@ def schema(configuration: dict):
     ]
 
 
-# Define the update function, which is a required function, and is called by Fivetran during each sync.
-# See the technical reference documentation for more details on the update function
-# https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-# The function takes two parameters:
-# - configuration: a dictionary that contains any secrets or payloads you configure when deploying the connector
-# - state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync
-# The state dictionary is empty for the first sync or for any full re-sync.
 def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
+    """
+
     current_sync_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     log.info("Starting sync from Coda API...")
@@ -252,27 +262,13 @@ def to_snake_case(s: str) -> str:
     return s.lower()
 
 
-# Create connector instance
+# This creates the connector object that will use the update function defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# For local testing
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
-    connector.debug(configuration=configuration)
-
-# Fivetran debug results:
-
-# Oct 13, 2025 05:52:44 PM INFO: Fivetran-Tester-Process: Checkpoint: {"order": {"next_sync_token": "eyJsaW1pdCI6MjAwLCJvZmZzZXQiOjAsInNvcnRCeSI6InVwZGF0ZWRBdCIsInN0YXJ0QXQiOjE3NjAyNTg3NTUuMTc4LCJ1c2VDb2x1bW5OYW1lcyI6dHJ1ZX0", "last_updated_at": "2025-10-13T12:22:35Z"}, "customer_feedback": {"next_sync_token": "eyJsaW1pdCI6MjAwLCJvZmZzZXQiOjAsInNvcnRCeSI6InVwZGF0ZWRBdCIsInN0YXJ0QXQiOjE3NjAxOTI5OTYuMTE3LCJ1c2VDb2x1bW5OYW1lcyI6dHJ1ZX0", "last_updated_at": "2025-10-13T12:22:35Z"}}
-# Oct 13, 2025 05:52:44 PM INFO: Fivetran-Tester-Process: SYNC PROGRESS:
-# Operation       | Calls
-# ----------------+------------
-# Upserts         | 9
-# Updates         | 0
-# Deletes         | 0
-# Truncates       | 0
-# SchemaChanges   | 2
-# Checkpoints     | 3
-# Note: Fivetran debug's performance is limited by your local machine's resources. Your connector will run faster in production.
-# read about production system resources at https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#systemresources
-# Oct 13, 2025 05:52:44 PM INFO: Fivetran-Tester-Process: Sync SUCCEEDED
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
+    connector.debug()

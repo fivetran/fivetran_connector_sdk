@@ -1,7 +1,7 @@
 # Coda API Connector Example
 
 ## Connector overview
-This connector demonstrates how to extract and sync data from **Coda Docs** using the **Fivetran Connector SDK**. It connects to the **Coda REST API (v1)**, authenticates via a Bearer token, and retrieves tables and rows from a specified Coda document.
+This connector demonstrates how to extract and sync data from Coda Docs using the Fivetran Connector SDK. It connects to the Coda REST API (v1), authenticates via a Bearer token, and retrieves tables and rows from a specified Coda document.
 
 It supports:
 - Incremental syncs using the `updatedAt` timestamp.
@@ -28,12 +28,12 @@ Refer to the [Coda API documentation](https://coda.io/developers/apis/v1) for mo
 ---
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ---
 
 ## Features
-- Connects to **Coda API v1** using Bearer token authentication.
+- Connects to Coda API v1 using Bearer token authentication.
 - Syncs two example tables: `order` and `customer_feedback`.
 - Uses `updatedAt` to perform incremental syncs.
 - Supports token-based pagination with `nextSyncToken` and `pageToken`.
@@ -44,7 +44,6 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 ---
 
 ## Configuration file
-The connector requires the following configuration parameters:
 
 ```json
 {
@@ -65,7 +64,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ---
 
 ## Authentication
-Authentication is handled via a **Bearer Token** passed in the request headers.
+Authentication is handled via a Bearer Token passed in the request headers.
 
 Example:
 ```
@@ -77,7 +76,7 @@ You can generate your Coda API token by visiting [Coda Account Settings → API 
 ---
 
 ## Pagination
-Pagination is handled using **Coda’s** `pageToken` and `nextSyncToken` mechanisms.
+Pagination is handled using Coda’s `pageToken` and `nextSyncToken` mechanisms.
 
 - `pageToken` fetches the next batch of records from a table.
 - `nextSyncToken` provides a token for incremental updates after the initial sync.
@@ -93,27 +92,27 @@ GET /docs/{docId}/tables/{tableId}/rows?pageToken=<next_page_token>
 ## Data handling
 The connector processes data as follows:
 
-1. **Incremental Syncs**
+- Incremental Syncs
     - The connector compares each record’s `updatedAt` against the last stored timestamp.
     - Only rows modified since the last sync are retrieved.
 
-2. **Pagination**
+- Pagination
     - Each page of results is retrieved and processed in batches of 1,000 rows.
 
-3. **Upserts**
+- Upserts
     - Each record is upserted using:
       ```python
       op.upsert(table=table_name, data=values)
       ```
 
-4. **Checkpointing**
+- Checkpointing
     - State is periodically saved using:
       ```python
       op.checkpoint(state)
       ```
     - This ensures that if a sync is interrupted, it can resume from the last processed token.
 
-5. **Field Normalization**
+- Field Normalization
     - Field names are converted to `snake_case` for consistency.
     - Example: `"First Name"` → `"first_name"`
 
@@ -122,11 +121,11 @@ The connector processes data as follows:
 ## Error handling
 The connector includes robust error handling:
 
-- **Rate limiting (429):** Retries automatically with exponential backoff.
-- **Client errors (4xx):** Raises an exception for invalid API tokens or bad requests.
-- **Server errors (5xx):** Retries up to three times before failing.
-- **Network errors:** Retries with incremental backoff delays.
-- **Logging:** All warnings and errors are logged via `fivetran_connector_sdk.Logging`.
+- Rate limiting (429): Retries automatically with exponential backoff.
+- Client errors (4xx): Raises an exception for invalid API tokens or bad requests.
+- Server errors (5xx): Retries up to three times before failing.
+- Network errors: Retries with incremental backoff delays.
+- Logging: All warnings and errors are logged via `fivetran_connector_sdk.Logging`.
 
 Example retry log:
 ```
@@ -139,7 +138,7 @@ Server error 503, retrying...
 ## Tables created
 This connector creates two destination tables by default:
 
-### 1. `order`
+### `order`
 | Field | Type | Description |
 |--------|------|-------------|
 | `id` | STRING | Row ID from the Coda table. |
@@ -152,7 +151,7 @@ This connector creates two destination tables by default:
 
 ---
 
-### 2. `customer_feedback`
+### `customer_feedback`
 | Field | Type | Description |
 |--------|------|-------------|
 | `id` | STRING | Row ID from the Coda table. |
@@ -165,9 +164,4 @@ This connector creates two destination tables by default:
 ---
 
 ## Additional considerations
-- The connector uses `updatedAt` and `nextSyncToken` for incremental syncs; these fields must be available in your Coda document.
-- The example uses fixed table names (`order`, `customer_feedback`), but you can modify the code to dynamically sync any tables listed in the document.
-- Fivetran automatically manages schema creation and data typing during the sync process.
-- The connector is intended for **educational and demonstration purposes** using the **Fivetran Connector SDK**.
-
-For questions or feedback, contact **Fivetran Support**.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
