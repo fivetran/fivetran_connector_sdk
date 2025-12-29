@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Operations as op
 
 from uuid import uuid4  # for generating batch boundaries
 import json
-from requests_toolbelt.multipart import decoder, encoder # for batch request processing
+from requests_toolbelt.multipart import decoder, encoder  # for batch request processing
 import datetime
 
 
@@ -139,7 +139,7 @@ class ODataClient:
                 if state_var not in self.state or current_value > self.state[state_var]:
                     self.state[state_var] = current_value
             except KeyError:
-                log.severe(f"{column} not found in the fetched data", e)
+                log.severe(f"{column} not found in the fetched data")
 
     def _upsert_formatted_data(self, formatted_data, table, update_state):
         """Upsert the formatted data and update the state tracker."""
