@@ -9,7 +9,7 @@ from fivetran_connector_sdk import Operations as op
 
 from uuid import uuid4  # for generating batch boundaries
 import json
-from requests_toolbelt.multipart import decoder, encoder  # for batch request processing
+from requests_toolbelt.multipart import decoder  # for batch request processing
 import datetime
 
 
@@ -138,8 +138,8 @@ class ODataClient:
                 current_value = item[column]
                 if state_var not in self.state or current_value > self.state[state_var]:
                     self.state[state_var] = current_value
-            except KeyError:
-                log.severe(f"{column} not found in the fetched data")
+            except KeyError as e:
+                log.severe(f"{column} not found in the fetched data", e)
 
     def _upsert_formatted_data(self, formatted_data, table, update_state):
         """Upsert the formatted data and update the state tracker."""
@@ -175,7 +175,7 @@ class ODataClient:
         url = self._build_request_url(base_path=entity_set, query_options=query_options)
 
         if additional_headers:
-            self.session.build_headers.update(additional_headers)
+            self.session.headers.update(additional_headers)
 
         try:
             if handle_pagination:
@@ -325,7 +325,7 @@ class ODataClient:
         Decodes the multipart response and processes each part.
         """
         log.info(f"Processing batch response with {len(self.batch_requests)} requests")
-        content_type = response.build_headers.get("Content-Type", "")
+        content_type = response.headers.get("Content-Type", "")
 
         if "multipart/mixed" not in content_type:
             log.severe(f"Invalid content type: {content_type}")
@@ -344,7 +344,7 @@ class ODataClient:
                 self._process_batch_part(part=part, part_index=i)
 
         except Exception as e:
-            log.severe(f"Failed to process batch response: {str(e)}")
+            log.severe("Failed to process batch response.", e)
             raise
 
     def _process_batch_part(self, part, part_index: int):

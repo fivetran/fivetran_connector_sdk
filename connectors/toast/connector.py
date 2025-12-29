@@ -768,8 +768,8 @@ def get_api_response(endpoint_path, headers, **kwargs):
 
         # Handle 429 Too Many Requests
         if response.status_code == 429:
-            retry_after = response.build_headers.get("Retry-After")
-            rate_limit_reset = response.build_headers.get("X-Toast-RateLimit-Reset")
+            retry_after = response.headers.get("Retry-After")
+            rate_limit_reset = response.headers.get("X-Toast-RateLimit-Reset")
 
             wait_time = None
             if retry_after:
@@ -801,7 +801,7 @@ def get_api_response(endpoint_path, headers, **kwargs):
         response.raise_for_status()  # Raise error for unexpected HTTP issues
 
         response_page = response.json()
-        response_headers = response.build_headers
+        response_headers = response.headers
         next_page_token = response_headers.get("Toast-Next-Page-Token")
 
         return response_page, next_page_token  # Return successful response

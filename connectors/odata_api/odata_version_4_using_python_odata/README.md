@@ -45,7 +45,7 @@ To adapt this connector for your own OData service:
    session = requests.Session()
    session.auth = ('username', 'password')  # Basic auth
    # OR
-   session.build_headers.update({'Authorization': 'Bearer your_token'})  # OAuth
+   session.headers.update({'Authorization': 'Bearer your_token'})  # OAuth
    ```
    
     For more details on authentication, refer to the [requests library documentation](https://docs.python-requests.org/en/latest/user/advanced/#session-objects).

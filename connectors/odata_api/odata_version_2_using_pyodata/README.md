@@ -209,10 +209,10 @@ session = requests.Session()
 session.auth = ('username', 'password')
 
 # OR API key in header
-session.build_headers.update({'API-Key': 'your-api-key'})
+session.headers.update({'API-Key': 'your-api-key'})
 
 # OR OAuth token
-session.build_headers.update({'Authorization': 'Bearer your-oauth-token'})
+session.headers.update({'Authorization': 'Bearer your-oauth-token'})
 ```
 
 For more details on authentication, refer to the [requests library documentation](https://requests.readthedocs.io/en/latest/user/authentication.html).

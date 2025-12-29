@@ -49,7 +49,7 @@ This guide provides a structured approach to developing Fivetran connectors usin
 #### Step 2: Set Up Your Development Environment
 ```bash
 # Ensure you have the required tools
-python --version  # Should be 3.9-3.12
+python --version  # Should be 3.10-3.13
 pip install fivetran-connector-sdk
 ```
 
@@ -98,7 +98,7 @@ Follow the prompt templates provided in the Claude AI Prompt Templates section b
 ## Prerequisites
 
 ### System Requirements
-- **Python**: 3.9-3.12 (as specified in [Fivetran SDK Requirements](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements))
+- **Python**: 3.10-3.13 (as specified in [Fivetran SDK Requirements](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements))
 - **Operating System**: 
   - Windows 10 or later
   - macOS 13 (Ventura) or later
@@ -286,15 +286,13 @@ Checkpoints   | 1
 ## ⚡ Performance Optimization
 
 ### Rate Limiting
-
 ```python
 # Example rate limit handling
 import time
 
-
 def handle_rate_limit(response):
     if response.status_code == 429:
-        retry_after = int(response.build_headers.get('Retry-After', 60))
+        retry_after = int(response.headers.get('Retry-After', 60))
         log.warning(f"Rate limited, waiting {retry_after} seconds")
         time.sleep(retry_after)
         return True
@@ -362,7 +360,7 @@ def retry_on_failure(max_retries=3, delay=1):
 Task: Create a Fivetran connector for [API_NAME] that fetches [DATA_TYPE]
 
 Technical Details:
-- Language: Python 3.9+
+- Language: Python 3.10+
 - Framework: Fivetran Connector SDK
 - API: [API_ENDPOINT]
 - Data Target: [TABLE_NAME] table
@@ -448,10 +446,9 @@ def sanitize_data(record):
 ```
 
 #### 3. Rate Limit Issues
-
 ```python
 # Monitor rate limits
-remaining_calls = int(response.build_headers.get('X-RateLimit-Remaining', 0))
+remaining_calls = int(response.headers.get('X-RateLimit-Remaining', 0))
 if remaining_calls < 10:
     log.warning(f"Rate limit approaching: {remaining_calls} calls left")
 ```
@@ -496,4 +493,4 @@ if remaining_calls < 10:
 
 **Last Updated**: June 2025
 **SDK Version**: Latest
-**Python Compatibility**: 3.9-3.12 
+**Python Compatibility**: 3.10-3.13 
