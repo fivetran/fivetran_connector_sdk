@@ -117,7 +117,7 @@ The connector processes Trustpilot data through several stages:
 4. State management: Checkpoint-based incremental sync support.
 5. Error handling: Comprehensive error handling with logging and validation.
 
-Data Processing Features:
+Data processing features:
 - Type conversion: Trustpilot API responses converted to appropriate data types
 - Default values: Missing dimensions populated with appropriate defaults
 - Timestamp handling: ISO format timestamp conversion and period-based grouping
