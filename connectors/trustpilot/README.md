@@ -6,10 +6,6 @@ This connector provides comprehensive Trustpilot review and business data synchr
 
 The Trustpilot API Connector is a Fivetran Connector SDK implementation that extracts comprehensive review and business data from Trustpilot's various API endpoints. It provides detailed insights into customer feedback, business reputation, review management, and customer engagement across multiple Trustpilot services.
 
-Data source: Trustpilot REST API (v1) for reviews, business units, categories, consumer reviews, and invitation links
-
-Use cases: Customer feedback analysis, reputation management, review monitoring, customer experience optimization, business intelligence, and comprehensive customer insights.
-
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
