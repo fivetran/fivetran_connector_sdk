@@ -53,11 +53,11 @@ Required configuration keys:
 - `business_unit_id`: Trustpilot business unit ID for data extraction
 
 Optional configuration keys:
-- `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews (required only when `enable_consumer_reviews` is true)
-- `initial_sync_days`: Days of historical data for initial sync (1-365, default: 90)
-- `enable_consumer_reviews`: Enable consumer reviews data fetching (true/false, default: false)
-- `enable_invitation_links`: Enable invitation links data fetching (true/false, default: true)
-- `enable_categories`: Enable categories data fetching (true/false, default: true)
+- `consumer_id`: Trustpilot consumer ID for fetching individual consumer reviews (required only when `enable_consumer_reviews` is true).
+- `initial_sync_days`: Days of historical data for initial sync. You can choose a value between 1 and 365 days. The default is 90 days.
+- `enable_consumer_reviews`: Set this to true if you want to fetch consumer reviews data. By default, this is set to false.
+- `enable_invitation_links`: Set this to true to fetch invitation links data. The default value is true.
+- `enable_categories`: Set this to true to fetch categories data. The default value is true.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
