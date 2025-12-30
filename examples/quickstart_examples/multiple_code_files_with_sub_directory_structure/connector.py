@@ -16,7 +16,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import self written modules
-from timestamp_serializer import TimestampSerializer
+from utils.timestamp_serializer import TimestampSerializer
 
 
 def schema(configuration: dict):

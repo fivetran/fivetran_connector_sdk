@@ -239,7 +239,7 @@ log.severe(f"Error details: {error_details}")
 ## Foundation Examples (ALWAYS study these):
 - **Basic Structure**: `examples/quickstart_examples/hello/connector.py`
 - **Configuration**: `examples/quickstart_examples/configuration/connector.py`
-- **Multiple Files**: `examples/quickstart_examples/multiple_code_files/connector.py`
+- **Multiple Files**: `examples/quickstart_examples/multiple_code_files_with_sub_directory_structure/connector.py`
 
 **MANDATORY EXAMPLE ANALYSIS WORKFLOW:**
 1. **Requirement Analysis**: Based on the description, determine:
