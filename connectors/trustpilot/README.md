@@ -85,8 +85,9 @@ Steps to obtain credentials:
 1. Go to your Trustpilot Business account.
 2. Navigate to Settings > API Keys.
 3. Create a new API key with appropriate permissions.
-4. For production: We recommend adding credentials as GitHub Secrets (see [Deployment](#deployment) section).
-5. For development: You can add credentials to `configuration.json` (remember not to commit this file).
+4. Add credentials:
+     - For production: We recommend adding credentials as GitHub Secrets (see [Deployment](#deployment) section).
+     -  For development: You can add credentials to `configuration.json` (remember not to commit this file).```
 
 ## Pagination
 
