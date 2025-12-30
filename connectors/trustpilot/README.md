@@ -151,7 +151,7 @@ Error handling implementation:
 - Exception propagation: Errors are logged and re-raised for Fivetran to handle
 - State preservation: Checkpoint system maintains sync state across failures
 
-Refer to functions `validate_configuration`, `execute_api_request`, and the main `update` function in `connector.py` for error handling implementation.
+Refer to the `validate_configuration`, `execute_api_request`, and the main `update` functions in `connector.py` for error handling implementation.
 
 ## Tables created
 
