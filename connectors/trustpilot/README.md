@@ -128,7 +128,7 @@ Data processing features:
 Data Flow:
 Trustpilot REST API → Requests Client → Dynamic Time Range Processing → Data Processing Functions → Fivetran Operations → Data Warehouse Tables
 
-Refer to functions `get_time_range`, `execute_api_request`, `get_reviews_data`, `get_business_data`, `get_categories_data`, `get_consumers_data`, and `get_invitations_data` in `connector.py` for detailed data handling logic.
+Refer to the `get_time_range`, `execute_api_request`, `get_reviews_data`, `get_business_data`, `get_categories_data`, `get_consumers_data`, and `get_invitations_data` functions in `connector.py` for detailed data handling logic.
 
 ## Error handling
 
