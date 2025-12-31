@@ -147,11 +147,11 @@ Directories must be named in `lowercase_with_underscores`.
 
 ```python
 # Bad: Names
-examples/quickstart_examples/MultipleCode_Files
-examples/quickstart_examples/Multiple_Code_Files
+examples/quickstart_examples/MultipleCode_Files_With_SubDirectory_Structure
+examples/quickstart_examples/Multiple_Code_Files_With_Sub_Directory_Structure
 
 # Good: Names
-examples/quickstart_examples/multiple_code_files
+examples/quickstart_examples/multiple_code_files_with_sub_directory_structure
 ```
 
 ## Classes
