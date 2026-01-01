@@ -44,7 +44,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - `database_name` (required): Name of the RavenDB database to sync from
 - `certificate_base64` (required): Base64-encoded client certificate (PEM format)
 
-Important: The certificate must be provided as a base64-encoded PEM certificate string
+Important: The certificate must be provided as a base64-encoded PEM certificate string.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -63,9 +63,9 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 The connector uses certificate-based authentication with RavenDB. The `certificate_base64` parameter contains a base64-encoded client certificate (PEM format), which is decoded at runtime and written to a temporary file for the RavenDB client.
 
 To obtain your certificate:
-1. Log in to your RavenDB [Cloud portal](https://cloud.ravendb.net/)
-2. Navigate to your instance
-3. Download the client certificate package
+1. Log in to your [RavenDB Cloud portal](https://cloud.ravendb.net/).
+2. Navigate to your instance.
+3. Download the client certificate package.
 4. Convert the certificate to base64 format:
 
     - **macOS/Linux:**
@@ -77,7 +77,7 @@ To obtain your certificate:
       certutil -encode certificate.pem certificate.b64
       ```
       The base64-encoded certificate is saved to `certificate.b64`.
-5. Add the base64 string to your configuration
+5. Add the base64 string to your configuration file.
 
 ## Pagination
 
@@ -113,7 +113,7 @@ The connector implements the following error-handling strategies:
 
 This connector creates tables in your destination based on the collections you sync. The table structure follows this pattern:
 
-### Example: ORDERS table (if syncing "Orders" collection)
+### Example: `ORDERS` table (if syncing an Orders collection)
 - Primary Key: `Id` (STRING - RavenDB document ID)
 - Columns:
     - `Id` (STRING): Document unique identifier
