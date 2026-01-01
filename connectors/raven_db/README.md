@@ -44,7 +44,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - `database_name` (required): Name of the RavenDB database to sync from
 - `certificate_base64` (required): Base64-encoded client certificate (PEM format)
 
-Important: The certificate must be provided as a base64-encoded PEM certificate string.
+Important: You must provide the certificate as a base64-encoded PEM certificate string.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
