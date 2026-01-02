@@ -8,8 +8,9 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
-# Import the required libraries
+# Import json for processing responses
 import json
+# Import datetime for handling timezones and dates
 from datetime import datetime, timezone
 
 # Import the Apache hive modules
