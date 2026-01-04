@@ -47,7 +47,7 @@ CHUNK_SIZE = 10000
 # You can modify this list to add or change table configurations as needed
 # Each table spec includes:
 # - name: The name of the table in the format "schema.table"
-# - primary_keys: List of primary key columns for the table
+# - primary_keys: List of primary key columns for the table. If None, the connector will attempt to fetch them from the source database.
 # - strategy: Replication strategy, either "FULL" or "INCREMENTAL"
 # - replication_key: Column used for incremental replication (if applicable).
 # - include: List of columns to include in the sync (empty list means all columns)
@@ -82,12 +82,12 @@ TABLE_SPECS = [
         "include": [],
         "exclude": [],
         "use_chunking": True,  # Enable chunking for this table
-    },  # No primary_keys specified. The primary key(s) will be fetched from source database
+    },
     {
         "name": "tickit.event",
         "primary_keys": ["eventid", "venueid"],
         "strategy": "INCREMENTAL",
-        "replication_key": None,  # replication_key is set to None for FULL sync strategy. You can also omit this field for FULL sync strategy
+        "replication_key": None,  # The replication key will be inferred as the sync strategy is INCREMENTAL
         "include": [],
         "exclude": [],
         "use_chunking": True,  # Enable chunking for this table

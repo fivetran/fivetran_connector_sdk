@@ -970,7 +970,7 @@ def sync_table(connection, configuration, plan, state):
             batch_size=batch_size,
         )
     else:
-        log.info(f"{plan.stream}: Using Server side cursor processing")
+        log.info(f"{plan.stream}: Using server-side cursor processing")
         sync_table_server_side_cursor(
             connection=connection,
             replication_key=replication_key,
