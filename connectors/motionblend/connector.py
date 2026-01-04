@@ -65,18 +65,6 @@ __FILE_BUFFER_SIZE = 1000  # Maximum number of files to buffer before processing
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
-    This connector syncs BVH (BioVision Hierarchy) motion capture metadata from GCS.
-    Data structure aligns with blendanim framework: seed motions, build motions, and blend results.
-
-    Skeleton Hierarchy Structure (from blendanim repository):
-    - Total nodes: 29 (24 joints + 4 contact nodes + 1 root)
-    - Parent array: Defines bone hierarchy (each joint references its parent index)
-    - Contact nodes: 4 foot contacts for physics simulation (LeftFoot, RightFoot, LeftToe, RightToe)
-    - Root node: Pelvis/Hips with 6DOF (3 position XYZ + 3 rotation Euler angles)
-    - Joint nodes: 24 skeletal joints with 3DOF rotation (Euler angles in degrees)
-    - Feature representation: 174 dimensions = 29 nodes × 6 features per node
-    - Rotation formats: Euler angles (XYZ degrees), 6D continuous, or rotation matrices
-
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
@@ -692,7 +680,7 @@ def _validate_optional_integer_parameter(
     if value_str is not None:
         try:
             value = int(value_str)
-            if value <= 0 or value > max_value:
+            if value < min_value or value > max_value:
                 raise ValueError(
                     f"Configuration parameter '{parameter_name}' must be between {min_value} and {max_value}, got: {value}. "
                     f"{description}"
