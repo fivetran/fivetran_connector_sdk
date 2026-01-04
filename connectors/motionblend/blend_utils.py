@@ -14,9 +14,7 @@ from datetime import datetime, timezone  # For generating UTC timestamps in ISO 
 
 
 def calculate_blend_ratio(
-    left_duration: float,
-    right_duration: float,
-    transition_frames: int = 30
+    left_duration: float, right_duration: float, transition_frames: int = 30
 ) -> float:
     """
     Calculate blend ratio based on motion durations.
@@ -29,9 +27,6 @@ def calculate_blend_ratio(
     Returns:
         Blend ratio between 0.0 and 1.0
     """
-    if left_duration == 0 and right_duration == 0:
-        return 0.5
-
     total_duration = left_duration + right_duration
     if total_duration == 0:
         return 0.5
@@ -44,10 +39,7 @@ def calculate_blend_ratio(
 
 
 def calculate_transition_window(
-    left_frames: int,
-    right_frames: int,
-    blend_ratio: float = 0.5,
-    window_size: int = 30
+    left_frames: int, right_frames: int, blend_ratio: float = 0.5, window_size: int = 30
 ) -> tuple[int, int]:
     """
     Calculate transition start and end frames for blending.
@@ -94,14 +86,11 @@ def generate_blend_id(left_motion_uri: str, right_motion_uri: str) -> str:
         16-character SHA-1 hash prefix of concatenated URIs
     """
     combined = f"{left_motion_uri}|{right_motion_uri}"
-    return hashlib.sha1(combined.encode('utf-8')).hexdigest()[:16]
+    return hashlib.sha1(combined.encode("utf-8")).hexdigest()[:16]
 
 
 def estimate_blend_quality(
-    left_frames: int,
-    right_frames: int,
-    blend_ratio: float,
-    transition_window_size: int
+    left_frames: int, right_frames: int, blend_ratio: float, transition_window_size: int
 ) -> float | None:
     """
     Estimate blend quality score based on motion parameters.
@@ -125,7 +114,10 @@ def estimate_blend_quality(
     # 1. Similar durations (0.3 weight)
     duration_diff = abs(left_frames - right_frames)
     max_frames = max(left_frames, right_frames)
-    duration_similarity = 1.0 - min(1.0, duration_diff / max_frames) if max_frames > 0 else 0.0
+    if max_frames > 0:
+        duration_similarity = 1.0 - min(1.0, duration_diff / max_frames)
+    else:
+        duration_similarity = 0.0
 
     # 2. Reasonable transition window (0.3 weight)
     # Window should be 10-50% of shorter motion
@@ -143,7 +135,7 @@ def estimate_blend_quality(
     ratio_balance = 1.0 - abs(blend_ratio - 0.5) * 2.0
 
     # Weighted combination
-    quality = (duration_similarity * 0.3 + window_quality * 0.3 + ratio_balance * 0.4)
+    quality = duration_similarity * 0.3 + window_quality * 0.3 + ratio_balance * 0.4
 
     return round(quality, 3)
 
@@ -152,7 +144,7 @@ def create_blend_metadata(
     left_motion: dict[str, Any],
     right_motion: dict[str, Any],
     transition_frames: int = 30,
-    custom_ratio: float | None = None
+    custom_ratio: float | None = None,
 ) -> dict[str, Any]:
     """
     Create blend metadata record from two motion files.
@@ -166,8 +158,8 @@ def create_blend_metadata(
     Returns:
         Dictionary with blend metadata
     """
-    left_frames = left_motion.get('frames', 0)
-    right_frames = right_motion.get('frames', 0)
+    left_frames = left_motion.get("frames", 0)
+    right_frames = right_motion.get("frames", 0)
 
     # Calculate or use custom blend ratio
     if custom_ratio is not None:
@@ -184,43 +176,33 @@ def create_blend_metadata(
     )
 
     # Estimate quality
-    quality = estimate_blend_quality(
-        left_frames, right_frames, blend_ratio, transition_frames
-    )
+    quality = estimate_blend_quality(left_frames, right_frames, blend_ratio, transition_frames)
 
     # Generate unique blend ID
-    blend_id = generate_blend_id(
-        left_motion['file_uri'],
-        right_motion['file_uri']
-    )
+    blend_id = generate_blend_id(left_motion["file_uri"], right_motion["file_uri"])
 
     # Create metadata record
     now = datetime.now(timezone.utc).isoformat()
 
     return {
-        'id': blend_id,
-        'left_motion_id': left_motion.get('id'),
-        'right_motion_id': right_motion.get('id'),
-        'left_motion_uri': left_motion['file_uri'],
-        'right_motion_uri': right_motion['file_uri'],
-        'blend_ratio': round(blend_ratio, 3),
-        'transition_start_frame': start_frame,
-        'transition_end_frame': end_frame,
-        'transition_frames': end_frame - start_frame,
-        'estimated_quality': quality,
-        'transition_smoothness': None,  # Requires actual motion analysis
-        'created_at': left_motion.get('updated_at', now),
-        'updated_at': max(
-            left_motion.get('updated_at', now),
-            right_motion.get('updated_at', now)
-        )
+        "id": blend_id,
+        "left_motion_id": left_motion.get("id"),
+        "right_motion_id": right_motion.get("id"),
+        "left_motion_uri": left_motion["file_uri"],
+        "right_motion_uri": right_motion["file_uri"],
+        "blend_ratio": round(blend_ratio, 3),
+        "transition_start_frame": start_frame,
+        "transition_end_frame": end_frame,
+        "transition_frames": end_frame - start_frame,
+        "estimated_quality": quality,
+        "transition_smoothness": None,  # Requires actual motion analysis
+        "created_at": left_motion.get("updated_at", now),
+        "updated_at": max(left_motion.get("updated_at", now), right_motion.get("updated_at", now)),
     }
 
 
 def generate_blend_pairs(
-    seed_motions: list,
-    build_motions: list,
-    max_pairs: int | None = None
+    seed_motions: list, build_motions: list, max_pairs: int | None = None
 ) -> list:
     """
     Generate blend motion pairs from seed and build motions.

@@ -18,6 +18,9 @@ Typical use cases include:
 - Centralizing motion capture assets from distributed storage into a data warehouse
 - Supporting downstream dbt transformations for motion blend analytics
 
+## Accreditation
+This example was contributed by Ted Iro, [Rydlr Cloud Services Ltd](https://github.com/RydlrCS).
+
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
@@ -33,11 +36,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Lists and catalogs motion-capture files from GCS
 - Normalizes file inventory into three logical streams: `seed_motions`, `build_motions`, `blend_motions`
 - Incremental sync using blob `updated` timestamps to process only new or modified files
+- Batch-local state tracking prevents data loss when files arrive out of chronological order
 - Stable record IDs using GCS object identifiers (persists across file renames/moves)
-- Exponential backoff retry logic for transient GCS failures
+- Exponential backoff retry logic (max 3 attempts) for transient GCS failures
 - Checkpointing every 100 records for fault tolerance on large datasets
-- SDK-based structured logging for operational visibility
-- Configurable batch limit for testing (processes N files per sync, resumes in next sync)
+- Bounded buffering (1000 files per batch) prevents out-of-memory errors
+- SDK-based structured logging with runtime warnings for testing parameters
+- Configurable batch limit for development testing (logs warning, not for production use)
+- Robust validation for configuration parameters (empty strings, type checks, range validation)
 
 ## Configuration file
 `configuration.json` defines the connector parameters uploaded to Fivetran.
@@ -57,7 +63,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 |-----------|----------|---------|-------------|
 | `google_cloud_storage_bucket` | Yes | N/A | GCS bucket name containing motion files |
 | `google_cloud_storage_prefixes` | Yes | N/A | Comma-separated list of prefixes to scan (e.g., `mocap/seed/,mocap/build/`) |
-| `batch_limit` | No | None (unlimited) | Maximum number of files to process per prefix per sync. TESTING ONLY – omit for production to process all files in a single sync. When set, state is updated with the last processed file's timestamp and remaining files are processed in subsequent syncs. |
+| `batch_limit` | No | None (unlimited) | **TESTING ONLY** – Maximum number of files to process per prefix per sync. Omit for production to process all files. When configured, connector logs a warning at runtime. State is updated with the last processed file's timestamp and remaining files are processed in subsequent syncs. May cause incomplete syncs if new files arrive during processing. |
 | `include_extensions` | No | <YOUR_OPTIONAL_FILE_EXTENSIONS> | File extensions to process (comma-separated) |
 | `max_blend_pairs` | No | <YOUR_OPTIONAL_MAX_BLEND_PAIRS> | Maximum number of blend pairs to generate per sync |
 | `max_motion_buffer_size` | No | <YOUR_OPTIONAL_MAX_BUFFER_SIZE> | Maximum number of seed/build motions to buffer before generating blend pairs |
@@ -206,12 +212,15 @@ Data Transformation Pipeline:
    - Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors for large GCS prefixes
 
 State Management & Data Loss Prevention:
-- Files are collected in bounded batches and sorted by `updated_at` timestamp before processing (chronological order)
-- State tracks the timestamp of the last successfully processed file
+- Files are collected in bounded batches (1000 files per batch) and sorted by `updated_at` timestamp before processing (chronological order within batch)
+- State tracks the timestamp of the last successfully processed file **within the current batch** (batch-local tracking)
 - If connector fails mid-sync, next run resumes from last successful file timestamp
-- Chronological sorting ensures data integrity: Files are always processed oldest-to-newest within each batch
-- Example: If files A (Jan 10), B (Jan 15), C (Jan 12) are discovered, they are sorted to A (Jan 10), C (Jan 12), B (Jan 15) before processing
-- Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors while maintaining chronological order
+- Chronological sorting within batches ensures data integrity for incremental sync
+- Example: Batch 1 processes files A (Jan 10), C (Jan 12), B (Jan 15) → sorted to A, C, B → state = Jan 15 after batch completion
+- Critical: State updates sequentially as files are processed, not based on global maximum across all batches
+- This prevents data loss when files arrive out of chronological order across different batches
+- Memory safety: Bounded buffering (1000 files per batch) prevents out-of-memory errors while maintaining processing order
+- Checkpointing: State is saved every 100 records and after each batch completes for fault tolerance
 
 Data Accuracy:
 - ✅ Accurate: File URIs, GCS update timestamps, file names, file sizes, GCS object IDs
@@ -264,9 +273,16 @@ Error Categories:
 
 Logging (using Fivetran SDK `log` module throughout):
 - `log.info()` – Progress updates and operation completion
-- `log.warning()` – Retry attempts and recoverable issues
+- `log.warning()` – Retry attempts, recoverable issues, and testing parameter usage (batch_limit)
 - `log.severe()` – Fatal errors and exceptions
-- `log.fine()` – Detailed debugging information
+- `log.fine()` – Detailed debugging information (category inference, record ID generation)
+
+State Management:
+- State updates occur sequentially as files are processed (batch-local tracking)
+- Checkpointing every 100 records preserves progress for large datasets
+- Files within each batch are sorted chronologically before processing
+- This ensures incremental sync correctness even when files arrive out of order across batches
+- On failure, next sync resumes from last checkpointed file timestamp
 
 ## Tables created
 
@@ -331,5 +347,173 @@ Important Limitations:
 
 The blend_utils module is designed for cataloging blend operations and generating metadata records for the `blend_motions` table. Refer to the "Blend Metadata Calculation (blend_utils)" subsection in the Data handling section for usage details.
 
+## Testing
+
+### Local Testing with Fivetran SDK
+
+The connector can be tested locally using the Fivetran SDK debug mode:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up authentication
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
+
+# Configure test parameters in configuration.json
+# Use batch_limit for testing with small datasets
+
+# Run connector in debug mode
+python connector.py
+```
+
+### Test Configuration for Development
+
+For testing during development, use a limited configuration to avoid processing large datasets:
+
+```json
+{
+  "google_cloud_storage_bucket": "your-test-bucket",
+  "google_cloud_storage_prefixes": "test/seed/,test/build/",
+  "batch_limit": 10,
+  "include_extensions": ".bvh,.fbx",
+  "max_blend_pairs": 5,
+  "max_motion_buffer_size": 100
+}
+```
+
+**Important Testing Notes:**
+- `batch_limit` is for TESTING ONLY and triggers a runtime warning
+- Remove `batch_limit` for production deployment
+- Use small test datasets (10-100 files) to validate functionality
+- Verify state persistence by stopping and resuming connector mid-sync
+- Check logs for retry attempts, checkpointing, and error handling
+
+### Validation Checklist
+
+Before deploying to production, verify:
+
+1. **Authentication**
+   - [ ] Service account has `roles/storage.objectViewer` permission
+   - [ ] GCS client initializes successfully with ADC
+   - [ ] Access denied errors handled gracefully
+
+2. **Data Integrity**
+   - [ ] Files processed in chronological order within batches
+   - [ ] State cursor advances correctly after each batch
+   - [ ] Incremental sync skips already-processed files
+   - [ ] Record IDs remain stable across file renames (when GCS ID available)
+   - [ ] No duplicate records created for same files
+
+3. **Error Handling**
+   - [ ] Transient GCS errors trigger exponential backoff retries (max 3 attempts)
+   - [ ] Permanent errors (authentication, not found) fail immediately without retries
+   - [ ] Connector logs errors at appropriate severity levels
+   - [ ] State is preserved on failure for next sync resumption
+
+4. **Performance & Memory**
+   - [ ] Large prefixes (1000+ files) processed without out-of-memory errors
+   - [ ] Bounded buffering maintains memory footprint
+   - [ ] Checkpointing occurs every 100 records
+   - [ ] Motion buffers cleared after generating blend pairs
+
+5. **Configuration Validation**
+   - [ ] Missing required parameters raise `ValueError` with clear messages
+   - [ ] Empty/whitespace parameters rejected
+   - [ ] File extensions validated (must start with '.')
+   - [ ] Integer parameters validated for range and type
+   - [ ] `batch_limit` triggers runtime warning
+
+### Test Scenarios
+
+**Scenario 1: First Sync (Full Load)**
+- Expected: All files in configured prefixes processed
+- State: Updated with timestamp of last processed file per prefix
+- Verify: All records appear in destination tables
+
+**Scenario 2: Incremental Sync**
+- Add new files with recent timestamps to GCS
+- Expected: Only new files (timestamp > last sync) processed
+- Verify: State advances to newest file timestamp
+
+**Scenario 3: Mid-Sync Failure Recovery**
+- Set `batch_limit` to small value (e.g., 5)
+- Manually stop connector after first batch completes
+- Restart connector
+- Expected: Resumes from last checkpointed state, processes remaining files
+- Verify: No duplicate records, all files eventually processed
+
+**Scenario 4: Out-of-Order File Arrivals**
+- Create files with timestamps: Jan 10, Jan 15, Jan 12 (out of order)
+- Expected: Files sorted and processed as Jan 10 → Jan 12 → Jan 15
+- State: Jan 15 after batch completes
+- Verify: Next sync skips all three files (timestamps ≤ Jan 15)
+
+**Scenario 5: Transient GCS Errors**
+- Simulate network interruption or GCS API throttling
+- Expected: Connector retries with exponential backoff (1s, 2s, 4s)
+- Verify: Logs show retry attempts, eventual success or failure after 3 attempts
+
+**Scenario 6: File Rename/Move**
+- Process file `gs://bucket/walk.bvh` (generates record with GCS object ID)
+- Rename file to `gs://bucket/archive/walk_v1.bvh` (same GCS generation)
+- Reprocess renamed file
+- Expected: Same record ID, no duplicate created
+- Verify: Only one record exists in destination table
+
+### Log Analysis
+
+Monitor connector logs for expected patterns:
+
+```
+# Successful batch processing
+[INFO] Listing files from GCS bucket 'bucket' with prefix 'seed/'
+[INFO] Processing batch of 50 files (sorted chronologically)
+[INFO] Synced 100 total records (50 from prefix 'seed/')
+[INFO] Completed processing prefix 'seed/': 50 records synced
+
+# Retry on transient error
+[WARNING] GCS connection attempt 1/3 failed (transient error), retrying in 1s: ...
+[WARNING] GCS connection attempt 2/3 failed (transient error), retrying in 2s: ...
+[INFO] GCS connection successful on attempt 3
+
+# batch_limit warning
+[WARNING] batch_limit is set to 10. This parameter is for TESTING ONLY...
+[WARNING] Reached batch limit of 10 files for prefix 'seed/'...
+
+# Permanent error (immediate failure)
+[SEVERE] GCS connection failed with permanent error: 403 Forbidden
+```
+
+### Known Limitations & Edge Cases
+
+1. **Empty String Parameters**
+   - Configuration validation rejects empty or whitespace-only values
+   - Special handling for "0" values (correctly validated as integer, not empty)
+
+2. **Files Without Timestamps**
+   - Files missing `updated_at` timestamp are skipped with warning
+   - Cannot be tracked for incremental sync
+
+3. **Zero-Length Motions**
+   - Blend quality calculation returns `None` for motions with 0 frames
+   - Division by zero prevented in `blend_utils.estimate_blend_quality()`
+
+4. **Batch Processing Order**
+   - Files sorted chronologically **within** each batch (1000 files)
+   - Not guaranteed globally chronological across all batches
+   - State tracking ensures correctness despite batch boundaries
+
+### Production Deployment
+
+Before production deployment:
+
+1. Remove `batch_limit` from configuration (or set to very high value)
+2. Configure BigQuery partitioning on `created_at` field (recommended: daily)
+3. Set up monitoring for connector logs (INFO/WARNING/SEVERE levels)
+4. Verify service account credentials in Fivetran platform
+5. Test with representative dataset (similar file count and structure)
+6. Document expected sync frequency and data volume
+
 ## Additional considerations
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran and Rydlr cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
