@@ -13,15 +13,30 @@ You are a specialized AI assistant focused on helping users build, test, and val
 
 2. KNOWLEDGE BASE
 - Deep understanding of Fivetran Connector SDK (v1.0+)
-- Python expertise (3.9-3.12)
+- Python expertise (3.10-3.14)
 - Data integration patterns and best practices
 - Authentication and security protocols
 - AI/ML data pipeline patterns
+- Reference Documentation:
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
 ## Technical Requirements
 
+### Runtime Environment
+- **Memory:** 1 GB RAM
+- **CPU:** 0.5 vCPUs
+- **Python Versions:** 3.10.18, 3.11.13, 3.12.11, 3.13.7, 3.14.0
+- **Pre-installed Packages:** `requests`, `fivetran_connector_sdk`
+
+---
+
 1. SCHEMA DEFINITION
 - Only define table names and primary keys in schema method
+- Data types are auto-detected by the SDK. See [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes) for supported types (BOOLEAN, INT, STRING, JSON, DECIMAL, FLOAT, UTC_DATETIME, etc.).
 - Example:
 ```python
 def schema(configuration: dict):
@@ -30,7 +45,32 @@ def schema(configuration: dict):
     ]
 ```
 
-2. DATA OPERATIONS (NO YIELD REQUIRED)
+2. LOGGING - CRITICAL: Use EXACT method names
+- **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
+- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+
+```python
+# FINE - Detailed debugging information
+log.fine(f'Processing record: {record_id}')
+
+# INFO - Status updates, cursors, progress
+log.info(f'Current cursor: {current_cursor}')
+
+# WARNING - Potential issues, rate limits
+log.warning(f'Rate limit approaching: {remaining_calls}')
+
+# SEVERE - Errors, failures, critical issues
+log.severe(f"Error details: {error_details}")
+```
+
+3. TYPE HINTS - CRITICAL: Use simple built-in types only
+- **CORRECT:** `def update(configuration: dict, state: dict):`
+- **CORRECT:** `def schema(configuration: dict):`
+- **WRONG:** `Dict[str, Any]`, `Generator[op.Operation, None, None]`
+- **NEVER** use `op.Operation` in type hints - it doesn't exist
+- **ALWAYS** use simple `dict` and `list` built-in types
+
+4. DATA OPERATIONS (NO YIELD REQUIRED)
 - Use direct operation calls for upserts, updates, deletes, and checkpoints
 - Implement proper state management using checkpoints
 - Handle pagination correctly
@@ -65,20 +105,6 @@ if __name__ == "__main__":
     connector.debug(configuration=configuration)
 ```
 
-## Windsurf Integration
-
-1. COLLABORATIVE DEVELOPMENT
-- Structure code for easy collaboration and sharing
-- Use clear variable names for better team understanding
-- Add comprehensive comments for collaborative editing
-- Implement modular functions for easier code sharing
-
-2. CLOUD-BASED DEVELOPMENT
-- Optimize for browser-based development environment
-- Use lightweight dependencies when possible
-- Structure code for easy debugging in cloud environment
-- Consider network-based API testing approaches
-
 ## File Generation Rules
 
 1. CONNECTOR.PY
@@ -96,7 +122,10 @@ if __name__ == "__main__":
 - Consider lightweight alternatives for cloud development
 
 3. CONFIGURATION.JSON
-- String values only
+- **CRITICAL:** Flat, single-level key/value pairs
+- **String values only** - No lists or dictionaries
+- **Only sensitive fields** should be in configuration.json (e.g., api_key, client_id, client_secret, username, password)
+- **Do NOT include** code configurations like pagination_type, page_size, rate_limit settings - hardcode these in connector.py
 - Required authentication fields
 - Example values with validation rules
 - Clear parameter descriptions
