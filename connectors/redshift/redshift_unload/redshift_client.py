@@ -35,9 +35,12 @@ from s3_client import S3Client
 __TABLE_PLAN_LIST = None
 
 # Variables for UNLOAD command
-__MAX_FILE_SIZE = 128  # Maximum file size for each parque file in MB
+__MAX_FILE_SIZE = 128  # Maximum file size for each parquet file in MB
 __PARALLEL_UNLOAD = True  # Ensure files are created even for small datasets
-__CLEAN_EXISTING_PATH = True  # Clean existing files at the S3 path before UNLOAD
+__CLEAN_EXISTING_PATH = False  # Clean existing files at the S3 path before UNLOAD
+
+# Variables for logging and diagnostics
+__QUERY_ROW_COUNT = False  # Query STL_UNLOAD_LOG for row count after UNLOAD (adds latency, disable for faster syncs)
 
 # Variables for S3 bucket
 __DEFAULT_BUCKET_PREFIX = "fivetran-unload"
@@ -767,12 +770,16 @@ def execute_unload(
         cursor.execute(unload_cmd)
         # UNLOAD does not return a result set, so we don't call fetchone()
 
-    # Query STL_UNLOAD_LOG to get the actual row count
-    row_count = _get_unload_row_count(connection, s3_path)
-    if row_count > 0:
-        log.info(f"{plan.stream}: UNLOAD completed - {row_count} rows exported")
+    # Optionally query STL_UNLOAD_LOG to get the actual row count
+    # This adds latency, so it's disabled by default for faster syncs
+    if __QUERY_ROW_COUNT:
+        row_count = _get_unload_row_count(connection, s3_path)
+        if row_count > 0:
+            log.info(f"{plan.stream}: UNLOAD completed - {row_count} rows exported")
+        else:
+            log.info(f"{plan.stream}: UNLOAD completed - no rows exported or count unavailable")
     else:
-        log.info(f"{plan.stream}: UNLOAD completed - no rows exported or count unavailable")
+        log.info(f"{plan.stream}: UNLOAD completed successfully")
 
     return s3_prefix
 
