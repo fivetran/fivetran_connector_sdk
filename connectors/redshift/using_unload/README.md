@@ -1,4 +1,4 @@
-# Redshift UNLOAD Connector Example
+# Redshift Using UNLOAD Connector Example
 
 ## Connector overview
 
