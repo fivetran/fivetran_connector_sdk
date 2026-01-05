@@ -61,7 +61,7 @@ class TablePlan:
         explicit_columns: Dict[str, str] - Mapping of column names to explicit Fivetran semantic types
         strategy: str - Replication strategy ('FULL' or 'INCREMENTAL')
         replication_key: Optional[str] - Name of the replication key column, or None
-        use_chunking: bool - Whether to use chunked cursor processing for this table
+        use_chunking: bool - Whether to use chunked cursor processing for this table (true) or not (false)
     """
 
     stream: str
