@@ -18,6 +18,7 @@ The blendanim framework uses Mixamo skeleton with specific structure:
 See the README.md for detailed documentation and usage examples.
 Framework implementation: https://github.com/RydlrCS/blendanim
 """
+
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
