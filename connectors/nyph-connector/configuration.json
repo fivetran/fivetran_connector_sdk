@@ -1,0 +1,13 @@
+{
+  "sync_mode": "incremental_full_mix",
+  "demo": "True",
+  "snowflake_account": "A0209658500000-SNOWFLAKE_ACCOUNT_NAME",
+  "snowflake_user": "firstname.lastname@email.com",
+  "snowflake_warehouse": "TEST_WAREHOUSE",
+  "snowflake_database": "TEST_SNOW_DATABASE_NAME",
+  "snowflake_schema": "TEST_SNOW_SCHEMA_NAME",
+  "snowflake_role": "TEST_SNOWFLAKE_ROLE",
+  "snowflake_private_key": "-----BEGIN ENCRYPTED PRIVATE KEY-----\nYOUR_PRIVATE_KEY_CONTENT_HERE\n-----END ENCRYPTED PRIVATE KEY-----",
+  "snowflake_private_key_passphrase": "YOUR_SNOWFLAKE_PASSPHRASE"
+}
+
