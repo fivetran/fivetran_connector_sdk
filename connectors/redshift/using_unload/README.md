@@ -44,7 +44,7 @@ The configuration file (`configuration.json`) contains the necessary parameters 
   "redshift_schema": "<YOUR_REDSHIFT_SCHEMA>",
   "s3_bucket": "<YOUR_S3_BUCKET_NAME>",
   "s3_region": "<YOUR_S3_BUCKET_REGION>",
-  "s3_prefix": "<YOUR_S3_BUCKET_PREFIX",
+  "s3_prefix": "<YOUR_S3_BUCKET_PREFIX>",
   "iam_role": "<YOUR_REDSHIFT_IAM_ROLE_ARN>",
   "aws_access_key_id": "<YOUR_AWS_ACCESS_KEY>",
   "aws_secret_access_key": "<YOUR_AWS_SECRET_KEY>",
@@ -111,7 +111,7 @@ The connector also requires an IAM role for Redshift to write `UNLOAD` output to
 The connector handles large datasets by leveraging Redshift's `UNLOAD` command to export data in Parquet format to `S3`. This approach allows efficient handling of large tables without the need for traditional pagination. The connector reads the Parquet files from `S3` in a memory-efficient manner using PyArrow's `S3FileSystem`, streaming data row-group by row-group.
 
 
-## Data Handling
+## Data handling
 
 The connector uses the following workflow:
 
@@ -133,16 +133,16 @@ The connector includes robust error handling mechanisms to manage potential issu
 
 
 ## Tables created
-The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>_<table_name>`.
+The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>.<table_name>`.
 
 The connector automatically detects the schema of each table and creates corresponding tables in the destination with appropriate data types. If automatic schema detection is disabled, the connector uses the schema defined in the `table_spec.py` file.
 
 
 ## Additional files
 The connector includes the following additional files:
-- `table_spec.py`: This file defines the schema for each table in the Redshift database. It is used when automatic schema detection is disabled. You can customize this file to specify the exact schema for each table, including column names and data types.
-- `redshift_client.py`: This file contains the logic for connecting to the Redshift database and executing SQL queries. It encapsulates the connection handling, query execution, and data fetching logic.
-- `s3_client.py`: This file contains the logic for interacting with S3, including reading Parquet files and deleting temporary files after sync.
+- `table_spec.py` - This file defines the schema for each table in the Redshift database. It is used when automatic schema detection is disabled. You can customize this file to specify the exact schema for each table, including column names and data types.
+- `redshift_client.py` - This file contains the logic for connecting to the Redshift database and executing SQL queries. It encapsulates the connection handling, query execution, and data fetching logic.
+- `s3_client.py` - This file contains the logic for interacting with S3, including reading Parquet files and deleting temporary files after sync.
 
 
 ## Additional considerations

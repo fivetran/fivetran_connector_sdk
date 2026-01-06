@@ -6,6 +6,8 @@ Redshift UNLOAD exports data.
 
 # Import for AWS S3 interaction
 import boto3
+
+# For configuring boto3 client (region and retry settings)
 from botocore.config import Config
 
 # Import for type hinting

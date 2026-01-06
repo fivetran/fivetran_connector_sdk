@@ -7,7 +7,7 @@
   "redshift_schema": "<YOUR_REDSHIFT_SCHEMA>",
   "s3_bucket": "<YOUR_S3_BUCKET_NAME>",
   "s3_region": "<YOUR_S3_BUCKET_REGION>",
-  "s3_prefix": "<YOUR_S3_BUCKET_PREFIX",
+  "s3_prefix": "<YOUR_S3_BUCKET_PREFIX>",
   "iam_role": "<YOUR_REDSHIFT_IAM_ROLE_ARN>",
   "aws_access_key_id": "<YOUR_AWS_ACCESS_KEY>",
   "aws_secret_access_key": "<YOUR_AWS_SECRET_KEY>",
