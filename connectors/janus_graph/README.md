@@ -100,7 +100,7 @@ The connector automatically detects authentication credentials in the configurat
 
 ## Pagination
 
-The connector implements pagination using Gremlin's `range()` step to handle large graph datasets without loading all data into memory at once (refer to `sync_vertices()` and `sync_edges()` functions in connector.py).
+The connector implements pagination using Gremlin's `range()` step to handle large graph datasets without loading all data into memory at once (refer to the `sync_vertices()` and `sync_edges()` functions in `connector.py`).
 
 Pagination implementation:
 - Batch size is controlled by the `__BATCH_SIZE` constant (default: 1000 records)
