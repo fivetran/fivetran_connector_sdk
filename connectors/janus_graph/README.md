@@ -33,7 +33,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Multi-valued property handling: Creates separate property tables for vertices and edges with multi-valued properties, maintaining property order with indexes.
 - Relationship preservation: Captures graph structure by storing `in_vertex_id` and `out_vertex_id` in the edges table for relationship analytics.
 - Retry logic: Implements an exponential backoff retry mechanism for transient Gremlin server failures.
-- Checkpoint management - Automatically checkpoints the state after each batch to enable resume capability on interruptions.
+- Checkpoint management: Automatically checkpoints the state after each batch to enable resume capability on interruptions.
 
 ## Configuration file
 
