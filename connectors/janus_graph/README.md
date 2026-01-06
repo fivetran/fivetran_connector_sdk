@@ -149,7 +149,7 @@ The connector transforms JanusGraph graph data into four relational tables optim
 The connector implements comprehensive error handling with retry logic for transient failures:
 
 Retry mechanism (refer to `execute_gremlin_query_with_retry()` function in connector.py):
-- Retries Gremlin queries up to 5 times (controlled by `__MAX_RETRIES` constant)
+- Retries Gremlin queries up to 5 times (controlled by the `__MAX_RETRIES` constant)
 - Uses exponential backoff: sleep time = min(60, 2^attempt) seconds
 - Catches specific exceptions: `GremlinServerError`, `ConnectionError`, `TimeoutError`
 - Logs each retry attempt with a warning level for monitoring
