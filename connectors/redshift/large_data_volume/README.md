@@ -19,6 +19,8 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Incremental sync via `replication_key` with ordered SQL queries.
 - Automatic schema detection from the source schema.
 - Automatic replication key inference based on column semantic types.
+- Supports both full and incremental syncs, with an option for complete resyncs.
+- Large tables with incremental syncs support chunking of the data to optimize memory usage on the server and client sides.
 - Periodic checkpointing every `CHECKPOINT_EVERY_ROWS`
 - Parallel execution governed by `max_parallel_workers`
 - Connection pooling to reduce overhead during parallel query execution
@@ -83,8 +85,9 @@ The steps involved in data handling include:
 2. Retrieving the list of tables from the specified schema.
 3. For each table, determining the appropriate `replication_key` for incremental loading.
 4. Fetching data in batches based on the `batch_size` parameter.
-5. Processing each batch and sending it for ingestion.
-6. Periodically checkpointing the state to ensure data integrity and support resumption in case of failures.
+5. For tables with a `replication_key` and incremental sync strategy, fetching the data in chunks is also supported to optimize memory usage.
+6. Processing each batch and sending it for ingestion.
+7. Periodically checkpointing the state to ensure data integrity and support resumption in case of failures.
 
 The connector also implements parallel processing to speed up data extraction. The `max_parallel_workers` parameter controls the number of concurrent workers used for fetching data from multiple tables simultaneously.
 
