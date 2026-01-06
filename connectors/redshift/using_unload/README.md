@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This example connector demonstrates how to efficiently sync large tables from Amazon Redshift by leveraging the native UNLOAD command to export data to S3 in Parquet format, then reading from S3 for ingestion into Fivetran.
+This example connector demonstrates how to efficiently sync large tables from Amazon Redshift by leveraging the native `UNLOAD` command to export data to S3 in Parquet format, then reading from S3 for ingestion into Fivetran.
 
 
 ## Requirements
@@ -19,15 +19,15 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- UNLOAD-based Export: Uses Redshift's native `UNLOAD` command for efficient data export
-- Parquet Format: Exports data in Parquet format with `SNAPPY` compression for optimal performance
-- Memory-Efficient Reading: Uses `PyArrow S3FileSystem` to stream data row-group by row-group
-- Incremental Sync: Supports incremental synchronization using replication keys
-- Automatic Schema Detection: Discovers tables and primary keys from Redshift automatically
-- Automatic Replication Key Inference: Infers replication keys based on timestamp column types and preferred naming conventions
-- Parallel Table Sync: Syncs multiple tables concurrently using configurable parallel workers
-- Automatic S3 Cleanup: Removes all temporary files (including manifests) after sync
-- Graceful Fallback: Falls back to FULL sync when no suitable replication key is found
+- UNLOAD-based export: Uses Redshift's native `UNLOAD` command for efficient data export
+- Parquet format: Exports data in Parquet format with `SNAPPY` compression for optimal performance
+- Memory-efficient reading: Uses `PyArrow S3FileSystem` to stream data row-group by row-group
+- Incremental sync: Supports incremental synchronization using replication keys
+- Automatic schema detection: Discovers tables and primary keys from Redshift automatically
+- Automatic replication key inference: Infers replication keys based on timestamp column types and preferred naming conventions
+- Parallel table sync: Syncs multiple tables concurrently using configurable parallel workers
+- Automatic S3 cleanup: Removes all temporary files (including manifests) after sync
+- Graceful fallback: Falls back to FULL sync when no suitable replication key is found
 
 
 ## Configuration file
@@ -115,11 +115,11 @@ The connector handles large datasets by leveraging Redshift's `UNLOAD` command t
 
 The connector uses the following workflow:
 
-1. Schema Discovery: Connects to Redshift and discovers tables and columns (or uses predefined `TABLE_SPECS`)
-2. Table Plan Building: Builds sync plans for each table including primary keys, replication strategy, and column selection
-3. UNLOAD Execution: For each table, executes UNLOAD command to export data to S3 as Parquet files
-4. S3 Reading: Reads Parquet files from S3 using PyArrow S3FileSystem for memory-efficient streaming
-5. Data Sync: Upserts records using the connector SDK
+1. Schema discovery: Connects to Redshift and discovers tables and columns (or uses predefined `TABLE_SPECS`)
+2. Table plan building: Builds sync plans for each table including primary keys, replication strategy, and column selection
+3. `UNLOAD` execution: For each table, executes UNLOAD command to export data to S3 as Parquet files
+4. S3 reading: Reads Parquet files from S3 using PyArrow S3FileSystem for memory-efficient streaming
+5. Data sync: Upserts records using the connector SDK
 6. Checkpointing: Periodically saves sync progress (every `CHECKPOINT_EVERY_ROWS` rows)
 7. Cleanup: Deletes all temporary S3 files after successful sync
 
@@ -133,7 +133,7 @@ The connector includes robust error handling mechanisms to manage potential issu
 
 
 ## Tables created
-The connector creates tables in the destination based on the source schema. The table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>.<table_name>`.
+The connector creates tables in the destination based on the source schema. Table names and structures are derived from the Redshift schema specified in the `configuration.json` file. The connector creates a table for each table found in the specified Redshift schema with the name format `<schema_name>.<table_name>`.
 
 The connector automatically detects the schema of each table and creates corresponding tables in the destination with appropriate data types. If automatic schema detection is disabled, the connector uses the schema defined in the `table_spec.py` file.
 
