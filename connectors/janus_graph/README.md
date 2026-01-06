@@ -215,7 +215,7 @@ The connector creates four tables in your destination warehouse:
 | `property_value` | STRING | Single value from the property list |
 | `property_index` | INT | Position in the original property list, 0-based (Composite Primary Key) |
 
-For schema definition, refer to the `schema()` function in [connector.py](connector.py).
+For schema definition, refer to the `schema()` function in `connector.py`.
 
 ## Additional considerations
 
