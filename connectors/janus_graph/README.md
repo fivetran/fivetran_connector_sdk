@@ -96,7 +96,7 @@ This connector supports both authenticated and unauthenticated connections to th
     - Use `wss://` protocol for secure connections
     - Include `username` and `password` parameters
 
-The connector automatically detects authentication credentials in the configuration and establishes authenticated connections when provided (refer to `create_gremlin_client()` function in connector.py).
+The connector automatically detects authentication credentials in the configuration and establishes authenticated connections when provided (refer to the `create_gremlin_client()` function in connector.py).
 
 ## Pagination
 
