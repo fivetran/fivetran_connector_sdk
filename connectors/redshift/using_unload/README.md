@@ -129,7 +129,6 @@ The connector includes robust error handling mechanisms to manage potential issu
 - Connection Errors: Retries Redshift and S3 connections with exponential backoff
 - UNLOAD Failures: Catches and logs UNLOAD command errors, aborting sync if necessary
 - S3 Read Errors: Handles S3 read failures and retries as needed
-- Data Processing Errors: Logs and skips problematic rows during data processing
 
 
 ## Tables created

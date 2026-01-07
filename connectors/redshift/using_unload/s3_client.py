@@ -35,9 +35,7 @@ class S3Client:
             configuration: Dictionary containing S3 connection parameters
         """
         self.bucket = configuration["s3_bucket"]
-        self.region = configuration.get(
-            "s3_region", "us-east-1"
-        )  # Default to us-east-1 if not provided
+        self.region = configuration.get("s3_region")
 
         # Configure boto3 client with retry settings for reliability
         boto_config = Config(
