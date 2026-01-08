@@ -117,9 +117,9 @@ def fetch_data_with_retry(session, url, params=None, headers=None):
 
         except requests.exceptions.RequestException as e:
             should_retry = (
-                hasattr(e, "response")
-                and e.response is not None
-                and hasattr(e.response, "status_code")
+                hasattr(e, "response")  # noqa: W504
+                and e.response is not None  # noqa: W504
+                and hasattr(e.response, "status_code")  # noqa: W504
                 and e.response.status_code in __RETRYABLE_STATUS_CODES
             )
 
@@ -542,7 +542,7 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
                                                     if (
                                                         isinstance(json_data, dict)
                                                         and "text" in json_data
-                                                    ):
+                                                    ):  # noqa: W504
                                                         agent_response += json_data["text"] + "\n"
 
                                                 elif result_item.get("type") == "text":
@@ -558,7 +558,7 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
                                                 if (
                                                     isinstance(json_data, dict)
                                                     and "text" in json_data
-                                                ):
+                                                ):  # noqa: W504
                                                     agent_response += json_data["text"] + "\n"
 
                                             elif result_item.get("type") == "text":
