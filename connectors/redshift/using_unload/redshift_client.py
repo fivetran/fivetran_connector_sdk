@@ -325,8 +325,11 @@ def build_unload_command(
     Returns:
         Complete UNLOAD command string
     """
+    # Escape single quotes in the query for embedding in UNLOAD
+    escaped_query = query.replace("'", "''")
+
     unload_cmd = f"""
-    UNLOAD ('{query.replace("'", "''")}')
+    UNLOAD ('{escaped_query}')
     TO '{s3_path}'
     IAM_ROLE '{iam_role}'
     FORMAT AS PARQUET
@@ -649,7 +652,7 @@ def build_table_plans(connection, configuration: dict) -> List[TablePlan]:
     return plans
 
 
-def _checkpoint(state, stream, replication_key, bookmark):
+def _checkpoint(state, stream, replication_key, bookmark, last_processed_record):
     """
     Update the state dictionary with the latest bookmark for a given stream and replication key.
     This function is called periodically during the sync process to save progress.
@@ -658,7 +661,13 @@ def _checkpoint(state, stream, replication_key, bookmark):
         stream: name of the stream (table) being synced
         replication_key: name of the replication key column
         bookmark: latest value of the replication key
+        last_processed_record: the last record processed
     """
+    if replication_key:
+        replication_key_val = last_processed_record.get(replication_key)
+        if replication_key_val is not None:
+            bookmark = replication_key_val
+
     if replication_key and bookmark is not None:
         # Format the bookmark value appropriately for JSON serialization
         bookmark = (
@@ -815,6 +824,7 @@ def sync_from_s3(
 
     for file_key in files:
         log.info(f"{plan.stream}: Processing file {file_key}")
+        processed_record = None
 
         # Read Parquet file in batches
         for record in s3_client.read_parquet_file(file_key):
@@ -828,18 +838,12 @@ def sync_from_s3(
             op.upsert(table=plan.stream, data=processed_record)
             seen += 1
 
-            # Update bookmark if replication key exists
-            if replication_key:
-                replication_key_val = record.get(replication_key)
-                if replication_key_val is not None:
-                    last_bookmark = replication_key_val
-
             # Periodically checkpoint the state to save progress
             if seen % CHECKPOINT_EVERY_ROWS == 0:
-                _checkpoint(state, plan.stream, replication_key, last_bookmark)
+                _checkpoint(state, plan.stream, replication_key, last_bookmark, processed_record)
 
-    # Final checkpoint
-    _checkpoint(state, plan.stream, replication_key, last_bookmark)
+        # Final checkpoint after each file
+        _checkpoint(state, plan.stream, replication_key, last_bookmark, processed_record)
     return seen
 
 

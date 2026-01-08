@@ -148,7 +148,8 @@ def update(configuration: dict, state: dict):
         try:
             with ThreadPoolExecutor(max_workers=max_parallel_workers) as executor:
                 # Submit tasks to the executor for each table plan
-                futures = [
+                # Map futures to their corresponding plans for better error reporting
+                future_to_plan = {
                     executor.submit(
                         _run_plan_with_pool,
                         plan,
@@ -156,18 +157,32 @@ def update(configuration: dict, state: dict):
                         s3_client,
                         configuration,
                         state,
-                    )
+                    ): plan
                     for plan in plans
-                ]
+                }
 
-                # Wait for all tasks to complete
-                for future in as_completed(futures):
+                # Collect errors from failed threads
+                errors = []
+
+                # Wait for all tasks to complete, allowing all threads to finish
+                for future in as_completed(future_to_plan):
+                    plan = future_to_plan[future]
                     try:
                         stream = future.result()
                         log.info(f"{stream}: Sync Finished.")
                     except Exception as e:
-                        log.severe(f"Error during sync: {e}")
-                        raise
+                        # Log the error but continue processing other threads
+                        log.severe(f"{plan.stream}: Error during sync: {e}")
+                        errors.append((plan.stream, e))
+
+                # After all threads complete, raise an error if any failed
+                if errors:
+                    failed_streams = [stream for stream, _ in errors]
+                    error_messages = [f"{stream}: {str(e)}" for stream, e in errors]
+                    raise RuntimeError(
+                        f"Sync failed for {len(errors)} table(s): {', '.join(failed_streams)}. "
+                        f"Errors: {'; '.join(error_messages)}"
+                    )
         finally:
             # Close all connections in the pool after all tasks are completed
             pool.close_all()
