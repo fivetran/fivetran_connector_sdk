@@ -117,10 +117,10 @@ def fetch_data_with_retry(session, url, params=None, headers=None):
 
         except requests.exceptions.RequestException as e:
             should_retry = (
-                hasattr(e, "response")  # noqa: W504
-                and e.response is not None  # noqa: W504
-                and hasattr(e.response, "status_code")  # noqa: W504
-                and e.response.status_code in __RETRYABLE_STATUS_CODES
+                hasattr(e, "response")  # noqa: W503
+                and e.response is not None  # noqa: W503
+                and hasattr(e.response, "status_code")  # noqa: W503
+                and e.response.status_code in __RETRYABLE_STATUS_CODES  # noqa: W503
             )
 
             if should_retry and attempt < __MAX_RETRIES - 1:
@@ -541,8 +541,8 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
                                                     json_data = result_item.get("json", {})
                                                     if (
                                                         isinstance(json_data, dict)
-                                                        and "text" in json_data
-                                                    ):  # noqa: W504
+                                                        and "text" in json_data  # noqa: W503
+                                                    ):  # noqa: W503
                                                         agent_response += json_data["text"] + "\n"
 
                                                 elif result_item.get("type") == "text":
@@ -557,8 +557,8 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
                                                 json_data = result_item.get("json", {})
                                                 if (
                                                     isinstance(json_data, dict)
-                                                    and "text" in json_data
-                                                ):  # noqa: W504
+                                                    and "text" in json_data  # noqa: W503
+                                                ):  # noqa: W503
                                                     agent_response += json_data["text"] + "\n"
 
                                             elif result_item.get("type") == "text":
