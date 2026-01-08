@@ -126,9 +126,9 @@ The connector uses the following workflow:
 
 ## Error handling
 The connector includes robust error handling mechanisms to manage potential issues during data extraction and processing. Key strategies include:
-- Connection Errors: Retries Redshift and S3 connections with exponential backoff
-- UNLOAD Failures: Catches and logs UNLOAD command errors, aborting sync if necessary
-- S3 Read Errors: Handles S3 read failures and retries as needed
+- Connection errors: Retries Redshift and S3 connections with exponential backoff
+- UNLOAD failures: Catches and logs `UNLOAD` command errors, aborting syncs if necessary
+- S3 read errors: Handles S3 read failures and retries as needed
 
 
 ## Tables created
@@ -139,7 +139,7 @@ The connector automatically detects the schema of each table and creates corresp
 
 ## Additional files
 The connector includes the following additional files:
-- `table_spec.py` - This file defines the schema for each table in the Redshift database. It is used when automatic schema detection is disabled. You can customize this file to specify the exact schema for each table, including column names and data types.
+- `table_spec.py` - This file defines the schema for each table in the Redshift database. The connector uses it when automatic schema detection is disabled. You can customize this file to specify the exact schema for each table, including column names and data types.
 - `redshift_client.py` - This file contains the logic for connecting to the Redshift database and executing SQL queries. It encapsulates the connection handling, query execution, and data fetching logic.
 - `s3_client.py` - This file contains the logic for interacting with S3, including reading Parquet files and deleting temporary files after sync.
 
