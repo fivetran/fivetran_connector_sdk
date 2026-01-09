@@ -27,6 +27,9 @@ from fivetran_connector_sdk import Operations as op
 # Table name constant
 __SCRAPE_TABLE = "scrape_results"
 
+# Linkedin Post By URL dataset ids
+LINKEDIN_POST_BY_URL_DATASET_ID = "gd_d85r5d60186q96c883"
+
 
 def schema(configuration: dict):
     """
@@ -123,7 +126,7 @@ def sync_scrape_urls(api_token, dataset_id, urls, state):
     # Fetch scrape results for all URLs
     # The Bright Data REST API processes URLs and returns results in order
     # Apply dataset-specific query parameters when needed
-    if dataset_id == "gd_lyy3tktm25m4avu764":
+    if dataset_id == LINKEDIN_POST_BY_URL_DATASET_ID:
         scrape_results = perform_scrape(
             api_token=api_token,
             dataset_id=dataset_id,
