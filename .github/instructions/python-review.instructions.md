@@ -154,8 +154,8 @@ You are an AI code reviewer for Python Pull Requests. Your responsibility is to 
   ```
 
 ## Configuration validation (REQUIRED for proper error handling)
-- **`validate_configuration()` function is REQUIRED** to validate configuration values
-  - REQUIRED: Define `validate_configuration()` to check:
+- **`validate_configuration()` function is ALWAYS REQUIRED** to validate configuration values
+  - REQUIRED: Always define `validate_configuration()` to check:
     - Value formats (e.g., valid URLs, port ranges, email formats)
     - Value constraints (e.g., positive integers, valid enum options)
     - Cross-field dependencies (e.g., if field A is set, field B must also be set)
@@ -287,7 +287,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -297,16 +297,17 @@ def schema(configuration: dict):
 ```python
 def update(configuration: dict, state: dict):
     """
-    Define the update function which lets you configure how your connector fetches data.
-    See the technical reference documentation for more details on the update function:
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-        state: a dictionary that holds the state of the connector.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
 ```
 
-**Before EVERY `op.upsert()`** call:
+**Before EACH AND EVERY `op.upsert()`** call:
 ```python
 # The 'upsert' operation is used to insert or update data in the destination table.
 # The first argument is the name of the destination table.
@@ -314,12 +315,14 @@ def update(configuration: dict, state: dict):
 op.upsert(table="table_name", data=record)
 ```
 
-**Before EVERY `op.checkpoint()`** call:
+**Before EACH AND EVERY `op.checkpoint()`** call:
 ```python
 # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
 # from the correct position in case of next sync or interruptions.
+# You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+# For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
 # Learn more about how and where to checkpoint by reading our best practices documentation
-# (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+# (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
 op.checkpoint(state)
 ```
 
@@ -330,8 +333,14 @@ connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
     with open("configuration.json", "r") as f:
@@ -352,6 +361,6 @@ When reviewing Python connector code, systematically check:
 - **Incremental sync logic**: Handles first sync and incremental syncs, correct cursor comparisons (`>=`), no data skipping
 - **Error handling**: Specific exceptions, retry logic with backoff, fail fast on permanent errors
 - **Required docstrings**: Update, schema, and all helper functions properly documented
-- **Required comments**: Before upsert, checkpoint, and main block
+- **Required comments**: Before each and every upsert, checkpoint, and main block
 - **First log statement**: `log.warning("Example: <CATEGORY> : <EXAMPLE_NAME>")` at start of `update()`
-- **Configuration validation**: `validate_configuration()` function checks value validity, not just presence
+- **Configuration validation**: `validate_configuration()` method is always defined, and it checks value validity, not just presence.
