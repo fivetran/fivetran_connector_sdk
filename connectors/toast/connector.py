@@ -13,6 +13,7 @@ import time
 import json
 import copy
 import uuid
+import hashlib
 from cryptography.fernet import Fernet
 
 # Import required classes from fivetran_connector_sdk.
@@ -564,8 +565,12 @@ def process_child(parent, table_name, id_field_name, id_field):
             # log.fine(f"flattening fields in {table_name}")
             p = flatten_fields(fields_to_flatten[table_name], p)
         # check for null guids in appliedTaxes[]
+        # Use deterministic ID based on parent selection + tax rate to ensure consistent identification across syncs
         if table_name == "orders_check_selection_applied_tax" and p.get("guid") is None:
-            p["guid"] = "gen-" + str(uuid.uuid4())
+            parent_id = p.get("orders_check_selection_id", "")
+            tax_rate_id = p.get("taxRate_id", "")
+            unique_string = f"{parent_id}_{tax_rate_id}"
+            p["guid"] = "gen-" + hashlib.md5(unique_string.encode()).hexdigest()
         if table_name == "orders_check":
             p.pop("payments", None)
         p = stringify_lists(p)
