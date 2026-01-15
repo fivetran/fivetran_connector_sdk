@@ -144,18 +144,18 @@ class ODataClient:
     def _upsert_formatted_data(self, formatted_data, table, update_state, query_options=None):
         """Upsert the formatted data and update the state tracker."""
         if formatted_data["success"]:
-            for item in formatted_data["data"]:
+            for record in formatted_data["data"]:
                 # Handle expanded entities if expand option is present
                 if query_options and "expand" in query_options:
                     self._upsert_expanded_data(
-                        record=item,
+                        record=record,
                         expand_options=query_options["expand"],
                         parent_table=table,
-                        parent_data=item,
+                        parent_data=record,
                     )
 
-                op.upsert(table=table, data=item)
-                self._update_state_tracker(item=item, update_state=update_state)
+                op.upsert(table=table, data=record)
+                self._update_state_tracker(item=record, update_state=update_state)
 
             log.info(f"upserted {formatted_data['count']} records into {table}")
             op.checkpoint(self.state)
@@ -189,7 +189,8 @@ class ODataClient:
             if nav_prop not in record or record[nav_prop] is None:
                 continue
 
-            expanded_data = record[nav_prop]
+            # Extract expanded data and immediately remove from parent record
+            expanded_data = record.pop(nav_prop)
             child_table = f"{parent_table}.{nav_prop}"
 
             # Handle collections (one-to-many relationships)
@@ -225,9 +226,6 @@ class ODataClient:
                 # Clean and upsert to child table
                 cleaned_data = self.clean_odata_fields(data=expanded_data)
                 op.upsert(table=child_table, data=cleaned_data)
-
-            # Remove expanded data from parent record to avoid duplication
-            del record[nav_prop]
 
     def _extract_parent_keys(self, parent_data: Dict, expand_options: Dict) -> Dict:
         """

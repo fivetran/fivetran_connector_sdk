@@ -132,7 +132,8 @@ class ODataClient:
             if nav_prop not in record or record[nav_prop] is None:
                 continue
 
-            expanded_data = record[nav_prop]
+            # Extract expanded data and immediately remove from parent record
+            expanded_data = record.pop(nav_prop)
             child_table = f"{parent_table}.{nav_prop}"
 
             # Handle collections (one-to-many relationships)
@@ -168,9 +169,6 @@ class ODataClient:
                 # Clean and upsert to child table
                 cleaned_data = self.clean_odata_fields(data=expanded_data)
                 op.upsert(table=child_table, data=cleaned_data)
-
-            # Remove expanded data from parent record to avoid duplication
-            del record[nav_prop]
 
     def _extract_parent_keys(self, parent_data: Dict, expand_options: Dict) -> Dict:
         """
