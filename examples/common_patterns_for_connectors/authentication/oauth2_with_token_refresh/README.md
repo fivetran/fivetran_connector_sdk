@@ -33,7 +33,7 @@
 3. Use the following command in the folder containing the `connector.py` file to deploy the connector:
 
      ```bash
-     python connector.py --api-key <FIVETRAN-API-KEY> --destination <DESTINATION-NAME> --connection <CONNECTION-NAME> --configuration configuration.json
+     fivetran deploy --api-key <FIVETRAN-API-KEY> --destination <DESTINATION-NAME> --connection <CONNECTION-NAME> --configuration configuration.json
      ```
 4. Once you have deployed the connector, follow the link in the terminal or search in the dashboard with the connection name to view the sync status and logs.
 

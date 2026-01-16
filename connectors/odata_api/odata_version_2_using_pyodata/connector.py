@@ -35,9 +35,6 @@ def schema(configuration: dict):
         {
             "table": "Orders",
             "primary_key": ["OrderID"],
-            "columns": {
-                "Order_Details": "JSON",  # For nested entities, use JSON type
-            },
         },
         {
             "table": "Orders_Inc",
@@ -50,9 +47,6 @@ def schema(configuration: dict):
         {
             "table": "Products_Multiple",
             "primary_key": ["ProductID"],
-            "columns": {
-                "Category": "JSON",
-            },
         },
         {
             "table": "Orders_batch",

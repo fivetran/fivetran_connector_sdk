@@ -119,9 +119,6 @@ This connector creates the following tables in your destination:
 - Primary Key: `_id`
 - Columns: 
   - `_id` (STRING): Document unique identifier
-  - `name` (STRING): User name
-  - `email` (STRING): User email address
-  - `status` (STRING): User status (e.g., active, inactive)
   - `created_at` (UTC_DATETIME): Document creation timestamp
   - `updated_at` (UTC_DATETIME): Document last update timestamp
   - `metadata` (JSON): Additional user metadata as JSON object
@@ -130,10 +127,6 @@ This connector creates the following tables in your destination:
 - Primary Key: `_id`
 - Columns:
   - `_id` (STRING): Document unique identifier
-  - `user_id` (STRING): Reference to user who placed the order
-  - `order_number` (STRING): Order identifier/number
-  - `total_amount` (FLOAT): Order total amount
-  - `status` (STRING): Order status (e.g., pending, completed, cancelled)
   - `created_at` (UTC_DATETIME): Order creation timestamp
   - `updated_at` (UTC_DATETIME): Order last update timestamp
   - `items` (JSON): Order items as JSON array
@@ -153,9 +146,6 @@ Example document structure:
 ```json
 {
   "_id": ObjectId("..."),
-  "name": "John Doe",
-  "email": "john@example.com",
-  "status": "active",
   "created_at": ISODate("2023-01-01T00:00:00Z"),
   "updated_at": ISODate("2023-01-01T00:00:00Z"),
   "metadata": {"source": "web"}
