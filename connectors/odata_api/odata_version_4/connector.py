@@ -30,16 +30,11 @@ def schema(configuration: dict):
             "columns": {  # Definition of columns and their types, optional.
                 "UserName": "STRING",
                 "Emails": "JSON",
-                "Trips": "JSON",
-                "Friends": "JSON",
             },  # For any columns whose names are not provided here, e.g. id, their data types will be inferred
         },
         {
             "table": "Orders",
             "primary_key": ["OrderID"],
-            "columns": {
-                "Order_Details": "JSON",
-            },
         },
         {
             "table": "Products",
@@ -57,9 +52,6 @@ def schema(configuration: dict):
         {
             "table": "Products_Multiple",
             "primary_key": ["ProductID"],
-            "columns": {
-                "Category": "JSON",
-            },
         },
         {
             "table": "Orders_batch",
