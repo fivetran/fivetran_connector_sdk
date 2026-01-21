@@ -303,6 +303,12 @@ def _create_get_positions_soap_envelope(
                {refs}
            </wd:Request_References>"""
 
+    # Build request criteria to include closed positions
+    request_criteria = """<wd:Request_Criteria>
+               <wd:Include_Closed_Positions>1</wd:Include_Closed_Positions>
+               <wd:Show_Only_Closed_Positions>0</wd:Show_Only_Closed_Positions>
+           </wd:Request_Criteria>"""
+
     # Build response filter
     effective_date_str = (
         f"<wd:As_Of_Effective_Date>{effective_date}</wd:As_Of_Effective_Date>"
@@ -344,6 +350,7 @@ def _create_get_positions_soap_envelope(
    <SOAP:Body>
        <wd:Get_Positions_Request xmlns:wd="{_WORKDAY_NAMESPACE}" wd:version="{_WORKDAY_API_VERSION}">
            {request_references}
+           {request_criteria}
            {response_filter}
            {response_group}
        </wd:Get_Positions_Request>
