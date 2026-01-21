@@ -304,7 +304,10 @@ def _create_get_positions_soap_envelope(
            </wd:Request_References>"""
 
     # Build request criteria to include closed positions
-    request_criteria = """<wd:Request_Criteria>
+    # Include Request_Criteria only when not using Request_References (general queries)
+    request_criteria = ""
+    if not position_ids:
+        request_criteria = """<wd:Request_Criteria>
                <wd:Include_Closed_Positions>1</wd:Include_Closed_Positions>
                <wd:Show_Only_Closed_Positions>0</wd:Show_Only_Closed_Positions>
            </wd:Request_Criteria>"""
@@ -335,6 +338,20 @@ def _create_get_positions_soap_envelope(
                <wd:Include_Job_Requisition_Attachments>true</wd:Include_Job_Requisition_Attachments>
            </wd:Response_Group>"""
 
+    # Build request body parts, only including non-empty sections
+    body_parts = []
+    if request_references:
+        body_parts.append(request_references)
+    if request_criteria:
+        body_parts.append(request_criteria)
+    body_parts.append(response_filter)
+    body_parts.append(response_group)
+    # Join with newline and indentation, ensuring first element is also indented
+    if body_parts:
+        request_body = "           " + "\n           ".join(body_parts)
+    else:
+        request_body = ""
+
     envelope = f"""<?xml version="1.0" encoding="UTF-8"?>
 <SOAP:Envelope
    xmlns:SOAP="{_SOAP_ENVELOPE_NS}"
@@ -349,10 +366,7 @@ def _create_get_positions_soap_envelope(
    </SOAP:Header>
    <SOAP:Body>
        <wd:Get_Positions_Request xmlns:wd="{_WORKDAY_NAMESPACE}" wd:version="{_WORKDAY_API_VERSION}">
-           {request_references}
-           {request_criteria}
-           {response_filter}
-           {response_group}
+{request_body}
        </wd:Get_Positions_Request>
    </SOAP:Body>
 </SOAP:Envelope>"""
