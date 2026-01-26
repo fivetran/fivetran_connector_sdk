@@ -142,9 +142,9 @@ def fetch_data_with_retry(session, url, params=None, headers=None):
         except requests.exceptions.RequestException as e:
             should_retry = (
                 hasattr(e, "response")  # noqa: W504
-                and e.response is not None  # noqa: W504
-                and hasattr(e.response, "status_code")  # noqa: W504
-                and e.response.status_code in __RETRYABLE_STATUS_CODES
+                and e.response is not None  # noqa: W503
+                and hasattr(e.response, "status_code")  # noqa: W503
+                and e.response.status_code in __RETRYABLE_STATUS_CODES  # noqa: W503
             )
 
             if should_retry and attempt < __MAX_RETRIES - 1:
