@@ -39,7 +39,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # API Configuration Constants
 __BASE_URL_ZIPPOPOTAM = "http://api.zippopotam.us/us"
 __BASE_URL_NWS = "https://api.weather.gov"
