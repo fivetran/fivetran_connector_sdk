@@ -26,11 +26,6 @@ Use cases:
 - Insurance documentation - Detailed weather and health risk documentation for insurance claims related to weather-related livestock losses
 
 
-## Accreditation
-
-This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel), Partner Sales Engineer at Fivetran.
-
-
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -86,15 +81,6 @@ Configuration parameters:
 - `max_enrichments` (optional) - Maximum number of AI enrichments per sync for cost control, defaults to "10"
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
-
-
-## Requirements file
-
-The `requirements.txt` file specifies Python libraries required by the connector.
-
-This connector has no additional dependencies beyond the pre-installed packages.
-
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
 ## Authentication
