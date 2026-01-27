@@ -93,6 +93,13 @@ class ODataClient:
                     self._process_expanded_entities(
                         entity=entity, record=record, expand_options=query_options["expand"]
                     )
+                    # Upsert expanded entities to separate tables
+                    self._upsert_expanded_data(
+                        record=record,
+                        expand_options=query_options["expand"],
+                        parent_table=table,
+                        parent_data=record,
+                    )
 
                 record = self.clean_odata_fields(data=record)
                 op.upsert(table=table, data=record)
@@ -106,6 +113,81 @@ class ODataClient:
                 break
 
             entities = entity_set_obj.get_entities().next_url(entities.next_url).execute()
+
+    def _upsert_expanded_data(
+        self, record: Dict, expand_options: Dict, parent_table: str, parent_data: Dict
+    ):
+        """
+        Upsert expanded entities to separate tables.
+        This method extracts expanded navigation properties from the record
+        and upserts them to separate tables named {parent_table}.{nav_prop}.
+        It also handles nested expansions recursively and includes parent keys in child records.
+        """
+        # Extract parent key fields (scalar values that are likely identifiers)
+        parent_keys = self._extract_parent_keys(
+            parent_data=parent_data, expand_options=expand_options
+        )
+
+        for nav_prop, options in expand_options.items():
+            if nav_prop not in record or record[nav_prop] is None:
+                continue
+
+            # Extract expanded data and immediately remove from parent record
+            expanded_data = record.pop(nav_prop)
+            child_table = f"{parent_table}.{nav_prop}"
+
+            # Handle collections (one-to-many relationships)
+            if isinstance(expanded_data, list):
+                for item in expanded_data:
+                    if isinstance(item, dict):
+                        # Add parent keys to child record
+                        item.update(parent_keys)
+                        # Process nested expansions recursively
+                        if isinstance(options, dict) and "expand" in options:
+                            self._upsert_expanded_data(
+                                record=item,
+                                expand_options=options["expand"],
+                                parent_table=child_table,
+                                parent_data=item,
+                            )
+                        # Clean and upsert to child table
+                        cleaned_item = self.clean_odata_fields(data=item)
+                        op.upsert(table=child_table, data=cleaned_item)
+
+            # Handle single entity (one-to-one relationships)
+            elif isinstance(expanded_data, dict):
+                # Add parent keys to child record
+                expanded_data.update(parent_keys)
+                # Process nested expansions recursively
+                if isinstance(options, dict) and "expand" in options:
+                    self._upsert_expanded_data(
+                        record=expanded_data,
+                        expand_options=options["expand"],
+                        parent_table=child_table,
+                        parent_data=expanded_data,
+                    )
+                # Clean and upsert to child table
+                cleaned_data = self.clean_odata_fields(data=expanded_data)
+                op.upsert(table=child_table, data=cleaned_data)
+
+    def _extract_parent_keys(self, parent_data: Dict, expand_options: Dict) -> Dict:
+        """
+        Extract key fields from parent data to be included in child records.
+        This method identifies likely primary key fields (fields containing 'Id' or 'id')
+        and scalar values (excluding expanded navigation properties).
+        """
+        parent_keys = {}
+        expand_props = set(expand_options.keys())
+
+        for key, value in parent_data.items():
+            # Skip navigation properties (they are being expanded)
+            if key in expand_props:
+                continue
+            # Include scalar values that are likely keys or important identifiers
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                parent_keys[key] = value
+
+        return parent_keys
 
     def upsert_entity(self, entity, state: Dict = None):
         """
