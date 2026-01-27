@@ -24,7 +24,6 @@ from dataclasses import dataclass
 # Import time for implementing exponential backoff
 import time
 
-
 # Constants
 __API_URL = "https://jsonplaceholder.typicode.com/posts"
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests

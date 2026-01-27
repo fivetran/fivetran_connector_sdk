@@ -21,7 +21,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 __COMPANY_URL = "http://127.0.0.1:5001/cursors/companies"
 
 

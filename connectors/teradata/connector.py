@@ -18,7 +18,6 @@ import json
 from datetime import date
 import teradatasql  # Required for connecting to Teradata Vantage database.
 
-
 __DESTINATION_TABLE = "employee"
 __BATCH_SIZE = 100
 

@@ -38,7 +38,6 @@ import dask.dataframe as dd
 import polars as pl
 import pandas as pd
 
-
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __INITIAL_RETRY_DELAY = 1  # Initial delay in seconds for retries
 __MAX_RETRY_DELAY = 16  # Maximum delay in seconds between retries

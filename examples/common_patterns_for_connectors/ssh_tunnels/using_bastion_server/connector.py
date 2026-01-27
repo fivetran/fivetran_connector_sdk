@@ -26,7 +26,6 @@ import psycopg2  # For interacting with PostgreSQL
 import psycopg2.extras  # For using RealDictCursor to get dict-like cursor results
 import base64  # For decoding base64 encoded SSH keys
 
-
 __CHECKPOINT_INTERVAL = 1000  # Number of records to process before checkpointing state
 __LOCAL_BIND_ADDRESS = "127.0.0.1"  # Local address for SSH tunnel
 __LOCAL_BIND_PORT = 6543  # Local port for SSH tunnel; ensure this port is free

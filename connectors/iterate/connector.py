@@ -19,7 +19,6 @@ import time  # For handling retries and delays
 from datetime import datetime, timezone  # For handling date and time operations
 from typing import Dict, Optional, Any  # For type hinting
 
-
 __BASE_URL = "https://iteratehq.com/api/v1"  # Base URL for Iterate API
 __API_VERSION = "20230101"  # API version date parameter
 __MAX_RETRIES = 3  # Number of retries for API calls

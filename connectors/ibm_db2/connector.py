@@ -22,7 +22,6 @@ import ibm_db
 import json
 from datetime import datetime, timezone  # This is used for handling timestamps
 
-
 # Set the checkpoint interval to 1000 rows
 CHECKPOINT_INTERVAL = 1000
 

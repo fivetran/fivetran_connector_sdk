@@ -35,7 +35,6 @@ import json
 # For handling retries and delays
 import time
 
-
 __DEFAULT_START_DATE = "2020-01-01T00:00:00.000Z"
 __REQUEST_TIMEOUT_SECONDS = 30
 __DOCUMENT_TIMEOUT_SECONDS = 60

@@ -19,7 +19,6 @@ from fivetran_connector_sdk import Operations as op
 import snowflake.connector
 import json
 
-
 # Define a constant for the batch size to control how many records are fetched at once for each table.
 __BATCH_SIZE = 1000
 

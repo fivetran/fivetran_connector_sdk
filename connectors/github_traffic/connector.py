@@ -19,7 +19,6 @@ from datetime import datetime, timezone
 import requests
 import json
 
-
 # Constants
 __MAX_RETRIES = 3
 __TIMESTAMP_POSTFIX = "+00:00"

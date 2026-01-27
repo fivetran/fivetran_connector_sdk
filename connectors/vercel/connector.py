@@ -24,7 +24,6 @@ import time
 
 from typing import Optional
 
-
 __BASE_URL = "https://api.vercel.com"  # Base URL for Vercel API
 __DEPLOYMENTS_ENDPOINT = "/v6/deployments"  # Endpoint path for deployments API
 __PAGINATION_LIMIT = (

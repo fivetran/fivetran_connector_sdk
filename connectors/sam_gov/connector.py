@@ -24,7 +24,6 @@ import time  # For implementing retry delays
 from datetime import datetime, timedelta  # For date handling and state management
 from typing import Dict, List, Any  # For type hints to improve code clarity
 
-
 # Constants for SAM.gov API configuration and pagination
 __BASE_URL = "https://api.sam.gov/opportunities/v2/search"
 __DEFAULT_PAGE_SIZE = 1000  # Maximum allowed by API

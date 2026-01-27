@@ -1,5 +1,6 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
 """This connector demonstrates how Fivetran handles data type changes without defining them in Connector SDK."""
+
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 

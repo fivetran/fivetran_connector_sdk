@@ -38,7 +38,6 @@ import threading
 from typing import List, Optional, Tuple
 from collections import defaultdict
 
-
 # Global variables for error tracking and thread safety
 __ERROR_STATS = defaultdict(int)
 __ERROR_STATS_LOCK = threading.Lock()

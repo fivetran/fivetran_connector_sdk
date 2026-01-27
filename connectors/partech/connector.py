@@ -23,7 +23,6 @@ import requests
 # For exponential backoff retry logic
 from time import sleep
 
-
 # Maximum number of retry attempts for API calls
 __MAX_RETRIES = 3
 

@@ -21,7 +21,6 @@ import boto3  # For AWS S3 operations
 import tempfile  # For creating temporary files
 from process_pdf import PDFInvoiceExtractor  # For extracting data from PDF files
 
-
 # Define the number of files to process before checkpointing the state
 # This is useful to reduce the risk of losing progress in case of an error or interruption during processing.
 __CHECKPOINT_INTERVAL = 100

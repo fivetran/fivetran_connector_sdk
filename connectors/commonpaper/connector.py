@@ -20,7 +20,6 @@ import json  # For JSON data handling and serialization
 import datetime  # For timestamp handling and UTC time operations
 import time  # For implementing exponential backoff delays
 
-
 # Base URL for the Common Paper API
 __API_URL = "https://api.commonpaper.com/v1/agreements"
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests

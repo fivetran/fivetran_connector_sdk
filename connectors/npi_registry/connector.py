@@ -21,7 +21,6 @@ import requests
 # For implementing exponential backoff retry logic
 import time
 
-
 # Constants for API configuration
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
