@@ -39,6 +39,9 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
+# For regular expression operations in parsing agent responses function
+import re
+
 # API Configuration Constants
 __BASE_URL_ZIPPOPOTAM = "http://api.zippopotam.us/us"
 __BASE_URL_NWS = "https://api.weather.gov"
@@ -298,7 +301,6 @@ def parse_agent_response(response_text):
     Returns:
         Dictionary with enriched fields ready for record update
     """
-    import re
 
     enriched = {}
 
