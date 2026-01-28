@@ -17,7 +17,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 BASE_URL = "https://client.badssl.com/"
 
 

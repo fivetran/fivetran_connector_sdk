@@ -32,7 +32,6 @@ from datetime import datetime, timezone
 # For time delays during retries
 import time
 
-
 # Module-level constants
 __TIDB_CONNECTION_KEYS = ["TIDB_HOST", "TIDB_USER", "TIDB_PASS", "TIDB_PORT", "TIDB_DATABASE"]
 __REQUIRED_CONFIG_KEYS = __TIDB_CONNECTION_KEYS + ["TABLES_PRIMARY_KEY_COLUMNS"]

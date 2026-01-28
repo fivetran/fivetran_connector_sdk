@@ -34,7 +34,6 @@ import csv
 # io: For handling CSV data as file-like objects
 import io
 
-
 # Configuration constants needed for the connector
 __LOOKBACK_DAYS = 1  # Number of days to look back for reports (set to 1 for most recent day only)
 __INITIAL_SYNC_START_DATE = "2025-07-07"  # Start date for initial sync

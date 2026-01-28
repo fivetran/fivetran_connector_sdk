@@ -28,7 +28,6 @@ import time
 # For type hints in function signatures
 from typing import Optional, Dict, List
 
-
 __DOCUMENTS_ENDPOINT = "/indexes/{index_uid}/documents/fetch"
 __INDEXES_ENDPOINT = "/indexes"
 __PAGINATION_LIMIT = 100

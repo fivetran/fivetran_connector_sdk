@@ -25,7 +25,6 @@ from datetime import datetime
 import psycopg2
 from psycopg2 import sql
 
-
 __CURSOR_NAME = "ft_server_side_cursor"  # Name of the server-side cursor
 __DEFAULT_BATCH_SIZE = 5000  # Default number of rows to fetch per batch
 __DEFAULT_CURSOR_MODE = "NAMED"  # Default cursor mode

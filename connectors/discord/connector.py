@@ -33,7 +33,6 @@ from fivetran_connector_sdk import Logging as log
 # checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # Constants for API configuration and rate limiting
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries

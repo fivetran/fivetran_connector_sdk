@@ -30,7 +30,6 @@ from table_specs import (
 # Import S3 client utilities
 from s3_client import S3Client
 
-
 # Global variable to hold the list of table plans used during the sync
 __TABLE_PLAN_LIST = None
 

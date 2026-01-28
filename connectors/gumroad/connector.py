@@ -27,7 +27,6 @@ from fivetran_connector_sdk import Operations as op
 # For making HTTP requests to the Gumroad API (pre-installed in Fivetran environment)
 import requests
 
-
 # Maximum number of retry attempts for API requests
 __MAX_RETRIES = 3
 

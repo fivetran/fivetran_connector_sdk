@@ -17,7 +17,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 __INITIAL_SYNC_START = "2024-06-01T00:00:00.000Z"
 __DAYS_PER_SYNC = 30
 
