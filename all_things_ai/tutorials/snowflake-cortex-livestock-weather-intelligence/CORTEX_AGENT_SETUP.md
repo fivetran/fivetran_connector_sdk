@@ -306,24 +306,16 @@ current health status?"
 
 The connector uses the **Cortex Agent REST API**, which requires you to update the semantic view path in the code.
 
-**Find this section in `connector.py` (around line 500):**
+**In the constants section of the `connector.py`, change the __SEMANTIC_VIEW_PATH:**
 
 ```python
-"tool_resources": {
-    "Analyst1": {
-        "semantic_view": "HOL_DATABASE.AGR_0729_CLAUDE.AGR_LIVESTOCK_OVERALL_PERFORMANCE_SV"
-    }
-}
+__SEMANTIC_VIEW_PATH = "HOL_DATABASE.AGR_0729_CLAUDE.AGR_LIVESTOCK_OVERALL_PERFORMANCE_SV"
 ```
 
 **Replace with your actual path:**
 
 ```python
-"tool_resources": {
-    "Analyst1": {
-        "semantic_view": "YOUR_DATABASE.YOUR_SCHEMA.YOUR_SEMANTIC_VIEW_NAME"
-    }
-}
+__SEMANTIC_VIEW_PATH = "YOUR_DATABASE.YOUR_SCHEMA.YOUR_SEMANTIC_VIEW_NAME"
 ```
 
 **Important Notes:**

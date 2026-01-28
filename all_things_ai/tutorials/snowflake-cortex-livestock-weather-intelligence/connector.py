@@ -61,6 +61,7 @@ __DEFAULT_USER_AGENT = "LivestockWeatherIntelligence/1.0"
 
 # Cortex Agent Configuration
 __CORTEX_AGENT_ENDPOINT = "/api/v2/cortex/agent:run"
+__SEMANTIC_VIEW_PATH = "HOL_DATABASE.AGR_0729_CLAUDE.AGR_LIVESTOCK_OVERALL_PERFORMANCE_SV"
 
 
 def flatten_dict(d, parent_key="", sep="_"):
@@ -451,7 +452,7 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
         "tools": [{"tool_spec": {"type": "cortex_analyst_text_to_sql", "name": "Analyst1"}}],
         "tool_resources": {
             "Analyst1": {
-                "semantic_view": "HOL_DATABASE.AGR_0729_CLAUDE.AGR_LIVESTOCK_OVERALL_PERFORMANCE_SV"
+                "semantic_view": __SEMANTIC_VIEW_PATH
             }
         },
         "tool_choice": {"type": "auto"},
