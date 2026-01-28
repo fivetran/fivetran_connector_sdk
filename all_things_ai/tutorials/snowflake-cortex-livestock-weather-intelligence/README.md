@@ -153,6 +153,30 @@ Validation:
 - Empty agent responses result in null enrichment fields
 
 
+## Additional files
+
+This example includes supplementary files to help you set up and test the connector:
+
+### CORTEX_AGENT_SETUP.md
+- Complete setup guide for configuring Snowflake Cortex Agent
+- Step-by-step instructions for creating the AGR_RECORDS table and semantic view
+- Agent configuration via Snowflake UI
+- Troubleshooting common issues
+- Testing and validation procedures
+
+### agr_records.csv
+- Sample livestock health data for testing the connector
+- Contains 42 animal records across 4 farms (FARM_000000 through FARM_000003)
+- Includes realistic species data: Beef Cattle, Chickens, Pigs, and Goats
+- Provides health status, vaccination history, and environmental conditions
+- Load this data into your Snowflake AGR_RECORDS table to enable AI enrichment
+
+### accounts.json.example
+- Example configuration file for Fivetran account settings
+- Shows the structure for configuring Python version and API keys
+- Reference this when setting up local testing with the Fivetran CLI
+
+
 ## Tables created
 
 The connector creates a single table with weather forecasts enriched with livestock health intelligence.
