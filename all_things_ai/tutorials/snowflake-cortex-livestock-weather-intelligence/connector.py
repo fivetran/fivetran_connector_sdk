@@ -792,14 +792,34 @@ def update(configuration: dict, state: dict):
     log.warning(
         "Example: all_things_ai/tutorials : snowflake-cortex-livestock-weather-intelligence"
     )
-    
+
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration)
 
+    # Read state from previous sync
+    last_sync = state.get("last_sync", 0)
+    previous_forecasts = state.get("forecasts_synced", 0)
+    previous_enrichments = state.get("enrichments_completed", 0)
+    processed_zip_codes = state.get("processed_zip_codes", [])
+
+    if last_sync:
+        log.info(f"Previous sync: {previous_forecasts} forecasts, {previous_enrichments} enriched")
+        log.info(f"Previously processed {len(processed_zip_codes)} ZIP codes")
+
     # Parse configuration
     zip_codes_str = configuration.get("zip_codes", "")
-    zip_codes = [z.strip() for z in zip_codes_str.split(",") if z.strip()]
+    all_zip_codes = [z.strip() for z in zip_codes_str.split(",") if z.strip()]
     farm_mapping = parse_farm_zip_mapping(configuration.get("farm_zip_mapping", ""))
+
+    # Determine which ZIP codes still need processing
+    zip_codes = [z for z in all_zip_codes if z not in processed_zip_codes]
+
+    if not zip_codes:
+        log.info(f"All {len(all_zip_codes)} ZIP codes already processed. Sync complete.")
+        return
+
+    if processed_zip_codes:
+        log.info(f"Resuming sync: {len(zip_codes)} ZIP codes remaining (of {len(all_zip_codes)} total)")
 
     # Cortex enrichment settings
     enable_cortex = configuration.get("enable_cortex_enrichment", "false").lower() == "true"
@@ -818,8 +838,9 @@ def update(configuration: dict, state: dict):
     weather_session = requests.Session()
     cortex_session = requests.Session() if enable_cortex else None
 
-    total_forecasts = 0
-    enriched_count = 0
+    # Initialize counters from previous state to maintain cumulative totals
+    total_forecasts = previous_forecasts
+    enriched_count = previous_enrichments
 
     try:
         for zip_code in zip_codes:
@@ -847,24 +868,30 @@ def update(configuration: dict, state: dict):
                     op.upsert(table="livestock_weather_intelligence", data=flattened_record)
                     total_forecasts += 1
 
+                # Mark this ZIP code as processed
+                processed_zip_codes.append(zip_code)
+
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                op.checkpoint(
+                    state={
+                        "last_sync": time.time(),
+                        "processed_zip_codes": processed_zip_codes,
+                        "forecasts_synced": total_forecasts,
+                        "enrichments_completed": enriched_count,
+                    }
+                )
+
+                log.info(f"Checkpointed after ZIP {zip_code} ({len(processed_zip_codes)}/{len(all_zip_codes)} complete)")
+
             except requests.exceptions.RequestException as e:
                 log.warning(f"Failed to fetch weather for ZIP {zip_code}: {str(e)}")
+                # Don't add to processed_zip_codes - will retry on next sync
                 continue
-
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint(
-            state={
-                "last_sync": time.time(),
-                "zip_codes_processed": len(zip_codes),
-                "forecasts_synced": total_forecasts,
-                "enrichments_completed": enriched_count,
-            }
-        )
 
         log.info(
             f"Sync complete: {total_forecasts} forecasts from {len(zip_codes)} ZIP codes, {enriched_count} enriched"
