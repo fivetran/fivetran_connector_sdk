@@ -764,13 +764,12 @@ def validate_configuration(configuration: dict):
 
 def schema(configuration: dict):
     """
-    Define the schema for the connector.
-
-    Fivetran will automatically infer column types from the data.
-    Only the table name and primary key need to be specified.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
 
     Args:
-        configuration: Configuration dictionary (not used for schema)
+        configuration: a dictionary that holds the configuration settings for the connector.
 
     Returns:
         List of table definitions with primary keys
@@ -782,24 +781,19 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Extract weather forecasts and enrich with livestock health intelligence.
-
-    Main sync function that orchestrates the complete data pipeline.
-    This connector performs full refresh on each sync as weather forecasts
-    are time-sensitive and constantly updated.
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Configuration dictionary from configuration.json
-        state: State dictionary from previous sync (not used - full refresh)
-
-    Raises:
-        ValueError: If required configuration is missing
-        RuntimeError: If API requests fail after max retries
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning(
         "Example: all_things_ai/tutorials : snowflake-cortex-livestock-weather-intelligence"
     )
-
+    
+    # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration)
 
     # Parse configuration
