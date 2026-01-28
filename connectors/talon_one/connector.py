@@ -25,7 +25,6 @@ import requests  # For making API requests
 from datetime import datetime, timezone  # For handling date and time
 import time  # For adding delays to avoid rate limits
 
-
 # Define the constants for the connector
 __APPLICATION_ID = "<REPLACE_WITH_YOUR_APPLICATION_ID>"
 __TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

@@ -75,7 +75,7 @@ def update(configuration: dict, state: dict):
         log.info(f"Updated state: {updated_state}")
 
         # Fetch records using api calls
-        (updated_state, insert) = api_response(updated_state, configuration)
+        updated_state, insert = api_response(updated_state, configuration)
 
         for ticker_price in insert["tickers_price"]:
             op.upsert("tickers_price", ticker_price)

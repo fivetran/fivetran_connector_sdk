@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import time
 
-
 # Constants for configuration
 BASE_URL = "https://api.fda.gov/food/enforcement.json"
 DEFAULT_LIMIT = 1000  # FDA API maximum limit per request

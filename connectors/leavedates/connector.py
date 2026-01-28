@@ -28,7 +28,6 @@ import time
 # For handling random delays in retry logic
 import random
 
-
 __BASE_URL = "https://api.leavedates.com"  # Base URL for the LeaveDates API
 __MAX_RETRIES = 3  # Maximum number of retry attempts for API requests
 __BASE_DELAY = 1  # Base delay in seconds for API request retries
