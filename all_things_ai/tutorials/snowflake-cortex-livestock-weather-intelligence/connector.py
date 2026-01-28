@@ -450,11 +450,7 @@ Use real data from AGR_RECORDS to make specific, actionable recommendations."""
         "model": "llama3.3-70b",
         "response_instruction": "You are a livestock health expert. Use your Cortex Analyst tool to query AGR_RECORDS data and provide data-driven livestock health risk assessments based on weather forecasts.",
         "tools": [{"tool_spec": {"type": "cortex_analyst_text_to_sql", "name": "Analyst1"}}],
-        "tool_resources": {
-            "Analyst1": {
-                "semantic_view": __SEMANTIC_VIEW_PATH
-            }
-        },
+        "tool_resources": {"Analyst1": {"semantic_view": __SEMANTIC_VIEW_PATH}},
         "tool_choice": {"type": "auto"},
         "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
     }
