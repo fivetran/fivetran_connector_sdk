@@ -819,7 +819,9 @@ def update(configuration: dict, state: dict):
         return
 
     if processed_zip_codes:
-        log.info(f"Resuming sync: {len(zip_codes)} ZIP codes remaining (of {len(all_zip_codes)} total)")
+        log.info(
+            f"Resuming sync: {len(zip_codes)} ZIP codes remaining (of {len(all_zip_codes)} total)"
+        )
 
     # Cortex enrichment settings
     enable_cortex = configuration.get("enable_cortex_enrichment", "false").lower() == "true"
@@ -886,7 +888,9 @@ def update(configuration: dict, state: dict):
                     }
                 )
 
-                log.info(f"Checkpointed after ZIP {zip_code} ({len(processed_zip_codes)}/{len(all_zip_codes)} complete)")
+                log.info(
+                    f"Checkpointed after ZIP {zip_code} ({len(processed_zip_codes)}/{len(all_zip_codes)} complete)"
+                )
 
             except requests.exceptions.RequestException as e:
                 log.warning(f"Failed to fetch weather for ZIP {zip_code}: {str(e)}")
