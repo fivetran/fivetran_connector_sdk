@@ -5,7 +5,6 @@
   "enable_cortex_enrichment": "true",
   "snowflake_account": "<YOUR_SNOWFLAKE_ACCOUNT.snowflakecomputing.com>",
   "snowflake_pat_token": "<YOUR_SNOWFLAKE_PAT>",
-  "cortex_agent_name": "<YOUR_CORTEX_AGENT_NAME>",
   "cortex_timeout": "60",
   "max_enrichments": "5"
 }
