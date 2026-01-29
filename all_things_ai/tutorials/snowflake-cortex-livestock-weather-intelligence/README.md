@@ -117,7 +117,7 @@ ZIP code processing:
 
 ## Data handling
 
-The connector processes data through the following pipeline - refer to `def update(configuration, state)`:
+The connector processes data through the following sequential pipeline steps, implemented in `def update(configuration, state)`:
 
 1. ZIP code geocoding - Converts ZIP codes to latitude/longitude coordinates via Zippopotam.us API
 2. Weather forecast retrieval - Fetches 7-day forecasts from NWS API using grid coordinates
