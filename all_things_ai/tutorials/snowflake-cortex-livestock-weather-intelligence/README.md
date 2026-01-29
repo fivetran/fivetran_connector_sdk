@@ -6,6 +6,12 @@ This connector chains weather forecast APIs with Snowflake Cortex Agent to provi
 
 The connector retrieves 7-day weather forecasts for farm ZIP codes and enriches each forecast period with AI-generated livestock health risk assessments. This enables proactive farm management by correlating weather predictions with current livestock health status.
 
+Use cases:
+- Proactive health management - Receive 24-48 hour advance warning of dangerous weather conditions affecting specific animals, enabling preventive measures that reduce veterinary costs
+- Emergency preparedness - Automated alerts for extreme weather with species-specific action plans based on current herd health status
+- Historical analysis - Track correlations between weather patterns and livestock health outcomes to improve future decision-making
+- Insurance documentation - Detailed weather and health risk documentation for insurance claims related to weather-related livestock losses
+
 APIs used:
 - [Zippopotam.us](https://api.zippopotam.us/) - ZIP code to geographic coordinates conversion
 - [National Weather Service](https://www.weather.gov/documentation/services-web-api) - Weather forecast retrieval
@@ -18,12 +24,6 @@ Key capabilities:
 - Species-specific risk matrices and recommended preventive actions
 - Historical weather-health correlation analysis
 - Cost control with configurable enrichment limits
-
-Use cases:
-- Proactive health management - Receive 24-48 hour advance warning of dangerous weather conditions affecting specific animals, enabling preventive measures that reduce veterinary costs
-- Emergency preparedness - Automated alerts for extreme weather with species-specific action plans based on current herd health status
-- Historical analysis - Track correlations between weather patterns and livestock health outcomes to improve future decision-making
-- Insurance documentation - Detailed weather and health risk documentation for insurance claims related to weather-related livestock losses
 
 
 ## Requirements
