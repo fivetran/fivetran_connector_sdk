@@ -97,7 +97,7 @@ Zippopotam.us API:
 - Free geocoding service for US ZIP codes
 
 Snowflake Cortex Agent:
-- Uses Personal Access Token (PAT) authentication
+- Uses [Personal Access Token (PAT) authentication](https://docs.snowflake.com/en/en/user-guide/programmatic-access-tokens#label-pat-generate)
 - Generate PAT via Snowflake UI: Profile > Account Settings > Security > Personal Access Tokens
 - Token format: "ver:1-hint:abc123..."
 - Required permissions: SELECT on livestock data tables and semantic views
