@@ -7,9 +7,9 @@ This connector chains weather forecast APIs with Snowflake Cortex Agent to provi
 The connector retrieves 7-day weather forecasts for farm ZIP codes and enriches each forecast period with AI-generated livestock health risk assessments. This enables proactive farm management by correlating weather predictions with current livestock health status.
 
 APIs used:
-- Zippopotam.us - ZIP code to geographic coordinates conversion
-- National Weather Service - Weather forecast retrieval
-- Snowflake Cortex Agent - Livestock health risk analysis via REST API
+- [Zippopotam.us](https://api.zippopotam.us/) - ZIP code to geographic coordinates conversion
+- [National Weather Service](https://www.weather.gov/documentation/services-web-api) - Weather forecast retrieval
+- [Snowflake Cortex Agent](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-llm-rest-api) - Livestock health risk analysis via REST API
 
 Key capabilities:
 - Weather forecast sync for multiple farm ZIP codes
