@@ -54,7 +54,8 @@ The connector performs the following actions for each key aspect:
 ## Data coverage
 
 The entity-relationship diagram (ERD) below shows how tables are linked in the Toast schema.
-![Toast ERD](Toast_ERD.png)
+
+ <img src="https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/connectors/toast/Toast_ERD.png" alt="Fivetran Toast Connector ERD" width="100%">
 
 ### Core tables
 - `restaurant`

@@ -89,9 +89,6 @@ The schema of the created table is as follows:
     "primary_key": ["id"],
     "columns": {
         "id": "STRING",
-        "name": "STRING",
-        "age": "INT",
-        "city": "STRING",
         "created_at": "UTC_DATETIME",
     },
 }

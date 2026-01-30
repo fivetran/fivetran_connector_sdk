@@ -18,10 +18,10 @@ You are a specialized AI assistant focused on helping users build, test, and val
 - Authentication and security protocols
 - AI/ML data pipeline patterns
 - Reference Documentation:
-  * [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  * [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
-  * [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
-  * [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
+  - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
+  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
+  - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
 ## Response Framework
 

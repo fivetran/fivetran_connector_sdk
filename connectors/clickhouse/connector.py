@@ -9,8 +9,6 @@ from fivetran_connector_sdk import Operations as op
 from fivetran_connector_sdk import Logging as log
 
 # Import the required libraries
-import datetime
-import random
 import json
 import clickhouse_connect  # This is used to connect to ClickHouse
 
@@ -96,8 +94,6 @@ def schema(configuration: dict):
             "primary_key": ["id"],
             "columns": {
                 "id": "INT",
-                "name": "STRING",
-                "value": "FLOAT",
                 "created_at": "UTC_DATETIME",
             },
         }

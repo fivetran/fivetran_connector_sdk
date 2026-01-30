@@ -206,11 +206,7 @@ def schema(configuration: dict):
             "table": "excel_data_pandas",  # Name of the table
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
-                "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
+                "id": "STRING",
                 "timestamp": "UTC_DATETIME",
             },
             # Columns not defined in schema will be inferred
@@ -219,11 +215,7 @@ def schema(configuration: dict):
             "table": "excel_data_calamine",  # Name of the table
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
-                "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
+                "id": "STRING",
                 "timestamp": "UTC_DATETIME",
             },
             # Columns not defined in schema will be inferred
@@ -232,11 +224,7 @@ def schema(configuration: dict):
             "table": "excel_data_openpyxl",  # Name of the table
             "primary_key": ["id"],  # Primary key(s) of the table
             "columns": {
-                "id": "INT",
-                "name": "STRING",
-                "email": "STRING",
-                "age": "INT",
-                "country": "STRING",
+                "id": "STRING",
                 "timestamp": "UTC_DATETIME",
             },
             # Columns not defined in schema will be inferred

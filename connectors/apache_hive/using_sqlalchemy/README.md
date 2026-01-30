@@ -80,8 +80,6 @@ The connector creates a table named `PEOPLE` with the following schema:
     "primary_key": ["id"],
     "columns": {
         "id": "INT",
-        "name": "STRING",
-        "age": "INT",
         "created_at": "UTC_DATETIME"
     },
 }
