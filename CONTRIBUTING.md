@@ -269,7 +269,7 @@ cd connectors/your_connector_name
 # Run the debug command
 fivetran debug
 
-# If you connector uses configuration file, run
+# If your connector uses configuration file, run
 fivetran debug --configuration=configuration.json
 ```
 
@@ -284,4 +284,4 @@ Capture a screenshot of the successful `fivetran debug` output and attach the sc
 
 ## Need help?
 
-If you have questions or need assistance while contributing, you can use PR comments to ask questions or request clarification about the PR. For issues that can't be resolved through PR comments, You can reach out to our [Support team](https://support.fivetran.com/hc/en-us).
+If you have questions or need assistance while contributing, you can use PR comments to ask questions or request clarification about the PR. For issues that can't be resolved through PR comments, you can reach out to our [Support team](https://support.fivetran.com/hc/en-us).
