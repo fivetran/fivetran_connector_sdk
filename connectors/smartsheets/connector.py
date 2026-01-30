@@ -1,3 +1,13 @@
+"""
+This is an example for syncing data from Smartsheet.
+It hits the getSheet endpoint and gets data from pre-defined sheets and reports in Smartsheets.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices)
+for details.
+"""
+
 # For generating MD5 hashes of row IDs as primary keys
 import hashlib
 
