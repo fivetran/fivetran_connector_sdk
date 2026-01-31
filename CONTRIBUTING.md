@@ -10,28 +10,28 @@ This project adheres to the [Contributor Covenant Code of Conduct](https://githu
 
 We encourage the community to contribute in the following ways:
 
-- New Connector Examples: Add examples for popular APIs, databases, or data sources
-- Bug Fixes: Fix issues in existing connector examples
-- Performance Improvements: Optimize existing connectors for better performance
-- Code Quality Improvements: Refactor code to follow best practices
-- New Common Patterns: Add reusable patterns and utilities that benefit multiple connectors
+- New connector examples - add examples for popular APIs, databases, or data sources
+- Bug fixes - fix issues in existing connector examples
+- Performance improvements - optimize existing connectors for better performance
+- Code quality improvements - refactor code to follow best practices
+- New common patterns - add reusable patterns and utilities that benefit multiple connectors
 
 ## Getting started
 
-Before contributing, please:
+Before contributing, do the following:
 
-1. Read the Documentation: Familiarize yourself with the [Connector SDK documentation](https://fivetran.com/docs/connector-sdk)
-2. Review Existing Examples: Browse the [existing examples](https://github.com/fivetran/fivetran_connector_sdk/tree/main/README.md#examples) to understand our coding patterns and structure
-3. Set Up Your Environment: Follow the [setup guide](https://fivetran.com/docs/connector-sdk/setup-guide) to install the Connector SDK
+1. Familiarize yourself with the [Connector SDK documentation](https://fivetran.com/docs/connector-sdk).
+2. Browse the [existing examples](https://github.com/fivetran/fivetran_connector_sdk/tree/main/README.md#examples) to understand our coding patterns and structure.
+3. Set up your environment - follow the [setup guide](https://fivetran.com/docs/connector-sdk/setup-guide) to install the Connector SDK.
 
 
 ## How to fork and create a pull request
 
 ### Step 1: Fork the repository
 
-1. Navigate to the [Fivetran Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk) on GitHub
-2. Click the `Fork` button in the upper-right corner of the page
-3. This creates a copy of the repository under your GitHub account
+1. Navigate to the [Fivetran Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk) on GitHub.
+2. Click **Fork** in the upper-right corner of the page.
+3. This creates a copy of the repository under your GitHub account.
 
 ### Step 2: Clone your fork
 
@@ -57,20 +57,20 @@ git pull upstream main
 git checkout -b feature/your-example-name
 ```
 
-Branch Naming Convention: Use descriptive branch names such as:
+Use descriptive branch names such as:
 - `feature/salesforce-connector`
 - `fix/pagination-bug-in-hubspot`
 
 ### Step 4: Make your changes
 
-1. Create or modify connector examples in the appropriate directory
-2. Ensure your code follows our [coding standards](#contribution-standards-and-guidelines)
-3. Test your connector thoroughly using `fivetran debug`
-4. Add or update documentation as needed
+1. Create or modify connector examples in the appropriate directory.
+2. Ensure your code follows our [coding standards](#contribution-standards-and-guidelines).
+3. Test your connector thoroughly using `fivetran debug`.
+4. Add or update documentation as needed.
 
 ### Step 5: Set up pre-commit hooks
 
-To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the root of the repository for automatic code formatting
+To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the root of the repository for automatic code formatting.
 
 ### Step 6: Commit your changes
 
@@ -91,9 +91,9 @@ git push origin feature/your-example-name
 
 ### Step 8: Create a pull request
 
-1. Navigate to your forked repository on GitHub
-2. Click the `Compare & pull request` button
-3. Ensure the base repository is `fivetran/fivetran_connector_sdk` and the base branch is `main`
+1. Navigate to your forked repository on GitHub.
+2. Click the `Compare & pull request` button.
+3. Ensure the base repository is `fivetran/fivetran_connector_sdk` and the base branch is `main`.
 4. Fill out the pull request template with:
    - Clear title message
    - Detailed description of your changes
@@ -122,9 +122,9 @@ All contributions must adhere to our coding standards and principles to ensure c
 
 Before submitting a pull request, thoroughly review these documents:
 
-1. [Python Coding Standards](https://github.com/fivetran/fivetran_connector_sdk/tree/main/PYTHON_CODING_STANDARDS.md): Comprehensive guidelines for Python code style, naming conventions, and best practices
-2. [Fivetran Coding Principles](https://github.com/fivetran/fivetran_connector_sdk/tree/main/FIVETRAN_CODING_PRINCIPLES.md): High-level principles for code reviews, PR guidelines, and example development
-3. [Connector SDK Best Practices](https://fivetran.com/docs/connector-sdk/best-practices): Official documentation on best practices
+- [Python Coding Standards](https://github.com/fivetran/fivetran_connector_sdk/tree/main/PYTHON_CODING_STANDARDS.md) - comprehensive guidelines for Python code style, naming conventions, and best practices
+- [Fivetran Coding Principles](https://github.com/fivetran/fivetran_connector_sdk/tree/main/FIVETRAN_CODING_PRINCIPLES.md) - high-level principles for code reviews, PR guidelines, and example development
+3. [Connector SDK Best Practices](https://fivetran.com/docs/connector-sdk/best-practices) - official documentation on best practices
 
 ### Documentation requirements
 
@@ -147,9 +147,9 @@ All pull requests go through a multi-stage review process to ensure quality and 
 
 When you submit a pull request, automated checks will run:
 
-- Code Quality Check: Flake8 linting and Black formatting validation
-- README Update Check: Verifies that the root README.md is updated for new examples
-- CLA Verification: Confirms that you have signed the Contributor License Agreement
+- Code quality check - Flake8 linting and Black formatting validation
+- README update check - verifies that the root README.md is updated for new examples
+- CLA verification - confirms that you have signed the Contributor License Agreement (CLA)
 
 These checks must pass before human review begins.
 
@@ -172,7 +172,7 @@ Your pull request requires two approvals from the Fivetran team:
 
 A Fivetran team member will review:
 - `README.md` completeness and clarity
-- Alignment with documentation standards
+- Alignment with our documentation standards
 
 #### Code review
 
@@ -186,11 +186,11 @@ A Fivetran team member will review:
 
 ### Addressing review feedback
 
-1. Respond to Comments: Acknowledge each review comment
-2. Make Changes: Update your code based on feedback
+1. Acknowledge each review comment.
+2. Update your code based on feedback.
 3. Push Updates: Commit and push changes to your branch
-4. Request Re-review: Once all feedback is addressed, request re-review from reviewers
-5. Resolve Conversations: Mark conversations as resolved when addressed
+4. Once all feedback is addressed, request re-review from reviewers.
+5. Mark conversations as resolved when addressed.
 
 ## Pull request checks
 
@@ -241,10 +241,10 @@ All contributors must sign the Fivetran CLA before their contributions can be ac
 
 #### How the CLA works
 
-- First-Time Contributors: When you submit your first pull request, the CLA bot will automatically comment on your PR
-- Sign the CLA: Follow the link provided by the bot to sign the CLA electronically
-- Automatic Verification: Once signed, the bot will automatically verify and update your PR status
-- One-Time Process: You only need to sign the CLA once for all future contributions
+- When you submit your first pull request, the CLA bot will automatically comment on your PR.
+- Follow the link provided by the bot to sign the CLA electronically
+- Once you have signed the CLA, the bot will automatically verify and update your PR status
+You only need to sign the CLA once for all future contributions.
 
 ## Testing requirements
 
@@ -275,7 +275,7 @@ fivetran debug --configuration=configuration.json
 
 #### Step 3: Verify the output
 
-After running `fivetran debug`, verify that the output indicates a successful run without errors. You should also verify the warehouse.db file to ensure data has been extracted and loaded correctly. For more information on working with the warehouse.db file, refer to the [Connector SDK documentation](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithwarehousedb).
+After running `fivetran debug`, verify that the output indicates a successful run without errors. You should also verify the `warehouse.db` file to ensure data has been extracted and loaded correctly. For more information on working with the `warehouse.db` file, refer to the [Connector SDK documentation](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk#workingwithwarehousedb).
 
 #### Step 4: Take a screenshot and add to your PR
 
