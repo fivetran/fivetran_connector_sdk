@@ -45,11 +45,13 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ### Community connectors
 
-These are ready-to-use connectors, requiring minimal modifications to get started.
+These are ready-to-use connectors, requiring minimal modifications to get started.  
 
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>
 
+- [act_web_api] (https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/source_examples/act_web_api) - This is an example of how to connect to an Act! Premium for Web API instance and sync data from 6 endpoints, contacts, companies, opportunities, activities, activity_types, and products.
+- [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This is an example of how we can connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This example shows how to connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_pulsar](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_pulsar) - This example demonstrates how to fetch data from Apache Pulsar topics and sync it to a data warehouse using Connector SDK. It supports multiple topics, uses Pulsar's Reader API for message consumption, and implements proper checkpointing for incremental syncs.
