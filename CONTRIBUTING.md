@@ -65,7 +65,7 @@ Use descriptive branch names such as:
 
 1. Create or modify connector examples in the appropriate directory.
 2. Ensure your code follows our [coding standards](#contribution-standards-and-guidelines).
-3. Test your connector thoroughly using `fivetran debug`.
+3. Test your connector thoroughly using `fivetran debug`. Refer to the [building custom connector tutorial](https://fivetran.com/docs/connector-sdk/tutorials/beginners-tutorial#installthefivetranconnectorsdk). 
 4. Add or update documentation as needed.
 
 ### Step 5: Set up pre-commit hooks
@@ -75,7 +75,7 @@ To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the
 ### Step 6: Commit your changes
 
 ```bash
-# Stage your changes
+# Stage all your local changes
 git add .
 
 # Commit with a descriptive message
@@ -87,6 +87,9 @@ git commit -m "brief description of changes"
 ```bash
 # Push your branch to your forked repository
 git push origin feature/your-example-name
+
+# Or, if you are updating an existing branch
+git push
 ```
 
 ### Step 8: Create a pull request
@@ -113,6 +116,8 @@ git push origin main
 git checkout feature/your-example-name
 git rebase main
 ```
+
+You can also use your IDE's interface to manage branches and resolve conflicts.
 
 ## Contribution standards and guidelines
 
@@ -141,7 +146,11 @@ When adding a new connector example, you must update the root [README.md](https:
 
 ## Review process
 
-All pull requests go through a multi-stage review process to ensure quality and consistency:
+All pull requests go through a multi-stage review process to ensure quality and consistency. Each pull request should ensure it meets the following requirements before it can be merged:
+- Passes all automated checks
+- Reviewed by GitHub Copilot
+- Receives two approvals from Fivetran team members
+- Addresses all review feedback
 
 ### Stage 1: Automated checks
 
