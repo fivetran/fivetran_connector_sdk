@@ -246,7 +246,7 @@ What to update in `README.md`:
 
 ### 3. Contributor license agreement
 
-All contributors must sign the Fivetran CLA before their contributions can be accepted.
+All contributors must sign the Fivetran CLA before their contributions can be accepted. You can review the CLA [here](https://cla-assistant.io/fivetran/fivetran_connector_sdk).
 
 #### How the CLA works
 
