@@ -37,6 +37,9 @@ from typing import List
 # Used for detailed error logging and debugging
 import traceback
 
+# Used for catching specific HTTP and network exceptions from pytrends
+import requests.exceptions
+
 # Import required classes from fivetran_connector_sdk
 # Main connector class that orchestrates the sync
 from fivetran_connector_sdk import Connector
@@ -51,6 +54,9 @@ from fivetran_connector_sdk import Operations as op
 # Main class for making requests to Google Trends
 from pytrends.request import TrendReq
 
+# Data manipulation library used by pytrends for returning data
+import pandas as pd
+
 # Import configuration from Python file
 # Default search configurations defined in config.py
 from config import SEARCHES
@@ -59,18 +65,16 @@ from config import SEARCHES
 # Used to filter out unwanted warning messages
 import warnings
 
-# Data manipulation library used by pytrends for returning data
-
-import pandas as pd
-
 warnings.filterwarnings("ignore", category=FutureWarning, module="pytrends")
 pd.set_option("future.no_silent_downcasting", True)
 
 
 # Constants
-MAX_RETRIES = 5  # Number of retry attempts
-RETRY_BASE_DELAY = 60  # Base delay in seconds for exponential backoff (1 minute)
-RETRY_JITTER = 30  # Random jitter to add on top of base delay (30 seconds)
+
+__MAX_RETRIES = 5  # Number of retry attempts
+__RETRY_BASE_DELAY = 60  # Base delay in seconds for exponential backoff (1 minute)
+__RETRY_JITTER = 30  # Random jitter to add on top of base delay (30 seconds)
+__INTER_REGION_DELAY = 5  # Delay in seconds between regions to avoid rate limiting
 
 
 def get_searches(configuration: dict):
@@ -170,17 +174,12 @@ def _validate_search(search: dict, search_idx: int) -> None:
 
 def validate_configuration(configuration: dict) -> None:
     """
-    Validate the complete configuration to ensure it contains all required parameters.
-
-    This is the top-level validation function that checks the entire configuration structure,
-    including all searches, keywords, regions, and timeframes. It will raise detailed errors
-    if any part of the configuration is invalid.
-
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
-        configuration: A dictionary containing the connector configuration with searches array.
-
+        configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: If any part of the configuration is invalid or missing required fields.
+        ValueError: if any required configuration parameter is missing or invalid.
     """
     searches = get_searches(configuration)
 
@@ -230,23 +229,11 @@ def generate_search_id(search_name: str, keywords: List[str], timeframe: str) ->
 
 def schema(configuration: dict):
     """
-    Define the schema for Google Trends data.
-
-    The schema defines a single append-only table that stores time series data.
-    Each row represents the interest value for a specific keyword in a region on a specific date.
-
-    The search_id groups keywords from the same search together, which is critical because
-    Google Trends results are relative to each other within a search. Keywords with the same
-    search_id were queried together and their interest scores are comparable.
-
-    The sync_timestamp in the primary key ensures every sync creates new records,
-    allowing you to track how trends data changes over time.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
-        configuration: A dictionary that holds the configuration settings for the connector.
-
-    Returns:
-        A list containing the table schema definition.
+    configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -275,18 +262,15 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Main sync function that fetches Google Trends data for the entire configured time period.
-
-    This function:
-    1. Validates the configuration
-    2. Fetches interest over time for each search group independently
-    3. Transforms and upserts the data
-    4. Each sync creates a complete snapshot with new sync_timestamp
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing searches array with keywords, regions, and timeframe
-        state: A dictionary containing state information (not used in full refresh mode)
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: CONNECTORS : GOOGLE_TRENDS")
 
     # Validate the configuration
     validate_configuration(configuration)
@@ -329,7 +313,7 @@ def update(configuration: dict, state: dict):
         if total_regions > 0 and len(failed_regions) == total_regions:
             # All regions failed
             log.severe(
-                f"Sync failed: All {total_regions} region(s) failed after {MAX_RETRIES} retry attempts"
+                f"Sync failed: All {total_regions} region(s) failed after {__MAX_RETRIES} retry attempts"
             )
             log.severe(f"Failed regions: {', '.join(failed_regions)}")
             raise RuntimeError(
@@ -576,20 +560,58 @@ def process_region(
                     "is_partial": is_partial,
                 }
 
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table="google_trends", data=record)
                 records_in_region += 1
                 total_records_synced += 1
 
         log.info(f"  Region {region_name}: Synced {records_in_region} records")
-        time.sleep(5)
 
-    except Exception as e:
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+        op.checkpoint({
+            "last_sync_timestamp": sync_timestamp,
+            "total_records_synced": total_records_synced,
+            "failed_regions": failed_regions,
+        })
+
+        time.sleep(__INTER_REGION_DELAY)
+
+    # Catch specific expected exceptions from API calls and data processing
+    # These are logged and allow the sync to continue with other regions
+    except requests.exceptions.RequestException as e:
+        # HTTP/network errors from pytrends API calls - expected and recoverable
         error_type = type(e).__name__
         error_msg = str(e)
-        log.severe(f"  Failed to fetch data for region {region_name} ({region_code})")
+        log.severe(f"  Failed to fetch data for region {region_name} ({region_code}): Network/API error")
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
+    except (ValueError, KeyError, TypeError) as e:
+        # Data parsing/conversion errors - expected and recoverable
+        error_type = type(e).__name__
+        error_msg = str(e)
+        log.severe(f"  Failed to process data for region {region_name} ({region_code}): Data error")
+        log.severe(f"  Error type: {error_type}, Message: {error_msg}")
+        log.severe(f"  Traceback:\n{traceback.format_exc()}")
+        failed_regions.append(f"{search_name}/{region_name}")
+    except Exception as e:
+        # Unexpected exceptions should be logged and re-raised to surface critical errors
+        # that need investigation
+        error_type = type(e).__name__
+        error_msg = str(e)
+        log.severe(f"  Unexpected error for region {region_name} ({region_code})")
+        log.severe(f"  Error type: {error_type}, Message: {error_msg}")
+        log.severe(f"  Traceback:\n{traceback.format_exc()}")
+        failed_regions.append(f"{search_name}/{region_name}")
+        # Re-raise unexpected exceptions to prevent silent failures
+        raise
 
     return total_records_synced, total_regions
 
@@ -647,7 +669,7 @@ def log_error_details(
     error_msg = str(e)
     error_type = type(e).__name__
 
-    log.severe(f"[DEBUG] Attempt {retry + 1}/{MAX_RETRIES} failed")
+    log.severe(f"[DEBUG] Attempt {retry + 1}/{__MAX_RETRIES} failed")
     log.severe(f"[DEBUG] Exception Type: {error_type}")
     log.severe(f"[DEBUG] Exception Message: {error_msg}")
     log.severe(f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}")
@@ -664,9 +686,9 @@ def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
     Calculate exponential backoff delay with random jitter for retry attempts.
 
     The delay increases exponentially with each retry:
-    - Retry 0: 60s base + 0-60s jitter = 60-120s total
-    - Retry 1: 120s base + 0-60s jitter = 120-180s total
-    - Retry 2: 240s base + 0-60s jitter = 240-300s total
+    - Retry 0: 60s base + 0-30s jitter = 60-90s total
+    - Retry 1: 120s base + 0-30s jitter = 120-150s total
+    - Retry 2: 240s base + 0-30s jitter = 240-300s total
     - And so on...
 
     Random jitter helps prevent thundering herd problems when multiple processes retry.
@@ -677,8 +699,8 @@ def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
     Returns:
         Tuple of (total_wait_time, base_delay, jitter) in seconds.
     """
-    base_delay = RETRY_BASE_DELAY * (2**retry)
-    jitter = random.uniform(0, RETRY_JITTER)
+    base_delay = __RETRY_BASE_DELAY * (2**retry)
+    jitter = random.uniform(0, __RETRY_JITTER)
     wait_time = base_delay + jitter
     return wait_time, base_delay, jitter
 
@@ -696,7 +718,7 @@ def handle_retry_sleep(retry: int, error_type: str, error_msg: str):
         error_msg: Message from the exception.
     """
     wait_time, base_delay, jitter = calculate_retry_delay(retry)
-    log.warning(f"Request failed (attempt {retry + 1}/{MAX_RETRIES}): {error_type}: {error_msg}")
+    log.warning(f"Request failed (attempt {retry + 1}/{__MAX_RETRIES}): {error_type}: {error_msg}")
     log.info(f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)...")
 
     time.sleep(wait_time)
@@ -726,7 +748,7 @@ def fetch_region_data_with_retry(
     """
     last_error = None
 
-    for retry in range(MAX_RETRIES):
+    for retry in range(__MAX_RETRIES):
         try:
             # Build payload for this timeframe
             pytrends.build_payload(
@@ -739,16 +761,31 @@ def fetch_region_data_with_retry(
             # Success!
             return df
 
-        except Exception as e:
+        # Catch specific exceptions for retry logic
+        except (requests.exceptions.RequestException, ValueError, KeyError, json.JSONDecodeError) as e:
+            # HTTP/network errors, data parsing errors - these are expected and should be retried
             last_error = e
             error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
 
-            if retry < MAX_RETRIES - 1:
+            if retry < __MAX_RETRIES - 1:
                 # Calculate exponential backoff delay with random jitter
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.severe(f"All {MAX_RETRIES} retry attempts exhausted for region {region_code}")
+                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
+                log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
+        except Exception as e:
+            # Catch other unexpected exceptions from pytrends library
+            # Still retry these as they may be transient errors
+            last_error = e
+            error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
+
+            if retry < __MAX_RETRIES - 1:
+                # Calculate exponential backoff delay with random jitter
+                # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
+                handle_retry_sleep(retry, error_type, error_msg)
+            else:
+                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
                 log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
 
     # All retries exhausted - re-raise the last error
@@ -756,7 +793,7 @@ def fetch_region_data_with_retry(
         raise last_error
 
     raise RuntimeError(
-        f"Failed to fetch data for region {region_code} after {MAX_RETRIES} retries"
+        f"Failed to fetch data for region {region_code} after {__MAX_RETRIES} retries"
     )
 
 
