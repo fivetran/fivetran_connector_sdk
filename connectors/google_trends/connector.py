@@ -90,9 +90,7 @@ def get_searches(configuration: dict):
     # Get searches from configuration or use Python config
     if "searches" in configuration:
         searches_raw = configuration.get("searches")
-        searches = (
-            json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
-        )
+        searches = json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
     else:
         # Use searches from Python config file
         searches = SEARCHES
@@ -554,9 +552,7 @@ def process_region(
         records_in_region = 0
 
         for date_index, row in df.iterrows():
-            is_partial = (
-                bool(row.get("isPartial", False)) if has_partial_column else False
-            )
+            is_partial = bool(row.get("isPartial", False)) if has_partial_column else False
             date_str = convert_timestamp_to_iso(date_index)
 
             for keyword in keywords:
@@ -647,9 +643,7 @@ def log_error_details(
     log.severe(f"[DEBUG] Attempt {retry + 1}/{MAX_RETRIES} failed")
     log.severe(f"[DEBUG] Exception Type: {error_type}")
     log.severe(f"[DEBUG] Exception Message: {error_msg}")
-    log.severe(
-        f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}"
-    )
+    log.severe(f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}")
 
     log_http_response_details(e)
 
@@ -695,12 +689,8 @@ def handle_retry_sleep(retry: int, error_type: str, error_msg: str):
         error_msg: Message from the exception.
     """
     wait_time, base_delay, jitter = calculate_retry_delay(retry)
-    log.warning(
-        f"Request failed (attempt {retry + 1}/{MAX_RETRIES}): {error_type}: {error_msg}"
-    )
-    log.info(
-        f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)..."
-    )
+    log.warning(f"Request failed (attempt {retry + 1}/{MAX_RETRIES}): {error_type}: {error_msg}")
+    log.info(f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)...")
 
     time.sleep(wait_time)
 
@@ -744,21 +734,15 @@ def fetch_region_data_with_retry(
 
         except Exception as e:
             last_error = e
-            error_type, error_msg = log_error_details(
-                e, retry, region_code, keywords, timeframe
-            )
+            error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
 
             if retry < MAX_RETRIES - 1:
                 # Calculate exponential backoff delay with random jitter
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.severe(
-                    f"All {MAX_RETRIES} retry attempts exhausted for region {region_code}"
-                )
-                log.severe(
-                    f"[DEBUG] Final error type: {error_type}, message: {error_msg}"
-                )
+                log.severe(f"All {MAX_RETRIES} retry attempts exhausted for region {region_code}")
+                log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
 
     # All retries exhausted - re-raise the last error
     if last_error:
