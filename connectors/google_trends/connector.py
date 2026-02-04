@@ -70,7 +70,7 @@ pd.set_option("future.no_silent_downcasting", True)
 # Constants
 MAX_RETRIES = 5  # Number of retry attempts
 RETRY_BASE_DELAY = 60  # Base delay in seconds for exponential backoff (1 minute)
-RETRY_JITTER = 60  # Random jitter to add on top of base delay (30 seconds)
+RETRY_JITTER = 30  # Random jitter to add on top of base delay (30 seconds)
 
 
 def get_searches(configuration: dict):
