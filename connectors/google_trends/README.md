@@ -93,7 +93,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses the public Google Trends API, which does not require authentication credentials. The connector accesses publicly available search interest data without needing API keys, OAuth tokens, or user credentials.
 
-The connector implements custom browser headers to mimic legitimate requests and avoid being blocked. Refer to `def initialize_pytrends()` in `connector.py` for the header configuration.
+The connector configures HTTP headers compatible with the Google Trends web interface to ensure reliable access. Refer to `def initialize_pytrends()` in `connector.py` for the header configuration.
 
 ## Pagination
 
