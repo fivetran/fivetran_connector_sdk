@@ -368,8 +368,13 @@ def update(configuration: dict, state: dict):
                 f"Synced {total_records_synced} records from {total_regions} region(s) in {sync_duration:.2f} seconds"
             )
 
+    except RuntimeError as e:
+        log.severe(f"Fatal error during sync: {str(e)}")
+        # Re-raise RuntimeError without wrapping to avoid nested exception messages
+        raise
     except Exception as e:
         log.severe(f"Fatal error during sync: {str(e)}")
+        # Wrap unexpected exceptions in a RuntimeError to provide a consistent error surface
         raise RuntimeError(f"Failed to sync Google Trends data: {str(e)}")
 
 
