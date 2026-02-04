@@ -94,7 +94,9 @@ def get_searches(configuration: dict):
     # Get searches from configuration or use Python config
     if "searches" in configuration:
         searches_raw = configuration.get("searches")
-        searches = json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
+        searches = (
+            json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
+        )
     else:
         # Use searches from Python config file
         searches = SEARCHES
@@ -168,14 +170,16 @@ def _validate_search(search: dict, search_idx: int) -> None:
 
     search_name = search.get("name", f"Search {search_idx + 1}")
     log.info(
-        f"Validated search '{search_name}': {len(keywords)} keyword(s), {len(regions)} region(s), timeframe: {timeframe}"
+        f"Validated search '{search_name}': {len(keywords)} keyword(s), "
+        f"{len(regions)} region(s), timeframe: {timeframe}"
     )
 
 
 def validate_configuration(configuration: dict) -> None:
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This function is called at the start of the update method to ensure that the connector
+    has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
@@ -341,10 +345,13 @@ def update(configuration: dict, state: dict):
 
         if failed_regions:
             log.warning(
-                f"Sync completed with partial failures. {len(failed_regions)}/{total_regions} region(s) failed: {', '.join(failed_regions)}"
+                f"Sync completed with partial failures. {len(failed_regions)}/{total_regions} "
+                f"region(s) failed: {', '.join(failed_regions)}"
             )
             log.info(
-                f"Successfully synced {total_records_synced} records from {total_regions - len(failed_regions)}/{total_regions} regions in {sync_duration:.2f} seconds"
+                f"Successfully synced {total_records_synced} records from "
+                f"{total_regions - len(failed_regions)}/{total_regions} regions "
+                f"in {sync_duration:.2f} seconds"
             )
         else:
             log.info("Sync completed successfully!")
@@ -377,7 +384,10 @@ def initialize_pytrends():
     """
     # Initialize pytrends with custom headers
     custom_headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
         "Accept": "application/json",
         "Accept-Language": "en-US,en;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
@@ -541,7 +551,9 @@ def process_region(
         records_in_region = 0
 
         for date_index, row in df.iterrows():
-            is_partial = bool(row.get("isPartial", False)) if has_partial_column else False
+            is_partial = (
+                bool(row.get("isPartial", False)) if has_partial_column else False
+            )
             date_str = convert_timestamp_to_iso(date_index)
 
             for keyword in keywords:
@@ -569,17 +581,20 @@ def process_region(
 
         log.info(f"  Region {region_name}: Synced {records_in_region} records")
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # Save the progress by checkpointing the state. This is important for ensuring that
+        # the sync process can resume from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran
+        # it is safe to write to destination.
         # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint({
-            "last_sync_timestamp": sync_timestamp,
-            "total_records_synced": total_records_synced,
-            "failed_regions": failed_regions,
-        })
+        op.checkpoint(
+            {
+                "last_sync_timestamp": sync_timestamp,
+                "total_records_synced": total_records_synced,
+                "failed_regions": failed_regions,
+            }
+        )
 
         time.sleep(__INTER_REGION_DELAY)
 
@@ -589,7 +604,9 @@ def process_region(
         # HTTP/network errors from pytrends API calls - expected and recoverable
         error_type = type(e).__name__
         error_msg = str(e)
-        log.severe(f"  Failed to fetch data for region {region_name} ({region_code}): Network/API error")
+        log.severe(
+            f"  Failed to fetch data for region {region_name} ({region_code}): Network/API error"
+        )
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
@@ -597,7 +614,9 @@ def process_region(
         # Data parsing/conversion errors - expected and recoverable
         error_type = type(e).__name__
         error_msg = str(e)
-        log.severe(f"  Failed to process data for region {region_name} ({region_code}): Data error")
+        log.severe(
+            f"  Failed to process data for region {region_name} ({region_code}): Data error"
+        )
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
@@ -672,7 +691,9 @@ def log_error_details(
     log.severe(f"[DEBUG] Attempt {retry + 1}/{__MAX_RETRIES} failed")
     log.severe(f"[DEBUG] Exception Type: {error_type}")
     log.severe(f"[DEBUG] Exception Message: {error_msg}")
-    log.severe(f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}")
+    log.severe(
+        f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}"
+    )
 
     log_http_response_details(e)
 
@@ -718,8 +739,12 @@ def handle_retry_sleep(retry: int, error_type: str, error_msg: str):
         error_msg: Message from the exception.
     """
     wait_time, base_delay, jitter = calculate_retry_delay(retry)
-    log.warning(f"Request failed (attempt {retry + 1}/{__MAX_RETRIES}): {error_type}: {error_msg}")
-    log.info(f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)...")
+    log.warning(
+        f"Request failed (attempt {retry + 1}/{__MAX_RETRIES}): {error_type}: {error_msg}"
+    )
+    log.info(
+        f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)..."
+    )
 
     time.sleep(wait_time)
 
@@ -762,31 +787,48 @@ def fetch_region_data_with_retry(
             return df
 
         # Catch specific exceptions for retry logic
-        except (requests.exceptions.RequestException, ValueError, KeyError, json.JSONDecodeError) as e:
+        except (
+            requests.exceptions.RequestException,
+            ValueError,
+            KeyError,
+            json.JSONDecodeError,
+        ) as e:
             # HTTP/network errors, data parsing errors - these are expected and should be retried
             last_error = e
-            error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
+            error_type, error_msg = log_error_details(
+                e, retry, region_code, keywords, timeframe
+            )
 
             if retry < __MAX_RETRIES - 1:
                 # Calculate exponential backoff delay with random jitter
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
-                log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
+                log.severe(
+                    f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}"
+                )
+                log.severe(
+                    f"[DEBUG] Final error type: {error_type}, message: {error_msg}"
+                )
         except Exception as e:
             # Catch other unexpected exceptions from pytrends library
             # Still retry these as they may be transient errors
             last_error = e
-            error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
+            error_type, error_msg = log_error_details(
+                e, retry, region_code, keywords, timeframe
+            )
 
             if retry < __MAX_RETRIES - 1:
                 # Calculate exponential backoff delay with random jitter
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
-                log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
+                log.severe(
+                    f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}"
+                )
+                log.severe(
+                    f"[DEBUG] Final error type: {error_type}, message: {error_msg}"
+                )
 
     # All retries exhausted - re-raise the last error
     if last_error:
@@ -799,3 +841,21 @@ def fetch_region_data_with_retry(
 
 # Create the connector object
 connector = Connector(update=update, schema=schema)
+
+
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly
+# from the command line or IDE 'run' button.
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+# fivetran debug
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
+if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Run the connector
+    connector.debug(configuration)
