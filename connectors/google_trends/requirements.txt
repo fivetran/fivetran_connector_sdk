@@ -2,5 +2,5 @@
 # pytrends is the unofficial API for Google Trends data
 pytrends==4.9.2
 
-# Pandas for data processing (required by Fivetran production)
+# Pandas for data processing (required by pytrends)
 pandas==3.0.0
