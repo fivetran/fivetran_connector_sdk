@@ -607,8 +607,10 @@ def log_http_response_details(e: Exception):
     try:
         headers_dict = dict(getattr(e.response, "headers", {}))
         log.severe(f"[DEBUG] Response Headers: {headers_dict}")
-    except Exception:
-        pass
+    except Exception as header_error:
+        log.severe(
+            f"[DEBUG] Failed to log response headers: {type(header_error).__name__}: {header_error}"
+        )
     response_text = getattr(e.response, "text", "")
     if response_text:
         log.severe(f"[DEBUG] Response Text (first 500 chars): {response_text[:500]}")
