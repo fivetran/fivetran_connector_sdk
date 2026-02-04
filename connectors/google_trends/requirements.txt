@@ -1,0 +1,6 @@
+# Google Trends API client library
+# pytrends is the unofficial API for Google Trends data
+pytrends==4.9.2
+
+# Pandas for data processing (required by Fivetran production)
+pandas==3.0.0
