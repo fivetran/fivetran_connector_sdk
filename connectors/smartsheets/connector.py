@@ -106,7 +106,9 @@ class StateManager:
             This method provides a default state for new sheets, ensuring
             that the first sync will fetch all available data.
         """
-        default_time = datetime.now()
+        default_time = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) - timedelta(days=1)
         return self.sheet_states.get(
             sheet_id,
             {
