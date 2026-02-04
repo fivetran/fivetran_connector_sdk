@@ -58,11 +58,13 @@ from config import SEARCHES
 # Suppress pandas FutureWarning from pytrends
 # Used to filter out unwanted warning messages
 import warnings
+
 # Data manipulation library used by pytrends for returning data
 
 import pandas as pd
-warnings.filterwarnings('ignore', category=FutureWarning, module='pytrends')
-pd.set_option('future.no_silent_downcasting', True)
+
+warnings.filterwarnings("ignore", category=FutureWarning, module="pytrends")
+pd.set_option("future.no_silent_downcasting", True)
 
 
 # Constants
@@ -88,13 +90,14 @@ def get_searches(configuration: dict):
     # Get searches from configuration or use Python config
     if "searches" in configuration:
         searches_raw = configuration.get("searches")
-        searches = json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
+        searches = (
+            json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
+        )
     else:
         # Use searches from Python config file
         searches = SEARCHES
         log.info("Using searches from config.py")
     return searches
-
 
 
 def _validate_region(region: dict, search_idx: int, region_idx: int) -> None:
@@ -190,7 +193,6 @@ def validate_configuration(configuration: dict) -> None:
         _validate_search(search, search_idx)
 
 
-
 def generate_search_id(search_name: str, keywords: List[str], timeframe: str) -> str:
     """
     Generate a unique, human-readable search ID.
@@ -212,7 +214,7 @@ def generate_search_id(search_name: str, keywords: List[str], timeframe: str) ->
     # Sanitize search name for use in identifier
     readable_part = search_name.lower().replace(" ", "_").replace("/", "_")
     # Remove non-alphanumeric characters except underscore
-    readable_part = ''.join(c for c in readable_part if c.isalnum() or c == '_')
+    readable_part = "".join(c for c in readable_part if c.isalnum() or c == "_")
 
     # Sanitize timeframe for readability
     timeframe_sanitized = timeframe.replace(" ", "_").replace("/", "_")
@@ -251,7 +253,13 @@ def schema(configuration: dict):
     return [
         {
             "table": "google_trends",
-            "primary_key": ["search_id", "keyword", "date", "region_code", "sync_timestamp"],
+            "primary_key": [
+                "search_id",
+                "keyword",
+                "date",
+                "region_code",
+                "sync_timestamp",
+            ],
             "columns": {
                 "search_id": "STRING",
                 "keyword": "STRING",
@@ -261,8 +269,8 @@ def schema(configuration: dict):
                 "sync_timestamp": "UTC_DATETIME",
                 "interest": "INT",
                 "timeframe": "STRING",
-                "is_partial": "BOOLEAN"
-            }
+                "is_partial": "BOOLEAN",
+            },
         }
     ]
 
@@ -289,7 +297,7 @@ def update(configuration: dict, state: dict):
     searches = get_searches(configuration)
 
     # Capture sync timestamp for this run
-    sync_timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+    sync_timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     log.info(f"Starting Google Trends sync with {len(searches)} search group(s)")
     log.info(f"  Sync timestamp: {sync_timestamp}")
@@ -313,7 +321,7 @@ def update(configuration: dict, state: dict):
                 pytrends,
                 failed_regions,
                 total_records_synced,
-                total_regions
+                total_regions,
             )
 
         # Calculate sync duration
@@ -322,33 +330,45 @@ def update(configuration: dict, state: dict):
         # Check if sync should be considered a failure
         if total_regions > 0 and len(failed_regions) == total_regions:
             # All regions failed
-            log.severe(f"Sync failed: All {total_regions} region(s) failed after {MAX_RETRIES} retry attempts")
+            log.severe(
+                f"Sync failed: All {total_regions} region(s) failed after {MAX_RETRIES} retry attempts"
+            )
             log.severe(f"Failed regions: {', '.join(failed_regions)}")
-            raise RuntimeError(f"All {total_regions} regions failed. No data was synced successfully.")
+            raise RuntimeError(
+                f"All {total_regions} regions failed. No data was synced successfully."
+            )
 
         if total_records_synced == 0:
             # No records synced at all
             log.severe(f"Sync failed: 0 records synced from {total_regions} region(s)")
             if failed_regions:
                 log.severe(f"Failed regions: {', '.join(failed_regions)}")
-            raise RuntimeError(f"Sync failed: 0 records synced. {len(failed_regions)}/{total_regions} regions failed.")
+            raise RuntimeError(
+                f"Sync failed: 0 records synced. {len(failed_regions)}/{total_regions} regions failed."
+            )
 
         # Update state with sync metadata
         new_state = {
             "last_sync_timestamp": sync_timestamp,
             "total_records_synced": total_records_synced,
-            "failed_regions": failed_regions
+            "failed_regions": failed_regions,
         }
 
         # Checkpoint the state
         op.checkpoint(new_state)
 
         if failed_regions:
-            log.warning(f"Sync completed with partial failures. {len(failed_regions)}/{total_regions} region(s) failed: {', '.join(failed_regions)}")
-            log.info(f"Successfully synced {total_records_synced} records from {total_regions - len(failed_regions)}/{total_regions} regions in {sync_duration:.2f} seconds")
+            log.warning(
+                f"Sync completed with partial failures. {len(failed_regions)}/{total_regions} region(s) failed: {', '.join(failed_regions)}"
+            )
+            log.info(
+                f"Successfully synced {total_records_synced} records from {total_regions - len(failed_regions)}/{total_regions} regions in {sync_duration:.2f} seconds"
+            )
         else:
             log.info("Sync completed successfully!")
-            log.info(f"Synced {total_records_synced} records from {total_regions} region(s) in {sync_duration:.2f} seconds")
+            log.info(
+                f"Synced {total_records_synced} records from {total_regions} region(s) in {sync_duration:.2f} seconds"
+            )
 
     except Exception as e:
         log.severe(f"Fatal error during sync: {str(e)}")
@@ -370,19 +390,19 @@ def initialize_pytrends():
     """
     # Initialize pytrends with custom headers
     custom_headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://trends.google.com/',
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://trends.google.com/",
     }
 
     pytrends = TrendReq(
-        hl='en-US',
+        hl="en-US",
         tz=0,
         timeout=(10, 25),
         retries=0,  # We handle retries manually
-        requests_args={'headers': custom_headers}
+        requests_args={"headers": custom_headers},
     )
     return pytrends
 
@@ -394,7 +414,7 @@ def process_search_group(
     pytrends,
     failed_regions,
     total_records_synced,
-    total_regions
+    total_regions,
 ):
     """
     Process a single search group by fetching data for all its regions.
@@ -427,7 +447,7 @@ def process_search_group(
     # NOT: "2024-01-01 today" (mixing absolute with "today" keyword)
     if " today" in timeframe:
         # Replace "today" with actual current date
-        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         timeframe = timeframe.replace(" today", f" {today_str}")
         log.info(f"Search '{search_name}': Converted timeframe to: {timeframe}")
 
@@ -452,7 +472,7 @@ def process_search_group(
             pytrends,
             failed_regions,
             total_records_synced,
-            total_regions
+            total_regions,
         )
 
     return total_records_synced, total_regions
@@ -471,11 +491,11 @@ def convert_timestamp_to_iso(date_index) -> str:
     Returns:
         ISO-formatted datetime string with UTC timezone.
     """
-    if not hasattr(date_index, 'tz_localize'):
+    if not hasattr(date_index, "tz_localize"):
         return str(date_index)
 
     if date_index.tz is None:
-        return date_index.tz_localize('UTC').isoformat()
+        return date_index.tz_localize("UTC").isoformat()
 
     return date_index.isoformat()
 
@@ -490,7 +510,7 @@ def process_region(
     pytrends,
     failed_regions,
     total_records_synced,
-    total_regions
+    total_regions,
 ):
     """
     Process a single region within a search group by fetching and upserting its data.
@@ -530,11 +550,13 @@ def process_region(
             log.warning(f"  No data returned for region {region_name} ({region_code})")
             return total_records_synced, total_regions
 
-        has_partial_column = 'isPartial' in df.columns
+        has_partial_column = "isPartial" in df.columns
         records_in_region = 0
 
         for date_index, row in df.iterrows():
-            is_partial = bool(row.get('isPartial', False)) if has_partial_column else False
+            is_partial = (
+                bool(row.get("isPartial", False)) if has_partial_column else False
+            )
             date_str = convert_timestamp_to_iso(date_index)
 
             for keyword in keywords:
@@ -550,7 +572,7 @@ def process_region(
                     "sync_timestamp": sync_timestamp,
                     "interest": int(row[keyword]),
                     "timeframe": timeframe,
-                    "is_partial": is_partial
+                    "is_partial": is_partial,
                 }
 
                 op.upsert(table="google_trends", data=record)
@@ -571,7 +593,6 @@ def process_region(
     return total_records_synced, total_regions
 
 
-
 def log_http_response_details(e: Exception):
     """
     Log HTTP response details if available in the exception.
@@ -583,21 +604,23 @@ def log_http_response_details(e: Exception):
     Args:
         e: The exception that was raised, potentially containing an HTTP response object.
     """
-    if not hasattr(e, 'response') or e.response is None:
+    if not hasattr(e, "response") or e.response is None:
         return
 
     log.severe(f"[DEBUG] HTTP Status Code: {getattr(e.response, 'status_code', 'N/A')}")
     try:
-        headers_dict = dict(getattr(e.response, 'headers', {}))
+        headers_dict = dict(getattr(e.response, "headers", {}))
         log.severe(f"[DEBUG] Response Headers: {headers_dict}")
     except Exception:
         pass
-    response_text = getattr(e.response, 'text', '')
+    response_text = getattr(e.response, "text", "")
     if response_text:
         log.severe(f"[DEBUG] Response Text (first 500 chars): {response_text[:500]}")
 
 
-def log_error_details(e: Exception, retry: int, region_code: str, keywords: List[str], timeframe: str):
+def log_error_details(
+    e: Exception, retry: int, region_code: str, keywords: List[str], timeframe: str
+):
     """
     Log comprehensive error information for debugging API failures.
 
@@ -624,7 +647,9 @@ def log_error_details(e: Exception, retry: int, region_code: str, keywords: List
     log.severe(f"[DEBUG] Attempt {retry + 1}/{MAX_RETRIES} failed")
     log.severe(f"[DEBUG] Exception Type: {error_type}")
     log.severe(f"[DEBUG] Exception Message: {error_msg}")
-    log.severe(f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}")
+    log.severe(
+        f"[DEBUG] Region: {region_code}, Keywords: {keywords}, Timeframe: {timeframe}"
+    )
 
     log_http_response_details(e)
 
@@ -651,7 +676,7 @@ def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
     Returns:
         Tuple of (total_wait_time, base_delay, jitter) in seconds.
     """
-    base_delay = RETRY_BASE_DELAY * (2 ** retry)
+    base_delay = RETRY_BASE_DELAY * (2**retry)
     jitter = random.uniform(0, RETRY_JITTER)
     wait_time = base_delay + jitter
     return wait_time, base_delay, jitter
@@ -670,13 +695,19 @@ def handle_retry_sleep(retry: int, error_type: str, error_msg: str):
         error_msg: Message from the exception.
     """
     wait_time, base_delay, jitter = calculate_retry_delay(retry)
-    log.warning(f"Request failed (attempt {retry + 1}/{MAX_RETRIES}): {error_type}: {error_msg}")
-    log.info(f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)...")
+    log.warning(
+        f"Request failed (attempt {retry + 1}/{MAX_RETRIES}): {error_type}: {error_msg}"
+    )
+    log.info(
+        f"Retrying in {wait_time:.1f} seconds ({base_delay}s base + {jitter:.1f}s jitter)..."
+    )
 
     time.sleep(wait_time)
 
 
-def fetch_region_data_with_retry(pytrends: TrendReq, keywords: List[str], timeframe: str, region_code: str):
+def fetch_region_data_with_retry(
+    pytrends: TrendReq, keywords: List[str], timeframe: str, region_code: str
+):
     """
     Fetch Google Trends data for a specific region with exponential backoff retry and jitter.
 
@@ -702,11 +733,7 @@ def fetch_region_data_with_retry(pytrends: TrendReq, keywords: List[str], timefr
         try:
             # Build payload for this timeframe
             pytrends.build_payload(
-                kw_list=keywords,
-                cat=0,
-                timeframe=timeframe,
-                geo=region_code,
-                gprop=''
+                kw_list=keywords, cat=0, timeframe=timeframe, geo=region_code, gprop=""
             )
 
             # Fetch interest over time
@@ -717,21 +744,29 @@ def fetch_region_data_with_retry(pytrends: TrendReq, keywords: List[str], timefr
 
         except Exception as e:
             last_error = e
-            error_type, error_msg = log_error_details(e, retry, region_code, keywords, timeframe)
+            error_type, error_msg = log_error_details(
+                e, retry, region_code, keywords, timeframe
+            )
 
             if retry < MAX_RETRIES - 1:
                 # Calculate exponential backoff delay with random jitter
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.severe(f"All {MAX_RETRIES} retry attempts exhausted for region {region_code}")
-                log.severe(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
+                log.severe(
+                    f"All {MAX_RETRIES} retry attempts exhausted for region {region_code}"
+                )
+                log.severe(
+                    f"[DEBUG] Final error type: {error_type}, message: {error_msg}"
+                )
 
     # All retries exhausted - re-raise the last error
     if last_error:
         raise last_error
 
-    raise RuntimeError(f"Failed to fetch data for region {region_code} after {MAX_RETRIES} retries")
+    raise RuntimeError(
+        f"Failed to fetch data for region {region_code} after {MAX_RETRIES} retries"
+    )
 
 
 # Create the connector object
