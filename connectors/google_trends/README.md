@@ -83,7 +83,7 @@ The `requirements.txt` file specifies the Python libraries required by the conne
 # Google Trends API client library
 pytrends==4.9.2
 
-# Pandas for data processing (required by Fivetran production)
+# Pandas for data processing (required by PyTrends)
 pandas==3.0.0
 ```
 
