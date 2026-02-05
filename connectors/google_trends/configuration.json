@@ -1,18 +1,3 @@
 {
-  "searches": [
-    {
-      "name": "<SEARCH_NAME>",
-      "keywords": [
-        "<KEYWORD_1>",
-        "<KEYWORD_2>"
-      ],
-      "regions": [
-        {
-          "name": "<REGION_NAME>",
-          "code": "<REGION_CODE>"
-        }
-      ],
-      "timeframe": "<TIMEFRAME>"
-    }
-  ]
+  "searches": "<YOU_GOOGLE_TRENDS_SEARCHES>"
 }
