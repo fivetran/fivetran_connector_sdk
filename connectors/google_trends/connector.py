@@ -39,13 +39,13 @@ import traceback
 import requests.exceptions
 
 # Import required classes from fivetran_connector_sdk
-# Main connector class that orchestrates the sync
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
-# Logging utilities for Fivetran integration
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# Operations for upserting data and checkpointing state
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import pytrends for Google Trends API access
