@@ -66,9 +66,6 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="pytrends")
 pd.set_option("future.no_silent_downcasting", True)
 
-
-# Constants
-
 __MAX_RETRIES = 5  # Number of retry attempts
 __RETRY_BASE_DELAY = 60  # Base delay in seconds for exponential backoff (1 minute)
 __RETRY_JITTER = 30  # Random jitter to add on top of base delay (30 seconds)
