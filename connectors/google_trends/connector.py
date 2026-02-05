@@ -606,16 +606,6 @@ def process_region(
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
-    except (ValueError, KeyError, TypeError) as e:
-        # Data parsing/conversion errors - expected and recoverable
-        error_type = type(e).__name__
-        error_msg = str(e)
-        log.severe(
-            f"  Failed to process data for region {region_name} ({region_code}): Data error"
-        )
-        log.severe(f"  Error type: {error_type}, Message: {error_msg}")
-        log.severe(f"  Traceback:\n{traceback.format_exc()}")
-        failed_regions.append(f"{search_name}/{region_name}")
     except Exception as e:
         # Unexpected exceptions should be logged and re-raised to surface critical errors
         # that need investigation
