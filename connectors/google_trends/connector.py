@@ -594,8 +594,6 @@ def process_region(
 
         time.sleep(__INTER_REGION_DELAY)
 
-    # Catch specific expected exceptions from API calls and data processing
-    # These are logged and allow the sync to continue with other regions
     except requests.exceptions.RequestException as e:
         # HTTP/network errors from pytrends API calls - expected and recoverable
         error_type = type(e).__name__
