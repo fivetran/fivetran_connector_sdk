@@ -1,7 +1,5 @@
 """
-Fivetran Google Trends Connector - Full Refresh Approach
-
-This connector syncs Google Trends data for the entire configured time period on every sync.
+This is an example connector syncing Google Trends data for the entire configured time period on every sync.
 Each sync creates a complete snapshot of the trends data, allowing you to track how
 Google Trends data changes over time.
 
