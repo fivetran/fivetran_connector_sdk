@@ -4,13 +4,6 @@
 
 This connector syncs Google Trends interest-over-time data into Fivetran, allowing you to track search interest for specific keywords across different regions and time periods. The connector uses a full refresh sync strategy, creating complete snapshots of trends data on each run. This append-only design with sync timestamps enables historical tracking of how Google Trends data changes over time.
 
-Key capabilities include:
-- Fetching interest-over-time data for up to 5 keywords per search group
-- Supporting multiple geographic regions (worldwide or specific country codes)
-- Tracking comparative trends where keywords in the same search group are relative to each other
-- Handling both relative timeframes (e.g., "today 12-m") and absolute date ranges (e.g., "2024-01-01 2026-02-03")
-- Automatic retry logic with exponential backoff to handle API rate limiting
-
 The connector creates a single `google_trends` table with detailed interest scores for each keyword, date, and region combination. Each sync is tracked with a timestamp, allowing you to analyze how search interest evolves over time.
 
 ## Requirements
