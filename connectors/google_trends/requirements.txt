@@ -1,6 +1,3 @@
-# Google Trends API client library
-# pytrends is the unofficial API for Google Trends data
-pytrends==4.9.2
 
-# Pandas for data processing (required by pytrends)
+pytrends==4.9.2
 pandas==3.0.0

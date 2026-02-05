@@ -34,24 +34,8 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 The connector requires a `configuration.json` file with a `searches` array. Each search defines a group of keywords to compare, the regions to query, and the timeframe to analyze.
 
 ```json
-{
-  "searches": [
-    {
-      "name": "ETL Tools Comparison",
-      "keywords": [
-        "Fivetran",
-        "Airflow",
-        "dbt"
-      ],
-      "regions": [
-        {"name": "Worldwide", "code": ""},
-        {"name": "United States", "code": "US"},
-        {"name": "United Kingdom", "code": "GB"}
-      ],
-      "timeframe": "2024-01-01 today"
-    }
-  ]
-}
+"[{"name":"ETL Tools Comparison","keywords":["Fivetran","Airflow","dbt"],"regions":[{"name":"Worldwide","code":""},{"name":"United States","code":"US"},{"name":"United Kingdom","code":"GB"}],"timeframe":"2024-01-01 today"}]"
+
 ```
 
 Configuration parameters:
@@ -98,15 +82,15 @@ The connector uses a full refresh approach, pulling the entire timeframe on each
 
 The connector processes Google Trends data through the following steps:
 
-1. Configuration validation – Validates search configurations including keyword limits (1-5 per search), required fields, and timeframe formats. Refer to `def validate_configuration()`.
+- Configuration validation – Validates search configurations including keyword limits (1-5 per search), required fields, and timeframe formats. Refer to `def validate_configuration()`.
 
-2. Search ID generation – Creates unique, human-readable identifiers for each search group using the format `{search_name}_{timeframe}_{hash}`. This groups keywords that were queried together, ensuring their relative interest scores remain comparable. Refer to `def generate_search_id()`.
+- Search ID generation – Creates unique, human-readable identifiers for each search group using the format `{search_name}_{timeframe}_{hash}`. This groups keywords that were queried together, ensuring their relative interest scores remain comparable. Refer to `def generate_search_id()`.
 
-3. Timeframe conversion – Automatically converts "today" keywords in absolute timeframes to actual dates (e.g., "2024-01-01 today" becomes "2024-01-01 2026-02-03"). Refer to `def process_search_group()`.
+- Timeframe conversion – Automatically converts "today" keywords in absolute timeframes to actual dates (e.g., "2024-01-01 today" becomes "2024-01-01 2026-02-03"). Refer to `def process_search_group()`.
 
-4. Data fetching – Fetches interest-over-time data for each region independently using the PyTrends library. Refer to `def fetch_region_data_with_retry()`.
+- Data fetching – Fetches interest-over-time data for each region independently using the PyTrends library. Refer to `def fetch_region_data_with_retry()`.
 
-5. Data transformation – Converts pandas DataFrame responses into individual records with the following schema:
+- Data transformation – Converts pandas DataFrame responses into individual records with the following schema:
    - `search_id` – Groups keywords from the same search
    - `keyword` – The search term
    - `date` – ISO-formatted timestamp (UTC)
@@ -117,34 +101,35 @@ The connector processes Google Trends data through the following steps:
    - `timeframe` – Original timeframe query string
    - `is_partial` – Boolean flag for incomplete data points
 
-6. Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `def process_region()`.
+   - Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `def process_region()`.
 
 ## Error handling
 
-The connector implements comprehensive error handling strategies to ensure reliable data synchronization:
+The connector implements robust error handling to ensure reliable data synchronization:
 
-### Retry logic with exponential backoff
-The connector automatically retries failed API requests up to 5 times with exponential backoff and random jitter to prevent thundering herd problems. Refer to `def fetch_region_data_with_retry()`.
+- **Retry logic with exponential backoff**
+  - Automatically retries failed API requests up to 5 times
+  - Uses exponential backoff with random jitter to avoid thundering herd issues
+  - See `def fetch_region_data_with_retry()` and `def calculate_retry_delay()`
 
-- Retry 1: wait 60-120 seconds (60s base + 0-60s jitter)
-- Retry 2: wait 120-180 seconds (120s base + 0-60s jitter)
-- Retry 3: wait 240-300 seconds (240s base + 0-60s jitter)
-- Retry 4: wait 480-540 seconds (480s base + 0-60s jitter)
-- Retry 5: wait 960-1020 seconds (960s base + 0-60s jitter)
+- **Regional failure tolerance**
+  - Continues syncing other regions if one region fails
+  - Sync fails only if all regions fail or no data is returned
+  - See `def update()` in `connector.py`
 
-Refer to `def calculate_retry_delay()` and `def handle_retry_sleep()` for retry delay calculations.
+- **Detailed error logging**
+  - Logs HTTP status codes, response details, request parameters, and stack traces
+  - See `def log_error_details()` and `def log_http_response_details()`
 
-### Regional failure tolerance
-If individual regions fail after all retries, the connector continues processing other regions and logs the failures. The sync only fails if all regions fail or no data is synced. Refer to `def update()` in `connector.py:270-356`.
+- **Configuration validation**
+  - Validates all configuration parameters before API calls
+  - Provides clear errors for missing or invalid fields
+  - See `def validate_configuration()`
 
-### Detailed error logging
-All errors are logged with comprehensive diagnostic information including HTTP status codes, response headers, request parameters, and full stack traces. Refer to `def log_error_details()` and `def log_http_response_details()`.
-
-### Configuration validation
-The connector validates all configuration parameters before attempting any API requests, providing clear error messages for missing or invalid fields. Refer to `def validate_configuration()`, `def _validate_search()`, and `def _validate_region()`.
-
-### State checkpointing
-After each successful sync, the connector checkpoints state information including the sync timestamp, total records synced, and any failed regions. Refer to `def update()` at `connector.py:336-344`.
+- **State checkpointing**
+  - Checkpoints sync state after successful processing
+  - Enables safe resume without data loss
+  - See `def update()`
 
 ## Tables created
 
