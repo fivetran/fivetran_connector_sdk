@@ -594,16 +594,6 @@ def process_region(
 
         time.sleep(__INTER_REGION_DELAY)
 
-    except requests.exceptions.RequestException as e:
-        # HTTP/network errors from pytrends API calls - expected and recoverable
-        error_type = type(e).__name__
-        error_msg = str(e)
-        log.severe(
-            f"  Failed to fetch data for region {region_name} ({region_code}): Network/API error"
-        )
-        log.severe(f"  Error type: {error_type}, Message: {error_msg}")
-        log.severe(f"  Traceback:\n{traceback.format_exc()}")
-        failed_regions.append(f"{search_name}/{region_name}")
     except Exception as e:
         # Unexpected exceptions should be logged and re-raised to surface critical errors
         # that need investigation
