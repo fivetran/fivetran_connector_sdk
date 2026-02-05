@@ -1,7 +1,7 @@
 # Smartsheet API Connector Example
 
 ## Connector overview
-This connector demonstrates how to sync row-level data from Smartsheet using the Fivetran Connector SDK and the Smartsheet [Sheets API](https://smartsheet.redoc.ly/tag/sheets) and [Reports API](https://smartsheet.redoc.ly/tag/reports). It retrieves rows from sheets and reports, dynamically maps columns using column IDs, and emits those rows to destination tables.
+This connector demonstrates how to sync row-level data from Smartsheet using the Fivetran Connector SDK, and the Smartsheet [Sheets API](https://smartsheet.redoc.ly/tag/sheets) and [Reports API](https://smartsheet.redoc.ly/tag/reports). It retrieves rows from sheets and reports, dynamically maps columns using column IDs, and emits those rows to destination tables.
 
 
 ## Requirements
@@ -18,15 +18,11 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Features
-- Incremental syncs using `rowsModifiedSince`
-- Dynamic schema based on column headers
-- Optional row-level metadata
+- Incremental syncs using `rowsModifiedSince` to sync only updated rows
+- Dynamic schema based on column headers, mapping `columnId` to column names
+- Optional row-level metadata fields like `rowNumber`, `createdAt`, and `modifiedAt`
 - Configurable authentication and sheet selection
-- Multiple sheets and reports - Sync from multiple sheets and reports in a single connector instance
-- Retrieves full sheet metadata and all rows using Smartsheet's Sheets API
-- Maps `columnId` to column names to construct each row as a flat dictionary
-- Includes row metadata fields like `rowNumber`, `createdAt`, and `modifiedAt`
-- Uses `rowsModifiedSince` to incrementally sync only updated rows
+- Multiple sheets and reports in a single connector instance
 - Uses `op.upsert()` for each row and checkpoints with the current sync timestamp
 
 

@@ -1,3 +1,13 @@
+"""
+This is an example for syncing data from Smartsheet.
+It hits the getSheet endpoint and gets data from pre-defined sheets and reports in Smartsheets.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices)
+for details.
+"""
+
 # For generating MD5 hashes of row IDs as primary keys
 import hashlib
 
@@ -106,7 +116,9 @@ class StateManager:
             This method provides a default state for new sheets, ensuring
             that the first sync will fetch all available data.
         """
-        default_time = datetime.now()
+        default_time = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) - timedelta(days=1)
         return self.sheet_states.get(
             sheet_id,
             {
@@ -640,6 +652,237 @@ def validate_configuration(configuration: dict):
         raise ValueError("At least one of 'sheets' or 'reports' must be configured")
 
 
+def _parse_config_items(config_string: str) -> Dict[str, str]:
+    """
+    Parse a comma-separated config string of 'id:name' pairs into a dictionary.
+
+    Args:
+        config_string: Comma-separated string of 'id:name' pairs
+            (e.g., "123:Sheet1,456:Sheet2")
+
+    Returns:
+        Dict[str, str]: Dictionary mapping IDs to names
+    """
+    result = {}
+    for item in config_string.split(","):
+        if ":" in item:
+            item_id, item_name = item.strip().split(":", 1)
+            result[item_id.strip()] = item_name.strip()
+    return result
+
+
+def _make_table_name(prefix: str, configured_name: str) -> str:
+    """
+    Create a normalized table name from a prefix and configured name.
+
+    Args:
+        prefix: Table name prefix (e.g., "sheet" or "report")
+        configured_name: The display name for the resource
+
+    Returns:
+        str: Normalized table name (e.g., "sheet_my_sheet_name")
+    """
+    return f"{prefix}_{configured_name.lower().replace(' ', '_').replace('-', '_')}"
+
+
+def _delete_removed_rows(
+    table_name: str, previous_row_ids: set, current_row_ids: set, resource_label: str
+):
+    """
+    Detect and delete rows that existed previously but are no longer present.
+
+    Args:
+        table_name: Destination table name
+        previous_row_ids: Set of row IDs from the previous sync
+        current_row_ids: Set of row IDs from the current sync
+        resource_label: Label for logging (e.g., "sheet 'My Sheet'")
+    """
+    deleted_row_ids = previous_row_ids - current_row_ids
+    if deleted_row_ids:
+        log.info(f"{resource_label}: Found {len(deleted_row_ids)} deleted rows")
+        for deleted_row_id in deleted_row_ids:
+            deleted_record_id = hash_value(str(deleted_row_id))
+            log.fine(f"Deleting row for {resource_label}, row {deleted_row_id}")
+            # The 'delete' operation is used to remove data from the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the primary key of the record to be deleted.
+            op.delete(table_name, {"id": deleted_record_id})
+
+
+def _process_sheet(
+    sheet: Dict[str, Any],
+    sheets_config: Dict[str, str],
+    api: SmartsheetAPI,
+    data_handler: DataTypeHandler,
+    state_manager: StateManager,
+):
+    """
+    Process a single sheet: fetch data, detect deletions, upsert rows, and checkpoint state.
+
+    Args:
+        sheet: Sheet metadata from the Smartsheet API
+        sheets_config: Mapping of sheet IDs to configured display names
+        api: SmartsheetAPI client instance
+        data_handler: DataTypeHandler for parsing cell values
+        state_manager: StateManager for tracking sync state
+    """
+    sheet_id = str(sheet["id"])
+    sheet_name = sheet["name"]
+    configured_name = sheets_config.get(sheet_id, sheet_name)
+    table_name = _make_table_name("sheet", configured_name)
+
+    try:
+        sheet_state = state_manager.get_sheet_state(sheet_id)
+        log.info(
+            f"Sheet '{sheet_name}': State loaded - last_modified={sheet_state.get('last_modified', 'NOT_FOUND')}, row_count={len(sheet_state.get('row_ids', []))}"
+        )
+        sheet_data = api.get_sheet_details(sheet_id, sheet_state["last_modified"])
+
+        column_type_map = {col["id"]: col["type"] for col in sheet_data["columns"]}
+        column_map = {col["id"]: col["title"] for col in sheet_data["columns"]}
+
+        latest_sheet_modified = sheet_state["last_modified"]
+
+        sheet_rows = sheet_data.get("rows", [])
+        if _TEST_MODE:
+            sheet_rows = sheet_rows[:_TEST_ROW_LIMIT]
+            log.fine(f"Test mode: Processing {len(sheet_rows)} rows for sheet '{sheet_name}'")
+
+        log.info(f"Sheet '{sheet_name}': Found {len(sheet_rows)} total rows")
+        log.info(f"Sheet '{sheet_name}': Using modifiedSince={sheet_state['last_modified']}")
+
+        current_row_ids = {str(row["id"]) for row in sheet_rows}
+        previous_row_ids = set(sheet_state.get("row_ids", []))
+
+        _delete_removed_rows(
+            table_name, previous_row_ids, current_row_ids, f"Sheet '{sheet_name}'"
+        )
+
+        for row in sheet_rows:
+            try:
+                row_data = {
+                    "row_id": str(row["id"]),
+                    "sheet_id": sheet_id,
+                    "sheet_name": sheet_name,
+                }
+
+                for cell in row["cells"]:
+                    column_name = column_map.get(
+                        cell["columnId"], f"col_{cell['columnId']}"
+                    )
+                    column_type = column_type_map.get(
+                        cell["columnId"], ColumnType.TEXT_NUMBER
+                    )
+                    value = cell.get("displayValue") or cell.get("value")
+                    row_data[column_name] = data_handler.parse_value(value, column_type)
+
+                row_record = flatten(row_data)
+                row_record["id"] = hash_value(str(row["id"]))
+
+                row_modified = row.get("modifiedAt", latest_sheet_modified)
+                latest_sheet_modified = max(latest_sheet_modified, row_modified)
+
+                log.fine(f"Upserting row for sheet '{sheet_name}', row {row['id']}")
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
+                op.upsert(table_name, row_record)
+            except Exception as e:
+                log.warning(
+                    f"Error processing row {row.get('id', 'unknown')} in sheet '{sheet_name}': {str(e)}"
+                )
+                continue
+
+        current_row_id_list = list(current_row_ids)
+        log.info(
+            f"Sheet '{sheet_name}': Updating state - last_modified={latest_sheet_modified}, row_count={len(current_row_id_list)}"
+        )
+        state_manager.update_sheet_state(sheet_id, latest_sheet_modified, current_row_id_list)
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state_manager.get_state())
+
+    except requests.exceptions.RequestException as e:
+        log.warning(f"Error processing sheet {sheet_name} ({sheet_id}): {str(e)}")
+
+
+def _process_report(
+    report: Dict[str, Any],
+    reports_config: Dict[str, str],
+    api: SmartsheetAPI,
+    state_manager: StateManager,
+):
+    """
+    Process a single report: fetch data, detect deletions, upsert rows, and checkpoint state.
+
+    Args:
+        report: Report metadata from the Smartsheet API
+        reports_config: Mapping of report IDs to configured display names
+        api: SmartsheetAPI client instance
+        state_manager: StateManager for tracking sync state
+    """
+    report_id = str(report["id"])
+    report_name = report["name"]
+    configured_name = reports_config.get(report_id, report_name)
+    table_name = _make_table_name("report", configured_name)
+
+    try:
+        report_data = api.get_report_details(report_id)
+        column_map = {
+            col.get("virtualId", col.get("id")): col["title"]
+            for col in report_data["columns"]
+        }
+
+        log.info(
+            f"Report '{report_name}': Found {len(report_data.get('rows', []))} total rows"
+        )
+
+        report_rows = report_data.get("rows", [])
+        current_row_ids = {str(row["id"]) for row in report_rows}
+        report_state = state_manager.get_report_state(report_id)
+        previous_row_ids = set(report_state.get("row_ids", []))
+
+        _delete_removed_rows(
+            table_name, previous_row_ids, current_row_ids, f"Report '{report_name}'"
+        )
+
+        for row in report_rows:
+            row_data = {
+                "row_id": str(row["id"]),
+                "report_id": report_id,
+                "report_name": report_name,
+            }
+
+            for cell in row["cells"]:
+                column_name = column_map.get(
+                    cell.get("virtualColumnId", cell.get("columnId")),
+                    f"col_{cell.get('virtualColumnId', cell.get('columnId'))}",
+                )
+                value = cell.get("displayValue") or cell.get("value")
+                row_data[column_name] = value
+
+            row_record = flatten(row_data)
+            row_record["id"] = hash_value(str(row["id"]))
+
+            log.fine(f"Upserting row for report '{report_name}', row {row['id']}")
+            op.upsert(table_name, row_record)
+
+        current_row_id_list = list(current_row_ids)
+        state_manager.update_report_state(report_id, current_row_id_list)
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        op.checkpoint(state_manager.get_state())
+
+    except requests.exceptions.RequestException as e:
+        log.warning(f"Error processing report {report_name} ({report_id}): {str(e)}")
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function which lets you configure how your connector fetches data.
@@ -656,21 +899,9 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
 
     # Parse configuration values from strings
-    sheets_config = {}
-    if configuration.get("sheets"):
-        for sheet_item in configuration["sheets"].split(","):
-            if ":" in sheet_item:
-                sheet_id, sheet_name = sheet_item.strip().split(":", 1)
-                sheets_config[sheet_id.strip()] = sheet_name.strip()
+    sheets_config = _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
+    reports_config = _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
 
-    reports_config = {}
-    if configuration.get("reports"):
-        for report_item in configuration["reports"].split(","):
-            if ":" in report_item:
-                report_id, report_name = report_item.strip().split(":", 1)
-                reports_config[report_id.strip()] = report_name.strip()
-
-    # Use simple state management like other connectors
     requests_per_minute = int(
         configuration.get("requests_per_minute", str(_DEFAULT_REQUESTS_PER_MINUTE))
     )
@@ -689,200 +920,17 @@ def update(configuration: dict, state: dict):
     state_manager = StateManager(state)
 
     try:
-        # Get all sheets
+        # Process sheets
         sheets = api.get_sheets()
-
-        # Process each sheet
         for sheet in sheets:
-            sheet_id = str(sheet["id"])
-            sheet_name = sheet["name"]
-
-            # Use configured name if available, otherwise use API name
-            configured_name = sheets_config.get(sheet_id, sheet_name)
-            table_name = f"sheet_{configured_name.lower().replace(' ', '_').replace('-', '_')}"
-
-            try:
-                # Get sheet state and details
-                sheet_state = state_manager.get_sheet_state(sheet_id)
-                log.info(
-                    f"Sheet '{sheet_name}': State loaded - last_modified={sheet_state.get('last_modified', 'NOT_FOUND')}, row_count={len(sheet_state.get('row_ids', []))}"
-                )
-                sheet_data = api.get_sheet_details(sheet_id, sheet_state["last_modified"])
-
-                # Create column maps
-                column_type_map = {col["id"]: col["type"] for col in sheet_data["columns"]}
-                column_map = {col["id"]: col["title"] for col in sheet_data["columns"]}
-
-                latest_sheet_modified = sheet_state["last_modified"]
-
-                # Get rows, limiting to _TEST_ROW_LIMIT if in test mode
-                sheet_rows = sheet_data.get("rows", [])
-                if _TEST_MODE:
-                    sheet_rows = sheet_rows[:_TEST_ROW_LIMIT]
-                    log.fine(
-                        f"Test mode: Processing {len(sheet_rows)} rows for sheet '{sheet_name}'"
-                    )
-
-                # Debug: Log row count and modification info
-                log.info(f"Sheet '{sheet_name}': Found {len(sheet_rows)} total rows")
-                log.info(
-                    f"Sheet '{sheet_name}': Using modifiedSince={sheet_state['last_modified']}"
-                )
-
-                # Get current row IDs for deletion detection
-                current_row_ids = {str(row["id"]) for row in sheet_rows}
-                previous_row_ids = set(sheet_state.get("row_ids", []))
-
-                # Find deleted rows (rows that existed before but not now)
-                deleted_row_ids = previous_row_ids - current_row_ids
-                if deleted_row_ids:
-                    log.info(f"Sheet '{sheet_name}': Found {len(deleted_row_ids)} deleted rows")
-                    for deleted_row_id in deleted_row_ids:
-                        # Use same hash pattern as upsert for consistency
-                        deleted_record_id = hash_value(str(deleted_row_id))
-
-                        log.fine(f"Deleting row for sheet '{sheet_name}', row {deleted_row_id}")
-                        # The 'delete' operation is used to remove data from the destination table.
-                        # The first argument is the name of the destination table.
-                        # The second argument is a dictionary containing the primary key of the record to be deleted.
-                        op.delete(table_name, {"id": deleted_record_id})
-
-                # Process each row
-                for row in sheet_rows:
-                    try:
-                        row_data = {
-                            "row_id": str(row["id"]),
-                            "sheet_id": sheet_id,
-                            "sheet_name": sheet_name,
-                        }
-
-                        for cell in row["cells"]:
-                            column_name = column_map.get(
-                                cell["columnId"], f"col_{cell['columnId']}"
-                            )
-                            column_type = column_type_map.get(
-                                cell["columnId"], ColumnType.TEXT_NUMBER
-                            )
-                            value = cell.get("displayValue") or cell.get("value")
-                            row_data[column_name] = data_handler.parse_value(value, column_type)
-
-                        # Create unique identifier and flatten data
-                        row_record = flatten(row_data)
-                        # Use MD5 hash of row ID for consistent primary key
-                        row_record["id"] = hash_value(str(row["id"]))
-
-                        row_modified = row.get("modifiedAt", latest_sheet_modified)
-                        latest_sheet_modified = max(latest_sheet_modified, row_modified)
-
-                        log.fine(f"Upserting row for sheet '{sheet_name}', row {row['id']}")
-                        # The 'upsert' operation is used to insert or update data in the destination table.
-                        # The first argument is the name of the destination table.
-                        # The second argument is a dictionary containing the record to be upserted.
-                        op.upsert(table_name, row_record)
-                    except Exception as e:
-                        log.warning(
-                            f"Error processing row {row.get('id', 'unknown')} in sheet '{sheet_name}': {str(e)}"
-                        )
-                        continue
-
-                # Update sheet state with current row IDs
-                current_row_id_list = list(current_row_ids)
-                log.info(
-                    f"Sheet '{sheet_name}': Updating state - last_modified={latest_sheet_modified}, row_count={len(current_row_id_list)}"
-                )
-                state_manager.update_sheet_state(
-                    sheet_id, latest_sheet_modified, current_row_id_list
-                )
-
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state_manager.get_state())
-
-            except requests.exceptions.RequestException as e:
-                log.warning(f"Error processing sheet {sheet_name} ({sheet_id}): {str(e)}")
-                continue
+            _process_sheet(sheet, sheets_config, api, data_handler, state_manager)
 
         # Process reports
         reports = api.get_reports()
         for report in reports:
-            report_id = str(report["id"])
-            report_name = report["name"]
+            _process_report(report, reports_config, api, state_manager)
 
-            # Use configured name if available, otherwise use API name
-            configured_name = reports_config.get(report_id, report_name)
-            table_name = f"report_{configured_name.lower().replace(' ', '_').replace('-', '_')}"
-
-            try:
-                # Get report details
-                report_data = api.get_report_details(report_id)
-                # Reports have columns and rows, but structure is slightly different
-                column_map = {
-                    col.get("virtualId", col.get("id")): col["title"]
-                    for col in report_data["columns"]
-                }
-
-                log.info(
-                    f"Report '{report_name}': Found {len(report_data.get('rows', []))} total rows"
-                )
-
-                # Get current row IDs for deletion detection
-                report_rows = report_data.get("rows", [])
-                current_row_ids = {str(row["id"]) for row in report_rows}
-                report_state = state_manager.get_report_state(report_id)
-                previous_row_ids = set(report_state.get("row_ids", []))
-
-                # Find deleted rows (rows that existed before but not now)
-                deleted_row_ids = previous_row_ids - current_row_ids
-                if deleted_row_ids:
-                    log.info(f"Report '{report_name}': Found {len(deleted_row_ids)} deleted rows")
-                    for deleted_row_id in deleted_row_ids:
-                        # Use same hash pattern as upsert for consistency
-                        deleted_record_id = hash_value(str(deleted_row_id))
-
-                        log.fine(f"Deleting row for report '{report_name}', row {deleted_row_id}")
-                        op.delete(table_name, {"id": deleted_record_id})
-
-                # Process each row
-                for row in report_rows:
-                    row_data = {
-                        "row_id": str(row["id"]),
-                        "report_id": report_id,
-                        "report_name": report_name,
-                    }
-
-                    for cell in row["cells"]:
-                        column_name = column_map.get(
-                            cell.get("virtualColumnId", cell.get("columnId")),
-                            f"col_{cell.get('virtualColumnId', cell.get('columnId'))}",
-                        )
-                        value = cell.get("displayValue") or cell.get("value")
-                        row_data[column_name] = value
-
-                    # Create unique identifier and flatten data
-                    row_record = flatten(row_data)
-                    # Use MD5 hash of row ID for consistent primary key
-                    row_record["id"] = hash_value(str(row["id"]))
-
-                    log.fine(f"Upserting row for report '{report_name}', row {row['id']}")
-                    op.upsert(table_name, row_record)
-
-                # Update report state with current row IDs
-                current_row_id_list = list(current_row_ids)
-                state_manager.update_report_state(report_id, current_row_id_list)
-
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
-                op.checkpoint(state_manager.get_state())
-
-            except requests.exceptions.RequestException as e:
-                log.warning(f"Error processing report {report_name} ({report_id}): {str(e)}")
-                continue
-
-        # Update state with current sync time and state manager
+        # Final checkpoint
         current_sync_time = datetime.now(timezone.utc).isoformat()
         final_state = state_manager.get_state()
 
@@ -912,19 +960,8 @@ def schema(configuration: dict):
         raise ValueError("Could not find 'api_token'")
 
     # Parse configuration values from strings
-    sheets_config = {}
-    if configuration.get("sheets"):
-        for sheet_item in configuration["sheets"].split(","):
-            if ":" in sheet_item:
-                sheet_id, sheet_name = sheet_item.strip().split(":", 1)
-                sheets_config[sheet_id.strip()] = sheet_name.strip()
-
-    reports_config = {}
-    if configuration.get("reports"):
-        for report_item in configuration["reports"].split(","):
-            if ":" in report_item:
-                report_id, report_name = report_item.strip().split(":", 1)
-                reports_config[report_id.strip()] = report_name.strip()
+    sheets_config = _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
+    reports_config = _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
 
     # Get sheet and report names to create dynamic schema
     config_obj = SmartsheetConfig(
@@ -941,11 +978,8 @@ def schema(configuration: dict):
         sheets = api.get_sheets()
         for sheet in sheets:
             sheet_id = str(sheet["id"])
-            sheet_name = sheet["name"]
-
-            # Use configured name if available, otherwise use API name
-            configured_name = sheets_config.get(sheet_id, sheet_name)
-            table_name = f"sheet_{configured_name.lower().replace(' ', '_').replace('-', '_')}"
+            configured_name = sheets_config.get(sheet_id, sheet["name"])
+            table_name = _make_table_name("sheet", configured_name)
 
             schema_tables.append(
                 {
@@ -961,11 +995,8 @@ def schema(configuration: dict):
         reports = api.get_reports()
         for report in reports:
             report_id = str(report["id"])
-            report_name = report["name"]
-
-            # Use configured name if available, otherwise use API name
-            configured_name = reports_config.get(report_id, report_name)
-            table_name = f"report_{configured_name.lower().replace(' ', '_').replace('-', '_')}"
+            configured_name = reports_config.get(report_id, report["name"])
+            table_name = _make_table_name("report", configured_name)
 
             schema_tables.append(
                 {
