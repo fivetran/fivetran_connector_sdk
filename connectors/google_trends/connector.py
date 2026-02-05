@@ -333,7 +333,12 @@ def update(configuration: dict, state: dict):
             "failed_regions": failed_regions,
         }
 
-        # Checkpoint the state
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume 
+        # from the correct position in case of next sync or interruptions. 
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination. 
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end. 
+        # Learn more about how and where to checkpoint by reading our best practices documentation 
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets). 
         op.checkpoint(new_state)
 
         if failed_regions:
