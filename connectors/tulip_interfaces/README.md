@@ -4,6 +4,8 @@ This connector syncs data from Tulip Tables to Fivetran destinations. Tulip is a
 
 ## Connector overview
 
+The connector is designed for manufacturing operations and supply chain teams who need to analyze production data, track quality metrics, and monitor operational performance across their data warehouse ecosystem.
+
 This connector provides incremental data replication from Tulip Tables using the Tulip Table API with a two-phase synchronization strategy. It supports:
 
 - **Two-phase sync strategy**: Efficient historical load (BOOTSTRAP) followed by incremental updates (INCREMENTAL)
@@ -16,35 +18,17 @@ This connector provides incremental data replication from Tulip Tables using the
 - **Automatic checkpointing**: Saves state every 500 records for resumable syncs
 - **Robust error handling**: Exponential backoff retry logic for rate limiting and transient errors
 
-The connector is designed for manufacturing operations and supply chain teams who need to analyze production data, track quality metrics, and monitor operational performance across their data warehouse ecosystem.
 
 ## Requirements
 
 - Tulip Instance
 - Tulip API key with tables read scope
-- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-- Operating system:
-  - Windows: 10 or later (64-bit only)
-  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-## Features
-
-- **Two-phase sync**: BOOTSTRAP mode for historical data using `_sequenceNumber`, INCREMENTAL mode for ongoing updates
-- **Cursor-based pagination**: Primary cursor on `_sequenceNumber` avoids database load from large offsets
-- **Schema discovery**: Automatically detects table schema and maps Tulip data types to Fivetran types
-- **Custom filtering**: Supports Tulip API filter syntax for conditional data replication
-- **Automatic field optimization**: Excludes Linked Table Fields (tableLink type) to reduce database load on Tulip API
-- **Workspace support**: Can sync tables from workspace-scoped or instance-level endpoints
-- **Human-readable columns**: Generates descriptive column names from field labels and IDs
-- **Checkpointing**: Saves state every 500 records for resumable syncs
-- **Error handling**: Implements exponential backoff retry logic for rate limiting and transient failures
-- **Late commit handling**: 60-second lookback window on `_updatedAt` catches records committed after cursor update
-
+  
 ## Configuration file
 
 The connector requires the following configuration keys in `configuration.json`:
@@ -186,12 +170,6 @@ Custom columns are generated based on the Tulip table schema and follow the nami
 - `spectrapath_data_success__pybts_spectra_path_data_success` (BOOLEAN)
 
 The schema is automatically discovered on the first sync and updated when new fields are added to the Tulip table.
-
-## Additional files
-
-- `test_connector.py` - Comprehensive test suite with 15 tests covering schema discovery, incremental sync, pagination, error handling, and custom filters
-- `DEVELOPMENT_GUIDE.md` - Development environment setup instructions and debugging workflow
-- `TULIP_INTEGRATION_GUIDE.md` - End-to-end integration guide for setting up Tulip with Fivetran and Snowflake
 
 ## Additional considerations
 
