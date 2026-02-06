@@ -34,7 +34,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 The connector requires a `configuration.json` file with a `searches` array. Each search defines a group of keywords to compare, the regions to query, and the timeframe to analyze.
 
 ```json
-"[{"name":"ETL Tools Comparison","keywords":["Fivetran","Airflow","dbt"],"regions":[{"name":"Worldwide","code":""},{"name":"United States","code":"US"},{"name":"United Kingdom","code":"GB"}],"timeframe":"2024-01-01 today"}]"
+{
+  "searches": "[{\"name\":\"ETL Tools Comparison\",\"keywords\":[\"Fivetran\"],\"regions\":[{\"name\":\"Worldwide\",\"code\":\"\"},{\"name\":\"United States\",\"code\":\"US\"}],\"timeframe\":\"2024-01-01 today\"}]",
+}
+
 
 ```
 
@@ -48,7 +51,7 @@ Configuration parameters:
   - `timeframe` – Time period in Google Trends format (required)
     - Relative format: "today 12-m" (last 12 months), "today 3-m" (last 3 months)
     - Absolute format: "2024-01-01 2026-02-03" (specific date range)
-    - Note: "today" keyword in absolute ranges is automatically converted to current date
+  Note: "today" keyword in absolute ranges is automatically converted to current date
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -68,7 +71,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses the public Google Trends API, which does not require authentication credentials. The connector accesses publicly available search interest data without needing API keys, OAuth tokens, or user credentials.
+This connector uses the public Google Trends API, which does not require authentication credentials. The connector accesses publicly available search interest data without the need for API keys, OAuth tokens, or user credentials.
 
 The connector configures HTTP headers compatible with the Google Trends web interface to ensure reliable access. Refer to `def initialize_pytrends()` in `connector.py` for the header configuration.
 
@@ -107,26 +110,26 @@ The connector processes Google Trends data through the following steps:
 
 The connector implements robust error handling to ensure reliable data synchronization:
 
-- **Retry logic with exponential backoff**
+- Retry logic with exponential backoff
   - Automatically retries failed API requests up to 5 times
   - Uses exponential backoff with random jitter to avoid thundering herd issues
   - See `def fetch_region_data_with_retry()` and `def calculate_retry_delay()`
 
-- **Regional failure tolerance**
+- Regional failure tolerance
   - Continues syncing other regions if one region fails
   - Sync fails only if all regions fail or no data is returned
   - See `def update()` in `connector.py`
 
-- **Detailed error logging**
+- Detailed error logging
   - Logs HTTP status codes, response details, request parameters, and stack traces
   - See `def log_error_details()` and `def log_http_response_details()`
 
-- **Configuration validation**
+- Configuration validation
   - Validates all configuration parameters before API calls
   - Provides clear errors for missing or invalid fields
   - See `def validate_configuration()`
 
-- **State checkpointing**
+- State checkpointing
   - Checkpoints sync state after successful processing
   - Enables safe resume without data loss
   - See `def update()`
