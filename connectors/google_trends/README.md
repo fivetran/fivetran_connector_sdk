@@ -37,8 +37,6 @@ The connector requires a `configuration.json` file with a `searches` array. Each
 {
   "searches": "[{\"name\":\"ETL Tools Comparison\",\"keywords\":[\"Fivetran\"],\"regions\":[{\"name\":\"Worldwide\",\"code\":\"\"},{\"name\":\"United States\",\"code\":\"US\"}],\"timeframe\":\"2024-01-01 today\"}]",
 }
-
-
 ```
 
 Configuration parameters:
