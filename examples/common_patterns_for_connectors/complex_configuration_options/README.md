@@ -1,7 +1,7 @@
 # Complex Configuration Options Connector Example
 
 ## Connector overview
-This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires complex configuration that is difficult or impractical to express in `configuration.json`. This may include deeply nested structures or non-string values. A separate python file can be used to define such configuration values. These configuration are static and must not contain any sensitive information. The connector needs to be redeployed for updating the static values defined in the separate python file.
+This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires complex configuration that is difficult or impractical to express in `configuration.json`. This may include deeply nested structures or non-string values. A separate python file can be used to define such configuration values. These configurations are static and must not contain any sensitive information. The connector needs to be redeployed for updating the static values defined in the separate python file.
 
 This pattern is useful for:
 - Working with custom connector configurations passed through configuration.json.
