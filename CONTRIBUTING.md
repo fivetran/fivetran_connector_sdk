@@ -78,6 +78,9 @@ To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the
 # Stage all your local changes
 git add .
 
+# Or, stage specific files
+git add connectors/your_connector_name/connector.py
+
 # Commit with a descriptive message
 git commit -m "brief description of changes"
 ```
@@ -129,7 +132,7 @@ Before submitting a pull request, thoroughly review these documents:
 
 - [Python Coding Standards](https://github.com/fivetran/fivetran_connector_sdk/tree/main/PYTHON_CODING_STANDARDS.md) - comprehensive guidelines for Python code style, naming conventions, and best practices
 - [Fivetran Coding Principles](https://github.com/fivetran/fivetran_connector_sdk/tree/main/FIVETRAN_CODING_PRINCIPLES.md) - high-level principles for code reviews, PR guidelines, and example development
-3. [Connector SDK Best Practices](https://fivetran.com/docs/connector-sdk/best-practices) - official documentation on best practices
+- [Connector SDK Best Practices](https://fivetran.com/docs/connector-sdk/best-practices) - official documentation on best practices
 
 ### Documentation requirements
 
@@ -197,7 +200,7 @@ A Fivetran team member will review:
 
 1. Acknowledge each review comment.
 2. Update your code based on feedback.
-3. Push Updates: Commit and push changes to your branch
+3. Push Updates: Commit and push changes to your branch.
 4. Once all feedback is addressed, request re-review from reviewers.
 5. Mark conversations as resolved when addressed.
 
@@ -253,6 +256,7 @@ All contributors must sign the Fivetran CLA before their contributions can be ac
 - When you submit your first pull request, the CLA bot will automatically comment on your PR.
 - Follow the link provided by the bot to sign the CLA electronically
 - Once you have signed the CLA, the bot will automatically verify and update your PR status
+
 You only need to sign the CLA once for all future contributions.
 
 ## Testing requirements
