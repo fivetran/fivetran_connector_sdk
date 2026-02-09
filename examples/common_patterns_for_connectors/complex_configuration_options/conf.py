@@ -11,7 +11,7 @@ Do not store secrets here. Always use configuration.json for sensitive values su
 
 API_CONFIGURATION = {
     "regions": ["us-east-1", "us-east-4", "us-central-1"],
-    "api_quota": 1000,
+    "api_quota": 12345,
     "use_bulk_api": True,
     "currencies": [{"From": "USD", "To": "EUR"}, {"From": "USD", "To": "GBP"}],
     "complex_configuration": {

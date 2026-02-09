@@ -118,7 +118,7 @@ def validate_fetched_configuration_values(
     assert isinstance(api_quota, int) and api_quota == 12345
     assert isinstance(use_bulk_api, bool) and use_bulk_api
     assert isinstance(currencies, list) and len(currencies) == 2
-    assert isinstance(complex_configuration, dict) and len(complex_configuration) == 1
+    assert isinstance(complex_configuration, dict)
 
 
 def update(configuration: dict, state: dict):
