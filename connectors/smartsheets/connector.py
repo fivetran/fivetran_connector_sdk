@@ -107,25 +107,20 @@ class StateManager:
 
         Returns:
             Dict[str, Any]: State information for the sheet containing:
-                - last_modified: ISO8601 timestamp of the last sync
+                - last_modified: ISO8601 timestamp of the last sync, or None for new sheets
                 - row_ids: List of row IDs from the previous sync
                 If no state exists for the sheet, returns a default state
-                with last_modified set to 12 AM (midnight) of the previous day.
+                with last_modified set to None to fetch all rows on first sync.
 
         Note:
             This method provides a default state for new sheets, ensuring
-            that the first sync will fetch all available data.
+            that the first sync will fetch all available data by passing
+            None for modified_since.
         """
-        default_time = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        ) - timedelta(days=1)
         return self.sheet_states.get(
             sheet_id,
             {
-                "last_modified": self.state.get(
-                    "last_modified",
-                    default_time.isoformat() + "Z",
-                ),
+                "last_modified": None,
                 "row_ids": [],
             },
         )
@@ -733,15 +728,17 @@ def _process_sheet(
 
     try:
         sheet_state = state_manager.get_sheet_state(sheet_id)
+        last_modified = sheet_state.get("last_modified")
         log.info(
-            f"Sheet '{sheet_name}': State loaded - last_modified={sheet_state.get('last_modified', 'NOT_FOUND')}, row_count={len(sheet_state.get('row_ids', []))}"
+            f"Sheet '{sheet_name}': State loaded - last_modified={last_modified or 'INITIAL_SYNC'}, row_count={len(sheet_state.get('row_ids', []))}"
         )
-        sheet_data = api.get_sheet_details(sheet_id, sheet_state["last_modified"])
+        sheet_data = api.get_sheet_details(sheet_id, last_modified)
 
         column_type_map = {col["id"]: col["type"] for col in sheet_data["columns"]}
         column_map = {col["id"]: col["title"] for col in sheet_data["columns"]}
 
-        latest_sheet_modified = sheet_state["last_modified"]
+        # For initial sync, start with a very old timestamp so any row is considered newer
+        latest_sheet_modified = last_modified or "1970-01-01T00:00:00Z"
 
         sheet_rows = sheet_data.get("rows", [])
         if _TEST_MODE:
@@ -749,7 +746,7 @@ def _process_sheet(
             log.fine(f"Test mode: Processing {len(sheet_rows)} rows for sheet '{sheet_name}'")
 
         log.info(f"Sheet '{sheet_name}': Found {len(sheet_rows)} total rows")
-        log.info(f"Sheet '{sheet_name}': Using modifiedSince={sheet_state['last_modified']}")
+        log.info(f"Sheet '{sheet_name}': Using modifiedSince={last_modified or 'None (fetching all rows)'}")
 
         current_row_ids = {str(row["id"]) for row in sheet_rows}
         previous_row_ids = set(sheet_state.get("row_ids", []))
