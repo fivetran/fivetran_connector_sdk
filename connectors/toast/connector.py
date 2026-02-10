@@ -567,9 +567,11 @@ def process_child(parent, table_name, id_field_name, id_field):
         # check for null guids in appliedTaxes[]
         # Use deterministic ID based on parent selection + tax rate to ensure consistent identification across syncs
         if table_name == "orders_check_selection_applied_tax" and p.get("guid") is None:
-            parent_id = p.get("orders_check_selection_id", "")
-            tax_rate_id = p.get("taxRate_id", "")
-            unique_string = f"{parent_id}_{tax_rate_id}"
+            parent_id = p.get("orders_check_selection_id") or ""
+            tax_rate_id = p.get("taxRate_id") or ""
+            tax_name = p.get("name") or ""
+            tax_rate = str(p.get("rate") or "")
+            unique_string = f"{parent_id}_{tax_rate_id}_{tax_name}_{tax_rate}"
             p["guid"] = "gen-" + hashlib.md5(unique_string.encode()).hexdigest()
         if table_name == "orders_check":
             p.pop("payments", None)
