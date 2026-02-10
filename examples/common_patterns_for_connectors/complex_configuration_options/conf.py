@@ -1,8 +1,8 @@
 """
-You can define complex or reusable configuration values in a separate Python file and import them into your connector.
-This is useful for keeping your connector code clean and organized, especially when working with large, structured, or derived configurations.
+You can define complex or reusable constant values in a separate Python file and import them into your connector.
+This is useful for keeping your connector code clean and organized.
 
-Important: Configuration values defined this way are static. They cannot be viewed or modified from the Fivetran dashboard.
+Important: Constant values defined this way cannot be viewed or modified from the Fivetran dashboard.
 To change them, you must update the file and redeploy the connector.
 If you need configuration options that you can edit from the Fivetran dashboard, define them in configuration.json instead.
 
@@ -14,10 +14,10 @@ API_CONFIGURATION = {
     "api_quota": 12345,
     "use_bulk_api": True,
     "currencies": [{"From": "USD", "To": "EUR"}, {"From": "USD", "To": "GBP"}],
-    "complex_configuration": {
+    "complex_constant": {
         "level_1": {
             "level_2": {
-                "level_3": "This is a complex configuration value that can be defined in conf.py and imported into the connector."
+                "level_3": "This is a complex value that can be defined in conf.py and imported into the connector."
             },
             "list_of_dicts": [{"name": "item1", "value": 1}, {"name": "item2", "value": 2}],
         }

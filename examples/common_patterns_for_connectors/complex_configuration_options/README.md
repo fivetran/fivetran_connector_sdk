@@ -1,11 +1,11 @@
 # Complex Configuration Options Connector Example
 
 ## Connector overview
-This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires complex configuration that is difficult or impractical to express in `configuration.json`. This may include deeply nested structures or non-string values. A separate python file can be used to define such configuration values. These configurations are static and must not contain any sensitive information. The connector needs to be redeployed for updating the static values defined in the separate python file.
+This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires complex values that are difficult or impractical to express in `configuration.json`. This may include deeply nested structures or non-string values. A separate python file can be used to define such constant values. These constants must not contain any sensitive information. The connector needs to be redeployed for updating the values defined in the separate python file.
 
 This pattern is useful for:
 - Working with custom connector configurations passed through configuration.json.
-- Maintaining static, complex configuration structures that are defined at deployment time.
+- Maintaining complex constants that are defined at deployment time.
 - Dynamically handling typed settings like lists, integers, booleans, and JSON objects.
 
 
@@ -121,7 +121,7 @@ The connector creates a `CRYPTO` table:
 ```
 
 ## Additional files
-- `conf.py` – Defines complex configuration structures using native Python types. This file demonstrates how to maintain static configuration that doesn't need to be editable from the Fivetran dashboard. The connector falls back to these values when `complex_configuration` is not present in `configuration.json`.
+- `conf.py` – Defines a complex constant using native Python types. This file demonstrates how to maintain constants that don't need to be editable from the Fivetran dashboard.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

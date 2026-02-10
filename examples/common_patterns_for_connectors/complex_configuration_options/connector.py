@@ -1,6 +1,7 @@
 """
 This is an example to show how to handle complex configuration options in your connector code.
 It shows multiple ways to cast configuration fields to list, integer, boolean and dict for use in connector code.
+It also shows how to define complex constant values in a separate file and import them into your connector.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
@@ -18,7 +19,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import complex configuration from a separate file. This keeps the connector code clean and organized.
+# Import complex constant from a separate file.
 from conf import API_CONFIGURATION
 
 
@@ -59,15 +60,15 @@ def validate_configuration(configuration: dict):
 def get_configuration(configuration):
     """
     This function is responsible for fetching and parsing the configuration values.
-    This function checks if the configuration values are present in Fivetran connector configuration
-    If they are not present, it uses the static configuration defined in conf.py
+    This function checks if the values are present in Fivetran connector configuration
+    If they are not present, it uses the constant defined in conf.py
     You can modify the logic in this function to suit your needs.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
-        A tuple containing the configuration values: regions, api_quota, use_bulk_api, parsed_json
+        A tuple containing the configuration values: regions, api_quota, use_bulk_api, currencies, complex_constant
     """
-    if "complex_configuration" in configuration:
+    if "complex_constant" in configuration:
         log.info("using Fivetran connector configuration")
         # Validate the configuration to ensure it contains all required values.
         validate_configuration(configuration)
@@ -81,44 +82,43 @@ def get_configuration(configuration):
         # converts config json string to dict
         currencies = json.loads(configuration["currencies"])
         # parsing complex configuration value
-        complex_configuration = json.loads(configuration["complex_configuration"])
+        complex_constant = json.loads(configuration["complex_constant"])
 
-        return regions, api_quota, use_bulk_api, currencies, complex_configuration
+        return regions, api_quota, use_bulk_api, currencies, complex_constant
 
     else:
-        # If the configuration values are not present, use the static configuration defined in conf.py
-        # This is also a way to define complex configuration required by the connector.
+        # If the values are not present, use the constant defined in conf.py
         # Do not store secrets here.
         # Always use Fivetran connector configuration ( configuration.json ) for sensitive values such as API keys or credentials.
-        log.warning("using configuration defined in conf.py")
+        log.warning("using constant defined in conf.py")
         return (
             API_CONFIGURATION.get("regions"),
             API_CONFIGURATION.get("api_quota"),
             API_CONFIGURATION.get("use_bulk_api"),
             API_CONFIGURATION.get("currencies"),
-            API_CONFIGURATION.get("complex_configuration"),
+            API_CONFIGURATION.get("complex_constant"),
         )
 
 
 def validate_fetched_configuration_values(
-    regions, api_quota, use_bulk_api, currencies, complex_configuration
+    regions, api_quota, use_bulk_api, currencies, complex_constant
 ):
     """
-    This is a test function to ensure that the configuration values fetched from the get_configuration function are of the expected types and formats.
+    This is a test function to ensure that the values fetched from get_configuration() function are of the expected types and formats.
     You will not typically need to define a function like this in your connector code
-    But it is included here for demonstration purposes to show how you can validate and test the configuration values you fetch.
+    But it is included here for demonstration purposes to show how you can validate and test the values you fetch.
     Args:
-        regions: regions configuration value, expected to be a list of strings
-        api_quota: api_quota configuration value, expected to be an integer
-        use_bulk_api: use_bulk_api configuration value, expected to be a boolean
-        currencies: currencies configuration value, expected to be a list of dictionaries with 'From' and 'To' keys
-        complex_configuration: complex_configuration value, expected to be a nested dictionary with specific structure
+        regions: regions value, expected to be a list of strings
+        api_quota: api_quota value, expected to be an integer
+        use_bulk_api: use_bulk_api value, expected to be a boolean
+        currencies: currencies value, expected to be a list of dictionaries with 'From' and 'To' keys
+        complex_constant: complex_constant value, expected to be a nested dictionary with specific structure
     """
     assert isinstance(regions, list) and len(regions) == 3
     assert isinstance(api_quota, int) and api_quota == 12345
     assert isinstance(use_bulk_api, bool) and use_bulk_api
     assert isinstance(currencies, list) and len(currencies) == 2
-    assert isinstance(complex_configuration, dict)
+    assert isinstance(complex_constant, dict)
 
 
 def update(configuration: dict, state: dict):
@@ -133,14 +133,12 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common patterns for connectors - Complex Configuration Options")
 
-    # Get the configuration values using the get_configuration function.
-    # This method allows you to handle complex configuration options
-    # You can fetch the complex configuration values from a separate python file or Fivetran connector configuration or both.
+    # Get the values using the get_configuration function.
     regions, api_quota, use_bulk_api, currencies, complex_configuration = get_configuration(
         configuration
     )
 
-    # Validate the fetched configuration values to ensure they are of the expected types and formats.
+    # Validate the fetched values to ensure they are of the expected types and formats.
     validate_fetched_configuration_values(
         regions, api_quota, use_bulk_api, currencies, complex_configuration
     )
