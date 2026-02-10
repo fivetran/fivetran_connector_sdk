@@ -63,6 +63,12 @@ Use descriptive branch names such as:
 
 ### Step 4: Make your changes
 
+Before making any changes, define the scope of the connector example you want to contribute. For new examples, the examples should be added in a new directory under relevant section. For updating existing examples, you can either make changes directly in the existing connector's directory or create a new subdirectory under the existing connector.
+
+If the changes are substantial, you should create a new connector example to maintain clarity and organization. For change that are universally applicable for the existing example such as performance improvements, code quality improvements, or bug fixes, you should make changes directly in the existing connector's directory.
+
+After defining the scope, you should do the following:
+
 1. Create or modify connector examples in the appropriate directory.
 2. Ensure your code follows our [coding standards](#contribution-standards-and-guidelines).
 3. Test your connector thoroughly using `fivetran debug`. Refer to the [building custom connector tutorial](https://fivetran.com/docs/connector-sdk/tutorials/beginners-tutorial#installthefivetranconnectorsdk). 
@@ -165,7 +171,7 @@ When you submit a pull request, automated checks will run:
 
 These checks must pass before human review begins.
 
-### Stage 2: GitHub copilot review
+### Stage 2: GitHub Copilot review
 
 GitHub Copilot performs an initial automated review to:
 
