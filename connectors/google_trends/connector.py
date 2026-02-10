@@ -230,7 +230,7 @@ def schema(configuration: dict):
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
-    configuration: a dictionary that holds the configuration settings for the connector.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -263,7 +263,7 @@ def update(configuration: dict, state: dict):
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details
+        configuration: A Dictionary containing connection details
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
@@ -595,15 +595,15 @@ def process_region(
         time.sleep(__INTER_REGION_DELAY)
 
     except Exception as e:
-        # Unexpected exceptions should be logged and re-raised to surface critical errors
-        # that need investigation
+        # Unexpected exceptions should be logged and tracked as regional failures so that
+        # other regions/searches can continue. The overall sync logic will decide whether
+        # to fail the sync based on how many regions succeeded vs. failed.
         error_type = type(e).__name__
         error_msg = str(e)
         log.severe(f"  Unexpected error for region {region_name} ({region_code})")
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
-        # Re-raise unexpected exceptions to prevent silent failures
         raise
 
     return total_records_synced, total_regions
@@ -681,7 +681,7 @@ def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
     The delay increases exponentially with each retry:
     - Retry 0: 60s base + 0-30s jitter = 60-90s total
     - Retry 1: 120s base + 0-30s jitter = 120-150s total
-    - Retry 2: 240s base + 0-30s jitter = 240-300s total
+    - Retry 2: 240s base + 0-30s jitter = 240-270s total
     - And so on...
 
     Random jitter helps prevent thundering herd problems when multiple processes retry.
