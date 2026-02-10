@@ -22,16 +22,14 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Features
-- Demonstrates two approaches for complex configuration handling:
-  - Approach 1 - Parse string values from `configuration.json` (editable from Fivetran dashboard)
-  - Approach 2 - Use native Python structures from `conf.py` (static, deployment-time configuration)
-- Validates presence of required configuration fields
+- Parse string values from `configuration.json`
+- Use constant values from `conf.py`
 - Casts configuration values from strings to appropriate types:
   - Comma-separated strings → list (`regions`)
   - Numeric strings → integers (`api_quota`)
   - Boolean strings → booleans (`use_bulk_api`)
   - JSON strings → parsed Python structures (`currencies`)
-- Handles deeply nested configuration structures (`complex_configuration`)
+- Handles deeply nested constant values using a separate python file
 - Uses assert statements to confirm parsing behavior
 - Emits a test message `hello world` to confirm successful processing
 
@@ -46,14 +44,14 @@ The connector requires the following configuration parameters:
   "currencies": "[{\"From\": \"USD\",\"To\": \"EUR\"},{\"From\": \"USD\",\"To\": \"GBP\"}]"
 }
 ```
-The configuration also accepts optional key `complex_configuration`:
+The configuration also accepts optional key `complex_constant`:
 ```
-"complex_configuration": "{\"level_1\": {\"level_2\": {\"level_3\": \"This is a complex configuration value\"}}}"
+"complex_constant": "{\"level_1\": {\"level_2\": {\"level_3\": \"This is a complex value\"}}}"
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-When you have complex configuration structures that is not sensitive, does not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them directly in `conf.py` using native Python types:
+When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them as constants directly in `conf.py` using native Python types:
 
 ```python
 API_CONFIGURATION = {
@@ -64,10 +62,10 @@ API_CONFIGURATION = {
         {"From": "USD", "To": "EUR"},
         {"From": "USD", "To": "GBP"}
     ],
-    "complex_configuration": {
+    "complex_constant": {
         "level_1": {
             "level_2": {
-                "level_3": "This is a complex configuration value"
+                "level_3": "This is a complex value"
             },
             "list_of_dicts": [
                 {"name": "item1", "value": 1},
@@ -79,7 +77,6 @@ API_CONFIGURATION = {
 ```
 
 Note: Ensure that you do not use `conf.py` to store sensitive information. You should always use `configuration.json` to define sensitive information required by the connector.
-
 
 
 ## Requirements file
@@ -121,7 +118,7 @@ The connector creates a `CRYPTO` table:
 ```
 
 ## Additional files
-- `conf.py` – Defines a complex constant using native Python types. This file demonstrates how to maintain constants that don't need to be editable from the Fivetran dashboard.
+- `conf.py` – Defines a complex constant using native Python types. This file demonstrates how to define constants that don't need to be editable from the Fivetran dashboard.
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
