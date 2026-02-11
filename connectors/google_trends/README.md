@@ -102,7 +102,7 @@ The connector processes Google Trends data through the following steps:
    - `timeframe` – Original timeframe query string
    - `is_partial` – Boolean flag for incomplete data points
 
-   - Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `def process_region()`.
+- Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `def process_region()`.
 
 ## Error handling
 
