@@ -38,8 +38,7 @@ import traceback
 # Used for catching specific HTTP and network exceptions from pytrends
 import requests.exceptions
 
-# Import required classes from fivetran_connector_sdk
-# Import required classes from fivetran_connector_sdk
+# Import required classes  from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
