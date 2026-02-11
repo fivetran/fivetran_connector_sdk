@@ -8,15 +8,15 @@ The connector is designed for manufacturing operations and supply chain teams wh
 
 This connector provides incremental data replication from Tulip Tables using the Tulip Table API with a two-phase synchronization strategy. It supports:
 
-- **Two-phase sync strategy**: Efficient historical load (BOOTSTRAP) followed by incremental updates (INCREMENTAL)
-- **Cursor-based pagination**: Uses `_sequenceNumber` as primary cursor to avoid offset-based pagination overhead
-- **Dynamic schema discovery**: Automatically maps Tulip field types to warehouse column types
-- **Late commit handling**: 60-second lookback window on `_updatedAt` prevents data loss from concurrent updates
-- **Custom filtering**: Supports Tulip API filter syntax to sync only relevant records
-- **Automatic field optimization**: Excludes tableLink fields to reduce database load on Tulip API
-- **Workspace support**: Can sync tables from workspace-scoped or instance-level endpoints
-- **Automatic checkpointing**: Saves state every 500 records for resumable syncs
-- **Robust error handling**: Exponential backoff retry logic for rate limiting and transient errors
+- Two-phase sync strategy - Efficient historical load (BOOTSTRAP) followed by incremental updates (INCREMENTAL)
+- Cursor-based pagination - Uses `_sequenceNumber` as primary cursor to avoid offset-based pagination overhead
+- Dynamic schema discovery - Automatically maps Tulip field types to warehouse column types
+- Late commit handling - 60-second lookback window on `_updatedAt` prevents data loss from concurrent updates
+- Custom filtering - Supports Tulip API filter syntax to sync only relevant records
+- Automatic field optimization - Excludes tableLink fields to reduce database load on Tulip API
+- Workspace support - Can sync tables from workspace-scoped or instance-level endpoints
+- Automatic checkpointing - Saves state every 500 records for resumable syncs
+- Robust error handling - Exponential backoff retry logic for rate limiting and transient errors
 
 
 ## Requirements
