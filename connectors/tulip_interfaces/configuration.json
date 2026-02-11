@@ -1,9 +1,9 @@
 {
-  "subdomain": "{tulip_instance_subdomain}",
-  "api_key": "{api_key}",
-  "api_secret": "{api_secret}",
-  "table_id": "{table_id}",
-  "workspace_id": "{workspace_id}",
-  "sync_from_date": "",
-  "custom_filter_json": "[]"
+  "subdomain": "<tulip_instance_subdomain>",
+  "api_key": "<api_key>",
+  "api_secret": "<api_secret>",
+  "table_id": "<table_id>",
+  "workspace_id": "<workspace_id>",
+  "sync_from_date": " "<YYYY-MM-DDTHH:MM:SSZ>"",
+  "custom_filter_json": "<[your_filters]>"
 }
