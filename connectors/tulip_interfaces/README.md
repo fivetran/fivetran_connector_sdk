@@ -79,7 +79,7 @@ This connector uses HTTP Basic Authentication with Tulip API credentials:
 
 The connector passes the API key and secret as HTTP Basic Auth credentials to all Tulip API endpoints.
 
-## Pagination and sync strategy
+## Pagination
 
 Pagination - Refer to `def update()`
 
