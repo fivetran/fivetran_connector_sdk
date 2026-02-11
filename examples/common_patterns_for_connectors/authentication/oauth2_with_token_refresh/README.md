@@ -39,6 +39,10 @@ The configuration keys defined for your connector, which are uploaded to Fivetra
   "client_id": "<YOUR_CLIENT_ID>"
 }
 ```
+**Parameters:**
+  - `refresh_token` (required) – The OAuth2 refresh token used to obtain new access tokens when the current access token expires.
+  - `client_id` (required) – The OAuth2 client ID from your HubSpot application.
+  - `client_secret` (required) – The OAuth2 client secret from your HubSpot application.
 
 Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
