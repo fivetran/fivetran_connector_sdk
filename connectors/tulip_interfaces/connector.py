@@ -210,28 +210,14 @@ def validate_configuration(configuration):
                 raise ValueError(f"Configuration field 'custom_filter_json' contains invalid JSON: {e}")
 
 
-def schema(configuration):
-    """Discover schema from Tulip Table API.
-
-    Fetches table metadata from Tulip and constructs a Fivetran-compatible
-    schema definition including system fields (id, _createdAt, _updatedAt,
-    _sequenceNumber) and all custom table fields with human-readable column names.
+def schema(configuration: dict):
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
 
     Args:
-        configuration (dict): Connector configuration containing:
-            - subdomain (str): Tulip instance subdomain
-            - api_key (str): API authentication key
-            - api_secret (str): API authentication secret
-            - table_id (str): Target Tulip table ID
-            - workspace_id (str, optional): Workspace ID for scoping
-
-    Returns:
-        list: Schema definition with table name, primary key, and columns.
-
-    Raises:
-        ValueError: If configuration is invalid or missing required fields.
-        requests.exceptions.HTTPError: If API request fails.
-        Exception: For other schema discovery failures.
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     try:
         # Validate configuration
@@ -245,12 +231,7 @@ def schema(configuration):
         url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="")
         log.info(f"Fetching schema from {url}")
 
-        response = requests.get(url, auth=(api_key, api_secret))
-
-        if response.status_code != 200:
-            log.error(f"Tulip API returned {response.status_code}: {response.text}")
-            response.raise_for_status()
-
+        response = _fetch_with_retry(url, (api_key, api_secret))
         table_metadata = response.json()
         columns = {
             'id': 'STRING',
@@ -553,36 +534,18 @@ def _build_incremental_filters(last_sequence, last_updated_at, custom_filters):
     return api_filters
 
 
-def update(configuration, state):
-    """Perform two-phase sync of Tulip table data.
-
-    Implements a two-phase synchronization strategy:
-    - Phase 1 (BOOTSTRAP): Historical load using _sequenceNumber for efficiency
-    - Phase 2 (INCREMENTAL): Incremental updates using _sequenceNumber with _updatedAt lookback
-
-    Both phases use _sequenceNumber as the primary cursor to avoid offset pagination.
-    INCREMENTAL mode adds a 60-second lookback window on _updatedAt to catch late commits.
+def update(configuration: dict, state: dict):
+    """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
 
     Args:
-        configuration (dict): Connector configuration containing:
-            - subdomain (str): Tulip instance subdomain
-            - api_key (str): API authentication key
-            - api_secret (str): API authentication secret
-            - table_id (str): Target Tulip table ID
-            - workspace_id (str, optional): Workspace ID for scoping
-            - sync_from_date (str, optional): Initial sync start date
-            - custom_filter_json (str, optional): JSON array of custom filters
-        state (dict): Connector state containing:
-            - cursor_mode (str): Either 'BOOTSTRAP' or 'INCREMENTAL'
-            - last_sequence (int): Last processed _sequenceNumber
-            - last_updated_at (str): Last processed _updatedAt timestamp
-
-    Raises:
-        ValueError: If configuration is invalid or missing required fields.
-        json.JSONDecodeError: If custom_filter_json is invalid.
-        requests.exceptions.HTTPError: If API requests fail.
-        Exception: For other sync failures.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: CONNECTORS : TULIP_INTERFACES")
     try:
         # Validate configuration
         validate_configuration(configuration)
@@ -682,7 +645,10 @@ def update(configuration, state):
 
                     records_processed += 1
 
-                    # Checkpoint every 500 records
+                    # Save progress periodically by checkpointing state.
+                    # Checkpoints enable the connector to resume from the last saved position if interrupted.
+                    # This prevents data loss and avoids re-processing records already synced to Fivetran.
+                    # Checkpoint every 500 records to balance between performance and resumability.
                     if records_processed % __CHECKPOINT_INTERVAL == 0:
                         op.checkpoint(state={
                             'cursor_mode': cursor_mode,
@@ -752,7 +718,10 @@ def update(configuration, state):
 
                     records_processed += 1
 
-                    # Checkpoint every 500 records
+                    # Save progress periodically by checkpointing state.
+                    # Checkpoints enable the connector to resume from the last saved position if interrupted.
+                    # This prevents data loss and avoids re-processing records already synced to Fivetran.
+                    # Checkpoint every 500 records to balance between performance and resumability.
                     if records_processed % __CHECKPOINT_INTERVAL == 0:
                         op.checkpoint(state={
                             'cursor_mode': 'INCREMENTAL',
@@ -774,6 +743,9 @@ def update(configuration, state):
             'last_sequence': last_sequence,
             'last_updated_at': highest_updated_at
         }
+        # Final checkpoint to save the end state of this sync.
+        # This ensures that the next sync starts from the correct position,
+        # even if some records were processed after the last periodic checkpoint.
         op.checkpoint(state=final_state)
         log.info(f"Sync completed in {cursor_mode} mode. Total records processed: {records_processed}")
 
@@ -793,9 +765,22 @@ def update(configuration, state):
         log.severe(f"Update failed: {str(e)}")
         raise
 
+# Create the connector object using the schema and update functions
 connector = Connector(schema=schema, update=update)
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
     with open("configuration.json", 'r') as f:
         configuration = json.load(f)
+    # Test the connector locally
     connector.debug(configuration=configuration)
