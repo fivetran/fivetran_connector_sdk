@@ -6,7 +6,6 @@ two-phase synchronization strategy with cursor-based pagination.
 
 from datetime import datetime, timedelta
 import json
-import logging
 import re
 import time
 import threading
@@ -14,13 +13,6 @@ import threading
 import requests
 from fivetran_connector_sdk import Connector, Logging as log
 from fivetran_connector_sdk import Operations as op
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 # Private constants following Fivetran standards
 __API_VERSION = "v3"
@@ -122,14 +114,14 @@ def generate_column_name(field_id, field_label=None):
     return column_name
 
 
-def _build_api_url(subdomain, workspace_id, table_id, endpoint_type="tables"):
+def _build_api_url(subdomain, workspace_id, table_id, endpoint_type=""):
     """Build Tulip API URL with optional workspace routing.
 
     Args:
         subdomain (str): Tulip instance subdomain.
         workspace_id (str, optional): Workspace ID for workspace-scoped requests.
         table_id (str): Table ID.
-        endpoint_type (str): Either 'tables' for metadata or 'records' for data.
+        endpoint_type (str): Endpoint path segment; use '' for table metadata or 'records' for table data.
 
     Returns:
         str: Fully constructed API URL.
@@ -161,6 +153,63 @@ def _map_tulip_type_to_fivetran(tulip_type):
     return type_mapping.get(tulip_type, 'STRING')
 
 
+def validate_configuration(configuration):
+    """Validate connector configuration.
+
+    Checks for required fields and validates their types and formats.
+
+    Args:
+        configuration (dict): Connector configuration to validate.
+
+    Raises:
+        ValueError: If configuration is invalid or missing required fields.
+    """
+    if not isinstance(configuration, dict):
+        raise ValueError("Configuration must be a dictionary")
+
+    # Required fields
+    required_fields = ['subdomain', 'api_key', 'api_secret', 'table_id']
+    missing_fields = [field for field in required_fields if field not in configuration]
+    if missing_fields:
+        raise ValueError(f"Missing required configuration fields: {', '.join(missing_fields)}")
+
+    # Validate required fields are non-empty strings
+    for field in required_fields:
+        value = configuration[field]
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Configuration field '{field}' must be a non-empty string")
+
+    # Validate optional fields if present
+    if 'workspace_id' in configuration:
+        workspace_id = configuration['workspace_id']
+        if workspace_id and not isinstance(workspace_id, str):
+            raise ValueError("Configuration field 'workspace_id' must be a string or None")
+
+    if 'sync_from_date' in configuration:
+        sync_from_date = configuration['sync_from_date']
+        if sync_from_date and not isinstance(sync_from_date, str):
+            raise ValueError("Configuration field 'sync_from_date' must be a string or None")
+        # Optional: Validate ISO 8601 format
+        if sync_from_date and sync_from_date.strip():
+            try:
+                datetime.fromisoformat(sync_from_date.replace("Z", "+00:00"))
+            except ValueError:
+                raise ValueError(f"Configuration field 'sync_from_date' must be a valid ISO 8601 timestamp, got: {sync_from_date}")
+
+    if 'custom_filter_json' in configuration:
+        custom_filter_json = configuration['custom_filter_json']
+        if custom_filter_json and not isinstance(custom_filter_json, str):
+            raise ValueError("Configuration field 'custom_filter_json' must be a string or None")
+        # Validate JSON format if non-empty
+        if custom_filter_json and custom_filter_json.strip():
+            try:
+                filters = json.loads(custom_filter_json)
+                if not isinstance(filters, list):
+                    raise ValueError("Configuration field 'custom_filter_json' must be a JSON array")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Configuration field 'custom_filter_json' contains invalid JSON: {e}")
+
+
 def schema(configuration):
     """Discover schema from Tulip Table API.
 
@@ -180,11 +229,13 @@ def schema(configuration):
         list: Schema definition with table name, primary key, and columns.
 
     Raises:
+        ValueError: If configuration is invalid or missing required fields.
         requests.exceptions.HTTPError: If API request fails.
-        KeyError: If required configuration fields are missing.
         Exception: For other schema discovery failures.
     """
     try:
+        # Validate configuration
+        validate_configuration(configuration)
         subdomain = configuration['subdomain']
         api_key = configuration['api_key']
         api_secret = configuration['api_secret']
@@ -192,12 +243,12 @@ def schema(configuration):
         workspace_id = configuration.get('workspace_id')
 
         url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="")
-        logger.info(f"Fetching schema from {url}")
+        log.info(f"Fetching schema from {url}")
 
         response = requests.get(url, auth=(api_key, api_secret))
 
         if response.status_code != 200:
-            logger.error(f"Tulip API returned {response.status_code}: {response.text}")
+            log.error(f"Tulip API returned {response.status_code}: {response.text}")
             response.raise_for_status()
 
         table_metadata = response.json()
@@ -208,12 +259,12 @@ def schema(configuration):
             '_sequenceNumber': 'INT'
         }
 
-        logger.info(f"Discovered {len(table_metadata.get('columns', []))} fields")
+        log.info(f"Discovered {len(table_metadata.get('columns', []))} fields")
 
         for field in table_metadata.get('columns', []):
             field_id = field['name']
             if field_id in ['id', '_createdAt', '_updatedAt', '_sequenceNumber']:
-                logger.info(f"Skipping system field '{field_id}' from columns list")
+                log.info(f"Skipping system field '{field_id}' from columns list")
                 continue
 
             field_label = field.get('label', '')
@@ -222,11 +273,11 @@ def schema(configuration):
             fivetran_type = _map_tulip_type_to_fivetran(tulip_type)
 
             columns[column_name] = fivetran_type
-            logger.info(f"Mapped field '{field_label}' ({field_id}) -> {column_name} ({fivetran_type})")
+            log.info(f"Mapped field '{field_label}' ({field_id}) -> {column_name} ({fivetran_type})")
 
         table_label = table_metadata.get('label', table_id)
         table_name = generate_column_name(table_id, table_label)
-        logger.info(f"Table name: {table_name} (from '{table_label}')")
+        log.info(f"Table name: {table_name} (from '{table_label}')")
 
         return [
             {
@@ -236,20 +287,25 @@ def schema(configuration):
             }
         ]
 
+    except ValueError as e:
+        log.error(f"Configuration validation failed: {e}")
+        raise
     except KeyError as e:
-        logger.error(f"Missing required configuration field: {e}")
+        log.error(f"Missing required field in API response: {e}")
         raise
     except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error during schema discovery: {e}")
+        log.error(f"HTTP error during schema discovery: {e}")
         raise
     except Exception as e:
-        logger.critical(f"Schema discovery failed: {str(e)}")
+        log.severe(f"Schema discovery failed: {str(e)}")
         raise
 
 def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
     """Fetch data from API with exponential backoff retry logic.
 
     Applies rate limiting before each request to comply with Tulip API limits.
+    Retries only on transient errors (429, 5xx, timeouts, connection errors).
+    Fails fast on permanent 4xx errors (400, 401, 403, 404, etc).
 
     Args:
         url (str): API endpoint URL.
@@ -261,7 +317,7 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
         requests.Response: Successful HTTP response.
 
     Raises:
-        requests.exceptions.HTTPError: If all retry attempts fail.
+        requests.exceptions.HTTPError: If request fails with permanent error or all retries exhausted.
     """
     for attempt in range(max_retries):
         try:
@@ -270,25 +326,43 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
 
             response = requests.get(url, auth=auth, params=params)
 
+            # Handle 429 rate limiting with retry
             if response.status_code == 429:
                 wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
-                logger.warning(f"Rate limited. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                log.warning(f"Rate limited. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
                 continue
 
-            if response.status_code != 200:
-                logger.error(f"API returned {response.status_code}: {response.text}")
+            # Success case
+            if response.status_code == 200:
+                return response
+
+            # Fail fast on permanent 4xx errors (except 429, already handled)
+            if 400 <= response.status_code < 500:
+                log.error(f"Permanent client error {response.status_code}: {response.text}")
                 response.raise_for_status()
 
-            return response
+            # Retry on 5xx server errors
+            if response.status_code >= 500:
+                if attempt == max_retries - 1:
+                    log.error(f"Server error {response.status_code} after {max_retries} attempts: {response.text}")
+                    response.raise_for_status()
+                wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
+                log.warning(f"Server error {response.status_code}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+                continue
 
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            # Retry on connection errors and timeouts
             if attempt == max_retries - 1:
-                logger.error(f"All retry attempts failed: {e}")
+                log.error(f"Connection/timeout error after {max_retries} attempts: {e}")
                 raise
             wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
-            logger.warning(f"Request failed, retrying in {wait_time}s: {e}")
+            log.warning(f"Connection/timeout error, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries}): {e}")
             time.sleep(wait_time)
+        except requests.exceptions.HTTPError:
+            # Re-raise HTTPError from permanent 4xx (already logged above)
+            raise
 
     raise requests.exceptions.HTTPError("Maximum retry attempts exceeded")
 
@@ -345,7 +419,7 @@ def _build_allowed_fields(table_metadata):
         allowed_fields.append(field_id)
 
     if excluded_fields:
-        logger.info(f"Excluding {len(excluded_fields)} Linked Table Fields of type tableLink: {excluded_fields}")
+        log.info(f"Excluding {len(excluded_fields)} Linked Table Fields of type tableLink: {excluded_fields}")
 
     return allowed_fields
 
@@ -415,7 +489,7 @@ def _initialize_state(state, sync_from_date):
 
     # Handle old state format (backward compatibility)
     if 'last_updated_at' in state and state['last_updated_at']:
-        logger.info("Migrating existing state to INCREMENTAL mode")
+        log.info("Migrating existing state to INCREMENTAL mode")
         return {
             'cursor_mode': 'INCREMENTAL',
             'last_sequence': 0,
@@ -423,7 +497,7 @@ def _initialize_state(state, sync_from_date):
         }
 
     # Initialize new connector state
-    logger.info("Initializing new connector in BOOTSTRAP mode")
+    log.info("Initializing new connector in BOOTSTRAP mode")
     return {
         'cursor_mode': 'BOOTSTRAP',
         'last_sequence': 0,
@@ -504,12 +578,14 @@ def update(configuration, state):
             - last_updated_at (str): Last processed _updatedAt timestamp
 
     Raises:
-        KeyError: If required configuration fields are missing.
+        ValueError: If configuration is invalid or missing required fields.
         json.JSONDecodeError: If custom_filter_json is invalid.
         requests.exceptions.HTTPError: If API requests fail.
         Exception: For other sync failures.
     """
     try:
+        # Validate configuration
+        validate_configuration(configuration)
         # Extract configuration
         subdomain = configuration['subdomain']
         api_key = configuration['api_key']
@@ -542,7 +618,7 @@ def update(configuration, state):
         last_updated_at = current_state.get('last_updated_at')
 
         url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="records")
-        logger.info(f"Starting sync in {cursor_mode} mode")
+        log.info(f"Starting sync in {cursor_mode} mode")
 
         records_processed = 0
         highest_updated_at = last_updated_at
@@ -550,12 +626,12 @@ def update(configuration, state):
         # Ensure highest_updated_at respects sync_from_date as minimum bound
         # This prevents syncing records older than sync_from_date if state has old timestamps
         if sync_from_date and highest_updated_at and highest_updated_at < sync_from_date:
-            logger.info(f"State has old timestamp {highest_updated_at}, using sync_from_date {sync_from_date} as minimum")
+            log.info(f"State has old timestamp {highest_updated_at}, using sync_from_date {sync_from_date} as minimum")
             highest_updated_at = sync_from_date
 
         # Execute appropriate sync logic based on mode
         if cursor_mode == 'BOOTSTRAP':
-            logger.info(f"BOOTSTRAP: Starting from _sequenceNumber > {last_sequence}")
+            log.info(f"BOOTSTRAP: Starting from _sequenceNumber > {last_sequence}")
 
             # Build bootstrap filters
             api_filters = _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters)
@@ -566,7 +642,7 @@ def update(configuration, state):
 
             while has_more:
                 batch_number += 1
-                logger.info(f"BOOTSTRAP: Fetching batch #{batch_number} (filtering _sequenceNumber > {last_sequence})")
+                log.info(f"BOOTSTRAP: Fetching batch #{batch_number} (filtering _sequenceNumber > {last_sequence})")
 
                 params = {
                     'limit': __DEFAULT_LIMIT,
@@ -580,15 +656,18 @@ def update(configuration, state):
                 records = response.json()
 
                 if not records:
-                    logger.info("BOOTSTRAP: No more records, switching to INCREMENTAL mode")
+                    log.info("BOOTSTRAP: No more records, switching to INCREMENTAL mode")
                     cursor_mode = 'INCREMENTAL'
                     break
 
-                logger.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records")
+                log.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records")
 
                 # Process records and track cursors
                 for record in records:
                     transformed_record = _transform_record(record, field_mapping)
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The first argument is the name of the destination table.
+                    # The second argument is a dictionary containing the record to be upserted.
                     op.upsert(table=table_name, data=transformed_record)
 
                     # Track highest sequence number for next batch
@@ -610,27 +689,27 @@ def update(configuration, state):
                             'last_sequence': last_sequence,
                             'last_updated_at': highest_updated_at
                         })
-                        logger.info(f"BOOTSTRAP: Checkpointed at {records_processed} records (seq: {last_sequence})")
+                        log.info(f"BOOTSTRAP: Checkpointed at {records_processed} records (seq: {last_sequence})")
 
                 # Check if we've reached end of historical data
                 if len(records) < __DEFAULT_LIMIT:
-                    logger.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records (< {__DEFAULT_LIMIT}), switching to INCREMENTAL mode")
-                    logger.info(f"BOOTSTRAP: Completed after {batch_number} batches, {records_processed} total records, final sequence: {last_sequence}")
+                    log.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records (< {__DEFAULT_LIMIT}), switching to INCREMENTAL mode")
+                    log.info(f"BOOTSTRAP: Completed after {batch_number} batches, {records_processed} total records, final sequence: {last_sequence}")
                     cursor_mode = 'INCREMENTAL'
                     has_more = False
                 else:
                     # Update filter for next batch
                     api_filters = _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters)
-                    logger.info(f"BOOTSTRAP: Batch #{batch_number} complete, continuing with next batch (new cursor: _sequenceNumber > {last_sequence})")
+                    log.info(f"BOOTSTRAP: Batch #{batch_number} complete, continuing with next batch (new cursor: _sequenceNumber > {last_sequence})")
 
         # Incremental phase: Use _sequenceNumber with _updatedAt lookback window
         if cursor_mode == 'INCREMENTAL':
             # If bootstrap completed with no records and we have no timestamp, use sync_from_date
             if not highest_updated_at and sync_from_date:
-                logger.info(f"INCREMENTAL: No timestamp from bootstrap, using sync_from_date: {sync_from_date}")
+                log.info(f"INCREMENTAL: No timestamp from bootstrap, using sync_from_date: {sync_from_date}")
                 highest_updated_at = sync_from_date
 
-            logger.info(f"INCREMENTAL: Starting from _sequenceNumber > {last_sequence}, _updatedAt > {highest_updated_at} (with 60s lookback)")
+            log.info(f"INCREMENTAL: Starting from _sequenceNumber > {last_sequence}, _updatedAt > {highest_updated_at} (with 60s lookback)")
 
             # Build incremental filters
             api_filters = _build_incremental_filters(last_sequence, highest_updated_at, custom_filters)
@@ -651,11 +730,14 @@ def update(configuration, state):
                 if not records:
                     break
 
-                logger.info(f"INCREMENTAL: Fetching batch with {len(records)} records (filtering _sequenceNumber > {last_sequence})")
+                log.info(f"INCREMENTAL: Fetching batch with {len(records)} records (filtering _sequenceNumber > {last_sequence})")
 
                 # Process records and track cursors
                 for record in records:
                     transformed_record = _transform_record(record, field_mapping)
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The first argument is the name of the destination table.
+                    # The second argument is a dictionary containing the record to be upserted.
                     op.upsert(table=table_name, data=transformed_record)
 
                     # Track highest sequence number for next batch
@@ -677,7 +759,7 @@ def update(configuration, state):
                             'last_sequence': last_sequence,
                             'last_updated_at': highest_updated_at
                         })
-                        logger.info(f"INCREMENTAL: Checkpointed at {records_processed} records (seq: {last_sequence})")
+                        log.info(f"INCREMENTAL: Checkpointed at {records_processed} records (seq: {last_sequence})")
 
                 # Check if we've processed all available updates
                 if len(records) < __DEFAULT_LIMIT:
@@ -693,19 +775,22 @@ def update(configuration, state):
             'last_updated_at': highest_updated_at
         }
         op.checkpoint(state=final_state)
-        logger.info(f"Sync completed in {cursor_mode} mode. Total records processed: {records_processed}")
+        log.info(f"Sync completed in {cursor_mode} mode. Total records processed: {records_processed}")
 
+    except ValueError as e:
+        log.error(f"Configuration validation failed: {e}")
+        raise
     except KeyError as e:
-        logger.error(f"Missing required configuration field: {e}")
+        log.error(f"Missing required field in API response or state: {e}")
         raise
     except json.JSONDecodeError as e:
-        logger.error(f"Invalid custom_filter_json format: {e}")
+        log.error(f"Invalid custom_filter_json format: {e}")
         raise
     except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error during sync: {e}")
+        log.error(f"HTTP error during sync: {e}")
         raise
     except Exception as e:
-        logger.critical(f"Update failed: {str(e)}")
+        log.severe(f"Update failed: {str(e)}")
         raise
 
 connector = Connector(schema=schema, update=update)
