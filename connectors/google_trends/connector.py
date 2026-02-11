@@ -673,7 +673,7 @@ def log_error_details(
     return error_type, error_msg
 
 
-def calculate_retry_delay(retry: int) -> Tuple[float, float, float]:
+def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
     """
     Calculate exponential backoff delay with random jitter for retry attempts.
 
