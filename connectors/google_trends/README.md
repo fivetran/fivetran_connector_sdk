@@ -51,6 +51,8 @@ Configuration parameters:
     - Absolute format: "2024-01-01 2026-02-03" (specific date range)
   Note: "today" keyword in absolute ranges is automatically converted to current date
 
+You can also define the search array as a constant in `config.py`. The connector will use these defaults values if no `searches` key is provided in the `configuration,json`.
+
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
@@ -71,7 +73,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses the public Google Trends API, which does not require authentication credentials. The connector accesses publicly available search interest data without the need for API keys, OAuth tokens, or user credentials.
 
-The connector configures HTTP headers compatible with the Google Trends web interface to ensure reliable access. Refer to `def initialize_pytrends()` in `connector.py` for the header configuration.
+The connector configures HTTP headers compatible with the Google Trends web interface to ensure reliable access. Refer to `initialize_pytrends()` in `connector.py` for the header configuration.
 
 ## Pagination
 
@@ -83,13 +85,13 @@ The connector uses a full refresh approach, pulling the entire timeframe on each
 
 The connector processes Google Trends data through the following steps:
 
-- Configuration validation – Validates search configurations including keyword limits (1-5 per search), required fields, and timeframe formats. Refer to `def validate_configuration()`.
+- Configuration validation – Validates search configurations including keyword limits (1-5 per search), required fields, and timeframe formats. Refer to `validate_configuration()`.
 
-- Search ID generation – Creates unique, human-readable identifiers for each search group using the format `{search_name}_{timeframe}_{hash}`. This groups keywords that were queried together, ensuring their relative interest scores remain comparable. Refer to `def generate_search_id()`.
+- Search ID generation – Creates unique, human-readable identifiers for each search group using the format `{search_name}_{timeframe}_{hash}`. This groups keywords that were queried together, ensuring their relative interest scores remain comparable. Refer to `generate_search_id()`.
 
-- Timeframe conversion – Automatically converts "today" keywords in absolute timeframes to actual dates (e.g., "2024-01-01 today" becomes "2024-01-01 2026-02-03"). Refer to `def process_search_group()`.
+- Timeframe conversion – Automatically converts "today" keywords in absolute timeframes to actual dates (e.g., "2024-01-01 today" becomes "2024-01-01 2026-02-03"). Refer to `process_search_group()`.
 
-- Data fetching – Fetches interest-over-time data for each region independently using the PyTrends library. Refer to `def fetch_region_data_with_retry()`.
+- Data fetching – Fetches interest-over-time data for each region independently using the PyTrends library. Refer to `fetch_region_data_with_retry()`.
 
 - Data transformation – Converts pandas DataFrame responses into individual records with the following schema:
    - `search_id` – Groups keywords from the same search
@@ -102,7 +104,7 @@ The connector processes Google Trends data through the following steps:
    - `timeframe` – Original timeframe query string
    - `is_partial` – Boolean flag for incomplete data points
 
-- Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `def process_region()`.
+- Data upserting – Each record is upserted to the `google_trends` table. The combination of `search_id`, `keyword`, `date`, `region_code`, and `sync_timestamp` forms the primary key, ensuring each sync creates new records for historical tracking. Refer to `process_region()`.
 
 ## Error handling
 
@@ -111,26 +113,24 @@ The connector implements robust error handling to ensure reliable data synchroni
 - Retry logic with exponential backoff
   - Automatically retries failed API requests up to 5 times
   - Uses exponential backoff with random jitter to avoid thundering herd issues
-  - See `def fetch_region_data_with_retry()` and `def calculate_retry_delay()`
+  - See `fetch_region_data_with_retry()` and `calculate_retry_delay()`
 
 - Regional failure tolerance
   - Continues syncing other regions if one region fails
   - Sync fails only if all regions fail or no data is returned
-  - See `def update()` in `connector.py`
 
 - Detailed error logging
   - Logs HTTP status codes, response details, request parameters, and stack traces
-  - See `def log_error_details()` and `def log_http_response_details()`
+  - See `log_error_details()` and `log_http_response_details()`
 
 - Configuration validation
   - Validates all configuration parameters before API calls
   - Provides clear errors for missing or invalid fields
-  - See `def validate_configuration()`
+  - See `validate_configuration()`
 
 - State checkpointing
   - Checkpoints sync state after successful processing
   - Enables safe resume without data loss
-  - See `def update()`
 
 ## Tables created
 
@@ -164,7 +164,7 @@ Example data:
 
 ## Additional files
 
-- `config.py` – Defines default search configurations used during development and testing. The connector falls back to this file if searches are not provided in the Fivetran configuration. Contains a `SEARCHES` array with the same structure as the configuration.json searches parameter.
+- `config.py` – Defines default `searches` value as a constant. The connector falls back to this file if `searches` key is not provided in the `configuration.json`.
 
 ## Additional considerations
 

@@ -54,8 +54,7 @@ from pytrends.request import TrendReq
 # Data manipulation library used by pytrends for returning data
 import pandas as pd
 
-# Import configuration from Python file
-# Default search configurations defined in config.py
+# Default searches constant defined in config.py
 from config import SEARCHES
 
 # Suppress pandas FutureWarning from pytrends
@@ -89,6 +88,7 @@ def get_searches(configuration: dict):
     if "searches" in configuration:
         searches_raw = configuration.get("searches")
         searches = json.loads(searches_raw) if isinstance(searches_raw, str) else searches_raw
+        log.info("Using searches from configuration.json")
     else:
         # Use searches from Python config file
         searches = SEARCHES
@@ -757,7 +757,6 @@ def fetch_region_data_with_retry(
             requests.exceptions.RequestException,
             ValueError,
             KeyError,
-            json.JSONDecodeError,
         ) as e:
             # HTTP/network errors, data parsing errors - these are expected and should be retried
             last_error = e
