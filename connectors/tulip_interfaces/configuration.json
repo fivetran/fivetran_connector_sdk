@@ -4,6 +4,6 @@
   "api_secret": "<api_secret>",
   "table_id": "<table_id>",
   "workspace_id": "<workspace_id>",
-  "sync_from_date": " "<YYYY-MM-DDTHH:MM:SSZ>"",
+  "sync_from_date": "<YYYY-MM-DDTHH:MM:SSZ>",
   "custom_filter_json": "<[your_filters]>"
 }
