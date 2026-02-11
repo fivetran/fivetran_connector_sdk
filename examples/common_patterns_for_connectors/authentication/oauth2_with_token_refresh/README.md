@@ -3,9 +3,9 @@
 ## Connector overview
 
 This connector demonstrates OAuth2 authentication with automatic access token refresh for the HubSpot API. It syncs contacts and companies data from HubSpot to Fivetran using an authorization code–based OAuth2 flow with refresh-token support (access tokens are refreshed using `grant_type=refresh_token`).
-> Note: We have a Fivetran connector for HubSpot that users can integrate directly on the dashboard [here](https://fivetran.com/docs/connectors/applications/hubspot#hubspot). You can use this example as a reference for the cases where you want to connect to a custom OAuth2 source that requires access token refresh.
+This example supports cases where the refresh token does not have a time-to-live (TTL), and only the access token is refreshed with the refresh token. If you need to programmatically update configuration values (such as refresh tokens) during the sync, refer to the [`update_configuration_during_sync` example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/update_configuration_during_sync).
 
-> Note: This example only supports cases where the refresh token does not have a TTL, and only the access token is refreshed with the refresh token. If you need to programmatically update configuration values (such as refresh tokens) during the sync, refer to the [update_configuration_during_sync](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/update_configuration_during_sync) example.
+> Note: We offer a [Fivetran native HubSpot connector](https://fivetran.com/docs/connectors/applications/hubspot#hubspot) you can deploy in your dashboard. 
 
 ## Requirements
 
