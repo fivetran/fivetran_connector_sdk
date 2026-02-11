@@ -1,4 +1,4 @@
-# Tulip Fivetran Connector
+# Tulip Interfaces Connector Example
 
 This connector syncs data from Tulip Tables to Fivetran destinations. Tulip is a frontline operations platform that enables manufacturers to build apps without code, connect machines and devices, and analyze data to improve operations. This connector allows you to replicate Tulip Table data into your data warehouse for analysis and reporting.
 
@@ -6,42 +6,47 @@ This connector syncs data from Tulip Tables to Fivetran destinations. Tulip is a
 
 The connector is designed for manufacturing operations and supply chain teams who need to analyze production data, track quality metrics, and monitor operational performance across their data warehouse ecosystem.
 
-This connector provides incremental data replication from Tulip Tables using the Tulip Table API with a two-phase synchronization strategy. It supports:
-
-- Two-phase sync strategy - Efficient historical load (BOOTSTRAP) followed by incremental updates (INCREMENTAL)
-- Cursor-based pagination - Uses `_sequenceNumber` as primary cursor to avoid offset-based pagination overhead
-- Dynamic schema discovery - Automatically maps Tulip field types to warehouse column types
-- Late commit handling - 60-second lookback window on `_updatedAt` prevents data loss from concurrent updates
-- Custom filtering - Supports Tulip API filter syntax to sync only relevant records
-- Automatic field optimization - Excludes tableLink fields to reduce database load on Tulip API
-- Workspace support - Can sync tables from workspace-scoped or instance-level endpoints
-- Automatic checkpointing - Saves state every 500 records for resumable syncs
-- Robust error handling - Exponential backoff retry logic for rate limiting and transient errors
+To use this connector, you need access to a Tulip instance and a Tulip API key with tables read scope.
 
 
 ## Requirements
-
-- Tulip Instance
-- Tulip API key with tables read scope
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-  
+## Features
+
+This connector provides incremental data replication from Tulip Tables using the Tulip Table API with a two-phase synchronization strategy. It supports:
+
+- Two-phase sync strategy: Efficient historical load (BOOTSTRAP) followed by incremental updates (INCREMENTAL)
+- Cursor-based pagination: Uses `_sequenceNumber` as primary cursor to avoid offset-based pagination overhead
+- Dynamic schema discovery: Automatically maps Tulip field types to warehouse column types
+- Late commit handling: 60-second lookback window on `_updatedAt` prevents data loss from concurrent updates
+- Custom filtering: Supports Tulip API filter syntax to sync only relevant records
+- Automatic field optimization: Excludes tableLink fields to reduce database load on Tulip API
+- Workspace support: Can sync tables from workspace-scoped or instance-level endpoints
+- Automatic checkpointing: Saves state every 500 records for resumable syncs
+- Robust error handling: Exponential backoff retry logic for rate limiting and transient errors
+
 ## Configuration file
 
 The connector requires the following configuration keys in `configuration.json`:
 
 ```json
 {
-  "subdomain": "yourcompany",
-  "api_key": "api_key",
-  "api_secret": "api_secret",
-  "table_id": "tulip_table_id",
-  "workspace_id": "tulip_workspace_id",
-  "sync_from_date": "2025-01-01T00:00:00Z",
-  "custom_filter_json": "[]"
+  "subdomain": "<YOUR_TULIP_SUBDOMAIN>",
+  "api_key": "<YOUR_TULIP_API_KEY>",
+  "api_secret": "<YOUR_TULIP_API_SECRET>",
+  "table_id": "<YOUR_TULIP_TABLE_ID>",
+  "workspace_id": "<YOUR_TULIP_WORKSPACE_ID_OPTIONAL>",
+  "sync_from_date": "<YOUR_SYNC_FROM_DATE_ISO8601_OPTIONAL>",
+  "custom_filter_json": "<YOUR_CUSTOM_FILTER_JSON_OPTIONAL>"
 }
 ```
 
@@ -59,11 +64,6 @@ Configuration parameters:
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Requirements file
-
-This connector does not require any additional Python packages beyond those pre-installed in the Fivetran environment. The `requirements.txt` file should be left empty.
-
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
