@@ -1,27 +1,24 @@
-# HubSpot OAuth2 Connector Example
+# OAuth2 Refresh Token Hubspot Connector Example
 
 ## Connector overview
 
-This connector demonstrates OAuth2 authentication with automatic access token refresh for the HubSpot API. It syncs contacts and companies data from HubSpot to Fivetran using OAuth2.0 client credentials flow with refresh token support.
-
+This connector demonstrates OAuth2 authentication with automatic access token refresh for the HubSpot API. It syncs contacts and companies data from HubSpot to Fivetran using an authorization code–based OAuth2 flow with refresh-token support (access tokens are refreshed using `grant_type=refresh_token`).
 > Note: We have a Fivetran connector for HubSpot that users can integrate directly on the dashboard [here](https://fivetran.com/docs/connectors/applications/hubspot#hubspot). You can use this example as a reference for the cases where you want to connect to a custom OAuth2 source that requires access token refresh.
 
 > Note: This example only supports cases where the refresh token does not have a TTL, and only the access token is refreshed with the refresh token. If you need to programmatically update configuration values (such as refresh tokens) during the sync, refer to the [update_configuration_during_sync](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/update_configuration_during_sync) example.
 
 ## Requirements
 
-Supported Python versions
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 
-Operating system:
-- Windows: 10 or later (64-bit only)
-- macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-- Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
 
-Refer to the Connector SDK Setup Guide to get started.
-
-4. Once you have deployed the connector, follow the link in the terminal or search in the dashboard with the connection name to view the sync status and logs.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide)  to get started.
 
 ## Features
 
@@ -29,7 +26,7 @@ Refer to the Connector SDK Setup Guide to get started.
 - Syncs contacts from HubSpot API
 - Syncs companies from HubSpot API
 - Pagination support for large datasets
-- Incremental sync using cursor-based state management
+- Example state tracking for last sync timestamp
 
 ## Configuration file
 
@@ -43,7 +40,7 @@ The configuration keys defined for your connector, which are uploaded to Fivetra
 }
 ```
 
-> Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
+Note: Ensure that the configuration.json file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
@@ -57,39 +54,60 @@ The configuration keys defined for your connector, which are uploaded to Fivetra
 
 2. Create a developer account and a HubSpot app with scopes and redirect URL. See HubSpot's [OAuth documentations](https://developers.hubspot.com/docs/reference/api/app-management/oauth) for details.
 
-3. Paste the **ClientID**, **Client Secret** and **Redirect URL** values from the developer account in the corresponding fields on the **Authorisation** tab in Postman:
+3. Paste the `ClientID`, `Client Secret` and `Redirect URL` values from the developer account in the corresponding fields on the `Authorisation` tab in Postman:
    ![Screenshot1.png](Screenshot1.png)
 
 4. Fetch the refresh token:
 
-   i. Click **Get new access Token**. You are redirected to a developer sign in popup.
+   i. Click `Get new access Token`. You are redirected to a developer sign in popup.
 
    ii. Log in to your developer account, and click authorize to grant access to the redirect url. The popup will close and you should see the following window with tokens.
       ![Screenshot2.png](Screenshot2.png)
 
 5. Access the [HubSpot API collection](https://developers.hubspot.com/docs/reference/api/crm/objects).
 
-### Debug mode
+## Pagination
 
-1. Once you have the refresh token, client secret, and ID, replace the existing credentials in the configuration.json file.
-2. Run the main function to trigger the debug command and start syncing your code to your local machine.
+The connector implements cursor-based pagination to retrieve large datasets in batches. It uses a while loop that continues fetching data until the API's `has-more` flag returns false. For each request, the connector passes an offset parameter that the API returns in the previous response, allowing it to resume from the exact position in the dataset.
 
-### Deploy the connector
-1. Get your base64 Fivetran API key in your [Fivetran dashboard](https://fivetran.com/dashboard/user/api-config).
+Response limits per request:
+- Contacts – 100 records (using `vidOffset` parameter)
+- Companies – 250 records (using `offset` parameter)
 
-2. [Create a destination](https://fivetran.com/dashboard/destinations) in the Fivetran dashboard.
+Refer to `def sync_contacts(configuration, cursor)`, `def sync_companies(configuration, cursor)`
 
-3. Use the following command in the folder containing the connector.py file to deploy the connector:
+## Data handling
 
-   ```bash
-   fivetran deploy --api-key <FIVETRAN-API-KEY> --destination <DESTINATION-NAME> --connection <CONNECTION-NAME> --configuration configuration.json
-   ```
-   
-4. Once you have deployed the connector, follow the link in the terminal or search in the dashboard with the connection name to view the sync status and logs.
+The connector transforms raw HubSpot API responses into structured records through the following process:
 
-### Updating the refresh token
+- **Extraction** – Navigates nested JSON structures using dictionary `.get()` methods with default values for missing fields.
+- **Validation** – Checks that required fields exist before processing (e.g., contacts must have firstname and identity profiles with identities).
+- **Transformation** – Converts nested properties into flat dictionary structures suitable for database storage.
+- **Upserting** – Sends transformed records to Fivetran using `op.upsert()`, which handles both inserts and updates based on primary keys.
+- **State tracking** – Persists sync progress using `op.checkpoint(state)` with the last_updated_at timestamp for incremental syncs.
 
-- Using Fivetran [Update Api](https://fivetran.com/docs/rest-api/api-reference/connectors/modify-connector?service=15five#updateaconnection):
+Refer to `def process_record` within `def sync_contacts(configuration, cursor)`, `def sync_companies(configuration, cursor)`
+
+## Error handling
+
+The connector implements error handling strategies:
+
+- Configuration validation – Ensures all required configuration parameters (refresh_token, client_secret, client_id) are present before processing.
+- Access token refresh – Automatically refreshes the access token when it expires by comparing the refresh time with the current time. If token refresh fails, an exception is raised with error details.
+- API request errors – Logs severe errors when API requests fail and raises exceptions to stop processing.
+
+Refer to `def validate_configuration(configuration: dict)`, `def get_access_token(configuration: dict)`, `def get_data(method, params, headers, configuration, body=None)`
+
+## Tables created
+
+Summary of tables replicated:
+
+- contacts – Primary key: vid. Columns include vid (LONG), lastmodifieddate (STRING), firstname (STRING), company (STRING), email (STRING).
+- companies – Primary key: companyId. Columns include companyId (LONG), name (STRING), timestamp (LONG).
+
+## Updating the refresh token
+
+- Using Fivetran [Update API](https://fivetran.com/docs/rest-api/api-reference/connectors/modify-connector?service=15five#updateaconnection):
 
   ```
   PATCH /v1/connections/connectionId HTTP/1.1
@@ -108,44 +126,7 @@ The configuration keys defined for your connector, which are uploaded to Fivetra
   }
   ```
 
-- Updating manually in [Fivetran Dashboard](https://fivetran.com/dashboard/connectors/connectiion_id/setup) – The configuration passed in configuration.json at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.
-
-## Pagination
-
-Refer to def sync_contacts(configuration, cursor), def sync_companies(configuration, cursor)
-
-The connector handles pagination when retrieving data from HubSpot:
-
-- Contacts – Uses cursor-based pagination with vidOffset parameter. The API returns has-more flag and vid-offset for subsequent requests. Response limit is set to 100 records per request.
-- Companies – Uses cursor-based pagination with offset parameter. The API returns has-more flag and offset for subsequent requests. Response limit is set to 250 records per request.
-
-## Data handling
-
-Refer to def process_record within def sync_contacts(configuration, cursor), def sync_companies(configuration, cursor)
-
-The connector processes and transforms data from HubSpot:
-
-- Contacts – Extracts vid, firstname, company, lastmodifieddate, and email from the raw API response. The connector validates that firstname and identity profiles exist before upserting records.
-- Companies – Extracts companyId, name, and timestamp from the raw API response.
-
-All data is upserted to Fivetran using the op.upsert operation, with state managed through cursor-based checkpointing.
-
-## Error handling
-
-Refer to def validate_configuration(configuration: dict), def get_access_token(configuration: dict), def get_data(method, params, headers, configuration, body=None)
-
-The connector implements error handling strategies:
-
-- Configuration validation – Ensures all required configuration parameters (refresh_token, client_secret, client_id) are present before processing.
-- Access token refresh – Automatically refreshes the access token when it expires by comparing the refresh time with the current time. If token refresh fails, an exception is raised with error details.
-- API request errors – Logs severe errors when API requests fail and raises exceptions to stop processing.
-
-## Tables created
-
-Summary of tables replicated:
-
-- contacts – Primary key: vid. Columns include vid (LONG), lastmodifieddate (STRING), firstname (STRING), company (STRING), email (STRING).
-- companies – Primary key: companyId. Columns include companyId (LONG), name (STRING), timestamp (LONG).
+- Updating manually in [Fivetran Dashboard](https://fivetran.com/dashboard/connectors/connection_id/setup) – The configuration passed in configuration.json at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.
 
 ## Additional files
 
