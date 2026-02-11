@@ -604,7 +604,6 @@ def process_region(
         log.severe(f"  Error type: {error_type}, Message: {error_msg}")
         log.severe(f"  Traceback:\n{traceback.format_exc()}")
         failed_regions.append(f"{search_name}/{region_name}")
-        raise
 
     return total_records_synced, total_regions
 
@@ -674,7 +673,7 @@ def log_error_details(
     return error_type, error_msg
 
 
-def calculate_retry_delay(retry: int) -> tuple[float, float, float]:
+def calculate_retry_delay(retry: int) -> Tuple[float, float, float]:
     """
     Calculate exponential backoff delay with random jitter for retry attempts.
 

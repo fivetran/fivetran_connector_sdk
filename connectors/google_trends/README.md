@@ -25,7 +25,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Multi-region support – Fetch data for worldwide or specific country regions in a single sync
 - Search grouping – Keywords in the same search group are normalized together for accurate comparison
 - Incremental historical tracking – Append-only design with sync timestamps preserves data evolution
-- Exponential backoff retry – Automatic retry with randomized delays (60-120s, 120-180s, 240-270s) handles rate limiting
+- Exponential backoff retry – Automatic retry with randomized delays (60-90s, 120-150s, 240-270s , 480-510s , 960-990s) handles rate limiting
 - Partial data detection – Identifies incomplete data points marked as partial by Google Trends
 - Flexible timeframe formats – Supports both relative ("today 12-m") and absolute date ranges ("2024-01-01 2026-02-03")
 
@@ -35,7 +35,7 @@ The connector requires a `configuration.json` file with a `searches` array. Each
 
 ```json
 {
-  "searches": "[{\"name\":\"ETL Tools Comparison\",\"keywords\":[\"Fivetran\"],\"regions\":[{\"name\":\"Worldwide\",\"code\":\"\"},{\"name\":\"United States\",\"code\":\"US\"}],\"timeframe\":\"2024-01-01 today\"}]",
+  "searches": "[{\"name\":\"ETL Tools Comparison\",\"keywords\":[\"Fivetran\"],\"regions\":[{\"name\":\"Worldwide\",\"code\":\"\"},{\"name\":\"United States\",\"code\":\"US\"}],\"timeframe\":\"2024-01-01 today\"}]"
 }
 ```
 
