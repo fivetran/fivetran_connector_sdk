@@ -1,9 +1,9 @@
 {
-  "subdomain": "<tulip_instance_subdomain>",
-  "api_key": "<api_key>",
-  "api_secret": "<api_secret>",
-  "table_id": "<table_id>",
-  "workspace_id": "<workspace_id>",
-  "sync_from_date": "<YYYY-MM-DDTHH:MM:SSZ>",
-  "custom_filter_json": "<[your_filters]>"
+  "subdomain": "<YOUR_TULIP_INSTANCE_SUBDOMAIN>",
+  "api_key": "<YOUR_TULIP_API_KEY>",
+  "api_secret": "<YOUR_TULIP_API_SECRET>",
+  "table_id": "<YOUR_TULIP_TABLE_ID>",
+  "workspace_id": "<YOUR_TULIP_WORKSPACE_ID>",
+  "sync_from_date": "<<YOUR_SYNC_FROM_DATE_ISO8601_FORMAT>",
+  "custom_filter_json": "<YOUR_CUSTOM_FILTER_JSON>"
 }
