@@ -30,7 +30,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Configuration file
 
-The configuration keys defined for your connector, which are uploaded to Fivetran from the configuration.json file:
+The connector requires the following configuration parameters:
 
 ```json
 {
@@ -48,13 +48,13 @@ Note: Ensure that the configuration.json file is not checked into version contro
 
 ## Requirements file
 
-> Note: The fivetran_connector_sdk:latest and requests:latest packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your requirements.txt.
+> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
 ### Obtaining HubSpot OAuth2 credentials
 
-1. If you don't have a HubSpot account, follow HubSpot's [instructions](https://developers.hubspot.com/docs/guides/apps/public-apps/overview) to create one.
+1. If you don't have a HubSpot account, [create one](https://developers.hubspot.com/docs/guides/apps/public-apps/overview) 
 
 2. Create a developer account and a HubSpot app with scopes and redirect URL. See HubSpot's [OAuth documentations](https://developers.hubspot.com/docs/reference/api/app-management/oauth) for details.
 
@@ -63,9 +63,9 @@ Note: Ensure that the configuration.json file is not checked into version contro
 
 4. Fetch the refresh token:
 
-   i. Click `Get new access Token`. You are redirected to a developer sign in popup.
+   i. Click `Get new access Token`. A developer sign-in popup will appear.
 
-   ii. Log in to your developer account, and click authorize to grant access to the redirect url. The popup will close and you should see the following window with tokens.
+   ii. Log in to your developer account and click **Authorize** to grant access to the redirect URL. The popup will close, and you should see a window displaying your tokens.
       ![Screenshot2.png](Screenshot2.png)
 
 5. Access the [HubSpot API collection](https://developers.hubspot.com/docs/reference/api/crm/objects).
@@ -84,11 +84,11 @@ Refer to `def sync_contacts(configuration, cursor)`, `def sync_companies(configu
 
 The connector transforms raw HubSpot API responses into structured records through the following process:
 
-- **Extraction** – Navigates nested JSON structures using dictionary `.get()` methods with default values for missing fields.
-- **Validation** – Checks that required fields exist before processing (e.g., contacts must have firstname and identity profiles with identities).
-- **Transformation** – Converts nested properties into flat dictionary structures suitable for database storage.
-- **Upserting** – Sends transformed records to Fivetran using `op.upsert()`, which handles both inserts and updates based on primary keys.
-- **State tracking** – Persists sync progress using `op.checkpoint(state)` with the last_updated_at timestamp for incremental syncs.
+- Extraction – Navigates nested JSON structures using dictionary `.get()` methods with default values for missing fields.
+- Validation – Checks that required fields exist before processing (e.g., contacts must have firstname and identity profiles with identities).
+- Transformation – Converts nested properties into flat dictionary structures suitable for database storage.
+- Upserting – Sends transformed records to Fivetran using `op.upsert()`, which handles both inserts and updates based on primary keys.
+- State tracking – Persists sync progress using `op.checkpoint(state)` with the last_updated_at timestamp for incremental syncs.
 
 Refer to `def process_record` within `def sync_contacts(configuration, cursor)`, `def sync_companies(configuration, cursor)`
 
@@ -106,8 +106,12 @@ Refer to `def validate_configuration(configuration: dict)`, `def get_access_toke
 
 Summary of tables replicated:
 
-- contacts – Primary key: vid. Columns include vid (LONG), lastmodifieddate (STRING), firstname (STRING), company (STRING), email (STRING).
-- companies – Primary key: companyId. Columns include companyId (LONG), name (STRING), timestamp (LONG).
+- contacts 
+  - Primary key: vid 
+  - Columns include vid (LONG), lastmodifieddate (STRING), firstname (STRING), company (STRING), email (STRING).
+- companies – 
+  - Primary key: companyId
+  - Columns include companyId (LONG), name (STRING), timestamp (LONG).
 
 ## Updating the refresh token
 
@@ -130,7 +134,7 @@ Summary of tables replicated:
   }
   ```
 
-- Updating manually in [Fivetran Dashboard](https://fivetran.com/dashboard/connectors/connection_id/setup) – The configuration passed in configuration.json at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.
+- Updating manually in [Fivetran dashboard](https://fivetran.com/dashboard/connectors/connection_id/setup) – The configuration passed in configuration.json at the time of deploying the connector can be updated after logging on the fivetran dashboard and navigating to the setup tab.
 
 ## Additional files
 
