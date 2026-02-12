@@ -619,9 +619,9 @@ def make_headers(conf, base_url, state, key):
 
     # Check if a valid token exists and is not expiring in the next hour
     if (
-        "encrypted_token" in state
-        and "token_ttl" in state
-        and state["token_ttl"] > current_time + 3600
+        "encrypted_token" in state and
+        "token_ttl" in state and
+        state["token_ttl"] > current_time + 3600
     ):
         try:
             auth_token = fernet.decrypt(state["encrypted_token"].encode()).decode()
