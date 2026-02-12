@@ -1,20 +1,36 @@
-"""Tulip Fivetran Connector.
+"""
+Tulip Fivetran Connector
 
 This connector syncs data from Tulip Tables to Fivetran destinations using a
 two-phase synchronization strategy with cursor-based pagination.
+
+See the Technical Reference documentation:
+https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
+And the Best Practices documentation:
+https://fivetran.com/docs/connectors/connector-sdk/best-practices
 """
 
+# For datetime operations
 from datetime import datetime, timedelta
+# Import the json module to handle JSON data.
 import json
+# For regex operations
 import re
+# For time operations
 import time
+# For handling threads
 import threading
-
+# Import the requests module for making HTTP requests, aliased as rq
 import requests
-from fivetran_connector_sdk import Connector, Logging as log
+# Import required classes from fivetran_connector_sdk
+# For supporting Connector operations like Update() and Schema()
+from fivetran_connector_sdk import Connector
+# For enabling Logs in your connector code
+from fivetran_connector_sdk import Logging as log
+# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Private constants following Fivetran standards
 __API_VERSION = "v3"
 __DEFAULT_LIMIT = 100
 __CHECKPOINT_INTERVAL = 500
@@ -22,6 +38,17 @@ __RATE_LIMIT_RETRY_BASE_SECONDS = 5
 __MAX_RETRY_ATTEMPTS = 3
 __CURSOR_OVERLAP_SECONDS = 60
 __RATE_LIMIT_REQUESTS_PER_SECOND = 50  # Tulip API rate limit
+
+# System columns that are always present in Tulip tables
+__SYSTEM_COLUMNS = {
+    "id": "STRING",
+    "_createdAt": "UTC_DATETIME",
+    "_updatedAt": "UTC_DATETIME",
+    "_sequenceNumber": "INT",
+}
+
+# System field names for validation
+__SYSTEM_FIELD_NAMES = ["id", "_createdAt", "_updatedAt", "_sequenceNumber"]
 
 
 class RateLimiter:
@@ -90,10 +117,10 @@ def generate_column_name(field_id, field_label=None):
     """
     if field_label and field_label.strip():
         label = field_label.strip().lower()
-        label = label.replace(' ', '_').replace('-', '_')
-        label = re.sub(r'[^a-z0-9_]', '', label)
-        label = re.sub(r'_+', '_', label)
-        label = label.strip('_')
+        label = label.replace(" ", "_").replace("-", "_")
+        label = re.sub(r"[^a-z0-9_]", "", label)
+        label = re.sub(r"_+", "_", label)
+        label = label.strip("_")
 
         if label and label[0].isdigit():
             label = f"field_{label}"
@@ -104,7 +131,7 @@ def generate_column_name(field_id, field_label=None):
         label = field_id.lower()
 
     clean_id = field_id.lower()
-    clean_id = re.sub(r'[^a-z0-9_]', '', clean_id)
+    clean_id = re.sub(r"[^a-z0-9_]", "", clean_id)
 
     column_name = f"{label}__{clean_id}"
 
@@ -128,8 +155,8 @@ def _build_api_url(subdomain, workspace_id, table_id, endpoint_type=""):
     """
     base_url = f"https://{subdomain}.tulip.co/api/{__API_VERSION}"
     if workspace_id:
-        return f"{base_url}/w/{workspace_id}/tables/{table_id}/{endpoint_type}".rstrip('/')
-    return f"{base_url}/tables/{table_id}/{endpoint_type}".rstrip('/')
+        return f"{base_url}/w/{workspace_id}/tables/{table_id}/{endpoint_type}".rstrip("/")
+    return f"{base_url}/tables/{table_id}/{endpoint_type}".rstrip("/")
 
 
 def _map_tulip_type_to_fivetran(tulip_type):
@@ -142,15 +169,15 @@ def _map_tulip_type_to_fivetran(tulip_type):
         str: Corresponding Fivetran data type.
     """
     type_mapping = {
-        'integer': 'INT',
-        'float': 'DOUBLE',
-        'boolean': 'BOOLEAN',
-        'timestamp': 'UTC_DATETIME',
-        'datetime': 'UTC_DATETIME',
-        'interval': 'INT',
-        'user': 'STRING'
+        "integer": "INT",
+        "float": "DOUBLE",
+        "boolean": "BOOLEAN",
+        "timestamp": "UTC_DATETIME",
+        "datetime": "UTC_DATETIME",
+        "interval": "INT",
+        "user": "STRING",
     }
-    return type_mapping.get(tulip_type, 'STRING')
+    return type_mapping.get(tulip_type, "STRING")
 
 
 def validate_configuration(configuration):
@@ -164,11 +191,13 @@ def validate_configuration(configuration):
     Raises:
         ValueError: If configuration is invalid or missing required fields.
     """
-    if not isinstance(configuration, dict):
-        raise ValueError("Configuration must be a dictionary")
+    if configuration is None:
+        raise ValueError("Configuration cannot be None")
+    if not hasattr(configuration, "__getitem__"):
+        raise ValueError("Configuration must be a dictionary-like object")
 
     # Required fields
-    required_fields = ['subdomain', 'api_key', 'api_secret', 'table_id']
+    required_fields = ["subdomain", "api_key", "api_secret", "table_id"]
     missing_fields = [field for field in required_fields if field not in configuration]
     if missing_fields:
         raise ValueError(f"Missing required configuration fields: {', '.join(missing_fields)}")
@@ -180,24 +209,31 @@ def validate_configuration(configuration):
             raise ValueError(f"Configuration field '{field}' must be a non-empty string")
 
     # Validate optional fields if present
-    if 'workspace_id' in configuration:
-        workspace_id = configuration['workspace_id']
+    if "workspace_id" in configuration:
+        workspace_id = configuration["workspace_id"]
         if workspace_id and not isinstance(workspace_id, str):
             raise ValueError("Configuration field 'workspace_id' must be a string or None")
 
-    if 'sync_from_date' in configuration:
-        sync_from_date = configuration['sync_from_date']
+    if "sync_from_date" in configuration:
+        sync_from_date = configuration["sync_from_date"]
         if sync_from_date and not isinstance(sync_from_date, str):
             raise ValueError("Configuration field 'sync_from_date' must be a string or None")
-        # Optional: Validate ISO 8601 format
-        if sync_from_date and sync_from_date.strip():
-            try:
-                datetime.fromisoformat(sync_from_date.replace("Z", "+00:00"))
-            except ValueError:
-                raise ValueError(f"Configuration field 'sync_from_date' must be a valid ISO 8601 timestamp, got: {sync_from_date}")
+        # Validate and normalize ISO 8601 format
+        if sync_from_date:
+            sync_from_date_stripped = sync_from_date.strip()
+            if sync_from_date_stripped:
+                try:
+                    datetime.fromisoformat(sync_from_date_stripped.replace("Z", "+00:00"))
+                    # Normalize by saving the stripped value back to configuration
+                    configuration["sync_from_date"] = sync_from_date_stripped
+                except ValueError:
+                    raise ValueError(
+                        f"Configuration field 'sync_from_date' must be a valid "
+                        f"ISO 8601 timestamp, got: <{sync_from_date}>"
+                    )
 
-    if 'custom_filter_json' in configuration:
-        custom_filter_json = configuration['custom_filter_json']
+    if "custom_filter_json" in configuration:
+        custom_filter_json = configuration["custom_filter_json"]
         if custom_filter_json and not isinstance(custom_filter_json, str):
             raise ValueError("Configuration field 'custom_filter_json' must be a string or None")
         # Validate JSON format if non-empty
@@ -205,9 +241,13 @@ def validate_configuration(configuration):
             try:
                 filters = json.loads(custom_filter_json)
                 if not isinstance(filters, list):
-                    raise ValueError("Configuration field 'custom_filter_json' must be a JSON array")
+                    raise ValueError(
+                        "Configuration field 'custom_filter_json' must be a JSON array"
+                    )
             except json.JSONDecodeError as e:
-                raise ValueError(f"Configuration field 'custom_filter_json' contains invalid JSON: {e}")
+                raise ValueError(
+                    f"Configuration field 'custom_filter_json' contains invalid JSON: {e}"
+                )
 
 
 def schema(configuration: dict):
@@ -222,64 +262,58 @@ def schema(configuration: dict):
     try:
         # Validate configuration
         validate_configuration(configuration)
-        subdomain = configuration['subdomain']
-        api_key = configuration['api_key']
-        api_secret = configuration['api_secret']
-        table_id = configuration['table_id']
-        workspace_id = configuration.get('workspace_id')
+        subdomain = configuration["subdomain"]
+        api_key = configuration["api_key"]
+        api_secret = configuration["api_secret"]
+        table_id = configuration["table_id"]
+        workspace_id = configuration.get("workspace_id")
 
         url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="")
         log.info(f"Fetching schema from {url}")
 
         response = _fetch_with_retry(url, (api_key, api_secret))
         table_metadata = response.json()
-        columns = {
-            'id': 'STRING',
-            '_createdAt': 'UTC_DATETIME',
-            '_updatedAt': 'UTC_DATETIME',
-            '_sequenceNumber': 'INT'
-        }
+
+        # Start with system columns (always present in Tulip tables)
+        columns = __SYSTEM_COLUMNS.copy()
 
         log.info(f"Discovered {len(table_metadata.get('columns', []))} fields")
 
-        for field in table_metadata.get('columns', []):
-            field_id = field['name']
-            if field_id in ['id', '_createdAt', '_updatedAt', '_sequenceNumber']:
+        for field in table_metadata.get("columns", []):
+            field_id = field["name"]
+            if field_id in __SYSTEM_FIELD_NAMES:
                 log.info(f"Skipping system field '{field_id}' from columns list")
                 continue
 
-            field_label = field.get('label', '')
-            tulip_type = field['dataType']['type']
+            field_label = field.get("label", "")
+            tulip_type = field["dataType"]["type"]
             column_name = generate_column_name(field_id, field_label)
             fivetran_type = _map_tulip_type_to_fivetran(tulip_type)
 
             columns[column_name] = fivetran_type
-            log.info(f"Mapped field '{field_label}' ({field_id}) -> {column_name} ({fivetran_type})")
+            log.info(
+                f"Mapped field '{field_label}' ({field_id}) -> {column_name} ({fivetran_type})"
+            )
 
-        table_label = table_metadata.get('label', table_id)
+        table_label = table_metadata.get("label", table_id)
         table_name = generate_column_name(table_id, table_label)
         log.info(f"Table name: {table_name} (from '{table_label}')")
 
-        return [
-            {
-                "table": table_name,
-                "primary_key": ["id"],
-                "columns": columns
-            }
-        ]
+        return [{"table": table_name, "primary_key": ["id"], "columns": columns}]
 
     except ValueError as e:
-        log.error(f"Configuration validation failed: {e}")
+        log.severe(f"Configuration validation failed: {e}")
         raise
     except KeyError as e:
-        log.error(f"Missing required field in API response: {e}")
+        log.severe(f"Missing required field in API response: {e}")
         raise
     except requests.exceptions.HTTPError as e:
-        log.error(f"HTTP error during schema discovery: {e}")
+        log.severe(f"HTTP error during schema discovery: {e}")
         raise
     except Exception as e:
         log.severe(f"Schema discovery failed: {str(e)}")
         raise
+
 
 def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
     """Fetch data from API with exponential backoff retry logic.
@@ -309,8 +343,10 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
 
             # Handle 429 rate limiting with retry
             if response.status_code == 429:
-                wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
-                log.warning(f"Rate limited. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2**attempt)
+                log.warning(
+                    f"Rate limited. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})"
+                )
                 time.sleep(wait_time)
                 continue
 
@@ -320,26 +356,33 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
 
             # Fail fast on permanent 4xx errors (except 429, already handled)
             if 400 <= response.status_code < 500:
-                log.error(f"Permanent client error {response.status_code}: {response.text}")
+                log.severe(f"Permanent client error {response.status_code}: {response.text}")
                 response.raise_for_status()
 
             # Retry on 5xx server errors
             if response.status_code >= 500:
                 if attempt == max_retries - 1:
-                    log.error(f"Server error {response.status_code} after {max_retries} attempts: {response.text}")
+                    log.severe(
+                        f"Server error {response.status_code} after {max_retries} attempts: {response.text}"
+                    )
                     response.raise_for_status()
-                wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
-                log.warning(f"Server error {response.status_code}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2**attempt)
+                log.warning(
+                    f"Server error {response.status_code}, retrying in {wait_time}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
                 time.sleep(wait_time)
                 continue
 
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # Retry on connection errors and timeouts
             if attempt == max_retries - 1:
-                log.error(f"Connection/timeout error after {max_retries} attempts: {e}")
+                log.severe(f"Connection/timeout error after {max_retries} attempts: {e}")
                 raise
-            wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2 ** attempt)
-            log.warning(f"Connection/timeout error, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries}): {e}")
+            wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2**attempt)
+            log.warning(
+                f"Connection/timeout error, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries}): {e}"
+            )
             time.sleep(wait_time)
         except requests.exceptions.HTTPError:
             # Re-raise HTTPError from permanent 4xx (already logged above)
@@ -358,11 +401,11 @@ def _build_field_mapping(table_metadata):
         dict: Mapping of field_id -> column_name.
     """
     field_mapping = {}
-    for field in table_metadata.get('columns', []):
-        field_id = field['name']
-        if field_id in ['id', '_createdAt', '_updatedAt', '_sequenceNumber']:
+    for field in table_metadata.get("columns", []):
+        field_id = field["name"]
+        if field_id in __SYSTEM_FIELD_NAMES:
             continue
-        field_label = field.get('label', '')
+        field_label = field.get("label", "")
         column_name = generate_column_name(field_id, field_label)
         field_mapping[field_id] = column_name
     return field_mapping
@@ -381,26 +424,28 @@ def _build_allowed_fields(table_metadata):
         list: Field IDs to request, excluding tableLink types.
     """
     # Always include system fields
-    allowed_fields = ['id', '_createdAt', '_updatedAt', '_sequenceNumber']
+    allowed_fields = __SYSTEM_FIELD_NAMES.copy()
     excluded_fields = []
 
-    for field in table_metadata.get('columns', []):
-        field_id = field['name']
-        field_type = field.get('dataType', {}).get('type')
+    for field in table_metadata.get("columns", []):
+        field_id = field["name"]
+        field_type = field.get("dataType", {}).get("type")
 
         # Skip system fields (already added)
         if field_id in allowed_fields:
             continue
 
         # Exclude tableLink fields
-        if field_type == 'tableLink':
+        if field_type == "tableLink":
             excluded_fields.append(field_id)
             continue
 
         allowed_fields.append(field_id)
 
     if excluded_fields:
-        log.info(f"Excluding {len(excluded_fields)} Linked Table Fields of type tableLink: {excluded_fields}")
+        log.info(
+            f"Excluding {len(excluded_fields)} Linked Table Fields of type tableLink: {excluded_fields}"
+        )
 
     return allowed_fields
 
@@ -461,29 +506,25 @@ def _initialize_state(state, sync_from_date):
         dict: Normalized state with cursor_mode, last_sequence, and last_updated_at.
     """
     # If state already has cursor_mode, validate and normalize it
-    if 'cursor_mode' in state:
+    if "cursor_mode" in state:
         normalized_state = dict(state)
         # Ensure last_sequence is valid (never None)
-        if normalized_state.get('last_sequence') is None:
-            normalized_state['last_sequence'] = 0
+        if normalized_state.get("last_sequence") is None:
+            normalized_state["last_sequence"] = 0
         return normalized_state
 
     # Handle old state format (backward compatibility)
-    if 'last_updated_at' in state and state['last_updated_at']:
+    if "last_updated_at" in state and state["last_updated_at"]:
         log.info("Migrating existing state to INCREMENTAL mode")
         return {
-            'cursor_mode': 'INCREMENTAL',
-            'last_sequence': 0,
-            'last_updated_at': state['last_updated_at']
+            "cursor_mode": "INCREMENTAL",
+            "last_sequence": 0,
+            "last_updated_at": state["last_updated_at"],
         }
 
     # Initialize new connector state
     log.info("Initializing new connector in BOOTSTRAP mode")
-    return {
-        'cursor_mode': 'BOOTSTRAP',
-        'last_sequence': 0,
-        'last_updated_at': sync_from_date
-    }
+    return {"cursor_mode": "BOOTSTRAP", "last_sequence": 0, "last_updated_at": sync_from_date}
 
 
 def _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters):
@@ -497,11 +538,15 @@ def _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters):
     Returns:
         list: Combined filter array for Tulip API.
     """
-    api_filters = [{"field": "_sequenceNumber", "functionType": "greaterThan", "arg": last_sequence}]
+    api_filters = [
+        {"field": "_sequenceNumber", "functionType": "greaterThan", "arg": last_sequence}
+    ]
 
     # Apply sync_from_date filter if specified
     if sync_from_date:
-        api_filters.append({"field": "_updatedAt", "functionType": "greaterThan", "arg": sync_from_date})
+        api_filters.append(
+            {"field": "_updatedAt", "functionType": "greaterThan", "arg": sync_from_date}
+        )
 
     # Append custom filters
     api_filters.extend(custom_filters)
@@ -521,17 +566,313 @@ def _build_incremental_filters(last_sequence, last_updated_at, custom_filters):
         list: Combined filter array for Tulip API.
     """
     # Primary cursor: _sequenceNumber
-    api_filters = [{"field": "_sequenceNumber", "functionType": "greaterThan", "arg": last_sequence}]
+    api_filters = [
+        {"field": "_sequenceNumber", "functionType": "greaterThan", "arg": last_sequence}
+    ]
 
     # Apply 60-second lookback window on _updatedAt to catch late commits
     start_time = _adjust_cursor_for_overlap(last_updated_at)
     if start_time:
-        api_filters.append({"field": "_updatedAt", "functionType": "greaterThan", "arg": start_time})
+        api_filters.append(
+            {"field": "_updatedAt", "functionType": "greaterThan", "arg": start_time}
+        )
 
     # Append custom filters
     api_filters.extend(custom_filters)
 
     return api_filters
+
+
+def _setup_sync_context(configuration, state):
+    """Set up sync context including metadata, field mapping, and state initialization.
+
+    Args:
+        configuration (dict): Connector configuration
+        state (dict): Current connector state
+
+    Returns:
+        dict: Sync context containing all necessary information for the sync
+    """
+    # Validate configuration
+    validate_configuration(configuration)
+
+    # Extract configuration
+    subdomain = configuration["subdomain"]
+    api_key = configuration["api_key"]
+    api_secret = configuration["api_secret"]
+    table_id = configuration["table_id"]
+    workspace_id = configuration.get("workspace_id")
+    sync_from_date = configuration.get("sync_from_date")
+
+    # Fetch table metadata and build field mapping
+    schema_url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="")
+    schema_response = _fetch_with_retry(schema_url, (api_key, api_secret))
+    table_metadata = schema_response.json()
+
+    field_mapping = _build_field_mapping(table_metadata)
+    table_label = table_metadata.get("label", table_id)
+    table_name = generate_column_name(table_id, table_label)
+
+    # Build allowed fields list (excludes tableLink fields to reduce database load)
+    allowed_fields = _build_allowed_fields(table_metadata)
+    fields_json = json.dumps(allowed_fields)
+
+    # Parse custom filters
+    raw_filter = configuration.get("custom_filter_json")
+    custom_filters = json.loads(raw_filter) if raw_filter and raw_filter.strip() else []
+
+    # Initialize or migrate state
+    current_state = _initialize_state(state, sync_from_date)
+    cursor_mode = current_state["cursor_mode"]
+    last_sequence = current_state.get("last_sequence", 0)
+    last_updated_at = current_state.get("last_updated_at")
+
+    # Build API URL for records
+    url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="records")
+
+    # Ensure highest_updated_at respects sync_from_date as minimum bound
+    highest_updated_at = last_updated_at
+    if sync_from_date and highest_updated_at and highest_updated_at < sync_from_date:
+        log.info(
+            f"State has old timestamp {highest_updated_at}, "
+            f"using sync_from_date {sync_from_date} as minimum"
+        )
+        highest_updated_at = sync_from_date
+
+    return {
+        "api_key": api_key,
+        "api_secret": api_secret,
+        "url": url,
+        "table_name": table_name,
+        "field_mapping": field_mapping,
+        "fields_json": fields_json,
+        "custom_filters": custom_filters,
+        "sync_from_date": sync_from_date,
+        "cursor_mode": cursor_mode,
+        "last_sequence": last_sequence,
+        "highest_updated_at": highest_updated_at,
+    }
+
+
+def _execute_bootstrap_sync(context):
+    """Execute bootstrap sync phase using _sequenceNumber cursor.
+
+    Args:
+        context (dict): Sync context from _setup_sync_context
+
+    Returns:
+        dict: Updated sync state with cursor_mode, last_sequence, highest_updated_at, records_processed
+    """
+    cursor_mode = context["cursor_mode"]
+    last_sequence = context["last_sequence"]
+    highest_updated_at = context["highest_updated_at"]
+    records_processed = 0
+
+    log.info(f"BOOTSTRAP: Starting from _sequenceNumber > {last_sequence}")
+
+    # Build bootstrap filters
+    api_filters = _build_bootstrap_filters(
+        last_sequence, context["sync_from_date"], context["custom_filters"]
+    )
+
+    # Bootstrap phase: Use _sequenceNumber cursor (no offset pagination)
+    has_more = True
+    batch_number = 0
+
+    while has_more:
+        batch_number += 1
+        log.info(
+            f"BOOTSTRAP: Fetching batch #{batch_number} "
+            f"(filtering _sequenceNumber > {last_sequence})"
+        )
+
+        params = {
+            "limit": __DEFAULT_LIMIT,
+            "offset": 0,  # Always 0 - we use cursor-based filtering
+            "filters": json.dumps(api_filters),
+            "sortOptions": json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
+            "fields": context["fields_json"],
+        }
+
+        response = _fetch_with_retry(
+            context["url"], (context["api_key"], context["api_secret"]), params
+        )
+        records = response.json()
+
+        if not records:
+            log.info("BOOTSTRAP: No more records, switching to INCREMENTAL mode")
+            cursor_mode = "INCREMENTAL"
+            break
+
+        log.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records")
+
+        # Process records and track cursors
+        for record in records:
+            transformed_record = _transform_record(record, context["field_mapping"])
+            op.upsert(table=context["table_name"], data=transformed_record)
+
+            # Track highest sequence number for next batch
+            current_sequence = record.get("_sequenceNumber")
+            if current_sequence and current_sequence > last_sequence:
+                last_sequence = current_sequence
+
+            # Track highest _updatedAt to seed incremental phase
+            current_updated_at = record.get("_updatedAt")
+            if current_updated_at and (
+                not highest_updated_at or current_updated_at > highest_updated_at
+            ):
+                highest_updated_at = current_updated_at
+
+            records_processed += 1
+
+            # Save progress periodically by checkpointing state.
+            # Checkpoints enable the connector to resume from the last saved position if interrupted.
+            # This prevents data loss and avoids re-processing records already synced to Fivetran.
+            # Checkpoint every 500 records to balance between performance and resumability.
+            if records_processed % __CHECKPOINT_INTERVAL == 0:
+                op.checkpoint(
+                    state={
+                        "cursor_mode": cursor_mode,
+                        "last_sequence": last_sequence,
+                        "last_updated_at": highest_updated_at,
+                    }
+                )
+                log.info(
+                    f"BOOTSTRAP: Checkpointed at {records_processed} records (seq: {last_sequence})"
+                )
+
+        # Check if we've reached end of historical data
+        if len(records) < __DEFAULT_LIMIT:
+            log.info(
+                f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records "
+                f"(< {__DEFAULT_LIMIT}), switching to INCREMENTAL mode"
+            )
+            log.info(
+                f"BOOTSTRAP: Completed after {batch_number} batches, "
+                f"{records_processed} total records, final sequence: {last_sequence}"
+            )
+            cursor_mode = "INCREMENTAL"
+            has_more = False
+        else:
+            # Update filter for next batch
+            api_filters = _build_bootstrap_filters(
+                last_sequence, context["sync_from_date"], context["custom_filters"]
+            )
+            log.info(
+                f"BOOTSTRAP: Batch #{batch_number} complete, continuing with next batch "
+                f"(new cursor: _sequenceNumber > {last_sequence})"
+            )
+
+    return {
+        "cursor_mode": cursor_mode,
+        "last_sequence": last_sequence,
+        "highest_updated_at": highest_updated_at,
+        "records_processed": records_processed,
+    }
+
+
+def _execute_incremental_sync(context, last_sequence, highest_updated_at, records_processed):
+    """Execute incremental sync phase using _sequenceNumber with _updatedAt lookback.
+
+    Args:
+        context (dict): Sync context from _setup_sync_context
+        last_sequence (int): Last processed sequence number
+        highest_updated_at (str): Last processed timestamp
+        records_processed (int): Running count of processed records
+
+    Returns:
+        dict: Updated sync state with last_sequence, highest_updated_at, records_processed
+    """
+    # If bootstrap completed with no records and we have no timestamp, use sync_from_date
+    if not highest_updated_at and context["sync_from_date"]:
+        log.info(
+            f"INCREMENTAL: No timestamp from bootstrap, "
+            f"using sync_from_date: {context['sync_from_date']}"
+        )
+        highest_updated_at = context["sync_from_date"]
+
+    log.info(
+        f"INCREMENTAL: Starting from _sequenceNumber > {last_sequence}, "
+        f"_updatedAt > {highest_updated_at} (with 60s lookback)"
+    )
+
+    # Build incremental filters
+    api_filters = _build_incremental_filters(
+        last_sequence, highest_updated_at, context["custom_filters"]
+    )
+
+    has_more = True
+    while has_more:
+        params = {
+            "limit": __DEFAULT_LIMIT,
+            "offset": 0,  # No offset pagination - use cursor-based filtering
+            "filters": json.dumps(api_filters),
+            "sortOptions": json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
+            "fields": context["fields_json"],
+        }
+
+        response = _fetch_with_retry(
+            context["url"], (context["api_key"], context["api_secret"]), params
+        )
+        records = response.json()
+
+        if not records:
+            break
+
+        log.info(
+            f"INCREMENTAL: Fetching batch with {len(records)} records "
+            f"(filtering _sequenceNumber > {last_sequence})"
+        )
+
+        # Process records and track cursors
+        for record in records:
+            transformed_record = _transform_record(record, context["field_mapping"])
+            op.upsert(table=context["table_name"], data=transformed_record)
+
+            # Track highest sequence number for next batch
+            current_sequence = record.get("_sequenceNumber")
+            if current_sequence and current_sequence > last_sequence:
+                last_sequence = current_sequence
+
+            # Track highest _updatedAt for lookback calculation
+            current_updated_at = record.get("_updatedAt")
+            if current_updated_at and (
+                not highest_updated_at or current_updated_at > highest_updated_at
+            ):
+                highest_updated_at = current_updated_at
+
+            records_processed += 1
+
+            # Save progress periodically by checkpointing state.
+            # Checkpoints enable the connector to resume from the last saved position if interrupted.
+            # This prevents data loss and avoids re-processing records already synced to Fivetran.
+            # Checkpoint every 500 records to balance between performance and resumability.
+            if records_processed % __CHECKPOINT_INTERVAL == 0:
+                op.checkpoint(
+                    state={
+                        "cursor_mode": "INCREMENTAL",
+                        "last_sequence": last_sequence,
+                        "last_updated_at": highest_updated_at,
+                    }
+                )
+                log.info(
+                    f"INCREMENTAL: Checkpointed at {records_processed} records (seq: {last_sequence})"
+                )
+
+        # Check if we've processed all available updates
+        if len(records) < __DEFAULT_LIMIT:
+            has_more = False
+        else:
+            # Update filter for next batch
+            api_filters = _build_incremental_filters(
+                last_sequence, highest_updated_at, context["custom_filters"]
+            )
+
+    return {
+        "last_sequence": last_sequence,
+        "highest_updated_at": highest_updated_at,
+        "records_processed": records_processed,
+    }
 
 
 def update(configuration: dict, state: dict):
@@ -545,231 +886,71 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: CONNECTORS : TULIP_INTERFACES")
+    log.warning("Example: Connectors - Tulip Interfaces")
     try:
-        # Validate configuration
-        validate_configuration(configuration)
-        # Extract configuration
-        subdomain = configuration['subdomain']
-        api_key = configuration['api_key']
-        api_secret = configuration['api_secret']
-        table_id = configuration['table_id']
-        workspace_id = configuration.get('workspace_id')
-        sync_from_date = configuration.get('sync_from_date')
+        # Set up sync context (configuration, metadata, state initialization)
+        context = _setup_sync_context(configuration, state)
 
-        # Fetch table metadata and build field mapping
-        schema_url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="")
-        schema_response = _fetch_with_retry(schema_url, (api_key, api_secret))
-        table_metadata = schema_response.json()
+        cursor_mode = context["cursor_mode"]
+        last_sequence = context["last_sequence"]
+        highest_updated_at = context["highest_updated_at"]
+        records_processed = 0
 
-        field_mapping = _build_field_mapping(table_metadata)
-        table_label = table_metadata.get('label', table_id)
-        table_name = generate_column_name(table_id, table_label)
-
-        # Build allowed fields list (excludes tableLink fields to reduce database load)
-        allowed_fields = _build_allowed_fields(table_metadata)
-        fields_json = json.dumps(allowed_fields)
-
-        # Parse custom filters
-        raw_filter = configuration.get('custom_filter_json')
-        custom_filters = json.loads(raw_filter) if raw_filter and raw_filter.strip() else []
-
-        # Initialize or migrate state
-        current_state = _initialize_state(state, sync_from_date)
-        cursor_mode = current_state['cursor_mode']
-        last_sequence = current_state.get('last_sequence', 0)
-        last_updated_at = current_state.get('last_updated_at')
-
-        url = _build_api_url(subdomain, workspace_id, table_id, endpoint_type="records")
         log.info(f"Starting sync in {cursor_mode} mode")
 
-        records_processed = 0
-        highest_updated_at = last_updated_at
+        # Execute bootstrap sync if in BOOTSTRAP mode
+        if cursor_mode == "BOOTSTRAP":
+            result = _execute_bootstrap_sync(context)
+            cursor_mode = result["cursor_mode"]
+            last_sequence = result["last_sequence"]
+            highest_updated_at = result["highest_updated_at"]
+            records_processed = result["records_processed"]
 
-        # Ensure highest_updated_at respects sync_from_date as minimum bound
-        # This prevents syncing records older than sync_from_date if state has old timestamps
-        if sync_from_date and highest_updated_at and highest_updated_at < sync_from_date:
-            log.info(f"State has old timestamp {highest_updated_at}, using sync_from_date {sync_from_date} as minimum")
-            highest_updated_at = sync_from_date
+        # Execute incremental sync if in INCREMENTAL mode
+        if cursor_mode == "INCREMENTAL":
+            result = _execute_incremental_sync(
+                context, last_sequence, highest_updated_at, records_processed
+            )
+            last_sequence = result["last_sequence"]
+            highest_updated_at = result["highest_updated_at"]
+            records_processed = result["records_processed"]
 
-        # Execute appropriate sync logic based on mode
-        if cursor_mode == 'BOOTSTRAP':
-            log.info(f"BOOTSTRAP: Starting from _sequenceNumber > {last_sequence}")
-
-            # Build bootstrap filters
-            api_filters = _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters)
-
-            # Bootstrap phase: Use _sequenceNumber cursor (no offset pagination)
-            has_more = True
-            batch_number = 0
-
-            while has_more:
-                batch_number += 1
-                log.info(f"BOOTSTRAP: Fetching batch #{batch_number} (filtering _sequenceNumber > {last_sequence})")
-
-                params = {
-                    'limit': __DEFAULT_LIMIT,
-                    'offset': 0,  # Always 0 - we use cursor-based filtering
-                    'filters': json.dumps(api_filters),
-                    'sortOptions': json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
-                    'fields': fields_json  # Always included to exclude tableLink fields
-                }
-
-                response = _fetch_with_retry(url, (api_key, api_secret), params)
-                records = response.json()
-
-                if not records:
-                    log.info("BOOTSTRAP: No more records, switching to INCREMENTAL mode")
-                    cursor_mode = 'INCREMENTAL'
-                    break
-
-                log.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records")
-
-                # Process records and track cursors
-                for record in records:
-                    transformed_record = _transform_record(record, field_mapping)
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The first argument is the name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table=table_name, data=transformed_record)
-
-                    # Track highest sequence number for next batch
-                    current_sequence = record.get('_sequenceNumber')
-                    if current_sequence and current_sequence > last_sequence:
-                        last_sequence = current_sequence
-
-                    # Track highest _updatedAt to seed incremental phase
-                    current_updated_at = record.get('_updatedAt')
-                    if current_updated_at and (not highest_updated_at or current_updated_at > highest_updated_at):
-                        highest_updated_at = current_updated_at
-
-                    records_processed += 1
-
-                    # Save progress periodically by checkpointing state.
-                    # Checkpoints enable the connector to resume from the last saved position if interrupted.
-                    # This prevents data loss and avoids re-processing records already synced to Fivetran.
-                    # Checkpoint every 500 records to balance between performance and resumability.
-                    if records_processed % __CHECKPOINT_INTERVAL == 0:
-                        op.checkpoint(state={
-                            'cursor_mode': cursor_mode,
-                            'last_sequence': last_sequence,
-                            'last_updated_at': highest_updated_at
-                        })
-                        log.info(f"BOOTSTRAP: Checkpointed at {records_processed} records (seq: {last_sequence})")
-
-                # Check if we've reached end of historical data
-                if len(records) < __DEFAULT_LIMIT:
-                    log.info(f"BOOTSTRAP: Batch #{batch_number} received {len(records)} records (< {__DEFAULT_LIMIT}), switching to INCREMENTAL mode")
-                    log.info(f"BOOTSTRAP: Completed after {batch_number} batches, {records_processed} total records, final sequence: {last_sequence}")
-                    cursor_mode = 'INCREMENTAL'
-                    has_more = False
-                else:
-                    # Update filter for next batch
-                    api_filters = _build_bootstrap_filters(last_sequence, sync_from_date, custom_filters)
-                    log.info(f"BOOTSTRAP: Batch #{batch_number} complete, continuing with next batch (new cursor: _sequenceNumber > {last_sequence})")
-
-        # Incremental phase: Use _sequenceNumber with _updatedAt lookback window
-        if cursor_mode == 'INCREMENTAL':
-            # If bootstrap completed with no records and we have no timestamp, use sync_from_date
-            if not highest_updated_at and sync_from_date:
-                log.info(f"INCREMENTAL: No timestamp from bootstrap, using sync_from_date: {sync_from_date}")
-                highest_updated_at = sync_from_date
-
-            log.info(f"INCREMENTAL: Starting from _sequenceNumber > {last_sequence}, _updatedAt > {highest_updated_at} (with 60s lookback)")
-
-            # Build incremental filters
-            api_filters = _build_incremental_filters(last_sequence, highest_updated_at, custom_filters)
-
-            has_more = True
-            while has_more:
-                params = {
-                    'limit': __DEFAULT_LIMIT,
-                    'offset': 0,  # No offset pagination - use cursor-based filtering
-                    'filters': json.dumps(api_filters),
-                    'sortOptions': json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
-                    'fields': fields_json  # Always included to exclude tableLink fields
-                }
-
-                response = _fetch_with_retry(url, (api_key, api_secret), params)
-                records = response.json()
-
-                if not records:
-                    break
-
-                log.info(f"INCREMENTAL: Fetching batch with {len(records)} records (filtering _sequenceNumber > {last_sequence})")
-
-                # Process records and track cursors
-                for record in records:
-                    transformed_record = _transform_record(record, field_mapping)
-                    # The 'upsert' operation is used to insert or update data in the destination table.
-                    # The first argument is the name of the destination table.
-                    # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table=table_name, data=transformed_record)
-
-                    # Track highest sequence number for next batch
-                    current_sequence = record.get('_sequenceNumber')
-                    if current_sequence and current_sequence > last_sequence:
-                        last_sequence = current_sequence
-
-                    # Track highest _updatedAt for lookback calculation
-                    current_updated_at = record.get('_updatedAt')
-                    if current_updated_at and (not highest_updated_at or current_updated_at > highest_updated_at):
-                        highest_updated_at = current_updated_at
-
-                    records_processed += 1
-
-                    # Save progress periodically by checkpointing state.
-                    # Checkpoints enable the connector to resume from the last saved position if interrupted.
-                    # This prevents data loss and avoids re-processing records already synced to Fivetran.
-                    # Checkpoint every 500 records to balance between performance and resumability.
-                    if records_processed % __CHECKPOINT_INTERVAL == 0:
-                        op.checkpoint(state={
-                            'cursor_mode': 'INCREMENTAL',
-                            'last_sequence': last_sequence,
-                            'last_updated_at': highest_updated_at
-                        })
-                        log.info(f"INCREMENTAL: Checkpointed at {records_processed} records (seq: {last_sequence})")
-
-                # Check if we've processed all available updates
-                if len(records) < __DEFAULT_LIMIT:
-                    has_more = False
-                else:
-                    # Update filter for next batch
-                    api_filters = _build_incremental_filters(last_sequence, highest_updated_at, custom_filters)
-
-        # Final checkpoint
-        final_state = {
-            'cursor_mode': cursor_mode,
-            'last_sequence': last_sequence,
-            'last_updated_at': highest_updated_at
-        }
         # Final checkpoint to save the end state of this sync.
         # This ensures that the next sync starts from the correct position,
         # even if some records were processed after the last periodic checkpoint.
+        final_state = {
+            "cursor_mode": cursor_mode,
+            "last_sequence": last_sequence,
+            "last_updated_at": highest_updated_at,
+        }
         op.checkpoint(state=final_state)
-        log.info(f"Sync completed in {cursor_mode} mode. Total records processed: {records_processed}")
+        log.info(
+            f"Sync completed in {cursor_mode} mode. Total records processed: {records_processed}"
+        )
 
+    except json.JSONDecodeError as e:
+        log.severe(f"Invalid custom_filter_json format: {e}")
+        raise
     except ValueError as e:
-        log.error(f"Configuration validation failed: {e}")
+        log.severe(f"Configuration validation failed: {e}")
         raise
     except KeyError as e:
-        log.error(f"Missing required field in API response or state: {e}")
-        raise
-    except json.JSONDecodeError as e:
-        log.error(f"Invalid custom_filter_json format: {e}")
+        log.severe(f"Missing required field in API response or state: {e}")
         raise
     except requests.exceptions.HTTPError as e:
-        log.error(f"HTTP error during sync: {e}")
+        log.severe(f"HTTP error during sync: {e}")
         raise
     except Exception as e:
         log.severe(f"Update failed: {str(e)}")
         raise
 
+
 # Create the connector object using the schema and update functions
 connector = Connector(schema=schema, update=update)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is Python's standard entry method allowing your script to be run directly
+# from the command line or IDE 'run' button.
 #
 # IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
 #   fivetran debug
@@ -780,7 +961,7 @@ connector = Connector(schema=schema, update=update)
 # Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", 'r') as f:
+    with open("configuration.json", "r") as f:
         configuration = json.load(f)
     # Test the connector locally
     connector.debug(configuration=configuration)
