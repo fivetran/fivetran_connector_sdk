@@ -25,7 +25,7 @@ from urllib.parse import parse_qs, urlparse  # For pagination link parsing
 import jwt
 
 # Constants for API configuration
-GITHUB_API_BASE_URL = "https://api.github.com"
+GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
 RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
 MAX_RETRIES = 3  # Maximum number of retries for failed requests
 ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
@@ -46,6 +46,13 @@ def validate_configuration(configuration: dict):
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+
+    # Set default base_url if not provided (for GitHub.com)
+    if "base-url" not in configuration:
+        configuration["base-url"] = GITHUB_API_BASE_URL
+        log.info(f"Using default GitHub.com API: {GITHUB_API_BASE_URL}")
+    else:
+        log.info(f"Using custom GitHub Enterprise API: {configuration['base-url']}")
 
 
 def make_github_request(url: str, headers: dict, params: dict = None):
@@ -119,18 +126,19 @@ def parse_pagination_links(link_header: str):
     return links
 
 
-def get_repositories(headers: dict, organization: str, since: str = None):
+def get_repositories(headers: dict, organization: str, base_url: str, since: str = None):
     """
     Fetch all repositories for an organization with pagination support.
     Uses GitHub API endpoint: GET /orgs/{org}/repos
     Args:
         headers: Request headers with authentication
         organization: GitHub organization name
+        base_url: Base URL for GitHub API
         since: ISO timestamp to filter repositories updated since this time
     Yields:
         Repository data dictionaries
     """
-    url = f"{GITHUB_API_BASE_URL}/orgs/{organization}/repos"
+    url = f"{base_url}/orgs/{organization}/repos"
     params = {
         "per_page": ITEMS_PER_PAGE,
         "sort": "updated",
@@ -183,18 +191,19 @@ def get_repositories(headers: dict, organization: str, since: str = None):
         time.sleep(RATE_LIMIT_DELAY)
 
 
-def get_commits(headers: dict, repo_full_name: str, since: str = None):
+def get_commits(headers: dict, repo_full_name: str, base_url: str, since: str = None):
     """
     Fetch commits for a repository with pagination support.
     Uses GitHub API endpoint: GET /repos/{owner}/{repo}/commits
     Args:
         headers: Request headers with authentication
         repo_full_name: Full repository name (owner/repo)
+        base_url: Base URL for GitHub API
         since: ISO timestamp to filter commits since this time
     Yields:
         Commit data dictionaries
     """
-    url = f"{GITHUB_API_BASE_URL}/repos/{repo_full_name}/commits"
+    url = f"{base_url}/repos/{repo_full_name}/commits"
     params = {
         "per_page": ITEMS_PER_PAGE
     }
@@ -244,20 +253,21 @@ def get_commits(headers: dict, repo_full_name: str, since: str = None):
         time.sleep(RATE_LIMIT_DELAY)
 
 
-def get_pull_requests(headers: dict, repo_full_name: str, since: str = None):
+def get_pull_requests(headers: dict, repo_full_name: str, base_url: str, since: str = None):
     """
     Fetch pull requests for a repository with pagination support.
     Uses GitHub API endpoint: GET /repos/{owner}/{repo}/pulls
     Args:
         headers: Request headers with authentication
         repo_full_name: Full repository name (owner/repo)
+        base_url: Base URL for GitHub API
         since: ISO timestamp to filter pull requests updated since this time
     Yields:
         Pull request data dictionaries
     """
     # Fetch both open and closed pull requests
     for state in ["open", "closed"]:
-        url = f"{GITHUB_API_BASE_URL}/repos/{repo_full_name}/pulls"
+        url = f"{base_url}/repos/{repo_full_name}/pulls"
         params = {
             "state": state,
             "per_page": ITEMS_PER_PAGE,
@@ -360,12 +370,13 @@ def generate_jwt(app_id, private_key):
     encoded_jwt = jwt.encode(payload, private_key, algorithm='RS256')
     return encoded_jwt
 
-def get_installation_access_token(jwt_token, installation_id):
+def get_installation_access_token(jwt_token, installation_id, base_url):
     """
     Exchange JWT token for installation access token.
     Args:
         jwt_token: JWT token generated for the GitHub App
         installation_id: Installation ID for the organization
+        base_url: Base URL for GitHub API
     Returns:
         Installation access token
     Raises:
@@ -375,7 +386,7 @@ def get_installation_access_token(jwt_token, installation_id):
         'Authorization': f'Bearer {jwt_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
-    url = f'{GITHUB_API_BASE_URL}/app/installations/{installation_id}/access_tokens'
+    url = f'{base_url}/app/installations/{installation_id}/access_tokens'
     response = requests.post(url, headers=headers)
     response.raise_for_status()
     return response.json()['token']
@@ -425,10 +436,11 @@ def update(configuration: dict, state: dict):
     organizations = configuration.get("organization")
     app_id = configuration.get("app-id")
     installation_id = configuration.get("installation-id")
+    base_url = configuration.get("base-url")
 
     jwt_token = generate_jwt(app_id, pkey)
 
-    installation_token = get_installation_access_token(jwt_token, installation_id)
+    installation_token = get_installation_access_token(jwt_token, installation_id, base_url)
 
     # Set up authentication headers matching GitHub API documentation
     headers = {
@@ -453,7 +465,7 @@ def update(configuration: dict, state: dict):
             # First, fetch all repositories
             log.info("Fetching repositories...")
             repo_list = []
-            for repo in get_repositories(headers, organization, since=last_repo_sync):
+            for repo in get_repositories(headers, organization, base_url, since=last_repo_sync):
                 # Upsert repository data to the destination
                 # The op.upsert method is called with two arguments:
                 # - The first argument is the name of the table to upsert the data into.
@@ -490,7 +502,7 @@ def update(configuration: dict, state: dict):
                 # Fetch commits for this repository
                 log.info(f"Fetching commits for {repo_full_name}...")
                 commit_count = 0
-                for commit in get_commits(headers, repo_full_name, since=repo_last_commit_sync):
+                for commit in get_commits(headers, repo_full_name, base_url, since=repo_last_commit_sync):
                     op.upsert(table="commits", data=commit)
                     commit_count += 1
                     record_count += 1
@@ -500,7 +512,7 @@ def update(configuration: dict, state: dict):
                 # Fetch pull requests for this repository
                 log.info(f"Fetching pull requests for {repo_full_name}...")
                 pr_count = 0
-                for pr in get_pull_requests(headers, repo_full_name, since=repo_last_pr_sync):
+                for pr in get_pull_requests(headers, repo_full_name, base_url, since=repo_last_pr_sync):
                     op.upsert(table="pull_requests", data=pr)
                     pr_count += 1
                     record_count += 1

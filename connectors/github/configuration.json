@@ -2,5 +2,6 @@
   "app-id": "<YOUR_GITHUB_APP_ID>",
   "private-key": "<YOUR_GITHUB_APP_PRIVATE_KEY>",
   "organization": "<YOUR_ORGANIZATION_NAME>",
-  "installation-id": "<YOUR_INSTALLATION_ID>"
+  "installation-id": "<YOUR_INSTALLATION_ID>",
+  "base-url": "<YOUR_GITHUB_BASE_URL>"
 }

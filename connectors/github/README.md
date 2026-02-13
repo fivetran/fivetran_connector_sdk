@@ -1,7 +1,7 @@
 # GitHub Connector
 
 ## Connector overview
-This connector integrates with the GitHub REST API to synchronize repository data, commits, and pull requests into your destination. It uses GitHub App authentication for secure access and supports incremental sync to efficiently fetch only new or updated data. The connector handles pagination automatically and implements robust error handling with retry logic for production use.
+This connector integrates with the GitHub REST API to synchronize repository data, commits, and pull requests into your destination. It supports **both GitHub.com and GitHub Enterprise (on-premises)**. The connector uses GitHub App authentication for secure access and supports incremental sync to efficiently fetch only new or updated data. It handles pagination automatically and implements robust error handling with retry logic for production use.
 
 GitHub is a code hosting platform for version control and collaboration. This connector provides comprehensive insights into your organization's repositories, development activity, and code review processes.
 
@@ -28,12 +28,25 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Configuration file
 The configuration file contains the GitHub App credentials required to authenticate with the GitHub API.
 
+### For GitHub.com:
 ```json
 {
   "app-id": "YOUR_GITHUB_APP_ID",
   "private-key": "YOUR_RSA_PRIVATE_KEY",
   "organization": "your-org-name",
-  "installation-id": "YOUR_INSTALLATION_ID"
+  "installation-id": "YOUR_INSTALLATION_ID",
+  "base-url": "https://api.github.com"
+}
+```
+
+### For GitHub Enterprise (On-Premises):
+```json
+{
+  "app-id": "YOUR_GITHUB_APP_ID",
+  "private-key": "YOUR_RSA_PRIVATE_KEY",
+  "organization": "your-org-name",
+  "installation-id": "YOUR_INSTALLATION_ID",
+  "base-url": "https://github.your-company.com/api/v3"
 }
 ```
 
@@ -42,6 +55,7 @@ Configuration parameters:
 - `private-key` (required): RSA private key for your GitHub App (PEM format with newlines)
 - `organization` (required): GitHub organization name to sync (can be comma-separated for multiple orgs)
 - `installation-id` (required): Installation ID for the GitHub App on your organization
+- `base-url` (optional): GitHub API base URL. Defaults to `https://api.github.com` for GitHub.com. For GitHub Enterprise, use `https://github.your-company.com/api/v3`
 
 **Important**: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
