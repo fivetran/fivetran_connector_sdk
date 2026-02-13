@@ -1,7 +1,7 @@
 """
 This is an example to show how to handle complex configuration options in your connector code.
 It shows multiple ways to cast configuration fields to list, integer, boolean and dict for use in connector code.
-It also shows how to define complex constant values in a separate file and import them into your connector.
+It also shows how to define constant values in a separate file and import them into your connector.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
@@ -19,8 +19,8 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import complex constant from a separate file.
-from conf import API_CONFIGURATION
+# Import constant from a separate file.
+from constant import API_CONSTANT
 
 
 def schema(configuration: dict):
@@ -61,7 +61,7 @@ def get_configuration(configuration):
     """
     This function is responsible for fetching and parsing the configuration values.
     This function checks if the values are present in Fivetran connector configuration
-    If they are not present, it uses the constant defined in conf.py
+    If they are not present, it uses the constant defined in constant.py
     You can modify the logic in this function to suit your needs.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
@@ -87,16 +87,16 @@ def get_configuration(configuration):
         return regions, api_quota, use_bulk_api, currencies, complex_constant
 
     else:
-        # If the values are not present, use the constant defined in conf.py
+        # If the values are not present, use the constant defined in constant.py
         # Do not store secrets here.
         # Always use Fivetran connector configuration ( configuration.json ) for sensitive values such as API keys or credentials.
-        log.warning("using constant defined in conf.py")
+        log.warning("using constant defined in constant.py")
         return (
-            API_CONFIGURATION.get("regions"),
-            API_CONFIGURATION.get("api_quota"),
-            API_CONFIGURATION.get("use_bulk_api"),
-            API_CONFIGURATION.get("currencies"),
-            API_CONFIGURATION.get("complex_constant"),
+            API_CONSTANT.get("regions"),
+            API_CONSTANT.get("api_quota"),
+            API_CONSTANT.get("use_bulk_api"),
+            API_CONSTANT.get("currencies"),
+            API_CONSTANT.get("complex_constant"),
         )
 
 
@@ -106,7 +106,7 @@ def validate_fetched_configuration_values(
     """
     This is a test function to ensure that the values fetched from get_configuration() function are of the expected types and formats.
     You will not typically need to define a function like this in your connector code
-    But it is included here for demonstration purposes to show how you can validate and test the values you fetch.
+    But it is included here for demonstration purposes to validate and test the values you fetch.
     Args:
         regions: regions value, expected to be a list of strings
         api_quota: api_quota value, expected to be an integer
