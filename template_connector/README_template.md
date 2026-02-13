@@ -66,7 +66,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-Note: When providing a connector example to the Connector SDK community, ensure the `configuration.json` file has placeholder values. 
+Note: When providing connector code as an example to the Connector SDK community, ensure the `configuration.json` file has placeholder values. 
 When adding the connector to your production repository, ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 
