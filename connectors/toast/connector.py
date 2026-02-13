@@ -618,7 +618,7 @@ def make_headers(conf, base_url, state, key):
     current_time = time.time()
 
     # Check if a valid token exists and is not expiring in the next hour
-    if "encrypted_token" in state and "token_ttl" in state:
+    if "encrypted_token" in state and "token_ttl" in state and state["token_ttl"] > current_time + 3600:
         "encrypted_token" in state and
         "token_ttl" in state and
         state["token_ttl"] > current_time + 3600
@@ -628,16 +628,7 @@ def make_headers(conf, base_url, state, key):
             log.info("encrypted_token found with at least an hour left, reusing")
             return {"Authorization": f"Bearer {auth_token}", "Accept": "application/json"}, state
         except Exception as e:
-        if state["token_ttl"] > current_time + 3600:
-            try:
-                auth_token = fernet.decrypt(state["encrypted_token"].encode()).decode()
-                log.info("encrypted_token found with at least an hour left, reusing")
-                return {
-                    "Authorization": f"Bearer {auth_token}",
-                    "Accept": "application/json",
-                }, state
-            except Exception as e:
-                print(f"⚠️ Token decryption failed: {e}, re-authenticating...")
+            print(f"⚠️ Token decryption failed: {e}, re-authenticating...")
 
 
     # No valid token OR token expiring within 1 hour, request a new one
