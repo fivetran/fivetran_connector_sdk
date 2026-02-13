@@ -37,7 +37,7 @@ class S3Client:
             response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
             return response["Body"].read()
         except Exception as exception:
-            raise ConnectionError(f"Failed to get object from S3: {exception}")
+            raise exception
 
     def probe(self, bucket_name):
         """

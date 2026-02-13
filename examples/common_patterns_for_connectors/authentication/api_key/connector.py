@@ -85,7 +85,7 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    print(
+    log.info(
         "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
         "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
     )
@@ -202,7 +202,7 @@ def get_api_response(base_url, params, headers, max_retries=__MAX_RETRIES):
     Raises:
         requests.exceptions.RequestException: if all retry attempts fail.
     """
-    log.info(f"Making API call to url: {base_url} with params: {params} and headers: {headers}")
+    log.info(f"Making API call to url: {base_url}")
 
     for attempt in range(max_retries + 1):
         try:
