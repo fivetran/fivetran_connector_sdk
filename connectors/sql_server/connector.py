@@ -26,7 +26,6 @@ from fivetran_connector_sdk import Operations as op
 # Import pyodbc which is used to connect with SQL Server Db
 import pyodbc
 
-
 # batch size to control how many records are processed in memory at a time during syncing
 __BATCH_SIZE = 100
 # checkpoint interval to control how often the state is checkpointed during syncing

@@ -25,7 +25,6 @@ import json
 # For implementing retry logic with exponential backoff
 import time
 
-
 # Define global constants
 __MAX_RETRIES = 3
 
