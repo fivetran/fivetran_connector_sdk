@@ -627,7 +627,6 @@ def make_headers(conf, base_url, state, key):
         except Exception as e:
             print(f"⚠️ Token decryption failed: {e}, re-authenticating...")
 
-
     # No valid token OR token expiring within 1 hour, request a new one
     payload = {
         "clientId": conf.get("clientId"),
