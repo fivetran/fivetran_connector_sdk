@@ -109,7 +109,7 @@ Summary of tables replicated:
 - contacts 
   - Primary key: vid 
   - Columns include vid (LONG), lastmodifieddate (STRING), firstname (STRING), company (STRING), email (STRING).
-- companies – 
+- companies
   - Primary key: companyId
   - Columns include companyId (LONG), name (STRING), timestamp (LONG).
 
