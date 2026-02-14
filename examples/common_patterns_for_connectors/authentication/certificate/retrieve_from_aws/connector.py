@@ -68,6 +68,13 @@ def get_urllib_context(cert_path: str, passkey: str):
 
 
 def get_s3_client(configuration: dict):
+    """
+    Get an S3 client using the provided configuration.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector
+    Returns:
+        An instance of the S3Client class initialized with the provided AWS credentials and region.
+    """
     aws_access_key_id = configuration["AWS_ACCESS_KEY_ID"]
     aws_secret_access_key = configuration["AWS_ACCESS_SECRET_KEY"]
     region = configuration["REGION"]
@@ -156,7 +163,9 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Example: Common patterns for connectors - Using certificates for API authentication")
+    log.warning(
+        "Example: Common patterns for connectors - Using certificates for API authentication"
+    )
 
     last_index = state["last_index"] if "last_index" in state else -1
 

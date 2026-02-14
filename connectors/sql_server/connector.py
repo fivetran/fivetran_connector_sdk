@@ -188,6 +188,21 @@ def sync_data(connection, sql_query, last_query_date, state):
         raise e
 
 
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    required_configs = ["driver", "server", "database", "user", "password"]
+    for key in required_configs:
+        if key not in configuration:
+            raise ValueError(f"Missing required configuration value: {key}")
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -199,6 +214,9 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Connectors - SQL Server")
+
+    # Validate the configuration
+    validate_configuration(configuration)
 
     # IMPORTANT: This connector requires the following prerequisites in your SQL server:
     # 1. A database named as specified in your configuration
@@ -232,24 +250,26 @@ def update(configuration: dict, state: dict):
     # Connect to the database using the provided configuration
     connection = connect_to_database(configuration)
 
-    # Probe the database connection to ensure it is valid before attempting to sync data
-    # This helps catch connection issues early and prevents unnecessary processing.
-    probe(connection)
+    try:
+        # Probe the database connection to ensure it is valid before attempting to sync data
+        # This helps catch connection issues early and prevents unnecessary processing.
+        probe(connection)
 
-    # Sync the data by executing the SQL query and upserting the results to the destination.
-    last_query_date = sync_data(connection, sql_query, last_query_date, state)
+        # Sync the data by executing the SQL query and upserting the results to the destination.
+        last_query_date = sync_data(connection, sql_query, last_query_date, state)
 
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-    state["employee_details"] = last_query_date.isoformat()
-    op.checkpoint(state)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+        state["employee_details"] = last_query_date.isoformat()
+        op.checkpoint(state)
 
-    # Close the database connection after sync is complete.
-    close_database_connection(connection)
+    finally:
+        # Close the database connection after sync is complete.
+        close_database_connection(connection)
 
 
 # Create the connector object using the schema and update functions

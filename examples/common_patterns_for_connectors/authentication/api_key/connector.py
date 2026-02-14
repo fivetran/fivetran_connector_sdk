@@ -27,6 +27,7 @@ import time
 
 # Define global constants
 __MAX_RETRIES = 3
+__REQUEST_TIMEOUT = 30
 
 
 def schema(configuration: dict):
@@ -130,7 +131,7 @@ def probe_api(base_url, configuration):
 
     try:
         log.info("Testing API connection and authentication")
-        response = rq.get(base_url, headers=headers, timeout=10)
+        response = rq.get(base_url, headers=headers, timeout=__REQUEST_TIMEOUT)
         response.raise_for_status()
         log.info("API connection test successful. Starting the sync")
 
@@ -173,8 +174,10 @@ def sync_items(base_url, params, state, configuration):
         return
 
     # Iterate over each user in the 'items' list and perform an upsert operation.
-    # The 'upsert' operation inserts the data into the destination.
     for user in items:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="user", data=user)
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -206,7 +209,7 @@ def get_api_response(base_url, params, headers, max_retries=__MAX_RETRIES):
 
     for attempt in range(max_retries + 1):
         try:
-            response = rq.get(base_url, params=params, headers=headers, timeout=30)
+            response = rq.get(base_url, params=params, headers=headers, timeout=__REQUEST_TIMEOUT)
             response.raise_for_status()
             response_page = response.json()
             return response_page
@@ -238,7 +241,6 @@ def get_api_response(base_url, params, headers, max_retries=__MAX_RETRIES):
                 else:
                     log.severe(f"API call failed: {str(e)}")
                 raise
-    return None
 
 
 # Create the connector object using the schema and update functions
