@@ -46,7 +46,12 @@ cd fivetran_connector_sdk
 git remote add upstream https://github.com/fivetran/fivetran_connector_sdk.git
 ```
 
-### Step 3: Create a feature branch
+### Step 3: Set up pre-commit hooks
+
+To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the root of the repository for automatic code formatting.
+
+
+### Step 4: Create a feature branch
 
 ```bash
 # Ensure your main branch is up to date
@@ -61,7 +66,7 @@ Use descriptive branch names such as:
 - `feature/salesforce-connector`
 - `fix/pagination-bug-in-hubspot`
 
-### Step 4: Make your changes
+### Step 5: Make your changes
 
 Before making any changes, define the scope of the connector example you want to contribute. For new examples, the examples should be added in a new directory under relevant section. For updating existing examples, you can either make changes directly in the existing connector's directory or create a new subdirectory under the existing connector.
 
@@ -73,10 +78,6 @@ After defining the scope, you should do the following:
 2. Ensure your code follows our [coding standards](#contribution-standards-and-guidelines).
 3. Test your connector thoroughly using `fivetran debug`. Refer to the [building custom connector tutorial](https://fivetran.com/docs/connector-sdk/tutorials/beginners-tutorial#installthefivetranconnectorsdk). 
 4. Add or update documentation as needed.
-
-### Step 5: Set up pre-commit hooks
-
-To set up the pre-commit hook, execute `.github/scripts/setup-hooks.sh` from the root of the repository for automatic code formatting.
 
 ### Step 6: Commit your changes
 
@@ -169,7 +170,7 @@ When you submit a pull request, automated checks will run:
 - README update check - verifies that the root README.md is updated for new examples
 - CLA verification - confirms that you have signed the Contributor License Agreement (CLA)
 
-These checks must pass before human review begins.
+The code quality and README update checks will run only when a Fivetran team member allows the check to run when the PR is opened. These checks must pass before human review begins.
 
 ### Stage 2: GitHub Copilot review
 
@@ -222,6 +223,15 @@ This check uses Flake8 and Black to ensure code quality and formatting:
 
 This check identifies potential errors, stylistic issues, and deviations from PEP8 python coding standards. It uses `.flake8` config file at the repository root. The check only analyzes Python files modified in your pull request and fails if any flake8 errors are detected.
 
+To check for flake8 errors locally:
+```bash
+# Install flake8
+pip install flake8
+
+# Run this command from the directory of your connector example
+flake8 .
+```
+
 #### Black formatting
 
 This check ensures that all Python code adheres to the Black code formatter standards defined in the repository. It checks all Python files in the repository for compliance with Black formatting rules and fails if any formatting issues are detected.
@@ -234,14 +244,11 @@ To fix formatting issues locally:
 
 Or manually:
 ```bash
-# Install tools
-pip install flake8 black
+# Install black 
+pip install black
 
 # Check and fix formatting
 black --line-length 99 .
-
-# Check linting
-flake8 .
 ```
 
 ### 2. README update check
@@ -299,7 +306,7 @@ After running `fivetran debug`, verify that the output indicates a successful ru
 #### Step 4: Take a screenshot and add to your PR
 
 Capture a screenshot of the successful `fivetran debug` output and attach the screenshot in the PR description.
-
+Ensure that you hide any Personally Identifiable Information (PII) or sensitive data in the screenshot before attaching it to your PR.
 
 ## Need help?
 
