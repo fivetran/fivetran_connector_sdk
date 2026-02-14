@@ -67,9 +67,11 @@ def get_urllib_context(cert_path: str, passkey: str):
     return context
 
 
-def get_s3_client(configuration: dict):
+def get_s3_client(configuration: dict, bucket_name: str):
     """
     Get an S3 client using the provided configuration.
+    This method initializes the S3 client with credentials and probes the S3 bucket
+    This ensures that the credentials and permissions are valid and the bucket is accessible.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector
     Returns:
@@ -80,6 +82,8 @@ def get_s3_client(configuration: dict):
     region = configuration["REGION"]
 
     client = S3Client(aws_access_key_id, aws_secret_access_key, region)
+    # Probe the S3 bucket to ensure that the provided credentials are valid and the bucket is accessible
+    client.probe(bucket_name=bucket_name)
     return client
 
 
@@ -173,10 +177,8 @@ def update(configuration: dict, state: dict):
 
     bucket_name = configuration["BUCKET_NAME"]
     object_key = configuration["OBJECT_KEY"]
-    s3_client = get_s3_client(configuration=configuration)
-    # Probe the S3 bucket to ensure that the provided credentials are valid and the bucket is accessible
-    s3_client.probe(bucket_name=bucket_name)
 
+    s3_client = get_s3_client(configuration=configuration, bucket_name=bucket_name)
     cert_path = get_certificates(client=s3_client, bucket_name=bucket_name, object_key=object_key)
     passkey = configuration["PASSKEY"]
 
