@@ -74,6 +74,7 @@ def get_s3_client(configuration: dict, bucket_name: str):
     This ensures that the credentials and permissions are valid and the bucket is accessible.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector
+        bucket_name: name of the S3 bucket
     Returns:
         An instance of the S3Client class initialized with the provided AWS credentials and region.
     """
