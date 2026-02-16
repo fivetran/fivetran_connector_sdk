@@ -35,10 +35,10 @@ from datetime import datetime, timezone
 import jwt
 
 # Constants for API configuration
-____GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
-____RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
-____MAX_RETRIES = 3  # Maximum number of retries for failed requests
-____ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
+__GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
+__RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
+__MAX_RETRIES = 3  # Maximum number of retries for failed requests
+__ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
 
 def validate_configuration(configuration: dict):
     """
