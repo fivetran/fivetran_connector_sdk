@@ -1,9 +1,11 @@
 """GitHub Connector for Fivetran Connector SDK.
-This connector demonstrates how to fetch data from GitHub REST API and upsert it into destination using requests library
-Fetches repositories, commits, and pull requests with proper pagination and incremental sync support
+This connector demonstrates how to fetch data from GitHub REST API and upsert it into destination.
+Fetches repositories, commits, and pull requests with proper pagination and incremental sync support.
 
-See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
 
 # Import required classes from fivetran_connector_sdk
@@ -43,7 +45,8 @@ __CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing this many records
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters with valid values.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This function is called at the start of the update method to ensure that the connector has all
+    necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
@@ -66,7 +69,8 @@ def validate_configuration(configuration: dict):
         raise ValueError("private-key must be a non-empty string")
     if "BEGIN RSA PRIVATE KEY" not in private_key and "BEGIN PRIVATE KEY" not in private_key:
         raise ValueError(
-            "private-key must contain valid RSA key markers (-----BEGIN RSA PRIVATE KEY----- or -----BEGIN PRIVATE KEY-----)"
+            "private-key must contain valid RSA key markers "
+            "(-----BEGIN RSA PRIVATE KEY----- or -----BEGIN PRIVATE KEY-----)"
         )
 
     # Validate organization
@@ -576,11 +580,12 @@ def update(configuration: dict, state: dict):
                 )
                 record_count += commit_count + pr_count
 
-                # Checkpoint after each repository to enable resumption and avoid memory issues
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+                # Checkpoint after each repository to enable resumption and avoid memory issues.
+                # Save the progress by checkpointing the state. This is important for ensuring
+                # that the sync process can resume from the correct position in case of next sync
+                # or interruptions. Learn more about how and where to checkpoint by reading our
+                # best practices documentation (https://fivetran.com/docs/connectors/connector-sdk/
+                # best-practices#largedatasetrecommendation).
                 op.checkpoint(
                     state={
                         "last_repo_sync": current_sync_time,
@@ -619,7 +624,8 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is Python's standard entry method allowing your script to be run directly from the
+# command line or IDE 'run' button.
 #
 # IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
 #   fivetran debug
