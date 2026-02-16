@@ -37,7 +37,7 @@ def validate_configuration(configuration: dict) -> None:
         ValueError: if any required configuration parameter is missing.
     """
     required = ["WandB_API_KEY", "entity"]
-    for k in required:
+    for key in required:
         if not configuration.get(k):
             raise ValueError(f"Missing required configuration value: {k}")
 
