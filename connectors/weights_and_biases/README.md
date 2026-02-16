@@ -33,8 +33,8 @@ The `configuration.json` file contains the authentication and entity information
 
 ```json
 {
-  "WandB_API_KEY": "YOUR_WANDB_API_KEY",
-  "entity": "YOUR_ENTITY_NAME"
+  "WandB_API_KEY": "<YOUR_WANDB_API_KEY>",
+  "entity": "<YOUR_ENTITY_NAME>"
 }
 ```
 
@@ -52,7 +52,7 @@ The `requirements.txt` file specifies the Python libraries required by the conne
 Example content of `requirements.txt`:
 
 ```
-wandb==0.18.7
+wandb==0.25.0
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.

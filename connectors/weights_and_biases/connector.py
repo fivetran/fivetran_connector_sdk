@@ -29,19 +29,37 @@ from fivetran_connector_sdk import Operations as op
 
 def validate_configuration(configuration: dict) -> None:
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
+    Validate the configuration dictionary to ensure it contains all required parameters and that they have valid values.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing or has an invalid value.
     """
-    required = ["WandB_API_KEY", "entity"]
-    for key in required:
-        if not configuration.get(k):
-            raise ValueError(f"Missing required configuration value: {k}")
+    if not isinstance(configuration, dict):
+        raise ValueError("Configuration must be a dictionary.")
 
+    # Validate WandB API key
+    api_key = configuration.get("WandB_API_KEY")
+    if api_key is None or api_key == "":
+        raise ValueError("Missing required configuration value: WandB_API_KEY")
+    if not isinstance(api_key, str):
+        raise ValueError("Configuration 'WandB_API_KEY' must be a string.")
+    api_key_stripped = api_key.strip()
+    # Reject obvious placeholder values like <YOUR_WANDB_API_KEY>
+    if api_key_stripped.startswith("<") and api_key_stripped.endswith(">"):
+        raise ValueError(
+            "Configuration 'WandB_API_KEY' appears to be a placeholder. Please provide a valid Weights & Biases API key."
+        )
 
+    # Validate entity (W&B username or team name)
+    entity = configuration.get("entity")
+    if entity is None or entity == "":
+        raise ValueError("Missing required configuration value: entity")
+    if not isinstance(entity, str):
+        raise ValueError("Configuration 'entity' must be a string.")
+    if not entity.strip():
+        raise ValueError("Configuration 'entity' cannot be empty or whitespace.")
 def _now_utc_iso() -> str:
     """
     Get the current UTC timestamp in ISO format.
@@ -194,8 +212,7 @@ def schema(configuration: dict):
     https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
-    Returns:
-        A list of table definitions with their primary keys.
+
     """
     return [
         {
@@ -219,10 +236,11 @@ def update(configuration: dict, state: dict):
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details (WandB_API_KEY and entity)
+        configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: WEIGHTS_AND_BIASES : WEIGHTS_AND_BIASES_EXAMPLE")
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration)
 
