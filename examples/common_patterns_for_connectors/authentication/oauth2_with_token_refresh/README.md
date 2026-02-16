@@ -39,7 +39,7 @@ The connector requires the following configuration parameters:
   "client_id": "<YOUR_CLIENT_ID>"
 }
 ```
-**Parameters:**
+Parameters:
   - `refresh_token` (required) – The OAuth2 refresh token used to obtain new access tokens when the current access token expires.
   - `client_id` (required) – The OAuth2 client ID from your HubSpot application.
   - `client_secret` (required) – The OAuth2 client secret from your HubSpot application.
@@ -65,7 +65,7 @@ Note: Ensure that the configuration.json file is not checked into version contro
 
    i. Click `Get new access Token`. A developer sign-in popup will appear.
 
-   ii. Log in to your developer account and click **Authorize** to grant access to the redirect URL. The popup will close, and you should see a window displaying your tokens.
+   ii. Log in to your developer account and click Authorize to grant access to the redirect URL. The popup will close, and you should see a window displaying your tokens.
       ![Screenshot2.png](Screenshot2.png)
 
 5. Access the [HubSpot API collection](https://developers.hubspot.com/docs/reference/api/crm/objects).
@@ -78,19 +78,19 @@ Response limits per request:
 - Contacts – 100 records (using `vidOffset` parameter)
 - Companies – 250 records (using `offset` parameter)
 
-Refer to `def sync_contacts(configuration, cursor)`, `def sync_companies(configuration, cursor)`
+Refer to `sync_contacts(configuration, cursor)`, `sync_companies(configuration, cursor)`
 
 ## Data handling
 
 The connector transforms raw HubSpot API responses into structured records through the following process:
 
-- Extraction – Navigates nested JSON structures using dictionary `.get()` methods with default values for missing fields.
+- Extraction – Navigates nested JSON structures using `get()` method with default values for missing fields.
 - Validation – Checks that required fields exist before processing (e.g., contacts must have firstname and identity profiles with identities).
 - Transformation – Converts nested properties into flat dictionary structures suitable for database storage.
 - Upserting – Sends transformed records to Fivetran using `op.upsert()`, which handles both inserts and updates based on primary keys.
 - State tracking – Persists sync progress using `op.checkpoint(state)` with the last_updated_at timestamp for incremental syncs.
 
-Refer to `def process_record` within `def sync_contacts(configuration, cursor)`, `def sync_companies(configuration, cursor)`
+Refer to `process_record` within `sync_contacts(configuration, cursor)`, `sync_companies(configuration, cursor)`
 
 ## Error handling
 
@@ -100,7 +100,7 @@ The connector implements error handling strategies:
 - Access token refresh – Automatically refreshes the access token when it expires by comparing the refresh time with the current time. If token refresh fails, an exception is raised with error details.
 - API request errors – Logs severe errors when API requests fail and raises exceptions to stop processing.
 
-Refer to `def validate_configuration(configuration: dict)`, `def get_access_token(configuration: dict)`, `def get_data(method, params, headers, configuration, body=None)`
+Refer to `validate_configuration(configuration: dict)`, `get_access_token(configuration: dict)`, `get_data(method, params, headers, configuration, body=None)`
 
 ## Tables created
 
