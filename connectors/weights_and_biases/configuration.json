@@ -1,4 +1,4 @@
 {
-  "WandB_API_KEY":"YOUR_WandB_API_KEY",
-  "entity": "YOUR_ENTITY_NAME"
+  "api_key":"<YOUR_WANDB_API_KEY>",
+  "entity": "<YOUR_ENTITY_NAME>"
 }
