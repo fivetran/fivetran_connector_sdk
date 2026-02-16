@@ -35,12 +35,10 @@ from datetime import datetime, timezone
 import jwt
 
 # Constants for API configuration
-__GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
-__RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
-__MAX_RETRIES = 3  # Maximum number of retries for failed requests
-__ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
-__CHECKPOINT_INTERVAL = 1000  # Checkpoint after processing this many records
-
+____GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
+____RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
+____MAX_RETRIES = 3  # Maximum number of retries for failed requests
+____ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
 
 def validate_configuration(configuration: dict):
     """
@@ -85,8 +83,8 @@ def validate_configuration(configuration: dict):
 
     # Set default base_url if not provided (for GitHub.com)
     if "base-url" not in configuration:
-        configuration["base-url"] = GITHUB_API_BASE_URL
-        log.info(f"Using default GitHub.com API: {GITHUB_API_BASE_URL}")
+        configuration["base-url"] = __GITHUB_API_BASE_URL
+        log.info(f"Using default GitHub.com API: {__GITHUB_API_BASE_URL}")
     else:
         base_url = configuration.get("base-url")
         if not base_url or not isinstance(base_url, str) or not base_url.strip():
@@ -108,7 +106,7 @@ def make_github_request(url: str, headers: dict, params: dict = None):
     Raises:
         RuntimeError: if the request fails after all retries
     """
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(__MAX_RETRIES):
         try:
             response = requests.get(url, headers=headers, params=params)
 
@@ -129,22 +127,22 @@ def make_github_request(url: str, headers: dict, params: dict = None):
                 return None
             elif response.status_code >= 400:
                 log.warning(f"HTTP {response.status_code} error: {response.text}")
-                if attempt == MAX_RETRIES - 1:
+                if attempt == __MAX_RETRIES - 1:
                     response.raise_for_status()
-                time.sleep(RATE_LIMIT_DELAY * (attempt + 1))
+                time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
                 continue
 
             return response
 
         except requests.exceptions.RequestException as e:
-            if attempt == MAX_RETRIES - 1:
+            if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(
-                    f"Failed to make request after {MAX_RETRIES} to url {url} attempts: {str(e)}"
+                    f"Failed to make request after {__MAX_RETRIES} to url {url} attempts: {str(e)}"
                 )
             log.warning(f"Request attempt {attempt + 1} failed: {str(e)}")
-            time.sleep(RATE_LIMIT_DELAY * (attempt + 1))
+            time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
 
-    raise RuntimeError(f"Failed to make request after {MAX_RETRIES} attempts")
+    raise RuntimeError(f"Failed to make request after {__MAX_RETRIES} attempts")
 
 
 def parse_pagination_links(link_header: str):
@@ -182,7 +180,7 @@ def get_repositories(headers: dict, organization: str, base_url: str, since: str
         Repository data dictionaries
     """
     url = f"{base_url}/orgs/{organization}/repos"
-    params = {"per_page": ITEMS_PER_PAGE, "sort": "updated", "direction": "desc"}
+    params = {"per_page": __ITEMS_PER_PAGE, "sort": "updated", "direction": "desc"}
 
     if since:
         params["since"] = since
@@ -227,7 +225,7 @@ def get_repositories(headers: dict, organization: str, base_url: str, since: str
         page_count += 1
 
         # Small delay to respect rate limits
-        time.sleep(RATE_LIMIT_DELAY)
+        time.sleep(__RATE_LIMIT_DELAY)
 
 
 def get_commits(headers: dict, repo_full_name: str, base_url: str, since: str = None):
@@ -243,7 +241,7 @@ def get_commits(headers: dict, repo_full_name: str, base_url: str, since: str = 
         Commit data dictionaries
     """
     url = f"{base_url}/repos/{repo_full_name}/commits"
-    params = {"per_page": ITEMS_PER_PAGE}
+    params = {"per_page": __ITEMS_PER_PAGE}
 
     if since:
         params["since"] = since
@@ -291,7 +289,7 @@ def get_commits(headers: dict, repo_full_name: str, base_url: str, since: str = 
         params = None
         page_count += 1
 
-        time.sleep(RATE_LIMIT_DELAY)
+        time.sleep(__RATE_LIMIT_DELAY)
 
 
 def get_pull_requests(headers: dict, repo_full_name: str, base_url: str, since: str = None):
@@ -311,7 +309,7 @@ def get_pull_requests(headers: dict, repo_full_name: str, base_url: str, since: 
         url = f"{base_url}/repos/{repo_full_name}/pulls"
         params = {
             "state": state,
-            "per_page": ITEMS_PER_PAGE,
+            "per_page": __ITEMS_PER_PAGE,
             "sort": "updated",
             "direction": "desc",
         }
@@ -347,7 +345,7 @@ def get_pull_requests(headers: dict, repo_full_name: str, base_url: str, since: 
             params = None
             page_count += 1
 
-            time.sleep(RATE_LIMIT_DELAY)
+            time.sleep(__RATE_LIMIT_DELAY)
 
 
 def format_pull_request(pr: dict, repo_full_name: str):
@@ -546,8 +544,6 @@ def update(configuration: dict, state: dict):
 
     # Get state variables for incremental sync
     last_repo_sync = state.get("last_repo_sync")
-    last_commit_sync = state.get("last_commit_sync")
-    last_pr_sync = state.get("last_pr_sync")
     processed_repos = state.get("processed_repos", {})
 
     try:
