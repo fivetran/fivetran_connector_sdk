@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timezone
 
 # For type hints to improve code readability
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 # Weights & Biases Python SDK for accessing W&B API
 import wandb
