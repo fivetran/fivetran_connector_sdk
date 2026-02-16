@@ -40,6 +40,7 @@ __RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limi
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
 
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters with valid values.
