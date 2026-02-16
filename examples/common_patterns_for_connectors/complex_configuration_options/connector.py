@@ -57,7 +57,7 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-def get_configuration(configuration):
+def parse_and_get_values(configuration):
     """
     This function is responsible for fetching and parsing the configuration values.
     This function checks if the values are present in Fivetran connector configuration
@@ -66,7 +66,7 @@ def get_configuration(configuration):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
-        A tuple containing the configuration values: regions, api_quota, use_bulk_api, currencies, complex_constant
+        A tuple containing the values: regions, api_quota, use_bulk_api, currencies, complex_constant
     """
     if "complex_constant" in configuration:
         log.info("using Fivetran connector configuration")
@@ -81,7 +81,7 @@ def get_configuration(configuration):
         use_bulk_api = configuration["use_bulk_api"].lower() == "true".lower()
         # converts config json string to dict
         currencies = json.loads(configuration["currencies"])
-        # parsing complex configuration value
+        # converts complex constant json string to dict
         complex_constant = json.loads(configuration["complex_constant"])
 
         return regions, api_quota, use_bulk_api, currencies, complex_constant
@@ -100,11 +100,9 @@ def get_configuration(configuration):
         )
 
 
-def validate_fetched_configuration_values(
-    regions, api_quota, use_bulk_api, currencies, complex_constant
-):
+def validate_fetched_values(regions, api_quota, use_bulk_api, currencies, complex_constant):
     """
-    This is a test function to ensure that the values fetched from get_configuration() function are of the expected types and formats.
+    This is a test function to ensure that the values fetched from parse_and_get_values() function are of the expected types and formats.
     You will not typically need to define a function like this in your connector code
     But it is included here for demonstration purposes to validate and test the values you fetch.
     Args:
@@ -133,15 +131,13 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common patterns for connectors - Complex Configuration Options")
 
-    # Get the values using the get_configuration function.
-    regions, api_quota, use_bulk_api, currencies, complex_configuration = get_configuration(
+    # Get the values
+    regions, api_quota, use_bulk_api, currencies, complex_constant = parse_and_get_values(
         configuration
     )
 
     # Validate the fetched values to ensure they are of the expected types and formats.
-    validate_fetched_configuration_values(
-        regions, api_quota, use_bulk_api, currencies, complex_configuration
-    )
+    validate_fetched_values(regions, api_quota, use_bulk_api, currencies, complex_constant)
 
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The first argument is the name of the destination table.

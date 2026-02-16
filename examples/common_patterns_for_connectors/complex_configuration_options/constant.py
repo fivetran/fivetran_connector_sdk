@@ -1,10 +1,10 @@
 """
-You can define reusable constant values in a separate Python file and import them into your connector.
+You can define constant values in a separate Python file and import them into your connector.
 This is useful for keeping your connector code clean and organized.
 
 Important: Constant values defined this way cannot be viewed or modified from the Fivetran dashboard.
 To change them, you must update the file and redeploy the connector.
-If you need configuration options that you can edit from the Fivetran dashboard, define them in configuration.json instead.
+If you need to edit the values from the Fivetran dashboard, define them in configuration.json instead.
 
 Do not store secrets here. Always use configuration.json for sensitive values such as API keys or credentials.
 """
