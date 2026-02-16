@@ -163,9 +163,7 @@ def _build_api_url(subdomain, workspace_id, table_id, endpoint_type=""):
     """
     base_url = f"https://{subdomain}.tulip.co/api/{__API_VERSION}"
     if workspace_id:
-        return f"{base_url}/w/{workspace_id}/tables/{table_id}/{endpoint_type}".rstrip(
-            "/"
-        )
+        return f"{base_url}/w/{workspace_id}/tables/{table_id}/{endpoint_type}".rstrip("/")
     return f"{base_url}/tables/{table_id}/{endpoint_type}".rstrip("/")
 
 
@@ -216,40 +214,30 @@ def validate_configuration(configuration):
     required_fields = ["subdomain", "api_key", "api_secret", "table_id"]
     missing_fields = [field for field in required_fields if field not in configuration]
     if missing_fields:
-        raise ValueError(
-            f"Missing required configuration fields: {', '.join(missing_fields)}"
-        )
+        raise ValueError(f"Missing required configuration fields: {', '.join(missing_fields)}")
 
     # Validate required fields are non-empty strings
     for field in required_fields:
         value = configuration[field]
         if not isinstance(value, str) or not value.strip():
-            raise ValueError(
-                f"Configuration field '{field}' must be a non-empty string"
-            )
+            raise ValueError(f"Configuration field '{field}' must be a non-empty string")
 
     # Validate optional fields if present
     if "workspace_id" in configuration:
         workspace_id = configuration["workspace_id"]
         if workspace_id and not isinstance(workspace_id, str):
-            raise ValueError(
-                "Configuration field 'workspace_id' must be a string or None"
-            )
+            raise ValueError("Configuration field 'workspace_id' must be a string or None")
 
     if "sync_from_date" in configuration:
         sync_from_date = configuration["sync_from_date"]
         if sync_from_date and not isinstance(sync_from_date, str):
-            raise ValueError(
-                "Configuration field 'sync_from_date' must be a string or None"
-            )
+            raise ValueError("Configuration field 'sync_from_date' must be a string or None")
         # Validate and normalize ISO 8601 format
         if sync_from_date:
             sync_from_date_stripped = sync_from_date.strip()
             if sync_from_date_stripped:
                 try:
-                    datetime.fromisoformat(
-                        sync_from_date_stripped.replace("Z", "+00:00")
-                    )
+                    datetime.fromisoformat(sync_from_date_stripped.replace("Z", "+00:00"))
                     # Normalize by saving the stripped value back to configuration
                     configuration["sync_from_date"] = sync_from_date_stripped
                 except ValueError:
@@ -261,9 +249,7 @@ def validate_configuration(configuration):
     if "custom_filter_json" in configuration:
         custom_filter_json = configuration["custom_filter_json"]
         if custom_filter_json and not isinstance(custom_filter_json, str):
-            raise ValueError(
-                "Configuration field 'custom_filter_json' must be a string or None"
-            )
+            raise ValueError("Configuration field 'custom_filter_json' must be a string or None")
         # Validate JSON format if non-empty
         if custom_filter_json and custom_filter_json.strip():
             try:
@@ -384,9 +370,7 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
 
             # Fail fast on permanent 4xx errors (except 429, already handled)
             if 400 <= response.status_code < 500:
-                log.severe(
-                    f"Permanent client error {response.status_code}: {response.text}"
-                )
+                log.severe(f"Permanent client error {response.status_code}: {response.text}")
                 response.raise_for_status()
 
             # Retry on 5xx server errors
@@ -407,9 +391,7 @@ def _fetch_with_retry(url, auth, params=None, max_retries=__MAX_RETRY_ATTEMPTS):
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # Retry on connection errors and timeouts
             if attempt == max_retries - 1:
-                log.severe(
-                    f"Connection/timeout error after {max_retries} attempts: {e}"
-                )
+                log.severe(f"Connection/timeout error after {max_retries} attempts: {e}")
                 raise
             wait_time = __RATE_LIMIT_RETRY_BASE_SECONDS * (2**attempt)
             log.warning(
@@ -738,9 +720,7 @@ def _execute_bootstrap_sync(context):
             "limit": __DEFAULT_LIMIT,
             "offset": 0,  # Always 0 - we use cursor-based filtering
             "filters": json.dumps(api_filters),
-            "sortOptions": json.dumps(
-                [{"sortBy": "_sequenceNumber", "sortDir": "asc"}]
-            ),
+            "sortOptions": json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
             "fields": context["fields_json"],
         }
 
@@ -821,9 +801,7 @@ def _execute_bootstrap_sync(context):
     }
 
 
-def _execute_incremental_sync(
-    context, last_sequence, highest_updated_at, records_processed
-):
+def _execute_incremental_sync(context, last_sequence, highest_updated_at, records_processed):
     """Execute incremental sync phase using _sequenceNumber with _updatedAt lookback.
 
     Args:
@@ -855,9 +833,7 @@ def _execute_incremental_sync(
     )
 
     # Build incremental filters using _updatedAt as the base filter
-    api_filters = _build_incremental_filters(
-        highest_updated_at, context["custom_filters"]
-    )
+    api_filters = _build_incremental_filters(highest_updated_at, context["custom_filters"])
 
     # When resuming a previously interrupted sync, include _sequenceNumber filter
     # from the first page to skip already-processed records.
@@ -876,9 +852,7 @@ def _execute_incremental_sync(
             "limit": __DEFAULT_LIMIT,
             "offset": 0,  # No offset pagination - use cursor-based filtering
             "filters": json.dumps(api_filters),
-            "sortOptions": json.dumps(
-                [{"sortBy": "_sequenceNumber", "sortDir": "asc"}]
-            ),
+            "sortOptions": json.dumps([{"sortBy": "_sequenceNumber", "sortDir": "asc"}]),
             "fields": context["fields_json"],
         }
 
@@ -936,9 +910,7 @@ def _execute_incremental_sync(
         else:
             # Update filter for next batch: use _updatedAt for the base filter,
             # then add _sequenceNumber for pagination within this sync run
-            api_filters = _build_incremental_filters(
-                base_updated_at, context["custom_filters"]
-            )
+            api_filters = _build_incremental_filters(base_updated_at, context["custom_filters"])
             api_filters.append(
                 {
                     "field": "_sequenceNumber",
