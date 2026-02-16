@@ -45,10 +45,10 @@ def schema(configuration: dict):
             "table": "employee_details",  # Name of the table in the destination.
             "primary_key": ["employee_id"],  # Primary key column(s) for the table.
             "columns": {  # Define the columns and their data types.
-                "employee_id": "INT",  # String column for the first name.
+                "employee_id": "INT",  # INT column for employee_id.
                 "hire_date": "NAIVE_DATE",  # NAIVE_DATE column for the hire_date.
                 "salary": "LONG",
-                "updated_time": "NAIVE_DATETIME",  # Datetime of row update
+                "updated_time": "NAIVE_DATETIME",  # NAIVE_DATETIME column for the updated_time.
             },
         }
     ]
@@ -63,11 +63,11 @@ def connect_to_database(configuration):
         A connection object if the connection is successful, or None if there is an error.
     """
     connection_string = (
-        "DRIVER=" + configuration.get("driver") + ";"
-        "SERVER=" + configuration.get("server") + ";"
-        "DATABASE=" + configuration.get("database") + ";"
-        "UID=" + configuration.get("user") + ";"
-        "PWD=" + configuration.get("password") + ";"
+        "DRIVER={" + configuration.get("driver") + "};"
+        "SERVER={" + configuration.get("server") + "};"
+        "DATABASE={" + configuration.get("database") + "};"
+        "UID={" + configuration.get("user") + "};"
+        "PWD={" + configuration.get("password") + "};"
     )
 
     try:
@@ -113,6 +113,7 @@ def close_database_connection(connection):
             connection.close()
         log.info("Connection closed")
     except Exception as e:
+        log.severe(f"Error closing database connection: {e}")
         raise e
 
 

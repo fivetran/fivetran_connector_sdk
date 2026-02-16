@@ -1,10 +1,12 @@
-# This is a simple example of how to work with API Key authentication for a REST API.
-# It defines a simple `update` method, which upserts retrieved data to a table named "user".
-# THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
-# (https://pypi.org/project/fivetran-api-playground/) TO RUN.
-# See the Technical Reference documentation
-# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+"""
+This is a simple example of how to work with API Key authentication for a REST API.
+It defines a simple `update` method, which upserts retrieved data to a table named "user".
+THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA. IT REQUIRES THE FIVETRAN-API-PLAYGROUND PACKAGE
+(https://pypi.org/project/fivetran-api-playground/) TO RUN.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+"""
 
 # Import requests to make HTTP calls to API.
 import requests as rq
@@ -141,14 +143,15 @@ def probe_api(base_url, configuration):
             "Please verify the API endpoint is accessible."
         )
     except rq.exceptions.HTTPError as e:
-        if response.status_code == 401 or response.status_code == 403:
+        response_code = e.response.status_code
+        if response_code == 401 or response_code == 403:
             raise ValueError(
                 f"Authentication failed. Please verify your API key is correct. "
-                f"Status code: {response.status_code}"
+                f"Status code: {response_code}"
             )
-        elif response.status_code >= 500:
-            raise ConnectionError(f"API server error (status {response.status_code}). ")
-        raise ValueError(f"API request failed with status {response.status_code}: {str(e)}")
+        elif response_code >= 500:
+            raise ConnectionError(f"API server error (status {response_code}). ")
+        raise ValueError(f"API request failed with status {response_code}: {str(e)}")
     except Exception as e:
         raise ConnectionError(f"Unexpected error while testing API connection: {str(e)}")
 

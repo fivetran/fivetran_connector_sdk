@@ -189,6 +189,9 @@ def update(configuration: dict, state: dict):
 
     for value in data:
         last_index += 1
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="sample_data", data={"id": last_index, "content": value})
         if last_index % __CHECKPOINT_INTERVAL == 0:
             # checkpoint after every __CHECKPOINT_INTERVAL records
