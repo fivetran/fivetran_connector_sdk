@@ -60,6 +60,8 @@ def validate_configuration(configuration: dict) -> None:
         raise ValueError("Configuration 'entity' must be a string.")
     if not entity.strip():
         raise ValueError("Configuration 'entity' cannot be empty or whitespace.")
+
+
 def _now_utc_iso() -> str:
     """
     Get the current UTC timestamp in ISO format.
