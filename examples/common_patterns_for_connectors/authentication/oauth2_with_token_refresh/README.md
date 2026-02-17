@@ -1,4 +1,4 @@
-# OAuth2 Refresh Token Hubspot Connector Example
+# OAuth 2.0 Refresh Token Hubspot Connector Example
 
 ## Connector overview
 
