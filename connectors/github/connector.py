@@ -36,7 +36,7 @@ import jwt
 
 # Constants for API configuration
 __GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
-__RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
+__RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
 
@@ -130,7 +130,8 @@ def make_github_request(url: str, headers: dict, params: dict = None):
                 log.warning(f"HTTP {response.status_code} error: {response.text}")
                 if attempt == __MAX_RETRIES - 1:
                     response.raise_for_status()
-                time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
+                # Exponential backoff: 2^1=2s, 2^2=4s, 2^3=8s
+                time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
                 continue
 
             return response
@@ -138,10 +139,11 @@ def make_github_request(url: str, headers: dict, params: dict = None):
         except requests.exceptions.RequestException as e:
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(
-                    f"Failed to make request after {__MAX_RETRIES} to url {url} attempts: {str(e)}"
+                    f"Failed to make request to url {url} after {__MAX_RETRIES} attempts: {str(e)}"
                 )
             log.warning(f"Request attempt {attempt + 1} failed: {str(e)}")
-            time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
+            # Exponential backoff: 2^1=2s, 2^2=4s, 2^3=8s
+            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
 
     raise RuntimeError(f"Failed to make request after {__MAX_RETRIES} attempts")
 
@@ -520,6 +522,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: Connectors : GitHub")
     log.info("Starting GitHub API Connector sync")
 
     # Validate the configuration to ensure it contains all required values
@@ -555,6 +558,7 @@ def update(configuration: dict, state: dict):
 
         for organization in organizations.split(","):
             log.info(f"Starting sync for organization: {organization}")
+            repo_count = 0  # Reset counter for each organization
             log.info("Fetching and processing repositories...")
             for repo in get_repositories(headers, organization, base_url, since=last_repo_sync):
                 # The 'upsert' operation is used to insert or update data in the destination table.

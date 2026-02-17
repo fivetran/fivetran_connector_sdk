@@ -28,34 +28,22 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Configuration file
 The configuration file contains the GitHub App credentials required to authenticate with the GitHub API.
 
-### For GitHub.com:
 ```json
 {
   "app-id": "<YOUR_GITHUB_APP_ID>",
   "private-key": "<YOUR_GITHUB_APP_PRIVATE_KEY>",
   "organization": "<YOUR_ORGANIZATION_NAME>",
-  "installation-id": "<YOUR_INSTALLATION_ID>",
-  "base-url": "https://api.github.com"
+  "installation-id": "<YOUR_INSTALLATION_ID>"
 }
 ```
 
-### For GitHub Enterprise (on-premises):
-```json
-{
-  "app-id": "<YOUR_GITHUB_APP_ID>",
-  "private-key": "<YOUR_GITHUB_APP_PRIVATE_KEY>",
-  "organization": "<YOUR_ORGANIZATION_NAME>",
-  "installation-id": "<YOUR_INSTALLATION_ID>",
-  "base-url": "https://github.your-company.com/api/v3"
-}
-```
+**Note**: For GitHub Enterprise installations, add a `"base-url"` field with your enterprise instance URL (e.g., `"base-url": "https://github.your-company.com/api/v3"`).
 
 Configuration parameters:
 - `app-id` (required): Your GitHub App ID (found in **GitHub App settings**).
 - `private-key` (required): RSA private key for your GitHub App (PEM format with newlines).
 - `organization` (required): GitHub organization name to sync (can be comma-separated for multiple orgs).
 - `installation-id` (required): Installation ID for the GitHub App on your organization.
-- `base-url` (optional): GitHub API base URL. Defaults to `https://api.github.com` for GitHub.com. For GitHub Enterprise, use `https://github.your-company.com/api/v3`.
 
 **Important**: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -179,7 +167,7 @@ The connector implements comprehensive error handling with retry logic in `make_
 
 ### Retry strategy
 - Maximum retries: 3 attempts for failed requests.
-- Exponential backoff: Waits `2^attempt` seconds between retries (2s, 4s, 8s).
+- Exponential backoff: Waits 2^attempt seconds between retries (2s, 4s, 8s).
 - Rate limit handling: Automatically waits until rate limit resets (checks `X-RateLimit-Reset` header).
 - 409 conflict: Skips repositories that return 409 errors and continues processing.
 
