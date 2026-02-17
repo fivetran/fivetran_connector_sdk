@@ -312,37 +312,13 @@ Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connecto
 
 ## Contributing
 
-We welcome contributions to the Fivetran Connector SDK repo.
+We welcome contributions to the Fivetran Connector SDK repository. 
 
 This repository is open source and intended specifically for Connector SDK examples. We encourage the community to contribute by suggesting improvements, bug fixes, new examples, and additional use cases that expand and strengthen the collection.
 
 ### How to contribute
 
-1. Click **Fork** on the GitHub repository page to create your own copy of the repo.
-2. Make your changes in a new branch: `git checkout -b feature/your-example-name`
-3. Add new connectors, fix bugs, improve documentation, or enhance existing features and commit your changes.
-4. Ensure your code works correctly and follows our coding standards.
-- [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
-- [Fivetran coding principles](https://github.com/fivetran/fivetran_connector_sdk/blob/main/FIVETRAN_CODING_PRINCIPLES.md)
-5. Open a pull request with a clear description of your changes.
-- If you're part of the AI Accelerate Google hackathon, please use the `accel Google hack 2025` tag
-- If you're part of the Fivetran internal hackathon, please use the `hackathon` tag
-
-### What we're looking for
-
-- New connector examples for popular APIs and databases
-- Bug fixes and performance improvements
-- Documentation enhancements
-- Code quality improvements
-- New common patterns and utilities
-
-### Getting started
-
-Before contributing, please:
-- Read through existing [examples](#quickstart-examples) to understand our coding patterns
-- Run the setup script: `.github/scripts/setup-hooks.sh`
-- Follow the [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
-- Test your connector thoroughly before submitting
+Please read the [CONTRIBUTING.md](https://github.com/fivetran/fivetran_connector_sdk/blob/main/CONTRIBUTING.md) guide for detailed information on contributing to this repository.
 
 We appreciate all contributions, whether they're small bug fixes or major new features.
 
