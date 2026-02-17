@@ -474,7 +474,9 @@ def get_installation_access_token(jwt_token, installation_id, base_url):
                 raise RuntimeError(
                     f"Failed to get installation token after {__MAX_RETRIES} attempts: {str(e)}"
                 )
-            log.warning(f"Request failed: {str(e)}, retrying (attempt {attempt + 1}/{__MAX_RETRIES})")
+            log.warning(
+                f"Request failed: {str(e)}, retrying (attempt {attempt + 1}/{__MAX_RETRIES})"
+            )
             time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
 
     raise RuntimeError(f"Failed to get installation token after {__MAX_RETRIES} attempts")
