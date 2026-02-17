@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- OAuth2 authentication with automatic access token refresh
+- OAuth 2.0 authentication with automatic access token refresh
 - Syncs contacts from HubSpot API
 - Syncs companies from HubSpot API
 - Pagination support for large datasets
