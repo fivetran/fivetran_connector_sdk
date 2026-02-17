@@ -52,7 +52,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-### Obtaining HubSpot OAuth2 credentials
+### Obtaining HubSpot OAuth 2.0 credentials
 
 1. If you don't have a HubSpot account, [create one](https://developers.hubspot.com/docs/guides/apps/public-apps/overview) 
 
