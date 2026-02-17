@@ -45,9 +45,9 @@ The connector requires three configuration parameters to connect to your Tempora
 
 ```json
 {
-  "temporal_host": "your-namespace.tmprl.cloud:7233",
-  "temporal_namespace": "your-namespace-id",
-  "temporal_api_key": "your-api-key"
+  "temporal_host": "<YOUR_TEMPORAL_HOST>",
+  "temporal_namespace": "<YOUR_TEMPORAL_NAMESPACE>",
+  "temporal_api_key": "<YOUR_TEMPORAL_API_KEY>"
 }
 ```
 
