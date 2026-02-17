@@ -1,0 +1,2 @@
+# No additional requirements needed beyond pre-installed packages
+# The fivetran_connector_sdk and requests packages are pre-installed in the Fivetran environment
