@@ -96,7 +96,7 @@ Refer to `process_record` within `sync_contacts(configuration, cursor)`, `sync_c
 
 The connector implements error handling strategies:
 
-- Configuration validation – Ensures all required configuration parameters (refresh_token, client_secret, client_id) are present before processing.
+- Configuration validation – Ensures all required configuration parameters (`refresh_token`, `client_secret`, `client_id`) are present before processing.
 - Access token refresh – Automatically refreshes the access token when it expires by comparing the refresh time with the current time. If token refresh fails, an exception is raised with error details.
 - API request errors – Logs severe errors when API requests fail and raises exceptions to stop processing.
 
