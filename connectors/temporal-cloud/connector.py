@@ -374,4 +374,9 @@ connector = Connector(update=update, schema=schema)
 
 
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
     connector.debug()

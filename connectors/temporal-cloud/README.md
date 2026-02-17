@@ -64,7 +64,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 The connector requires the Temporal Python SDK for connecting to Temporal Cloud:
 
 ```
-temporalio
+temporalio==1.22.0
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -135,7 +135,7 @@ Connection errors:
 
 Main sync errors:
 - The `update` function wraps all operations in a try-except block
-- Exceptions are caught and re-raised as RuntimeError with descriptive messages
+- Exceptions are caught, logged, and re-raised with descriptive messages
 - Ensures failed syncs are properly reported to Fivetran
 
 The connector follows best practices by catching specific exceptions where possible and providing detailed error messages for troubleshooting.
