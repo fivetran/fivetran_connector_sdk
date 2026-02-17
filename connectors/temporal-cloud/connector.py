@@ -26,6 +26,167 @@ from temporalio.client import Client
 # For handling timestamps with timezone awareness
 from datetime import datetime, timezone
 
+# For implementing retry logic with exponential backoff
+import time
+from functools import wraps
+
+# Constants for checkpoint intervals
+__WORKFLOW_CHECKPOINT_INTERVAL = 100  # Checkpoint every N workflows
+__SCHEDULE_CHECKPOINT_INTERVAL = 50  # Checkpoint every N schedules
+
+# Constants for retry logic
+__MAX_RETRIES = 5  # Maximum number of retry attempts for transient failures
+__MAX_BACKOFF_SECONDS = 60  # Maximum backoff time in seconds
+
+
+def is_transient_error(error: Exception) -> bool:
+    """
+    Determine if an error is transient and should be retried.
+
+    Args:
+        error: Exception that occurred
+
+    Returns:
+        True if error is transient (network, timeout, rate limit), False for permanent errors
+    """
+    error_message = str(error).lower()
+
+    # Permanent errors - fail fast (authentication, authorization, invalid configuration)
+    permanent_error_indicators = [
+        "unauthorized",
+        "authentication",
+        "invalid api key",
+        "forbidden",
+        "access denied",
+        "invalid credentials",
+        "permission denied",
+    ]
+
+    for indicator in permanent_error_indicators:
+        if indicator in error_message:
+            return False
+
+    # Transient errors - should retry (network, timeouts, rate limits, 5xx errors)
+    transient_error_indicators = [
+        "timeout",
+        "connection",
+        "network",
+        "unavailable",
+        "rate limit",
+        "too many requests",
+        "503",
+        "502",
+        "500",
+        "429",
+    ]
+
+    for indicator in transient_error_indicators:
+        if indicator in error_message:
+            return True
+
+    # Default to treating unknown errors as transient to avoid data loss
+    return True
+
+
+def retry_with_exponential_backoff(max_retries: int = __MAX_RETRIES):
+    """
+    Decorator that implements retry logic with exponential backoff for transient failures.
+
+    Retries transient errors (network, rate limits, 5xx) with exponential backoff.
+    Fails fast for permanent errors (authentication, authorization).
+
+    Args:
+        max_retries: Maximum number of retry attempts (default: __MAX_RETRIES)
+
+    Returns:
+        Decorated function with retry logic
+    """
+
+    def decorator(func):
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            last_exception = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+
+                    # Check if error is permanent - fail fast
+                    if not is_transient_error(e):
+                        log.severe(f"Permanent error in {func.__name__}: {str(e)}. Not retrying.")
+                        raise
+
+                    # Last attempt - don't retry
+                    if attempt == max_retries:
+                        log.severe(
+                            f"Max retries ({max_retries}) reached for {func.__name__}: {str(e)}"
+                        )
+                        break
+
+                    # Calculate exponential backoff: 2^attempt, capped at __MAX_BACKOFF_SECONDS
+                    sleep_time = min(__MAX_BACKOFF_SECONDS, 2**attempt)
+
+                    log.warning(
+                        f"Transient error in {func.__name__} (attempt {attempt + 1}/{max_retries}): {str(e)}. "
+                        f"Retrying in {sleep_time} seconds..."
+                    )
+
+                    time.sleep(sleep_time)
+
+            # All retries exhausted
+            raise RuntimeError(
+                f"Failed after {max_retries} retries: {str(last_exception)}"
+            ) from last_exception
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            last_exception = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+
+                    # Check if error is permanent - fail fast
+                    if not is_transient_error(e):
+                        log.severe(f"Permanent error in {func.__name__}: {str(e)}. Not retrying.")
+                        raise
+
+                    # Last attempt - don't retry
+                    if attempt == max_retries:
+                        log.severe(
+                            f"Max retries ({max_retries}) reached for {func.__name__}: {str(e)}"
+                        )
+                        break
+
+                    # Calculate exponential backoff: 2^attempt, capped at __MAX_BACKOFF_SECONDS
+                    sleep_time = min(__MAX_BACKOFF_SECONDS, 2**attempt)
+
+                    log.warning(
+                        f"Transient error in {func.__name__} (attempt {attempt + 1}/{max_retries}): {str(e)}. "
+                        f"Retrying in {sleep_time} seconds..."
+                    )
+
+                    time.sleep(sleep_time)
+
+            # All retries exhausted
+            raise RuntimeError(
+                f"Failed after {max_retries} retries: {str(last_exception)}"
+            ) from last_exception
+
+        # Return appropriate wrapper based on function type
+        import inspect
+
+        if inspect.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+
+    return decorator
+
 
 def validate_configuration(configuration: dict):
     """
@@ -51,10 +212,16 @@ def _extract_config_values(configuration: dict):
     )
 
 
+@retry_with_exponential_backoff(max_retries=__MAX_RETRIES)
 async def _connect_temporal_client(
     temporal_host: str, temporal_namespace: str, temporal_api_key: str
 ):
-    """Create and return a connected Temporal Cloud client."""
+    """
+    Create and return a connected Temporal Cloud client with retry logic.
+
+    Automatically retries transient connection failures with exponential backoff.
+    Fails fast for authentication errors.
+    """
     return await Client.connect(
         temporal_host, namespace=temporal_namespace, api_key=temporal_api_key, tls=True
     )
@@ -121,12 +288,18 @@ def schema(configuration: dict):
     ]
 
 
-async def fetch_temporal_workflows(configuration: dict):
+async def fetch_temporal_workflows(configuration: dict, state: dict):
     """
     Async function to connect to Temporal Cloud and fetch workflow data.
-    """
-    workflows = []
+    Upserts workflows immediately and checkpoints periodically to avoid memory overflow.
 
+    Args:
+        configuration: Dictionary containing Temporal Cloud credentials
+        state: State dictionary for checkpointing
+
+    Returns:
+        Number of workflows processed
+    """
     try:
         # Validate and extract configuration
         validate_configuration(configuration)
@@ -148,13 +321,32 @@ async def fetch_temporal_workflows(configuration: dict):
 
             # Build workflow data using helper function
             workflow_data = _build_workflow_data(workflow)
-            workflows.append(workflow_data)
 
-            # Log progress every 100 workflows
-            if workflow_count % 100 == 0:
-                log.info(f"Processed {workflow_count} workflows")
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="workflow", data=workflow_data)
+
+            # Checkpoint periodically to ensure safe resume and avoid memory overflow
+            # This tells Fivetran it's safe to write to destination at regular intervals
+            if workflow_count % __WORKFLOW_CHECKPOINT_INTERVAL == 0:
+                current_timestamp = datetime.now(timezone.utc).isoformat()
+                checkpoint_state = {
+                    **state,
+                    "last_sync": current_timestamp,
+                    "workflows_synced": workflow_count,
+                }
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                op.checkpoint(checkpoint_state)
+                log.info(f"Processed and checkpointed {workflow_count} workflows")
 
         log.info(f"Successfully fetched {workflow_count} workflows from Temporal Cloud")
+        return workflow_count
 
     except ValueError as ve:
         log.severe(f"Configuration error: {str(ve)}")
@@ -162,8 +354,6 @@ async def fetch_temporal_workflows(configuration: dict):
     except Exception as e:
         log.severe(f"Error connecting to Temporal Cloud: {str(e)}")
         raise
-
-    return workflows
 
 
 def _extract_next_action_times(schedule):
@@ -282,12 +472,18 @@ def _build_schedule_data(schedule):
     }
 
 
-async def fetch_temporal_schedules(configuration: dict):
+async def fetch_temporal_schedules(configuration: dict, state: dict):
     """
     Async function to connect to Temporal Cloud and fetch schedule data.
-    """
-    schedules = []
+    Upserts schedules immediately and checkpoints periodically to avoid memory overflow.
 
+    Args:
+        configuration: Dictionary containing Temporal Cloud credentials
+        state: State dictionary for checkpointing
+
+    Returns:
+        Number of schedules processed
+    """
     try:
         # Validate and extract configuration
         validate_configuration(configuration)
@@ -310,13 +506,32 @@ async def fetch_temporal_schedules(configuration: dict):
 
             # Build schedule data using helper function
             schedule_data = _build_schedule_data(schedule)
-            schedules.append(schedule_data)
 
-            # Log progress every 100 schedules
-            if schedule_count % 100 == 0:
-                log.info(f"Processed {schedule_count} schedules")
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="schedule", data=schedule_data)
+
+            # Checkpoint periodically to ensure safe resume and avoid memory overflow
+            # This tells Fivetran it's safe to write to destination at regular intervals
+            if schedule_count % __SCHEDULE_CHECKPOINT_INTERVAL == 0:
+                current_timestamp = datetime.now(timezone.utc).isoformat()
+                checkpoint_state = {
+                    **state,
+                    "last_sync": current_timestamp,
+                    "schedules_synced": schedule_count,
+                }
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                op.checkpoint(checkpoint_state)
+                log.info(f"Processed and checkpointed {schedule_count} schedules")
 
         log.info(f"Successfully fetched {schedule_count} schedules from Temporal Cloud")
+        return schedule_count
 
     except ValueError as ve:
         log.severe(f"Configuration error: {str(ve)}")
@@ -325,58 +540,77 @@ async def fetch_temporal_schedules(configuration: dict):
         log.severe(f"Error fetching schedules from Temporal Cloud: {str(e)}")
         raise
 
-    return schedules
-
 
 def update(configuration: dict, state: dict):
     """
-    Main sync function to fetch workflow and schedule data from Temporal Cloud and upsert to Fivetran.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
+
+    # Validate the configuration to ensure it contains all required values.
+    validate_configuration(configuration=configuration)
+
     log.info("Starting Temporal sync for workflows and schedules")
-
+    log.warning("Example: Connectors : Temporal Cloud")
     try:
-        # Fetch workflows using async function
+        # Fetch and upsert workflows immediately with periodic checkpointing
+        # The fetch function handles upsert and checkpoint internally to avoid memory overflow
         log.info("Fetching workflows...")
-        workflows = asyncio.run(fetch_temporal_workflows(configuration))
+        workflow_count = asyncio.run(fetch_temporal_workflows(configuration, state))
+        log.info(f"Successfully synced {workflow_count} workflows")
 
-        # Upsert each workflow
-        for workflow in workflows:
-            op.upsert(table="workflow", data=workflow)
-
-        log.info(f"Successfully synced {len(workflows)} workflows")
-
-        # Fetch schedules using async function
+        # Fetch and upsert schedules immediately with periodic checkpointing
+        # The fetch function handles upsert and checkpoint internally to avoid memory overflow
         log.info("Fetching schedules...")
-        schedules = asyncio.run(fetch_temporal_schedules(configuration))
+        schedule_count = asyncio.run(fetch_temporal_schedules(configuration, state))
+        log.info(f"Successfully synced {schedule_count} schedules")
 
-        # Upsert each schedule
-        for schedule in schedules:
-            op.upsert(table="schedule", data=schedule)
-
-        log.info(f"Successfully synced {len(schedules)} schedules")
-
-        # Update state with current sync timestamp
+        # Final checkpoint with sync completion timestamp
         current_timestamp = datetime.now(timezone.utc).isoformat()
-        new_state = {"last_sync": current_timestamp}
+        final_state = {
+            "last_sync": current_timestamp,
+            "workflows_synced": workflow_count,
+            "schedules_synced": schedule_count,
+        }
 
-        log.info(f"Sync completed: {len(workflows)} workflows, {len(schedules)} schedules")
+        log.info(f"Sync completed: {workflow_count} workflows, {schedule_count} schedules")
 
-        # Checkpoint with updated state
-        op.checkpoint(state=new_state)
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+        op.checkpoint(final_state)
 
     except Exception as e:
-        log.severe(f"Error during sync: {str(e)}")
-        raise
+        # In case of an exception, raise a runtime error
+        raise RuntimeError(f"Failed to sync data: {str(e)}")
 
 
-# Connector declaration
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents
-    with open("configuration.json", "r") as f:
+    with open("configuration.json", "r", encoding="utf-8") as f:
         configuration = json.load(f)
 
     # Test the connector locally
-    connector.debug()
+    connector.debug(configuration=configuration)
