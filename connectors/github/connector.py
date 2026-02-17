@@ -130,7 +130,8 @@ def make_github_request(url: str, headers: dict, params: dict = None):
                 log.warning(f"HTTP {response.status_code} error: {response.text}")
                 if attempt == __MAX_RETRIES - 1:
                     response.raise_for_status()
-                time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
+                # Exponential backoff: 2^1=2s, 2^2=4s, 2^3=8s
+                time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
                 continue
 
             return response
@@ -138,10 +139,11 @@ def make_github_request(url: str, headers: dict, params: dict = None):
         except requests.exceptions.RequestException as e:
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(
-                    f"Failed to make request after {__MAX_RETRIES} to url {url} attempts: {str(e)}"
+                    f"Failed to make request to url {url} after {__MAX_RETRIES} attempts: {str(e)}"
                 )
             log.warning(f"Request attempt {attempt + 1} failed: {str(e)}")
-            time.sleep(__RATE_LIMIT_DELAY * (attempt + 1))
+            # Exponential backoff: 2^1=2s, 2^2=4s, 2^3=8s
+            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
 
     raise RuntimeError(f"Failed to make request after {__MAX_RETRIES} attempts")
 
@@ -419,7 +421,7 @@ def generate_jwt(app_id, private_key):
 
 def get_installation_access_token(jwt_token, installation_id, base_url):
     """
-    Exchange JWT token for installation access token.
+    Exchange JWT token for installation access token with retry logic.
     Args:
         jwt_token: JWT token generated for the GitHub App
         installation_id: Installation ID for the organization
@@ -427,16 +429,60 @@ def get_installation_access_token(jwt_token, installation_id, base_url):
     Returns:
         Installation access token
     Raises:
-        HTTPError: If the request fails
+        RuntimeError: If the request fails after retries or on authentication errors
     """
     headers = {"Authorization": f"Bearer {jwt_token}", "Accept": "application/vnd.github.v3+json"}
     url = f"{base_url}/app/installations/{installation_id}/access_tokens"
-    response = requests.post(url, headers=headers)
-    response.raise_for_status()
-    return response.json()["token"]
+
+    for attempt in range(__MAX_RETRIES):
+        try:
+            response = requests.post(url, headers=headers, timeout=30)
+
+            # Fail fast on 4xx authentication errors (invalid credentials)
+            if 400 <= response.status_code < 500:
+                raise RuntimeError(
+                    f"Authentication failed with status {response.status_code}: {response.text}"
+                )
+
+            # Retry on 5xx server errors
+            if response.status_code >= 500:
+                if attempt == __MAX_RETRIES - 1:
+                    raise RuntimeError(
+                        f"Failed to get installation token after {__MAX_RETRIES} attempts. "
+                        f"Last status: {response.status_code} - {response.text}"
+                    )
+                log.warning(
+                    f"Server error {response.status_code}, retrying in {2 ** (attempt + 1)} seconds "
+                    f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+                )
+                time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+                continue
+
+            response.raise_for_status()
+            return response.json()["token"]
+
+        except requests.exceptions.Timeout as e:
+            if attempt == __MAX_RETRIES - 1:
+                raise RuntimeError(
+                    f"Timeout getting installation token after {__MAX_RETRIES} attempts: {str(e)}"
+                )
+            log.warning(f"Request timeout, retrying (attempt {attempt + 1}/{__MAX_RETRIES})")
+            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+
+        except requests.exceptions.RequestException as e:
+            if attempt == __MAX_RETRIES - 1:
+                raise RuntimeError(
+                    f"Failed to get installation token after {__MAX_RETRIES} attempts: {str(e)}"
+                )
+            log.warning(f"Request failed: {str(e)}, retrying (attempt {attempt + 1}/{__MAX_RETRIES})")
+            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+
+    raise RuntimeError(f"Failed to get installation token after {__MAX_RETRIES} attempts")
 
 
-def process_repository_data(repo_full_name, headers, base_url, state, current_sync_time):
+def process_repository_data(
+    repo_full_name, headers, base_url, state, current_sync_time, processed_repos
+):
     """
     Process commits and pull requests for a single repository.
     This function encapsulates the logic for fetching and upserting commits and PRs,
@@ -446,14 +492,14 @@ def process_repository_data(repo_full_name, headers, base_url, state, current_sy
         repo_full_name: Full repository name (owner/repo)
         headers: Request headers with authentication
         base_url: Base URL for GitHub API
-        state: State dictionary containing sync timestamps and processed repositories
+        state: State dictionary containing sync timestamps
         current_sync_time: Current sync timestamp
+        processed_repos: Dictionary tracking per-repository sync state (mutated in place)
 
     Returns:
         Tuple of (commit_count, pr_count) - number of commits and PRs processed
     """
     # Extract state variables
-    processed_repos = state.get("processed_repos", {})
     last_commit_sync = state.get("last_commit_sync")
     last_pr_sync = state.get("last_pr_sync")
 
@@ -573,16 +619,16 @@ def update(configuration: dict, state: dict):
 
                 # Process commits and pull requests for this repository using helper function
                 commit_count, pr_count = process_repository_data(
-                    repo_full_name, headers, base_url, state, current_sync_time
+                    repo_full_name, headers, base_url, state, current_sync_time, processed_repos
                 )
                 record_count += commit_count + pr_count
 
-                # Checkpoint after each repository to enable resumption and avoid memory issues.
-                # Save the progress by checkpointing the state. This is important for ensuring
-                # that the sync process can resume from the correct position in case of next sync
-                # or interruptions. Learn more about how and where to checkpoint by reading our
-                # best practices documentation (https://fivetran.com/docs/connectors/connector-sdk/
-                # best-practices#largedatasetrecommendation).
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
                 op.checkpoint(
                     state={
                         "last_repo_sync": current_sync_time,
@@ -606,8 +652,10 @@ def update(configuration: dict, state: dict):
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
         # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(final_state)
 
         log.info(f"Sync completed successfully. Total records processed: {record_count}")

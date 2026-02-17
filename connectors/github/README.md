@@ -37,7 +37,7 @@ The configuration file contains the GitHub App credentials required to authentic
 }
 ```
 
-**Note**: For GitHub Enterprise installations, add a `"base-url"` field with your enterprise instance URL (e.g., `"base-url": "https://github.your-company.com/api/v3"`).
+For GitHub Enterprise installations, add a `"base-url"` field with your enterprise instance URL (e.g., `"base-url": "https://github.your-company.com/api/v3"`).
 
 Configuration parameters:
 - `app-id` (required): Your GitHub App ID (found in **GitHub App settings**).
@@ -45,7 +45,7 @@ Configuration parameters:
 - `organization` (required): GitHub organization name to sync (can be comma-separated for multiple orgs).
 - `installation-id` (required): Installation ID for the GitHub App on your organization.
 
-**Important**: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 This connector requires the following Python packages:
@@ -57,49 +57,45 @@ cryptography==36.0.1
 
 Explanation: PyJWT is used for GitHub App JWT authentication. The cryptography package is required by PyJWT for RSA algorithm support (RS256), which is used to sign JWTs with the GitHub App's private key.
 
-**Note**: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
-### GitHub App setup
-This connector uses GitHub App authentication, which is the recommended approach for production integrations.
+### GitHub app setup
+This connector uses GitHub App authentication, which is the recommended approach for production integrations. Follow these steps to set up a GitHub App:
 
-#### Step 1: Create a GitHub App.
-1. Go to your organization settings: `https://github.com/organizations/{your-org}/settings/apps`.
-2. Click **New GitHub App**.
-3. Fill in the required fields:
-    - **GitHub App name**: Choose a descriptive name (e.g., "Fivetran Data Sync").
-    - **Homepage URL**: Your organization's website or `https://fivetran.com`.
-    - **Webhook**: Uncheck "Active" (not needed for this connector).
+1. Create a GitHub App
+   - Go to your organization settings: `https://github.com/organizations/{your-org}/settings/apps`
+   - Click **New GitHub App**
+   - Fill in **GitHub App name**: Choose a descriptive name (e.g., "Fivetran Data Sync")
+   - Fill in **Homepage URL**: Your organization's website or `https://fivetran.com`
+   - Uncheck **Webhook** "Active" (not needed for this connector)
 
-#### Step 2: Set permissions.
-Under **Repository permissions**, set:
-- **Contents**: Read-only (to access repository data).
-- **Metadata**: Read-only (automatically required).
-- **Pull requests**: Read-only (to access PR data).
+2. Set permissions
+   - Under **Repository permissions**, set **Contents** to Read-only (to access repository data)
+   - Set **Metadata** to Read-only (automatically required)
+   - Set **Pull requests** to Read-only (to access PR data)
 
-#### Step 3: Generate private key.
-1. Scroll to **Private keys** section.
-2. Click **Generate a private key**.
-3. Save the downloaded `.pem` file securely.
-4. Copy the entire contents (including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`).
+3. Generate private key
+   - Scroll to **Private keys** section
+   - Click **Generate a private key**
+   - Save the downloaded `.pem` file securely
+   - Copy the entire contents (including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`)
 
-#### Step 4: Note your App ID.
-- At the top of the GitHub App settings page, note the **App ID**.
+4. Note your App ID
+   - At the top of the GitHub App settings page, note the **App ID**
 
-#### Step 5: Install the app.
-1. Go to **Install App** in the left sidebar.
-2. Click **Install** next to your organization.
-3. Choose whether to give access to all repositories or select specific ones.
-4. After installation, note the **Installation ID** from the URL:
-    - URL format: `https://github.com/organizations/{org}/settings/installations/{installation-id}`.
+5. Install the app
+   - Go to **Install App** in the left sidebar
+   - Click **Install** next to your organization
+   - Choose whether to give access to all repositories or select specific ones
+   - After installation, note the **Installation ID** from the URL format: `https://github.com/organizations/{org}/settings/installations/{installation-id}`
 
-#### Step 6: Configure the connector.
-Add your credentials to `configuration.json`:
-- `app-id`: The **App ID** from Step 4.
-- `private-key`: The full private key content from Step 3.
-- `organization`: Your GitHub organization name.
-- `installation-id`: The **Installation ID** from Step 5.
+6. Configure the connector
+   - Add your `app-id` (the **App ID** from step 4) to `configuration.json`
+   - Add your `private-key` (the full private key content from step 3) to `configuration.json`
+   - Add your `organization` (your GitHub organization name) to `configuration.json`
+   - Add your `installation-id` (the **Installation ID** from step 5) to `configuration.json`
 
 ### Authentication flow
 The connector uses a two-step authentication process implemented in `generate_jwt()` and `get_installation_access_token()`:
@@ -183,10 +179,10 @@ The connector implements comprehensive error handling with retry logic in `make_
 - 409 conflict: Empty repository or git conflict - skips repository.
 
 ## Tables created
-The connector creates 3 tables in your destination:
+The connector creates 3 tables in your destination. Column types are inferred from the data returned by the GitHub API and may vary based on the actual values received.
 
 ### repositories
-Contains repository metadata and statistics.
+Contains repository metadata and statistics. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -211,7 +207,7 @@ Contains repository metadata and statistics.
 | `disabled` | BOOLEAN | Whether the repository is disabled |
 
 ### commits
-Contains commit history for all repositories.
+Contains commit history for all repositories. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -229,7 +225,7 @@ Contains commit history for all repositories.
 | `html_url` | STRING | Commit web URL |
 
 ### pull_requests
-Contains pull request data including both open and closed PRs.
+Contains pull request data including both open and closed PRs. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -255,13 +251,16 @@ Contains pull request data including both open and closed PRs.
 | `draft` | BOOLEAN | Whether the PR is a draft |
 | `merged` | BOOLEAN | Whether the PR was merged |
 
-## GitHub API rate limits
+## Additional considerations
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
+
+### GitHub API rate limits
 - Authenticated requests: 5,000 requests per hour per installation.
 - Rate limit headers: Connector monitors `X-RateLimit-Remaining` and `X-RateLimit-Reset`.
 - Automatic handling: Waits until rate limit resets when limit is hit.
 - Delay between requests: 1 second delay to avoid hitting limits unnecessarily.
 
-## Running the connector
+### Running the connector
 To run the connector locally for testing:
 
 ```bash
@@ -270,16 +269,16 @@ fivetran debug --configuration configuration.json
 
 For production deployment, follow the [Fivetran Connector SDK deployment guide](https://fivetran.com/docs/connectors/connector-sdk/deployment).
 
-## Example use cases
+### Example use cases
 - Development analytics: Track commit frequency, PR velocity, and code review metrics.
 - Repository management: Monitor repository growth, stars, forks, and activity.
 - Team productivity: Analyze contributor activity, PR turnaround time, and collaboration patterns.
 - Compliance and security: Audit code changes, track repository settings, and monitor access.
 - Cross-repository insights: Compare activity across multiple repositories in your organization.
 
-## Troubleshooting
+### Troubleshooting
 
-### Common issues
+#### Common issues
 
 404 error on installation token
 - Verify your **App ID** matches the GitHub App.
@@ -299,7 +298,7 @@ Rate limit errors
 - The connector automatically handles rate limits.
 - For large organizations, consider increasing the sync frequency.
 
-## Related examples
+### Related examples
 
 GitHub connectors:
 - [github_traffic](../github_traffic/) - This example shows how to sync GitHub repository traffic metrics (views, clones, referrers, and popular content paths) using the GitHub REST API. It demonstrates how to work with GitHub's traffic analytics endpoints, handle limited historical data (14 days), and use Personal Access Token authentication.
@@ -307,11 +306,8 @@ GitHub connectors:
 Authentication patterns:
 - [Certificate Authentication](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches: using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
 
-## Resources
+### Resources
 - [GitHub Apps Documentation](https://docs.github.com/en/apps)
 - [GitHub REST API Documentation](https://docs.github.com/en/rest)
 - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connectors/connector-sdk)
 - [GitHub API Rate Limits](https://docs.github.com/en/rest/overview/rate-limits-for-the-rest-api)
-
-## Additional considerations
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
