@@ -1,0 +1,19 @@
+{
+  "organization_id": "",
+  "pixel_id": "",
+  "client_id": "",
+  "client_secret": "",
+  "access_token": "",
+  "refresh_token": "",
+  "request_timeout_seconds": "30",
+  "retry_attempts": "3",
+  "retry_delay_seconds": "5",
+  "stats_granularity": "DAY",
+  "stats_breakdown": "ad",
+  "swipe_up_attribution_window": "7_DAY",
+  "view_attribution_window": "1_DAY",
+  "initial_sync_days": "732",
+  "incremental_lookback_start": "2026-02-01",
+  "incremental_lookback_end": "2026-02-15",
+  "ad_account_ids_filter": ""
+}
