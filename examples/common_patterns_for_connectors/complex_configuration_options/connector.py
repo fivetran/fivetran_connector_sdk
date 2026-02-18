@@ -23,7 +23,6 @@ from fivetran_connector_sdk import Operations as op
 # Import constant from a separate file.
 from config import API_CONFIGURATIONS
 
-
 # You can define constants which can be used across your connector code
 # These are useful for defining static values that do not change across syncs and are not sensitive in nature.
 # Do not store secrets here. Always use configuration.json for sensitive values such as API keys or credentials.
