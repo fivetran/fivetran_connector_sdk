@@ -135,7 +135,7 @@ The connector supports incremental synchronization to minimize API calls and pro
 
 Repositories:
 - Sorts by `updated` timestamp in descending order (note: `GET /orgs/{org}/repos` does not support a `since` query parameter).
-- Filters client-side: stops paginating as soon as a repository's `updated_at` is older than the last sync timestamp.
+- Filters client-side - stops paginating as soon as a repository's `updated_at` is older than the last sync timestamp.
 
 Commits:
 - Uses the `since` query parameter supported by `GET /repos/{owner}/{repo}/commits` to fetch only commits after last sync time.
@@ -165,9 +165,9 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 ```
 
 State tracking:
-- Global timestamps: Track overall sync progress for repositories, commits, and PRs.
-- Per-repository timestamps: Track individual repository sync progress.
-- Checkpointing: Saves state every 1000 records mid-repository (commits and PRs) and once after all organizations complete, ensuring safe resumption without data loss.
+- Global timestamps - Track overall sync progress for repositories, commits, and PRs.
+- Per-repository timestamps - Track individual repository sync progress.
+- Checkpointing - Saves state every 1000 records mid-repository (commits and PRs) and once after all organizations complete, ensuring safe resumption without data loss.
 
 ## Error handling
 
@@ -175,23 +175,23 @@ The connector implements comprehensive error handling with retry logic in `make_
 
 ### Retry strategy
 
-- Maximum retries: 3 attempts for failed requests.
-- Exponential backoff: Waits 2^attempt seconds between retries (2s, 4s, 8s).
-- Rate limit handling: Automatically waits until rate limit resets (checks `X-RateLimit-Reset` header).
-- 409 conflict: Skips repositories that return 409 errors and continues processing.
+- Maximum retries - 3 attempts for failed requests.
+- Exponential backoff - Waits 2^attempt seconds between retries (2s, 4s, 8s).
+- Rate limit handling - Automatically waits until rate limit resets (checks `X-RateLimit-Reset` header).
+- 409 conflict - Skips repositories that return 409 errors and continues processing.
 
 ### Error categories
 
-- Configuration errors: Validated at sync start with clear error messages in `validate_configuration()`.
-- Authentication errors: JWT generation and token exchange failures.
-- HTTP errors: Handled based on status code (4xx vs 5xx).
-- Network errors: Retried with exponential backoff.
+- Configuration errors - Validated at sync start with clear error messages in `validate_configuration()`.
+- Authentication errors - JWT generation and token exchange failures.
+- HTTP errors - Handled based on status code (4xx vs 5xx).
+- Network errors - Retried with exponential backoff.
 
 ### Special handling
 
-- 404 errors: Repository not found or no access - skips and continues.
-- 403 rate limit: Waits until rate limit resets (minimum 60 seconds).
-- 409 conflict: Empty repository or git conflict - skips repository.
+- 404 errors - Repository not found or no access, skips and continues.
+- 403 rate limit - Waits until rate limit resets (minimum 60 seconds).
+- 409 conflict - Empty repository or git conflict, skips repository.
 
 ## Tables created
 
@@ -276,10 +276,10 @@ The examples provided are intended to help you effectively use Fivetran's Connec
 
 ### GitHub API rate limits
 
-- Authenticated requests: 5,000 requests per hour per installation.
-- Rate limit header: Connector checks `X-RateLimit-Reset` to determine how long to wait when a rate limit is hit.
-- Automatic handling: Waits until rate limit resets when limit is hit.
-- Delay between requests: 2 second delay to avoid hitting limits unnecessarily.
+- Authenticated requests - 5,000 requests per hour per installation.
+- Rate limit header - Connector checks `X-RateLimit-Reset` to determine how long to wait when a rate limit is hit.
+- Automatic handling - Waits until rate limit resets when limit is hit.
+- Delay between requests - 2 second delay to avoid hitting limits unnecessarily.
 
 ### Running the connector
 
@@ -293,11 +293,11 @@ For production deployment, follow the [Fivetran Connector SDK deployment guide](
 
 ### Example use cases
 
-- Development analytics: Track commit frequency, PR velocity, and code review metrics.
-- Repository management: Monitor repository growth, stars, forks, and activity.
-- Team productivity: Analyze contributor activity, PR turnaround time, and collaboration patterns.
-- Compliance and security: Audit code changes, track repository settings, and monitor access.
-- Cross-repository insights: Compare activity across multiple repositories in your organization.
+- Development analytics - Track commit frequency, PR velocity, and code review metrics.
+- Repository management - Monitor repository growth, stars, forks, and activity.
+- Team productivity - Analyze contributor activity, PR turnaround time, and collaboration patterns.
+- Compliance and security - Audit code changes, track repository settings, and monitor access.
+- Cross-repository insights - Compare activity across multiple repositories in your organization.
 
 ### Troubleshooting
 
