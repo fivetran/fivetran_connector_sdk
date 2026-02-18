@@ -2,10 +2,8 @@
 This connector demonstrates how to fetch data from GitHub REST API and upsert it into destination.
 Fetches repositories, commits, and pull requests with proper pagination and incremental sync support.
 
-See the Technical Reference documentation
-(https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-and the Best Practices documentation
-(https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
 # Import required classes from fivetran_connector_sdk
@@ -15,14 +13,14 @@ from fivetran_connector_sdk import Connector
 # For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Import required libraries for GitHub API integration
 # For making HTTP requests to GitHub API
 import requests
 
-# For handling JSON data
+# For reading configuration from a JSON file
 import json
 
 # For handling rate limiting delays
@@ -36,9 +34,10 @@ import jwt
 
 # Constants for API configuration
 __GITHUB_API_BASE_URL = "https://api.github.com"  # Default for GitHub.com
-__RATE_LIMIT_DELAY = 1  # Delay in seconds between requests to respect rate limits
+__RATE_LIMIT_DELAY = 2  # Base delay in seconds; used as base for exponential backoff (2s, 4s, 8s)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __ITEMS_PER_PAGE = 100  # GitHub API maximum items per page
+__CHECKPOINT_INTERVAL = 1000  # Checkpoint every N records within a repository
 
 
 def validate_configuration(configuration: dict):
@@ -52,23 +51,23 @@ def validate_configuration(configuration: dict):
         ValueError: if any required configuration parameter is missing or invalid.
     """
     # Validate required configuration parameters exist
-    required_configs = ["app-id", "private-key", "organization", "installation-id"]
+    required_configs = ["app_id", "private_key", "organization", "installation_id"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    # Validate app-id
-    app_id = configuration.get("app-id")
+    # Validate app_id
+    app_id = configuration.get("app_id")
     if not app_id or (isinstance(app_id, str) and not app_id.strip()):
-        raise ValueError("app-id must be a non-empty string or number")
+        raise ValueError("app_id must be a non-empty string or number")
 
-    # Validate private-key format
-    private_key = configuration.get("private-key")
+    # Validate private_key format
+    private_key = configuration.get("private_key")
     if not private_key or not isinstance(private_key, str):
-        raise ValueError("private-key must be a non-empty string")
+        raise ValueError("private_key must be a non-empty string")
     if "BEGIN RSA PRIVATE KEY" not in private_key and "BEGIN PRIVATE KEY" not in private_key:
         raise ValueError(
-            "private-key must contain valid RSA key markers "
+            "private_key must contain valid RSA key markers "
             "(-----BEGIN RSA PRIVATE KEY----- or -----BEGIN PRIVATE KEY-----)"
         )
 
@@ -77,22 +76,22 @@ def validate_configuration(configuration: dict):
     if not organization or not isinstance(organization, str) or not organization.strip():
         raise ValueError("organization must be a non-empty string")
 
-    # Validate installation-id
-    installation_id = configuration.get("installation-id")
+    # Validate installation_id
+    installation_id = configuration.get("installation_id")
     if not installation_id or (isinstance(installation_id, str) and not installation_id.strip()):
-        raise ValueError("installation-id must be a non-empty string or number")
+        raise ValueError("installation_id must be a non-empty string or number")
 
     # Set default base_url if not provided (for GitHub.com)
-    if "base-url" not in configuration:
-        configuration["base-url"] = __GITHUB_API_BASE_URL
+    if "base_url" not in configuration:
+        configuration["base_url"] = __GITHUB_API_BASE_URL
         log.info(f"Using default GitHub.com API: {__GITHUB_API_BASE_URL}")
     else:
-        base_url = configuration.get("base-url")
+        base_url = configuration.get("base_url")
         if not base_url or not isinstance(base_url, str) or not base_url.strip():
-            raise ValueError("base-url must be a non-empty string")
+            raise ValueError("base_url must be a non-empty string")
         if not base_url.startswith("http://") and not base_url.startswith("https://"):
-            raise ValueError("base-url must be a valid URL starting with http:// or https://")
-        log.info(f"Using custom GitHub Enterprise API: {configuration['base-url']}")
+            raise ValueError("base_url must be a valid URL starting with http:// or https://")
+        log.info(f"Using custom GitHub Enterprise API: {configuration['base_url']}")
 
 
 def make_github_request(url: str, headers: dict, params: dict = None):
@@ -121,12 +120,20 @@ def make_github_request(url: str, headers: dict, params: dict = None):
                 continue
 
             # Handle other HTTP errors
+            elif response.status_code == 404:
+                log.warning(
+                    f"HTTP 404 Not Found - skipping resource (not found or no access): {url}"
+                )
+                return None
             elif response.status_code == 409:
                 log.warning(
                     "HTTP 409 Conflict - skipping repository (likely empty or has git conflict)"
                 )
                 return None
-            elif response.status_code >= 400:
+            elif 400 <= response.status_code < 500:
+                # Client errors are not retryable; fail fast
+                response.raise_for_status()
+            elif response.status_code >= 500:
                 log.warning(f"HTTP {response.status_code} error: {response.text}")
                 if attempt == __MAX_RETRIES - 1:
                     response.raise_for_status()
@@ -183,22 +190,26 @@ def get_repositories(headers: dict, organization: str, base_url: str, since: str
         Repository data dictionaries
     """
     url = f"{base_url}/orgs/{organization}/repos"
+    # incremental filtering is applied client-side on updated_at below since GET /orgs/{org}/repos does not support a `since` query parameter.
     params = {"per_page": __ITEMS_PER_PAGE, "sort": "updated", "direction": "desc"}
-
-    if since:
-        params["since"] = since
 
     page_count = 0
 
     while url:
         log.info(f"Fetching repositories page {page_count + 1}")
         response = make_github_request(url, headers, params if page_count == 0 else None)
+        if response is None:
+            log.warning("No response received when fetching repositories; stopping pagination.")
+            break
         repositories = response.json()
 
         if not repositories:
             break
 
         for repo in repositories:
+            # Results are sorted by updated descending; stop as soon as we pass the threshold.
+            if since and repo.get("updated_at", "") < since:
+                return
             yield {
                 "id": repo.get("id"),
                 "name": repo.get("name"),
@@ -322,6 +333,11 @@ def get_pull_requests(headers: dict, repo_full_name: str, base_url: str, since: 
         while url:
             log.info(f"Fetching {state} pull requests for {repo_full_name}, page {page_count + 1}")
             response = make_github_request(url, headers, params if page_count == 0 else None)
+            if response is None:
+                log.warning(
+                    "No response received when fetching pull requests; stopping pagination."
+                )
+                break
             pull_requests = response.json()
 
             if not pull_requests:
@@ -386,7 +402,7 @@ def format_pull_request(pr: dict, repo_full_name: str):
         "base_sha": base_data.get("sha"),
         "html_url": pr.get("html_url"),
         "draft": pr.get("draft", False),
-        "merged": pr.get("merged", False),
+        "merged": bool(pr.get("merged_at")),
     }
 
 
@@ -519,6 +535,22 @@ def process_repository_data(
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="commits", data=commit)
         commit_count += 1
+        if commit_count % __CHECKPOINT_INTERVAL == 0:
+            log.info(f"Checkpointing after {commit_count} commits for {repo_full_name}")
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(
+                state={
+                    "last_repo_sync": state.get("last_repo_sync"),
+                    "last_commit_sync": state.get("last_commit_sync"),
+                    "last_pr_sync": state.get("last_pr_sync"),
+                    "processed_repos": processed_repos,
+                }
+            )
 
     log.info(f"Fetched {commit_count} commits for {repo_full_name}")
 
@@ -531,6 +563,22 @@ def process_repository_data(
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="pull_requests", data=pr)
         pr_count += 1
+        if pr_count % __CHECKPOINT_INTERVAL == 0:
+            log.info(f"Checkpointing after {pr_count} pull requests for {repo_full_name}")
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(
+                state={
+                    "last_repo_sync": state.get("last_repo_sync"),
+                    "last_commit_sync": state.get("last_commit_sync"),
+                    "last_pr_sync": state.get("last_pr_sync"),
+                    "processed_repos": processed_repos,
+                }
+            )
 
     log.info(f"Fetched {pr_count} pull requests for {repo_full_name}")
 
@@ -547,7 +595,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -568,17 +616,18 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: Source Examples - GitHub")
     log.info("Starting GitHub API Connector sync")
 
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration=configuration)
 
     # Extract configuration parameters
-    pkey = configuration.get("private-key")
+    pkey = configuration.get("private_key")
     organizations = configuration.get("organization")
-    app_id = configuration.get("app-id")
-    installation_id = configuration.get("installation-id")
-    base_url = configuration.get("base-url")
+    app_id = configuration.get("app_id")
+    installation_id = configuration.get("installation_id")
+    base_url = configuration.get("base_url")
 
     jwt_token = generate_jwt(app_id, pkey)
 
@@ -601,7 +650,7 @@ def update(configuration: dict, state: dict):
         record_count = 0
         repo_count = 0
 
-        for organization in organizations.split(","):
+        for organization in (org.strip() for org in organizations.split(",") if org.strip()):
             log.info(f"Starting sync for organization: {organization}")
             log.info("Fetching and processing repositories...")
             for repo in get_repositories(headers, organization, base_url, since=last_repo_sync):
@@ -625,32 +674,9 @@ def update(configuration: dict, state: dict):
                 )
                 record_count += commit_count + pr_count
 
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-                op.checkpoint(
-                    state={
-                        "last_repo_sync": current_sync_time,
-                        "last_commit_sync": current_sync_time,
-                        "last_pr_sync": current_sync_time,
-                        "processed_repos": processed_repos,
-                    }
-                )
-
             log.info(
                 f"Completed sync for organization: {organization}. Processed {repo_count} repositories."
             )
-
-            # Final state update with the current sync time for the next run
-            final_state = {
-                "last_repo_sync": current_sync_time,
-                "last_commit_sync": current_sync_time,
-                "last_pr_sync": current_sync_time,
-                "processed_repos": processed_repos,
-            }
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
@@ -658,7 +684,14 @@ def update(configuration: dict, state: dict):
         # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint(final_state)
+        op.checkpoint(
+            state={
+                "last_repo_sync": current_sync_time,
+                "last_commit_sync": current_sync_time,
+                "last_pr_sync": current_sync_time,
+                "processed_repos": processed_repos,
+            }
+        )
 
         log.info(f"Sync completed successfully. Total records processed: {record_count}")
 

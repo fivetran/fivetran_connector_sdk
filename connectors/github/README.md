@@ -1,21 +1,25 @@
 # GitHub Connector Example
 
 ## Connector overview
+
 This connector integrates with the GitHub REST API to synchronize repository data, commits, and pull requests into your destination. It supports both GitHub.com and GitHub Enterprise (on-premises). The connector uses GitHub App authentication for secure access and supports incremental sync to efficiently fetch only new or updated data. It handles pagination automatically and implements robust error handling with retry logic for production use.
 
 GitHub is a code hosting platform for version control and collaboration. This connector provides comprehensive insights into your organization's repositories, development activity, and code review processes.
 
 ## Requirements
+
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
+
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
+
 - GitHub App authentication: Uses JWT-based authentication for secure, long-term access.
 - Incremental sync: Fetches only new or updated data since the last sync using timestamp filtering.
 - Multi-organization support: Can sync data from multiple GitHub organizations in a single run.
@@ -23,31 +27,33 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - State management: Tracks sync progress per repository for reliable resumption after interruptions.
 - Rate limiting: Implements delays between requests and handles rate limit errors gracefully.
 - Retry logic: Automatic retry with exponential backoff for transient errors.
-- Checkpointing: Saves progress after each repository to enable safe resumption.
+- Checkpointing: Saves progress every 1000 records during large repository syncs and once after all organizations are fully processed.
 
 ## Configuration file
+
 The configuration file contains the GitHub App credentials required to authenticate with the GitHub API.
 
 ```json
 {
-  "app-id": "<YOUR_GITHUB_APP_ID>",
-  "private-key": "<YOUR_GITHUB_APP_PRIVATE_KEY>",
+  "app_id": "<YOUR_GITHUB_APP_ID>",
+  "private_key": "<YOUR_GITHUB_APP_PRIVATE_KEY>",
   "organization": "<YOUR_ORGANIZATION_NAME>",
-  "installation-id": "<YOUR_INSTALLATION_ID>"
+  "installation_id": "<YOUR_INSTALLATION_ID>"
 }
 ```
 
-For GitHub Enterprise installations, add a `"base-url"` field with your enterprise instance URL (e.g., `"base-url": "https://github.your-company.com/api/v3"`).
+For GitHub Enterprise installations, add a `"base_url"` field with your enterprise instance URL (e.g., `"base_url": "https://github.your-company.com/api/v3"`).
 
 Configuration parameters:
-- `app-id` (required): Your GitHub App ID (found in **GitHub App settings**).
-- `private-key` (required): RSA private key for your GitHub App (PEM format with newlines).
+- `app_id` (required): Your GitHub App ID (found in **GitHub App settings**).
+- `private_key` (required): RSA private key for your GitHub App (PEM format with newlines).
 - `organization` (required): GitHub organization name to sync (can be comma-separated for multiple orgs).
-- `installation-id` (required): Installation ID for the GitHub App on your organization.
+- `installation_id` (required): Installation ID for the GitHub App on your organization.
 
 Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
+
 This connector requires the following Python packages:
 
 ```
@@ -62,6 +68,7 @@ The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fi
 ## Authentication
 
 ### GitHub app setup
+
 This connector uses GitHub App authentication, which is the recommended approach for production integrations. Follow these steps to set up a GitHub App:
 
 1. Create a GitHub App
@@ -89,28 +96,30 @@ This connector uses GitHub App authentication, which is the recommended approach
    - Go to **Install App** in the left sidebar
    - Click **Install** next to your organization
    - Choose whether to give access to all repositories or select specific ones
-   - After installation, note the **Installation ID** from the URL format: `https://github.com/organizations/{org}/settings/installations/{installation-id}`
+   - After installation, note the **Installation ID** from the URL format: `https://github.com/organizations/{org}/settings/installations/{installation_id}`
 
 6. Configure the connector
-   - Add your `app-id` (the **App ID** from step 4) to `configuration.json`
-   - Add your `private-key` (the full private key content from step 3) to `configuration.json`
+   - Add your `app_id` (the **App ID** from step 4) to `configuration.json`
+   - Add your `private_key` (the full private key content from step 3) to `configuration.json`
    - Add your `organization` (your GitHub organization name) to `configuration.json`
-   - Add your `installation-id` (the **Installation ID** from step 5) to `configuration.json`
+   - Add your `installation_id` (the **Installation ID** from step 5) to `configuration.json`
 
 ### Authentication flow
+
 The connector uses a two-step authentication process implemented in `generate_jwt()` and `get_installation_access_token()`:
 1. Generate JWT: Creates a JSON Web Token signed with your private key (valid for 10 minutes).
 2. Get installation token: Exchanges the JWT for an installation access token (valid for 1 hour).
 3. API requests: Uses the installation token for all GitHub API requests.
 
 ## Pagination
+
 The connector implements cursor-based pagination using GitHub's Link header.
 
 Pagination details:
 - Page size: 100 records per request (GitHub's maximum).
 - Link header parsing: Automatically extracts "next" page URLs from response headers using `parse_pagination_links()`.
 - Memory efficient: Uses generator functions to process data without loading everything into memory.
-- Rate limiting: Adds 1-second delay between page requests to respect GitHub's rate limits.
+- Rate limiting: Adds 2-second delay between page requests to respect GitHub's rate limits.
 
 Example pagination flow:
 1. Request first page: `GET /orgs/{org}/repos?per_page=100`.
@@ -121,14 +130,15 @@ Example pagination flow:
 ## Data handling
 
 ### Incremental sync
+
 The connector supports incremental synchronization to minimize API calls and processing time. Implemented in `get_repositories()`, `get_commits()`, and `get_pull_requests()` functions:
 
 Repositories:
-- Uses `since` parameter to fetch only repositories updated after last sync.
-- Sorts by `updated` timestamp in descending order.
+- Sorts by `updated` timestamp in descending order (note: `GET /orgs/{org}/repos` does not support a `since` query parameter).
+- Filters client-side: stops paginating as soon as a repository's `updated_at` is older than the last sync timestamp.
 
 Commits:
-- Uses `since` parameter to fetch commits after last sync time.
+- Uses the `since` query parameter supported by `GET /repos/{owner}/{repo}/commits` to fetch only commits after last sync time.
 - Tracked per repository in state.
 
 Pull requests:
@@ -137,6 +147,7 @@ Pull requests:
 - Stops fetching when encountering PRs older than last sync.
 
 ### State management
+
 The connector maintains detailed state for resumable syncs, managed in the `update()` function with `process_repository_data()` helper:
 
 ```json
@@ -156,32 +167,38 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 State tracking:
 - Global timestamps: Track overall sync progress for repositories, commits, and PRs.
 - Per-repository timestamps: Track individual repository sync progress.
-- Checkpointing: Saves state after each repository to enable resumption.
+- Checkpointing: Saves state every 1000 records mid-repository (commits and PRs) and once after all organizations complete, ensuring safe resumption without data loss.
 
 ## Error handling
+
 The connector implements comprehensive error handling with retry logic in `make_github_request()`.
 
 ### Retry strategy
+
 - Maximum retries: 3 attempts for failed requests.
 - Exponential backoff: Waits 2^attempt seconds between retries (2s, 4s, 8s).
 - Rate limit handling: Automatically waits until rate limit resets (checks `X-RateLimit-Reset` header).
 - 409 conflict: Skips repositories that return 409 errors and continues processing.
 
 ### Error categories
+
 - Configuration errors: Validated at sync start with clear error messages in `validate_configuration()`.
 - Authentication errors: JWT generation and token exchange failures.
 - HTTP errors: Handled based on status code (4xx vs 5xx).
 - Network errors: Retried with exponential backoff.
 
 ### Special handling
+
 - 404 errors: Repository not found or no access - skips and continues.
 - 403 rate limit: Waits until rate limit resets (minimum 60 seconds).
 - 409 conflict: Empty repository or git conflict - skips repository.
 
 ## Tables created
+
 The connector creates 3 tables in your destination. Column types are inferred from the data returned by the GitHub API and may vary based on the actual values received.
 
 ### repositories
+
 Contains repository metadata and statistics. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
@@ -207,6 +224,7 @@ Contains repository metadata and statistics. Column types shown below are typica
 | `disabled` | BOOLEAN | Whether the repository is disabled |
 
 ### commits
+
 Contains commit history for all repositories. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
@@ -225,6 +243,7 @@ Contains commit history for all repositories. Column types shown below are typic
 | `html_url` | STRING | Commit web URL |
 
 ### pull_requests
+
 Contains pull request data including both open and closed PRs. Column types shown below are typical but may be inferred differently based on the data.
 
 | Column | Type | Description |
@@ -252,15 +271,18 @@ Contains pull request data including both open and closed PRs. Column types show
 | `merged` | BOOLEAN | Whether the PR was merged |
 
 ## Additional considerations
+
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
 ### GitHub API rate limits
+
 - Authenticated requests: 5,000 requests per hour per installation.
-- Rate limit headers: Connector monitors `X-RateLimit-Remaining` and `X-RateLimit-Reset`.
+- Rate limit header: Connector checks `X-RateLimit-Reset` to determine how long to wait when a rate limit is hit.
 - Automatic handling: Waits until rate limit resets when limit is hit.
-- Delay between requests: 1 second delay to avoid hitting limits unnecessarily.
+- Delay between requests: 2 second delay to avoid hitting limits unnecessarily.
 
 ### Running the connector
+
 To run the connector locally for testing:
 
 ```bash
@@ -270,6 +292,7 @@ fivetran debug --configuration configuration.json
 For production deployment, follow the [Fivetran Connector SDK deployment guide](https://fivetran.com/docs/connectors/connector-sdk/deployment).
 
 ### Example use cases
+
 - Development analytics: Track commit frequency, PR velocity, and code review metrics.
 - Repository management: Monitor repository growth, stars, forks, and activity.
 - Team productivity: Analyze contributor activity, PR turnaround time, and collaboration patterns.
@@ -307,6 +330,7 @@ Authentication patterns:
 - [Certificate Authentication](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches: using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
 
 ### Resources
+
 - [GitHub Apps Documentation](https://docs.github.com/en/apps)
 - [GitHub REST API Documentation](https://docs.github.com/en/rest)
 - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connectors/connector-sdk)
