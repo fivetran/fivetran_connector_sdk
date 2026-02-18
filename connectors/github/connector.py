@@ -498,9 +498,7 @@ def get_installation_access_token(jwt_token, installation_id, base_url):
     raise RuntimeError(f"Failed to get installation token after {__MAX_RETRIES} attempts")
 
 
-def process_repository_data(
-    repo_full_name, headers, base_url, state, processed_repos
-):
+def process_repository_data(repo_full_name, headers, base_url, state, processed_repos):
     """
     Process commits and pull requests for a single repository.
     This function encapsulates the logic for fetching and upserting commits and PRs,
@@ -720,8 +718,11 @@ def update(configuration: dict, state: dict):
 
         log.info(f"Sync completed successfully. Total records processed: {record_count}")
 
-    except (requests.exceptions.RequestException, RuntimeError, ValueError) as e:
-        # In case of an exception, raise a runtime error
+    except RuntimeError:
+        # Re-raise RuntimeError directly to avoid wrapping in a redundant outer RuntimeError
+        raise
+    except (requests.exceptions.RequestException, ValueError) as e:
+        # Wrap unexpected exceptions in a RuntimeError to provide a consistent error surface
         raise RuntimeError(f"Failed to sync GitHub data: {str(e)}")
 
 

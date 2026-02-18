@@ -20,14 +20,14 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- GitHub App authentication: Uses JWT-based authentication for secure, long-term access.
-- Incremental sync: Fetches only new or updated data since the last sync using timestamp filtering.
-- Multi-organization support: Can sync data from multiple GitHub organizations in a single run.
-- Automatic pagination: Handles GitHub's pagination (100 items per page) automatically.
-- State management: Tracks sync progress per repository for reliable resumption after interruptions.
-- Rate limiting: Implements delays between requests and handles rate limit errors gracefully.
-- Retry logic: Automatic retry with exponential backoff for transient errors.
-- Checkpointing: Saves progress every 1000 records during large repository syncs, once after each repository completes, and once after all organizations are fully processed.
+- GitHub App authentication - Uses JWT-based authentication for secure, long-term access.
+- Incremental sync - Fetches only new or updated data since the last sync using timestamp filtering.
+- Multi-organization support - Can sync data from multiple GitHub organizations in a single run.
+- Automatic pagination - Handles GitHub's pagination (100 items per page) automatically.
+- State management - Tracks sync progress per repository for reliable resumption after interruptions.
+- Rate limiting - Implements delays between requests and handles rate limit errors gracefully.
+- Retry logic - Automatic retry with exponential backoff for transient errors.
+- Checkpointing - Saves progress every 1000 records during large repository syncs, once after each repository completes, and once after all organizations are fully processed.
 
 ## Configuration file
 
@@ -162,10 +162,14 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 }
 ```
 
-State tracking:
-- `last_repo_sync` - Tracks the start time of the last fully completed sync. Used to filter the repository list on the next run. Only advances in the final checkpoint after all organizations complete.
-- `processed_repos` - Per-repository timestamps tracking the newest (max) commit date and PR updated_at confirmed processed. Used as the `since` filter on the next sync so only new data is fetched.
-- Checkpointing - Mid-repository checkpoints (every 1000 records) flush buffered data to the destination without advancing per-repo timestamps, so an interrupted sync resumes the full repository from its last confirmed point. A per-repo checkpoint fires after each repository completes, and a final checkpoint advances `last_repo_sync` once all organizations finish.
+State fields:
+- `last_repo_sync` - The timestamp when the last full sync completed. On the next run, only repositories updated after this time are fetched. This value only advances once all organizations are fully processed.
+- `processed_repos` - A record of the newest commit date and PR date that were successfully synced for each repository. On the next run, only commits and PRs newer than these timestamps are fetched.
+
+Checkpointing:
+- Every 1000 commits or pull requests - flushes buffered records to the destination. Per-repo timestamps are not updated here, so if the sync is interrupted mid-repository, the next run re-fetches the full repository from its last completed point.
+- After each repository completes - saves the newest commit date and PR date for that repository.
+- After all organizations complete - advances `last_repo_sync` to mark the sync as fully done.
 
 ## Error handling
 
