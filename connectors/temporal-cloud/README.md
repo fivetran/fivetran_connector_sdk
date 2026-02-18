@@ -74,7 +74,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 The connector uses API key authentication to access Temporal Cloud. To obtain the necessary credentials:
 
-1. Log in to your Temporal Cloud account at https://cloud.temporal.io
+1. Log in to your [Temporal Cloud account](https://cloud.temporal.io).
 
 2. Navigate to your namespace settings.
 
