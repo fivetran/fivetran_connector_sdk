@@ -1,6 +1,5 @@
 {
-  "regions": "<YOUR_REGION_SEPARATED_BY_COMMA>",
-  "api_quota": "<YOUR_API_QUOTA>",
-  "use_bulk_api": "<TRUE_OR_FALSE>",
-  "currencies": "<YOUR_JSON_STRING_OF_CURRENCIES>"
+  "api_key": "<YOUR_API_KEY>",
+  "client_id": "<YOUR_CLIENT_ID>",
+  "client_secret": "<YOUR_CLIENT_SECRET>"
 }

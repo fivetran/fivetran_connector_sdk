@@ -1,12 +1,13 @@
 # Complex Configuration Options Connector Example
 
 ## Connector overview
-This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires complex constant values such as deeply nested structures or non-string values. A separate python file can be used to define such constant values. These constants must not contain any sensitive information. The connector needs to be redeployed for updating the values defined in the separate python file.
+This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires static complex values such as deeply nested structures or non-string values. A separate python file can be used to define such complex values. These values must not contain any sensitive information. The connector needs to be redeployed for updating the values defined in the separate python file.
 
 This pattern is useful for:
-- Working with custom connector configurations passed through configuration.json.
-- Maintaining constants that are defined at deployment time.
-- Dynamically handling typed settings like lists, integers, booleans, and JSON objects.
+- Working with custom connector configurations passed through configuration.json
+- Working with complex configuration values that are difficult to represent as simple strings
+- Maintaining constants that are defined in connector.py
+- Dynamically handling typed settings like lists, integers, booleans, and JSON objects
 
 
 ## Requirements
@@ -22,8 +23,9 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Features
-- Parse string values from `configuration.json`
-- Use constant values from `constant.py`
+- Use configuration values defined in `configuration.json`
+- Use static configuration values from `config.py`
+- Define and use constants in `connector.py`
 - Casts configuration values from strings to appropriate types:
   - Comma-separated strings → list (`regions`)
   - Numeric strings → integers (`api_quota`)
@@ -38,60 +40,44 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 The connector requires the following configuration parameters:
 ```json
 {
-  "regions": "<YOUR_REGION_SEPARATED_BY_COMMA>",
-  "api_quota": "<YOUR_API_QUOTA>",
-  "use_bulk_api": "<TRUE_OR_FALSE>",
-  "currencies": "<YOUR_JSON_STRING_OF_CURRENCIES>",
-  "complex_constant": "<YOUR_JSON_STRING_OF_CONSTANT>"
+  "api_key": "<YOUR_API_KEY>",
+  "client_id": "<YOUR_CLIENT_ID>",
+  "client_secret": "<YOUR_CLIENT_SECRET>"
 }
 ```
 
 The configuration parameters are as follows:
-- `regions` (required): A comma-separated string of regions
-- `api_quota` (required): A numeric string representing the API quota
-- `use_bulk_api` (required): A boolean string indicating whether to use the bulk API
-- `currencies` (required): A JSON string representing a list of currency conversion pairs
-- `complex_constant` (optional): A JSON string representing a deeply nested structure
+- `api_key` (required): Your API key for authentication
+- `client_id` (required): Your client ID for authentication
+- `client_secret` (required): Your client secret for authentication
 
-For example:
-```json
-{
-  "regions": "us-east-1,us-east-4,us-central-1",
-  "api_quota": "12345",
-  "use_bulk_api": "true",
-  "currencies": "[{\"From\": \"USD\",\"To\": \"EUR\"},{\"From\": \"USD\",\"To\": \"GBP\"}]",
-  "complex_constant": "{\"level_1\": {\"level_2\": {\"level_3\": \"This is a complex value\"}}}"
-}
-```
+You should always use `configuration.json` to define sensitive information required by the connector. You should never hardcode them in connector code or define them as static values in `config.py` or other Python files.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them as constants directly in `constant.py` using native Python types:
+When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them directly in separate Python file such as `config.py` using native Python types:
 
 ```python
-API_CONSTANT = {
+API_CONFIGURATION = {
+    # You can define any static configuration values that your connector needs here
+    # Never store secrets in this file. Use configuration.json for any sensitive values.
     "regions": ["us-east-1", "us-east-4", "us-central-1"],
-    "api_quota": 1000,
-    "use_bulk_api": True,
+    # You can also define more complex structures such as nested dictionaries and lists
     "currencies": [
-        {"From": "USD", "To": "EUR"},
-        {"From": "USD", "To": "GBP"}
-    ],
-    "complex_constant": {
-        "level_1": {
-            "level_2": {
-                "level_3": "This is a complex value"
-            },
-            "list_of_dicts": [
-                {"name": "item1", "value": 1},
-                {"name": "item2", "value": 2}
-            ]
+        {
+            "From": "USD",
+            "To": "EUR"
+        },
+        {
+            "From": "USD",
+            "To": "GBP"
         }
-    }
+    ]
 }
+
 ```
 
-Note: Ensure that you do not use `constant.py` to store sensitive information. You should always use `configuration.json` to define sensitive information required by the connector.
+Note: Ensure that you do not use `config.py` to store sensitive information. You should always use `configuration.json` to define sensitive information required by the connector.
 
 
 ## Requirements file
@@ -101,7 +87,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector does not require authentication - it is a demonstration example showing how to parse complex configuration options. In a production scenario, use headers or token-based authentication as necessary, storing credentials in `configuration.json` (never in `constant.py`).
+This connector does not require authentication - it is a demonstration example showing how to parse complex configuration options. In a production scenario, use headers or token-based authentication as necessary, storing credentials in `configuration.json`.
 
 
 ## Pagination
@@ -132,8 +118,10 @@ The connector creates a `CRYPTO` table:
 }
 ```
 
+
 ## Additional files
-- `constant.py` – This file defines a constant using native Python types which can be imported and used in the main connector code.
+- `config.py` – This file contains static configuration values that are not sensitive and do not need to be changed from the Fivetran dashboard. This file can be used to define complex structures that are difficult to encode as strings in `configuration.json`.
+
 
 ## Additional considerations
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

@@ -20,7 +20,15 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import constant from a separate file.
-from constant import API_CONSTANT
+from config import API_CONFIGURATION
+
+
+# You can define constants which can be used across your connector code
+# These are useful for defining static values that do not change across syncs and are not sensitive in nature.
+# Do not store secrets here. Always use configuration.json for sensitive values such as API keys or credentials.
+# Important: Values defined this way cannot be viewed or modified from the Fivetran dashboard
+# If you need to edit the values from the Fivetran dashboard, define them in configuration.json instead.
+__API_CONSTANT = {"api_quota": 12345, "use_bulk_api": True}
 
 
 def schema(configuration: dict):
@@ -51,7 +59,7 @@ def validate_configuration(configuration: dict):
     """
 
     # Validate required configuration parameters
-    required_configs = ["regions", "api_quota", "use_bulk_api", "currencies"]
+    required_configs = ["api_key", "client_id", "client_secret"]
     for key in required_configs:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
@@ -59,64 +67,60 @@ def validate_configuration(configuration: dict):
 
 def parse_and_get_values(configuration):
     """
-    This function is responsible for fetching and parsing the configuration values.
-    This function checks if the values are present in Fivetran connector configuration
-    If they are not present, it uses the constant defined in constant.py
+    This function is responsible for fetching and parsing the configuration and constant values.
+    This function fetches the sensitive values from configuration.json and the static values from config.py.
+    This function parses them as needed for use in the connector code.
     You can modify the logic in this function to suit your needs.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
-        A tuple containing the values: regions, api_quota, use_bulk_api, currencies, complex_constant
+        A tuple containing the values: regions, api_key, client_id, client_secret, currencies
     """
-    if "complex_constant" in configuration:
-        log.info("using Fivetran connector configuration")
-        # Validate the configuration to ensure it contains all required values.
-        validate_configuration(configuration)
 
-        # converts config string to list of regions
-        regions = configuration["regions"].split(",")
-        # converts config string to int
-        api_quota = int(configuration["api_quota"])
-        # converts config string to boolean
-        use_bulk_api = configuration["use_bulk_api"].lower() == "true".lower()
-        # converts config json string to dict
-        currencies = json.loads(configuration["currencies"])
-        # converts complex constant json string to dict
-        complex_constant = json.loads(configuration["complex_constant"])
+    # The values defined in configuration.json are available to the connector as configuration dictionary.
+    # These values are configurable from the Fivetran dashboard
+    # Configuration values are always strings, so you may need to cast them to the appropriate type based on your needs
+    # You should always store sensitive values such as API keys and credentials in the configuration.json
+    api_key = configuration.get("api_key")
+    client_id = configuration.get("client_id")
+    client_secret = configuration.get("client_secret")
 
-        return regions, api_quota, use_bulk_api, currencies, complex_constant
+    # Fetch the complex configuration values from config.py
+    regions = API_CONFIGURATION.get("regions")
+    currencies = API_CONFIGURATION.get("currencies")
 
-    else:
-        # If the values are not present, use the constant defined in constant.py
-        # Do not store secrets here.
-        # Always use Fivetran connector configuration ( configuration.json ) for sensitive values such as API keys or credentials.
-        log.warning("using constant defined in constant.py")
-        return (
-            API_CONSTANT.get("regions"),
-            API_CONSTANT.get("api_quota"),
-            API_CONSTANT.get("use_bulk_api"),
-            API_CONSTANT.get("currencies"),
-            API_CONSTANT.get("complex_constant"),
-        )
+    # You can parse these values as needed
+    regions = regions.split(",") if regions else []
+    currencies = json.loads(currencies) if currencies else []
+
+    return api_key, client_id, client_secret, regions, currencies
 
 
-def validate_fetched_values(regions, api_quota, use_bulk_api, currencies, complex_constant):
+def validate_fetched_values(api_key, client_id, client_secret, regions, currencies):
     """
     This is a test function to ensure that the values fetched from parse_and_get_values() function are of the expected types and formats.
     You will not typically need to define a function like this in your connector code
     But it is included here for demonstration purposes to validate and test the values you fetch.
     Args:
+        api_key: api_key value, expected to be a string
+        client_id: client_id value, expected to be a string
+        client_secret: client_secret value, expected to be a string
         regions: regions value, expected to be a list of strings
-        api_quota: api_quota value, expected to be an integer
-        use_bulk_api: use_bulk_api value, expected to be a boolean
         currencies: currencies value, expected to be a list of dictionaries with 'From' and 'To' keys
-        complex_constant: complex_constant value, expected to be a nested dictionary with specific structure
     """
+    # configuration fetched from configuration.json
+    assert isinstance(api_key, str)
+    assert isinstance(client_id, str)
+    assert isinstance(client_secret, str)
+    # static configuration fetched from config.py
     assert isinstance(regions, list) and len(regions) == 3
+    assert isinstance(currencies, list) and len(currencies) == 2
+
+    # You can also use the constant values defined in the connector code
+    api_quota = __API_CONSTANT.get("api_quota")
+    use_bulk_api = __API_CONSTANT.get("use_bulk_api")
     assert isinstance(api_quota, int) and api_quota == 12345
     assert isinstance(use_bulk_api, bool) and use_bulk_api
-    assert isinstance(currencies, list) and len(currencies) == 2
-    assert isinstance(complex_constant, dict)
 
 
 def update(configuration: dict, state: dict):
@@ -131,13 +135,14 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common patterns for connectors - Complex Configuration Options")
 
+    # validate the configuration to ensure all required configuration values are present
+    validate_configuration(configuration)
+
     # Get the values
-    regions, api_quota, use_bulk_api, currencies, complex_constant = parse_and_get_values(
-        configuration
-    )
+    api_key, client_id, client_secret, regions, currencies = parse_and_get_values(configuration)
 
     # Validate the fetched values to ensure they are of the expected types and formats.
-    validate_fetched_values(regions, api_quota, use_bulk_api, currencies, complex_constant)
+    validate_fetched_values(api_key, client_id, client_secret, regions, currencies)
 
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The first argument is the name of the destination table.
