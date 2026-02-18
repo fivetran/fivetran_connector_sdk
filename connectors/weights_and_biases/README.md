@@ -61,7 +61,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 This connector uses API key authentication to access the Weights & Biases API. To obtain your API key:
 
-1. Log in to your Weights & Biases account at https://wandb.ai.
+1. Log in to your [Weights & Biases account](https://wandb.ai).
 
 2. Navigate to your user settings by clicking your profile icon in the top right.
 
