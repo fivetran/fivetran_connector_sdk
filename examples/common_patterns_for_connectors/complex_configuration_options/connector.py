@@ -1,8 +1,7 @@
 """
 This is an example to show how to handle complex configuration options in your connector code.
-It shows multiple ways to cast configuration fields to list, integer, boolean and dict for use in connector code.
-It also shows how to define static configuration values in a separate file and import them into your connector.
-It also highlights how you can define constant values in the connector code as well.
+It demonstrates combining configuration values from configuration.json with native Python types defined in a separate config.py file.
+It also shows how to define additional constant values directly in the connector code as well.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
@@ -20,7 +19,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import constant from a separate file.
+# Import static non-sensitive configuration from a separate file.
 from config import API_CONFIGURATIONS
 
 # You can define constants which can be used across your connector code
@@ -35,7 +34,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -74,13 +73,14 @@ def parse_and_get_values(configuration):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
-        A tuple containing the values: regions, api_key, client_id, client_secret, currencies
+        A tuple containing the values: api_key, client_id, client_secret, regions, currencies
     """
 
     # Fetch the configuration values defined in configuration.json
     # These values are configurable from the Fivetran dashboard
     # These configuration values are always strings, so you may need to cast them to the appropriate type based on your needs
     # You should always store sensitive values such as API keys and credentials in the configuration.json
+    # You can parse these values as needed by your connector code as well
     api_key = configuration.get("api_key")
     client_id = configuration.get("client_id")
     client_secret = configuration.get("client_secret")
@@ -91,10 +91,6 @@ def parse_and_get_values(configuration):
     # You must not store sensitive values in config.py. Always use configuration.json for any sensitive values
     regions = API_CONFIGURATIONS.get("regions")
     currencies = API_CONFIGURATIONS.get("currencies")
-
-    # You can parse these values as needed by your connector code
-    regions = regions.split(",") if regions else []
-    currencies = json.loads(currencies) if currencies else []
 
     return api_key, client_id, client_secret, regions, currencies
 

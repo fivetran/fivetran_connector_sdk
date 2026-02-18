@@ -26,11 +26,7 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 - Use configuration values defined in `configuration.json`
 - Use static configuration values from `config.py`
 - Define and use constants in `connector.py`
-- Casts configuration values from strings to appropriate types:
-  - Comma-separated strings → list (`regions`)
-  - Numeric strings → integers (`api_quota`)
-  - Boolean strings → booleans (`use_bulk_api`)
-  - JSON strings → parsed Python structures (`currencies`)
+- Casts configuration values to appropriate types as needed
 - Uses assert statements to confirm parsing behavior
 - Emits a test message `hello world` to confirm successful processing
 
@@ -55,7 +51,7 @@ You should always use `configuration.json` to define sensitive information requi
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them directly in separate Python file such as `config.py` using native Python types:
+When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard, and are difficult to encode as strings in `configuration.json`, you can define them directly in a separate Python file such as `config.py` using native Python types:
 
 ```python
 API_CONFIGURATIONS = {
