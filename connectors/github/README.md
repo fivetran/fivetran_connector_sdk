@@ -2,9 +2,9 @@
 
 ## Connector overview
 
-This connector integrates with the GitHub REST API to synchronize repository data, commits, and pull requests into your destination. It supports both GitHub.com and GitHub Enterprise (on-premises). The connector uses GitHub App authentication for secure access and supports incremental sync to efficiently fetch only new or updated data. It handles pagination automatically and implements robust error handling with retry logic for production use.
+This connector integrates with the GitHub REST API to synchronize repository data, commits, and pull requests into your destination. It provides comprehensive insights into your organization's repositories, development activity, and code review processes. The connector can sync data from both on-premises and online (github.com) instances.
 
-GitHub is a code hosting platform for version control and collaboration. This connector provides comprehensive insights into your organization's repositories, development activity, and code review processes.
+The connector uses GitHub App authentication for secure access and supports incremental syncs to efficiently fetch only new or updated data. It handles pagination automatically and implements robust error handling with retry logic for production use.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 - GitHub App authentication - Uses JWT-based authentication for secure, long-term access.
 - Incremental sync - Fetches only new or updated data since the last sync using timestamp filtering.
-- Multi-organization support - Can sync data from multiple GitHub organizations in a single run.
+- Multi-organization support - Syncs data from multiple GitHub organizations in a single run, if required.
 - Automatic pagination - Handles GitHub's pagination (100 items per page) automatically.
 - State management - Tracks sync progress per repository for reliable resumption after interruptions.
 - Rate limiting - Implements delays between requests and handles rate limit errors gracefully.
@@ -42,7 +42,7 @@ The configuration file contains the GitHub App credentials required to authentic
 }
 ```
 
-For GitHub Enterprise installations, add a `"base_url"` field with your enterprise instance URL (e.g., `"base_url": "https://github.your-company.com/api/v3"`).
+For on-premises GitHub Enterprise instances, add a `"base_url"` field with your instance's URL (e.g., `"base_url": "https://github.your-company.com/api/v3"`).
 
 Configuration parameters:
 - `app_id` (required) - Your GitHub App ID (found in **GitHub App settings**).
@@ -107,7 +107,7 @@ This connector uses GitHub App authentication, which is the recommended approach
 ### Authentication flow
 
 The connector uses a two-step authentication process implemented in `generate_jwt()` and `get_installation_access_token()`:
-1. Generate JWT: Creates a JSON Web Token signed with your private key (valid for 10 minutes).
+1. Generates a JSON Web Token (JWT) signed with your private key (valid for 10 minutes).
 2. Get installation token: Exchanges the JWT for an installation access token (valid for 1 hour).
 3. API requests: Uses the installation token for all GitHub API requests.
 
@@ -116,10 +116,10 @@ The connector uses a two-step authentication process implemented in `generate_jw
 The connector implements cursor-based pagination using GitHub's Link header.
 
 Pagination details:
-- Page size: 100 records per request (GitHub's maximum).
-- Link header parsing: Automatically extracts "next" page URLs from response headers using `parse_pagination_links()`.
-- Memory efficient: Uses generator functions to process data without loading everything into memory.
-- Rate limiting: Adds 2-second delay between page requests to respect GitHub's rate limits.
+- Page size - 100 records per request (GitHub's maximum).
+- Link header parsing - Automatically extracts "next" page URLs from response headers using `parse_pagination_links()`.
+- Memory efficient - Uses generator functions to process data without loading everything into memory.
+- Rate limiting - Adds a 2-second delay between page requests to respect GitHub's rate limiting.
 
 Example pagination flow:
 1. Request first page: `GET /orgs/{org}/repos?per_page=100`.
@@ -144,7 +144,7 @@ Commits:
 Pull requests:
 - Fetches both open and closed PRs.
 - Filters by `updated_at` timestamp.
-- Stops fetching when encountering PRs older than last sync.
+- Stops fetching when encountering PRs with `updated_at` older than the last sync timestamp.
 
 ### State management
 
@@ -163,7 +163,7 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 ```
 
 State fields:
-- `last_repo_sync` - The timestamp when the last full sync completed. On the next run, only repositories updated after this time are fetched. This value only advances once all organizations are fully processed.
+- `last_repo_sync` - The timestamp when the last full sync completed. On the next run, the connector fetches only repositories updated after this date/time. This value only advances once all organizations are fully processed.
 - `processed_repos` - A record of the newest commit date and PR date that were successfully synced for each repository. On the next run, only commits and PRs newer than these timestamps are fetched.
 
 Checkpointing:
