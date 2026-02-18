@@ -97,7 +97,7 @@ Not applicable - this connector emits a single static row.
 
 ## Error handling
 - The connector raises a `ValueError` if any required configuration field is missing.
-- Parsing errors from invalid JSON are surfaced during `json.loads()`.
+- Raises errors from invalid or incompatible configuration values.
 - Logs informative messages via the SDK’s Logging module.
 
 
