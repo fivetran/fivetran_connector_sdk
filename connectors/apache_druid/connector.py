@@ -1,4 +1,5 @@
-"""Apache Druid Connector for Fivetran Connector SDK.
+"""
+Apache Druid Connector for Fivetran Connector SDK.
 This connector demonstrates how to fetch data from Apache Druid and sync it to destination.
 Supports SQL queries, incremental sync, and proper error handling.
 
@@ -10,27 +11,43 @@ and the Best Practices documentation
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# Import required libraries
-import requests
+# Used for encoding credentials for basic authentication
+import base64
+
+# Used for parsing JSON configuration
 import json
+
+# Used for making HTTP requests to the Druid SQL API
+import requests
+
+# Used for sleep delays between retries and batch requests
 import time
-from datetime import datetime, timezone
+
+# Used for parsing timestamps for safe comparison
+from datetime import datetime
 
 # Constants for API configuration
 __REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
 __RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
-__BATCH_SIZE = 1000  # Number of records to fetch per request
+__BATCH_SIZE = 10000  # Number of records to fetch per request
+__EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync
 
 
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
+
     Args:
         configuration: Dictionary containing connection details
+
     Raises:
         ValueError: If required configuration is missing or invalid
     """
@@ -48,14 +65,10 @@ def validate_configuration(configuration: dict):
 
     # Validate port
     port = configuration.get("port")
-    if not isinstance(port, (int, str)):
-        raise ValueError("port must be a number or string")
-    try:
-        port_num = int(port)
-        if port_num < 1 or port_num > 65535:
-            raise ValueError("port must be between 1 and 65535")
-    except (ValueError, TypeError):
-        raise ValueError("port must be a valid port number")
+    if not isinstance(port, int):
+        raise ValueError("port must be a number")
+    if port < 1 or port > 65535:
+        raise ValueError("port must be between 1 and 65535")
 
     # Validate datasources
     datasources = configuration.get("datasources")
@@ -71,24 +84,24 @@ def validate_configuration(configuration: dict):
     log.info("Configuration validated successfully")
 
 
-def make_druid_request(url: str, headers: dict, data: dict = None):
+def make_druid_request(url: str, headers: dict, data: dict):
     """
-    Make a request to Druid API with proper error handling and retry logic.
+    Make a POST request to Druid API with proper error handling and retry logic.
+
     Args:
         url: The API endpoint URL
         headers: Request headers
-        data: Request body (for POST requests)
+        data: Request body for the POST request
+
     Returns:
         Response object from requests library
+
     Raises:
         RuntimeError: If the request fails after all retries
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            if data:
-                response = requests.post(url, headers=headers, json=data, timeout=__REQUEST_TIMEOUT)
-            else:
-                response = requests.get(url, headers=headers, timeout=__REQUEST_TIMEOUT)
+            response = requests.post(url, headers=headers, json=data, timeout=__REQUEST_TIMEOUT)
 
             # Handle HTTP errors
             if response.status_code >= 400:
@@ -114,9 +127,7 @@ def make_druid_request(url: str, headers: dict, data: dict = None):
 
         except requests.exceptions.Timeout:
             if attempt == __MAX_RETRIES - 1:
-                raise RuntimeError(
-                    f"Request timeout after {__MAX_RETRIES} attempts to {url}"
-                )
+                raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts to {url}")
             log.warning(f"Request timeout, retrying (attempt {attempt + 1}/{__MAX_RETRIES})")
             time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
 
@@ -135,12 +146,14 @@ def make_druid_request(url: str, headers: dict, data: dict = None):
 def execute_sql_query(base_url: str, headers: dict, query: str):
     """
     Execute a SQL query against Druid and return results.
+
     Args:
         base_url: Base URL for Druid API
         headers: Request headers including authentication
         query: SQL query string to execute
+
     Returns:
-        List of result rows
+        List of result rows as dictionaries
     """
     url = f"{base_url}/druid/v2/sql"
     data = {"query": query}
@@ -148,35 +161,9 @@ def execute_sql_query(base_url: str, headers: dict, query: str):
     log.info(f"Executing SQL query: {query[:100]}...")
     response = make_druid_request(url, headers, data)
 
-    if response and response.status_code == 200:
-        results = response.json()
-        log.info(f"Query returned {len(results)} rows")
-        return results
-    else:
-        log.warning("Query returned empty result")
-        return []
-
-
-def get_datasource_columns(base_url: str, headers: dict, datasource: str):
-    """
-    Get column information for a datasource using INFORMATION_SCHEMA.
-    Args:
-        base_url: Base URL for Druid API
-        headers: Request headers
-        datasource: Name of the datasource
-    Returns:
-        List of column information dictionaries
-    """
-    query = f"""
-    SELECT COLUMN_NAME, DATA_TYPE
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_NAME = '{datasource}'
-    ORDER BY ORDINAL_POSITION
-    """
-
-    columns = execute_sql_query(base_url, headers, query)
-    log.info(f"Found {len(columns)} columns in datasource {datasource}")
-    return columns
+    results = response.json()
+    log.info(f"Query returned {len(results)} rows")
+    return results
 
 
 def fetch_datasource_data(
@@ -184,69 +171,56 @@ def fetch_datasource_data(
     headers: dict,
     datasource: str,
     timestamp_column: str = "__time",
-    since: str = None,
+    since: str | None = None,
 ):
     """
     Fetch data from a Druid datasource with optional incremental sync.
+
     Args:
         base_url: Base URL for Druid API
         headers: Request headers
         datasource: Name of the datasource to query
         timestamp_column: Name of the timestamp column for incremental sync
-        since: ISO timestamp to fetch data after (for incremental sync)
+        since: ISO timestamp to fetch records after (None triggers a full fetch)
+
     Yields:
         Dictionary records from the datasource
     """
-    # Build SQL query with optional time filter
-    if since:
-        query = f"""
-        SELECT *
-        FROM "{datasource}"
-        WHERE "{timestamp_column}" > TIMESTAMP '{since}'
-        ORDER BY "{timestamp_column}"
-        LIMIT {__BATCH_SIZE}
-        """
-        log.info(f"Fetching incremental data from {datasource} since {since}")
-    else:
-        query = f"""
-        SELECT *
-        FROM "{datasource}"
-        ORDER BY "{timestamp_column}"
-        LIMIT {__BATCH_SIZE}
-        """
-        log.info(f"Fetching full data from {datasource}")
-
-    offset = 0
+    # Use time-based pagination for both full and incremental sync.
+    # Full sync starts from epoch; incremental sync starts from the last synced timestamp.
+    # Records are sorted by __time so results[-1] is always the max timestamp in the batch.
+    # This avoids OFFSET which becomes expensive as tables grow large.
+    cursor = since or __EPOCH_START
     total_records = 0
 
+    if since:
+        log.info(f"Fetching data from {datasource} since {since}")
+    else:
+        log.info(f"Fetching full data from {datasource} starting from epoch")
+
     while True:
-        # Add pagination offset
-        paginated_query = f"{query.rstrip()} OFFSET {offset}"
+        query = f"""
+        SELECT *
+        FROM "{datasource}"
+        WHERE "{timestamp_column}" > TIMESTAMP '{cursor}'
+        ORDER BY "{timestamp_column}"
+        LIMIT {__BATCH_SIZE}
+        """
+        results = execute_sql_query(base_url, headers, query)
 
-        results = execute_sql_query(base_url, headers, paginated_query)
-
-        if not results or len(results) == 0:
+        if not results:
             log.info(f"No more data to fetch from {datasource}")
             break
 
-        for record in results:
-            # Convert record to dict if needed
-            if isinstance(record, list):
-                # If results come as array, we need column names
-                # For simplicity, assume dict format or handle accordingly
-                yield record
-            else:
-                yield record
-
+        yield from results
         total_records += len(results)
         log.info(f"Fetched {total_records} records so far from {datasource}")
 
-        # Check if we got fewer results than batch size (last page)
         if len(results) < __BATCH_SIZE:
             break
 
-        offset += __BATCH_SIZE
-        # Small delay between batch requests to avoid overwhelming the server
+        # Advance cursor to the last record's __time; results are sorted so this is the max
+        cursor = results[-1][timestamp_column]
         time.sleep(1)
 
     log.info(f"Completed fetching {total_records} total records from {datasource}")
@@ -257,8 +231,12 @@ def schema(configuration: dict):
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+
     Args:
         configuration: Dictionary that holds the configuration settings for the connector
+
+    Returns:
+        List of table schema definitions, one per datasource
     """
     # Validate configuration
     validate_configuration(configuration)
@@ -274,7 +252,6 @@ def schema(configuration: dict):
             schema_list.append(
                 {
                     "table": datasource.replace("-", "_"),  # Sanitize table name
-                    "primary_key": ["__time"],  # Druid typically uses __time as primary key
                 }
             )
 
@@ -286,6 +263,7 @@ def update(configuration: dict, state: dict):
     Define the update function, which is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+
     Args:
         configuration: Dictionary containing connection details
         state: Dictionary containing state information from previous runs
@@ -302,10 +280,9 @@ def update(configuration: dict, state: dict):
     datasources = configuration.get("datasources")
     username = configuration.get("username")
     password = configuration.get("password")
-    use_https = configuration.get("use_https", "false").lower() == "true"
 
     # Build base URL
-    protocol = "https" if use_https else "http"
+    protocol = "https"
     base_url = f"{protocol}://{host}:{port}"
     log.info(f"Connecting to Druid at {base_url}")
 
@@ -314,22 +291,15 @@ def update(configuration: dict, state: dict):
 
     # Add basic auth if credentials provided
     if username and password:
-        import base64
-
         credentials = base64.b64encode(f"{username}:{password}".encode()).decode()
         headers["Authorization"] = f"Basic {credentials}"
         log.info("Using basic authentication")
 
-    # Get last sync time from state
-    last_sync_time = state.get("last_sync_time")
-
     try:
-        # Track current sync time as fallback
-        current_sync_time = datetime.now(timezone.utc).isoformat()
         record_count = 0
 
-        # Track max __time per datasource for accurate incremental sync
-        datasource_max_times = {}
+        # Start with a copy of existing state so all previous datasource keys are preserved
+        current_state = dict(state)
 
         # Process each datasource
         for datasource in datasources.split(","):
@@ -340,93 +310,90 @@ def update(configuration: dict, state: dict):
             log.info(f"Processing datasource: {datasource}")
             table_name = datasource.replace("-", "_")  # Sanitize table name
 
-            # Get datasource-specific last sync time
-            datasource_last_sync = state.get(f"last_sync_{datasource}", last_sync_time)
+            # Get datasource-specific last sync time. None triggers a full fetch for new datasources.
+            datasource_last_sync = current_state.get(f"last_sync_{datasource}")
 
-            # Track max __time from actual data processed
-            max_time_processed = None
+            # Track max __time from actual data processed as datetime for safe comparison
+            max_time_processed: datetime | None = None
             datasource_record_count = 0
 
             # Fetch and upsert data
             for record in fetch_datasource_data(
                 base_url, headers, datasource, "__time", datasource_last_sync
             ):
-                # The 'upsert' operation is used to insert or update data in the destination table
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table=table_name, data=record)
                 record_count += 1
                 datasource_record_count += 1
 
-                # Track the maximum __time from actual data
+                # Track the maximum __time from actual data using datetime for safe comparison
                 record_time = record.get("__time")
                 if record_time:
-                    # Convert to ISO string if needed
-                    if isinstance(record_time, str):
-                        record_time_str = record_time
-                    else:
-                        record_time_str = record_time.isoformat() if hasattr(record_time, 'isoformat') else str(record_time)
-
-                    if not max_time_processed or record_time_str > max_time_processed:
-                        max_time_processed = record_time_str
+                    try:
+                        record_dt = datetime.fromisoformat(record_time.replace("Z", "+00:00"))
+                        if max_time_processed is None or record_dt > max_time_processed:
+                            max_time_processed = record_dt
+                    except (ValueError, AttributeError):
+                        pass
 
                 # Checkpoint periodically for large datasets
                 if record_count % 1000 == 0:
                     log.info(f"Processed {record_count} records, checkpointing...")
-                    # Use max processed time if available, otherwise current time
-                    checkpoint_time = max_time_processed or current_sync_time
-                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                    # from the correct position in case of next sync or interruptions.
-                    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                    # Save the progress by checkpointing the state. This is important for ensuring that
+                    # the sync process can resume from the correct position in case of next sync or interruptions.
+                    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran
+                    # it is safe to write to destination.
                     # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
                     # Learn more about how and where to checkpoint by reading our best practices documentation
                     # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-                    op.checkpoint(
-                        state={
-                            "last_sync_time": checkpoint_time,
-                            f"last_sync_{datasource}": checkpoint_time,
-                        }
+                    current_state[f"last_sync_{datasource}"] = (
+                        max_time_processed.isoformat()
+                        if max_time_processed
+                        else datasource_last_sync
                     )
-
-            # Store the max time for this datasource
-            datasource_max_times[datasource] = max_time_processed or datasource_last_sync or current_sync_time
+                    op.checkpoint(state=current_state)
 
             log.info(
                 f"Completed processing datasource: {datasource}. "
                 f"Processed {datasource_record_count} records. "
                 f"Max __time: {max_time_processed or 'N/A'}"
             )
+            current_state[f"last_sync_{datasource}"] = (
+                max_time_processed.isoformat() if max_time_processed else datasource_last_sync
+            )
 
-        # Final state update - use actual max times from data
-        final_state = {}
-
-        # Set global last_sync_time to the latest of all datasources
-        if datasource_max_times:
-            final_state["last_sync_time"] = max(datasource_max_times.values())
-        else:
-            final_state["last_sync_time"] = current_sync_time
-
-        # Add per-datasource sync times (actual max times from data)
-        for datasource, max_time in datasource_max_times.items():
-            final_state[f"last_sync_{datasource}"] = max_time
-
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint(final_state)
+            # Save the progress by checkpointing the state. This is important for ensuring that
+            # the sync process can resume from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran
+            # it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(state=current_state)
 
         log.info(f"Sync completed successfully. Total records processed: {record_count}")
 
+    except RuntimeError:
+        raise
     except Exception as e:
-        # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync Apache Druid data: {str(e)}")
 
 
 # Create connector instance
 connector = Connector(update=update, schema=schema)
 
-# Test the connector locally
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Load configuration from configuration.json
     with open("configuration.json", "r") as f:

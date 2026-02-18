@@ -1,195 +1,143 @@
 # Apache Druid Connector Example
 
 ## Connector overview
-This connector integrates with Apache Druid to synchronize datasource data into your destination. It supports incremental sync using timestamp-based filtering and handles pagination automatically. The connector uses Druid's SQL API for querying data and implements robust error handling with retry logic for production use.
 
-Apache Druid is a real-time analytics database designed for fast aggregations and queries on large event datasets. This connector provides access to your Druid datasources for analytics and reporting.
+This connector syncs data from Apache Druid datasources into Fivetran, allowing you to replicate event and analytics data into your destination. The connector uses Druid's SQL API for querying and supports incremental sync using time-based filtering. Each datasource in your Druid cluster is synced as a separate table.
+
+Apache Druid is a real-time analytics database designed for fast aggregations and queries on large event datasets. This connector provides access to your Druid datasources for analytics and reporting in your data warehouse.
 
 ## Requirements
+
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
-    - Windows: 10 or later (64-bit only)
-    - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-    - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 
 ## Getting started
+
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
 ## Features
-- SQL API integration: Uses Druid's SQL endpoint for flexible data querying
-- Incremental sync: Fetches only new data since the last sync using timestamp filtering
-- Multi-datasource support: Can sync multiple Druid datasources in a single connector
-- Automatic pagination: Handles large datasets with configurable batch sizes
-- State management: Tracks sync progress per datasource for reliable resumption
-- Retry logic: Automatic retry with exponential backoff for transient errors
-- Checkpointing: Saves progress periodically to enable safe resumption
-- Basic authentication: Optional username/password authentication support
+
+- Incremental sync – Fetches only new records since the last sync using time-based filtering on the `__time` column
+- Multi-datasource support – Syncs multiple Druid datasources in a single connector, each mapped to a separate destination table
+- Time-based pagination – Paginates using the last seen timestamp instead of OFFSET, leveraging Druid's native segment pruning for performance
+- Per-datasource state tracking – Tracks sync progress independently per datasource so adding a new datasource triggers only a full fetch for that datasource
+- Retry logic with exponential backoff – Automatically retries failed requests up to 3 times with delays of 2s, 4s, and 8s
+- Basic authentication support – Optional username and password authentication for secured Druid clusters
+- Periodic checkpointing – Saves sync progress every 1000 records to enable safe resumption after interruption
 
 ## Configuration file
-The configuration file contains the Druid connection details required to connect to your Druid cluster.
+
+The connector requires a `configuration.json` file with the Druid connection details.
 
 ```json
 {
-  "host": "localhost",
-  "port": "8888",
-  "datasources": "wikipedia,koalas",
-  "username": "",
-  "password": "",
-  "use_https": "false"
+  "host": "your-druid-host",
+  "port": 8888,
+  "datasources": "wikipedia,koalas-to-the-max"
 }
 ```
 
-For Druid with authentication, provide your credentials:
+For Druid clusters that require authentication, add the optional credentials:
+
 ```json
 {
-  "host": "druid.example.com",
-  "port": "8888",
-  "datasources": "events,metrics",
+  "host": "your-druid-host",
+  "port": 8888,
+  "datasources": "wikipedia,koalas-to-the-max",
   "username": "your_username",
-  "password": "your_password",
-  "use_https": "true"
+  "password": "your_password"
 }
 ```
 
 Configuration parameters:
-- `host` (required): Hostname or IP address of your Druid router/broker node
-- `port` (required): Port number for the Druid router/broker (typically 8888)
-- `datasources` (required): Comma-separated list of Druid datasource names to sync
-- `username` (optional): Username for basic authentication (if required)
-- `password` (optional): Password for basic authentication (if required)
-- `use_https` (optional): Set to "true" to use HTTPS, "false" for HTTP (default: "false")
+- `host` – Hostname or IP address of your Druid router or broker node (required)
+- `port` – Port number for the Druid router or broker, typically 8888 (required, must be an integer)
+- `datasources` – Comma-separated list of Druid datasource names to sync (required)
+- `username` – Username for basic authentication (optional)
+- `password` – Password for basic authentication (optional)
 
-Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
-This connector uses only standard libraries and pre-installed packages.
 
-The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+This connector uses only the pre-installed packages available in the Fivetran environment. No additional dependencies are required.
+
+Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
-This connector supports optional basic authentication for Druid clusters that require credentials.
 
-### No authentication
-If your Druid cluster does not require authentication, leave the `username` and `password` fields empty in the configuration.
+This connector supports optional basic authentication for Druid clusters that require credentials. If `username` and `password` are provided in the configuration, the connector encodes them using Base64 and adds an `Authorization: Basic` header to all requests. If no credentials are provided, requests are sent without authentication.
 
-### Basic authentication
-If your Druid cluster uses basic authentication:
-1. Provide your `username` in the configuration
-2. Provide your `password` in the configuration
-3. The connector will automatically add the `Authorization` header with base64-encoded credentials
+The connector connects to Druid over HTTPS. Refer to `update()` in `connector.py` for the authentication implementation.
 
-## Data fetching
-The connector uses Druid's SQL API to query data from datasources.
+## Pagination
 
-### SQL queries
-The connector executes SQL queries against the `/druid/v2/sql` endpoint:
-- Uses `SELECT *` to fetch all columns from each datasource
-- Orders results by `__time` column (Druid's primary timestamp column)
-- Applies `WHERE` clause for incremental sync with timestamp filtering
-- Implements pagination using `LIMIT` and `OFFSET`
+The connector uses time-based pagination for both full and incremental syncs. Each batch queries records with `__time` strictly greater than the current cursor, then advances the cursor to the last record's timestamp. Since results are ordered by `__time`, the last record in each batch is always the maximum timestamp.
 
-### Incremental sync
-The connector supports incremental synchronization to minimize data transfer:
-- Tracks the last sync time per datasource in state
-- Filters data using `WHERE __time > TIMESTAMP 'last_sync_time'`
-- Only fetches records newer than the last successful sync
+For a full sync, the cursor starts at epoch (`1970-01-01T00:00:00+00:00`). For incremental syncs, it starts from the last synced timestamp stored in state. This approach leverages Druid's native time-based segment pruning, which is significantly faster than SQL `OFFSET` for large tables.
 
-### Pagination
-Data is fetched in batches to handle large datasets:
-- Batch size: 1000 records per request (configurable via `__BATCH_SIZE`)
-- Uses SQL `OFFSET` for pagination
-- Continues until fewer records than batch size are returned
+## Data handling
+
+The connector processes Druid data through the following steps:
+
+- Configuration validation – Validates all required fields (`host`, `port`, `datasources`) and optional fields before making any API calls. Refer to `validate_configuration()`.
+
+- Connection setup – Builds the base URL from `host` and `port`, prepares request headers, and optionally adds the `Authorization` header for basic authentication. Refer to `update()`.
+
+- Incremental filtering – Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch. Refer to `fetch_datasource_data()`.
+
+- Time-based pagination – Executes paginated SQL queries against the `/druid/v2/sql` endpoint using `WHERE __time > TIMESTAMP '{cursor}'`, advancing the cursor after each batch until fewer than `__BATCH_SIZE` records are returned. Refer to `fetch_datasource_data()`.
+
+- Data upserting – Each record is upserted to the corresponding destination table. Fivetran automatically generates a `_fivetran_id` surrogate key as a hash of all row values, since Druid rows do not have a guaranteed unique key. Refer to `update()`.
+
+- State checkpointing – Saves the maximum `__time` seen per datasource after each datasource completes. Also checkpoints every 1000 records during processing to enable safe resumption. Refer to `update()`.
 
 ## Error handling
-The connector implements comprehensive error handling with retry logic.
 
-### Retry strategy
-- Maximum retries: 3 attempts for failed requests
-- Exponential backoff: Waits 2^attempt seconds between retries (2s, 4s, 8s)
-- Timeout: 30 seconds per request
-- Fail fast on 4xx errors (client errors like auth failures)
-- Retry on 5xx errors (server errors)
+The connector implements robust error handling to ensure reliable data synchronization:
 
-### Error categories
-- Configuration errors: Validated at sync start with clear error messages
-- HTTP errors: Handled based on status code (4xx vs 5xx)
-- Network errors: Retried with exponential backoff
-- Timeout errors: Retried up to max attempts
+- Retry logic with exponential backoff
+  - Automatically retries failed requests up to 3 times
+  - Waits 2s, 4s, and 8s between attempts
+  - See `make_druid_request()`
+
+- HTTP error handling
+  - Retries on 5xx server errors
+  - Fails immediately on 4xx client errors such as authentication failures
+  - See `make_druid_request()`
+
+- Timeout handling
+  - Each request times out after 30 seconds
+  - Timeout errors are retried up to the maximum retry count
+  - See `make_druid_request()`
+
+- Configuration validation
+  - Validates all configuration parameters before making any API calls
+  - Provides clear error messages for missing or invalid fields
+  - See `validate_configuration()`
+
+- State checkpointing
+  - Checkpoints sync state after every 1000 records and after each datasource completes
+  - Enables safe resumption without re-processing already-synced data
 
 ## Tables created
-The connector creates one table per Druid datasource specified in the configuration. Column types are inferred from the data returned by Druid's SQL API and may vary based on the actual values received.
 
-### Table naming
-- Table names are derived from datasource names
-- Hyphens are replaced with underscores (e.g., `my-data` becomes `my_data`)
-- Each table uses `__time` as the primary key (Druid's timestamp column)
+The connector creates one table per Druid datasource specified in the `datasources` configuration. Table names are derived from datasource names with hyphens replaced by underscores (for example, `koalas-to-the-max` becomes `koalas_to_the_max`).
 
-### Common columns
-Druid datasources typically include:
-- `__time`: Timestamp column (primary key) - when the event occurred
-- Dimension columns: String or numeric attributes of the data
-- Metric columns: Aggregated numeric values
+Column types are inferred from the data returned by Druid's SQL API and may vary depending on your datasource schema. All Druid datasources include a `__time` column representing when each event occurred. Dimension and metric columns vary per datasource.
 
-The actual columns depend on your Druid datasource schema.
+Since Druid rows do not have a guaranteed unique key, no primary key is defined in the schema. Fivetran automatically generates a `_fivetran_id` column as a hash of all row values to uniquely identify each record.
+
+Example data for a `wikipedia` datasource:
+
+| `_fivetran_id` | `__time` | `channel` | `page` | `delta` |
+|---|---|---|---|---|
+| a1b2c3d4... | 2024-01-15T10:30:00.000Z | #en.wikipedia | Python | 42 |
+| e5f6g7h8... | 2024-01-15T10:31:00.000Z | #fr.wikipedia | Django | -5 |
 
 ## Additional considerations
+
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
-
-### Druid-specific considerations
-- Ensure your Druid broker/router is accessible from the connector environment
-- The `__time` column must be present in your datasources for incremental sync
-- Large historical syncs may take time depending on data volume
-- Consider your Druid cluster's query capacity when setting batch sizes
-
-### Running the connector
-To run the connector locally for testing:
-
-```bash
-fivetran debug --configuration configuration.json
-```
-
-For production deployment, follow the [Fivetran Connector SDK deployment guide](https://fivetran.com/docs/connectors/connector-sdk/deployment).
-
-### Example use cases
-- Real-time analytics: Sync event data from Druid for real-time dashboards
-- Historical analysis: Pull historical data from Druid datasources for long-term analysis
-- Data integration: Combine Druid data with other sources in your data warehouse
-- Backup and archival: Create backups of Druid datasources in your destination
-- Cross-platform analytics: Analyze Druid data alongside data from other systems
-
-### Troubleshooting
-
-#### Connection errors
-- Verify `host` and `port` are correct
-- Check that the Druid broker/router is accessible from your network
-- Test connectivity: `curl http://your-druid-host:8888/status`
-
-#### Authentication errors
-- Verify `username` and `password` are correct
-- Check if your Druid cluster requires authentication
-- Ensure basic auth is properly configured in Druid
-
-#### Empty results
-- Verify datasource names in `datasources` configuration are correct
-- Check that datasources exist: Query `SELECT * FROM INFORMATION_SCHEMA.TABLES`
-- Ensure your Druid cluster has data for the time range being queried
-
-#### Performance issues
-- Reduce `__BATCH_SIZE` if queries are timing out
-- Consider syncing fewer datasources per connector instance
-- Check Druid query performance and cluster health
-
-### Related examples
-
-Database connectors:
-- [ClickHouse](../clickhouse/) - Another columnar analytics database connector with similar patterns
-- [TimescaleDB](../timescale_db/) - Time-series database connector with timestamp-based incremental sync
-
-Authentication patterns:
-- [HTTP Basic](../../examples/common_patterns_for_connectors/authentication/http_basic) - Basic authentication implementation example
-
-### Resources
-- [Apache Druid Documentation](https://druid.apache.org/docs/latest/)
-- [Druid SQL API](https://druid.apache.org/docs/latest/querying/sql.html)
-- [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connectors/connector-sdk)
-- [Druid Query Best Practices](https://druid.apache.org/docs/latest/operations/api-reference.html)
