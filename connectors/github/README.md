@@ -6,7 +6,7 @@ This connector integrates with the GitHub REST API to synchronize repository dat
 
 The connector uses GitHub App authentication for secure access and supports incremental syncs to efficiently fetch only new or updated data. It handles pagination automatically and implements robust error handling with retry logic for production use.
 
-### Example use cases
+Example use cases include:
 
 - Development analytics - Track commit frequency, PR velocity, and code review metrics.
 - Repository management - Monitor repository growth, stars, forks, and activity.
@@ -80,38 +80,39 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 This connector uses GitHub App authentication, which is the recommended approach for production integrations. Follow these steps to set up a GitHub App:
 
 #### Step 1: Create a GitHub App
-1. Click your profile icon (top right) and select **Settings**
-2. In the left sidebar, scroll down and click **Developer settings**
-3. Click **GitHub Apps**, then click **New GitHub App**
-4. Enter a descriptive **GitHub App name** (e.g., Fivetran Data Sync)
-5. In **Homepage URL**, enter your organization's website or use `https://fivetran.com`
+1. Click your profile icon (top right) and select **Settings**.
+2. In the left sidebar, scroll down and click **Developer settings**.
+3. Click **GitHub Apps**, then click **New GitHub App**.
+4. Enter a descriptive **GitHub App name** (e.g., Fivetran Data Sync).
+5. In **Homepage URL**, enter your organization's website or use `https://fivetran.com`.
 6. Uncheck the **Webhook Active** option. You don't need it for this connector.
 
 #### Step 2: Set permissions
-1. Under **Repository permissions**, set **Contents** to Read-only (to access repository data)
-2. Set **Metadata** to Read-only (automatically required)
-3. Set **Pull requests** to Read-only (to access PR data)
+1. Under Repository permissions, set **Contents** to Read-only (to access repository data).
+2. Set **Metadata** to Read-only (automatically required).
+3. Set **Pull requests** to Read-only (to access PR data).
 
 #### Step 3: Generate a private key
-1. Scroll to the **Private keys** section
-2. Click **Generate a private key**
-3. Save the downloaded `.pem` file securely
-4. Copy the entire contents (including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`)
+1. Scroll to the **Private keys** section.
+2. Click **Generate a private key**.
+3. Save the downloaded `.pem` file securely.
+4. Copy the entire contents, including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`.
 
 #### Step 4: Note your App ID
-1. At the top of the GitHub App settings page, note the **App ID**
+At the top of the GitHub App settings page, make a note of the **App ID**. You will need it later to authenticate your connector.
 
 #### Step 5: Install the app
-1. Go to **Install App** in the left sidebar
-2. Click **Install** next to your organization
-3. Choose whether to give access to all repositories or select specific ones
+1. Go to **Install App** in the left sidebar.
+2. Click **Install** next to your organization.
+3. Choose whether to give access to all repositories or select specific ones.
 4. After installation, note the **Installation ID** from the URL: `https://github.com/organizations/{org}/settings/installations/{installation_id}`
 
 #### Step 6: Configure the connector
-1. Add your `app_id` (the **App ID** from step 4) to `configuration.json`
-2. Add your `private_key` (the full private key content from step 3) to `configuration.json`
-3. Add your `organization` (your GitHub organization name) to `configuration.json`
-4. Add your `installation_id` (the **Installation ID** from step 5) to `configuration.json`
+Add the following items to your connector's `configuration.json`:
+- `app_id` (the **App ID** from step 4)
+- `private_key` (the full private key content from step 3)
+- `organization` (your GitHub organization name)
+- `installation_id` (the **Installation ID** from step 5)
 
 ### Authentication flow
 
@@ -176,9 +177,9 @@ State fields:
 - `processed_repos` - A record of the newest commit date and PR date that were successfully synced for each repository. On the next run, only commits and PRs newer than these timestamps are fetched.
 
 Checkpointing:
-- Every 1000 commits or pull requests - flushes buffered records to the destination. Per-repo timestamps are not updated here, so if the sync is interrupted mid-repository, the next run re-fetches the full repository from its last completed point.
-- After each repository completes - saves the newest commit date and PR date for that repository.
-- After all organizations complete - advances `last_repo_sync` to mark the sync as fully done.
+- Every 1000 commits or pull requests - Flushes buffered records to the destination. Per-repo timestamps are not updated here, so if the sync is interrupted mid-repository, the next run re-fetches the full repository from its last completed point.
+- After each repository completes - Saves the newest commit date and PR date for that repository.
+- After all organizations complete - Advances `last_repo_sync` to mark the sync as fully done.
 
 ## Error handling
 
@@ -206,7 +207,7 @@ The connector implements comprehensive error handling with retry logic in `make_
 
 ## Tables created
 
-The connector creates 3 tables in your destination(REPOSITORIES, COMMITS and PULL_REQUESTS). Column types are inferred from the data returned by the GitHub API and may vary based on the actual values received.
+The connector creates the `REPOSITORIES`, `COMMITS`, and `PULL_REQUESTS` tables in your destination. Column types are inferred from the data returned by the GitHub API and may vary based on the actual values received.
 
 ### REPOSITORIES
 
@@ -309,11 +310,10 @@ Rate limit errors
 
 ### Related examples
 
-- [github_traffic](../github_traffic/) - This example shows how to sync GitHub repository traffic metrics (views, clones, referrers, and popular content paths) using the GitHub REST API. It demonstrates how to work with GitHub's traffic analytics endpoints, handle limited historical data (14 days), and use Personal Access Token authentication.
+- [github_traffic connector example](../github_traffic/) - This example shows how to sync GitHub repository traffic metrics (views, clones, referrers, and popular content paths) using the GitHub REST API. It demonstrates how to work with GitHub's traffic analytics endpoints, handle limited historical data (14 days), and use Personal Access Token authentication.
+- [Certificate authentication pattern example](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches - using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
 
-- [Certificate Authentication](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches - using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
-
-### Resources
+### Additional resources
 
 - [GitHub Apps Documentation](https://docs.github.com/en/apps)
 - [GitHub REST API Documentation](https://docs.github.com/en/rest)
