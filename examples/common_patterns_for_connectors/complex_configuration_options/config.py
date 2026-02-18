@@ -9,7 +9,7 @@ If you need to edit the values from the Fivetran dashboard, define them in confi
 Do not store secrets here. Always use configuration.json for sensitive values such as API keys or credentials.
 """
 
-API_CONFIGURATION = {
+API_CONFIGURATIONS = {
     # You can define any static configuration values that your connector needs here
     # Never store secrets in this file. Use configuration.json for any sensitive values.
     "regions": ["us-east-1", "us-east-4", "us-central-1"],

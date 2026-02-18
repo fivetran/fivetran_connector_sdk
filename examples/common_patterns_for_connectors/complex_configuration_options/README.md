@@ -58,7 +58,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 When you have complex structures that are not sensitive, do not need to be changed from the Fivetran dashboard and is difficult to encode as strings in `configuration.json`, You can define them directly in separate Python file such as `config.py` using native Python types:
 
 ```python
-API_CONFIGURATION = {
+API_CONFIGURATIONS = {
     # You can define any static configuration values that your connector needs here
     # Never store secrets in this file. Use configuration.json for any sensitive values.
     "regions": ["us-east-1", "us-east-4", "us-central-1"],

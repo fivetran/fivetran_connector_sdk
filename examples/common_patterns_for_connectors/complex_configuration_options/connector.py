@@ -21,7 +21,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Import constant from a separate file.
-from config import API_CONFIGURATION
+from config import API_CONFIGURATIONS
 
 
 # You can define constants which can be used across your connector code
@@ -29,7 +29,7 @@ from config import API_CONFIGURATION
 # Do not store secrets here. Always use configuration.json for sensitive values such as API keys or credentials.
 # Important: Values defined this way cannot be viewed or modified from the Fivetran dashboard
 # If you need to edit the values from the Fivetran dashboard, define them in configuration.json instead.
-__API_CONSTANT = {"api_quota": 12345, "use_bulk_api": True}
+__API_CONSTANTS = {"api_quota": 12345, "use_bulk_api": True}
 
 
 def schema(configuration: dict):
@@ -90,8 +90,8 @@ def parse_and_get_values(configuration):
     # These values are static in nature and cannot be changed from the Fivetran dashboard
     # To change them, you must update the file and redeploy the connector
     # You must not store sensitive values in config.py. Always use configuration.json for any sensitive values
-    regions = API_CONFIGURATION.get("regions")
-    currencies = API_CONFIGURATION.get("currencies")
+    regions = API_CONFIGURATIONS.get("regions")
+    currencies = API_CONFIGURATIONS.get("currencies")
 
     # You can parse these values as needed by your connector code
     regions = regions.split(",") if regions else []
@@ -121,8 +121,8 @@ def validate_fetched_values(api_key, client_id, client_secret, regions, currenci
     assert isinstance(currencies, list) and len(currencies) == 2
 
     # You can also use the constant values defined in the connector code
-    api_quota = __API_CONSTANT.get("api_quota")
-    use_bulk_api = __API_CONSTANT.get("use_bulk_api")
+    api_quota = __API_CONSTANTS.get("api_quota")
+    use_bulk_api = __API_CONSTANTS.get("use_bulk_api")
     assert isinstance(api_quota, int) and api_quota == 12345
     assert isinstance(use_bulk_api, bool) and use_bulk_api
 
