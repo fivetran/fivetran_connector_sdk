@@ -1,10 +1,8 @@
 # Tulip Interfaces Connector Example
 
-This connector syncs data from Tulip Tables to Fivetran destinations. Tulip is a frontline operations platform that enables manufacturers to build apps without code, connect machines and devices, and analyze data to improve operations. This connector allows you to replicate Tulip Table data into your data warehouse for analysis and reporting.
-
 ## Connector overview
 
-The connector is designed for manufacturing operations and supply chain teams who need to analyze production data, track quality metrics, and monitor operational performance across their data warehouse ecosystem.
+This connector syncs data from Tulip to Fivetran destinations. Tulip is a frontline operations platform that enables manufacturers to build apps without code, connect machines and devices, and analyze data to improve operations. This connector allows you to sync Tulip Tables data and load it into your destination for analysis and reporting. It is designed for manufacturing operations and supply chain teams who need to analyze production data, track quality metrics, and monitor operational performance across their data warehouse ecosystem.
 
 To use this connector, you need access to a Tulip instance and a Tulip API key with tables read scope.
 
@@ -44,47 +42,46 @@ The connector requires the following configuration keys in `configuration.json`:
 
 Configuration parameters:
 
-- `subdomain` (required) - Your Tulip instance subdomain (e.g., "acme" for acme.tulip.co)
-- `api_key` (required) - Tulip API key obtained from API settings in Tulip, note API key needs table read scope
-- `api_secret` (required) - Tulip API secret corresponding to the API key
+- `subdomain` (required) - Your Tulip instance subdomain (e.g., "acme" for acme.tulip.co).
+- `api_key` (required) - Tulip API key obtained from API settings in Tulip, note API key needs table read scope.
+- `api_secret` (required) - Tulip API secret corresponding to the API key.
 - `table_id` (required) - Unique identifier of the Tulip table to sync (e.g., "T65jBaGMgiexWy5yS")
-- `workspace_id` (optional) - Workspace ID for workspace-scoped tables (omit for instance-level api keys or instances without workspaces)
-- `sync_from_date` (optional) - ISO 8601 timestamp to start initial sync (defaults to beginning of time if omitted)
-- `custom_filter_json` (optional) - JSON array of Tulip API filter objects, ref to [Tulip API docs for JSON definition](https://support.tulip.co/apidocs/list-records-of-a-tulip-table#:~:text=false-,filters,-An%20optional%20array) (defaults to empty array if omitted)
+- `workspace_id` (optional) - Workspace ID for workspace-scoped tables (omit for instance-level api keys or instances without workspaces).
+- `sync_from_date` (optional) - ISO 8601 timestamp to start initial sync (defaults to beginning of time if omitted).
+- `custom_filter_json` (optional) - JSON array of Tulip API filter objects, refer to [Tulip API docs for JSON definition](https://support.tulip.co/apidocs/list-records-of-a-tulip-table#:~:text=false-,filters,-An%20optional%20array) (defaults to empty array if omitted).
 
-**Note on field selection**: The connector automatically excludes Linked Table Fields (tableLink type) to reduce database load on the Tulip API. System fields (`id`, `_createdAt`, `_updatedAt`, `_sequenceNumber`) and all non-tableLink custom fields are always included.
+Note: The connector automatically excludes Linked Table Fields (`tableLink` type) to reduce database load on the Tulip API. System fields (`id`, `_createdAt`, `_updatedAt`, `_sequenceNumber`) and all non-`tableLink` custom fields are always included.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-
 ## Authentication
-
-Authentication - Refer to `def schema()` and `def update()`
 
 This connector uses HTTP Basic Authentication with Tulip API credentials:
 
-1. Log into your Tulip instance.
+1. Log into your [Tulip instance](https://tulip.co/login/).
 2. Navigate to **Account Settings** > **API Tokens**.
-3. Create a new API Token.
-4. Copy the **API Key** and **API Secret** from the token configuration.
-5. Ensure the API key has table:read permissions to access the target table.
+3. Create a new API token.
+4. Make a note of the **API Key** and **API Secret** from the token configuration. You will need to add it to the `configuration.json`.
+5. Ensure the API key has `table:read` permissions to access the target table.
 
 The connector passes the API key and secret as HTTP Basic Auth credentials to all Tulip API endpoints.
 
+Refer to the `def schema()` and `def update()` funtions for implementation details.
+
 ## Pagination
 
-Pagination - Refer to `def update()`
+The connector implements a two-phase cursor-based synchronization strategy to handle large datasets efficiently.
 
-The connector implements a two-phase cursor-based synchronization strategy to handle large datasets efficiently:
+Refer to `def update()` function for implementation details.
 
-### Phase 1: BOOTSTRAP mode (Historical data load)
+### Phase 1: BOOTSTRAP mode (historical data load)
 - Uses `_sequenceNumber` as primary cursor to avoid offset pagination overhead
 - Filters: `_sequenceNumber > last_sequence` (and optionally `_updatedAt > sync_from_date`)
 - Sorts by `_sequenceNumber` in ascending order
 - Fetches records in batches of 100 until API returns fewer than 100 records
 - Transitions to INCREMENTAL mode when bootstrap completes
 
-### Phase 2: INCREMENTAL mode (Ongoing updates)
+### Phase 2: INCREMENTAL mode (ongoing updates)
 - Primary cursor: `_sequenceNumber > last_sequence`
 - Secondary filter: `_updatedAt > (last_updated_at - 60s)` (60-second lookback)
 - Sorts by `_sequenceNumber` in ascending order
@@ -92,14 +89,12 @@ The connector implements a two-phase cursor-based synchronization strategy to ha
 - Prevents infinite loops when multiple records share the same `_updatedAt` timestamp
 
 ### Checkpointing
-- State is checkpointed every 500 records with: `cursor_mode`, `last_sequence`, `last_updated_at`
+- State is checkpointed every 500 records with: `cursor_mode`, `last_sequence`, and `last_updated_at`
 - Enables resumable syncs if connector fails mid-batch
 
 ## Data handling
 
-Data handling - Refer to `def schema()`, `def _map_tulip_type_to_fivetran()`, `def generate_column_name()`, and `def _transform_record()`
-
-The connector transforms Tulip Table data through several stages:
+The connector transforms Tulip Tables data through several stages:
 
 1. Schema discovery:
    - Fetches table metadata from Tulip API
@@ -123,15 +118,15 @@ The connector transforms Tulip Table data through several stages:
    - Normalizes labels: lowercase, replaces spaces with underscores, removes special characters
    - Preserves system fields in their original format
 
-4. Two-phase sync:
-   - **BOOTSTRAP**: Filters by `_sequenceNumber > last_sequence` for efficient historical load
-   - **INCREMENTAL**: Filters by `_sequenceNumber > last_sequence` AND `_updatedAt > (last_updated_at - 60s)` to catch late commits
+4. Two-phase sync (BOOTSTRAP and INCREMENTAL):
+   - BOOTSTRAP: Filters by `_sequenceNumber > last_sequence` for efficient historical load
+   - INCREMENTAL: Filters by `_sequenceNumber > last_sequence` AND `_updatedAt > (last_updated_at - 60s)` to catch late commits
    - Updates cursors (`last_sequence`, `last_updated_at`) after each batch is processed
    - Automatically transitions from BOOTSTRAP to INCREMENTAL when historical load completes
 
-## Error handling
+Refer to the `def schema()`, `def _map_tulip_type_to_fivetran()`, `def generate_column_name()`, and `def _transform_record()` functions for implementation details.
 
-Error handling - Refer to `def _fetch_with_retry()`
+## Error handling
 
 The connector implements robust error handling:
 
@@ -141,11 +136,13 @@ The connector implements robust error handling:
 - Structured logging: Uses Python logging module with appropriate levels (INFO, WARNING, ERROR, CRITICAL)
 - State preservation: Checkpoints every 500 records to minimize data loss on failure
 
+Refer to the `def _fetch_with_retry()` function for implementation details.
+
 ## Tables created
 
-The connector creates a single table per Tulip Table synced. The table name is generated from the Tulip table label and ID in the format `label__id`.
+The connector creates a single table per each Tulip table synced. The table name is generated from the Tulip table label and ID in the format `label__id`.
 
-Example table schema for a Tulip table named "KitsDummy":
+Example table schema for a Tulip table named `KitsDummy`:
 
 Table: `kitsdummy__t65jbagmgiexwy5ys`
 
