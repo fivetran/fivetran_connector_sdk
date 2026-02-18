@@ -91,7 +91,7 @@ The API key is passed securely via the TLS connection to Temporal Cloud. Configu
 
 The connector uses Temporal Cloud's native async iteration to handle large datasets efficiently. Both workflows and schedules are retrieved using async generators:
 
-- Workflow pagination: The `fetch_temporal_workflows` function uses `client.list_workflows()` which returns an async iterator. Workflows are processed one at a time without loading all data into memory.
+- Workflow pagination: The `fetch_temporal_workflows` function uses `client.list_workflows()`, which returns an async iterator. Workflows are processed one at a time without loading all data into memory.
 - Schedule pagination: The `fetch_temporal_schedules` function uses `client.list_schedules()` which returns an async iterator for streaming schedule data.
 
 Progress is logged at regular intervals:
