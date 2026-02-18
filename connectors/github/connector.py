@@ -499,7 +499,7 @@ def get_installation_access_token(jwt_token, installation_id, base_url):
 
 
 def process_repository_data(
-    repo_full_name, headers, base_url, state, current_sync_time, processed_repos
+    repo_full_name, headers, base_url, state, processed_repos
 ):
     """
     Process commits and pull requests for a single repository.
@@ -511,29 +511,29 @@ def process_repository_data(
         headers: Request headers with authentication
         base_url: Base URL for GitHub API
         state: State dictionary containing sync timestamps
-        current_sync_time: Current sync timestamp
         processed_repos: Dictionary tracking per-repository sync state (mutated in place)
 
     Returns:
         Tuple of (commit_count, pr_count) - number of commits and PRs processed
     """
-    # Extract state variables
-    last_commit_sync = state.get("last_commit_sync")
-    last_pr_sync = state.get("last_pr_sync")
-
-    # Get last sync time for this specific repository
+    # Get last sync time for this specific repository from per-repo state
     repo_data = processed_repos.get(repo_full_name, {})
-    repo_last_commit_sync = repo_data.get("last_commit_sync", last_commit_sync)
-    repo_last_pr_sync = repo_data.get("last_pr_sync", last_pr_sync)
+    repo_last_commit_sync = repo_data.get("last_commit_sync")
+    repo_last_pr_sync = repo_data.get("last_pr_sync")
 
     # Fetch and upsert commits for this repository
     log.info(f"Fetching commits for {repo_full_name}...")
     commit_count = 0
+    last_commit_date = None
     for commit in get_commits(headers, repo_full_name, base_url, since=repo_last_commit_sync):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="commits", data=commit)
+        # Track the newest (max) commit date confirmed processed for accurate incremental resume
+        commit_ts = commit.get("committer_date")
+        if commit_ts and (last_commit_date is None or commit_ts > last_commit_date):
+            last_commit_date = commit_ts
         commit_count += 1
         if commit_count % __CHECKPOINT_INTERVAL == 0:
             log.info(f"Checkpointing after {commit_count} commits for {repo_full_name}")
@@ -543,25 +543,36 @@ def process_repository_data(
             # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            # Per-repo timestamps are not updated here; they are only updated after the full loop
+            # completes to avoid skipping unprocessed commits on resume.
             op.checkpoint(
                 state={
                     "last_repo_sync": state.get("last_repo_sync"),
-                    "last_commit_sync": state.get("last_commit_sync"),
-                    "last_pr_sync": state.get("last_pr_sync"),
                     "processed_repos": processed_repos,
                 }
             )
 
     log.info(f"Fetched {commit_count} commits for {repo_full_name}")
 
+    # Update per-repo commit sync timestamp to the newest confirmed commit date
+    if last_commit_date:
+        if repo_full_name not in processed_repos:
+            processed_repos[repo_full_name] = {}
+        processed_repos[repo_full_name]["last_commit_sync"] = last_commit_date
+
     # Fetch and upsert pull requests for this repository
     log.info(f"Fetching pull requests for {repo_full_name}...")
     pr_count = 0
+    last_pr_date = None
     for pr in get_pull_requests(headers, repo_full_name, base_url, since=repo_last_pr_sync):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="pull_requests", data=pr)
+        # Track the newest (max) PR updated_at confirmed processed for accurate incremental resume
+        pr_ts = pr.get("updated_at")
+        if pr_ts and (last_pr_date is None or pr_ts > last_pr_date):
+            last_pr_date = pr_ts
         pr_count += 1
         if pr_count % __CHECKPOINT_INTERVAL == 0:
             log.info(f"Checkpointing after {pr_count} pull requests for {repo_full_name}")
@@ -571,22 +582,22 @@ def process_repository_data(
             # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            # Per-repo timestamps are not updated here; they are only updated after the full loop
+            # completes to avoid skipping unprocessed pull requests on resume.
             op.checkpoint(
                 state={
                     "last_repo_sync": state.get("last_repo_sync"),
-                    "last_commit_sync": state.get("last_commit_sync"),
-                    "last_pr_sync": state.get("last_pr_sync"),
                     "processed_repos": processed_repos,
                 }
             )
 
     log.info(f"Fetched {pr_count} pull requests for {repo_full_name}")
 
-    # Update processed repositories state
-    if repo_full_name not in processed_repos:
-        processed_repos[repo_full_name] = {}
-    processed_repos[repo_full_name]["last_commit_sync"] = current_sync_time
-    processed_repos[repo_full_name]["last_pr_sync"] = current_sync_time
+    # Update per-repo PR sync timestamp to the newest confirmed PR updated_at
+    if last_pr_date:
+        if repo_full_name not in processed_repos:
+            processed_repos[repo_full_name] = {}
+        processed_repos[repo_full_name]["last_pr_sync"] = last_pr_date
 
     return commit_count, pr_count
 
@@ -670,9 +681,25 @@ def update(configuration: dict, state: dict):
 
                 # Process commits and pull requests for this repository using helper function
                 commit_count, pr_count = process_repository_data(
-                    repo_full_name, headers, base_url, state, current_sync_time, processed_repos
+                    repo_full_name, headers, base_url, state, processed_repos
                 )
                 record_count += commit_count + pr_count
+
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                op.checkpoint(
+                    state={
+                        # Do not advance last_repo_sync here; keep the previous run's value so that
+                        # if the sync is interrupted, the next run re-scans from the same point and
+                        # does not skip repositories that were not yet processed in this run.
+                        "last_repo_sync": state.get("last_repo_sync"),
+                        "processed_repos": processed_repos,
+                    }
+                )
 
             log.info(
                 f"Completed sync for organization: {organization}. Processed {repo_count} repositories."
@@ -687,15 +714,13 @@ def update(configuration: dict, state: dict):
         op.checkpoint(
             state={
                 "last_repo_sync": current_sync_time,
-                "last_commit_sync": current_sync_time,
-                "last_pr_sync": current_sync_time,
                 "processed_repos": processed_repos,
             }
         )
 
         log.info(f"Sync completed successfully. Total records processed: {record_count}")
 
-    except Exception as e:
+    except (requests.exceptions.RequestException, RuntimeError, ValueError) as e:
         # In case of an exception, raise a runtime error
         raise RuntimeError(f"Failed to sync GitHub data: {str(e)}")
 

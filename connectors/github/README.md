@@ -27,7 +27,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - State management: Tracks sync progress per repository for reliable resumption after interruptions.
 - Rate limiting: Implements delays between requests and handles rate limit errors gracefully.
 - Retry logic: Automatic retry with exponential backoff for transient errors.
-- Checkpointing: Saves progress every 1000 records during large repository syncs and once after all organizations are fully processed.
+- Checkpointing: Saves progress every 1000 records during large repository syncs, once after each repository completes, and once after all organizations are fully processed.
 
 ## Configuration file
 
@@ -45,10 +45,10 @@ The configuration file contains the GitHub App credentials required to authentic
 For GitHub Enterprise installations, add a `"base_url"` field with your enterprise instance URL (e.g., `"base_url": "https://github.your-company.com/api/v3"`).
 
 Configuration parameters:
-- `app_id` (required): Your GitHub App ID (found in **GitHub App settings**).
-- `private_key` (required): RSA private key for your GitHub App (PEM format with newlines).
-- `organization` (required): GitHub organization name to sync (can be comma-separated for multiple orgs).
-- `installation_id` (required): Installation ID for the GitHub App on your organization.
+- `app_id` (required) - Your GitHub App ID (found in **GitHub App settings**).
+- `private_key` (required) - RSA private key for your GitHub App (PEM format with newlines).
+- `organization` (required) - GitHub organization name to sync (can be comma-separated for multiple orgs).
+- `installation_id` (required) - Installation ID for the GitHub App on your organization.
 
 Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -153,8 +153,6 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 ```json
 {
   "last_repo_sync": "2024-02-13T10:30:00Z",
-  "last_commit_sync": "2024-02-13T10:30:00Z",
-  "last_pr_sync": "2024-02-13T10:30:00Z",
   "processed_repos": {
     "org/repo1": {
       "last_commit_sync": "2024-02-13T10:35:00Z",
@@ -165,9 +163,9 @@ The connector maintains detailed state for resumable syncs, managed in the `upda
 ```
 
 State tracking:
-- Global timestamps - Track overall sync progress for repositories, commits, and PRs.
-- Per-repository timestamps - Track individual repository sync progress.
-- Checkpointing - Saves state every 1000 records mid-repository (commits and PRs) and once after all organizations complete, ensuring safe resumption without data loss.
+- `last_repo_sync` - Tracks the start time of the last fully completed sync. Used to filter the repository list on the next run. Only advances in the final checkpoint after all organizations complete.
+- `processed_repos` - Per-repository timestamps tracking the newest (max) commit date and PR updated_at confirmed processed. Used as the `since` filter on the next sync so only new data is fetched.
+- Checkpointing - Mid-repository checkpoints (every 1000 records) flush buffered data to the destination without advancing per-repo timestamps, so an interrupted sync resumes the full repository from its last confirmed point. A per-repo checkpoint fires after each repository completes, and a final checkpoint advances `last_repo_sync` once all organizations finish.
 
 ## Error handling
 
@@ -327,7 +325,7 @@ GitHub connectors:
 - [github_traffic](../github_traffic/) - This example shows how to sync GitHub repository traffic metrics (views, clones, referrers, and popular content paths) using the GitHub REST API. It demonstrates how to work with GitHub's traffic analytics endpoints, handle limited historical data (14 days), and use Personal Access Token authentication.
 
 Authentication patterns:
-- [Certificate Authentication](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches: using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
+- [Certificate Authentication](../../examples/common_patterns_for_connectors/authentication/certificate/) - This example demonstrates certificate-based authentication with two approaches - using base64 encoded certificates in configuration, or retrieving certificates from AWS S3 at runtime. Useful for understanding advanced credential management patterns that can be applied to GitHub App private keys.
 
 ### Resources
 
