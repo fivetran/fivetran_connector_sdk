@@ -746,7 +746,9 @@ def _process_sheet(
             log.fine(f"Test mode: Processing {len(sheet_rows)} rows for sheet '{sheet_name}'")
 
         log.info(f"Sheet '{sheet_name}': Found {len(sheet_rows)} total rows")
-        log.info(f"Sheet '{sheet_name}': Using modifiedSince={last_modified or 'None (fetching all rows)'}")
+        log.info(
+            f"Sheet '{sheet_name}': Using modifiedSince={last_modified or 'None (fetching all rows)'}"
+        )
 
         current_row_ids = {str(row["id"]) for row in sheet_rows}
         previous_row_ids = set(sheet_state.get("row_ids", []))
@@ -764,12 +766,8 @@ def _process_sheet(
                 }
 
                 for cell in row["cells"]:
-                    column_name = column_map.get(
-                        cell["columnId"], f"col_{cell['columnId']}"
-                    )
-                    column_type = column_type_map.get(
-                        cell["columnId"], ColumnType.TEXT_NUMBER
-                    )
+                    column_name = column_map.get(cell["columnId"], f"col_{cell['columnId']}")
+                    column_type = column_type_map.get(cell["columnId"], ColumnType.TEXT_NUMBER)
                     value = cell.get("displayValue") or cell.get("value")
                     row_data[column_name] = data_handler.parse_value(value, column_type)
 
@@ -829,13 +827,10 @@ def _process_report(
     try:
         report_data = api.get_report_details(report_id)
         column_map = {
-            col.get("virtualId", col.get("id")): col["title"]
-            for col in report_data["columns"]
+            col.get("virtualId", col.get("id")): col["title"] for col in report_data["columns"]
         }
 
-        log.info(
-            f"Report '{report_name}': Found {len(report_data.get('rows', []))} total rows"
-        )
+        log.info(f"Report '{report_name}': Found {len(report_data.get('rows', []))} total rows")
 
         report_rows = report_data.get("rows", [])
         current_row_ids = {str(row["id"]) for row in report_rows}
@@ -896,8 +891,12 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
 
     # Parse configuration values from strings
-    sheets_config = _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
-    reports_config = _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
+    sheets_config = (
+        _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
+    )
+    reports_config = (
+        _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
+    )
 
     requests_per_minute = int(
         configuration.get("requests_per_minute", str(_DEFAULT_REQUESTS_PER_MINUTE))
@@ -957,8 +956,12 @@ def schema(configuration: dict):
         raise ValueError("Could not find 'api_token'")
 
     # Parse configuration values from strings
-    sheets_config = _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
-    reports_config = _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
+    sheets_config = (
+        _parse_config_items(configuration["sheets"]) if configuration.get("sheets") else {}
+    )
+    reports_config = (
+        _parse_config_items(configuration["reports"]) if configuration.get("reports") else {}
+    )
 
     # Get sheet and report names to create dynamic schema
     config_obj = SmartsheetConfig(
