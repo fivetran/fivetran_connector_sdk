@@ -35,7 +35,7 @@ The connector requires a `configuration.json` file with the Druid connection det
 ```json
 {
   "host": "<YOUR_DRUID_HOST>",
-  "port": 8888,
+  "port": "<YOUR_DRUID_PORT>",
   "datasources": "<YOUR_DRUID_DATASOURCES>"
 }
 ```
@@ -45,7 +45,7 @@ For Druid clusters that require authentication, add the optional credentials:
 ```json
 {
   "host": "<YOUR_DRUID_HOST>",
-  "port": 8888,
+  "port": "<YOUR_DRUID_PORT>",
   "datasources": "<YOUR_DRUID_DATASOURCES>",
   "username": "<YOUR_DRUID_USERNAME>",
   "password": "<YOUR_DRUID_PASSWORD>"
@@ -53,11 +53,11 @@ For Druid clusters that require authentication, add the optional credentials:
 ```
 
 Configuration parameters:
-- `host` – Hostname or IP address of your Druid router or broker node (required)
-- `port` – Port number for the Druid router or broker, typically 8888 (required, must be an integer)
-- `datasources` – Comma-separated list of Druid datasource names to sync (required)
-- `username` – Username for basic authentication (optional)
-- `password` – Password for basic authentication (optional)
+- `host` - Hostname or IP address of your Druid router or broker node (required)
+- `port` - Port number for the Druid router or broker, typically 8888 (required, accepts integer or string)
+- `datasources` - Comma-separated list of Druid datasource names to sync (required)
+- `username` - Username for basic authentication (optional)
+- `password` - Password for basic authentication (optional)
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -83,27 +83,27 @@ For a full sync, the cursor starts at epoch (`1970-01-01T00:00:00+00:00`). For i
 
 The connector processes Druid data through the following steps:
 
-- Configuration validation – Validates all required fields (`host`, `port`, `datasources`) and optional fields before making any API calls. Refer to `validate_configuration()`.
+- Configuration validation - Validates all required fields (`host`, `port`, `datasources`) and optional fields before making any API calls. Refer to `validate_configuration()`.
 
-- Connection setup – Builds the base URL from `host` and `port`, prepares request headers, and optionally adds the `Authorization` header for basic authentication. Refer to `update()`.
+- Connection setup - Builds the base URL from `host` and `port`, prepares request headers, and optionally adds the `Authorization` header for basic authentication. Refer to `update()`.
 
-- Incremental filtering – Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch. Refer to `fetch_datasource_data()`.
+- Incremental filtering - Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch. Refer to `fetch_datasource_data()`.
 
-- Time-based pagination – Executes paginated SQL queries against the `/druid/v2/sql` endpoint using `WHERE __time > TIMESTAMP '{cursor}'`, advancing the cursor after each batch until fewer than `__BATCH_SIZE` records are returned. Refer to `fetch_datasource_data()`.
+- Time-based pagination - Executes paginated SQL queries against the `/druid/v2/sql` endpoint using `WHERE __time > TIMESTAMP '{cursor}'`, advancing the cursor after each batch until fewer than `__BATCH_SIZE` records are returned. Refer to `fetch_datasource_data()`.
 
-- Data upserting – Each record is upserted to the corresponding destination table. Fivetran automatically generates a `_fivetran_id` surrogate key as a hash of all row values, since Druid rows do not have a guaranteed unique key. Refer to `update()`.
+- Data upserting - Each record is upserted to the corresponding destination table. Fivetran automatically generates a `_fivetran_id` surrogate key as a hash of all row values, since Druid rows do not have a guaranteed unique key. Refer to `update()`.
 
-- State checkpointing – Saves the maximum `__time` seen per datasource after each datasource completes. Also checkpoints every 1000 records during processing to enable safe resumption. Refer to `update()`.
+- State checkpointing - Saves the maximum `__time` seen per datasource after each datasource completes. Also checkpoints every 1000 records during processing to enable safe resumption. Refer to `update()`.
 
 ## Error handling
 
 The connector implements robust error handling to ensure reliable data synchronization:
 
-- Retry logic with exponential backoff – Automatically retries failed requests up to 3 times, waiting 2s, 4s, and 8s between attempts. See `make_druid_request()`.
-- HTTP error handling – Retries on 5xx server errors and fails immediately on 4xx client errors such as authentication failures. See `make_druid_request()`.
-- Timeout handling – Each request times out after 30 seconds, and timeout errors are retried up to the maximum retry count. See `make_druid_request()`.
-- Configuration validation – Validates all configuration parameters before making any API calls and provides clear error messages for missing or invalid fields. See `validate_configuration()`.
-- State checkpointing – Checkpoints sync state after every 1000 records and after each datasource completes, enabling safe resumption without re-processing already-synced data.
+- Retry logic with exponential backoff - Automatically retries failed requests up to 3 times, waiting 2s, 4s, and 8s between attempts. See `make_druid_request()`.
+- HTTP error handling - Retries on 5xx server errors and fails immediately on 4xx client errors such as authentication failures. See `make_druid_request()`.
+- Timeout handling - Each request times out after 30 seconds, and timeout errors are retried up to the maximum retry count. See `make_druid_request()`.
+- Configuration validation - Validates all configuration parameters before making any API calls and provides clear error messages for missing or invalid fields. See `validate_configuration()`.
+- State checkpointing - Checkpoints sync state after every 1000 records and after each datasource completes, enabling safe resumption without re-processing already-synced data.
 
 ## Tables created
 

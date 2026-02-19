@@ -89,7 +89,7 @@ def validate_configuration(configuration: dict):
     try:
         port_int = int(port)
     except (TypeError, ValueError):
-        raise ValueError("port must be an integer between 1 and 65535") from None
+        raise ValueError("port must be a valid port number between 1 and 65535") from None
     if port_int < 1 or port_int > 65535:
         raise ValueError("port must be between 1 and 65535")
     # Normalize configuration so downstream code always sees an integer
@@ -105,6 +105,11 @@ def validate_configuration(configuration: dict):
         username = configuration.get("username")
         if username and (not isinstance(username, str) or not username.strip()):
             raise ValueError("username must be a non-empty string if provided")
+
+    if "password" in configuration:
+        password = configuration.get("password")
+        if password and (not isinstance(password, str) or not password.strip()):
+            raise ValueError("password must be a non-empty string if provided")
 
     log.info("Configuration validated successfully")
 
@@ -155,7 +160,9 @@ def make_druid_request(url: str, headers: dict, data: dict):
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts to {url}")
             delay = __RATE_LIMIT_DELAY ** (attempt + 1)
-            log.warning(f"Request timeout, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})")
+            log.warning(
+                f"Request timeout, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})"
+            )
             time.sleep(delay)
 
         except requests.exceptions.RequestException as e:
@@ -164,7 +171,9 @@ def make_druid_request(url: str, headers: dict, data: dict):
                     f"Failed to make request to url {url} after {__MAX_RETRIES} attempts: {str(e)}"
                 )
             delay = __RATE_LIMIT_DELAY ** (attempt + 1)
-            log.warning(f"Request attempt {attempt + 1} failed, retrying in {delay} seconds: {str(e)}")
+            log.warning(
+                f"Request attempt {attempt + 1} failed, retrying in {delay} seconds: {str(e)}"
+            )
             time.sleep(delay)
 
     raise RuntimeError(f"Failed to make request after {__MAX_RETRIES} attempts")
@@ -272,11 +281,7 @@ def schema(configuration: dict):
     for datasource in datasources:
         datasource = datasource.strip()
         if datasource:
-            schema_list.append(
-                {
-                    "table": sanitize_table_name(datasource)
-                }
-            )
+            schema_list.append({"table": sanitize_table_name(datasource)})
 
     return schema_list
 
@@ -363,7 +368,9 @@ def update(configuration: dict, state: dict):
                         if max_time_processed is None or record_dt > max_time_processed:
                             max_time_processed = record_dt
                     except (ValueError, AttributeError):
-                        log.warning(f"Could not parse __time value '{record_time}', skipping for cursor tracking")
+                        log.warning(
+                            f"Could not parse __time value '{record_time}', skipping for cursor tracking"
+                        )
 
                 # Checkpoint periodically for large datasets
                 if record_count % __CHECKPOINT_INTERVAL == 0:
