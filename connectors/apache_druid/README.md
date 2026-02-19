@@ -20,13 +20,13 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 ## Features
 
-- Incremental sync – Fetches only new records since the last sync using time-based filtering on the `__time` column
-- Multi-datasource support – Syncs multiple Druid datasources in a single connector, each mapped to a separate destination table
-- Time-based pagination – Paginates using the last seen timestamp instead of OFFSET, leveraging Druid's native segment pruning for performance
-- Per-datasource state tracking – Tracks sync progress independently per datasource so adding a new datasource triggers only a full fetch for that datasource
-- Retry logic with exponential backoff – Automatically retries failed requests up to 3 times with delays of 2s, 4s, and 8s
-- Basic authentication support – Optional username and password authentication for secured Druid clusters
-- Periodic checkpointing – Saves sync progress every 1000 records to enable safe resumption after interruption
+- Incremental sync - Fetches only new records since the last sync using time-based filtering on the `__time` column
+- Multi-datasource support - Syncs multiple Druid datasources in a single connector, each mapped to a separate destination table
+- Time-based pagination - Paginates using the last seen timestamp instead of OFFSET, leveraging Druid's native segment pruning for performance
+- Per-datasource state tracking - Tracks sync progress independently per datasource so adding a new datasource triggers only a full fetch for that datasource
+- Retry logic with exponential backoff - Automatically retries failed requests up to 3 times with delays of 2s, 4s, and 8s
+- Basic authentication support - Optional username and password authentication for secured Druid clusters
+- Periodic checkpointing - Saves sync progress every 1000 records to enable safe resumption after interruption
 
 ## Configuration file
 
