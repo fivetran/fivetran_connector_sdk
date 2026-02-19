@@ -41,7 +41,7 @@ __REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
 __RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __BATCH_SIZE = 10000  # Number of records to fetch per request
-__EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync
+__EPOCH_START = "1970-01-01 00:00:00"  # Default start timestamp for full sync (Druid SQL format)
 __CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
 __PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
 
@@ -255,8 +255,9 @@ def fetch_datasource_data(
         if len(results) < __BATCH_SIZE:
             break
 
-        # Advance cursor to the last record's __time; results are sorted so this is the max
-        cursor = results[-1][timestamp_column]
+        # Advance cursor to the last record's __time in Druid SQL format; results are sorted so this is the max
+        raw_time = results[-1][timestamp_column]
+        cursor = datetime.fromisoformat(raw_time.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
         time.sleep(__PAGINATION_DELAY_SECONDS)
 
     log.info(f"Completed fetching {total_records} total records from {datasource}")
@@ -310,7 +311,7 @@ def update(configuration: dict, state: dict):
     password = configuration.get("password")
 
     # Build base URL
-    protocol = "https"
+    protocol = "http"
     base_url = f"{protocol}://{host}:{port}"
     log.info(f"Connecting to Druid at {base_url}")
 
@@ -339,7 +340,13 @@ def update(configuration: dict, state: dict):
             table_name = sanitize_table_name(datasource)
 
             # Get datasource-specific last sync time. None triggers a full fetch for new datasources.
-            datasource_last_sync = current_state.get(f"last_sync_{datasource}")
+            # Normalize to Druid SQL format in case state holds an old ISO 8601 value.
+            raw_last_sync = current_state.get(f"last_sync_{datasource}")
+            datasource_last_sync = (
+                datetime.fromisoformat(raw_last_sync.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
+                if raw_last_sync
+                else None
+            )
 
             # Track max __time from actual data processed as datetime for safe comparison
             max_time_processed: datetime | None = None
@@ -383,7 +390,7 @@ def update(configuration: dict, state: dict):
                     # Learn more about how and where to checkpoint by reading our best practices documentation
                     # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
                     current_state[f"last_sync_{datasource}"] = (
-                        max_time_processed.isoformat()
+                        max_time_processed.strftime("%Y-%m-%d %H:%M:%S")
                         if max_time_processed
                         else datasource_last_sync
                     )
@@ -395,7 +402,7 @@ def update(configuration: dict, state: dict):
                 f"Max __time: {max_time_processed or 'N/A'}"
             )
             current_state[f"last_sync_{datasource}"] = (
-                max_time_processed.isoformat() if max_time_processed else datasource_last_sync
+                max_time_processed.strftime("%Y-%m-%d %H:%M:%S") if max_time_processed else datasource_last_sync
             )
 
             # Save the progress by checkpointing the state. This is important for ensuring that
