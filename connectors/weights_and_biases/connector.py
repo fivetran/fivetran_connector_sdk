@@ -110,7 +110,6 @@ def fetch_projects(api: wandb.Api, entity: str, state: dict) -> int:
             # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
             # Learn more about how and where to checkpoint by reading our best practices documentation
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-            op.checkpoint(new_state)
             op.checkpoint(state=state)
 
     return projects_synced
@@ -171,7 +170,6 @@ def fetch_run_fields(api: wandb.Api, entity: str, state: dict) -> int:
                         # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
                         # Learn more about how and where to checkpoint by reading our best practices documentation
                         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-                        op.checkpoint(new_state)
                         op.checkpoint(state=state)
 
                 except Exception as e:
@@ -248,7 +246,6 @@ def fetch_artifacts(api: wandb.Api, entity: str, state: dict) -> int:
                             # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
                             # Learn more about how and where to checkpoint by reading our best practices documentation
                             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-                            op.checkpoint(new_state)
                             op.checkpoint(state=state)
 
                 except Exception as e:
