@@ -1,15 +1,7 @@
 # Smartsheet API Connector Example
 
 ## Connector overview
-This connector demonstrates how to sync row-level data from a Smartsheet sheet using the Fivetran Connector SDK and the Smartsheet [getSheet API endpoint](https://smartsheet.redoc.ly/tag/sheets#operation/getSheet). It retrieves rows from a single sheet, dynamically maps columns using column IDs, and emits those rows to a destination table.
-
-This example supports:
-- Incremental syncs using `rowsModifiedSince`.
-- Dynamic schema based on column headers.
-- Optional row-level metadata.
-- Configurable authentication and sheet selection.
-
-This example is currently configured for a single sheet with no pagination. You can extend it to handle multiple sheets and pagination via the `includeAll=true` query parameter or the `page` and `pageSize` parameters.
+This connector demonstrates how to sync row-level data from Smartsheet using the Fivetran Connector SDK, and the Smartsheet [Sheets API](https://smartsheet.redoc.ly/tag/sheets) and [Reports API](https://smartsheet.redoc.ly/tag/reports). It retrieves rows from sheets and reports, dynamically maps columns using column IDs, and emits those rows to destination tables.
 
 
 ## Requirements
@@ -25,11 +17,12 @@ Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/se
 
 
 ## Features
-- Retrieves full sheet metadata and all rows using Smartsheet’s Sheets API.
-- Maps `columnId` to column names to construct each row as a flat dictionary.
-- Includes row metadata fields like `rowNumber`, `createdAt`, and `modifiedAt`.
-- Uses `rowsModifiedSince` to incrementally sync only updated rows.
-- Uses `op.upsert()` for each row and checkpoints with the current sync timestamp.
+- Incremental syncs using `rowsModifiedSince` to sync only updated rows
+- Dynamic schema based on column headers, mapping `columnId` to column names
+- Optional row-level metadata fields like `rowNumber`, `createdAt`, and `modifiedAt`
+- Configurable authentication and sheet selection
+- Multiple sheets and reports in a single connector instance
+- Uses `op.upsert()` for each row and checkpoints with the current sync timestamp
 
 
 ## Configuration file
@@ -37,8 +30,10 @@ The connector requires the following configuration parameters:
 
 ```json
 {
-    "smartsheet_api_token": "your_api_token",
-    "smartsheet_sheet_id": "your_smartsheet_sheet_id"
+  "api_token": "<YOUR_SMARTSHEET_API_TOKEN>",
+  "sheets": "<SHEET_ID_1>:<SHEET_NAME_1>,<SHEET_ID_2>:<SHEET_NAME_2>",
+  "reports": "<REPORT_ID_1>:<REPORT_NAME_1>,<REPORT_ID_2>:<REPORT_NAME_2>",
+  "requests_per_minute": "<60>"
 }
 ```
 
