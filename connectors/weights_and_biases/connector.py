@@ -40,11 +40,11 @@ def validate_configuration(configuration: dict) -> None:
         raise ValueError("Configuration must be a dictionary.")
 
     # Validate WandB API key
-    api_key = configuration.get("WandB_API_KEY")
+    api_key = configuration.get("api_key")
     if api_key is None or api_key == "":
-        raise ValueError("Missing required configuration value: WandB_API_KEY")
+        raise ValueError("Missing required configuration value: api_key")
     if not isinstance(api_key, str):
-        raise ValueError("Configuration 'WandB_API_KEY' must be a string.")
+        raise ValueError("Configuration 'api_key' must be a string.")
     api_key_stripped = api_key.strip()
     # Reject obvious placeholder values like <YOUR_WANDB_API_KEY>
     if api_key_stripped.startswith("<") and api_key_stripped.endswith(">"):
@@ -84,17 +84,19 @@ def fetch_projects(api: wandb.Api, entity: str, state: dict) -> int:
         Total number of projects upserted.
     """
     projects_synced = 0
-    for p in api.projects(entity):
+    for project in api.projects(entity):
         proj = {
-            "project_id": f"{p.entity}/{p.name}",
-            "entity": p.entity,
-            "name": p.name,
-            "url": getattr(p, "url", None),
+            "project_id": f"{project.entity}/{project.name}",
+            "entity": project.entity,
+            "name": project.name,
+            "url": getattr(project, "url", None),
             "synced_at": _now_utc_iso(),
         }
 
         # Upsert projects data to destination
-        # The 'upsert' operation is used to insert or update data in the destination table
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="projects", data=proj)
         projects_synced += 1
 
@@ -102,6 +104,13 @@ def fetch_projects(api: wandb.Api, entity: str, state: dict) -> int:
         if projects_synced % CHECKPOINT_BATCH == 0:
             state["last_sync_time"] = _now_utc_iso()
             log.info(f"Checkpointing after {projects_synced} project upserts")
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(new_state)
             op.checkpoint(state=state)
 
     return projects_synced
@@ -120,11 +129,11 @@ def fetch_run_fields(api: wandb.Api, entity: str, state: dict) -> int:
         Total number of runs upserted.
     """
     runs_synced = 0
-    for p in api.projects(entity):
+    for project in api.projects(entity):
         try:
-            log.info(f"Fetching runs for project: {p.name}")
-            runs = api.runs(f"{entity}/{p.name}")
-            log.info(f"Found {len(runs)} runs in project {p.name}")
+            log.info(f"Fetching runs for project: {project.name}")
+            runs = api.runs(f"{entity}/{project.name}")
+            log.info(f"Found {len(runs)} runs in project {project.name}")
 
             for run in runs:
                 try:
@@ -146,6 +155,9 @@ def fetch_run_fields(api: wandb.Api, entity: str, state: dict) -> int:
                     }
 
                     # Upsert run fields data to destination
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The first argument is the name of the destination table.
+                    # The second argument is a dictionary containing the record to be upserted.
                     op.upsert(table="run_fields", data=run_obj)
                     runs_synced += 1
 
@@ -153,6 +165,13 @@ def fetch_run_fields(api: wandb.Api, entity: str, state: dict) -> int:
                     if runs_synced % CHECKPOINT_BATCH == 0:
                         state["last_sync_time"] = _now_utc_iso()
                         log.info(f"Checkpointing after {runs_synced} run_fields upserts")
+                        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                        # from the correct position in case of next sync or interruptions.
+                        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                        # Learn more about how and where to checkpoint by reading our best practices documentation
+                        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                        op.checkpoint(new_state)
                         op.checkpoint(state=state)
 
                 except Exception as e:
@@ -165,7 +184,7 @@ def fetch_run_fields(api: wandb.Api, entity: str, state: dict) -> int:
 
         except Exception as e:
             # Log warning for project-level failures but continue with next project
-            log.warning(f"Failed to fetch runs for project {p.name}: {str(e)}")
+            log.warning(f"Failed to fetch runs for project {project.name}: {str(e)}")
             continue
 
     return runs_synced
@@ -186,12 +205,12 @@ def fetch_artifacts(api: wandb.Api, entity: str, state: dict) -> int:
     """
     artifacts_synced = 0
 
-    for p in api.projects(entity):
-        project_path = f"{entity}/{p.name}"
+    for project in api.projects(entity):
+        project_path = f"{entity}/{project.name}"
         try:
-            log.info(f"Fetching runs for project: {p.name}")
+            log.info(f"Fetching runs for project: {project.name}")
             runs = api.runs(project_path)
-            log.info(f"Found {len(runs)} runs in project {p.name}")
+            log.info(f"Found {len(runs)} runs in project {project.name}")
 
             for run in runs:
                 try:
@@ -213,6 +232,9 @@ def fetch_artifacts(api: wandb.Api, entity: str, state: dict) -> int:
                         }
 
                         # Upsert artifacts data to destination
+                        # The 'upsert' operation is used to insert or update data in the destination table.
+                        # The first argument is the name of the destination table.
+                        # The second argument is a dictionary containing the record to be upserted.
                         op.upsert(table="artifacts", data=art)
                         artifacts_synced += 1
 
@@ -220,6 +242,13 @@ def fetch_artifacts(api: wandb.Api, entity: str, state: dict) -> int:
                         if artifacts_synced % CHECKPOINT_BATCH == 0:
                             state["last_sync_time"] = _now_utc_iso()
                             log.info(f"Checkpointing after {artifacts_synced} artifact upserts")
+                            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                            # from the correct position in case of next sync or interruptions.
+                            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                            # Learn more about how and where to checkpoint by reading our best practices documentation
+                            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                            op.checkpoint(new_state)
                             op.checkpoint(state=state)
 
                 except Exception as e:
@@ -232,7 +261,7 @@ def fetch_artifacts(api: wandb.Api, entity: str, state: dict) -> int:
 
         except Exception as e:
             # Log warning for project-level failures but continue with next project
-            log.warning(f"Failed to fetch runs for artifacts in project {p.name}: {str(e)}")
+            log.warning(f"Failed to fetch runs for artifacts in project {project.name}: {str(e)}")
             continue
 
     return artifacts_synced
@@ -278,7 +307,7 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
 
     # Ensure state is a dictionary (it may be None in some runtimes)
-    if state is None or not isinstance(state, dict):
+    if state is None:
         state = {}
 
     # Extract configuration parameters
@@ -300,7 +329,7 @@ def update(configuration: dict, state: dict):
     artifacts_count = fetch_artifacts(api, entity, state)
     log.info(f"Upserted {artifacts_count} artifacts")
 
-    # Update state with sync metadata for tracking purposes
+    # Update state with the current sync time for the next run
     state["last_sync_time"] = _now_utc_iso()
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume

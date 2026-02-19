@@ -33,7 +33,7 @@ The `configuration.json` file contains the authentication and entity information
 
 ```json
 {
-  "WandB_API_KEY": "<YOUR_WANDB_API_KEY>",
+  "api_key": "<YOUR_WANDB_API_KEY>",
   "entity": "<YOUR_ENTITY_NAME>"
 }
 ```
@@ -48,8 +48,6 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 
 The `requirements.txt` file specifies the Python libraries required by the connector. This connector requires the Weights & Biases Python SDK to interact with the W&B API.
-
-Example content of `requirements.txt`:
 
 ```
 wandb==0.25.0
