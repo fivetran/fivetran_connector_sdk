@@ -1,6 +1,6 @@
 # Microsoft Intune Connector SDK Example
 
-## Connector Overview
+## Connector overview
 This example demonstrates how to build a connector for [Microsoft Intune](https://www.microsoft.com/en-us/security/business/microsoft-intune) with Fivetran Connector SDK, using the [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/use-the-api) to retrieve managed device data. The connector pulls data from the Intune managed devices endpoint and delivers it to your Fivetran destination in a single table called `MANAGED_DEVICES`.
 
 ## Requirements

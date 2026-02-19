@@ -1,6 +1,6 @@
 # Sensor Tower Connector SDK Example
 
-## Connector Overview
+## Connector overview
 This example demonstrates how to build a Fivetran Connector SDK integration for [Sensor Tower](https://sensortower.com), a market intelligence and analytics platform that provides insights into mobile apps, app store trends, and digital advertising. The connector pulls data from the Sensor Tower API for three tables: `SALES_REPORT_ESTIMATES`, `ACTIVE_USERS`, and `RETENTION`. You can configure the connector to track specific iOS and Android app IDs to gather the necessary information for your use case.
 
 ## Requirements
