@@ -54,7 +54,7 @@ For Druid clusters that require authentication, add the optional credentials:
 
 Configuration parameters:
 - `host` - Hostname or IP address of your Druid router or broker node (required)
-- `port` - Port number for the Druid router or broker, typically 8888 (required, accepts integer or string)
+- `port` - Port number for the Druid router or broker, typically 8888 (required)
 - `datasources` - Comma-separated list of Druid datasource names to sync (required)
 - `username` - Username for basic authentication (optional)
 - `password` - Password for basic authentication (optional)
@@ -89,7 +89,7 @@ The connector processes Druid data through the following steps:
 
 - Incremental filtering - Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch. Refer to `fetch_datasource_data()`.
 
-- Time-based pagination - Executes paginated SQL queries against the `/druid/v2/sql` endpoint using `WHERE __time > TIMESTAMP '{cursor}'`, advancing the cursor after each batch until fewer than `__BATCH_SIZE` records are returned. Refer to `fetch_datasource_data()`.
+- Time-based pagination - Executes paginated SQL queries against the `/druid/v2/sql` endpoint using `WHERE __time > TIME_PARSE('{cursor}')`, advancing the cursor after each batch until fewer than `__BATCH_SIZE` records are returned. Refer to `fetch_datasource_data()`.
 
 - Data upserting - Each record is upserted to the corresponding destination table. Fivetran automatically generates a `_fivetran_id` surrogate key as a hash of all row values, since Druid rows do not have a guaranteed unique key. Refer to `update()`.
 

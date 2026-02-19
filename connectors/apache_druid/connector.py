@@ -41,9 +41,29 @@ __REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
 __RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __BATCH_SIZE = 10000  # Number of records to fetch per request
-__EPOCH_START = "1970-01-01 00:00:00"  # Default start timestamp for full sync (Druid SQL format)
+__EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync (ISO 8601)
 __CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
 __PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
+
+
+def to_iso_timestamp(ts: str | datetime) -> str:
+    """
+    Normalize a timestamp to ISO 8601 format for use with Druid's TIME_PARSE() function.
+
+    Accepts a datetime object or a string in either ISO 8601 format (e.g.
+    '2015-09-12T23:59:59.200Z') or the legacy Druid SQL format ('yyyy-MM-dd HH:mm:ss')
+    that may be present in older state values.
+    Always returns a full ISO 8601 string with UTC offset (e.g. '2015-09-12T23:59:59.200000+00:00').
+    """
+    if isinstance(ts, datetime):
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return ts.isoformat()
+    # Handle legacy 'yyyy-MM-dd HH:mm:ss' values that may exist in state from older syncs
+    if "T" not in ts:
+        return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).isoformat()
+    # Already ISO 8601 — normalise Z suffix for Python < 3.11 then round-trip to ensure consistency
+    return datetime.fromisoformat(ts.replace("Z", "+00:00")).isoformat()
 
 
 def sanitize_table_name(name: str) -> str:
@@ -84,7 +104,7 @@ def validate_configuration(configuration: dict):
     if not host or not isinstance(host, str) or not host.strip():
         raise ValueError("host must be a non-empty string")
 
-    # Validate port (accept string or integer, normalize to integer)
+    # Validate port is a valid port number
     port = configuration.get("port")
     try:
         port_int = int(port)
@@ -92,8 +112,6 @@ def validate_configuration(configuration: dict):
         raise ValueError("port must be a valid port number between 1 and 65535") from None
     if port_int < 1 or port_int > 65535:
         raise ValueError("port must be between 1 and 65535")
-    # Normalize configuration so downstream code always sees an integer
-    configuration["port"] = port_int
 
     # Validate datasources
     datasources = configuration.get("datasources")
@@ -238,7 +256,7 @@ def fetch_datasource_data(
         query = f"""
         SELECT *
         FROM "{datasource}"
-        WHERE "{timestamp_column}" > TIMESTAMP '{cursor}'
+        WHERE "{timestamp_column}" > TIME_PARSE('{cursor}')
         ORDER BY "{timestamp_column}"
         LIMIT {__BATCH_SIZE}
         """
@@ -255,9 +273,8 @@ def fetch_datasource_data(
         if len(results) < __BATCH_SIZE:
             break
 
-        # Advance cursor to the last record's __time in Druid SQL format; results are sorted so this is the max
-        raw_time = results[-1][timestamp_column]
-        cursor = datetime.fromisoformat(raw_time.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
+        # Advance cursor to the last record's __time; results are sorted so this is the max
+        cursor = results[-1][timestamp_column]
         time.sleep(__PAGINATION_DELAY_SECONDS)
 
     log.info(f"Completed fetching {total_records} total records from {datasource}")
@@ -311,7 +328,7 @@ def update(configuration: dict, state: dict):
     password = configuration.get("password")
 
     # Build base URL
-    protocol = "http"
+    protocol = "https"
     base_url = f"{protocol}://{host}:{port}"
     log.info(f"Connecting to Druid at {base_url}")
 
@@ -340,13 +357,9 @@ def update(configuration: dict, state: dict):
             table_name = sanitize_table_name(datasource)
 
             # Get datasource-specific last sync time. None triggers a full fetch for new datasources.
-            # Normalize to Druid SQL format in case state holds an old ISO 8601 value.
+            # Normalize to ISO 8601 to handle any legacy 'yyyy-MM-dd HH:mm:ss' values in state.
             raw_last_sync = current_state.get(f"last_sync_{datasource}")
-            datasource_last_sync = (
-                datetime.fromisoformat(raw_last_sync.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
-                if raw_last_sync
-                else None
-            )
+            datasource_last_sync = to_iso_timestamp(raw_last_sync) if raw_last_sync else None
 
             # Track max __time from actual data processed as datetime for safe comparison
             max_time_processed: datetime | None = None
@@ -390,7 +403,7 @@ def update(configuration: dict, state: dict):
                     # Learn more about how and where to checkpoint by reading our best practices documentation
                     # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
                     current_state[f"last_sync_{datasource}"] = (
-                        max_time_processed.strftime("%Y-%m-%d %H:%M:%S")
+                        to_iso_timestamp(max_time_processed)
                         if max_time_processed
                         else datasource_last_sync
                     )
@@ -402,7 +415,9 @@ def update(configuration: dict, state: dict):
                 f"Max __time: {max_time_processed or 'N/A'}"
             )
             current_state[f"last_sync_{datasource}"] = (
-                max_time_processed.strftime("%Y-%m-%d %H:%M:%S") if max_time_processed else datasource_last_sync
+                to_iso_timestamp(max_time_processed)
+                if max_time_processed
+                else datasource_last_sync
             )
 
             # Save the progress by checkpointing the state. This is important for ensuring that
