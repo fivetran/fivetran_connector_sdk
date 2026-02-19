@@ -27,11 +27,14 @@ import json
 # Used for making HTTP requests to the Druid SQL API
 import requests
 
+# Used for replacing invalid characters in table names
+import re
+
 # Used for sleep delays between retries and batch requests
 import time
 
 # Used for parsing timestamps for safe comparison
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Constants for API configuration
 __REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
@@ -39,6 +42,24 @@ __RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
 __MAX_RETRIES = 3  # Maximum number of retries for failed requests
 __BATCH_SIZE = 10000  # Number of records to fetch per request
 __EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync
+__CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
+__PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
+
+
+def sanitize_table_name(name: str) -> str:
+    """
+    Sanitize a Druid datasource name for use as a destination table name.
+
+    Replaces any character that is not a letter, digit, or underscore with an underscore,
+    ensuring the result is a valid identifier in all destination systems.
+
+    Args:
+        name: The raw datasource name from Druid
+
+    Returns:
+        A sanitized table name safe for use as a destination table identifier
+    """
+    return re.sub(r"[^a-zA-Z0-9_]", "_", name)
 
 
 def validate_configuration(configuration: dict):
@@ -63,12 +84,16 @@ def validate_configuration(configuration: dict):
     if not host or not isinstance(host, str) or not host.strip():
         raise ValueError("host must be a non-empty string")
 
-    # Validate port
+    # Validate port (accept string or integer, normalize to integer)
     port = configuration.get("port")
-    if not isinstance(port, int):
-        raise ValueError("port must be a number")
-    if port < 1 or port > 65535:
+    try:
+        port_int = int(port)
+    except (TypeError, ValueError):
+        raise ValueError("port must be an integer between 1 and 65535") from None
+    if port_int < 1 or port_int > 65535:
         raise ValueError("port must be between 1 and 65535")
+    # Normalize configuration so downstream code always sees an integer
+    configuration["port"] = port_int
 
     # Validate datasources
     datasources = configuration.get("datasources")
@@ -112,10 +137,11 @@ def make_druid_request(url: str, headers: dict, data: dict):
                             f"Druid server error after {__MAX_RETRIES} attempts. "
                             f"Status: {response.status_code} - {response.text}"
                         )
+                    delay = __RATE_LIMIT_DELAY ** (attempt + 1)
                     log.warning(
-                        f"Server error {response.status_code}, retrying in {2 ** (attempt + 1)} seconds"
+                        f"Server error {response.status_code}, retrying in {delay} seconds"
                     )
-                    time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+                    time.sleep(delay)
                     continue
                 else:
                     # 4xx errors - fail fast
@@ -128,17 +154,18 @@ def make_druid_request(url: str, headers: dict, data: dict):
         except requests.exceptions.Timeout:
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(f"Request timeout after {__MAX_RETRIES} attempts to {url}")
-            log.warning(f"Request timeout, retrying (attempt {attempt + 1}/{__MAX_RETRIES})")
-            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+            delay = __RATE_LIMIT_DELAY ** (attempt + 1)
+            log.warning(f"Request timeout, retrying in {delay} seconds (attempt {attempt + 1}/{__MAX_RETRIES})")
+            time.sleep(delay)
 
         except requests.exceptions.RequestException as e:
             if attempt == __MAX_RETRIES - 1:
                 raise RuntimeError(
                     f"Failed to make request to url {url} after {__MAX_RETRIES} attempts: {str(e)}"
                 )
-            log.warning(f"Request attempt {attempt + 1} failed: {str(e)}")
-            # Exponential backoff: 2^1=2s, 2^2=4s, 2^3=8s
-            time.sleep(__RATE_LIMIT_DELAY ** (attempt + 1))
+            delay = __RATE_LIMIT_DELAY ** (attempt + 1)
+            log.warning(f"Request attempt {attempt + 1} failed, retrying in {delay} seconds: {str(e)}")
+            time.sleep(delay)
 
     raise RuntimeError(f"Failed to make request after {__MAX_RETRIES} attempts")
 
@@ -221,7 +248,7 @@ def fetch_datasource_data(
 
         # Advance cursor to the last record's __time; results are sorted so this is the max
         cursor = results[-1][timestamp_column]
-        time.sleep(1)
+        time.sleep(__PAGINATION_DELAY_SECONDS)
 
     log.info(f"Completed fetching {total_records} total records from {datasource}")
 
@@ -230,13 +257,9 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
-
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
-        configuration: Dictionary that holds the configuration settings for the connector
-
-    Returns:
-        List of table schema definitions, one per datasource
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     # Validate configuration
     validate_configuration(configuration)
@@ -251,7 +274,7 @@ def schema(configuration: dict):
         if datasource:
             schema_list.append(
                 {
-                    "table": datasource.replace("-", "_"),  # Sanitize table name
+                    "table": sanitize_table_name(datasource)
                 }
             )
 
@@ -260,13 +283,13 @@ def schema(configuration: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function:
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
     Args:
-        configuration: Dictionary containing connection details
-        state: Dictionary containing state information from previous runs
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Connectors : Apache Druid")
     log.info("Starting Apache Druid Connector sync")
@@ -308,7 +331,7 @@ def update(configuration: dict, state: dict):
                 continue
 
             log.info(f"Processing datasource: {datasource}")
-            table_name = datasource.replace("-", "_")  # Sanitize table name
+            table_name = sanitize_table_name(datasource)
 
             # Get datasource-specific last sync time. None triggers a full fetch for new datasources.
             datasource_last_sync = current_state.get(f"last_sync_{datasource}")
@@ -328,18 +351,22 @@ def update(configuration: dict, state: dict):
                 record_count += 1
                 datasource_record_count += 1
 
-                # Track the maximum __time from actual data using datetime for safe comparison
+                # Track the maximum __time from actual data using datetime for safe comparison.
+                # Replace "Z" with "+00:00" for Python 3.10 compatibility (handled natively in 3.11+).
+                # If Druid returns a naive datetime (no timezone), assume UTC for consistent comparison.
                 record_time = record.get("__time")
                 if record_time:
                     try:
                         record_dt = datetime.fromisoformat(record_time.replace("Z", "+00:00"))
+                        if record_dt.tzinfo is None:
+                            record_dt = record_dt.replace(tzinfo=timezone.utc)
                         if max_time_processed is None or record_dt > max_time_processed:
                             max_time_processed = record_dt
                     except (ValueError, AttributeError):
-                        pass
+                        log.warning(f"Could not parse __time value '{record_time}', skipping for cursor tracking")
 
                 # Checkpoint periodically for large datasets
-                if record_count % 1000 == 0:
+                if record_count % __CHECKPOINT_INTERVAL == 0:
                     log.info(f"Processed {record_count} records, checkpointing...")
                     # Save the progress by checkpointing the state. This is important for ensuring that
                     # the sync process can resume from the correct position in case of next sync or interruptions.

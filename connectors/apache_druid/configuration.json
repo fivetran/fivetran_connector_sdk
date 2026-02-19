@@ -1,5 +1,5 @@
 {
   "host": "<YOUR_DRUID_HOST>",
-  "port": "<YOUR_DRUID_PORT>",
+  "port": 8888,
   "datasources": "<YOUR_DRUID_DATASOURCES>"
 }

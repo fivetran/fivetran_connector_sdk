@@ -34,9 +34,9 @@ The connector requires a `configuration.json` file with the Druid connection det
 
 ```json
 {
-  "host": "your-druid-host",
+  "host": "<YOUR_DRUID_HOST>",
   "port": 8888,
-  "datasources": "wikipedia,koalas-to-the-max"
+  "datasources": "<YOUR_DRUID_DATASOURCES>"
 }
 ```
 
@@ -44,11 +44,11 @@ For Druid clusters that require authentication, add the optional credentials:
 
 ```json
 {
-  "host": "your-druid-host",
+  "host": "<YOUR_DRUID_HOST>",
   "port": 8888,
-  "datasources": "wikipedia,koalas-to-the-max",
-  "username": "your_username",
-  "password": "your_password"
+  "datasources": "<YOUR_DRUID_DATASOURCES>",
+  "username": "<YOUR_DRUID_USERNAME>",
+  "password": "<YOUR_DRUID_PASSWORD>"
 }
 ```
 
@@ -99,33 +99,15 @@ The connector processes Druid data through the following steps:
 
 The connector implements robust error handling to ensure reliable data synchronization:
 
-- Retry logic with exponential backoff
-  - Automatically retries failed requests up to 3 times
-  - Waits 2s, 4s, and 8s between attempts
-  - See `make_druid_request()`
-
-- HTTP error handling
-  - Retries on 5xx server errors
-  - Fails immediately on 4xx client errors such as authentication failures
-  - See `make_druid_request()`
-
-- Timeout handling
-  - Each request times out after 30 seconds
-  - Timeout errors are retried up to the maximum retry count
-  - See `make_druid_request()`
-
-- Configuration validation
-  - Validates all configuration parameters before making any API calls
-  - Provides clear error messages for missing or invalid fields
-  - See `validate_configuration()`
-
-- State checkpointing
-  - Checkpoints sync state after every 1000 records and after each datasource completes
-  - Enables safe resumption without re-processing already-synced data
+- Retry logic with exponential backoff – Automatically retries failed requests up to 3 times, waiting 2s, 4s, and 8s between attempts. See `make_druid_request()`.
+- HTTP error handling – Retries on 5xx server errors and fails immediately on 4xx client errors such as authentication failures. See `make_druid_request()`.
+- Timeout handling – Each request times out after 30 seconds, and timeout errors are retried up to the maximum retry count. See `make_druid_request()`.
+- Configuration validation – Validates all configuration parameters before making any API calls and provides clear error messages for missing or invalid fields. See `validate_configuration()`.
+- State checkpointing – Checkpoints sync state after every 1000 records and after each datasource completes, enabling safe resumption without re-processing already-synced data.
 
 ## Tables created
 
-The connector creates one table per Druid datasource specified in the `datasources` configuration. Table names are derived from datasource names with hyphens replaced by underscores (for example, `koalas-to-the-max` becomes `koalas_to_the_max`).
+The connector creates one table per Druid datasource specified in the `datasources` configuration. Table names are derived from datasource names by replacing any character that is not a letter, digit, or underscore with an underscore (for example, `koalas-to-the-max` becomes `koalas_to_the_max` and `my.datasource name` becomes `my_datasource_name`).
 
 Column types are inferred from the data returned by Druid's SQL API and may vary depending on your datasource schema. All Druid datasources include a `__time` column representing when each event occurred. Dimension and metric columns vary per datasource.
 
@@ -134,7 +116,7 @@ Since Druid rows do not have a guaranteed unique key, no primary key is defined 
 Example data for a `wikipedia` datasource:
 
 | `_fivetran_id` | `__time` | `channel` | `page` | `delta` |
-|---|---|---|---|---|
+|----------------|----------|-----------|--------|---------|
 | a1b2c3d4... | 2024-01-15T10:30:00.000Z | #en.wikipedia | Python | 42 |
 | e5f6g7h8... | 2024-01-15T10:31:00.000Z | #fr.wikipedia | Django | -5 |
 
