@@ -36,9 +36,6 @@ def validate_configuration(configuration: dict) -> None:
     Raises:
         ValueError: if any required configuration parameter is missing or has an invalid value.
     """
-    if not isinstance(configuration, dict):
-        raise ValueError("Configuration must be a dictionary.")
-
     # Validate WandB API key
     api_key = configuration.get("api_key")
     if api_key is None or api_key == "":
