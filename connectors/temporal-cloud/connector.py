@@ -27,8 +27,7 @@ from temporalio.client import Client
 from datetime import datetime, timezone
 
 # Constants for checkpoint intervals
-__WORKFLOW_CHECKPOINT_INTERVAL = 100  # Checkpoint every N workflows
-__SCHEDULE_CHECKPOINT_INTERVAL = 50  # Checkpoint every N schedules
+__CHECKPOINT_INTERVAL = 100  # Checkpoint every N times
 
 # Constants for retry logic
 __MAX_RETRIES = 5  # Maximum number of retry attempts for transient failures
@@ -258,7 +257,7 @@ async def _process_workflows(client, state: dict):
         op.upsert(table="workflow", data=workflow_data)
 
         # Checkpoint periodically to ensure safe resume and avoid memory overflow
-        if workflow_count % __WORKFLOW_CHECKPOINT_INTERVAL == 0:
+        if workflow_count % __CHECKPOINT_INTERVAL == 0:
             _checkpoint_progress(state, workflow_count, "workflows")
 
     return workflow_count
@@ -289,7 +288,7 @@ async def _process_schedules(client, state: dict):
         op.upsert(table="schedule", data=schedule_data)
 
         # Checkpoint periodically to ensure safe resume and avoid memory overflow
-        if schedule_count % __SCHEDULE_CHECKPOINT_INTERVAL == 0:
+        if schedule_count % __CHECKPOINT_INTERVAL == 0:
             _checkpoint_progress(state, schedule_count, "schedules")
 
     return schedule_count
@@ -563,8 +562,7 @@ def update(configuration: dict, state: dict):
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    log.info("Starting Temporal sync for workflows and schedules")
-    log.warning("Example: Connectors : Temporal Cloud")
+    log.warning("Example: Connectors - Temporal Cloud")
     try:
         # Fetch and upsert workflows immediately with periodic checkpointing
         # The fetch function handles upsert and checkpoint internally to avoid memory overflow
