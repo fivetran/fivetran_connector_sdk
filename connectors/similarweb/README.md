@@ -1,5 +1,6 @@
 # Similarweb Connector SDK Example
 
+## Connector Overview
 This example demonstrates how to build a Fivetran Connector SDK integration for [Similarweb](https://www.similarweb.com/), a digital intelligence platform that provides data, insights, and analytics about websites and apps. The connector pulls web traffic data from Similarweb's API for a configurable set of domains and countries, and delivers it to your Fivetran destination.
 
 ## Requirements
