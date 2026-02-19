@@ -308,7 +308,7 @@ def update(configuration: dict, state: dict):
         state = {}
 
     # Extract configuration parameters
-    api_key = configuration["WandB_API_KEY"]
+    api_key = configuration["api_key"]
     entity = configuration["entity"]
 
     # Initialize the W&B API client with the provided API key
