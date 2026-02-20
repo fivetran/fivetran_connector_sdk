@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 import time
 import json
 import copy
-import uuid
+import hashlib
 from cryptography.fernet import Fernet
 
 # Import required classes from fivetran_connector_sdk.
@@ -564,8 +564,14 @@ def process_child(parent, table_name, id_field_name, id_field):
             # log.fine(f"flattening fields in {table_name}")
             p = flatten_fields(fields_to_flatten[table_name], p)
         # check for null guids in appliedTaxes[]
+        # Use deterministic ID based on parent selection + tax rate to ensure consistent identification across syncs
         if table_name == "orders_check_selection_applied_tax" and p.get("guid") is None:
-            p["guid"] = "gen-" + str(uuid.uuid4())
+            parent_id = p.get("orders_check_selection_id") or ""
+            tax_rate_id = p.get("taxRate_id") or ""
+            tax_name = p.get("name") or ""
+            tax_rate = str(p.get("rate") or "")
+            unique_string = f"{parent_id}_{tax_rate_id}_{tax_name}_{tax_rate}"
+            p["guid"] = "gen-" + hashlib.md5(unique_string.encode()).hexdigest()
         if table_name == "orders_check":
             p.pop("payments", None)
         p = stringify_lists(p)
@@ -612,11 +618,8 @@ def make_headers(conf, base_url, state, key):
     current_time = time.time()
 
     # Check if a valid token exists and is not expiring in the next hour
-    if (
-        "encrypted_token" in state
-        and "token_ttl" in state
-        and state["token_ttl"] > current_time + 3600
-    ):
+    fut_time = current_time + 3600
+    if "encrypted_token" in state and "token_ttl" in state and state["token_ttl"] > fut_time:
         try:
             auth_token = fernet.decrypt(state["encrypted_token"].encode()).decode()
             log.info("encrypted_token found with at least an hour left, reusing")
