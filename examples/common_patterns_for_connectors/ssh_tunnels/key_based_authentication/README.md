@@ -1,6 +1,6 @@
 # **SSH Tunnel with Key-Based Authentication**
 
-**Connector Overview**
+## **Connector Overview**
 
 This example demonstrates how to connect to an SSH server using key-based authentication with the Fivetran Connector SDK. The connector securely establishes an SSH session to a remote EC2 instance running the fivetran-api-playground server and facilitates data interaction over the SSH channel. This setup avoids the use of plaintext passwords and leverages public-private key cryptography for authentication.
 

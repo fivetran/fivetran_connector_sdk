@@ -1,5 +1,6 @@
 # Incremental Sync Strategies Examples
 
+
 This directory contains individual examples demonstrating different incremental sync strategies using the Fivetran Connector SDK. Each strategy is implemented as a separate, focused example with its own configuration and documentation.
 
 ## Available strategies

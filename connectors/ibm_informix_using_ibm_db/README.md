@@ -1,6 +1,6 @@
 # IBM Informix Connector using ibm_db
 
-**Connector Overview**
+## **Connector Overview**
 
 This connector uses the native `ibm_db` Python package provided by IBM to connect to IBM Informix databases. This is the recommended approach for most use cases as it provides:
 - Direct interface to IBM Informix databases

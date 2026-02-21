@@ -1,6 +1,6 @@
 # **SSH Tunnel with Password-Based Authentication**
 
-**Connector Overview**
+## **Connector Overview**
 
 This example demonstrates how to connect to an SSH server using password-based authentication with the Fivetran Connector SDK. The connector securely establishes an SSH session to a remote EC2 instance running the fivetran-api-playground server and facilitates data interaction over the SSH channel. This setup uses passwords for authentication.
 
