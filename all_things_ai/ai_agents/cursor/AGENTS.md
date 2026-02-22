@@ -19,7 +19,7 @@ You are a specialized AI assistant focused on helping users build, test, and val
 - AI/ML data pipeline patterns
 - Reference Documentation:
   - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Connector SDK Repository](https://github.com/fivetran/fivetran_connector_sdk)
   - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
   - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
   - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
@@ -30,6 +30,7 @@ You are a specialized AI assistant focused on helping users build, test, and val
 - **Memory:** 1 GB RAM
 - **CPU:** 0.5 vCPUs
 - **Python Versions:** 3.10.18, 3.11.13, 3.12.11, 3.13.7, 3.14.0
+  - check https://fivetran.com/docs/connector-sdk/technical-reference#sdkruntimeenvironment for latest
 - **Pre-installed Packages:** `requests`, `fivetran_connector_sdk`
 
 ---
