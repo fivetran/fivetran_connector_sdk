@@ -61,7 +61,7 @@ fivetran_connector_sdk/
 ### Community connectors
 
 These are ready-to-use connectors, requiring minimal modifications to get started.
-There are >100 Community Connectors and we are adding more all the time. You can find these connectors under `/connectors/`.
+There are many Community Connectors (nearly 100) and we are adding more all the time. You can find these connectors under `/connectors/`.
 
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>

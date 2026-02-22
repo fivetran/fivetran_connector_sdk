@@ -84,42 +84,26 @@ Always use the output format at the bottom of this file.
 
 Browse full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
 
-```
-apache_hbase          apache_hive           apache_pulsar
-arango_db             awardco               aws_athena
-aws_dynamo_db_authentication                aws_rds_oracle
-betterstack           cassandra             checkly
-clerk                 clickhouse            commonpaper
-couchbase_capella     couchbase_magma       courier
-customer_thermometer  data_camp             dgraph
-discord               documentdb            docusign
-dolphin_db            dragonfly_db          elastic_email
-firebird_db           fleetio               fred
-gcp_pub_sub           github                github_traffic
-gnews                 google_trends         goshippo
-greenplum_db          grey_hr               gumroad
-harness_io            healthchecks          hubspot
-ibm_db2               ibm_informix_using_ibm_db
-influx_db             iterate               keycloak
-leavedates            mailerlite            mastertax
-meilisearch           microsoft_excel       microsoft_intune
-n8n                   neo4j                 netlify
-newsapi               noaa                  npi_registry
-oauth2_and_accelo_api_connector_multithreading_enabled
-odata_api             oktopost              owasp_api_vulns
-partech               pindrop               prefect
-prometheus            quest_db              rabbitmq
-raven_db              redis                 redshift
-resend                rethink_db            s3_csv_validation
-sam_gov               sap_ariba             sap_hana_sql
-sendcloud             sensor_tower          sensource
-similarweb            smartsheets           snipeitapp
-solace                sql_server            status_cake
-suitedash             supabase              talon_one
-teradata              tidb                  timescale_db
-toast                 tulip_interfaces      veeva_vault
-vercel                yugabyte_db           zigpoll
-```
+**How to get the current list:**
+
+1. **If working in the fivetran_connector_sdk repository locally** (preferred, fastest):
+   ```bash
+   # From repository root
+   ls -1 connectors/
+
+   # Or if in a subdirectory
+   ls -1 ../connectors/ || ls -1 ../../connectors/
+   ```
+
+2. **If not in the repository** (requires network call):
+   Use WebFetch to get the directory listing:
+   ```
+   WebFetch url="https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors"
+            prompt="List all directory names in this GitHub directory page. Return only the directory names, one per line."
+   ```
+
+3. **Fallback reference** (if above methods fail, these are representative examples):
+   Common connector families include: database engines (cassandra, clickhouse, couchbase_*, documentdb, firebird_db, greenplum_db, influx_db, neo4j, redis, sql_server, timescale_db), cloud services (aws_*, gcp_*), SaaS platforms (github, hubspot, docusign), and messaging systems (apache_pulsar, rabbitmq)
 
 **Fuzzy matching guidance:**
 - Database engines: check for same engine family (e.g., "MySQL" → look at `sql_server`, `aws_rds_oracle`, `greenplum_db` for patterns)
@@ -297,12 +281,13 @@ DATA SOURCE: [what the user wants to connect]
 # Instructions
 
 1. **Parse the data source** from the user's request — name, type, auth hints, scale hints
-2. **Scan the community connectors list** — exact name match first, then fuzzy (same engine family, same cloud provider, same API platform)
-3. **If match found** — use WebFetch to read the connector's `connector.py` and `README.md` before recommending, so you can describe what it does and what customization is needed
-4. **If no match** — map the auth method and data characteristics to the common patterns table
-5. **Check AI/ML resources** if the source is AI/ML related
-6. **Return the structured recommendation** — never skip the output format
-7. **Do not write any code** — route to `ft-csdk-generate` or `ft-csdk-ask` for next steps
+2. **Get the current list of community connectors** — use the methods described in the "Community Connectors" section above
+3. **Scan the connectors list** — exact name match first, then fuzzy (same engine family, same cloud provider, same API platform)
+4. **If match found** — use WebFetch to read the connector's `connector.py` and `README.md` before recommending, so you can describe what it does and what customization is needed
+5. **If no match** — map the auth method and data characteristics to the common patterns table
+6. **Check AI/ML resources** if the source is AI/ML related
+7. **Return the structured recommendation** — never skip the output format
+8. **Do not write any code** — route to `ft-csdk-generate` or `ft-csdk-ask` for next steps
 
 ## When You Are Uncertain
 - If the source name is ambiguous, check WebFetch for the most likely connector before concluding no match
