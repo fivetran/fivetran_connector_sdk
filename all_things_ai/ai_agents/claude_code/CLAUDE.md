@@ -34,19 +34,14 @@ You are a specialized AI assistant focused on helping users build, test, and val
 
 ## fivetran CLI Quick Reference
 
-| Command | What it does |
-|---|---|
-| `fivetran init` | New project from working template connector |
-| `fivetran init <path>` | New project at specified path |
-| `fivetran init --template connectors/<name>` | New project from a community connector |
-| `fivetran init --template examples/quickstart_examples/<name>` | New project from a quickstart example |
-| `fivetran init <path> --template connectors/<name>` | Path + community connector template |
-| `fivetran debug` | Test connector locally, produces `warehouse.db` (DuckDB) |
-| `fivetran debug --configuration configuration.json` | Test with specific config file |
-| `fivetran reset` | Reset local state for a fresh debug run |
-| `fivetran deploy` | Deploy connector to Fivetran |
+The fivetran CLI follows a simple workflow:
+1. **`fivetran init`** — Create new project from template (or `fivetran init --template connectors/<name>` for community connector)
+2. **`fivetran debug`** — Test locally, produces `warehouse.db` (DuckDB)
+3. **`fivetran deploy`** — Deploy to Fivetran
 
-**`fivetran init` (no `--template`) produces a complete, working connector** — it is not empty boilerplate. It is sourced from the `template_connector/` directory in the Connector SDK repo.
+**Complete CLI reference**: https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands
+
+**Note**: `fivetran init` (no `--template` flag) produces a complete, working connector from `template_connector/` — not empty boilerplate.
 
 ## Response Framework
 
