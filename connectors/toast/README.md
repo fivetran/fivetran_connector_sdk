@@ -31,7 +31,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 {
   "clientId": "<YOUR_CLIENT_ID>",
   "clientSecret": "<YOUR_CLIENT_SECRET>",
-  "userAccessType": "TOAST_MACHINE_CLIENT",
+  "userAccessType": "<TOAST_MACHINE_CLIENT>",
   "domain": "<YOUR_DOMAIN>",
   "initialSyncStart": "<ISO_FORMAT_TIMESTAMP>",
   "key": "<BASE_64_ENCODED_FERNET_KEY>"
@@ -46,16 +46,17 @@ The connector generates and caches a Toast access token using the `clientId`, `c
 
 ## Pagination
 
-The connector syncs data in 30-day time windows, iterating from `initialSyncStart` to the current sync time. State is checkpointed after each window to allow resumption in case of interruption. Refer to `def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state)` and `def set_timeranges(state, configuration, start_timestamp)`.
+The connector syncs data in 30-day time windows, iterating from `initialSyncStart` to the current sync time. State is checkpointed after each window to allow resumption in case of interruption. Refer to `sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state)` and `set_timeranges(state, configuration, start_timestamp)`.
 
 ## Data handling
 
-The connector flattens nested JSON objects and serializes list fields using `flatten_dict(parent_row, dict_field, prefix)`, `extract_fields(fields, row)`, and `stringify_lists(d)`. Records are written to the destination using `op.upsert()`, and deleted records are emitted using `op.delete()`. State is updated after each 30-day window to enable incremental sync. Refer to `def sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state)`.
+- The connector flattens nested JSON objects and serializes list fields using `flatten_dict(parent_row, dict_field, prefix)`, `extract_fields(fields, row)`, and `stringify_lists(d)`.
+- Records are written to the destination using `op.upsert()`, and deleted records are emitted using `op.delete()`. 
+- State is updated after each 30-day window to enable incremental sync. Refer to `sync_items(base_url, headers, ts_from, ts_to, start_timestamp, state)`.
+- Checkpointing: Updates state after each window to resume seamlessly
 
 
 ## Error handling
-
-Refer to `get_api_response(endpoint_path, headers, **kwargs)`.
 
 - 401 Unauthorized – Retries up to three times before logging a severe error and skipping the endpoint.
 - 403 Forbidden – Skips the endpoint.
@@ -68,44 +69,19 @@ The entity-relationship diagram (ERD) below shows how tables are linked in the T
 
  <img src="https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/connectors/toast/Toast_ERD.png" alt="Fivetran Toast Connector ERD" width="100%">
 
+### Core tables
+- `restaurant`
+- `job`, `employee`, `shift`, `break`, `time_entry`
+- `orders`, `orders_check`, `payment`
 
-| Category | Table | Primary Key |
-|---|---|---|
-| Core | `restaurant` | `id` |
-| Labor | `job` | `id` |
-| Labor | `shift` | `id` |
-| Labor | `employee` | `id` |
-| Labor | `employee_job_reference` | `id`, `employee_id` |
-| Labor | `employee_wage_override` | `id`, `employee_id` |
-| Labor | `time_entry` | `id` |
-| Labor | `break` | `id` |
-| Cash | `cash_deposit` | `id` |
-| Cash | `cash_entry` | `id` |
-| Config | `alternate_payment_types` | `id` |
-| Config | `dining_option` | `id` |
-| Config | `discounts` | `id` |
-| Config | `menu` | `id` |
-| Config | `menu_group` | `id` |
-| Config | `menu_item` | `id` |
-| Config | `restaurant_service` | `id` |
-| Config | `revenue_center` | `id` |
-| Config | `sale_category` | `id` |
-| Config | `service_area` | `id` |
-| Config | `tables` | `id` |
-| Orders | `orders` | `id` |
-| Orders | `orders_check` | `id` |
-| Orders | `orders_check_applied_discount` | `id` |
-| Orders | `orders_check_applied_discount_combo_item` | `id` |
-| Orders | `orders_check_applied_discount_trigger` | `orders_check_applied_discount_id` |
-| Orders | `orders_check_applied_service_charge` | `id`, `orders_check_id` |
-| Orders | `orders_check_payment` | `orders_check_id`, `payment_id`, `orders_guid` |
-| Orders | `orders_check_selection` | `id`, `orders_check_id` |
-| Orders | `orders_check_selection_applied_discount` | `id` |
-| Orders | `orders_check_selection_applied_discount_trigger` | `orders_check_selection_applied_discount_id` |
-| Orders | `orders_check_selection_applied_tax` | `id`, `orders_check_selection_id` |
-| Orders | `orders_check_selection_modifier` | `id`, `orders_check_selection_id` |
-| Orders | `orders_pricing_feature` | `orders_id` |
-| Orders | `payment` | `id` |
+### Configuration
+- `menu`, `menu_item`, `menu_group`, `discounts`, `tables`, etc.
+
+### Nested children
+- `orders_check_payment`, `orders_check_selection`, `orders_check_selection_modifier`, etc.
+
+### Cash management
+- `cash_entry`, `cash_deposit`
 
 ## Additional considerations
 
