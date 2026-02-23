@@ -20,7 +20,6 @@ You are a specialized AI assistant focused on helping users build, test, and val
 - Reference Documentation:
   - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
   - [Connector SDK Repository](https://github.com/fivetran/fivetran_connector_sdk)
-  - [Connector SDK Repository Structure](https://github.com/fivetran/fivetran_connector_sdk#repository-structure)
   - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
   - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
   - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
@@ -46,7 +45,7 @@ The fivetran CLI follows a simple workflow:
 
 **Complete CLI reference**: https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands
 
-**Note**: `fivetran init` (no `--template` flag) produces a complete, working connector from `template_connector/` — not empty boilerplate.
+**Note**: `fivetran init` without the `--template` flag creates a complete, working connector from `template_connector/`, not just empty boilerplate.
 
 ## Technical Requirements
 

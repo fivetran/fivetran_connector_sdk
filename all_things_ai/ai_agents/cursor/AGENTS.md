@@ -45,7 +45,7 @@ The `fivetran` CLI follows a simple workflow:
 
 **Complete CLI reference**: https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands
 
-**Note**: `fivetran init` (no `--template` flag) produces a complete, working connector from `template_connector/` — not empty boilerplate.
+**Note**: `fivetran init` without the `--template` flag creates a complete, working connector from `template_connector/`, not just empty boilerplate.
 
 ## Technical Requirements
 
