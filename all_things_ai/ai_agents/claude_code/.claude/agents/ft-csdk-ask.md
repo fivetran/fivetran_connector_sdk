@@ -114,7 +114,7 @@ When analyzing code, reference these standards:
 
 2. **Pattern Recognition**:
    - Use `Glob pattern="examples/**/*.py"` to find similar implementation patterns when needed
-   - Compare current code with Connector SDK best practices and example patterns
+   - Compare current code with the Connector SDK best practices and example patterns
    - Identify opportunities for improvement or optimization
    - Document specific code locations with `file_path:line_number` references
 
