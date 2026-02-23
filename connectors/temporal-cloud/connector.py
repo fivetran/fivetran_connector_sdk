@@ -308,6 +308,70 @@ def schema(configuration: dict):
     ]
 
 
+async def _fetch_temporal_data(configuration: dict, state: dict, process_fn, data_type: str):
+    """
+    Common async function to connect to Temporal Cloud and fetch data using a given processor.
+    Handles validation, connection, retry logic, and error handling for both workflows and schedules.
+
+    Args:
+        configuration: Dictionary containing Temporal Cloud credentials
+        state: State dictionary for checkpointing
+        process_fn: Async function to call with (client, state) that processes and upserts records
+        data_type: Human-readable label for the data being fetched (e.g. "workflows", "schedules")
+
+    Returns:
+        Number of records processed
+    """
+    last_error = None
+
+    for attempt in range(__MAX_RETRIES):
+        try:
+            temporal_host, temporal_namespace, temporal_api_key = _extract_config_values(
+                configuration
+            )
+
+            log.info(f"Connecting to Temporal Cloud at {temporal_host} to fetch {data_type}")
+
+            # Connect to Temporal Cloud
+            client = await _connect_temporal_client(
+                temporal_host, temporal_namespace, temporal_api_key
+            )
+
+            log.info(f"Successfully connected to Temporal Cloud for {data_type}")
+
+            # Process all records with periodic checkpointing
+            count = await process_fn(client, state)
+
+            log.info(f"Successfully fetched {count} {data_type} from Temporal Cloud")
+            return count
+
+        except ValueError as ve:
+            # Configuration errors are permanent - don't retry
+            log.severe(f"Configuration error: {str(ve)}")
+            raise
+        except Exception as e:
+            last_error = e
+
+            # Check if error is transient
+            if not is_transient_error(e):
+                log.severe(f"Permanent error fetching {data_type}: {str(e)}")
+                raise
+
+            # Last attempt - raise error
+            if attempt == __MAX_RETRIES - 1:
+                log.severe(
+                    f"All {__MAX_RETRIES} retry attempts exhausted for fetching {data_type}"
+                )
+                raise
+
+            # Retry with exponential backoff
+            await _handle_retry_sleep(attempt, e, f"fetching {data_type}")
+
+    # If we somehow get here, raise the last error
+    if last_error:
+        raise last_error
+
+
 async def fetch_temporal_workflows(configuration: dict, state: dict):
     """
     Async function to connect to Temporal Cloud and fetch workflow data.
@@ -320,54 +384,7 @@ async def fetch_temporal_workflows(configuration: dict, state: dict):
     Returns:
         Number of workflows processed
     """
-    last_error = None
-
-    for attempt in range(__MAX_RETRIES):
-        try:
-            # Validate and extract configuration
-            validate_configuration(configuration)
-            temporal_host, temporal_namespace, temporal_api_key = _extract_config_values(
-                configuration
-            )
-
-            log.info(f"Connecting to Temporal Cloud at {temporal_host}")
-
-            # Connect to Temporal Cloud
-            client = await _connect_temporal_client(
-                temporal_host, temporal_namespace, temporal_api_key
-            )
-
-            log.info("Successfully connected to Temporal Cloud")
-
-            # Process all workflows with periodic checkpointing
-            workflow_count = await _process_workflows(client, state)
-
-            log.info(f"Successfully fetched {workflow_count} workflows from Temporal Cloud")
-            return workflow_count
-
-        except ValueError as ve:
-            # Configuration errors are permanent - don't retry
-            log.severe(f"Configuration error: {str(ve)}")
-            raise
-        except Exception as e:
-            last_error = e
-
-            # Check if error is transient
-            if not is_transient_error(e):
-                log.severe(f"Permanent error fetching workflows: {str(e)}")
-                raise
-
-            # Last attempt - raise error
-            if attempt == __MAX_RETRIES - 1:
-                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for fetching workflows")
-                raise
-
-            # Retry with exponential backoff
-            await _handle_retry_sleep(attempt, e, "fetching workflows")
-
-    # If we somehow get here, raise the last error
-    if last_error:
-        raise last_error
+    return await _fetch_temporal_data(configuration, state, _process_workflows, "workflows")
 
 
 def _extract_next_action_times(schedule):
@@ -498,54 +515,7 @@ async def fetch_temporal_schedules(configuration: dict, state: dict):
     Returns:
         Number of schedules processed
     """
-    last_error = None
-
-    for attempt in range(__MAX_RETRIES):
-        try:
-            # Validate and extract configuration
-            validate_configuration(configuration)
-            temporal_host, temporal_namespace, temporal_api_key = _extract_config_values(
-                configuration
-            )
-
-            log.info(f"Connecting to Temporal Cloud at {temporal_host} to fetch schedules")
-
-            # Connect to Temporal Cloud
-            client = await _connect_temporal_client(
-                temporal_host, temporal_namespace, temporal_api_key
-            )
-
-            log.info("Successfully connected to Temporal Cloud for schedules")
-
-            # Process all schedules with periodic checkpointing
-            schedule_count = await _process_schedules(client, state)
-
-            log.info(f"Successfully fetched {schedule_count} schedules from Temporal Cloud")
-            return schedule_count
-
-        except ValueError as ve:
-            # Configuration errors are permanent - don't retry
-            log.severe(f"Configuration error: {str(ve)}")
-            raise
-        except Exception as e:
-            last_error = e
-
-            # Check if error is transient
-            if not is_transient_error(e):
-                log.severe(f"Permanent error fetching schedules: {str(e)}")
-                raise
-
-            # Last attempt - raise error
-            if attempt == __MAX_RETRIES - 1:
-                log.severe(f"All {__MAX_RETRIES} retry attempts exhausted for fetching schedules")
-                raise
-
-            # Retry with exponential backoff
-            await _handle_retry_sleep(attempt, e, "fetching schedules")
-
-    # If we somehow get here, raise the last error
-    if last_error:
-        raise last_error
+    return await _fetch_temporal_data(configuration, state, _process_schedules, "schedules")
 
 
 def update(configuration: dict, state: dict):
