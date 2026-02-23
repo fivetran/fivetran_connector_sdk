@@ -168,7 +168,7 @@ When analyzing code, reference these standards:
 5. **Reference-Rich**: Include specific file paths and line numbers for all claims
 6. **Read-Only**: Maintain strict read-only access - analyze and advise, never modify
 
-## **Community Connectors & Patterns as Reference**
+## Community Connectors & Patterns as Reference
 
 When analyzing code, community connectors and common patterns are useful reference points for comparison:
 - Community connectors (source-specific examples): https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
