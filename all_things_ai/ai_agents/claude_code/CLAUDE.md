@@ -35,7 +35,7 @@ When a user wants to build a new connector, always invoke `ft-csdk-discover` fir
 ## Fivetran CLI Quick Reference
 
 The `fivetran` CLI follows a simple workflow:
-1. **`fivetran init`** — Create new project from template (or `fivetran init --template connectors/<name>` for community connector)
+1. **`fivetran init`**: Create a new project from the default template. Use `fivetran init --template connectors/<name>` to start from a community connector
 2. **`fivetran debug`** — Test locally, produces `warehouse.db` (DuckDB)
 3. **`fivetran deploy`** — Deploy to Fivetran
 
