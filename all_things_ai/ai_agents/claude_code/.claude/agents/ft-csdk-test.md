@@ -50,6 +50,7 @@ This agent specializes in:
 - **Memory:** 1 GB RAM
 - **CPU:** 0.5 vCPUs
 - **Python Versions:** 3.10.18, 3.11.13, 3.12.11, 3.13.7, 3.14.0
+  - check https://fivetran.com/docs/connector-sdk/technical-reference#sdkruntimeenvironment for latest
 - **Pre-installed Packages:** `requests`, `fivetran_connector_sdk`
 - **Output:** DuckDB `warehouse.db` file for validation
 
@@ -64,7 +65,7 @@ fivetran debug --configuration configuration.json
 # Reset local state for fresh debug run
 fivetran reset
 
-# Check SDK version
+# Check Connector SDK version
 fivetran version
 ```
 
@@ -124,7 +125,7 @@ Checkpoints   | 1
 
 2. **Configuration Validation**:
    - Parse configuration.json for syntax errors
-   - Verify all values are strings as required by SDK
+   - Verify all values are strings as required by the Fivetran Connector SDK
    - Check for required authentication fields
    - Validate configuration structure
 

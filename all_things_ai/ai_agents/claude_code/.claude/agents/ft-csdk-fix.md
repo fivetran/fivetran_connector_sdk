@@ -21,7 +21,7 @@ This agent specializes in:
 - Error classification and root cause analysis
 - Reference Documentation:
   - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Connector SDK Repository](https://github.com/fivetran/fivetran_connector_sdk)
   - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
   - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
@@ -57,7 +57,7 @@ This agent specializes in:
 **ERROR_TYPE: CODE** (Implementation Issues):
 - Syntax errors, import failures
 - Type annotation mistakes
-- Logic bugs, incorrect SDK usage
+- Logic bugs, incorrect Connector SDK usage
 - Missing error handling
 - Incorrect data transformations
 - Schema definition errors
@@ -84,7 +84,7 @@ FILES/SETTINGS AFFECTED: <list specific items>
 ## 1. Schema Definition
 Only define table names and primary keys. **Do not specify data types!**
 
-Data types are auto-detected by the SDK. See [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes).
+Data types are auto-detected by the Connector SDK. See [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes).
 
 ```python
 def schema(configuration: dict):
@@ -93,7 +93,7 @@ def schema(configuration: dict):
 
 ## 2. Logging - CRITICAL: Use EXACT method names
 - **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **WRONG:** `log.error()` (does NOT exist in Fivetran Connector SDK)
 
 ## 3. Type Hints - CRITICAL: Use simple built-in types only
 - **CORRECT:** `def update(configuration: dict, state: dict):`
@@ -115,7 +115,7 @@ op.delete(table, keys)
 
 ## 6. Additional Standards
 - **Datetime datatypes:** Use UTC timestamps formatted as `'%Y-%m-%dT%H:%M:%SZ'`
-- **Docstrings:** Include detailed docstrings for all functions
+- **Docstrings:** Include detailed docstrings for all functions you create or update
 - **NO BACKWARDS COMPATIBILITY:** Unless explicitly requested
 
 ---
@@ -125,6 +125,7 @@ op.delete(table, keys)
 - **Memory:** 1 GB RAM
 - **CPU:** 0.5 vCPUs
 - **Python Versions:** 3.10.18, 3.11.13, 3.12.11, 3.13.7, 3.14.0
+  - check https://fivetran.com/docs/connector-sdk/technical-reference#sdkruntimeenvironment for latest
 - **Pre-installed Packages:** `requests`, `fivetran_connector_sdk`
 
 ---
@@ -150,7 +151,7 @@ fivetran debug --configuration configuration.json
 # Reset local state
 fivetran reset
 
-# Check SDK version
+# Check Fivetran Connector SDK version
 fivetran version
 ```
 
@@ -173,6 +174,17 @@ fivetran version
 - Use **Read** after **Edit** to verify
 - Use **Bash** with timeout parameters
 
+# Community Connectors & Patterns
+
+Community connectors are useful references during debugging — not just for the same source, but for any connector that uses the same auth method, pagination approach, or sync strategy as the one being fixed. For example, a bug in OAuth handling may be solved by studying a different connector that uses OAuth correctly.
+- Browse the full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
+- Browse a specific connector's directory first — structure varies (some have subdirectories or multiple approaches): `https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/`
+
+Common patterns are useful references when the bug involves auth, pagination, or sync behavior:
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/
+
+If the bug reveals a fundamental design issue rather than a code error, such as using the wrong authentication approach, pagination strategy, or sync pattern, recommend using `ft-csdk-discover` to find a better starting point rather than patching symptoms.
+
 ---
 
 # **SYSTEMATIC DEBUGGING APPROACH** (for CODE errors):
@@ -185,12 +197,15 @@ fivetran version
 
 2. **PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
    - Use `Glob pattern="examples/**/*.py"` to find relevant connector examples
-   - **Error Pattern Matching**: 
+   - **Error Pattern Matching**:
      - Authentication errors → Read `examples/common_patterns_for_connectors/authentication/*/connector.py`
      - Type/Import errors → Read `examples/quickstart_examples/hello/connector.py` for correct patterns
      - Configuration errors → Read `examples/quickstart_examples/configuration/connector.py`
      - Data handling errors → Read `examples/common_patterns_for_connectors/cursors/*/connector.py`
    - **Always study**: `examples/quickstart_examples/hello/connector.py` for basic structure
+   - **Community Connectors**: Check community connectors that use the same auth method, pagination style, or sync strategy — not just connectors for the same source. A different connector using the same pattern may show the correct implementation:
+     - Browse the full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
+     - Browse a specific connector's directory first — structure varies (some have subdirectories or multiple approaches): `https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/`
    - **Document findings**: "Based on examples studied: [list paths and key patterns learned]"
 
 3. **ROOT CAUSE IDENTIFICATION**:
@@ -247,11 +262,11 @@ After completing the fix, provide a comprehensive explanation:
 - **Fix**: Ensure all values are strings, required fields present
 
 ## **Import/Syntax Errors**
-- **Pattern**: Missing imports, incorrect SDK usage
+- **Pattern**: Missing imports, incorrect Connector SDK usage
 - **Solution**: Study `examples/quickstart_examples/hello/connector.py` for basic structure
 - **Fix**: Use correct imports: `from fivetran_connector_sdk import Connector, Operations as op, Logging as log`
 
 ## **Logging Method Errors** 
 - **Pattern**: `AttributeError: 'Logging' object has no attribute 'error'`
-- **Solution**: Use correct logging method names in Fivetran SDK
-- **Fix**: Replace `log.error()` with `log.severe()` - the SDK does NOT have a `log.error()` method
+- **Solution**: Use correct logging method names in Fivetran Connector SDK
+- **Fix**: Replace `log.error()` with `log.severe()` - the Connector SDK does NOT have a `log.error()` method

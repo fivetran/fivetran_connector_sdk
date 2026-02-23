@@ -19,7 +19,7 @@
 # Overview
 Explore practical examples and helpful resources for building custom data connectors with the Fivetran [Connector SDK](https://fivetran.com/docs/connectors/connector-sdk). Learn how to develop and deploy [custom data connectors](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) in Python, and extend Fivetran’s capabilities to fit your data integration needs.
 
-You’ll also find tips on [using AI to help you code an SDK connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/all_things_ai/tutorials/README.md) quickly.
+You’ll also find tips on [using AI to help you build a Connector SDK connection](https://github.com/fivetran/fivetran_connector_sdk/tree/main/all_things_ai/tutorials/README.md) quickly.
 
 ## Why Connector SDK?
 Fivetran Connector SDK allows you to code a custom data connector using Python and deploy it as an extension of Fivetran. Fivetran automatically manages running Connector SDK connections on your scheduled frequency and manages the required compute resources, eliminating the need for a third-party provider.
@@ -39,6 +39,21 @@ See [Setup guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide
 
 Run the `.github/scripts/setup-hooks.sh` script from the root of the repository to set up pre-commit hooks. This ensures that your code is formatted correctly and passes all tests before you commit them.
 
+## Repository Structure
+
+```
+fivetran_connector_sdk/
+├── all_things_ai/                          # AI-assisted development: tutorials and agent configs
+├── connectors/                             # Community connectors — ready-to-use source-specific implementations
+├── examples/
+│   ├── common_patterns_for_connectors/     # Reusable building blocks: auth, pagination, sync strategies, error handling
+│   ├── private_preview_features/           # Examples for features currently in private preview
+│   ├── quickstart_examples/                # Getting-started examples — from hello world to a first REST API connector
+│   └── workflows/                          # CI/CD and deployment workflow examples
+├── fivetran_platform_features/             # Native Fivetran platform feature examples
+└── template_connector/                     # Default template for new projects — used by `fivetran init` (no --template flag)
+```
+
 ## Examples
 
 > Note: To simplify the processes of building and maintaining connectors with Connector SDK, we've removed the need to use the Python generator pattern with Connector SDK operations, `yield`, starting with Connector SDK version 2.0.0. This change is fully backward compatible, so your existing Connector SDK connections will continue to function without modification. For more information, refer to our [Connector SDK release notes](https://fivetran.com/docs/connector-sdk/changelog#august2025).
@@ -46,6 +61,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 ### Community connectors
 
 These are ready-to-use connectors, requiring minimal modifications to get started.
+There are many Community Connectors (nearly 100) and we are adding more all the time. You can find these connectors under `/connectors/`.
 
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>
@@ -193,12 +209,12 @@ These examples are designed to help you get started with the Connector SDK quick
 
 </details>
 
-### Common SDK patterns
+### Common Connector SDK patterns
 
 These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as authentication, error handling, data extraction, and more. You can find these examples under `/examples/common_patterns_for_connectors`.
 
 <details class="details-heading" open="open">
-<summary>List of connectors for common SDK patterns</summary>
+<summary>List of connectors for common Connector SDK patterns</summary>
 
 #### Authentication
 - [api_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/api_key) - This is a simple example of how to work with API key authentication for a REST API.
@@ -332,7 +348,7 @@ Note that API calls made by your Connector SDK connection may count towards your
 
 It's important to choose the right design pattern for your target API. Using an inappropriate pattern may lead to data integrity issues. We recommend that you review all our examples carefully to select the one that best suits your target API. Keep in mind that some APIs may not support patterns for which we currently have examples.
 
-As with other new connectors, SDK connectors have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connections you created to run these examples before the trial ends.
+As with other new connections, Connector SDK connections have a [14-day trial period](https://fivetran.com/docs/getting-started/free-trials#newconnectorfreeuseperiod) during which your usage counts towards free [MAR](https://fivetran.com/docs/usage-based-pricing). After the 14-day trial period, your usage counts towards paid MAR. To avoid incurring charges, pause or delete any connections you created to run these examples before the trial ends.
 
 ## Maintenance
 The `fivetran_connector_sdk` repository is actively maintained by Fivetran Developers. Reach out to our [Support team](https://support.fivetran.com/hc/en-us) for any inquiries.

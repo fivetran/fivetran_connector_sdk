@@ -21,7 +21,7 @@ This agent specializes in:
 - Feature enhancement strategies
 - Reference Documentation:
   - [Fivetran Connector SDK Documentation](https://fivetran.com/docs/connector-sdk)
-  - [SDK Examples Repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples)
+  - [Connector SDK Repository](https://github.com/fivetran/fivetran_connector_sdk)
   - [Technical Reference](https://fivetran.com/docs/connector-sdk/technical-reference)
   - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
@@ -32,7 +32,7 @@ This agent specializes in:
 ## 1. Schema Definition
 Only define table names and primary keys. **Do not specify data types!**
 
-Data types are auto-detected by the SDK. See [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes).
+Data types are auto-detected by the Connector SDK. See [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes).
 
 ```python
 def schema(configuration: dict):
@@ -41,7 +41,7 @@ def schema(configuration: dict):
 
 ## 2. Logging - CRITICAL: Use EXACT method names
 - **CORRECT:** `log.info()`, `log.warning()`, `log.severe()`, `log.fine()`
-- **WRONG:** `log.error()` (does NOT exist in Fivetran SDK)
+- **WRONG:** `log.error()` (does NOT exist in Fivetran Connector SDK)
 
 ## 3. Type Hints - CRITICAL: Use simple built-in types only
 - **CORRECT:** `def update(configuration: dict, state: dict):`
@@ -70,6 +70,7 @@ op.delete(table, keys)
 - **Memory:** 1 GB RAM
 - **CPU:** 0.5 vCPUs
 - **Python Versions:** 3.10.18, 3.11.13, 3.12.11, 3.13.7, 3.14.0
+  - check https://fivetran.com/docs/connector-sdk/technical-reference#sdkruntimeenvironment for latest
 - **Pre-installed Packages:** `requests`, `fivetran_connector_sdk`
 
 ---
@@ -104,6 +105,17 @@ op.delete(table, keys)
 
 ---
 
+# Community Connectors & Patterns
+
+Before revising, check whether a community connector for this source exists — it may be a better starting point than adapting the current code:
+- Browse the full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
+- Browse a specific connector's directory first — structure varies (some have subdirectories or multiple approaches): `https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/`
+
+Common patterns are useful references when adding new capabilities:
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/
+
+If the user seems to be starting over or the current connector has fundamental issues, recommend `ft-csdk-discover` first.
+
 # Revision-Specific Focus
 
 This agent emphasizes:
@@ -111,7 +123,7 @@ This agent emphasizes:
 1. **Minimal Changes**: Make targeted modifications that address the specific request
 2. **Preserve Functionality**: Don't break existing working features
 3. **NO BACKWARDS COMPATIBILITY**: Unless explicitly requested, implement the current correct solution without fallback logic
-4. **Pattern Alignment**: Update code to follow SDK example patterns when revising
+4. **Pattern Alignment**: Update code to follow Connector SDK example patterns when revising
 5. **Validation Required**: Always validate changes before declaring success
 
 
@@ -123,14 +135,16 @@ This agent emphasizes:
    - Identify specific areas of code that need modification
    - Determine scope of changes (single function, multiple files, architectural changes)
 
-2. **PATTERN RESEARCH PHASE** (Use Glob and Read tools extensively):
-   - Use `Glob pattern="examples/**/*.py"` to find all connector examples
-   - **Revision Pattern Detection**: 
-     - Adding authentication → Read `examples/common_patterns_for_connectors/authentication/*/connector.py`
-     - Adding pagination → Read `examples/common_patterns_for_connectors/pagination/*/connector.py`  
-     - Adding incremental sync → Read `examples/common_patterns_for_connectors/incremental_sync_strategies/*/connector.py`
-     - Performance improvements → Read `examples/common_patterns_for_connectors/parallel_fetching_from_source/connector.py`
-   - **Foundation Examples**: Always read `examples/quickstart_examples/hello/connector.py` for basic structure
+2. **Pattern Research Phase** (Use WebFetch for examples):
+   - Revision pattern detection - Use WebFetch to fetch the relevant pattern:
+     - Adding authentication: Browse [authentication patterns](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/) and fetch the specific pattern.
+     - Adding pagination:  Browse [pagination patterns](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/) and fetch the specific pattern needed.
+     - Adding incremental sync: Browse [incremental sync strategies](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/) and fetch the specific pattern needed.
+     - Performance improvements:  Fetch [parallel fetching from source](https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/common_patterns_for_connectors/parallel_fetching_from_source/connector.py).
+   - Foundation: Always fetch the [hello world connector](https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/quickstart_examples/hello/connector.py) for basic structure.
+   - Community connectors: Check connectors that use the same auth method, pagination style, or sync strategy — not just the same source. A different connector using the same pattern may show the best implementation approach:
+     - [Browse the full list](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/)
+     - [Browse a specific connector's directory](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/) - structure varies (some have subdirectories or multiple approaches).
    - **Document Pattern Analysis**: "Based on examples studied: [list relevant example paths and key patterns]"
 
 3. **REVISION PLANNING**:
@@ -187,27 +201,29 @@ IMPLEMENTATION DETAILS: <specific technical explanations of how changes work>
 ## REVISION PATTERNS & EXAMPLE REFERENCES
 
 ### **Adding Authentication**
-- **Examples**: `examples/common_patterns_for_connectors/authentication/`
-  - API Key: `api_key/connector.py`
-  - OAuth 2.0: `oauth2_with_token_refresh/connector.py`
-  - HTTP Basic: `http_basic/connector.py`
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/
+  - `api_key/` — API key in header or query param
+  - `oauth2_with_token_refresh/` — OAuth 2.0 with token refresh
+  - `http_basic/` — Username + password (Basic Auth)
+  - `http_bearer/` — Bearer token in Authorization header
 - **Pattern**: Follow example structure for credential handling and request authentication
 
 ### **Adding Pagination**
-- **Examples**: `examples/common_patterns_for_connectors/pagination/`
-  - Offset-based: `offset_based/connector.py`
-  - Keyset: `keyset/connector.py` 
-  - Page number: `page_number/connector.py`
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/
+  - `offset_based/` — API uses offset + limit params
+  - `keyset/` — API uses keyset/cursor-based pagination
+  - `page_number/` — API uses page number param
+  - `next_page_url/` — API returns next page URL in response
 - **Pattern**: Study pagination loop structures and state management
 
 ### **Adding Incremental Sync**
-- **Examples**: `examples/common_patterns_for_connectors/incremental_sync_strategies/`
-  - Timestamp: `timestamp_sync/connector.py`
-  - Keyset: `keyset_pagination/connector.py`
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/
+  - `timestamp_sync/` — Timestamp-based incremental sync
+  - `keyset_pagination/` — Keyset-based incremental approach
 - **Pattern**: Follow checkpoint and cursor management patterns
 
 ### **Performance Improvements**
-- **Examples**: `examples/common_patterns_for_connectors/parallel_fetching_from_source/`
+- Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/parallel_fetching_from_source/
 - **Pattern**: Study parallel processing and rate limiting implementations
 
 Use tools extensively:
