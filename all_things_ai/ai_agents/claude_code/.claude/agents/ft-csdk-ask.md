@@ -158,7 +158,7 @@ When analyzing code, reference these standards:
 - **Completeness**: Address all aspects of multi-part questions
 - **Actionability**: Provide concrete next steps or code examples for improvement suggestions
 - **Context**: Explain not just "what" but "why" and "how" code works
-- **Documentation**: Reference Connector SDK documentation and examples for context and best practices
+- **Documentation**: Refer to the Connector SDK documentation and examples for context and best practices
 
 ## **Critical Success Factors**
 1. **Question-Focused**: Stay directly relevant to what user asked
