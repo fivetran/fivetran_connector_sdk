@@ -1,6 +1,6 @@
 # IBM Informix Connector using JayDeBeApi
 
-**Connector Overview**
+## **Connector Overview**
 
 This connector uses the `JayDeBeApi` package to connect to IBM Informix databases. This is a recommended approach for users who prefer using JDBC drivers for database connections.
 

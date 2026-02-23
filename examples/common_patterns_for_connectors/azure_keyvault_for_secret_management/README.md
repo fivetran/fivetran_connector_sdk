@@ -1,6 +1,6 @@
 # **Azure Key Vault for Secret Management**
 
-**Connector Overview**
+## **Connector Overview**
 
 This connector demonstrates how to use Azure Key Vault to securely manage database credentials. It retrieves credentials from Azure Key Vault, connects to a database, fetches data from database and upserts the data. 
 
