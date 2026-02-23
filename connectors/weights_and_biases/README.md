@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 - Full sync of W&B projects, runs, and artifacts for a specified entity
 - Automatic extraction of run metadata including state, tags, creation date, and associated user
-- Artifact versioning and metadata capture including size, type, and source project
+- Artifact versioning and metadata, capture including size, type, and source project
 - Robust error handling with graceful degradation for individual failed runs or artifacts
 - State tracking to monitor sync progress and data volumes
 - UTC timestamp tracking for all synced records
@@ -40,7 +40,7 @@ The `configuration.json` file contains the authentication and entity information
 
 Configuration parameters:
 
-- `WandB_API_KEY` - Your Weights & Biases API key for authentication
+- `api_key` - Your W&B API key for authentication
 - `entity` - The W&B entity name (username or team name) to sync data from
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -57,18 +57,15 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 ## Authentication
 
-This connector uses API key authentication to access the Weights & Biases API. To obtain your API key:
+This connector uses API key authentication to access the W&B API. To obtain your API key:
 
 1. Log in to your [Weights & Biases account](https://wandb.ai).
 
-2. Navigate to your user settings by clicking your profile icon in the top right.
+2. Click your profile icon in the top right and select **User Settings** from the dropdown.
 
-3. Select the **User Settings** option from the dropdown menu.
+3. Scroll to the **API Keys** section.
 
-4. Scroll down to the **API Keys** section.
-
-5. Copy your existing API key or generate a new one.
-
+4. Copy your existing API key or generate a new one.
 The API key should be placed in the `WandB_API_KEY` field of your `configuration.json` file. The API key provides access to all projects and runs within the specified entity that your account has permission to view.
 
 ## Pagination
@@ -87,9 +84,9 @@ This approach ensures complete data retrieval while efficiently managing memory 
 
 The connector retrieves data from W&B and transforms it into a structured format suitable for data warehouse storage. Data is processed through three main functions:
 
-- `fetch_projects` - Extracts project metadata including entity, name, URL, and generates a composite project_id
-- `fetch_run_fields` - Captures run details including state, tags, user, timestamps, and constructs a full path identifier
-- `fetch_artifacts` - Collects artifact information including type, version, size, state, and links back to the originating run
+- `fetch_projects` - Extracts project metadata, including entity, name, URL, and generates a composite project_id
+- `fetch_run_fields` - Captures run details, including state, tags, user, timestamps, and constructs a full path identifier
+- `fetch_artifacts` - Collects artifact information, including type, version, size, state, and links back to the originating run
 
 All data is upserted to the destination tables using the `op.upsert` operation in the `update` function. The connector adds a `synced_at` timestamp to projects and artifacts to track when records were last retrieved. Timestamps from W&B are converted to string format for consistent storage.
 
@@ -105,7 +102,7 @@ The connector implements defensive error handling to ensure maximum data retriev
 
 All errors are logged using the Fivetran logging system with descriptive messages including the affected resource identifier and error type. This allows for troubleshooting while ensuring that partial failures do not block the entire sync.
 
-Configuration validation is performed at the start of each sync in the `validate_configuration` function, which raises a ValueError if required fields are missing.
+Configuration validation is performed at the start of each sync in the `validate_configuration` function, which raises a `ValueError` if required fields are missing.
 
 ## Tables created
 
@@ -115,7 +112,7 @@ The connector creates three tables in your destination:
 
 Contains W&B project information.
 
-- `project_id` (STRING, PRIMARY KEY) - Composite identifier in format "entity/project_name"
+- `project_id` (STRING, PRIMARY KEY) - Composite identifier in the format "entity/project_name"
 - `entity` (STRING) - The W&B entity that owns the project
 - `name` (STRING) - Project name
 - `url` (STRING) - Web URL to access the project in W&B
