@@ -125,7 +125,7 @@ Checkpoints   | 1
 
 2. **Configuration Validation**:
    - Parse configuration.json for syntax errors
-   - Verify all values are strings as required by Connector SDK
+   - Verify all values are strings as required by the Fivetran Connector SDK
    - Check for required authentication fields
    - Validate configuration structure
 

@@ -176,14 +176,14 @@ fivetran version
 
 # Community Connectors & Patterns
 
-Community connectors are useful references during debugging — not just for the same source, but for any connector that uses the same auth method, pagination approach, or sync strategy as the one being fixed. A bug in OAuth handling may be solved by studying a different connector that uses OAuth correctly.
+Community connectors are useful references during debugging — not just for the same source, but for any connector that uses the same auth method, pagination approach, or sync strategy as the one being fixed. For example, a bug in OAuth handling may be solved by studying a different connector that uses OAuth correctly.
 - Browse the full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
 - Browse a specific connector's directory first — structure varies (some have subdirectories or multiple approaches): `https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/`
 
 Common patterns are useful references when the bug involves auth, pagination, or sync behavior:
 - Browse: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/
 
-If the bug reveals a **fundamental design issue** rather than a code error — wrong auth approach, wrong pagination strategy, wrong sync pattern — recommend `ft-csdk-discover` to find a better starting point rather than patching symptoms.
+If the bug reveals a fundamental design issue rather than a code error, such as using the wrong authentication approach, pagination strategy, or sync pattern, recommend using `ft-csdk-discover` to find a better starting point rather than patching symptoms.
 
 ---
 

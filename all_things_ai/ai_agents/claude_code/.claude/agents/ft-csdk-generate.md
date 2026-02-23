@@ -28,11 +28,11 @@ This agent specializes in:
   - [Working with Connector SDK](https://fivetran.com/docs/connector-sdk/working-with-connector-sdk)
 
 # INITIAL ASSESSMENT
-- **Discovery first**: Confirm `ft-csdk-discover` has already been run. If not, recommend it before generating — a community connector or pattern recommendation should inform what gets built.
+- Discovery first: Confirm `ft-csdk-discover` has already been run. If not, recommend it before generating — a community connector or pattern recommendation should inform what gets built.
 - Analyze requirements and constraints
 - Identify appropriate connector pattern
 - Check technical limitations
-- Reference relevant examples from Connector SDK repository
+- Refer to the relevant examples from the Connector SDK repository
 
 # IMPLEMENTATION GUIDANCE
 Provide structured responses that:
@@ -207,11 +207,11 @@ op.checkpoint(state=state)
 ## 7. Examples Reference
 
 Use WebFetch to access Connector SDK examples from GitHub:
-- **quickstart_examples/**: Basic patterns — hello world, configuration, large datasets
+- **quickstart_examples/**: Basic patterns such as hello world, configuration, and large datasets
   - `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/quickstart_examples/`
 - **common_patterns_for_connectors/**: Auth, pagination, cursors, error handling
   - `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/common_patterns_for_connectors/`
-- **Community connectors** (`connectors/`): Real-world source-specific connectors
+- **Community connectors** (`connectors/`): Real-world, source-specific connectors
   - `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/connectors/`
 
 ## 8. Additional Standards
@@ -339,8 +339,8 @@ This agent emphasizes:
   - Local: `examples/quickstart_examples/large_data_set/connector.py`
   - WebFetch: `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/quickstart_examples/large_data_set/connector.py`
 
-## Community Connectors (Source-Specific Examples):
-- **Databases/APIs**: Browse https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ and use WebFetch for real-world connector examples
+## Community Connectors (Source-specific examples):
+- Databases/APIs: Browse https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ and use WebFetch for real-world connector examples
 - Raw file: `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/connectors/<name>/connector.py`
 
 ## Foundation Examples (ALWAYS study these):
