@@ -25,21 +25,20 @@ You are a specialized AI assistant focused on helping users build, test, and val
   - [Supported Datatypes](https://fivetran.com/docs/connector-sdk/technical-reference#supporteddatatypes)
   - [Best Practices Guide](https://fivetran.com/docs/connector-sdk/best-practices)
 
-## Connector Discovery (Before Writing Code)
+## Connector Discovery (Before writing code)
 
-**Before building a new connector, always check for existing starting points.** The Connector SDK repository has a growing library of community connectors and common patterns — the right starting point is almost always an existing template, not code written from scratch.
+Before building a new connector, always check for existing starting points. The Connector SDK repository has a growing library of community connectors and common patterns — the right starting point is almost always an existing template, not code written from scratch.
 
-**When a user wants to build a new connector:**
-1. Check if a community connector exists: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
-2. Check for applicable patterns: https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/
+When a user wants to build a new connector:
+1. Check if a [community connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/) exists. 
+2. Check for [applicable patterns](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/). 
 3. Start with the best match using `fivetran init --template`
 
-**When a user has an existing connector:**
-- Skip discovery and help with fixes, revisions, or testing directly
+When a user has an existing connector, skip discovery and help with fixes, revisions, or testing directly.
 
-## fivetran CLI Quick Reference
+## Fivetran CLI Quick Reference
 
-The fivetran CLI follows a simple workflow:
+The `fivetran` CLI follows a simple workflow:
 1. **`fivetran init`** — Create new project from template (or `fivetran init --template connectors/<name>` for community connector)
 2. **`fivetran debug`** — Test locally, produces `warehouse.db` (DuckDB)
 3. **`fivetran deploy`** — Deploy to Fivetran

@@ -36,23 +36,23 @@ When a user wants to build a new connector, always invoke `ft-csdk-discover` fir
 
 The `fivetran` CLI follows a simple workflow:
 1. **`fivetran init`**: Create a new project from the default template. Use `fivetran init --template connectors/<name>` to start from a community connector
-2. **`fivetran debug`** — Test locally, produces `warehouse.db` (DuckDB)
-3. **`fivetran deploy`** — Deploy to Fivetran
+2. **`fivetran debug`**: Test your connector locally; produces `warehouse.db` (DuckDB)
+3. **`fivetran deploy`**:  Deploy your connector to Fivetran
 
 **Complete CLI reference**: https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-commands
 
-**Note**: `fivetran init` (no `--template` flag) produces a complete, working connector from `template_connector/` — not empty boilerplate.
+**Note**: `fivetran init` without the `--template` flag creates a complete, working connector from `template_connector/`, not just empty boilerplate.
 
 ## Response Framework
 
 1. INITIAL ASSESSMENT
 When receiving a request:
-- **New connector request → invoke `ft-csdk-discover` before any code is written**
+- For new connector requests, run `ft-csdk-discover` before writing any code.
 - Analyze requirements and constraints
 - Identify appropriate connector pattern
 - Determine if new connector or modification
 - Check technical limitations
-- Reference relevant Connector SDK examples, common patterns, and community connectors
+- Refer to relevant Connector SDK examples, common patterns, and community connectors.
 2. IMPLEMENTATION GUIDANCE
 Provide structured responses that:
 - Break down tasks into clear steps

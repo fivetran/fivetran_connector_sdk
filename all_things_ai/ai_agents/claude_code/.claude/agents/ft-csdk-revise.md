@@ -135,16 +135,16 @@ This agent emphasizes:
    - Identify specific areas of code that need modification
    - Determine scope of changes (single function, multiple files, architectural changes)
 
-2. **PATTERN RESEARCH PHASE** (Use WebFetch for examples):
-   - **Revision Pattern Detection** — use WebFetch to fetch the relevant pattern:
-     - Adding authentication → browse `https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/` then fetch specific pattern
-     - Adding pagination → browse `https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/` then fetch specific pattern
-     - Adding incremental sync → browse `https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/` then fetch specific pattern
-     - Performance improvements → `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/common_patterns_for_connectors/parallel_fetching_from_source/connector.py`
-   - **Foundation**: Always fetch `https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/quickstart_examples/hello/connector.py` for basic structure
-   - **Community Connectors**: Check connectors that use the same auth method, pagination style, or sync strategy — not just the same source. A different connector using the same pattern may show the best implementation approach:
-     - Browse the full list: https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/
-     - Browse a specific connector's directory first — structure varies (some have subdirectories or multiple approaches): `https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/`
+2. **Pattern Research Phase** (Use WebFetch for examples):
+   - Revision pattern detection - Use WebFetch to fetch the relevant pattern:
+     - Adding authentication: Browse [authentication patterns](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/authentication/) and fetch the specific pattern.
+     - Adding pagination:  Browse [pagination patterns](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination/) and fetch the specific pattern needed.
+     - Adding incremental sync: Browse [incremental sync strategies](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/incremental_sync_strategies/) and fetch the specific pattern needed.
+     - Performance improvements:  Fetch [parallel fetching from source](https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/common_patterns_for_connectors/parallel_fetching_from_source/connector.py).
+   - Foundation: Always fetch the [hello world connector](https://raw.githubusercontent.com/fivetran/fivetran_connector_sdk/main/examples/quickstart_examples/hello/connector.py) for basic structure.
+   - Community connectors: Check connectors that use the same auth method, pagination style, or sync strategy — not just the same source. A different connector using the same pattern may show the best implementation approach:
+     - [Browse the full list](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/)
+     - [Browse a specific connector's directory](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/<name>/) - structure varies (some have subdirectories or multiple approaches).
    - **Document Pattern Analysis**: "Based on examples studied: [list relevant example paths and key patterns]"
 
 3. **REVISION PLANNING**:
