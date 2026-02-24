@@ -96,7 +96,7 @@ The connector uses Temporal Cloud's native async iteration to handle large datas
 
 Progress is logged at regular intervals:
 - Every 100 workflows processed
-- Every 50 schedules processed
+- Every 100 schedules processed
 
 This streaming approach ensures the connector can handle namespaces with thousands of workflows and schedules without memory overflow issues.
 
