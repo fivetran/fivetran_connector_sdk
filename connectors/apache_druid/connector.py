@@ -44,6 +44,8 @@ __BATCH_SIZE = 10000  # Number of records to fetch per request
 __EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync (ISO 8601)
 __CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
 __PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
+__DEFAULT_PROTOCOL = "https"  # Default protocol for Druid connections
+__DEFAULT_HEADERS = {"Content-Type": "application/json"}  # Default HTTP headers for API requests
 
 
 def to_iso_timestamp(ts: str | datetime) -> str:
@@ -314,11 +316,8 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Connectors : Apache Druid")
+    log.warning("Example: Connectors - Apache Druid")
     log.info("Starting Apache Druid Connector sync")
-
-    # Validate configuration
-    validate_configuration(configuration)
 
     # Extract configuration parameters
     host = configuration.get("host")
@@ -328,12 +327,12 @@ def update(configuration: dict, state: dict):
     password = configuration.get("password")
 
     # Build base URL
-    protocol = "https"
+    protocol = __DEFAULT_PROTOCOL
     base_url = f"{protocol}://{host}:{port}"
     log.info(f"Connecting to Druid at {base_url}")
 
     # Prepare headers
-    headers = {"Content-Type": "application/json"}
+    headers = __DEFAULT_HEADERS.copy()
 
     # Add basic auth if credentials provided
     if username and password:
