@@ -125,20 +125,24 @@ All timestamps are converted to ISO 8601 format with timezone awareness using `d
 The connector implements comprehensive error handling strategies. Refer to `connector.py` for implementation details.
 
 Configuration validation:
-- The `validate_configuration` function verifies that all required parameters (temporal_host, temporal_namespace, temporal_api_key) are present before attempting connection
-- Raises descriptive ValueError messages for missing configuration
+- The `validate_configuration` function verifies that all required parameters (`temporal_host`, `temporal_namespace`, `temporal_api_key`) are present before attempting connection
+- Raises descriptive `ValueError` messages for missing or invalid configuration values
 
-Connection errors:
-- Both `fetch_temporal_workflows` and `fetch_temporal_schedules` functions catch and log connection failures
-- ValueError exceptions are caught separately for configuration issues
-- Generic Exception handling logs errors and re-raises them for Fivetran to handle
+Transient vs permanent errors:
+- The `is_transient_error` helper classifies errors into transient (safe to retry) and permanent (fail fast)
+- Transient errors include network connectivity issues, timeouts, rate limiting responses, and 5xx server errors from the Temporal Cloud API
+- Permanent errors include authentication failures and other 4xx client errors caused by invalid credentials or request parameters; these are not retried and are surfaced immediately
 
-Main sync errors:
-- The `update` function wraps all operations in a try-except block
-- Exceptions are caught, logged, and re-raised with descriptive messages
-- Ensures failed syncs are properly reported to Fivetran
+Retry logic and exponential backoff:
+- The `_connect_temporal_client` and `_fetch_temporal_data` functions wrap Temporal client connection and data retrieval calls with centralized retry handling
+- For transient errors, the connector retries requests using exponential backoff (implemented in `_handle_retry_sleep`), with a bounded maximum number of attempts
+- Each retry attempt is logged with the attempt count and backoff duration to aid troubleshooting and capacity planning
+- If the maximum number of retries is reached without success, the final error is logged and re-raised for Fivetran to report the failed sync
 
-The connector follows best practices by catching specific exceptions where possible and providing detailed error messages for troubleshooting.
+Connection and main sync errors:
+- Both `fetch_temporal_workflows` and `fetch_temporal_schedules` functions rely on the shared retry helpers to handle network and API-level failures consistently
+- The `update` function wraps the overall sync flow in a try-except block to ensure that unexpected errors are caught, logged with descriptive messages, and re-raised for Fivetran to handle
+- This approach ensures that transient failures are retried automatically while permanent configuration and authentication issues are surfaced quickly to the user
 
 
 ## Tables created
