@@ -8,8 +8,6 @@ The connector fetches two main types of data:
 - Workflow executions: Including workflow metadata, execution status, timing information, task queues, execution duration, and search attributes
 - Schedules: Including schedule specifications (cron expressions, intervals, calendar-based schedules), next action times, recent execution history, workflow actions to be triggered, and schedule state (paused/active)
 
-This enables use cases such as workflow performance analysis, execution monitoring, schedule audit trails, and operational insights into your Temporal Cloud applications.
-
 
 ## Requirements
 
@@ -29,14 +27,10 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 
 - Extracts all workflow executions from your Temporal namespace
 - Retrieves complete schedule configurations 
-- Calculates workflow execution duration in seconds
 - Captures workflow metadata including status, task queue, and search attributes
 - Extracts schedule specifications including cron expressions, intervals, and calendar-based schedules
-- Tracks schedule state (paused/active) and recent execution history
 - Implements async operations for efficient data retrieval
 - Uses streaming approach to handle large datasets without memory overflow
-- Provides progress logging for monitoring long-running syncs
-- Timezone-aware timestamp handling for accurate time tracking
 
 
 ## Configuration file
@@ -91,14 +85,10 @@ The API key is passed securely via the TLS connection to Temporal Cloud. Configu
 
 The connector uses Temporal Cloud's native async iteration to handle large datasets efficiently. Both workflows and schedules are retrieved using async generators:
 
-- Workflow pagination: The `fetch_temporal_workflows` function uses `client.list_workflows()`, which returns an async iterator. Workflows are processed one at a time without loading all data into memory.
-- Schedule pagination: The `fetch_temporal_schedules` function uses `client.list_schedules()`, which returns an async iterator for streaming schedule data.
+- Workflow pagination: This uses `client.list_workflows()`, which returns an async iterator. Workflows are processed one at a time without loading all data into memory.
+- Schedule pagination: This uses `client.list_schedules()`, which returns an async iterator for streaming schedule data.
 
-Progress is logged at regular intervals:
-- Every 100 workflows processed
-- Every 100 schedules processed
-
-This streaming approach ensures the connector can handle namespaces with thousands of workflows and schedules without memory overflow issues.
+Progress is logged at every 1000 records for both workflows and schedules. The streaming approach ensures the connector can handle namespaces with thousands of workflows and schedules without memory overflow issues.
 
 
 ## Data handling
@@ -124,25 +114,9 @@ All timestamps are converted to ISO 8601 format with timezone awareness using `d
 
 The connector implements comprehensive error handling strategies. Refer to `connector.py` for implementation details.
 
-Configuration validation:
-- The `validate_configuration` function verifies that all required parameters (`temporal_host`, `temporal_namespace`, `temporal_api_key`) are present before attempting connection
-- Raises descriptive `ValueError` messages for missing or invalid configuration values
-
-Transient vs permanent errors:
-- The `is_transient_error` helper classifies errors into transient (safe to retry) and permanent (fail fast)
-- Transient errors include network connectivity issues, timeouts, rate limiting responses, and 5xx server errors from the Temporal Cloud API
-- Permanent errors include authentication failures and other 4xx client errors caused by invalid credentials or request parameters; these are not retried and are surfaced immediately
-
-Retry logic and exponential backoff:
+- The `validate_configuration` function verifies that all required parameters are present before attempting connection
+- The `is_transient_error` helper classifies errors into transient (safe to retry) and permanent (fail fast). Permanent errors include authentication failures and other 4xx client errors caused by invalid credentials or request parameters; these are not retried and are surfaced immediately
 - The `_connect_temporal_client` and `_fetch_temporal_data` functions wrap Temporal client connection and data retrieval calls with centralized retry handling
-- For transient errors, the connector retries requests using exponential backoff (implemented in `_handle_retry_sleep`), with a bounded maximum number of attempts
-- Each retry attempt is logged with the attempt count and backoff duration to aid troubleshooting and capacity planning
-- If the maximum number of retries is reached without success, the final error is logged and re-raised for Fivetran to report the failed sync
-
-Connection and main sync errors:
-- Both `fetch_temporal_workflows` and `fetch_temporal_schedules` functions rely on the shared retry helpers to handle network and API-level failures consistently
-- The `update` function wraps the overall sync flow in a try-except block to ensure that unexpected errors are caught, logged with descriptive messages, and re-raised for Fivetran to handle
-- This approach ensures that transient failures are retried automatically while permanent configuration and authentication issues are surfaced quickly to the user
 
 
 ## Tables created

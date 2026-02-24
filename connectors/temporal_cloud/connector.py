@@ -26,10 +26,8 @@ from temporalio.client import Client
 # For handling timestamps with timezone awareness
 from datetime import datetime, timezone
 
-# Constants for checkpoint intervals
-__CHECKPOINT_INTERVAL = 100  # Checkpoint every N times
-
-# Constants for retry logic
+# Constants for retry logic and checkpointing
+__CHECKPOINT_INTERVAL = 1000
 __MAX_RETRIES = 5  # Maximum number of retry attempts for transient failures
 __MAX_BACKOFF_SECONDS = 60  # Maximum backoff time in seconds
 
@@ -37,10 +35,8 @@ __MAX_BACKOFF_SECONDS = 60  # Maximum backoff time in seconds
 def is_transient_error(error: Exception) -> bool:
     """
     Determine if an error is transient and should be retried.
-
     Args:
         error: Exception that occurred
-
     Returns:
         True if error is transient (network, timeout, rate limit), False for permanent errors
     """
@@ -61,25 +57,7 @@ def is_transient_error(error: Exception) -> bool:
         if indicator in error_message:
             return False
 
-    # Transient errors - should retry (network, timeouts, rate limits, 5xx errors)
-    transient_error_indicators = [
-        "timeout",
-        "connection",
-        "network",
-        "unavailable",
-        "rate limit",
-        "too many requests",
-        "503",
-        "502",
-        "500",
-        "429",
-    ]
-
-    for indicator in transient_error_indicators:
-        if indicator in error_message:
-            return True
-
-    # Default to treating unknown errors as transient to avoid data loss
+    # All unknown and transient errors will be retried
     return True
 
 
@@ -98,13 +76,20 @@ def validate_configuration(configuration: dict):
             raise ValueError(f"Missing required configuration value: {key}")
 
 
-def _extract_config_values(configuration: dict):
-    """Extract Temporal Cloud configuration values as a tuple."""
-    return (
-        configuration.get("temporal_host"),
-        configuration.get("temporal_namespace"),
-        configuration.get("temporal_api_key"),
+async def _handle_retry_sleep(attempt: int, error: Exception, operation: str):
+    """
+    Handle retry sleep with exponential backoff for async operations.
+    Args:
+        attempt: Current retry attempt number (0-indexed)
+        error: Exception that triggered the retry
+        operation: Name of the operation being retried
+    """
+    sleep_time = min(__MAX_BACKOFF_SECONDS, 2**attempt)
+    log.warning(
+        f"Transient error {operation} (attempt {attempt + 1}/{__MAX_RETRIES}): {str(error)}"
     )
+    log.info(f"Retrying in {sleep_time} seconds...")
+    await asyncio.sleep(sleep_time)
 
 
 async def _connect_temporal_client(
@@ -112,18 +97,23 @@ async def _connect_temporal_client(
 ):
     """
     Create and return a connected Temporal Cloud client with retry logic.
-
     Automatically retries transient connection failures with exponential backoff.
     Fails fast for authentication errors.
+    Args:
+        temporal_host: Temporal Cloud host URL
+        temporal_namespace: Temporal Cloud namespace
+        temporal_api_key: API key for Temporal Cloud authentication
     """
     for attempt in range(__MAX_RETRIES):
         try:
-            return await Client.connect(
+            client = await Client.connect(
                 temporal_host,
                 namespace=temporal_namespace,
                 api_key=temporal_api_key,
                 tls=True,
             )
+            log.info(f"Successfully connected to Temporal Cloud")
+            return client
         except Exception as e:
             # Check if error is transient
             if not is_transient_error(e):
@@ -136,21 +126,14 @@ async def _connect_temporal_client(
                 raise
 
             # Calculate exponential backoff and retry
-            sleep_time = min(__MAX_BACKOFF_SECONDS, 2**attempt)
-            log.warning(
-                f"Transient connection error (attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}. "
-                f"Retrying in {sleep_time} seconds..."
-            )
-            await asyncio.sleep(sleep_time)
+            await _handle_retry_sleep(attempt, e, "creating Temporal client")
 
 
 def _calculate_execution_time(workflow):
     """
     Calculate workflow execution time in seconds.
-
     Args:
         workflow: Workflow object from Temporal
-
     Returns:
         Execution time in seconds or None if unavailable
     """
@@ -168,10 +151,8 @@ def _calculate_execution_time(workflow):
 def _build_workflow_data(workflow):
     """
     Build workflow data dictionary from workflow object.
-
     Args:
         workflow: Workflow object from Temporal
-
     Returns:
         Dictionary containing workflow data
     """
@@ -194,7 +175,6 @@ def _build_workflow_data(workflow):
 def _checkpoint_progress(state: dict, count: int, data_type: str):
     """
     Checkpoint progress for workflows or schedules.
-
     Args:
         state: State dictionary to update
         count: Current count of processed items
@@ -216,31 +196,12 @@ def _checkpoint_progress(state: dict, count: int, data_type: str):
     log.info(f"Processed and checkpointed {count} {data_type}")
 
 
-async def _handle_retry_sleep(attempt: int, error: Exception, operation: str):
-    """
-    Handle retry sleep with exponential backoff for async operations.
-
-    Args:
-        attempt: Current retry attempt number (0-indexed)
-        error: Exception that triggered the retry
-        operation: Name of the operation being retried
-    """
-    sleep_time = min(__MAX_BACKOFF_SECONDS, 2**attempt)
-    log.warning(
-        f"Transient error {operation} (attempt {attempt + 1}/{__MAX_RETRIES}): {str(error)}"
-    )
-    log.info(f"Retrying in {sleep_time} seconds...")
-    await asyncio.sleep(sleep_time)
-
-
 async def _process_workflows(client, state: dict):
     """
     Process all workflows from client and upsert them with periodic checkpointing.
-
     Args:
         client: Connected Temporal client
         state: State dictionary for checkpointing
-
     Returns:
         Number of workflows processed
     """
@@ -266,11 +227,9 @@ async def _process_workflows(client, state: dict):
 async def _process_schedules(client, state: dict):
     """
     Process all schedules from client and upsert them with periodic checkpointing.
-
     Args:
         client: Connected Temporal client
         state: State dictionary for checkpointing
-
     Returns:
         Number of schedules processed
     """
@@ -308,37 +267,21 @@ def schema(configuration: dict):
     ]
 
 
-async def _fetch_temporal_data(configuration: dict, state: dict, process_fn, data_type: str):
+async def _fetch_temporal_data(client, state: dict, process_fn, data_type: str):
     """
     Common async function to connect to Temporal Cloud and fetch data using a given processor.
     Handles validation, connection, retry logic, and error handling for both workflows and schedules.
-
     Args:
-        configuration: Dictionary containing Temporal Cloud credentials
+        client: Connected Temporal Client
         state: State dictionary for checkpointing
         process_fn: Async function to call with (client, state) that processes and upserts records
         data_type: Human-readable label for the data being fetched (e.g. "workflows", "schedules")
-
     Returns:
         Number of records processed
     """
     last_error = None
-
     for attempt in range(__MAX_RETRIES):
         try:
-            temporal_host, temporal_namespace, temporal_api_key = _extract_config_values(
-                configuration
-            )
-
-            log.info(f"Connecting to Temporal Cloud at {temporal_host} to fetch {data_type}")
-
-            # Connect to Temporal Cloud
-            client = await _connect_temporal_client(
-                temporal_host, temporal_namespace, temporal_api_key
-            )
-
-            log.info(f"Successfully connected to Temporal Cloud for {data_type}")
-
             # Process all records with periodic checkpointing
             count = await process_fn(client, state)
 
@@ -368,23 +311,7 @@ async def _fetch_temporal_data(configuration: dict, state: dict, process_fn, dat
             await _handle_retry_sleep(attempt, e, f"fetching {data_type}")
 
     # If we somehow get here, raise the last error
-    if last_error:
-        raise last_error
-
-
-async def fetch_temporal_workflows(configuration: dict, state: dict):
-    """
-    Async function to connect to Temporal Cloud and fetch workflow data.
-    Upserts workflows immediately and checkpoints periodically to avoid memory overflow.
-
-    Args:
-        configuration: Dictionary containing Temporal Cloud credentials
-        state: State dictionary for checkpointing
-
-    Returns:
-        Number of workflows processed
-    """
-    return await _fetch_temporal_data(configuration, state, _process_workflows, "workflows")
+    raise last_error
 
 
 def _extract_next_action_times(schedule):
@@ -476,7 +403,6 @@ def _extract_schedule_state(schedule):
     """Extract schedule state (paused/active and notes)."""
     paused = False
     note = None
-
     if hasattr(schedule.schedule, "state") and schedule.schedule.state:
         state = schedule.schedule.state
         paused = state.paused if hasattr(state, "paused") else False
@@ -488,7 +414,6 @@ def _extract_schedule_state(schedule):
 def _build_schedule_data(schedule):
     """Build complete schedule data dictionary from schedule object."""
     paused, note = _extract_schedule_state(schedule)
-
     return {
         "schedule_id": schedule.id,
         "paused": paused,
@@ -503,21 +428,6 @@ def _build_schedule_data(schedule):
     }
 
 
-async def fetch_temporal_schedules(configuration: dict, state: dict):
-    """
-    Async function to connect to Temporal Cloud and fetch schedule data.
-    Upserts schedules immediately and checkpoints periodically to avoid memory overflow.
-
-    Args:
-        configuration: Dictionary containing Temporal Cloud credentials
-        state: State dictionary for checkpointing
-
-    Returns:
-        Number of schedules processed
-    """
-    return await _fetch_temporal_data(configuration, state, _process_schedules, "schedules")
-
-
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -528,22 +438,33 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
+    log.warning("Example: Connectors - Temporal Cloud")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    log.warning("Example: Connectors - Temporal Cloud")
+    # Fetch Temporal Cloud connection details from configuration
+    temporal_host = configuration.get("temporal_host")
+    temporal_namespace = configuration.get("temporal_namespace")
+    temporal_api_key = configuration.get("temporal_api_key")
+
+    client = _connect_temporal_client(temporal_host, temporal_namespace, temporal_api_key)
+
     try:
         # Fetch and upsert workflows immediately with periodic checkpointing
         # The fetch function handles upsert and checkpoint internally to avoid memory overflow
-        log.info("Fetching workflows...")
-        workflow_count = asyncio.run(fetch_temporal_workflows(configuration, state))
+        log.info("Fetching workflows")
+        workflow_count = asyncio.run(
+            _fetch_temporal_data(client, state, _process_workflows, "workflows")
+        )
         log.info(f"Successfully synced {workflow_count} workflows")
 
         # Fetch and upsert schedules immediately with periodic checkpointing
         # The fetch function handles upsert and checkpoint internally to avoid memory overflow
-        log.info("Fetching schedules...")
-        schedule_count = asyncio.run(fetch_temporal_schedules(configuration, state))
+        log.info("Fetching schedules")
+        schedule_count = asyncio.run(
+            _fetch_temporal_data(client, state, _process_schedules, "schedules")
+        )
         log.info(f"Successfully synced {schedule_count} schedules")
 
         # Final checkpoint with sync completion timestamp
@@ -553,9 +474,6 @@ def update(configuration: dict, state: dict):
             "workflows_synced": workflow_count,
             "schedules_synced": schedule_count,
         }
-
-        log.info(f"Sync completed: {workflow_count} workflows, {schedule_count} schedules")
-
         # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
         # from the correct position in case of next sync or interruptions.
         # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
