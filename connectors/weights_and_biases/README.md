@@ -84,25 +84,19 @@ This approach ensures complete data retrieval while efficiently managing memory 
 
 The connector retrieves data from W&B and transforms it into a structured format suitable for data warehouse storage. Data is processed through three main functions:
 
-- `fetch_projects` - Extracts project metadata, including entity, name, URL, and generates a composite project_id
-- `fetch_artifacts_and_runs` - Captures run details, including state, tags, user, timestamps, and constructs a full path identifier
-- `fetch_artifacts` - Collects artifact information, including type, version, size, state, and links back to the originating run
+- `fetch_and_upsert_data` - Extracts project metadata, including entity, name, URL, and generates a composite project_id and calls `fetch_and_upsert_artifacts_and_runs()` for each project
+- `fetch_and_upsert_artifacts_and_runs` - Captures run details, including state, tags, user, timestamps, and constructs a full path identifier and calls `fetch_and_upsert_artifacts()` for each run
+- `fetch_and_upsert_artifacts` - Collects artifact information, including type, version, size, state, and links back to the originating run
 
-All data is upserted to the destination tables using the `op.upsert` operation in the `update` function. The connector adds a `synced_at` timestamp to projects and artifacts to track when records were last retrieved. Timestamps from W&B are converted to string format for consistent storage.
-
-State is checkpointed after every 50 records per table and after each individual record to ensure sync progress is safely saved even when total counts are not multiples of the batch size.
-
-Data types are inferred by Fivetran based on the values provided, with explicit primary keys defined in the `schema` function for each table.
+The connector adds a `synced_at` timestamp to projects and artifacts to track when records were last retrieved. Timestamps from W&B are converted to string format for consistent storage. State is checkpointed after every 1000 records per table to ensure sync progress is safely saved.
 
 ## Error handling
 
-The connector implements defensive error handling to ensure maximum data retrieval even when individual records fail. Error handling is implemented in `fetch_run_fields` and `fetch_artifacts`:
+The connector implements defensive error handling to ensure maximum data retrieval even when individual records fail. Error handling is implemented in `fetch_and_upsert_artifacts_and_runs` and `fetch_and_upsert_artifacts`:
 
 - Run-level errors - If a single run fails to process, the connector logs a warning with the run ID and error details, then continues processing remaining runs
 - Artifact-level errors - If artifacts fail to retrieve for a specific run, the connector logs a warning and continues with the next run
 - Project-level errors - If all runs fail to fetch for a project, the connector logs a warning and proceeds to the next project
-
-All errors are logged using the Fivetran logging system with descriptive messages including the affected resource identifier and error type. This allows for troubleshooting while ensuring that partial failures do not block the entire sync.
 
 Configuration validation is performed at the start of each sync in the `validate_configuration` function, which raises a `ValueError` if required fields are missing.
 
