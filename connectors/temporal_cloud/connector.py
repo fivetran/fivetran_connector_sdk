@@ -112,7 +112,7 @@ async def _connect_temporal_client(
                 api_key=temporal_api_key,
                 tls=True,
             )
-            log.info(f"Successfully connected to Temporal Cloud")
+            log.info("Successfully connected to Temporal Cloud")
             return client
         except Exception as e:
             # Check if error is transient
