@@ -69,57 +69,6 @@ def _now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def fetch_run_fields(run, state: dict, runs_synced: int) -> int:
-    """
-    Upsert run fields for a single W&B run.
-    Runs represent individual experiments or training sessions in W&B.
-    Args:
-        run: A W&B run object.
-        state: Fivetran state dictionary used for checkpointing.
-        runs_synced: Running count of runs upserted so far (used for checkpointing).
-    Returns:
-        Updated count of runs upserted.
-    """
-    # Extract user information safely using getattr
-    user = getattr(run, "user", None)
-    username = getattr(user, "username", None) if user else None
-
-    run_object = {
-        "run_id": run.id,
-        "name": run.name,
-        "state": run.state,
-        "tags": run.tags,
-        "url": run.url,
-        "entity": run.entity,
-        "project": run.project,
-        "path": f"{run.entity}/{run.project}/{run.id}",
-        "created_at": str(run.created_at),
-        "user": username,
-    }
-
-    # Upsert run fields data to destination
-    # The 'upsert' operation is used to insert or update data in the destination table.
-    # The first argument is the name of the destination table.
-    # The second argument is a dictionary containing the record to be upserted.
-    op.upsert(table="run_fields", data=run_object)
-    # increment after each successful run upsert
-    runs_synced += 1
-
-    # Checkpoint after handling a fixed number of rows (regular intervals, after every 50 records)
-    if runs_synced % __CHECKPOINT_BATCH == 0:
-        state["last_sync_time"] = _now_utc_iso()
-        log.info(f"Checkpointing after {runs_synced} run_fields upserts")
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-        op.checkpoint(state=state)
-
-    return runs_synced
-
-
 def fetch_artifacts(run, state: dict, artifacts_synced: int) -> int:
     """
     Upsert all artifacts logged by a single W&B run.
@@ -171,11 +120,92 @@ def fetch_artifacts(run, state: dict, artifacts_synced: int) -> int:
     return artifacts_synced
 
 
+def fetch_artifacts_and_runs(
+    api: wandb.Api, entity: str, project, state: dict, runs_synced: int, artifacts_synced: int
+) -> tuple:
+    """
+    Fetch all runs for a given W&B project, upsert them, and call fetch_artifacts() for each run.
+    Args:
+        api: An authenticated W&B API instance.
+        entity: The W&B entity (username or team name).
+        project: A W&B project object whose runs will be fetched.
+        state: Fivetran state dictionary used for checkpointing.
+        runs_synced: Running count of runs upserted so far (used for checkpointing).
+        artifacts_synced: Running count of artifacts upserted so far (used for checkpointing).
+    Returns:
+        Tuple of (runs_synced, artifacts_synced).
+    """
+    log.info(f"Fetching runs for project: {project.name}")
+    runs = api.runs(f"{entity}/{project.name}")
+    log.info(f"Found {len(runs)} runs in project {project.name}")
+
+    for run in runs:
+        try:
+            # Extract user information safely using getattr
+            user = getattr(run, "user", None)
+            username = getattr(user, "username", None) if user else None
+
+            run_object = {
+                "run_id": run.id,
+                "name": run.name,
+                "state": run.state,
+                "tags": run.tags,
+                "url": run.url,
+                "entity": run.entity,
+                "project": run.project,
+                "path": f"{run.entity}/{run.project}/{run.id}",
+                "created_at": str(run.created_at),
+                "user": username,
+            }
+
+            # Upsert run fields data to destination
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="run_fields", data=run_object)
+            runs_synced += 1
+
+            # Checkpoint after handling a fixed number of rows (regular intervals, after every 50 records)
+            if runs_synced % __CHECKPOINT_BATCH == 0:
+                state["last_sync_time"] = _now_utc_iso()
+                log.info(f"Checkpointing after {runs_synced} run_fields upserts")
+                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                # from the correct position in case of next sync or interruptions.
+                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                # Learn more about how and where to checkpoint by reading our best practices documentation
+                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                op.checkpoint(state=state)
+
+            # Checkpoint after each run upsert to save progress for
+            # non-multiple-of-batch record counts (e.g. total runs not divisible by __CHECKPOINT_BATCH).
+            state["last_sync_time"] = _now_utc_iso()
+            op.checkpoint(state=state)
+        except Exception as e:
+            log.warning(
+                f"Failed to process run {getattr(run, 'id', 'unknown')}: "
+                f"{type(e).__name__}: {str(e)}"
+            )
+
+        try:
+            artifacts_synced = fetch_artifacts(run, state, artifacts_synced)
+            # Checkpoint after each fetch_artifacts call to save progress for
+            # non-multiple-of-batch record counts (e.g. total artifacts not divisible by __CHECKPOINT_BATCH).
+            state["last_sync_time"] = _now_utc_iso()
+            op.checkpoint(state=state)
+        except Exception as e:
+            log.warning(
+                f"Failed to fetch artifacts for run {getattr(run, 'id', 'unknown')}: "
+                f"{type(e).__name__}: {str(e)}"
+            )
+
+    return runs_synced, artifacts_synced
+
+
 def fetch_projects(api: wandb.Api, entity: str, state: dict) -> tuple:
     """
-    Fetch all projects for a given W&B entity and upsert them directly.
-    Also calls fetch_run_fields and fetch_artifacts for each run within each project,
-    so that api.projects() and api.runs() are each called only once.
+    Fetch all projects for a given W&B entity, upsert them, and call fetch_artifacts_and_runs()
+    for each project.
     Projects are the top-level containers in W&B that group related runs and artifacts.
     Args:
         api: An authenticated W&B API instance.
@@ -205,7 +235,6 @@ def fetch_projects(api: wandb.Api, entity: str, state: dict) -> tuple:
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="projects", data=project_record)
-        # increment after each successful project upsert
         projects_synced += 1
 
         # Checkpoint after handling a fixed number of rows (regular intervals, maybe after every 50 records)
@@ -220,37 +249,15 @@ def fetch_projects(api: wandb.Api, entity: str, state: dict) -> tuple:
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state=state)
 
-        # Fetch runs once per project and process run_fields and artifacts together
+        # Checkpoint after each project upsert to save progress for
+        # non-multiple-of-batch record counts (e.g. total projects not divisible by __CHECKPOINT_BATCH).
+        state["last_sync_time"] = _now_utc_iso()
+        op.checkpoint(state=state)
+
         try:
-            log.info(f"Fetching runs for project: {project.name}")
-            runs = api.runs(f"{entity}/{project.name}")
-            log.info(f"Found {len(runs)} runs in project {project.name}")
-
-            for run in runs:
-                try:
-                    runs_synced = fetch_run_fields(run, state, runs_synced)
-                    # Checkpoint after each fetch_run_fields call to save progress for
-                    # non-multiple-of-batch record counts (e.g. total runs not divisible by __CHECKPOINT_BATCH).
-                    state["last_sync_time"] = _now_utc_iso()
-                    op.checkpoint(state=state)
-                except Exception as e:
-                    log.warning(
-                        f"Failed to process run {getattr(run, 'id', 'unknown')}: "
-                        f"{type(e).__name__}: {str(e)}"
-                    )
-
-                try:
-                    artifacts_synced = fetch_artifacts(run, state, artifacts_synced)
-                    # Checkpoint after each fetch_artifacts call to save progress for
-                    # non-multiple-of-batch record counts (e.g. total artifacts not divisible by __CHECKPOINT_BATCH).
-                    state["last_sync_time"] = _now_utc_iso()
-                    op.checkpoint(state=state)
-                except Exception as e:
-                    log.warning(
-                        f"Failed to fetch artifacts for run {getattr(run, 'id', 'unknown')}: "
-                        f"{type(e).__name__}: {str(e)}"
-                    )
-
+            runs_synced, artifacts_synced = fetch_artifacts_and_runs(
+                api, entity, project, state, runs_synced, artifacts_synced
+            )
         except Exception as e:
             log.warning(f"Failed to fetch runs for project {project.name}: {str(e)}")
 
@@ -295,10 +302,6 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Source Examples : Weights and Biases")
     # Validate the configuration to ensure it contains all required values
     validate_configuration(configuration)
-
-    # Ensure state is a dictionary (it may be None in some runtimes)
-    if state is None:
-        state = {}
 
     # Extract configuration parameters
     api_key = configuration["api_key"]
