@@ -1,6 +1,6 @@
 # Tutorials for Fivetran Connector SDK
 
-This directory contains tutorials created by Fivetran to help you learn how to build custom connectors with Fivetran's Connector SDK
+This directory contains tutorials created by Fivetran to help you learn how to build custom connectors with Fivetran's Connector SDK.
 
 ## Disclaimer
 The content and sample code in tutorials folder — including the README.md, connector.py, and requirements.txt files were generated as batched outputs from a single AI conversation. While a Fivetran employee has tested the functionality for demonstration purposes, the code has not been polished or reviewed for production use. It remains unedited AI output and should be treated as illustrative only.
