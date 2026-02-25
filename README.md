@@ -66,6 +66,7 @@ There are many Community Connectors (nearly 100) and we are adding more all the 
 <details class="details-heading" open="open">
 <summary>List of community connectors</summary>
 
+- [apache_druid](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_druid) - This example shows how to sync data from Apache Druid datasources using Connector SDK. It uses Druid's SQL API with time-based pagination and incremental sync to efficiently replicate event and analytics data.
 - [apache_hbase](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hbase) - This example shows how to connect and sync data from Apache HBase by using Connector SDK. It uses happybase and thrift libraries to connect to HBase and fetch data.
 - [apache_hive/using_pyhive](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_hive/using_pyhive) - This example shows how you can sync data from Apache Hive by using Connector SDK and PyHive.
 - [apache_pulsar](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/apache_pulsar) - This example demonstrates how to fetch data from Apache Pulsar topics and sync it to a data warehouse using Connector SDK. It supports multiple topics, uses Pulsar's Reader API for message consumption, and implements proper checkpointing for incremental syncs.
