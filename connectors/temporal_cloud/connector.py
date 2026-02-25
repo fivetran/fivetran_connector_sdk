@@ -234,8 +234,7 @@ async def _process_schedules(client, state: dict):
         Number of schedules processed
     """
     schedule_count = 0
-    schedule_iterator = await client.list_schedules()
-    async for schedule in schedule_iterator:
+    async for schedule in await client.list_schedules():
         schedule_count += 1
 
         # Build schedule data using helper function
@@ -267,7 +266,7 @@ def schema(configuration: dict):
     ]
 
 
-async def _fetch_temporal_data(client, state: dict, process_fn, data_type: str):
+async def fetch_temporal_data(client, state: dict, process_fn, data_type: str):
     """
     Common async function to connect to Temporal Cloud and fetch data using a given processor.
     Handles validation, connection, retry logic, and error handling for both workflows and schedules.
@@ -448,24 +447,27 @@ def update(configuration: dict, state: dict):
     temporal_namespace = configuration.get("temporal_namespace")
     temporal_api_key = configuration.get("temporal_api_key")
 
-    client = _connect_temporal_client(temporal_host, temporal_namespace, temporal_api_key)
+    async def _sync_all_data():
+        client = await _connect_temporal_client(
+            temporal_host, temporal_namespace, temporal_api_key
+        )
 
-    try:
         # Fetch and upsert workflows immediately with periodic checkpointing
         # The fetch function handles upsert and checkpoint internally to avoid memory overflow
         log.info("Fetching workflows")
-        workflow_count = asyncio.run(
-            _fetch_temporal_data(client, state, _process_workflows, "workflows")
-        )
+        workflow_count = await fetch_temporal_data(client, state, _process_workflows, "workflows")
         log.info(f"Successfully synced {workflow_count} workflows")
 
         # Fetch and upsert schedules immediately with periodic checkpointing
         # The fetch function handles upsert and checkpoint internally to avoid memory overflow
         log.info("Fetching schedules")
-        schedule_count = asyncio.run(
-            _fetch_temporal_data(client, state, _process_schedules, "schedules")
-        )
+        schedule_count = await fetch_temporal_data(client, state, _process_schedules, "schedules")
         log.info(f"Successfully synced {schedule_count} schedules")
+
+        return workflow_count, schedule_count
+
+    try:
+        workflow_count, schedule_count = asyncio.run(_sync_all_data())
 
         # Final checkpoint with sync completion timestamp
         current_timestamp = datetime.now(timezone.utc).isoformat()
