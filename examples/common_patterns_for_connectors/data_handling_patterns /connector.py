@@ -17,9 +17,6 @@
 # Import datetime utilities to record the sync timestamp in state.
 from datetime import datetime, timezone
 
-# For reading configuration from a JSON file
-import json
-
 # Import required classes from fivetran_connector_sdk.
 from fivetran_connector_sdk import Connector
 
