@@ -1,0 +1,7 @@
+{
+  "api_key_id": "PKLC4BYY6RUCV3JHWLFD6UAIE5",
+  "secret_key": "269UnqVchZL9Z7ZGAfDof8pNoTtoznuXtLycVN4KbqAR",
+  "base_url": "https://paper-api.alpaca.markets",
+  "start_date": "2024-01-01T00:00:00Z",
+  "batch_size": "200"
+}
