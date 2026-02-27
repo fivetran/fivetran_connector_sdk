@@ -1,0 +1,6 @@
+{
+    "site_name": "<YOUR_SITE_NAME>",
+    "site_api_key": "<YOUR_SITE_API_KEY>",
+    "base_url": "https://api.service.dexoryview.com",
+    "customer": "<YOUR_CUSTOMER>"
+}
