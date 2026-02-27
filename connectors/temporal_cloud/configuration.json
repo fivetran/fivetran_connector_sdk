@@ -1,0 +1,7 @@
+{
+  "endpoint": "<YOUR_TEMPORAL_CLOUD_ENDPOINT>",
+  "namespace": "<YOUR_TEMPORAL_CLOUD_NAMESPACE>",
+  "api_key": "<YOUR_TEMPORAL_CLOUD_API_KEY>",
+  "tls": "<TRUE_OR_FALSE>",
+  "page_size": "<NUMBER_OF_WORKFLOWS_PER_PAGE>"
+}
