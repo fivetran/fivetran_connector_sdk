@@ -1,0 +1,10 @@
+{
+  "username": "<YOUR_SCYLLA_DB_USERNAME>",
+  "password": "<YOUR_SCYLLA_DB_PASSWORD>",
+  "host_1": "<YOUR_SCYLLA_DB_HOST_1>",
+  "host_2": "<YOUR_SCYLLA_DB_HOST_2>",
+  "host_3": "<YOUR_SCYLLA_DB_HOST_3>",
+  "port": "<YOUR_SCYLLA_DB_PORT_NUMBER>",
+  "data_center_region": "<YOUR_SCYLLA_DB_DATA_CENTER_REGION>",
+  "keyspace": "<YOUR_SCYLLA_DB_KEYSPACE>"
+}
