@@ -173,6 +173,7 @@ There are many Community Connectors (nearly 100) and we are adding more all the 
 - veeva vault
   - [basic_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/veeva_vault/basic_auth) - This example shows how to authenticate to Veeva Vault using basic authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
   - [session_id_auth](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/veeva_vault/session_id_auth) - This example shows how to authenticate to Veeva Vault using session id authentication and sync records from Veeva Vault. You need to provide your Veeva Vault credentials for this example to work.
+- [trustpilot](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/trustpilot) - This is an example of how we can sync Trustpilot data using the Connector SDK. You would need to provide your Trustpilot api key, business unit and consumer id for this example to work.
 - [vercel](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/vercel) - This example shows how to sync deployment data from Vercel's REST API by using the Connector SDK, focusing on a single endpoint (/v6/deployments). You need to provide your Vercel API token for this example to work. Optionally, you can also provide a Team ID to access team resources instead of personal account deployments.
 - [weights_and_biases](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/weights_and_biases) - This example shows how to sync machine learning experiment tracking data from Weights & Biases (W&B), including projects, runs (experiments), and artifacts (models and datasets), using the Fivetran Connector SDK The connector uses the W&B Python SDK to retrieve data and implements robust error handling. You need to provide your W&B API key and entity name for this example to work.
 - [yugabyte_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/yugabyte_db) - This example shows how to sync data from a YugabyteDB database using Connector SDK. YugabyteDB is a distributed SQL database that is PostgreSQL-compatible. The connector automatically discovers tables, detects primary keys, and performs incremental syncs using the `updated_at` column when available. You need to provide your YugabyteDB credentials for this example to work.
@@ -289,6 +290,7 @@ These examples demonstrate common patterns and best practices for building conne
 #### Workflows
 
 - [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
+
 </details>
 
 ### Private Preview examples

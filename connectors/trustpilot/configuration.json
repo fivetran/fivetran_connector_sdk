@@ -1,0 +1,9 @@
+{
+  "api_key": "<YOUR_TRUSTPILOT_API_KEY>",
+  "business_unit_id": "<YOUR_BUSINESS_UNIT_ID>",
+  "consumer_id": "<YOUR_CONSUMER_ID>",
+  "initial_sync_days": "<YOUR_INITIAL_SYNC_DAYS>",
+  "enable_consumer_reviews": "<YOUR_ENABLE_CONSUMER_REVIEWS>",
+  "enable_invitation_links": "<YOUR_ENABLE_INVITATION_LINKS>",
+  "enable_categories": "<YOUR_ENABLE_CATEGORIES>"
+}
