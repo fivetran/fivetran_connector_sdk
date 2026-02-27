@@ -427,6 +427,26 @@ def _build_schedule_data(schedule):
     }
 
 
+async def _sync_all_data(
+    temporal_host: str, temporal_namespace: str, temporal_api_key: str, state: dict
+):
+    client = await _connect_temporal_client(temporal_host, temporal_namespace, temporal_api_key)
+
+    # Fetch and upsert workflows immediately with periodic checkpointing
+    # The fetch function handles upsert and checkpoint internally to avoid memory overflow
+    log.info("Fetching workflows")
+    workflow_count = await fetch_temporal_data(client, state, _process_workflows, "workflows")
+    log.info(f"Successfully synced {workflow_count} workflows")
+
+    # Fetch and upsert schedules immediately with periodic checkpointing
+    # The fetch function handles upsert and checkpoint internally to avoid memory overflow
+    log.info("Fetching schedules")
+    schedule_count = await fetch_temporal_data(client, state, _process_schedules, "schedules")
+    log.info(f"Successfully synced {schedule_count} schedules")
+
+    return workflow_count, schedule_count
+
+
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -447,27 +467,10 @@ def update(configuration: dict, state: dict):
     temporal_namespace = configuration.get("temporal_namespace")
     temporal_api_key = configuration.get("temporal_api_key")
 
-    async def _sync_all_data():
-        client = await _connect_temporal_client(
-            temporal_host, temporal_namespace, temporal_api_key
-        )
-
-        # Fetch and upsert workflows immediately with periodic checkpointing
-        # The fetch function handles upsert and checkpoint internally to avoid memory overflow
-        log.info("Fetching workflows")
-        workflow_count = await fetch_temporal_data(client, state, _process_workflows, "workflows")
-        log.info(f"Successfully synced {workflow_count} workflows")
-
-        # Fetch and upsert schedules immediately with periodic checkpointing
-        # The fetch function handles upsert and checkpoint internally to avoid memory overflow
-        log.info("Fetching schedules")
-        schedule_count = await fetch_temporal_data(client, state, _process_schedules, "schedules")
-        log.info(f"Successfully synced {schedule_count} schedules")
-
-        return workflow_count, schedule_count
-
     try:
-        workflow_count, schedule_count = asyncio.run(_sync_all_data())
+        workflow_count, schedule_count = asyncio.run(
+            _sync_all_data(temporal_host, temporal_namespace, temporal_api_key, state)
+        )
 
         # Final checkpoint with sync completion timestamp
         current_timestamp = datetime.now(timezone.utc).isoformat()
