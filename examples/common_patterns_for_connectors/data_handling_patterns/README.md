@@ -1,14 +1,11 @@
 # Data handling patterns connector example
-
 ## Connector overview
 
-This example demonstrates three common techniques for handling nested data structures returned by an API source. Rather than connecting to a live API, it uses a mock API (`mock_api.py`) to simulate realistic source data shapes, making it easy to run and explore locally without any credentials or configuration.
-
-Each of the three sync functions in `connector.py` targets a separate destination table and applies a different data handling pattern:
+This example demonstrates three common techniques for handling nested data structures returned by an API source. A single API call fetches all user records, and each of the three sync functions applies a different data handling pattern to the same response:
 
 - Flatten into columns – when the source returns a single nested object alongside top-level fields, its fields are promoted to individual columns on the parent table.
-- Break out into child tables – when the source returns a list of nested objects inside a parent record, each list item is written to a separate child table linked back to the parent by a foreign key.
-- Write as a JSON blob – when the source returns a deeply nested or highly variable object, the entire structure is stored as a single JSON column.
+- Break out into child tables – when the source returns a list of nested objects inside a parent record, each list item is written to a separate child table.
+- Write as a JSON blob – when the source returns nested structures that may vary between records, the entire structure is stored as a single JSON column.
 
 
 ## Requirements
@@ -28,16 +25,17 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 ## Features
 
 - Demonstrates three distinct data handling patterns for nested API responses in a single connector.
-- Flattens a nested address object into individual destination columns – refer to `sync_flattened()`.
-- Splits a nested orders list into a parent table (`users`) and a child table (`orders`) linked by a foreign key – refer to `sync_parent_child()`.
-- Stores a complex, variable-structure metadata object as a JSON blob column – refer to `sync_json_blob()`.
-- Uses a mock API to generate synthetic source data, enabling local testing without credentials or configuration.
-- Checkpoints state after every table sync and at a configurable interval (`CHECKPOINT_INTERVAL`) to support safe resumption after interruptions.
+- Flattens all nested structures into a single flat table – refer to `sync_flattened()`.
+- Splits a nested orders list into a parent table and a child table with a composite primary key – refer to `sync_parent_child()`.
+- Stores the nested address and orders as a JSON blob column – refer to `sync_json_blob()`.
+- Uses a mock API to simulate source data with randomized values and a fixed schema, enabling local testing without credentials or configuration.
+- Checkpoints state after every table sync and at a configurable interval (`__CHECKPOINT_INTERVAL`) to support safe resumption after interruptions.
 
 
 ## Requirements file
 
-The `requirements.txt` file lists the Python libraries required by the connector. This example uses the `faker` library in `mock_api.py` to generate synthetic source data for local testing.
+The `requirements.txt` file lists the Python libraries required by the connector. 
+This example uses the `faker` library in `mock_api.py` to randomize the values in the simulated source data during local testing.
 
 ```
 faker==40.5.1
@@ -46,109 +44,98 @@ faker==40.5.1
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
+## Authentication
+
+This example does not use any authentication. It connects to a mock API (`mock_api.py`) that generates synthetic data locally. When building your own connector, replace the mock API calls with authenticated requests to your real data source.
+
+
+## Pagination
+
+This example does not implement pagination. The mock API returns all records in a single response. When building your own connector, add pagination if your source returns results across multiple pages. Refer to the [pagination examples](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/pagination) for common patterns such as offset-based, page-number, keyset, and next-page-URL pagination.
+
+
 ## Data handling
 
-This connector demonstrates three patterns for transforming nested API data into flat destination tables. Refer to the corresponding sync functions in `connector.py` for implementation details.
+A single call to `get_users()` in `mock_api.py` returns a list of user records, each containing all nested structures. The three sync functions in `connector.py` each process this same list and apply a different pattern.
 
-### Flatten into columns
-
-Refer to `sync_flattened()`.
-
-When the source returns a single nested object alongside top-level fields, each field in the nested object can be promoted to a top-level column on the parent table. This avoids joins at query time and keeps related data in a single row.
-
-Source shape:
+Source shape returned by `get_users()`:
 ```json
 {
-  "id": "1",
+  "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "Alice",
-  "address": {"city": "New York", "zip": "10001"}
-}
-```
-
-Destination — `users_flattened`:
-
-| id | name  | address_city | address_zip |
-|----|-------|--------------|-------------|
-| 1  | Alice | New York     | 10001       |
-
-### Break out into child tables
-
-Refer to `sync_parent_child()`.
-
-When the source returns a list of nested objects inside a parent record, the list is better modelled as a separate child table. Each item in the list becomes its own row in the child table, with the parent's primary key included as a foreign key. This avoids row duplication in the parent table and allows independent querying of child records.
-
-Source shape:
-```json
-{
-  "user_id": "1",
-  "name": "Alice",
+  "address": {"city": "New York", "zip": "10001"},
   "orders": [
-    {"order_id": "A1", "amount": 20},
-    {"order_id": "B2", "amount": 35}
+    {"order_id": "ORD-1", "amount": 20.5},
+    {"order_id": "ORD-2", "amount": 35.0}
   ]
 }
 ```
 
+### Flatten into columns
+
+When the source returns a single nested object alongside top-level fields, each field in the nested object can be promoted to a top-level column on the parent table. 
+Destination — `users_flattened` (composite PK: `user_id` + `order_id`):
+
+| user_id | name  | address_city | address_zip | order_id | amount |
+|---------|-------|--------------|-------------|----------|--------|
+| 1       | Alice | New York     | 10001       | ORD-1    | 20.5   |
+| 1       | Alice | New York     | 10001       | ORD-2    | 35.0   |
+
+Refer to `sync_flattened()`.
+
+### Break out into child tables
+
+The nested orders list is split into a parent table and a child table. All scalar fields (including the flattened address) are written to the parent `users` table. Each order becomes its own row in the child `orders` table.
+
+Order IDs in this example are sequential per user (`ORD-1`, `ORD-2` ...) and are not globally unique. A composite primary key (`user_id`, `order_id`) is therefore required to uniquely identify each order row.
+
 Destination — `users` (parent):
 
-| user_id | name  |
-|---------|-------|
-| 1       | Alice |
+| user_id | name  | address_city | address_zip |
+|---------|-------|--------------|-------------|
+| 1       | Alice | New York     | 10001       |
 
-Destination — `orders` (child):
+Destination — `orders` (child, composite PK: `user_id` + `order_id`):
 
-| order_id | user_id | amount |
-|----------|---------|--------|
-| A1       | 1       | 20.0   |
-| B2       | 1       | 35.0   |
+| user_id | order_id | amount |
+|---------|----------|--------|
+| 1       | ORD-1    | 20.5   |
+| 1       | ORD-2    | 35.0   |
+
+Refer to `sync_parent_child()`.
 
 ### Write as a JSON blob
 
+The nested `address` object and `orders` list are combined and stored as a single JSON blob in the `data` column. This avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python dictionary directly; no manual serialization is required.
+
+Destination — `users_data`:
+
+| user_id | name  | data                                                                       |
+|---------|-------|----------------------------------------------------------------------------|
+| 1       | Alice | {"address": {"city": "New York", "zip": "10001"}, "orders": [...]}  |
+
 Refer to `sync_json_blob()`.
-
-When the source returns a deeply nested or highly variable object whose structure may differ between records, storing it as a single JSON column avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python dictionary directly; no manual serialization is required.
-
-Source shape:
-```json
-{
-  "id": "1",
-  "name": "Alice",
-  "metadata": {
-    "preferences": {"theme": "dark", "notifications": true},
-    "history": ["event_1", "event_2"]
-  }
-}
-```
-
-Destination — `users_metadata`:
-
-| id | name  | metadata                                 |
-|----|-------|------------------------------------------|
-| 1  | Alice | {"preferences": {...}, "history": [...]} |
 
 
 ## Error handling
 
-Refer to `validate_configuration()`.
-
-- Configuration validation – at the start of every sync, `validate_configuration()` checks that all required configuration keys are present and raises a `ValueError` if any are missing. This prevents the sync from proceeding with incomplete credentials or settings.
-- Checkpointing – the connector checkpoints state after every table sync completes and at every `CHECKPOINT_INTERVAL` upserts within a table. If a sync is interrupted, Fivetran resumes from the last checkpoint rather than replaying the entire sync from the beginning.
-
-Note: This example requires no configuration, so `validate_configuration()` is included as a template placeholder. When building your own connector, add your required keys to the validation list inside that function.
+- Checkpointing – the connector checkpoints state after every table sync completes and at every `__CHECKPOINT_INTERVAL` upserts within a table. If a sync is interrupted, Fivetran resumes from the last checkpoint rather than replaying the entire sync from the beginning.
 
 
 ## Tables created
 
 This connector creates four destination tables across the three data handling patterns.
 
-`users_flattened` — pattern 1, flatten into columns:
+`users_flattened` — pattern 1, flatten into columns (composite PK: `user_id` + `order_id`):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id (PK) | STRING | Unique user identifier |
-| name | STRING | User's full name |
-| address_city | STRING | City, flattened from the nested address object |
-| address_zip | STRING | ZIP code, flattened from the nested address object |
+| user_id (PK) | STRING | User identifier; part of composite PK |
+| order_id (PK) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite PK |
+| name | STRING | User's full name, repeated on every order row |
+| address_city | STRING | City, flattened from the nested address object, repeated on every order row |
+| address_zip | STRING | ZIP code, flattened from the nested address object, repeated on every order row |
+| amount | DOUBLE | Order total amount |
 
 `users` — pattern 2, parent table:
 
@@ -156,27 +143,29 @@ This connector creates four destination tables across the three data handling pa
 |--------|------|-------------|
 | user_id (PK) | STRING | Unique user identifier |
 | name | STRING | User's full name |
+| address_city | STRING | City, flattened from the nested address object |
+| address_zip | STRING | ZIP code, flattened from the nested address object |
 
-`orders` — pattern 2, child table:
+`orders` — pattern 2, child table (composite PK):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| order_id (PK) | STRING | Unique order identifier |
-| user_id | STRING | Foreign key referencing `users.user_id` |
+| user_id (PK) | STRING | Foreign key referencing `users.user_id`; part of composite PK |
+| order_id (PK) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite PK |
 | amount | DOUBLE | Order total amount |
 
-`users_metadata` — pattern 3, JSON blob:
+`users_data` — pattern 3, JSON blob:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| id (PK) | STRING | Unique user identifier |
+| user_id (PK) | STRING | Unique user identifier |
 | name | STRING | User's full name |
-| metadata | JSON | Full metadata object stored as a JSON blob |
+| data | JSON | Nested address and orders combined and stored as a JSON blob |
 
 
 ## Additional files
 
-- `mock_api.py` – A simulated API that generates synthetic user data in three different nested shapes, one for each data handling pattern demonstrated in `connector.py`.
+- `mock_api.py` – A simulated API that returns a list of user records with randomized values and a fixed schema, each containing all nested data structures used by the connector.
 
 
 ## Additional considerations

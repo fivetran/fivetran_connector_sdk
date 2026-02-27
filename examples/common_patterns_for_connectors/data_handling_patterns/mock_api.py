@@ -1,12 +1,14 @@
-# This module simulates an external API that returns three different nested data shapes.
-# Each function corresponds to one of the three data handling patterns demonstrated in connector.py:
-#
-#   get_users_with_address()  → Pattern 1: single nested object  (flatten into columns)
-#   get_users_with_orders()   → Pattern 2: nested list           (break into child tables)
-#   get_users_with_metadata() → Pattern 3: complex nested object (write as JSON blob)
-#
-# In a real-world connector, replace each function body with your actual API call or
-# database query logic. Add pagination, retry handling, and rate-limit backoff as needed.
+"""
+This module simulates a single external API call that returns users with multiple nested
+data structures.:
+
+Pattern 1 — address + orders → flatten everything into a single flat table (one row per order, parent fields repeated)
+Pattern 2 — orders (nested list)  → break into parent/child tables
+Pattern 3 — address + orders      → write as JSON blob
+
+In a real-world connector, replace get_users() with your actual API call or database
+query logic. Add pagination, retry handling, and rate-limit backoff as needed.
+"""
 
 # Import Faker to generate realistic synthetic data for local testing and debugging.
 from faker import Faker
@@ -14,124 +16,53 @@ from faker import Faker
 # For enabling logs in your connector code.
 from fivetran_connector_sdk import Logging as log
 
+# Create a single shared Faker instance used across all functions to generate synthetic data.
 fake = Faker()
 
 
-def get_users_with_address():
+def get_users():
     """
-    Simulate fetching users that each contain a single nested 'address' object.
-    Used to demonstrate Pattern 1: flattening a nested object into individual columns.
+    Simulate a single API call that returns users, each containing a nested address object
+    and a nested orders list. All three data handling patterns in connector.py are applied
+    to this single response.
+
+    The schema (field names and structure) is fixed. Only the values are randomized using
+    Faker to simulate realistic variability across syncs.
 
     In a real-world connector, replace this with your actual API call or database query.
     Add pagination if your source returns results across multiple pages.
     Add retry logic with exponential backoff to handle transient API errors.
 
     Returns:
-        A list of dictionaries, each representing a user with a nested address object.
-        Example record shape:
-          {
-            "id": "...",
-            "name": "Alice",
-            "address": {"city": "New York", "zip": "10001"}
-          }
+        A list of dictionaries, each representing a user with a nested address object
+        and a nested orders list.
     """
-    log.info("Making API call: fetching users with nested address object")
+
+    log.info("Making API call: fetching users with nested address and orders")
     users = []
-    for _ in range(fake.random_int(min=1, max=6)):
-        users.append(
-            {
-                "id": fake.uuid4(),
-                "name": fake.name(),
-                # Nested address object — will be flattened into columns in connector.py.
-                "address": {
-                    "city": fake.city(),
-                    "zip": fake.zipcode(),
-                },
-            }
-        )
-    return users
-
-
-def get_users_with_orders():
-    """
-    Simulate fetching users that each contain a nested list of 'orders'.
-    Used to demonstrate Pattern 2: breaking a nested list into parent and child tables.
-
-    In a real-world connector, replace this with your actual API call or database query.
-    Add pagination if your source returns results across multiple pages.
-    Add retry logic with exponential backoff to handle transient API errors.
-
-    Returns:
-        A list of dictionaries, each representing a user with a nested orders list.
-        Example record shape:
-          {
-            "user_id": "...",
-            "name": "Alice",
-            "orders": [
-              {"order_id": "A1", "amount": 20},
-              {"order_id": "B2", "amount": 35}
-            ]
-          }
-    """
-    log.info("Making API call: fetching users with nested orders list")
-    users = []
-    for _ in range(fake.random_int(min=1, max=6)):
+    for _ in range(fake.random_int(min=2, max=6)):
         user_id = fake.uuid4()
         orders = [
             {
-                "order_id": fake.uuid4(),
+                "order_id": f"ORD-{j}",
                 "amount": round(fake.pyfloat(min_value=10, max_value=500, right_digits=2), 2),
             }
-            # Each user has between 1 and 4 orders.
-            for _ in range(fake.random_int(min=1, max=4))
+            for j in range(fake.random_int(min=1, max=4))
         ]
+
         users.append(
             {
                 "user_id": user_id,
                 "name": fake.name(),
-                # Nested orders list — will be split into a child table in connector.py.
-                "orders": orders,
-            }
-        )
-    return users
-
-
-def get_users_with_metadata():
-    """
-    Simulate fetching users that each contain a complex, deeply nested 'metadata' object.
-    Used to demonstrate Pattern 3: storing a variable-structure object as a JSON blob column.
-
-    In a real-world connector, replace this with your actual API call or database query.
-    Add pagination if your source returns results across multiple pages.
-    Add retry logic with exponential backoff to handle transient API errors.
-
-    Returns:
-        A list of dictionaries, each representing a user with a complex metadata object.
-        Example record shape:
-          {
-            "id": "...",
-            "name": "Alice",
-            "metadata": {
-              "preferences": {"theme": "dark", "notifications": true},
-              "history": ["event_1", "event_2"]
-            }
-          }
-    """
-    log.info("Making API call: fetching users with complex metadata object")
-    users = []
-    for _ in range(fake.random_int(min=1, max=6)):
-        users.append(
-            {
-                "id": fake.uuid4(),
-                "name": fake.name(),
-                # Deeply nested metadata object — will be stored as a JSON blob in connector.py.
-                "metadata": {
-                    "preferences": {
-                        "theme": fake.random_element(["dark", "light"]),
-                        "notifications": fake.boolean(),
-                    },
-                    "history": [fake.sentence() for _ in range(fake.random_int(min=1, max=3))],
+                # Nested address object — flattened into columns in Pattern 1,
+                # kept on the parent row in Pattern 2, and stored as JSON in Pattern 3.
+                "address": {
+                    "city": fake.city(),
+                    "zip": fake.zipcode(),
                 },
+                # Nested orders list — each order becomes its own flat row in Pattern 1 (parent fields
+                # repeated per row), split into a child table in Pattern 2, and stored as JSON in Pattern 3.
+                "orders": orders,
             }
         )
     return users
