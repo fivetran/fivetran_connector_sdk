@@ -1,0 +1,4 @@
+{
+  "base_url": "<YOUR_DAGSTER_API_URL>",
+  "api_token": "<YOUR_DAGSTER_API_TOKEN>"
+}
