@@ -27,7 +27,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Demonstrates three distinct data handling patterns for nested API responses in a single connector.
 - Flattens all nested structures into a single flat table – refer to `sync_flattened()`.
 - Splits a nested orders list into a parent table and a child table with a composite primary key – refer to `sync_parent_child()`.
-- Stores the nested address and orders as a JSON blob column – refer to `sync_json_blob()`.
+- Stores the nested orders as a JSON blob column – refer to `sync_json_blob()`.
 - Uses a mock API to simulate source data with randomized values and a fixed schema, enabling local testing without credentials or configuration.
 - Checkpoints state after every table sync and at a configurable interval (`__CHECKPOINT_INTERVAL`) to support safe resumption after interruptions.
 
@@ -63,7 +63,6 @@ Source shape returned by `get_users()`:
 {
   "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "Alice",
-  "address": {"city": "New York", "zip": "10001"},
   "orders": [
     {"order_id": "ORD-1", "amount": 20.5},
     {"order_id": "ORD-2", "amount": 35.0}
@@ -76,24 +75,24 @@ Source shape returned by `get_users()`:
 When the source returns a single nested object alongside top-level fields, each field in the nested object can be promoted to a top-level column on the parent table. 
 Destination — `users_flattened` (composite PK: `user_id` + `order_id`):
 
-| user_id | name  | address_city | address_zip | order_id | amount |
-|---------|-------|--------------|-------------|----------|--------|
-| 1       | Alice | New York     | 10001       | ORD-1    | 20.5   |
-| 1       | Alice | New York     | 10001       | ORD-2    | 35.0   |
+| user_id | name  | order_id | amount |
+|---------|-------|----------|--------|
+| 1       | Alice | ORD-1    | 20.5   |
+| 1       | Alice | ORD-2    | 35.0   |
 
 Refer to `sync_flattened()`.
 
 ### Break out into child tables
 
-The nested orders list is split into a parent table and a child table. All scalar fields (including the flattened address) are written to the parent `users` table. Each order becomes its own row in the child `orders` table.
+The nested orders list is split into a parent table and a child table. All non-nested fields are written to the parent `users` table. Each order becomes its own row in the child `orders` table.
 
 Order IDs in this example are sequential per user (`ORD-1`, `ORD-2` ...) and are not globally unique. A composite primary key (`user_id`, `order_id`) is therefore required to uniquely identify each order row.
 
 Destination — `users` (parent):
 
-| user_id | name  | address_city | address_zip |
-|---------|-------|--------------|-------------|
-| 1       | Alice | New York     | 10001       |
+| user_id | name  |
+|---------|-------|
+| 1       | Alice |
 
 Destination — `orders` (child, composite PK: `user_id` + `order_id`):
 
@@ -106,13 +105,13 @@ Refer to `sync_parent_child()`.
 
 ### Write as a JSON blob
 
-The nested `address` object and `orders` list are combined and stored as a single JSON blob in the `data` column. This avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python dictionary directly; no manual serialization is required.
+The nested `orders` list is stored as a single JSON blob in the `data` column. This avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python dictionary directly; no manual serialization is required.
 
 Destination — `users_data`:
 
-| user_id | name  | data                                                                       |
-|---------|-------|----------------------------------------------------------------------------|
-| 1       | Alice | {"address": {"city": "New York", "zip": "10001"}, "orders": [...]}  |
+| user_id | name  | data                        |
+|---------|-------|-----------------------------|
+| 1       | Alice | {"orders": [...]}           |
 
 Refer to `sync_json_blob()`.
 
@@ -133,8 +132,6 @@ This connector creates four destination tables across the three data handling pa
 | user_id (PK) | STRING | User identifier; part of composite PK |
 | order_id (PK) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite PK |
 | name | STRING | User's full name, repeated on every order row |
-| address_city | STRING | City, flattened from the nested address object, repeated on every order row |
-| address_zip | STRING | ZIP code, flattened from the nested address object, repeated on every order row |
 | amount | DOUBLE | Order total amount |
 
 `users` — pattern 2, parent table:
@@ -143,8 +140,6 @@ This connector creates four destination tables across the three data handling pa
 |--------|------|-------------|
 | user_id (PK) | STRING | Unique user identifier |
 | name | STRING | User's full name |
-| address_city | STRING | City, flattened from the nested address object |
-| address_zip | STRING | ZIP code, flattened from the nested address object |
 
 `orders` — pattern 2, child table (composite PK):
 
@@ -160,12 +155,12 @@ This connector creates four destination tables across the three data handling pa
 |--------|------|-------------|
 | user_id (PK) | STRING | Unique user identifier |
 | name | STRING | User's full name |
-| data | JSON | Nested address and orders combined and stored as a JSON blob |
+| data | JSON | Nested orders stored as a JSON blob |
 
 
 ## Additional files
 
-- `mock_api.py` – A simulated API that returns a list of user records with randomized values and a fixed schema, each containing all nested data structures used by the connector.
+- `mock_api.py` – A simulated API that returns a list of user records with randomized values and a fixed schema, each containing a nested orders list used by the connector.
 
 
 ## Additional considerations

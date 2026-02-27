@@ -3,14 +3,15 @@ This connector demonstrates three common patterns for handling nested data from 
 Each sync function targets a different table and uses a different data handling technique:
 
 Pattern 1 — Flatten into columns:
-A single nested object is expanded into individual columns on the parent table.
+A nested list of orders is flattened so each order becomes its own row, with parent user
+fields repeated on every row.(users_flattened)
 
 Pattern 2 — Break out into child tables:
 A list of nested objects is split into a parent table (users) and a child table (orders).
 The child table carries the parent's primary key as a foreign key.
 
 Pattern 3 — Write as a JSON blob:
-A deeply nested or highly variable object is stored as a single JSON column.
+A deeply nested or highly variable object is stored as a single JSON column.(users_data)
 
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -47,7 +48,7 @@ def schema(configuration: dict):
     """
     return [
         # Pattern 1: Flatten into columns.
-        # All nested structures are expanded into a single flat table.
+        # All nested structures are expanded into a single flat table [users_flattened].
         {
             # Name of the table in the destination, required.
             "table": "users_flattened",
@@ -61,26 +62,22 @@ def schema(configuration: dict):
             "columns": {
                 "user_id": "STRING",
                 "name": "STRING",
-                "address_city": "STRING",
-                "address_zip": "STRING",
                 "order_id": "STRING",
                 "amount": "DOUBLE",
             },
         },
-        # Pattern 2a: Parent table.
-        # Contains all scalar fields from the record, including flattened address columns.
-        # The 'orders' list is moved to a child table to avoid row duplication.
+        # Pattern 2a: Parent table [users].
+        # Contains all non-nested fields from the record.
+        # The 'orders' list is moved to a child table [orders] to avoid row duplication.
         {
             "table": "users",
             "primary_key": ["user_id"],
             "columns": {
                 "user_id": "STRING",
                 "name": "STRING",
-                "address_city": "STRING",
-                "address_zip": "STRING",
             },
         },
-        # Pattern 2b: Child table.
+        # Pattern 2b: Child table [orders].
         # Each order becomes its own row.
         # A composite primary key (user_id, order_id) is
         # required to uniquely identify each row
@@ -93,10 +90,9 @@ def schema(configuration: dict):
                 "amount": "DOUBLE",
             },
         },
-        # Pattern 3: JSON blob column.
-        # The entire nested portion of the record (address + orders) is stored as a single
-        # JSON column, preserving the full structure without requiring schema changes as
-        # the source evolves.
+        # Pattern 3: JSON blob column [users_data].
+        # The nested orders list is stored as a single JSON column, preserving the full
+        # structure without requiring schema changes as the source evolves.
         {
             "table": "users_data",
             "primary_key": ["user_id"],
@@ -111,11 +107,10 @@ def schema(configuration: dict):
 
 def sync_flattened(new_state: dict, users: list):
     """
-    Pattern 1 — Flatten all nested structures into a single flat table.
-    The 'address' fields are promoted to individual top-level columns. Each order in the
-    'orders' list becomes its own row, with parent user fields (user_id, name, address)
-    repeated on every order row. A composite primary key (user_id, order_id) is required
-    because order_id values are sequential per user and not globally unique.
+    Pattern 1 — Flatten the nested orders list into a single flat table [users_flattened].
+    Each order in the 'orders' list becomes its own row, with parent user fields
+    (user_id, name) repeated on every order row. A composite primary key (user_id, order_id)
+    is required because order_id values are sequential per user and not globally unique.
 
     Args:
         new_state: the state dictionary to checkpoint; updated to the current time before each checkpoint.
@@ -124,26 +119,22 @@ def sync_flattened(new_state: dict, users: list):
     log.info("Syncing Pattern 1: Flatten all nested structures into a single flat table")
     row_count = 0
 
+    # Upserting into table [users_flattened]
     for user in users:
-        # Extract the nested address object, defaulting to an empty dict if absent.
-        address = user.get("address", {})
-
         for order in user.get("orders", []):
+            record = {
+                "user_id": user["user_id"],
+                "name": user["name"],
+                # Flatten each order into its own row alongside the parent user fields [users_flattened].
+                "order_id": order["order_id"],
+                "amount": order["amount"],
+            }
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             op.upsert(
                 table="users_flattened",
-                data={
-                    "user_id": user["user_id"],
-                    "name": user["name"],
-                    # Flatten the nested address fields into individual top-level columns.
-                    "address_city": address.get("city"),
-                    "address_zip": address.get("zip"),
-                    # Flatten each order into its own row alongside the parent user fields.
-                    "order_id": order["order_id"],
-                    "amount": order["amount"],
-                },
+                data=record,
             )
             row_count += 1
 
@@ -177,38 +168,32 @@ def sync_flattened(new_state: dict, users: list):
 
 def sync_parent_child(new_state: dict, users: list):
     """
-    Pattern 2 — Break a nested list out into a parent table and a child table.
-    All scalar fields (including the flattened address) are written to the parent 'users'
-    table. Each order in the nested list is written to the child 'orders' table with a
-    composite primary key (user_id, order_id).
+    Pattern 2 — Break a nested list out into a parent table [users] and a child table [orders].
+    All non-nested fields are written to the parent table [users]. Each order in the nested
+    list is written to the child table [orders] with a composite primary key (user_id, order_id).
 
     Args:
         new_state: the state dictionary to checkpoint; updated to the current time before each checkpoint.
         users: the list of user records returned by the single mock API call.
     """
     log.info("Syncing Pattern 2: Break nested orders list into parent/child tables")
-    # user_count tracks rows written to the parent 'users' table.
+    # user_count tracks rows written to the parent table [users].
     user_count = 0
-    # order_count tracks rows written to the child 'orders' table.
+    # order_count tracks rows written to the child table [orders].
     order_count = 0
 
+    # Upserting into parent table [users]
     for user in users:
-        # Extract the nested address object, defaulting to an empty dict if absent.
-        address = user.get("address", {})
-
+        record = {
+            "user_id": user["user_id"],
+            "name": user["name"],
+        }
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(
             table="users",
-            data={
-                "user_id": user["user_id"],
-                "name": user["name"],
-                # Include flattened address columns on the parent row so all scalar
-                # data is accessible without joining to the child table.
-                "address_city": address.get("city"),
-                "address_zip": address.get("zip"),
-            },
+            data=record,
         )
         user_count += 1
 
@@ -226,19 +211,21 @@ def sync_parent_child(new_state: dict, users: list):
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(new_state)
 
+        # Upserting into child table [orders]
         for order in user.get("orders", []):
+            record = {
+                "user_id": user["user_id"],
+                "order_id": order["order_id"],
+                "amount": order["amount"],
+            }
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
             # user_id is included in every order row as part of the composite primary key,
-            # linking each child row back to its parent in the 'users' table.
+            # linking each child row [orders] back to its parent in the parent table [users].
             op.upsert(
                 table="orders",
-                data={
-                    "user_id": user["user_id"],
-                    "order_id": order["order_id"],
-                    "amount": order["amount"],
-                },
+                data=record,
             )
             order_count += 1
 
@@ -271,34 +258,35 @@ def sync_parent_child(new_state: dict, users: list):
 
 def sync_json_blob(new_state: dict, users: list):
     """
-    Pattern 3 — Store the entire nested portion of the record as a single JSON blob column.
-    Both the 'address' object and the 'orders' list are combined and stored together in the
-    'data' JSON column. The SDK handles serialization; no manual json.dumps() is required.
+    Pattern 3 — Store the nested orders list as a single JSON blob column [users_data].
+    The 'orders' list is stored in the 'data' JSON column of the JSON blob table [users_data].
+    The SDK handles serialization; no manual json.dumps() is required.
 
     Args:
         new_state: the state dictionary to checkpoint; updated to the current time before each checkpoint.
         users: the list of user records returned by the single mock API call.
     """
-    log.info("Syncing Pattern 3: Write nested address and orders as a JSON blob")
+    log.info("Syncing Pattern 3: Write nested orders as a JSON blob")
     row_count = 0
 
+    # Upserting into table users_data
     for user in users:
+        record = {
+            "user_id": user["user_id"],
+            "name": user["name"],
+            # Store the nested orders list as a single JSON blob [users_data].
+            # The SDK serializes the dict directly into the JSON column;
+            # no manual json.dumps() call is needed.
+            "data": {
+                "orders": user.get("orders", []),
+            },
+        }
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
         op.upsert(
             table="users_data",
-            data={
-                "user_id": user["user_id"],
-                "name": user["name"],
-                # Combine the nested address and orders into a single JSON blob.
-                # The SDK serializes the dict directly into the JSON column;
-                # no manual json.dumps() call is needed.
-                "data": {
-                    "address": user.get("address", {}),
-                    "orders": user.get("orders", []),
-                },
-            },
+            data=record,
         )
         row_count += 1
 
@@ -357,13 +345,13 @@ def update(configuration: dict, state: dict):
     # Make a single API call to fetch all users with their nested data.
     users = mock_api.get_users()
 
-    # Sync Pattern 1: flatten the nested address object into individual columns.
+    # Sync Pattern 1: flatten the nested orders list into individual columns [users_flattened].
     sync_flattened(new_state, users)
 
-    # Sync Pattern 2: split the nested orders list into parent (users) and child (orders) tables.
+    # Sync Pattern 2: split the nested orders list into parent [users] and child [orders] tables.
     sync_parent_child(new_state, users)
 
-    # Sync Pattern 3: store the nested address and orders as a single JSON blob column.
+    # Sync Pattern 3: store the nested orders as a single JSON blob column [users_data].
     sync_json_blob(new_state, users)
 
     log.info(f"Sync complete. Last synced at: {new_state['last_synced_at']}")
@@ -390,19 +378,19 @@ if __name__ == "__main__":
 # ── Resulting tables ──────────────────────────────────────────────────────────
 #
 # Pattern 1 — users_flattened (composite PK: user_id + order_id):
-# ┌─────────┬───────┬──────────────┬─────────────┬──────────┬────────┐
-# │ user_id │ name  │ address_city │ address_zip │ order_id │ amount │
-# ├─────────┼───────┼──────────────┼─────────────┼──────────┼────────┤
-# │  uuid   │ Alice │ New York     │ 10001       │  ORD-1   │  20.5  │
-# │  uuid   │ Alice │ New York     │ 10001       │  ORD-2   │  35.0  │
-# └─────────┴───────┴──────────────┴─────────────┴──────────┴────────┘
+# ┌─────────┬───────┬──────────┬────────┐
+# │ user_id │ name  │ order_id │ amount │
+# ├─────────┼───────┼──────────┼────────┤
+# │  uuid   │ Alice │  ORD-1   │  20.5  │
+# │  uuid   │ Alice │  ORD-2   │  35.0  │
+# └─────────┴───────┴──────────┴────────┘
 #
 # Pattern 2 — users (parent):
-# ┌─────────┬───────┬──────────────┬─────────────┐
-# │ user_id │ name  │ address_city │ address_zip │
-# ├─────────┼───────┼──────────────┼─────────────┤
-# │  uuid   │ Alice │ New York     │ 10001       │
-# └─────────┴───────┴──────────────┴─────────────┘
+# ┌─────────┬───────┐
+# │ user_id │ name  │
+# ├─────────┼───────┤
+# │  uuid   │ Alice │
+# └─────────┴───────┘
 #
 # Pattern 2 — orders (child, composite PK: user_id + order_id):
 # ┌─────────┬──────────┬────────┐
@@ -413,8 +401,8 @@ if __name__ == "__main__":
 # └─────────┴──────────┴────────┘
 #
 # Pattern 3 — users_data:
-# ┌─────────┬───────┬─────────────────────────────────────────────────────────┐
-# │ user_id │ name  │                         data                            │
-# ├─────────┼───────┼─────────────────────────────────────────────────────────┤
-# │  uuid   │ Alice │ {"address": {"city": "New York", ...}, "orders": [...]} │
-# └─────────┴───────┴─────────────────────────────────────────────────────────┘
+# ┌─────────┬───────┬──────────────────────────────┐
+# │ user_id │ name  │             data             │
+# ├─────────┼───────┼──────────────────────────────┤
+# │  uuid   │ Alice │ {"orders": [...]}            │
+# └─────────┴───────┴──────────────────────────────┘

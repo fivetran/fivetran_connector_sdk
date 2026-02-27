@@ -2,9 +2,9 @@
 This module simulates a single external API call that returns users with multiple nested
 data structures.:
 
-Pattern 1 — address + orders → flatten everything into a single flat table (one row per order, parent fields repeated)
+Pattern 1 — orders → flatten everything into a single flat table (one row per order, parent fields repeated)
 Pattern 2 — orders (nested list)  → break into parent/child tables
-Pattern 3 — address + orders      → write as JSON blob
+Pattern 3 — orders      → write as JSON blob
 
 In a real-world connector, replace get_users() with your actual API call or database
 query logic. Add pagination, retry handling, and rate-limit backoff as needed.
@@ -22,9 +22,8 @@ fake = Faker()
 
 def get_users():
     """
-    Simulate a single API call that returns users, each containing a nested address object
-    and a nested orders list. All three data handling patterns in connector.py are applied
-    to this single response.
+    Simulate a single API call that returns users, each containing a nested orders list.
+    All three data handling patterns in connector.py are applied to this single response.
 
     The schema (field names and structure) is fixed. Only the values are randomized using
     Faker to simulate realistic variability across syncs.
@@ -34,11 +33,10 @@ def get_users():
     Add retry logic with exponential backoff to handle transient API errors.
 
     Returns:
-        A list of dictionaries, each representing a user with a nested address object
-        and a nested orders list.
+        A list of dictionaries, each representing a user with a nested orders list.
     """
 
-    log.info("Making API call: fetching users with nested address and orders")
+    log.info("Making API call: fetching users with nested orders")
     users = []
     for _ in range(fake.random_int(min=2, max=6)):
         user_id = fake.uuid4()
@@ -54,12 +52,6 @@ def get_users():
             {
                 "user_id": user_id,
                 "name": fake.name(),
-                # Nested address object — flattened into columns in Pattern 1,
-                # kept on the parent row in Pattern 2, and stored as JSON in Pattern 3.
-                "address": {
-                    "city": fake.city(),
-                    "zip": fake.zipcode(),
-                },
                 # Nested orders list — each order becomes its own flat row in Pattern 1 (parent fields
                 # repeated per row), split into a child table in Pattern 2, and stored as JSON in Pattern 3.
                 "orders": orders,
