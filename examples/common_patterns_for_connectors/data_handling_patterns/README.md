@@ -105,13 +105,13 @@ Refer to `sync_parent_child()`.
 
 ### Write as a JSON blob
 
-The nested `orders` list is stored as a single JSON blob in the `data` column. This avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python dictionary directly; no manual serialization is required.
+The nested `orders` list is stored as a single JSON blob in the `orders` column. This avoids frequent schema changes and preserves the full structure for downstream consumers. The Connector SDK accepts the Python list directly; no manual serialization is required. Only the `order_id` and `amount` fields from each order are written into the blob.
 
 Destination — `users_data`:
 
-| user_id | name  | data                        |
-|---------|-------|-----------------------------|
-| 1       | Alice | {"orders": [...]}           |
+| user_id | name  | orders                                             |
+|---------|-------|----------------------------------------------------|
+| 1       | Alice | [{"order_id": "ORD-1", "amount": 20.5}, ...]       |
 
 Refer to `sync_json_blob()`.
 
@@ -155,7 +155,7 @@ This connector creates four destination tables across the three data handling pa
 |--------|------|-------------|
 | user_id (PK) | STRING | Unique user identifier |
 | name | STRING | User's full name |
-| data | JSON | Nested orders stored as a JSON blob |
+| orders | JSON | Nested orders stored as a JSON blob |
 
 
 ## Additional files

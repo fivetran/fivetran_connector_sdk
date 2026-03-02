@@ -99,7 +99,7 @@ def schema(configuration: dict):
             "columns": {
                 "user_id": "STRING",
                 "name": "STRING",
-                "data": "JSON",
+                "orders": "JSON",
             },
         },
     ]
@@ -259,7 +259,7 @@ def sync_parent_child(new_state: dict, users: list):
 def sync_json_blob(new_state: dict, users: list):
     """
     Pattern 3 — Store the nested orders list as a single JSON blob column [users_data].
-    The 'orders' list is stored in the 'data' JSON column of the JSON blob table [users_data].
+    The 'orders' list is stored in the 'orders' JSON column of the JSON blob table [users_data].
     The SDK handles serialization; no manual json.dumps() is required.
 
     Args:
@@ -275,11 +275,11 @@ def sync_json_blob(new_state: dict, users: list):
             "user_id": user["user_id"],
             "name": user["name"],
             # Store the nested orders list as a single JSON blob [users_data].
-            # The SDK serializes the dict directly into the JSON column;
+            # The SDK serializes the list directly into the JSON column;
             # no manual json.dumps() call is needed.
-            "data": {
-                "orders": user.get("orders", []),
-            },
+            "orders": [
+                {"order_id": o["order_id"], "amount": o["amount"]} for o in user.get("orders", [])
+            ],
         }
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
@@ -401,8 +401,8 @@ if __name__ == "__main__":
 # └─────────┴──────────┴────────┘
 #
 # Pattern 3 — users_data:
-# ┌─────────┬───────┬──────────────────────────────┐
-# │ user_id │ name  │             data             │
-# ├─────────┼───────┼──────────────────────────────┤
-# │  uuid   │ Alice │ {"orders": [...]}            │
-# └─────────┴───────┴──────────────────────────────┘
+# ┌─────────┬───────┬──────────────────────────────────────────────────────┐
+# │ user_id │ name  │                        orders                        │
+# ├─────────┼───────┼──────────────────────────────────────────────────────┤
+# │  uuid   │ Alice │ [{"order_id": "ORD-1", "amount": 20.5}, ...]         │
+# └─────────┴───────┴──────────────────────────────────────────────────────┘
