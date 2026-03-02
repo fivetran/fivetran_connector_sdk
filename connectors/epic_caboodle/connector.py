@@ -17,6 +17,9 @@ import pytds
 # For timestamp handling and timezone-aware operations
 from datetime import datetime, timezone
 
+# For handling DECIMAL values returned by pytds
+from decimal import Decimal
+
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
@@ -38,10 +41,11 @@ __MAX_TABLES = 10
 
 # The name of the column used for incremental syncs if it exists in a table
 # You can modify this to use a different column based on your database schema
-__MODIFIED_COLUMN_NAME = "ModifiedDate"
+__MODIFIED_COLUMN_NAME = "modified_date"
 
-# Sentinel cursor used on the very first sync for tables that have the __MODIFIED_COLUMN_NAME column
-__INITIAL_SYNC_DATE = "1970-01-01T00:00:00+00:00"
+# Sentinel cursor used on the very first sync for tables that have the __MODIFIED_COLUMN_NAME column.
+# SQL Server DATETIME does not support timezone offsets, so use a plain datetime string.
+__INITIAL_SYNC_DATE = "1970-01-01 00:00:00"
 
 
 def validate_configuration(configuration: dict) -> None:
@@ -126,15 +130,51 @@ def _get_table_list(connection) -> list[str]:
         raise
 
 
+def _map_sql_type(sql_type: str) -> str | dict:
+    """
+    Map a SQL Server data type to the Fivetran SDK column type.
+    All other types return a plain string.
+    Args:
+        sql_type: SQL Server column type.
+    Returns:
+        Fivetran SDK column type.
+    """
+    t = sql_type.lower()
+    if t == "bit":
+        return "BOOLEAN"
+    if t in ("tinyint", "smallint"):
+        return "SHORT"
+    if t in ("int", "integer"):
+        return "INT"
+    if t == "bigint":
+        return "LONG"
+    if t in ("float", "real", "decimal", "numeric", "money", "smallmoney"):
+        return "FLOAT"
+    if t == "date":
+        return "NAIVE_DATE"
+    if t in ("datetime", "datetime2", "smalldatetime"):
+        return "NAIVE_DATETIME"
+    if t == "datetimeoffset":
+        return "UTC_DATETIME"
+    if t in ("binary", "varbinary", "image"):
+        return "BINARY"
+    if t == "xml":
+        return "XML"
+    return "STRING"
+
+
 def _build_schema(
-    table_name: str, primary_keys: list[str] | None, columns: list[str] | None, failure=False
+    table_name: str,
+    primary_keys: list[str] | None,
+    columns: dict[str, str] | None,
+    failure=False,
 ) -> dict:
     """
     Build a schema dictionary for a given table.
     Args:
         table_name: Name of the table.
         primary_keys: List of primary key column names.
-        columns: List of all column names in the table.
+        columns: Dict mapping column names to {"data_type": <Fivetran type>}.
         failure: If True, returns a minimal schema with only the table name.
     Returns:
         Dictionary containing table schema information.
@@ -170,7 +210,7 @@ def _get_table_schema(connection, table_name: str) -> dict:
     SELECT COLUMN_NAME
     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
     WHERE TABLE_NAME = %s
-    AND CONSTRAINT_NAME LIKE 'PK_%'
+    AND CONSTRAINT_NAME LIKE 'PK_%%'
     ORDER BY ORDINAL_POSITION
     """
 
@@ -189,16 +229,55 @@ def _get_table_schema(connection, table_name: str) -> dict:
             cursor.execute(primary_key_query, (table_name,))
             primary_keys = [row[0] for row in cursor.fetchall()]
 
-            # Fetch all column names for the table.
-            # This query retrieves column names and their data types
+            # Fetch all column names, data types, and decimal precision/scale for the table.
             cursor.execute(column_query, (table_name,))
-            columns = [row[0] for row in cursor.fetchall()]
+            columns = {row[0]: _map_sql_type(row[1]) for row in cursor.fetchall()}
 
             return _build_schema(table_name=table_name, primary_keys=primary_keys, columns=columns)
 
     except Exception as e:
         log.warning(f"Failed to get schema for table {table_name}: {e}")
         return _build_schema(table_name=table_name, primary_keys=None, columns=None, failure=True)
+
+
+def _get_tables_with_modified_date(connection, table_names: list[str]) -> set[str]:
+    """
+    Return the subset of table_names that contain a __MODIFIED_COLUMN_NAME column.
+    Args:
+        connection: Active database connection object.
+        table_names: List of table names to check.
+    Returns:
+        Set of table names that have the __MODIFIED_COLUMN_NAME column.
+    """
+    if not table_names:
+        return set()
+    placeholders = ", ".join(["%s"] * len(table_names))
+    query = f"""
+    SELECT TABLE_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE COLUMN_NAME = %s
+    AND TABLE_NAME IN ({placeholders})
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, [__MODIFIED_COLUMN_NAME] + list(table_names))
+            return {row[0] for row in cursor.fetchall()}
+    except Exception as e:
+        log.warning(f"Failed to detect modified-date columns: {e}")
+        return set()
+
+
+def _serialize_value(value):
+    """
+    Convert pytds-returned decimal type to Float
+    Args:
+        value: Value to serialize.
+    Returns:
+        Serialized value.
+    """
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
 
 
 def _get_table_data(
@@ -245,7 +324,8 @@ def _get_table_data(
                     break
                 for row in rows:
                     # This yields each row as a dictionary where keys are column names and values are the corresponding row values.
-                    yield dict(zip(columns, row))
+                    # _serialize_value converts Decimal to float
+                    yield {column: _serialize_value(value) for column, value in zip(columns, row)}
 
     except Exception as e:
         log.severe(f"Failed to get data from table {table_name}: {e}")
@@ -272,9 +352,7 @@ def schema(configuration: dict):
         schema_list = []
         for table_name in tables:
             # for each table, get the schema information (columns and primary keys) and add it to the schemas list
-            schema_info = _get_table_schema(connection, table_name)
-            if schema_info:
-                schema_list.append(schema_info)
+            schema_list.append(_get_table_schema(connection, table_name))
 
         # Declare the sync_history table so Fivetran knows its primary key.
         # This table is used to store a summary record after each sync, which can be useful for monitoring and debugging.
@@ -282,7 +360,12 @@ def schema(configuration: dict):
             {
                 "table": "sync_history",
                 "primary_key": ["sync_timestamp"],
-                "columns": ["sync_timestamp", "total_tables", "total_records", "tables_processed"],
+                "columns": {
+                    "sync_timestamp": "STRING",
+                    "total_tables": "INT",
+                    "total_records": "INT",
+                    "tables_processed": "STRING",
+                },
             }
         )
 
@@ -355,6 +438,9 @@ def update(configuration: dict, state: dict):
         # capture start time of the sync for sync_history table and logging purposes
         sync_start = datetime.now(timezone.utc).isoformat()
 
+        # Determine which tables have a __MODIFIED_COLUMN_NAME column
+        tables_with_modified_date = _get_tables_with_modified_date(connection, tables)
+
         total_records = 0
 
         for table_name in tables:
@@ -363,8 +449,7 @@ def update(configuration: dict, state: dict):
             error_count = 0
 
             # Determine once whether the table has a __MODIFIED_COLUMN_NAME column.
-            table_schema = _get_table_schema(connection, table_name)
-            has_modified_date = __MODIFIED_COLUMN_NAME in set(table_schema.get("columns") or [])
+            has_modified_date = table_name in tables_with_modified_date
             if has_modified_date:
                 # Use the stored cursor, or the sentinel date on historical sync
                 last_sync_time = state.get(table_name, __INITIAL_SYNC_DATE)

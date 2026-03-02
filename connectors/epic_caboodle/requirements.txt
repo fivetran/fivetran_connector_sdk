@@ -1,1 +1,1 @@
-pytds==1.9.2 
+python-tds==1.17.1

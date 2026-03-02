@@ -56,7 +56,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 The `requirements.txt` file specifies the Python libraries required by the connector:
 
 ```
-pytds==1.9.2
+python-tds==1.17.1
 ```
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -93,12 +93,14 @@ The schema discovery follows the following steps (Refer to `schema()` function):
 
 The Data synchronization is implemented using the following (refer to `update()` and `_get_table_data()`):
 
-- Tables with `__MODIFIED_COLUMN_NAME`: The connector checks whether the table contains the `__MODIFIED_COLUMN_NAME` column. If present:
-  - Historical sync: Uses the date `1970-01-01T00:00:00+00:00` as `last_sync_time`
-  - Incremental syncs: Uses the actual `MODIFIED_COLUMN_NAME` value of the last successfully processed record as the cursor, fetched from state.
-  - State (`state[table_name]`) is updated to the latest `__MODIFIED_COLUMN_NAME` seen after every record processed, ensuring the cursor at any checkpoint reflects the exact row last written to the destination.
+- Before the table loop, `_get_tables_with_modified_date()` issues a single bulk query against `INFORMATION_SCHEMA.COLUMNS` to identify all tables containing the `__MODIFIED_COLUMN_NAME` column. This avoids a per-table schema lookup inside the loop.
 
-- Tables without `__MODIFIED_COLUMN_NAME`: The connector performs a full resync everytime
+- Tables with `__MODIFIED_COLUMN_NAME`: If a table is in the set returned above:
+  - Initial sync: Uses the sentinel date `1970-01-01 00:00:00` as `last_sync_time` so all rows are fetched via `WHERE __MODIFIED_COLUMN_NAME > last_sync_time ORDER BY __MODIFIED_COLUMN_NAME`
+  - Incremental syncs: Uses the stored cursor from state as `last_sync_time`
+  - State (`state[table_name]`) is updated to the latest `__MODIFIED_COLUMN_NAME` value seen after every record processed, ensuring the cursor at any checkpoint reflects the exact row last written to the destination.
+
+- Tables without `__MODIFIED_COLUMN_NAME`: The connector performs a full resync every time
 
 
 ## Error handling
