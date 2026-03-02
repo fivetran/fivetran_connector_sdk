@@ -67,7 +67,7 @@ The Bright Data API uses Bearer token authentication. To obtain your API token:
 
 1. Visit the [Bright Data website](https://brightdata.com).
 2. Create an account or log in to your existing account.
-3. Navigate to **Settings > Users** or visit https://brightdata.com/cp/setting/users
+3. Navigate to **Settings > Users** or visit https://brightdata.com/cp/setting/users.
 4. Generate or copy your API token.
 5. Add the API token to your `configuration.json` file.
 
