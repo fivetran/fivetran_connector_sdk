@@ -100,7 +100,7 @@ The connector implements comprehensive error handling:
 
 | Table Name        | Primary Key                          | Description                                                                                                                                                                                                                            |
 |-------------------|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `scrape_results`  | `url`, `result_index` | Contains scraped web page data including content, metadata, and extracted fields. Each row represents a single result from a scraped URL. The `url` field identifies the source URL, and `result_index` distinguishes multiple results from the same URL. Nested JSON structures are flattened with underscore separators (e.g., `user_name`, `user_details_age`).|
+| `SCRAPE_RESULTS`  | `url`, `result_index` | Contains scraped web page data including content, metadata, and extracted fields. Each row represents a single result from a scraped URL. The `url` field identifies the source URL, and `result_index` distinguishes multiple results from the same URL. Nested JSON structures are flattened with underscore separators (e.g., `user_name`, `user_details_age`).|
 
 ## Additional files
 
