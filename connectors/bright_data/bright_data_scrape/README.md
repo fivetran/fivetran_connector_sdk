@@ -37,7 +37,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 }
 ```
 
-### Configuration parameters
+Configuration parameters:
 
 - `api_token` (required): Your Bright Data API token (Bearer token format, obtained from Bright Data dashboard)
 - `dataset_id`: The ID of the Bright Data dataset to use for scraping (e.g., `"gd_lyy3tktm25m4avu764"`)
