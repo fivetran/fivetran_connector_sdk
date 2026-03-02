@@ -106,11 +106,11 @@ The connector implements comprehensive error handling:
 
 The connector uses the following additional files:
 
-- **helpers/validation.py** - Configuration parameter validation
-- **helpers/scrape.py** - Bright Data API interaction, job triggering, and snapshot polling
-- **helpers/schema_management.py** - Dynamic schema discovery and fields.yaml management
-- **helpers/data_processing.py** - Data flattening and result processing utilities
-- **helpers/common.py** - Shared constants, error handling, and response parsing utilities
+- `helpers/validation.py` - Configuration parameter validation
+- `helpers/scrape.py` - Bright Data API interaction, job triggering, and snapshot polling
+- `helpers/schema_management.py` - Dynamic schema discovery and fields.yaml management
+- `helpers/data_processing.py` - Data flattening and result processing utilities
+- `helpers/common.py` - Shared constants, error handling, and response parsing utilities
 
 ## Additional considerations
 
