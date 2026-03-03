@@ -1,4 +1,4 @@
-# Data handling patterns connector example
+# Data Handling Patterns Connector Example
 ## Connector overview
 
 This example demonstrates three common techniques for handling nested data structures returned by an API source. A single API call fetches all user records, and each of the three sync functions applies a different data handling pattern to the same response:
@@ -73,7 +73,7 @@ Source shape returned by `get_users()`:
 ### Flatten into columns
 
 When the source returns a single nested object alongside top-level fields, each field in the nested object can be promoted to a top-level column on the parent table. 
-Destination — `users_flattened` (composite PK: `user_id` + `order_id`):
+Destination — `users_flattened` (composite primary key: `user_id` + `order_id`):
 
 | user_id | name  | order_id | amount |
 |---------|-------|----------|--------|
@@ -94,7 +94,7 @@ Destination — `users` (parent):
 |---------|-------|
 | 1       | Alice |
 
-Destination — `orders` (child, composite PK: `user_id` + `order_id`):
+Destination — `orders` (child, composite primary key: `user_id` + `order_id`):
 
 | user_id | order_id | amount |
 |---------|----------|--------|
@@ -125,12 +125,12 @@ Refer to `sync_json_blob()`.
 
 This connector creates four destination tables across the three data handling patterns.
 
-`users_flattened` — pattern 1, flatten into columns (composite PK: `user_id` + `order_id`):
+`users_flattened` — pattern 1, flatten into columns (composite primary key: `user_id` + `order_id`):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| user_id (PK) | STRING | User identifier; part of composite PK |
-| order_id (PK) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite PK |
+| user_id (primary key) | STRING | User identifier; part of composite primary key |
+| order_id (primary key) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite primary key |
 | name | STRING | User's full name, repeated on every order row |
 | amount | DOUBLE | Order total amount |
 
@@ -138,22 +138,22 @@ This connector creates four destination tables across the three data handling pa
 
 | Column | Type | Description |
 |--------|------|-------------|
-| user_id (PK) | STRING | Unique user identifier |
+| user_id (primary key) | STRING | Unique user identifier |
 | name | STRING | User's full name |
 
-`orders` — pattern 2, child table (composite PK):
+`orders` — pattern 2, child table (composite primary key):
 
 | Column | Type | Description |
 |--------|------|-------------|
-| user_id (PK) | STRING | Foreign key referencing `users.user_id`; part of composite PK |
-| order_id (PK) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite PK |
+| user_id (primary key) | STRING | Foreign key referencing `users.user_id`; part of composite primary key |
+| order_id (primary key) | STRING | Sequential order identifier per user (ORD-1, ORD-2 ...); part of composite primary key |
 | amount | DOUBLE | Order total amount |
 
 `users_data` — pattern 3, JSON blob:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| user_id (PK) | STRING | Unique user identifier |
+| user_id (primary key) | STRING | Unique user identifier |
 | name | STRING | User's full name |
 | orders | JSON | Nested orders stored as a JSON blob |
 
