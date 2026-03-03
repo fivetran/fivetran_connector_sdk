@@ -1,5 +1,5 @@
 """
-This connector demonstrates how to fetch data from Microsoft SQL Server (Epic Caboodle)
+This connector demonstrates how to fetch data from Microsoft SQL Server (such as Caboodle)
 and sync it to your Fivetran destination using the Fivetran Connector SDK.
 This example is a simple implementation meant to provide basic understanding of how to use the Fivetran Connector SDK for MSSQL server
 It detects the tables in the database, their columns, and primary keys, and performs incremental syncs based on a modified date column.
