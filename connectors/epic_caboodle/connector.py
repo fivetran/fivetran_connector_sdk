@@ -467,7 +467,6 @@ def update(configuration: dict, state: dict):
             destination_table_names.append(destination_table_name)
             log.info(f"Processing table: {schema_name}.{table_name} → {destination_table_name}")
             records_processed = 0
-            error_count = 0
 
             # Determine once whether the table has a __MODIFIED_COLUMN_NAME column.
             has_modified_date = destination_table_name in tables_with_modified_date
@@ -507,14 +506,8 @@ def update(configuration: dict, state: dict):
                         op.checkpoint(state)
 
                 except Exception as e:
-                    error_count += 1
                     log.warning(f"Failed to process record in {destination_table_name}: {e}")
-                    continue
-
-            if error_count > 0:
-                log.warning(
-                    f"Table {destination_table_name}: {error_count} records failed to process"
-                )
+                    raise
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.

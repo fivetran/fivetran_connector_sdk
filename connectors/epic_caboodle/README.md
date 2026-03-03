@@ -109,8 +109,6 @@ The connector implements the following error handling mechanisms:
 - Detailed error logging for troubleshooting connectivity issues
 - Configuration parameter validation before attempting connection
 - If a table query fails (e.g. network timeout, SQL error), the exception propagates and aborts the current sync run
-- Individual record error handling without stopping the entire sync
-- Warning logging for failed record processing with the exception detail
 
 
 ## Tables created
