@@ -84,14 +84,14 @@ Refer to `__BATCH_SIZE` constant for configuring the batch size
 
 The connector automatically discovers and maps data from SQL Server to Fivetran using the following process:
 
-The schema discovery follows the following steps (Refer to `schema()` function):
-1. Queries `INFORMATION_SCHEMA.TABLES` to identify available tables (up to `__MAX_TABLES`)
-2. Discovers primary keys from `INFORMATION_SCHEMA.KEY_COLUMN_USAGE` (looks for constraints prefixed with `PK_`)
-3. Maps column names from `INFORMATION_SCHEMA.COLUMNS`
-4. Creates table definitions with primary key information
-5. Declares the `sync_history` table with `sync_timestamp` as its primary key
+The schema discovery comprises the following steps (refer to the `schema()` function):
+1. The connector queries `INFORMATION_SCHEMA.TABLES` to identify available tables (up to `__MAX_TABLES`), returning both `TABLE_SCHEMA` and `TABLE_NAME`
+2. The connector discovers primary keys from `INFORMATION_SCHEMA.KEY_COLUMN_USAGE`, filtered by both schema and table name to avoid cross-schema ambiguity
+3. The connector maps column names from `INFORMATION_SCHEMA.COLUMNS`, likewise filtered by both schema and table name
+4. The connector creates table definitions using the destination table name format `{schema}_{table}` (e.g. `dbo_patients`).
+5. The connector declares the `sync_history` table with `sync_timestamp` as its primary key for tracking the sync details
 
-The Data synchronization is implemented using the following (refer to `update()` and `_get_table_data()`):
+The data synchronization is implemented using the following (refer to the `update()` and `_get_table_data()` methods):
 
 - Before the table loop, `_get_tables_with_modified_date()` issues a single bulk query against `INFORMATION_SCHEMA.COLUMNS` to identify all tables containing the `__MODIFIED_COLUMN_NAME` column. This avoids a per-table schema lookup inside the loop.
 

@@ -99,30 +99,32 @@ def _connect_to_mssql(configuration: dict):
         raise
 
 
-def _get_table_list(connection) -> list[str]:
+def _get_table_list(connection) -> list[tuple[str, str]]:
     """
-    Retrieve up to __MAX_TABLES user tables from the database.
+    Retrieve up to __MAX_TABLES user tables from the database as (schema, table) tuples.
+    Both TABLE_SCHEMA and TABLE_NAME are returned so that all downstream queries can use
+    fully qualified names, preventing collisions when the same table name exists in multiple schemas.
     System tables (prefixed with 'sys' or 'INFORMATION_SCHEMA') are excluded.
     You can modify the query to include specific tables or schemas as needed for your use case.
     Args:
         connection: Active database connection object.
     Returns:
-        List of table names.
+        List of (schema_name, table_name) tuples.
     """
     # Discovers all user-defined base tables, limited to __MAX_TABLES for this example.
     query = f"""
-    SELECT TOP {__MAX_TABLES} TABLE_NAME
+    SELECT TOP {__MAX_TABLES} TABLE_SCHEMA, TABLE_NAME
     FROM INFORMATION_SCHEMA.TABLES
     WHERE TABLE_TYPE = 'BASE TABLE'
     AND TABLE_NAME NOT LIKE 'sys%'
     AND TABLE_NAME NOT LIKE 'INFORMATION_SCHEMA%'
-    ORDER BY TABLE_NAME
+    ORDER BY TABLE_SCHEMA, TABLE_NAME
     """
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(query)
-            tables = [row[0] for row in cursor.fetchall()]
+            tables = [(row[0], row[1]) for row in cursor.fetchall()]
             log.info(f"Found {len(tables)} tables: {tables}")
             return tables
     except Exception as e:
@@ -193,11 +195,12 @@ def _build_schema(
     }
 
 
-def _get_table_schema(connection, table_name: str) -> dict:
+def _get_table_schema(connection, schema_name: str, table_name: str) -> dict:
     """
     Retrieve column names and primary keys for a single table.
     Args:
         connection: Active database connection object.
+        schema_name: SQL Server schema name (e.g. 'dbo').
         table_name: Name of the table to inspect.
     Returns:
         Dictionary with keys 'table', 'primary_key', and 'columns'.
@@ -206,10 +209,13 @@ def _get_table_schema(connection, table_name: str) -> dict:
         default SQL Server convention. Adjust the LIKE filter if your schema uses a different
         naming convention.
     """
+    destination_table_name = f"{schema_name}_{table_name}"
+
     primary_key_query = """
     SELECT COLUMN_NAME
     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-    WHERE TABLE_NAME = %s
+    WHERE TABLE_SCHEMA = %s
+    AND TABLE_NAME = %s
     AND CONSTRAINT_NAME LIKE 'PK_%%'
     ORDER BY ORDINAL_POSITION
     """
@@ -217,7 +223,8 @@ def _get_table_schema(connection, table_name: str) -> dict:
     column_query = """
     SELECT COLUMN_NAME, DATA_TYPE
     FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_NAME = %s
+    WHERE TABLE_SCHEMA = %s
+    AND TABLE_NAME = %s
     ORDER BY ORDINAL_POSITION
     """
 
@@ -226,42 +233,49 @@ def _get_table_schema(connection, table_name: str) -> dict:
             # Fetch primary key columns for the table.
             # This query looks for constraints that start with 'PK_' which is a common naming convention for primary keys.
             # Note: Depending on your database schema, you may need to adjust the constraint filter to accurately capture primary keys.
-            cursor.execute(primary_key_query, (table_name,))
+            cursor.execute(primary_key_query, (schema_name, table_name))
             primary_keys = [row[0] for row in cursor.fetchall()]
 
-            # Fetch all column names, data types, and decimal precision/scale for the table.
-            cursor.execute(column_query, (table_name,))
+            # Fetch all column names and data types for the table.
+            cursor.execute(column_query, (schema_name, table_name))
             columns = {row[0]: _map_sql_type(row[1]) for row in cursor.fetchall()}
 
-            return _build_schema(table_name=table_name, primary_keys=primary_keys, columns=columns)
+            return _build_schema(
+                table_name=destination_table_name, primary_keys=primary_keys, columns=columns
+            )
 
     except Exception as e:
-        log.warning(f"Failed to get schema for table {table_name}: {e}")
-        return _build_schema(table_name=table_name, primary_keys=None, columns=None, failure=True)
+        log.warning(f"Failed to get schema for table {schema_name}.{table_name}: {e}")
+        return _build_schema(
+            table_name=destination_table_name, primary_keys=None, columns=None, failure=True
+        )
 
 
-def _get_tables_with_modified_date(connection, table_names: list[str]) -> set[str]:
+def _get_tables_with_modified_date(connection, tables: list[tuple[str, str]]) -> set[str]:
     """
-    Return the subset of table_names that contain a __MODIFIED_COLUMN_NAME column.
+    Return destination table names (schema_table) for tables that contain a __MODIFIED_COLUMN_NAME column.
     Args:
         connection: Active database connection object.
-        table_names: List of table names to check.
+        tables: List of (schema_name, table_name) tuples to check.
     Returns:
-        Set of table names that have the __MODIFIED_COLUMN_NAME column.
+        Set of destination table names (schema_table format) that have the __MODIFIED_COLUMN_NAME column.
     """
-    if not table_names:
+    if not tables:
         return set()
-    placeholders = ", ".join(["%s"] * len(table_names))
+    conditions = " OR ".join(["(TABLE_SCHEMA = %s AND TABLE_NAME = %s)"] * len(tables))
+    params = [__MODIFIED_COLUMN_NAME]
+    for schema_name, table_name in tables:
+        params += [schema_name, table_name]
     query = f"""
-    SELECT TABLE_NAME
+    SELECT TABLE_SCHEMA, TABLE_NAME
     FROM INFORMATION_SCHEMA.COLUMNS
     WHERE COLUMN_NAME = %s
-    AND TABLE_NAME IN ({placeholders})
+    AND ({conditions})
     """
     try:
         with connection.cursor() as cursor:
-            cursor.execute(query, [__MODIFIED_COLUMN_NAME] + list(table_names))
-            return {row[0] for row in cursor.fetchall()}
+            cursor.execute(query, params)
+            return {f"{row[0]}_{row[1]}" for row in cursor.fetchall()}
     except Exception as e:
         log.warning(f"Failed to detect modified-date columns: {e}")
         return set()
@@ -281,7 +295,11 @@ def _serialize_value(value):
 
 
 def _get_table_data(
-    connection, table_name: str, last_sync_time: str = None, has_modified_date: bool = False
+    connection,
+    schema_name: str,
+    table_name: str,
+    last_sync_time: str = None,
+    has_modified_date: bool = False,
 ):
     """
     Fetch rows from a table one batch at a time, yielding each row as a dictionary.
@@ -291,27 +309,27 @@ def _get_table_data(
     When has_modified_date is False, last_sync_time is ignored and a full sync is performed.
     Args:
         connection: Active database connection object.
+        schema_name: SQL Server schema name (e.g. 'dbo').
         table_name: Name of the table to fetch data from.
         last_sync_time: ISO timestamp cursor; only used when has_modified_date is True.
         has_modified_date: Whether the table contains a __MODIFIED_COLUMN_NAME column.
     Yields:
         Dictionary mapping column names to row values.
     """
-    # Table names are bracket-quoted to handle reserved words and special characters safely.
-    # Parameterized queries (%s) are used for all user-supplied values.
+    qualified_table = f"[{schema_name}].[{table_name}]"
     try:
         with connection.cursor() as cursor:
             if has_modified_date:
                 # This query fetches only rows that have been modified since the last sync time,
                 # ordered by the modified date to ensure proper incremental sync behavior.
                 cursor.execute(
-                    f"SELECT * FROM [{table_name}] WHERE {__MODIFIED_COLUMN_NAME} > %s ORDER BY {__MODIFIED_COLUMN_NAME}",
+                    f"SELECT * FROM {qualified_table} WHERE {__MODIFIED_COLUMN_NAME} > %s ORDER BY {__MODIFIED_COLUMN_NAME}",
                     (last_sync_time,),
                 )
-                log.info(f"Incremental sync for {table_name} from {last_sync_time}")
+                log.info(f"Incremental sync for {schema_name}.{table_name} from {last_sync_time}")
             else:
-                cursor.execute(f"SELECT * FROM [{table_name}] ORDER BY (SELECT NULL)")
-                log.info(f"Full sync for {table_name}")
+                cursor.execute(f"SELECT * FROM {qualified_table} ORDER BY (SELECT NULL)")
+                log.info(f"Full sync for {schema_name}.{table_name}")
 
             # Extract column names from the cursor description to map row values to column names
             columns = [desc[0] for desc in cursor.description]
@@ -328,7 +346,7 @@ def _get_table_data(
                     yield {column: _serialize_value(value) for column, value in zip(columns, row)}
 
     except Exception as e:
-        log.severe(f"Failed to get data from table {table_name}: {e}")
+        log.severe(f"Failed to get data from table {schema_name}.{table_name}: {e}")
         raise
 
 
@@ -350,9 +368,9 @@ def schema(configuration: dict):
         tables = _get_table_list(connection)
 
         schema_list = []
-        for table_name in tables:
+        for schema_name, table_name in tables:
             # for each table, get the schema information (columns and primary keys) and add it to the schemas list
-            schema_list.append(_get_table_schema(connection, table_name))
+            schema_list.append(_get_table_schema(connection, schema_name, table_name))
 
         # Declare the sync_history table so Fivetran knows its primary key.
         # This table is used to store a summary record after each sync, which can be useful for monitoring and debugging.
@@ -442,35 +460,38 @@ def update(configuration: dict, state: dict):
         tables_with_modified_date = _get_tables_with_modified_date(connection, tables)
 
         total_records = 0
+        destination_table_names = []
 
-        for table_name in tables:
-            log.info(f"Processing table: {table_name}")
+        for schema_name, table_name in tables:
+            destination_table_name = f"{schema_name}_{table_name}"
+            destination_table_names.append(destination_table_name)
+            log.info(f"Processing table: {schema_name}.{table_name} → {destination_table_name}")
             records_processed = 0
             error_count = 0
 
             # Determine once whether the table has a __MODIFIED_COLUMN_NAME column.
-            has_modified_date = table_name in tables_with_modified_date
+            has_modified_date = destination_table_name in tables_with_modified_date
             if has_modified_date:
                 # Use the stored cursor, or the sentinel date on historical sync
-                last_sync_time = state.get(table_name, __INITIAL_SYNC_DATE)
+                last_sync_time = state.get(destination_table_name, __INITIAL_SYNC_DATE)
             else:
                 # Tables without __MODIFIED_COLUMN_NAME always perform full sync
                 last_sync_time = None
 
             for record in _get_table_data(
-                connection, table_name, last_sync_time, has_modified_date
+                connection, schema_name, table_name, last_sync_time, has_modified_date
             ):
                 try:
                     # The 'upsert' operation is used to insert or update data in the destination table.
                     # The first argument is the name of the destination table.
                     # The second argument is a dictionary containing the record to be upserted.
-                    op.upsert(table=table_name, data=record)
+                    op.upsert(table=destination_table_name, data=record)
                     records_processed += 1
 
                     if has_modified_date:
                         last_modified = record.get(__MODIFIED_COLUMN_NAME)
                         if last_modified is not None:
-                            state[table_name] = (
+                            state[destination_table_name] = (
                                 last_modified.isoformat()
                                 if isinstance(last_modified, datetime)
                                 else str(last_modified)
@@ -487,11 +508,13 @@ def update(configuration: dict, state: dict):
 
                 except Exception as e:
                     error_count += 1
-                    log.warning(f"Failed to process record in {table_name}: {e}")
+                    log.warning(f"Failed to process record in {destination_table_name}: {e}")
                     continue
 
             if error_count > 0:
-                log.warning(f"Table {table_name}: {error_count} records failed to process")
+                log.warning(
+                    f"Table {destination_table_name}: {error_count} records failed to process"
+                )
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
@@ -502,10 +525,12 @@ def update(configuration: dict, state: dict):
             op.checkpoint(state)
 
             total_records += records_processed
-            log.info(f"Completed table {table_name}: {records_processed} records processed")
+            log.info(
+                f"Completed table {destination_table_name}: {records_processed} records processed"
+            )
 
         # Write a summary record after all tables have been processed.
-        upsert_to_sync_history(state, sync_start, tables, total_records)
+        upsert_to_sync_history(state, sync_start, destination_table_names, total_records)
 
     except Exception as e:
         log.severe(f"Failed to sync data: {e}")
