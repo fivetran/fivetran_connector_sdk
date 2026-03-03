@@ -24,7 +24,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Automated table and schema discovery from `INFORMATION_SCHEMA`
 - Incremental data synchronization using a timestamp column (configurable via `__MODIFIED_COLUMN_NAME`)
 - Batch processing for efficient data fetching
-- Comprehensive error handling with per-record graceful degradation
+- Comprehensive error handling
 - Limited to `__MAX_TABLES` tables (default: 10) for demonstration purposes
 
 
