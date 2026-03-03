@@ -277,9 +277,7 @@ def sync_json_blob(new_state: dict, users: list):
             # Store the nested orders list as a single JSON blob [users_data].
             # The SDK serializes the list directly into the JSON column;
             # no manual json.dumps() call is needed.
-            "orders": [
-                {"order_id": o["order_id"], "amount": o["amount"]} for o in user.get("orders", [])
-            ],
+            "orders": user.get("orders", []),
         }
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
