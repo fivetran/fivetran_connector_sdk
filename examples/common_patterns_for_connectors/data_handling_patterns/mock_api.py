@@ -16,7 +16,7 @@ from faker import Faker
 # For enabling logs in your connector code.
 from fivetran_connector_sdk import Logging as log
 
-# Create a single shared Faker instance used across all functions to generate synthetic data.
+# Create a Faker instance to generate synthetic data.
 fake = Faker()
 
 
