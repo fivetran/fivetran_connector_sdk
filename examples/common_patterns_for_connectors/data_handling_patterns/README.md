@@ -31,6 +31,12 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Uses a mock API to simulate source data with randomized values and a fixed schema, enabling local testing without credentials or configuration.
 - Checkpoints state after every table sync and at a configurable interval (`__CHECKPOINT_INTERVAL`) to support safe resumption after interruptions.
 
+## Configuration file
+This example does not require a configuration file.
+
+In production, a `configuration.json` might contain API tokens, initial cursors, or filters to narrow down API results.
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 ## Requirements file
 
