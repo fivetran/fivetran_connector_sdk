@@ -132,7 +132,7 @@ def _get_table_list(connection) -> list[tuple[str, str]]:
         raise
 
 
-def _map_sql_type(sql_type: str) -> str | dict:
+def _map_sql_type(sql_type: str) -> str:
     """
     Map a SQL Server data type to the Fivetran SDK column type.
     All other types return a plain string.
