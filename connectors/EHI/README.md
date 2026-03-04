@@ -1,8 +1,8 @@
-# Epic Caboodle Connector Example
+# Simple EHI Connector Example
 
 ## Connector overview
 
-The Simple Epic Caboodle Connector demonstrates how to fetch data from a Microsoft SQL Server database ( Epic Caboodle) and sync it to your Fivetran destination using the Fivetran Connector SDK. The connector automatically discovers tables and schemas from your Microsoft SQL Server database and synchronizes data using full load and incremental sync methods.
+This connector demonstrates how to fetch data from a Microsoft SQL Server database such as Caboodle and sync it to your Fivetran destination using the Fivetran Connector SDK. The connector automatically discovers tables and schemas from your Microsoft SQL Server database and synchronizes data using full load and incremental sync methods.
 
 
 ## Requirements
