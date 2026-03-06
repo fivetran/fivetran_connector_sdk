@@ -1,0 +1,6 @@
+{
+  "motherduck_token": "<YOUR_MOTHERDUCK_TOKEN>",
+  "database_name": "<YOUR_DATABASE_NAME>",
+  "schema_name": "<YOUR_SCHEMA_NAME>",
+  "incremental_column": "<YOUR_INCREMENTAL_COLUMN>"
+}
