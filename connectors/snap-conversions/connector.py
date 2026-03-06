@@ -104,6 +104,7 @@ def get_date_range_for_stats(state: dict, configuration: dict) -> Tuple[str, str
     Determines start_time and end_time for stats API call using incremental date range.
     For initial sync: uses initial_sync_days from config.
     For incremental sync: uses incremental_lookback_start and incremental_lookback_end dates from config.
+    If these dates are empty, defaults to a 14-day lookback window.
 
     The function limits the effective date range to 30 days per API call to avoid timeouts.
     For larger ranges, the connector will make multiple calls automatically.
@@ -114,6 +115,7 @@ def get_date_range_for_stats(state: dict, configuration: dict) -> Tuple[str, str
             - initial_sync_days: For initial sync
             - incremental_lookback_start: Start date for incremental sync (YYYY-MM-DD format)
             - incremental_lookback_end: End date for incremental sync (YYYY-MM-DD format)
+            If both are empty/None, defaults to 14-day lookback window
     Returns:
         Tuple of (start_time, end_time) in YYYY-MM-DDTHH:00:00 format (Snapchat API compatible)
     """
@@ -133,9 +135,30 @@ def get_date_range_for_stats(state: dict, configuration: dict) -> Tuple[str, str
             incremental_lookback_start_str = configuration.get("incremental_lookback_start")
             incremental_lookback_end_str = configuration.get("incremental_lookback_end")
 
-            # parse the dates, if they're invalid, raise an error
-            lookback_start_date = date.fromisoformat(incremental_lookback_start_str)
-            lookback_end_date = date.fromisoformat(incremental_lookback_end_str)
+            # If dates are empty, use default 14-day lookback window
+            if not incremental_lookback_start_str or not incremental_lookback_start_str.strip():
+                if not incremental_lookback_end_str or not incremental_lookback_end_str.strip():
+                    # Both empty: use 14-day lookback window
+                    lookback_start_date = today - timedelta(days=14)
+                    lookback_end_date = today
+                    log.info(
+                        f"Incremental sync dates not provided, using default 14-day lookback window "
+                        f"({lookback_start_date} to {lookback_end_date})"
+                    )
+                else:
+                    raise ValueError(
+                        "incremental_lookback_start is empty but incremental_lookback_end is provided. "
+                        "Both must be provided together or both must be empty."
+                    )
+            elif not incremental_lookback_end_str or not incremental_lookback_end_str.strip():
+                raise ValueError(
+                    "incremental_lookback_end is empty but incremental_lookback_start is provided. "
+                    "Both must be provided together or both must be empty."
+                )
+            else:
+                # Both provided: parse the dates, if they're invalid, raise an error
+                lookback_start_date = date.fromisoformat(incremental_lookback_start_str)
+                lookback_end_date = date.fromisoformat(incremental_lookback_end_str)
 
             # Use the lookback dates for incremental sync
             # Ensure start_date doesn't go before lookback_start
