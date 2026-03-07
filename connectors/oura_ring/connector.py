@@ -31,7 +31,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # API Configuration Constants
 __BASE_URL = "https://api.ouraring.com"
 __API_TIMEOUT_SECONDS = 30
