@@ -32,22 +32,17 @@ from datetime import datetime, timezone
 
 # PyDruid imports
 try:
-    from pydruid.client import Client
+    from pydruid.client import PyDruid
     from pydruid.utils.filters import Dimension
     PYDRUID_AVAILABLE = True
 except ImportError:
     PYDRUID_AVAILABLE = False
-    log.warning("pydruid package not available. Please add 'pydruid>=0.6.5' to your requirements.txt file")
 
-# Constants for API configuration
-__REQUEST_TIMEOUT = 30  # Timeout for API requests in seconds
-__RATE_LIMIT_DELAY = 2  # Base for exponential backoff calculation (2^attempt)
-__MAX_RETRIES = 3  # Maximum number of retries for failed requests
-__BATCH_SIZE = 10000  # Number of records to fetch per request
-__EPOCH_START = "1970-01-01T00:00:00+00:00"  # Default start timestamp for full sync (ISO 8601)
-__CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
-__PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
-__DEFAULT_PROTOCOL = "https"  # Default protocol for Druid connections
+# Constants
+BATCH_SIZE = 10000  # Number of records to fetch per request
+SCAN_BATCH_SIZE = 1000  # Number of records per batch for scan operations
+CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
+PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
 
 
 class DruidPyDruidClient:
@@ -70,27 +65,27 @@ class DruidPyDruidClient:
             configuration: Dictionary containing connection parameters
                 - host: Druid broker hostname
                 - port: Druid broker port
-                - protocol: http or https (optional, defaults to https)
+                - protocol: http or https (optional, defaults to http)
                 - username: Basic auth username (optional)
                 - password: Basic auth password (optional)
         """
         if not PYDRUID_AVAILABLE:
             raise ImportError(
-                "pydruid package is required. Please add 'pydruid>=0.6.5' to your requirements.txt file"
+                "pydruid package is required. Please install it with: pip install pydruid>=0.6.5"
             )
 
         self.host = configuration.get("host")
         self.port = int(configuration.get("port", 8080))
-        self.protocol = configuration.get("protocol", __DEFAULT_PROTOCOL)
+        self.protocol = configuration.get("protocol", "http")  # Default to http for backward compatibility
         self.username = configuration.get("username")
         self.password = configuration.get("password")
-        self.timeout = __REQUEST_TIMEOUT
+        self.timeout = 30
 
         # Validate required parameters
         if not self.host:
             raise ValueError("host is required in configuration")
 
-        # Build endpoint URL
+        # Build endpoint URL using specified or default protocol
         self.endpoint = f"{self.protocol}://{self.host}:{self.port}"
 
         # Initialize pydruid client
@@ -101,22 +96,24 @@ class DruidPyDruidClient:
     def _initialize_client(self):
         """Initialize the pydruid Client instance."""
         try:
-            # Create pydruid client with authentication if provided
+            import urllib.request
+            import urllib.error
+            import urllib
+            urllib.request = urllib.request
+            urllib.error = urllib.error
+
+            # Create pydruid client
+            self.client = PyDruid(
+                self.endpoint,
+                "druid/v2/"
+            )
+
+            # Handle authentication if provided
             if self.username and self.password:
-                self.client = Client(
-                    self.endpoint,
-                    "druid/v2/",
-                    user=self.username,
-                    password=self.password,
-                    timeout=self.timeout
-                )
-                log.info("PyDruid client initialized with basic authentication")
+                # PyDruid supports basic authentication via set_basic_auth_credentials
+                self.client.set_basic_auth_credentials(self.username, self.password)
+                log.info(f"PyDruid client initialized with basic authentication for user: {self.username}")
             else:
-                self.client = Client(
-                    self.endpoint,
-                    "druid/v2/",
-                    timeout=self.timeout
-                )
                 log.info("PyDruid client initialized without authentication")
 
         except Exception as e:
@@ -130,7 +127,7 @@ class DruidPyDruidClient:
         columns: list[str] | None = None,
         filters=None,
         limit: int = 10000,
-        batch_size: int = 1000
+        batch_size: int = SCAN_BATCH_SIZE
     ):
         """
         Scan a datasource for raw data using Druid's scan query.
@@ -154,21 +151,41 @@ class DruidPyDruidClient:
                 current_batch_size = min(batch_size, limit - total_fetched)
 
                 # Build scan query
-                query = self.client.scan(
-                    datasource=datasource,
-                    intervals=intervals,
-                    columns=columns or [],
-                    limit=current_batch_size,
-                    offset=offset,
-                    filters=filters
-                )
+                scan_params = {
+                    'datasource': datasource,
+                    'intervals': intervals,
+                    'columns': columns or [],
+                    'limit': current_batch_size,
+                    'offset': offset
+                }
+
+                # Add filter if provided (note: singular 'filter', not 'filters')
+                if filters:
+                    scan_params['filter'] = filters
+
+                query = self.client.scan(**scan_params)
 
                 if not hasattr(query, 'result') or not query.result:
                     log.info(f"No more data to scan from {datasource} at offset {offset}")
                     break
 
                 batch_count = 0
-                for event in query.result:
+                batch_data = query.result
+
+                # Handle PyDruid scan result structure: list of segments, each with events
+                events = []
+                if isinstance(batch_data, list):
+                    for segment in batch_data:
+                        if isinstance(segment, dict) and 'events' in segment:
+                            events.extend(segment['events'])
+                        elif isinstance(segment, dict):
+                            # Handle case where segment itself is an event
+                            events.append(segment)
+                else:
+                    log.warning(f"Unexpected result format: {type(batch_data)}")
+                    events = []
+
+                for event in events:
                     if isinstance(event, dict):
                         yield event
                         batch_count += 1
@@ -176,6 +193,8 @@ class DruidPyDruidClient:
 
                         if total_fetched >= limit:
                             break
+                    else:
+                        log.warning(f"Unexpected event format: {type(event)} - {event}")
 
                 log.info(f"Scanned {batch_count} records from {datasource} (total: {total_fetched})")
 
@@ -186,7 +205,7 @@ class DruidPyDruidClient:
                 offset += batch_count
 
                 # Small delay between batch requests
-                time.sleep(0.1)
+                time.sleep(PAGINATION_DELAY_SECONDS)
 
         except Exception as e:
             log.error(f"Failed to scan datasource {datasource}: {str(e)}")
@@ -197,7 +216,7 @@ class DruidPyDruidClient:
         datasource: str,
         timestamp_column: str = "__time",
         since: str | None = None,
-        batch_size: int = 10000
+        batch_size: int = BATCH_SIZE
     ):
         """
         Perform incremental scan of a datasource based on timestamp.
@@ -214,8 +233,17 @@ class DruidPyDruidClient:
         try:
             # Determine the interval based on since parameter
             if since:
-                start_time = since
-                log.info(f"Starting incremental scan from {start_time}")
+                # For incremental sync, we need to exclude records AT the since timestamp
+                # Add 1 millisecond to ensure we only get records AFTER the last processed record
+                try:
+                    since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+                    # Add 1 millisecond
+                    since_dt = since_dt.replace(microsecond=since_dt.microsecond + 1000)
+                    start_time = since_dt.isoformat().replace("+00:00", "Z")
+                    log.info(f"Starting incremental scan from {start_time} (excluding {since})")
+                except Exception as e:
+                    log.warning(f"Could not parse since timestamp {since}, using as-is: {e}")
+                    start_time = since
             else:
                 start_time = "1970-01-01T00:00:00.000Z"
                 log.info("Starting full scan from epoch")
@@ -227,16 +255,17 @@ class DruidPyDruidClient:
             # Add filter for timestamp if doing incremental sync
             filters = None
             if since:
-                filters = [
-                    Dimension(timestamp_column) > since
-                ]
+                # PyDruid filter for timestamp comparison
+                # Note: For simplicity, we'll use intervals to filter by time
+                # and rely on the intervals parameter instead of complex filters
+                pass
 
-            # Use scan query to get raw data
+            # Use scan query to get raw data with higher limit for large datasets
             yield from self.scan_datasource(
                 datasource=datasource,
                 intervals=intervals,
                 filters=filters,
-                limit=float('inf'),  # No limit for incremental scan
+                limit=100000,  # High limit for large datasets
                 batch_size=batch_size
             )
 
@@ -324,6 +353,12 @@ def validate_configuration(configuration: dict):
         raise ValueError("datasources must be a non-empty string (comma-separated list)")
 
 
+    # Validate optional protocol field if provided
+    if "protocol" in configuration:
+        protocol = configuration.get("protocol")
+        if protocol and protocol not in ["http", "https"]:
+            raise ValueError("protocol must be either 'http' or 'https'")
+
     # Validate optional auth fields if provided
     if "username" in configuration:
         username = configuration.get("username")
@@ -337,54 +372,6 @@ def validate_configuration(configuration: dict):
 
     log.info("Configuration validated successfully")
 
-
-def fetch_datasource_data_pydruid(
-    client: DruidPyDruidClient,
-    datasource: str,
-    timestamp_column: str = "__time",
-    since: str | None = None,
-    batch_size: int = __BATCH_SIZE,
-):
-    """
-    Fetch data from a Druid datasource using PyDruid with optional incremental sync.
-
-    Args:
-        client: PyDruid client instance
-        datasource: Name of the datasource to query
-        timestamp_column: Name of the timestamp column for incremental sync
-        since: ISO timestamp to fetch records after (None triggers a full fetch)
-        batch_size: Number of records per batch
-
-    Yields:
-        Dictionary records from the datasource
-    """
-    total_records = 0
-
-    if since:
-        log.info(f"Fetching data from {datasource} since {since}")
-    else:
-        log.info(f"Fetching full data from {datasource} starting from epoch")
-
-    try:
-        # Use PyDruid incremental scan
-        for record in client.incremental_scan(
-            datasource=datasource,
-            timestamp_column=timestamp_column,
-            since=since,
-            batch_size=batch_size
-        ):
-            yield record
-            total_records += 1
-
-            if total_records % 1000 == 0:
-                log.info(f"Fetched {total_records} records so far from {datasource}")
-                time.sleep(__PAGINATION_DELAY_SECONDS)
-
-    except Exception as e:
-        log.error(f"Failed to fetch data from {datasource}: {str(e)}")
-        raise RuntimeError(f"Failed to fetch data from {datasource}: {str(e)}")
-
-    log.info(f"Completed fetching {total_records} total records from {datasource}")
 
 
 def schema(configuration: dict):
@@ -421,7 +408,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Connectors - Apache Druid")
+    log.info("Example: Connectors - Apache Druid")
     log.info("Starting Apache Druid Connector sync")
 
     # Validate configuration first
@@ -429,18 +416,13 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters
     datasources = configuration.get("datasources")
-    batch_size = __BATCH_SIZE
+    batch_size = BATCH_SIZE
 
-    log.info(f"Connecting to Druid using PyDruid")
+    log.info(f"Connecting to Druid using PyDruid client")
 
     # Initialize PyDruid client
-    try:
-        client = DruidPyDruidClient(configuration)
-        log.info("PyDruid client initialized successfully")
-
-    except Exception as e:
-        log.error(f"Failed to initialize PyDruid client: {str(e)}")
-        raise RuntimeError(f"Failed to initialize PyDruid client: {str(e)}")
+    druid_client = DruidPyDruidClient(configuration)
+    log.info(f"PyDruid client initialized successfully")
 
     try:
         record_count = 0
@@ -466,9 +448,12 @@ def update(configuration: dict, state: dict):
             max_time_processed: datetime | None = None
             datasource_record_count = 0
 
-            # Fetch and upsert data using PyDruid
-            for record in fetch_datasource_data_pydruid(
-                client, datasource, "__time", datasource_last_sync, batch_size
+            # Fetch and upsert data using PyDruid client
+            for record in druid_client.incremental_scan(
+                datasource=datasource,
+                timestamp_column="__time",
+                since=datasource_last_sync,
+                batch_size=batch_size
             ):
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The first argument is the name of the destination table.
@@ -478,23 +463,37 @@ def update(configuration: dict, state: dict):
                 datasource_record_count += 1
 
                 # Track the maximum __time from actual data using datetime for safe comparison.
-                # Replace "Z" with "+00:00" for Python 3.10 compatibility (handled natively in 3.11+).
-                # If Druid returns a naive datetime (no timezone), assume UTC for consistent comparison.
-                record_time = record.get("__time")
+                # Handle various timestamp formats that PyDruid might return
+                record_time = record.get("__time") or record.get("timestamp")
                 if record_time:
                     try:
-                        record_dt = datetime.fromisoformat(str(record_time).replace("Z", "+00:00"))
+                        # Handle different timestamp formats
+                        if isinstance(record_time, (int, float)):
+                            # Unix timestamp in milliseconds
+                            record_dt = datetime.fromtimestamp(record_time / 1000, tz=timezone.utc)
+                        elif isinstance(record_time, str):
+                            # ISO string format
+                            record_dt = datetime.fromisoformat(str(record_time).replace("Z", "+00:00"))
+                        else:
+                            # Already a datetime object
+                            record_dt = record_time
+
                         if record_dt.tzinfo is None:
                             record_dt = record_dt.replace(tzinfo=timezone.utc)
                         if max_time_processed is None or record_dt > max_time_processed:
                             max_time_processed = record_dt
-                    except (ValueError, AttributeError):
+
+                        # Debug log for first few records
+                        if datasource_record_count <= 3:
+                            log.info(f"Record {datasource_record_count}: __time={record_time} -> {record_dt}")
+
+                    except (ValueError, AttributeError, TypeError) as e:
                         log.warning(
-                            f"Could not parse __time value '{record_time}', skipping for cursor tracking"
+                            f"Could not parse __time value '{record_time}' (type: {type(record_time)}): {e}"
                         )
 
                 # Checkpoint periodically for large datasets
-                if record_count % __CHECKPOINT_INTERVAL == 0:
+                if record_count % CHECKPOINT_INTERVAL == 0:
                     log.info(f"Processed {record_count} records, checkpointing...")
                     # Save the progress by checkpointing the state. This is important for ensuring that
                     # the sync process can resume from the correct position in case of next sync or interruptions.
@@ -537,11 +536,8 @@ def update(configuration: dict, state: dict):
     except Exception as e:
         raise RuntimeError(f"Failed to sync Apache Druid data: {str(e)}")
     finally:
-        # Cleanup
-        try:
-            client.close()
-        except:
-            pass
+        # Clean up the PyDruid client connection
+        druid_client.close()
 
 
 # Create connector instance
