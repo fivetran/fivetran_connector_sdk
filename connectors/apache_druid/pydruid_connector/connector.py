@@ -510,11 +510,11 @@ def update(configuration: dict, state: dict):
     datasources = configuration.get("datasources")
     batch_size = __BATCH_SIZE
 
-    log.info(f"Connecting to Druid using PyDruid client")
+    log.info("Connecting to Druid using PyDruid client")
 
     # Initialize PyDruid client
     druid_client = DruidPyDruidClient(configuration)
-    log.info(f"PyDruid client initialized successfully")
+    log.info("PyDruid client initialized successfully")
 
     try:
         record_count = 0
@@ -595,7 +595,7 @@ def update(configuration: dict, state: dict):
                     # it is safe to write to destination.
                     # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
                     # Learn more about how and where to checkpoint by reading our best practices documentation
-                    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+                    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets)
                     current_state[f"last_sync_{datasource}"] = (
                         to_iso_timestamp(max_time_processed)
                         if max_time_processed
@@ -638,7 +638,8 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is Python's standard entry method allowing your script to be run directly
+# from the command line or IDE 'run' button.
 #
 # IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
 #   fivetran debug
