@@ -34,6 +34,7 @@ from datetime import datetime, timezone, timedelta
 # PyDruid imports
 try:
     from pydruid.client import PyDruid
+
     _PYDRUID_AVAILABLE = True
 except ImportError:
     PyDruid = None
@@ -56,6 +57,7 @@ def retry_with_exponential_backoff(max_retries=__MAX_RETRIES):
     Args:
         max_retries: Maximum number of retry attempts
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             last_exception = None
@@ -71,22 +73,22 @@ def retry_with_exponential_backoff(max_retries=__MAX_RETRIES):
                         raise
 
                     # Calculate exponential backoff delay with jitter
-                    delay = min(
-                        __INITIAL_RETRY_DELAY * (2 ** attempt),
-                        __MAX_RETRY_DELAY
-                    )
+                    delay = min(__INITIAL_RETRY_DELAY * (2**attempt), __MAX_RETRY_DELAY)
                     # Add random jitter (±25% of delay)
                     jitter = delay * 0.25 * (2 * random.random() - 1)
                     actual_delay = max(0.1, delay + jitter)
 
-                    log.warning(f"Request failed (attempt {attempt + 1}/{max_retries + 1}), "
-                               f"retrying in {actual_delay:.1f}s: {str(e)}")
+                    log.warning(
+                        f"Request failed (attempt {attempt + 1}/{max_retries + 1}), "
+                        f"retrying in {actual_delay:.1f}s: {str(e)}"
+                    )
                     time.sleep(actual_delay)
 
             # This should never be reached due to the raise above
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
@@ -121,7 +123,9 @@ class DruidPyDruidClient:
 
         self.host = configuration.get("host")
         self.port = int(configuration.get("port", 8080))
-        self.protocol = configuration.get("protocol", "https")  # Default to http for backward compatibility
+        self.protocol = configuration.get(
+            "protocol", "https"
+        )  # Default to http for backward compatibility
         self.username = configuration.get("username")
         self.password = configuration.get("password")
 
@@ -141,28 +145,28 @@ class DruidPyDruidClient:
         """Initialize the pydruid Client instance."""
         try:
             # Create pydruid client
-            self.client = PyDruid(
-                self.endpoint,
-                "druid/v2/"
-            )
+            self.client = PyDruid(self.endpoint, "druid/v2/")
 
             # Handle authentication if provided
             if self.username and self.password:
                 # PyDruid supports basic authentication via set_basic_auth_credentials
                 self.client.set_basic_auth_credentials(self.username, self.password)
-                log.info(f"PyDruid client initialized with basic authentication for user: {self.username}")
+                log.info(
+                    f"PyDruid client initialized with basic authentication for user: {self.username}"
+                )
             else:
                 log.info("PyDruid client initialized without authentication")
 
         except Exception as e:
             raise RuntimeError(f"Failed to initialize PyDruid client: {str(e)}")
 
-
     def _execute_query_with_retry(self, query_func, *args, **kwargs):
         """Execute a PyDruid query with retry logic."""
+
         @retry_with_exponential_backoff()
         def execute():
             return query_func(*args, **kwargs)
+
         return execute()
 
     def scan_datasource(
@@ -172,7 +176,7 @@ class DruidPyDruidClient:
         columns: list[str] | None = None,
         filters=None,
         limit: int = 10000,
-        batch_size: int = 1000  # __SCAN_BATCH_SIZE
+        batch_size: int = 1000,  # __SCAN_BATCH_SIZE
     ):
         """
         Scan a datasource for raw data using Druid's scan query.
@@ -197,20 +201,20 @@ class DruidPyDruidClient:
 
                 # Build scan query
                 scan_params = {
-                    'datasource': datasource,
-                    'intervals': intervals,
-                    'columns': columns or [],
-                    'limit': current_batch_size,
-                    'offset': offset
+                    "datasource": datasource,
+                    "intervals": intervals,
+                    "columns": columns or [],
+                    "limit": current_batch_size,
+                    "offset": offset,
                 }
 
                 # Add filter if provided (note: singular 'filter', not 'filters')
                 if filters:
-                    scan_params['filter'] = filters
+                    scan_params["filter"] = filters
 
                 query = self._execute_query_with_retry(self.client.scan, **scan_params)
 
-                if not hasattr(query, 'result') or not query.result:
+                if not hasattr(query, "result") or not query.result:
                     log.info(f"No more data to scan from {datasource} at offset {offset}")
                     break
 
@@ -221,8 +225,8 @@ class DruidPyDruidClient:
                 events = []
                 if isinstance(batch_data, list):
                     for segment in batch_data:
-                        if isinstance(segment, dict) and 'events' in segment:
-                            events.extend(segment['events'])
+                        if isinstance(segment, dict) and "events" in segment:
+                            events.extend(segment["events"])
                         elif isinstance(segment, dict):
                             # Handle case where segment itself is an event
                             events.append(segment)
@@ -241,7 +245,9 @@ class DruidPyDruidClient:
                     else:
                         log.warning(f"Unexpected event format: {type(event)} - {event}")
 
-                log.info(f"Scanned {batch_count} records from {datasource} (total: {total_fetched})")
+                log.info(
+                    f"Scanned {batch_count} records from {datasource} (total: {total_fetched})"
+                )
 
                 # If we got fewer records than requested, we've reached the end
                 if batch_count < current_batch_size:
@@ -261,7 +267,7 @@ class DruidPyDruidClient:
         datasource: str,
         timestamp_column: str = "__time",
         since: str | None = None,
-        batch_size: int = 10000  # __BATCH_SIZE
+        batch_size: int = 10000,  # __BATCH_SIZE
     ):
         """
         Perform incremental scan of a datasource based on timestamp.
@@ -307,16 +313,12 @@ class DruidPyDruidClient:
 
             # Use scan query to get raw data
             yield from self.scan_datasource(
-                datasource=datasource,
-                intervals=intervals,
-                filters=filters,
-                batch_size=batch_size
+                datasource=datasource, intervals=intervals, filters=filters, batch_size=batch_size
             )
 
         except Exception as e:
             log.severe(f"Failed to perform incremental scan: {str(e)}")
             raise RuntimeError(f"Failed to perform incremental scan: {str(e)}")
-
 
     def close(self):
         """Close the connection (cleanup if needed)."""
@@ -387,7 +389,7 @@ def _validate_datasource_name(datasource: str) -> None:
         raise ValueError("Datasource name must be a non-empty string")
 
     # Check for dangerous characters that could cause injection issues
-    dangerous_chars = ['"', "'", '\n', '\r', ';']
+    dangerous_chars = ['"', "'", "\n", "\r", ";"]
     for char in dangerous_chars:
         if char in datasource:
             raise ValueError(f"Datasource name contains invalid character: {repr(char)}")
@@ -444,7 +446,6 @@ def validate_configuration(configuration: dict):
     if len(datasource_list) != len(set(datasource_list)):
         raise ValueError("Duplicate datasource names are not allowed")
 
-
     # Validate optional protocol field if provided
     if "protocol" in configuration:
         protocol = configuration.get("protocol")
@@ -463,7 +464,6 @@ def validate_configuration(configuration: dict):
             raise ValueError("password must be a non-empty string if provided")
 
     log.info("Configuration validated successfully")
-
 
 
 def schema(configuration: dict):
@@ -545,7 +545,7 @@ def update(configuration: dict, state: dict):
                 datasource=datasource,
                 timestamp_column="__time",
                 since=datasource_last_sync,
-                batch_size=batch_size
+                batch_size=batch_size,
             ):
                 # The 'upsert' operation is used to insert or update data in the destination table.
                 # The first argument is the name of the destination table.
@@ -577,7 +577,9 @@ def update(configuration: dict, state: dict):
 
                         # Debug log for first few records
                         if datasource_record_count <= 3:
-                            log.info(f"Record {datasource_record_count}: __time={record_time} -> {record_dt}")
+                            log.info(
+                                f"Record {datasource_record_count}: __time={record_time} -> {record_dt}"
+                            )
 
                     except (ValueError, AttributeError, TypeError) as e:
                         log.warning(
