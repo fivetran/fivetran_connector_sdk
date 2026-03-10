@@ -47,7 +47,6 @@ For Druid clusters that require authentication:
 {
   "host": "<YOUR_DRUID_HOST>",
   "port": "<YOUR_DRUID_PORT>",
-  "protocol": "<http_or_https>",
   "datasources": "<YOUR_DRUID_DATASOURCES>",
   "username": "<YOUR_DRUID_USERNAME>",
   "password": "<YOUR_DRUID_PASSWORD>"
@@ -69,7 +68,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 This connector requires the PyDruid library for native Druid connectivity:
 
 ```
-pydruid>=0.6.5
+pydruid==0.6.5
 ```
 
 Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
@@ -77,6 +76,28 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 ## Authentication
 
 This connector supports optional basic authentication for Druid clusters that require credentials. If `username` and `password` are provided in the configuration, the connector uses PyDruid's built-in authentication support to add the proper authentication headers to all requests. If no credentials are provided, requests are sent without authentication.
+
+## Pagination
+
+The connector implements offset-based pagination to efficiently handle large datasets from Druid datasources:
+
+**Batching approach:**
+- Uses Druid's native scan query with configurable batch sizes
+- Default batch size: 1,000 records per scan operation (`SCAN_BATCH_SIZE`)
+- Overall request limit: 10,000 records per datasource request (`BATCH_SIZE`)
+- Processes records in sequential batches using offset-based pagination
+
+**Termination conditions:**
+- Pagination stops when a batch returns fewer records than the requested batch size
+- Also terminates when the overall limit for the scan operation is reached
+- Each batch increments the offset by the number of records actually retrieved
+
+**Performance optimization:**
+- 1-second delay between batch requests (`PAGINATION_DELAY_SECONDS`) to avoid overwhelming the Druid cluster
+- Regular checkpointing every 1,000 records processed to enable safe resumption
+- Uses PyDruid's native scan query optimization for efficient data retrieval
+
+This pagination approach ensures reliable data extraction from large Druid datasources while maintaining reasonable resource usage on both the connector and Druid cluster.
 
 ## Data handling
 
@@ -95,7 +116,6 @@ The connector implements error handling to ensure reliable data synchronization:
 
 - PyDruid client error handling - Handles PyDruid client exceptions and connection errors
 - Retry logic with exponential backoff - Automatically retries failed requests
-- Timeout handling - Each request times out after 30 seconds
 - Configuration validation - Validates all configuration parameters before making any API calls
 - State checkpointing - Checkpoints sync state regularly, enabling safe resumption
 
@@ -103,6 +123,25 @@ The connector implements error handling to ensure reliable data synchronization:
 
 The connector creates one table per Druid datasource specified in the `datasources` configuration. Table names are derived from datasource names by replacing any character that is not a letter, digit, or underscore with an underscore.
 
-Column types are automatically detected from PyDruid query results and may vary depending on your datasource schema. All Druid datasources include a `__time` column representing when each event occurred. Dimension and metric columns vary per datasource.
+### Schema Structure
 
-Since Druid rows do not have a guaranteed unique key, no primary key is defined in the schema. Fivetran automatically generates a `_fivetran_id` column as a hash of all row values to uniquely identify each record.
+Each table follows this general schema structure:
+
+| Column Name | Data Type | Primary Key | Description |
+|-------------|-----------|-------------|-------------|
+| `__time` | `TIMESTAMP` | No | Event timestamp (always present in Druid datasources) |
+| `_fivetran_id` | `STRING` | Yes | Fivetran-generated unique identifier (hash of row values) |
+| `_fivetran_synced` | `TIMESTAMP` | No | Fivetran sync timestamp |
+| `[dimension_columns]` | `STRING/NUMERIC` | No | Datasource-specific dimension columns (vary by datasource) |
+| `[metric_columns]` | `NUMERIC` | No | Datasource-specific metric columns (vary by datasource) |
+
+**Key Points:**
+- Column types are automatically detected from PyDruid query results and may vary by datasource
+- All Druid datasources include a `__time` column representing when each event occurred
+- Dimension and metric columns vary per datasource based on your Druid schema
+- Since Druid rows do not have a guaranteed unique key, Fivetran generates `_fivetran_id` as the primary key
+- The `_fivetran_id` is a hash of all row values to uniquely identify each record
+
+## Additional considerations
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

@@ -26,23 +26,68 @@ import re
 
 # Used for sleep delays between retries and batch requests
 import time
+import random
 
 # Used for parsing timestamps for safe comparison
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # PyDruid imports
 try:
     from pydruid.client import PyDruid
-    from pydruid.utils.filters import Dimension
-    PYDRUID_AVAILABLE = True
+    _PYDRUID_AVAILABLE = True
 except ImportError:
-    PYDRUID_AVAILABLE = False
+    PyDruid = None
+    _PYDRUID_AVAILABLE = False
 
 # Constants
-BATCH_SIZE = 10000  # Number of records to fetch per request
-SCAN_BATCH_SIZE = 1000  # Number of records per batch for scan operations
-CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
-PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
+__BATCH_SIZE = 10000  # Number of records to fetch per request
+__SCAN_BATCH_SIZE = 1000  # Number of records per batch for scan operations
+__CHECKPOINT_INTERVAL = 1000  # Number of records between mid-sync checkpoints
+__PAGINATION_DELAY_SECONDS = 1  # Delay in seconds between paginated batch requests
+__MAX_RETRIES = 3  # Maximum number of retry attempts
+__INITIAL_RETRY_DELAY = 1  # Initial retry delay in seconds
+__MAX_RETRY_DELAY = 60  # Maximum retry delay in seconds
+
+
+def retry_with_exponential_backoff(max_retries=__MAX_RETRIES):
+    """
+    Decorator that implements retry logic with exponential backoff.
+
+    Args:
+        max_retries: Maximum number of retry attempts
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            last_exception = None
+
+            for attempt in range(max_retries + 1):  # +1 for initial attempt
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+
+                    if attempt == max_retries:
+                        # Final attempt failed, re-raise the exception
+                        raise
+
+                    # Calculate exponential backoff delay with jitter
+                    delay = min(
+                        __INITIAL_RETRY_DELAY * (2 ** attempt),
+                        __MAX_RETRY_DELAY
+                    )
+                    # Add random jitter (±25% of delay)
+                    jitter = delay * 0.25 * (2 * random.random() - 1)
+                    actual_delay = max(0.1, delay + jitter)
+
+                    log.warning(f"Request failed (attempt {attempt + 1}/{max_retries + 1}), "
+                               f"retrying in {actual_delay:.1f}s: {str(e)}")
+                    time.sleep(actual_delay)
+
+            # This should never be reached due to the raise above
+            raise last_exception
+
+        return wrapper
+    return decorator
 
 
 class DruidPyDruidClient:
@@ -65,21 +110,20 @@ class DruidPyDruidClient:
             configuration: Dictionary containing connection parameters
                 - host: Druid broker hostname
                 - port: Druid broker port
-                - protocol: http or https (optional, defaults to http)
+                - protocol: http or https (optional, defaults to https)
                 - username: Basic auth username (optional)
                 - password: Basic auth password (optional)
         """
-        if not PYDRUID_AVAILABLE:
+        if not _PYDRUID_AVAILABLE:
             raise ImportError(
-                "pydruid package is required. Please install it with: pip install pydruid>=0.6.5"
+                "pydruid package is required. Please install it with: pip install pydruid==0.6.5"
             )
 
         self.host = configuration.get("host")
         self.port = int(configuration.get("port", 8080))
-        self.protocol = configuration.get("protocol", "http")  # Default to http for backward compatibility
+        self.protocol = configuration.get("protocol", "https")  # Default to http for backward compatibility
         self.username = configuration.get("username")
         self.password = configuration.get("password")
-        self.timeout = 30
 
         # Validate required parameters
         if not self.host:
@@ -96,12 +140,6 @@ class DruidPyDruidClient:
     def _initialize_client(self):
         """Initialize the pydruid Client instance."""
         try:
-            import urllib.request
-            import urllib.error
-            import urllib
-            urllib.request = urllib.request
-            urllib.error = urllib.error
-
             # Create pydruid client
             self.client = PyDruid(
                 self.endpoint,
@@ -120,6 +158,13 @@ class DruidPyDruidClient:
             raise RuntimeError(f"Failed to initialize PyDruid client: {str(e)}")
 
 
+    def _execute_query_with_retry(self, query_func, *args, **kwargs):
+        """Execute a PyDruid query with retry logic."""
+        @retry_with_exponential_backoff()
+        def execute():
+            return query_func(*args, **kwargs)
+        return execute()
+
     def scan_datasource(
         self,
         datasource: str,
@@ -127,7 +172,7 @@ class DruidPyDruidClient:
         columns: list[str] | None = None,
         filters=None,
         limit: int = 10000,
-        batch_size: int = SCAN_BATCH_SIZE
+        batch_size: int = 1000  # __SCAN_BATCH_SIZE
     ):
         """
         Scan a datasource for raw data using Druid's scan query.
@@ -163,7 +208,7 @@ class DruidPyDruidClient:
                 if filters:
                     scan_params['filter'] = filters
 
-                query = self.client.scan(**scan_params)
+                query = self._execute_query_with_retry(self.client.scan, **scan_params)
 
                 if not hasattr(query, 'result') or not query.result:
                     log.info(f"No more data to scan from {datasource} at offset {offset}")
@@ -205,10 +250,10 @@ class DruidPyDruidClient:
                 offset += batch_count
 
                 # Small delay between batch requests
-                time.sleep(PAGINATION_DELAY_SECONDS)
+                time.sleep(1)  # __PAGINATION_DELAY_SECONDS
 
         except Exception as e:
-            log.error(f"Failed to scan datasource {datasource}: {str(e)}")
+            log.severe(f"Failed to scan datasource {datasource}: {str(e)}")
             raise RuntimeError(f"Failed to scan datasource {datasource}: {str(e)}")
 
     def incremental_scan(
@@ -216,7 +261,7 @@ class DruidPyDruidClient:
         datasource: str,
         timestamp_column: str = "__time",
         since: str | None = None,
-        batch_size: int = BATCH_SIZE
+        batch_size: int = 10000  # __BATCH_SIZE
     ):
         """
         Perform incremental scan of a datasource based on timestamp.
@@ -236,9 +281,9 @@ class DruidPyDruidClient:
                 # For incremental sync, we need to exclude records AT the since timestamp
                 # Add 1 millisecond to ensure we only get records AFTER the last processed record
                 try:
-                    since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
-                    # Add 1 millisecond
-                    since_dt = since_dt.replace(microsecond=since_dt.microsecond + 1000)
+                    since_dt = _parse_iso_timestamp(since)
+                    # Add 1 millisecond safely using timedelta
+                    since_dt = since_dt + timedelta(milliseconds=1)
                     start_time = since_dt.isoformat().replace("+00:00", "Z")
                     log.info(f"Starting incremental scan from {start_time} (excluding {since})")
                 except Exception as e:
@@ -260,17 +305,16 @@ class DruidPyDruidClient:
                 # and rely on the intervals parameter instead of complex filters
                 pass
 
-            # Use scan query to get raw data with higher limit for large datasets
+            # Use scan query to get raw data
             yield from self.scan_datasource(
                 datasource=datasource,
                 intervals=intervals,
                 filters=filters,
-                limit=100000,  # High limit for large datasets
                 batch_size=batch_size
             )
 
         except Exception as e:
-            log.error(f"Failed to perform incremental scan: {str(e)}")
+            log.severe(f"Failed to perform incremental scan: {str(e)}")
             raise RuntimeError(f"Failed to perform incremental scan: {str(e)}")
 
 
@@ -278,6 +322,19 @@ class DruidPyDruidClient:
         """Close the connection (cleanup if needed)."""
         # pydruid doesn't require explicit connection closing
         log.info("PyDruid client closed")
+
+
+def _parse_iso_timestamp(ts: str) -> datetime:
+    """
+    Parse an ISO timestamp string, handling Z suffix properly.
+
+    Args:
+        ts: ISO timestamp string (may have Z suffix)
+
+    Returns:
+        datetime object with timezone info
+    """
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
 
 def to_iso_timestamp(ts: str | datetime) -> str:
@@ -297,7 +354,7 @@ def to_iso_timestamp(ts: str | datetime) -> str:
     if "T" not in ts:
         return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).isoformat()
     # Already ISO 8601 — normalise Z suffix for Python < 3.11 then round-trip to ensure consistency
-    return datetime.fromisoformat(ts.replace("Z", "+00:00")).isoformat()
+    return _parse_iso_timestamp(ts).isoformat()
 
 
 def sanitize_table_name(name: str) -> str:
@@ -314,6 +371,26 @@ def sanitize_table_name(name: str) -> str:
         A sanitized table name safe for use as a destination table identifier
     """
     return re.sub(r"[^a-zA-Z0-9_]", "_", name)
+
+
+def _validate_datasource_name(datasource: str) -> None:
+    """
+    Validate a single datasource name to prevent injection issues.
+
+    Args:
+        datasource: The datasource name to validate
+
+    Raises:
+        ValueError: If the datasource name is invalid
+    """
+    if not datasource or not isinstance(datasource, str) or not datasource.strip():
+        raise ValueError("Datasource name must be a non-empty string")
+
+    # Check for dangerous characters that could cause injection issues
+    dangerous_chars = ['"', "'", '\n', '\r', ';']
+    for char in dangerous_chars:
+        if char in datasource:
+            raise ValueError(f"Datasource name contains invalid character: {repr(char)}")
 
 
 def validate_configuration(configuration: dict):
@@ -351,6 +428,21 @@ def validate_configuration(configuration: dict):
     datasources = configuration.get("datasources")
     if not datasources or not isinstance(datasources, str) or not datasources.strip():
         raise ValueError("datasources must be a non-empty string (comma-separated list)")
+
+    # Validate each individual datasource name
+    datasource_list = [ds.strip() for ds in datasources.split(",")]
+    if not datasource_list:
+        raise ValueError("datasources list cannot be empty")
+
+    for datasource in datasource_list:
+        try:
+            _validate_datasource_name(datasource)
+        except ValueError as e:
+            raise ValueError(f"Invalid datasource in list: {str(e)}") from e
+
+    # Check for duplicate datasource names
+    if len(datasource_list) != len(set(datasource_list)):
+        raise ValueError("Duplicate datasource names are not allowed")
 
 
     # Validate optional protocol field if provided
@@ -408,7 +500,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Example: Connectors - Apache Druid")
+    log.warning("Example: Connectors : Apache Druid")
     log.info("Starting Apache Druid Connector sync")
 
     # Validate configuration first
@@ -416,7 +508,7 @@ def update(configuration: dict, state: dict):
 
     # Extract configuration parameters
     datasources = configuration.get("datasources")
-    batch_size = BATCH_SIZE
+    batch_size = __BATCH_SIZE
 
     log.info(f"Connecting to Druid using PyDruid client")
 
@@ -473,7 +565,7 @@ def update(configuration: dict, state: dict):
                             record_dt = datetime.fromtimestamp(record_time / 1000, tz=timezone.utc)
                         elif isinstance(record_time, str):
                             # ISO string format
-                            record_dt = datetime.fromisoformat(str(record_time).replace("Z", "+00:00"))
+                            record_dt = _parse_iso_timestamp(str(record_time))
                         else:
                             # Already a datetime object
                             record_dt = record_time
@@ -493,7 +585,7 @@ def update(configuration: dict, state: dict):
                         )
 
                 # Checkpoint periodically for large datasets
-                if record_count % CHECKPOINT_INTERVAL == 0:
+                if record_count % __CHECKPOINT_INTERVAL == 0:
                     log.info(f"Processed {record_count} records, checkpointing...")
                     # Save the progress by checkpointing the state. This is important for ensuring that
                     # the sync process can resume from the correct position in case of next sync or interruptions.
