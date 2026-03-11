@@ -1,4 +1,4 @@
-name: Label PR
+name: PR Metadata
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
@@ -9,7 +9,7 @@ permissions:
   issues: write
 
 jobs:
-  size:
+  label:
     runs-on: ubuntu-latest
     steps:
       - name: Label PR by size
