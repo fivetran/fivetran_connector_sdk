@@ -316,7 +316,7 @@ class DruidPyDruidClient:
                             since_dt = _parse_iso_timestamp(since) + timedelta(milliseconds=1)
                             start_time = since_dt.isoformat().replace("+00:00", "Z")
                             log.info(f"Applied 1ms buffer to unparseable timestamp: {start_time}")
-                        except:
+                        except Exception:
                             pass
             else:
                 start_time = "1970-01-01T00:00:00.000Z"
@@ -332,7 +332,7 @@ class DruidPyDruidClient:
             if since:
                 try:
                     last_processed_time = _parse_iso_timestamp(since)
-                except:
+                except Exception:
                     pass
 
             for record in self.scan_datasource(
@@ -363,7 +363,7 @@ class DruidPyDruidClient:
                             # Skip records that are <= the last processed timestamp
                             if record_dt <= last_processed_time:
                                 continue
-                        except:
+                        except Exception:
                             # If we can't parse the timestamp, include the record to be safe
                             pass
 

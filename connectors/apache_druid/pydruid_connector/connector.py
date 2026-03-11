@@ -25,7 +25,7 @@ import json
 import re
 
 # Used for parsing timestamps for safe comparison
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 # Import DruidPyDruidClient from the separate client module
 from client import DruidPyDruidClient
