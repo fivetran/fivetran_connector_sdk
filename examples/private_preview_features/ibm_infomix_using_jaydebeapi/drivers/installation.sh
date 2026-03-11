@@ -15,6 +15,6 @@ curl -L -o /opt/informix/jdbc-15.0.0.1.1.jar \
   https://repo1.maven.org/maven2/com/ibm/informix/jdbc/15.0.0.1.1/jdbc-15.0.0.1.1.jar
 
 curl -L -o /opt/informix/bson-3.8.0.jar \
-  https://repo1.maven.org/maven2/org/mongodb/bson/5.5.0/bson-3.8.0.jar
+  https://repo1.maven.org/maven2/org/mongodb/bson/3.8.0/bson-3.8.0.jar
 
 echo "Installation of Informix JDBC driver complete."
