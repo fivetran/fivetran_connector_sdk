@@ -1,6 +1,6 @@
 name: PR size label
 on:
-  pull_request:
+  pull_request_target:
     types: [ opened, synchronize, reopened ]
 
 permissions:
@@ -71,7 +71,6 @@ jobs:
             const labels = (context.payload.pull_request.labels || []).map(l => l.name);
 
             const toAdd = [];
-            const toAdd2 = []
             if (!labels.some(l => l.startsWith("risk/"))) {
               toAdd.push("risk/unknown");
             }
