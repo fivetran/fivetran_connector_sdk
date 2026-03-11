@@ -4,10 +4,6 @@
 
 This connector syncs health and wellness data from the Oura Ring API v2 into your Fivetran destination. It retrieves daily activity scores, sleep metrics, readiness assessments, stress levels, and continuous heart rate measurements. The connector supports incremental syncing using date-based cursors and handles cursor-based pagination via the Oura API's `next_token` mechanism. Nested contributor objects (activity, sleep, and readiness scores) are automatically flattened for warehouse compatibility, and time-series arrays are serialized to JSON strings.
 
-## Accreditation
-
-This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel).
-
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -36,8 +32,8 @@ The `configuration.json` file contains the parameters needed to connect to the O
 
 ```json
 {
-    "personal_access_token": "your_personal_access_token_here",
-    "lookback_days": "90"
+    "personal_access_token": "<YOUR_PERSONAL_ACCESS_TOKEN>",
+    "lookback_days": "<LOOKBACK_DAYS>"
 }
 ```
 
@@ -45,12 +41,6 @@ The `configuration.json` file contains the parameters needed to connect to the O
 - `lookback_days` (optional): Number of days to look back on the initial sync, defaults to 90
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
-
-## Requirements file
-
-The `requirements.txt` file lists no additional dependencies since this connector only uses the `requests` library which is pre-installed in the Fivetran environment.
-
-Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 ## Authentication
 
@@ -80,11 +70,13 @@ The `def fetch_data_with_retry(session, url, params)` function implements expone
 
 The daily_stress endpoint may return HTTP 403 (forbidden) or 426 (upgrade required) for accounts without the appropriate Oura subscription tier. The connector gracefully skips the stress table in these cases and continues syncing the remaining tables.
 
-Authentication failures (HTTP 401) surface immediately as errors with a descriptive message to check the personal access token.
+Authentication and authorization failures (HTTP 401/403) surface immediately with a descriptive error message directing users to check their `personal_access_token` and API scopes.
 
 ## Tables created
 
-### daily_activity
+### DAILY_ACTIVITY
+
+The `DAILY_ACTIVITY` table consists of the following columns:
 
 - `id` (STRING, primary key): Unique identifier for the daily activity record
 - `day` (STRING): Date in YYYY-MM-DD format
@@ -119,7 +111,9 @@ Authentication failures (HTTP 401) surface immediately as errors with a descript
 - `contributors_training_frequency` (INTEGER): Contributor score for training frequency (1-100)
 - `contributors_training_volume` (INTEGER): Contributor score for training volume (1-100)
 
-### daily_sleep
+### DAILY_SLEEP
+
+The `DAILY_SLEEP` table consists of the following columns:
 
 - `id` (STRING, primary key): Unique identifier for the daily sleep record
 - `day` (STRING): Date in YYYY-MM-DD format
@@ -133,7 +127,9 @@ Authentication failures (HTTP 401) surface immediately as errors with a descript
 - `contributors_timing` (INTEGER): Contributor score for sleep timing (1-100)
 - `contributors_total_sleep` (INTEGER): Contributor score for total sleep (1-100)
 
-### daily_readiness
+### DAILY_READINESS
+
+The `DAILY_READINESS` table consists of the following columns:
 
 - `id` (STRING, primary key): Unique identifier for the daily readiness record
 - `day` (STRING): Date in YYYY-MM-DD format
@@ -151,7 +147,9 @@ Authentication failures (HTTP 401) surface immediately as errors with a descript
 - `contributors_sleep_balance` (INTEGER): Contributor score for sleep balance (1-100)
 - `contributors_sleep_regularity` (INTEGER): Contributor score for sleep regularity (1-100)
 
-### daily_stress
+### DAILY_STRESS
+
+The `DAILY_STRESS` table consists of the following columns:
 
 - `id` (STRING, primary key): Unique identifier for the daily stress record
 - `day` (STRING): Date in YYYY-MM-DD format
@@ -159,12 +157,16 @@ Authentication failures (HTTP 401) surface immediately as errors with a descript
 - `recovery_high` (INTEGER): Seconds of high recovery during the day
 - `day_summary` (STRING): Overall day classification (restored, normal, or stressful)
 
-### heart_rate
+### HEART_RATE
+
+The `HEART_RATE` table consists of the following columns:
 
 - `timestamp` (STRING, primary key): ISO 8601 timestamp of the heart rate reading
 - `bpm` (INTEGER): Beats per minute
 - `source` (STRING): Context of the reading (awake, rest, sleep, session, live, or workout)
 
 ## Additional considerations
+
+This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel).
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

@@ -132,16 +132,11 @@ def validate_configuration(configuration: dict):
 
 def schema(configuration: dict):
     """
-    Define the table schemas for the Oura Ring connector.
-
-    Only table names and primary keys are defined here.
-    Fivetran will infer column types automatically from the data.
-
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
-        configuration: Configuration dictionary (unused but required by SDK)
-
-    Returns:
-        List of table schema definitions with table names and primary keys
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": table_name, "primary_key": config["primary_key"]}
@@ -216,31 +211,39 @@ def fetch_data_with_retry(session, url, params=None):
                 raise RuntimeError(f"Timeout after {__MAX_RETRIES} attempts: {e}")
 
         except requests.exceptions.RequestException as e:
-            should_retry = (
-                hasattr(e, "response")  # noqa: W503
-                and e.response is not None  # noqa: W503
-                and hasattr(e.response, "status_code")  # noqa: W503
-                and e.response.status_code in __RETRYABLE_STATUS_CODES  # noqa: W503
+            status_code = (
+                e.response.status_code
+                if hasattr(e, "response") and e.response is not None
+                else None
             )
+
+            # Handle authentication/authorization errors immediately
+            if status_code in (401, 403):
+                msg = (
+                    f"HTTP {status_code}: Check your personal_access_token "
+                    f"and API scopes. URL: {url}"
+                )
+                log.severe(msg)
+                raise RuntimeError(msg) from e
+
+            should_retry = status_code in __RETRYABLE_STATUS_CODES
 
             if should_retry and attempt < __MAX_RETRIES - 1:
                 delay_seconds = __BASE_DELAY_SECONDS * (2**attempt)
                 log.warning(
-                    f"Request failed with status {e.response.status_code}, "
-                    f"retrying in {delay_seconds}s (attempt {attempt + 1}/{__MAX_RETRIES})"
+                    f"Request failed with status {status_code}, "
+                    f"retrying in {delay_seconds}s "
+                    f"(attempt {attempt + 1}/{__MAX_RETRIES})"
                 )
                 time.sleep(delay_seconds)
             else:
-                status_code = (
-                    e.response.status_code
-                    if hasattr(e, "response") and e.response is not None
-                    else "N/A"
-                )
+                attempts = attempt + 1
                 log.severe(
-                    f"Failed after {__MAX_RETRIES} attempts. "
-                    f"URL: {url}, Status: {status_code}, Error: {str(e)}"
+                    f"Request failed after {attempts} attempt(s). "
+                    f"URL: {url}, Status: {status_code or 'N/A'}, "
+                    f"Error: {str(e)}"
                 )
-                raise RuntimeError(f"API request failed after {__MAX_RETRIES} attempts: {e}")
+                raise RuntimeError(f"API request failed after {attempts} attempt(s): {e}") from e
 
 
 def build_date_params(table_name, table_config, start_date_str, end_date_str):
@@ -346,6 +349,9 @@ def sync_table(session, table_name, table_config, start_date_str, end_date_str, 
         records = data.get("data", [])
 
         if not records:
+            # Clear any stale next_token to prevent reuse on subsequent runs
+            state[next_token_key] = None
+            op.checkpoint(state=state)
             break
 
         batch_size = len(records)
@@ -385,19 +391,13 @@ def sync_table(session, table_name, table_config, start_date_str, end_date_str, 
 
 def update(configuration: dict, state: dict):
     """
-    Extract data from the Oura Ring API and perform upsert operations.
-
-    Orchestrates incremental syncing across all configured tables using
-    date-based ranges and cursor-based pagination. Handles authentication,
-    session management, and graceful error handling for restricted endpoints.
-
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: Configuration dictionary from configuration.json
-        state: State dictionary from previous sync (empty on first run)
-
-    Raises:
-        ValueError: If required configuration is missing
-        RuntimeError: If API requests fail after max retries
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: connectors : oura_ring")
 
@@ -432,11 +432,21 @@ def update(configuration: dict, state: dict):
                     )
                     for chunk_start, chunk_end in chunks:
                         sync_table(
-                            session, table_name, table_config, chunk_start, chunk_end, state
+                            session,
+                            table_name,
+                            table_config,
+                            chunk_start,
+                            chunk_end,
+                            state,
                         )
                 else:
                     sync_table(
-                        session, table_name, table_config, start_date_str, end_date_str, state
+                        session,
+                        table_name,
+                        table_config,
+                        start_date_str,
+                        end_date_str,
+                        state,
                     )
             except RuntimeError as e:
                 error_msg = str(e)
