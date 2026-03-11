@@ -13,7 +13,6 @@ Apache Druid is a real-time analytics database designed for fast aggregations an
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-- PyDruid library for native Druid connectivity
 
 ## Getting started
 
@@ -37,6 +36,7 @@ The connector requires a `configuration.json` file with the Druid connection det
 {
   "host": "<YOUR_DRUID_HOST>",
   "port": "<YOUR_DRUID_PORT>",
+  "protocol": "https",
   "datasources": "<YOUR_DRUID_DATASOURCES>"
 }
 ```
@@ -47,6 +47,7 @@ For Druid clusters that require authentication:
 {
   "host": "<YOUR_DRUID_HOST>",
   "port": "<YOUR_DRUID_PORT>",
+  "protocol": "https",
   "datasources": "<YOUR_DRUID_DATASOURCES>",
   "username": "<YOUR_DRUID_USERNAME>",
   "password": "<YOUR_DRUID_PASSWORD>"
@@ -57,7 +58,7 @@ Configuration parameters:
 - `host` - Hostname or IP address of your Druid broker node (required)
 - `port` - Port number for the Druid broker, typically 8888 (required)
 - `datasources` - Comma-separated list of Druid datasource names to sync (required)
-- `protocol` - Connection protocol: "http" or "https" (optional, defaults to "http")
+- `protocol` - Connection protocol: "http" or "https" (optional, defaults to "https")
 - `username` - Username for basic authentication (optional)
 - `password` - Password for basic authentication (optional)
 
@@ -77,38 +78,36 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 This connector supports optional basic authentication for Druid clusters that require credentials. If `username` and `password` are provided in the configuration, the connector uses PyDruid's built-in authentication support to add the proper authentication headers to all requests. If no credentials are provided, requests are sent without authentication.
 
-## Pagination
+## Data processing
 
-The connector implements offset-based pagination to efficiently handle large datasets from Druid datasources:
+The connector efficiently handles large datasets from Druid datasources using the following approach:
 
-**Batching approach:**
-- Uses Druid's native scan query with configurable batch sizes
-- Default batch size: 1,000 records per scan operation (`SCAN_BATCH_SIZE`)
-- Overall request limit: 10,000 records per datasource request (`BATCH_SIZE`)
-- Processes records in sequential batches using offset-based pagination
-
-**Termination conditions:**
-- Pagination stops when a batch returns fewer records than the requested batch size
-- Also terminates when the overall limit for the scan operation is reached
-- Each batch increments the offset by the number of records actually retrieved
-
-**Performance optimization:**
-- 1-second delay between batch requests (`PAGINATION_DELAY_SECONDS`) to avoid overwhelming the Druid cluster
-- Regular checkpointing every 1,000 records processed to enable safe resumption
+**Query approach:**
+- Uses Druid's native scan query for optimal data retrieval
+- Configurable batch limit: 10,000 records per datasource request (`BATCH_SIZE`)
+- Progress tracking: Logs progress every 1,000 records processed
 - Uses PyDruid's native scan query optimization for efficient data retrieval
 
-This pagination approach ensures reliable data extraction from large Druid datasources while maintaining reasonable resource usage on both the connector and Druid cluster.
+**Performance optimization:**
+- Regular checkpointing every 1,000 records processed to enable safe resumption
+- Proper resource management with connection cleanup
+- Retry logic with exponential backoff for failed requests
+- Efficient memory usage by processing records as they are yielded
 
-## Data handling
+**Data handling:**
+- Supports various timestamp formats (Unix milliseconds, ISO strings, datetime objects)
+- Automatic timezone handling for proper incremental sync
+- Per-datasource state tracking for independent sync progress
 
-The connector processes Druid data through the following steps:
-
+**Processing workflow:**
 - Configuration validation - Validates all required fields before making any API calls
 - PyDruid client setup - Initializes PyDruid client with authentication settings and connection parameters
 - Incremental filtering - Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch
-- Native query execution - Uses PyDruid scan queries with time-based filtering, advancing the cursor after each batch
+- Native query execution - Uses PyDruid scan queries with time-based filtering for optimal data retrieval
 - Data upserting - Each record is upserted to the corresponding destination table
 - State checkpointing - Saves the maximum `__time` seen per datasource after processing
+
+This approach ensures reliable data extraction from Druid datasources while maintaining reasonable resource usage and providing robust error recovery.
 
 ## Error handling
 
@@ -123,7 +122,7 @@ The connector implements error handling to ensure reliable data synchronization:
 
 The connector creates one table per Druid datasource specified in the `datasources` configuration. Table names are derived from datasource names by replacing any character that is not a letter, digit, or underscore with an underscore.
 
-### Schema Structure
+### Schema structure
 
 Each table follows this general schema structure:
 
