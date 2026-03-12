@@ -24,9 +24,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Multi-datasource support - Syncs multiple Druid datasources in a single connector, each mapped to a separate destination table
 - Native PyDruid queries - Uses PyDruid's native query capabilities for optimized data retrieval
 - Per-datasource state tracking - Tracks sync progress independently per datasource
-- Retry logic with exponential backoff - Automatically retries failed requests
 - Basic authentication support - Optional username and password authentication for secured Druid clusters
-- Periodic checkpointing - Saves sync progress regularly to enable safe resumption
 
 ## Configuration file
 
@@ -78,45 +76,40 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 This connector supports optional basic authentication for Druid clusters that require credentials. If `username` and `password` are provided in the configuration, the connector uses PyDruid's built-in authentication support to add the proper authentication headers to all requests. If no credentials are provided, requests are sent without authentication.
 
-## Data processing
+## Pagination
 
-The connector efficiently handles large datasets from Druid datasources using the following approach:
+This connector does not use traditional API pagination since Apache Druid uses scan queries rather than paginated endpoints. Instead, the connector implements batching and progress tracking:
 
-**Query approach:**
-- Uses Druid's native scan query for optimal data retrieval
-- Configurable batch limit: 10,000 records per datasource request (`BATCH_SIZE`)
-- Progress tracking: Logs progress every 1,000 records processed
-- Uses PyDruid's native scan query optimization for efficient data retrieval
+- Batch processing - Processes data in configurable batches of 10,000 records per datasource request (`BATCH_SIZE`)
+- Progress tracking - Logs sync progress every 1,000 records processed
+- Incremental sync - Uses time-based filtering on the `__time` column to fetch only new records since the last sync
+- Checkpointing - Saves sync state every 1,000 records to enable safe resumption from interruptions
 
-**Performance optimization:**
-- Regular checkpointing every 1,000 records processed to enable safe resumption
-- Proper resource management with connection cleanup
-- Retry logic with exponential backoff for failed requests
-- Efficient memory usage by processing records as they are yielded
+## Data handling
 
-**Data handling:**
+The connector efficiently processes large datasets from Druid datasources:
+
+### Query approach
+- Uses Druid's native scan queries for optimal data retrieval through PyDruid
 - Supports various timestamp formats (Unix milliseconds, ISO strings, datetime objects)
 - Automatic timezone handling for proper incremental sync
-- Per-datasource state tracking for independent sync progress
 
-**Processing workflow:**
-- Configuration validation - Validates all required fields before making any API calls
-- PyDruid client setup - Initializes PyDruid client with authentication settings and connection parameters
-- Incremental filtering - Reads the per-datasource last sync timestamp from state. If none exists, defaults to epoch to trigger a full fetch
-- Native query execution - Uses PyDruid scan queries with time-based filtering for optimal data retrieval
-- Data upserting - Each record is upserted to the corresponding destination table
-- State checkpointing - Saves the maximum `__time` seen per datasource after processing
-
-This approach ensures reliable data extraction from Druid datasources while maintaining reasonable resource usage and providing robust error recovery.
+### Processing workflow
+1. Configuration validation - Validates all required fields before making any API calls
+2. PyDruid client setup - Initializes client with authentication settings and connection parameters
+3. Incremental filtering - Reads per-datasource last sync timestamp from state (defaults to epoch for full fetch)
+4. Query execution - Uses PyDruid scan queries with time-based filtering
+5. Data upserting - Each record is upserted to the corresponding destination table
+6. State checkpointing - Saves the maximum `__time` seen per datasource after processing
 
 ## Error handling
 
-The connector implements error handling to ensure reliable data synchronization:
+The connector implements robust error handling for reliable data synchronization:
 
-- PyDruid client error handling - Handles PyDruid client exceptions and connection errors
-- Retry logic with exponential backoff - Automatically retries failed requests
-- Configuration validation - Validates all configuration parameters before making any API calls
-- State checkpointing - Checkpoints sync state regularly, enabling safe resumption
+- PyDruid client exceptions - Handles PyDruid client and connection errors gracefully
+- Retry logic with exponential backoff - Automatically retries failed requests with configurable delays
+- Resource management - Proper connection cleanup and efficient memory usage
+- Recovery mechanisms - Checkpointing enables safe resumption from failures or interruptions
 
 ## Tables created
 
@@ -134,12 +127,23 @@ Each table follows this general schema structure:
 | `[dimension_columns]` | `STRING/NUMERIC` | No | Datasource-specific dimension columns (vary by datasource) |
 | `[metric_columns]` | `NUMERIC` | No | Datasource-specific metric columns (vary by datasource) |
 
-**Key Points:**
+Key Points:
 - Column types are automatically detected from PyDruid query results and may vary by datasource
 - All Druid datasources include a `__time` column representing when each event occurred
 - Dimension and metric columns vary per datasource based on your Druid schema
 - Since Druid rows do not have a guaranteed unique key, Fivetran generates `_fivetran_id` as the primary key
 - The `_fivetran_id` is a hash of all row values to uniquely identify each record
+
+## Additional files
+
+This connector includes additional helper modules beyond the core files:
+- `client.py` - PyDruid client wrapper with connection management, retry logic, and error handling
+
+The `client.py` module provides a reusable DruidPyDruidClient class that handles:
+- PyDruid client initialization and configuration
+- Connection retry logic with exponential backoff
+- Error handling for Druid-specific exceptions
+- Timestamp parsing and validation utilities
 
 ## Additional considerations
 
