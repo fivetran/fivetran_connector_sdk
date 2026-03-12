@@ -1,12 +1,14 @@
 # Complex Configuration Options Connector Example
 
 ## Connector overview
-This example demonstrates handling of complex configuration values. This example shows how to handle cases when connector requires static complex values such as deeply nested structures or non-string values. A separate python file can be used to define such complex values. These values must not contain any sensitive information. The connector needs to be redeployed for updating the values defined in the separate python file.
+This example demonstrates how to handle cases when a connector requires static complex values, such as deeply nested structures or non-string values. 
+
+A separate Python file can be used to define such complex values. These values must not contain any sensitive information. The connector needs to be redeployed to update the values defined in the separate Python file.
 
 This pattern is useful for:
-- Working with custom connector configurations passed through configuration.json
+- Working with custom connector configurations passed through `configuration.json`
 - Working with complex configuration values that are difficult to represent as simple strings
-- Maintaining constants that are defined in connector.py
+- Maintaining constants that are defined in `connector.py`
 - Dynamically handling typed settings like lists, integers, booleans, and JSON objects
 
 
@@ -47,7 +49,7 @@ The configuration parameters are as follows:
 - `client_id` (required): Your client ID for authentication
 - `client_secret` (required): Your client secret for authentication
 
-You should always use `configuration.json` to define sensitive information required by the connector. You should never hardcode them in connector code or define them as static values in `config.py` or other Python files.
+You should always use `configuration.json` to define sensitive information required by the connector. For security reasons, you should never hardcode them in connector code or define them as static values in `config.py` or other Python files.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -73,7 +75,7 @@ API_CONFIGURATIONS = {
 
 ```
 
-Note: Ensure that you do not use `config.py` to store sensitive information. You should always use `configuration.json` to define sensitive information required by the connector.
+Note: Ensure that you do not use `config.py` to store sensitive information. You should always store sensitive information in your connector's `configuration.json`. 
 
 
 ## Requirements file
@@ -83,7 +85,7 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 
 
 ## Authentication
-This connector does not require authentication - it is a demonstration example showing how to parse complex configuration options. In a production scenario, use headers or token-based authentication as necessary, storing credentials in `configuration.json`.
+This connector does not require authentication - it is a demonstration example showing how to parse complex configuration options. In a production scenario, use headers or token-based authentication as necessary, and store credentials in your `configuration.json`.
 
 
 ## Pagination
@@ -92,7 +94,7 @@ Not applicable - this connector emits a single static row.
 
 ## Data handling
 - Configuration values are parsed and validated.
-- A single record in table `CRYPTO` is sent using `op.upsert()`.
+- The connector sends a single record in the `CRYPTO` table using `op.upsert()`.
 
 
 ## Error handling
@@ -101,8 +103,8 @@ Not applicable - this connector emits a single static row.
 - Logs informative messages via the SDK’s Logging module.
 
 
-## Tables Created
-The connector creates a `CRYPTO` table:
+## Tables created
+The connector creates a single, `CRYPTO` table:
 
 ```json
 {
