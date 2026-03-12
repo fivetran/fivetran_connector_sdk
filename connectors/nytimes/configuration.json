@@ -1,0 +1,6 @@
+{
+    "api_key": "<YOUR_API_KEY>",
+    "start_date": "<YOUR_START_DATE>",
+    "period": "<YOUR_PERIOD>",
+    "share_type": "<YOUR_SHARE_TYPE>"
+}
