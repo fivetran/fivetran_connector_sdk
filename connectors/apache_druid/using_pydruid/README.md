@@ -6,6 +6,8 @@ This connector syncs data from Apache Druid datasources into Fivetran using the 
 
 Apache Druid is a real-time analytics database designed for fast aggregations and queries on large event datasets. This PyDruid-based connector provides enhanced performance and native Druid query optimization for accessing your Druid datasources for analytics and reporting in your data warehouse.
 
+The connector can connect to Apache Druid clusters that either allow unauthenticated access or use HTTP Basic authentication.
+
 ## Requirements
 
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
