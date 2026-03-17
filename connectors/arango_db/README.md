@@ -1,5 +1,4 @@
 # ArangoDB Connector Example
-
 ## Connector overview
 This connector demonstrates how to sync data from ArangoDB, a native multi-model database that combines document, graph, and key-value capabilities.
 
