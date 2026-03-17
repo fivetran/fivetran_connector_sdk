@@ -1,0 +1,9 @@
+{
+    "mssql_server": "<YOUR_SQL_SERVER_HOST>",
+    "mssql_cert_server": "<YOUR_CERT_HOSTNAME_OR_EMPTY>",
+    "mssql_port": "<YOUR_SQL_SERVER_PORT>",
+    "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
+    "mssql_user": "<YOUR_SQL_SERVER_USERNAME>",
+    "mssql_password": "<YOUR_SQL_SERVER_PASSWORD>",
+    "mssql_schema": "<YOUR_SQL_SERVER_SCHEMA>"
+}
