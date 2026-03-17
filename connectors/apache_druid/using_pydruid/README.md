@@ -76,7 +76,11 @@ Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in 
 
 ## Authentication
 
-This connector supports optional basic authentication for Druid clusters that require credentials. If `username` and `password` are provided in the configuration, the connector uses PyDruid's built-in authentication support to add the proper authentication headers to all requests. If no credentials are provided, requests are sent without authentication.
+This connector works with Apache Druid clusters that either allow unauthenticated access or use HTTP Basic authentication.
+
+If your Druid cluster requires HTTP Basic authentication, provide the `username` and `password` values in the connector configuration. The connector uses PyDruid to include Basic authentication headers in all requests.
+
+If credentials are not provided, requests are sent without authentication.
 
 ## Pagination
 
