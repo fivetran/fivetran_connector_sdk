@@ -16,28 +16,6 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
-import logging
-
-
-# Safe logging wrapper for standalone testing
-def safe_log(level, message):
-    """Safely log messages - works in both Fivetran and standalone mode"""
-    try:
-        if level == "info":
-            log.info(message)
-        elif level == "warning":
-            log.warning(message)
-        elif level == "error":
-            log.error(message)
-    except (TypeError, AttributeError):
-        # Fallback to standard logging if Fivetran logging not initialized
-        logger = logging.getLogger(__name__)
-        if level == "info":
-            logger.info(message)
-        elif level == "warning":
-            logger.warning(message)
-        elif level == "error":
-            logger.error(message)
 
 
 def validate_configuration(configuration: dict):
@@ -52,7 +30,7 @@ def validate_configuration(configuration: dict):
     for field in required_fields:
         if field not in configuration or not configuration[field]:
             raise ValueError(f"Missing required configuration field: {field}")
-    safe_log("info", "Configuration validation passed.")
+    log.info("Configuration validation passed.")
 
 
 def get_sybase_tables(connection, database: str):
@@ -75,10 +53,10 @@ def get_sybase_tables(connection, database: str):
         """
         cursor.execute(query)
         tables = [row[0] for row in cursor.fetchall()]
-        safe_log("info", f"Found {len(tables)} tables in database '{database}'")
+        log.info(f"Found {len(tables)} tables in database '{database}'")
         return tables
     except Exception as e:
-        safe_log("warning", f"Error fetching tables: {str(e)}")
+        log.warning(f"Error fetching tables: {str(e)}")
         return []
     finally:
         cursor.close()
@@ -130,10 +108,10 @@ def get_table_primary_keys(connection, table_name: str):
         # Handle specific case where table has no indexes
         if "No indexes" in str(e) or "not found" in str(e).lower():
             return []
-        safe_log("warning", f"Error fetching primary keys for table '{table_name}': {str(e)}")
+        log.warning(f"Error fetching primary keys for table '{table_name}': {str(e)}")
         return []
     except Exception as e:
-        safe_log("warning", f"Error fetching primary keys for table '{table_name}': {str(e)}")
+        log.warning(f"Error fetching primary keys for table '{table_name}': {str(e)}")
         return []
     finally:
         cursor.close()
@@ -172,7 +150,7 @@ def get_table_columns(connection, table_name: str):
             columns[col_name] = fivetran_type
         return columns
     except Exception as e:
-        safe_log("warning", f"Error fetching columns for table '{table_name}': {str(e)}")
+        log.warning(f"Error fetching columns for table '{table_name}': {str(e)}")
         return {}
     finally:
         cursor.close()
@@ -270,7 +248,7 @@ def schema(configuration: dict):
         schema_list = []
         for table_name in selected_tables:
             if table_name not in all_tables:
-                safe_log("warning", f"Table '{table_name}' not found in database. Skipping.")
+                log.warning(f"Table '{table_name}' not found in database. Skipping.")
                 continue
 
             # Get primary keys for the table
@@ -289,13 +267,13 @@ def schema(configuration: dict):
                 table_schema["primary_key"] = primary_keys
 
             schema_list.append(table_schema)
-            safe_log("info", f"Added table '{table_name}' to schema with {len(columns)} columns")
+            log.info(f"Added table '{table_name}' to schema with {len(columns)} columns")
 
-        safe_log("info", f"Schema discovery complete. Syncing {len(schema_list)} tables.")
+        log.info(f"Schema discovery complete. Syncing {len(schema_list)} tables.")
         return schema_list
 
     except Exception as e:
-        safe_log("warning", f"Error during schema discovery: {str(e)}")
+        log.warning(f"Error during schema discovery: {str(e)}")
         raise
     finally:
         connection.close()
@@ -331,7 +309,7 @@ def create_sybase_connection(configuration: dict):
         )
 
         connection = pyodbc.connect(connection_str, autocommit=True)
-        safe_log("info", "Connection to Sybase ASE established successfully.")
+        log.info("Connection to Sybase ASE established successfully.")
         return connection
     except Exception as e:
         raise RuntimeError("Connection to Sybase ASE failed") from e
@@ -346,10 +324,8 @@ def close_sybase_connection(connection, cursor):
     """
     if cursor:
         cursor.close()
-        safe_log("info", "Cursor closed successfully.")
     if connection:
         connection.close()
-        safe_log("info", "Connection to Sybase ASE closed successfully.")
 
 
 def get_table_incremental_column(connection, table_name: str):
@@ -386,7 +362,7 @@ def get_table_incremental_column(connection, table_name: str):
 
         return None, None
     except Exception as e:
-        safe_log("warning", f"Error determining incremental column for '{table_name}': {str(e)}")
+        log.warning(f"Error determining incremental column for '{table_name}': {str(e)}")
         return None, None
     finally:
         cursor.close()
@@ -478,7 +454,7 @@ def fetch_and_upsert(
         state[state_key] = last_value
     op.checkpoint(state)
 
-    safe_log("info", f"Synced {row_count} rows from table '{table_name}'")
+    log.info(f"Synced {row_count} rows from table '{table_name}'")
 
 
 def sync_table(connection, table_name: str, state: dict):
@@ -502,13 +478,12 @@ def sync_table(connection, table_name: str, state: dict):
         # Build the query based on whether we have an incremental column
         if incremental_column and last_value:
             query = f"SELECT * FROM {table_name} WHERE {incremental_column} > '{last_value}' ORDER BY {incremental_column}"
-            safe_log(
-                "info",
-                f"Syncing table '{table_name}' incrementally using column '{incremental_column}'",
+            log.info(
+                f"Syncing table '{table_name}' incrementally using column '{incremental_column}'"
             )
         else:
             query = f"SELECT * FROM {table_name}"
-            safe_log("info", f"Syncing table '{table_name}' (full sync)")
+            log.info(f"Syncing table '{table_name}' (full sync)")
 
         # Fetch and upsert data
         fetch_and_upsert(
@@ -521,7 +496,7 @@ def sync_table(connection, table_name: str, state: dict):
         )
 
     except Exception as e:
-        safe_log("warning", f"Error syncing table '{table_name}': {str(e)}")
+        log.warning(f"Error syncing table '{table_name}': {str(e)}")
         raise
     finally:
         cursor.close()
@@ -540,19 +515,19 @@ def update(configuration: dict, state: dict):
     connection = None
 
     try:
-        safe_log("info", "Sybase ASE Connector - Multi-Table Sync - Starting")
+        log.info("Sybase ASE Connector - Multi-Table Sync - Starting")
 
         # Validate the configuration
-        safe_log("info", "Validating configuration...")
+        log.info("Validating configuration...")
         validate_configuration(configuration=configuration)
 
         # Create a connection to the Sybase ASE database using the provided configuration
-        safe_log("info", "Creating database connection...")
+        log.info("Creating database connection...")
         connection = create_sybase_connection(configuration=configuration)
         database = configuration.get("database")
 
         # Get all tables from the database
-        safe_log("info", "Discovering tables...")
+        log.info("Discovering tables...")
         all_tables = get_sybase_tables(connection, database)
 
         # Check if user has specified tables to sync
@@ -562,34 +537,28 @@ def update(configuration: dict, state: dict):
         if isinstance(selected_tables, str):
             selected_tables = [t.strip() for t in selected_tables.split(",")]
 
-        safe_log(
-            "info",
-            f"Starting sync for {len(selected_tables)} tables: {', '.join(selected_tables)}",
-        )
+        log.info(f"Starting sync for {len(selected_tables)} tables: {', '.join(selected_tables)}")
 
         # Sync each selected table
         for table_name in selected_tables:
             if table_name not in all_tables:
-                safe_log("warning", f"Table '{table_name}' not found in database. Skipping.")
+                log.warning(f"Table '{table_name}' not found in database. Skipping.")
                 continue
 
-            safe_log("info", f"Syncing table: {table_name}")
+            log.info(f"Syncing table: {table_name}")
             sync_table(connection, table_name, state)
-            safe_log("info", f"Completed syncing table: {table_name}")
+            log.info(f"Completed syncing table: {table_name}")
 
-        safe_log("info", "Sync completed successfully")
+        log.info("Sync completed successfully")
 
     except ValueError as e:
-        safe_log("error", f"Configuration error: {str(e)}")
+        log.severe(f"Configuration error: {str(e)}")
         raise
     except pyodbc.Error as e:
-        safe_log("error", f"Database error: {str(e)}")
+        log.severe(f"Database error: {str(e)}")
         raise
     except Exception as e:
-        safe_log("error", f"Unexpected error during sync: {str(e)}")
-        import traceback
-
-        safe_log("error", f"Traceback: {traceback.format_exc()}")
+        log.severe(f"Unexpected error during sync: {str(e)}")
         raise
     finally:
         # Close the connection to the Sybase ASE database
@@ -597,7 +566,7 @@ def update(configuration: dict, state: dict):
             try:
                 close_sybase_connection(connection=connection, cursor=None)
             except Exception as e:
-                safe_log("warning", f"Error closing connection: {str(e)}")
+                log.warning(f"Error closing connection: {str(e)}")
 
 
 # Create the connector object using the schema and update functions
@@ -610,11 +579,11 @@ connector = Connector(update=update, schema=schema)
 if __name__ == "__main__":
     try:
         # Open the configuration.json file and load its contents
-        with open("/configuration.json", "r") as f:
+        with open("configuration.json", "r") as f:
             configuration = json.load(f)
     except FileNotFoundError:
-        safe_log("info", "Using empty configuration!")
         configuration = {}
 
-    # Test the connector locally
+    # Test the connector locally using the Fivetran debug method,
+    # which initializes the SDK runtime and logging properly.
     connector.debug(configuration=configuration)
