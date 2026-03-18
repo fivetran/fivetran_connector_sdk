@@ -457,11 +457,11 @@ def fetch_and_upsert(
             row_count += 1
 
             # Update the last value if incremental column is specified
-            if incremental_column and incremental_column in row_data and row_data[incremental_column]:
-                current_value = row_data[incremental_column]
+            incremental_value = row_data.get(incremental_column) if incremental_column else None
+            if incremental_value:
                 # Value is already converted to string format above
-                if last_value is None or current_value > last_value:
-                    last_value = current_value
+                if last_value is None or incremental_value > last_value:
+                    last_value = incremental_value
 
         # Update the state with the last value after processing each batch
         if last_value is not None:
