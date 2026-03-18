@@ -18,6 +18,7 @@ import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
 import logging
 
+
 # Safe logging wrapper for standalone testing
 def safe_log(level, message):
     """Safely log messages - works in both Fivetran and standalone mode"""
@@ -67,9 +68,9 @@ def get_sybase_tables(connection, database: str):
     try:
         # Query to get all user tables from sysobjects
         query = """
-        SELECT name 
-        FROM sysobjects 
-        WHERE type = 'U' 
+        SELECT name
+        FROM sysobjects
+        WHERE type = 'U'
         ORDER BY name
         """
         cursor.execute(query)
@@ -97,14 +98,14 @@ def get_table_primary_keys(connection, table_name: str):
         # Use sp_helpindex to get index information
         # This returns indexes with their columns and properties
         cursor.execute(f"EXEC sp_helpindex '{table_name}'")
-        
+
         # Check if there are any results
         if not cursor.description:
             # No indexes found for this table
             return []
-        
+
         rows = cursor.fetchall()
-        
+
         # Look for clustered unique index (primary key)
         # Column 2 contains index description (e.g., "clustered, unique")
         # Column 1 contains column names (e.g., "stor_id, ord_num")
@@ -113,17 +114,17 @@ def get_table_primary_keys(connection, table_name: str):
             if "clustered" in index_desc and "unique" in index_desc:
                 # This is the primary key - parse column names
                 column_str = row[1].strip() if len(row) > 1 else ""
-                pk_columns = [col.strip() for col in column_str.split(',')]
+                pk_columns = [col.strip() for col in column_str.split(",")]
                 return pk_columns
-        
+
         # If no clustered unique index found, look for any unique index
         for row in rows:
             index_desc = row[2].lower() if len(row) > 2 else ""
             if "unique" in index_desc:
                 column_str = row[1].strip() if len(row) > 1 else ""
-                pk_columns = [col.strip() for col in column_str.split(',')]
+                pk_columns = [col.strip() for col in column_str.split(",")]
                 return pk_columns
-        
+
         return []
     except pyodbc.Error as e:
         # Handle specific case where table has no indexes
@@ -163,10 +164,9 @@ def get_table_columns(connection, table_name: str):
         for row in cursor.fetchall():
             col_name = row[0]
             col_type = row[1]
-            col_length = row[2]
             col_precision = row[3]
             col_scale = row[4]
-            
+
             # Map Sybase types to Fivetran types
             fivetran_type = map_sybase_to_fivetran_type(col_type, col_precision, col_scale)
             columns[col_name] = fivetran_type
@@ -189,7 +189,7 @@ def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: 
         str or dict: The corresponding Fivetran data type (string or dict for DECIMAL).
     """
     sybase_type_lower = sybase_type.lower()
-    
+
     # Handle DECIMAL/NUMERIC types with precision and scale
     if sybase_type_lower in ("decimal", "numeric", "money", "smallmoney"):
         # Default precision and scale if not provided
@@ -197,13 +197,9 @@ def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: 
             precision = 18
         if scale is None:
             scale = 0
-        
-        return {
-            "type": "DECIMAL",
-            "precision": precision,
-            "scale": scale
-        }
-    
+
+        return {"type": "DECIMAL", "precision": precision, "scale": scale}
+
     # Map other types to simple strings
     type_mapping = {
         # String types
@@ -236,7 +232,7 @@ def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: 
         # Boolean
         "bit": "BOOLEAN",
     }
-    
+
     # Return mapped type or default to STRING
     return type_mapping.get(sybase_type_lower, "STRING")
 
@@ -252,52 +248,52 @@ def schema(configuration: dict):
     """
     # Validate configuration first
     validate_configuration(configuration)
-    
+
     # Create connection to discover schema
     connection = create_sybase_connection(configuration)
     database = configuration.get("database")
-    
+
     try:
         # Get all tables from the database
         all_tables = get_sybase_tables(connection, database)
-        
+
         # Check if user has specified tables to sync
         # If 'tables' is provided in configuration, only sync those tables
         # Otherwise, sync all tables
         selected_tables = configuration.get("tables", all_tables)
-        
+
         # If selected_tables is a string (comma-separated), convert to list
         if isinstance(selected_tables, str):
             selected_tables = [t.strip() for t in selected_tables.split(",")]
-        
+
         # Build schema for selected tables
         schema_list = []
         for table_name in selected_tables:
             if table_name not in all_tables:
                 safe_log("warning", f"Table '{table_name}' not found in database. Skipping.")
                 continue
-            
+
             # Get primary keys for the table
             primary_keys = get_table_primary_keys(connection, table_name)
-            
+
             # Get columns for the table
             columns = get_table_columns(connection, table_name)
-            
+
             table_schema = {
                 "table": table_name,
                 "columns": columns,
             }
-            
+
             # Only add primary_key if we found any
             if primary_keys:
                 table_schema["primary_key"] = primary_keys
-            
+
             schema_list.append(table_schema)
             safe_log("info", f"Added table '{table_name}' to schema with {len(columns)} columns")
-        
+
         safe_log("info", f"Schema discovery complete. Syncing {len(schema_list)} tables.")
         return schema_list
-        
+
     except Exception as e:
         safe_log("warning", f"Error during schema discovery: {str(e)}")
         raise
@@ -382,12 +378,12 @@ def get_table_incremental_column(connection, table_name: str):
         result = cursor.fetchone()
         if result:
             return result[0], result[1]
-        
+
         # If no datetime column, try to use first primary key
         primary_keys = get_table_primary_keys(connection, table_name)
         if primary_keys:
             return primary_keys[0], None
-        
+
         return None, None
     except Exception as e:
         safe_log("warning", f"Error determining incremental column for '{table_name}': {str(e)}")
@@ -396,7 +392,14 @@ def get_table_incremental_column(connection, table_name: str):
         cursor.close()
 
 
-def fetch_and_upsert(cursor, query, table_name: str, state: dict, incremental_column: str = None, batch_size: int = 1000):
+def fetch_and_upsert(
+    cursor,
+    query,
+    table_name: str,
+    state: dict,
+    incremental_column: str = None,
+    batch_size: int = 1000,
+):
     """
     Fetch data from the Sybase ASE database and upsert it into the destination table.
     This function executes the provided SQL query, fetches data in batches, and performs upsert operations.
@@ -411,13 +414,13 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, incremental_co
     """
     # Get the state key for this table
     state_key = f"{table_name}_last_value"
-    
+
     # Execute the SQL query to fetch data from the Sybase ASE database
     cursor.execute(query)
     # Fetch the column names from the cursor description
     # This is necessary to map the data to the correct columns in the upsert operation
     column_names = [col[0] for col in cursor.description]
-    
+
     row_count = 0
     last_value = state.get(state_key)
 
@@ -432,20 +435,20 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, incremental_co
         for row in results:
             # Convert the row tuple to a dictionary using the column names
             row_data = dict(zip(column_names, row))
-            
+
             # Convert special data types for Fivetran compatibility
             for key, value in row_data.items():
                 if value is not None:
                     # Convert Decimal to string for Fivetran DECIMAL type
-                    if hasattr(value, '__class__') and value.__class__.__name__ == 'Decimal':
+                    if hasattr(value, "__class__") and value.__class__.__name__ == "Decimal":
                         row_data[key] = str(value)
                     # Convert datetime to ISO format string
-                    elif hasattr(value, 'isoformat'):
+                    elif hasattr(value, "isoformat"):
                         row_data[key] = value.isoformat()
                     # Convert bytes to ensure proper binary handling
                     elif isinstance(value, bytes):
                         row_data[key] = value
-            
+
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
@@ -474,7 +477,7 @@ def fetch_and_upsert(cursor, query, table_name: str, state: dict, incremental_co
     if last_value is not None:
         state[state_key] = last_value
     op.checkpoint(state)
-    
+
     safe_log("info", f"Synced {row_count} rows from table '{table_name}'")
 
 
@@ -487,23 +490,26 @@ def sync_table(connection, table_name: str, state: dict):
         state (dict): A dictionary containing state information from previous runs.
     """
     cursor = connection.cursor()
-    
+
     try:
         # Determine the incremental column for this table
         incremental_column, col_type = get_table_incremental_column(connection, table_name)
-        
+
         # Get the state key for this table
         state_key = f"{table_name}_last_value"
         last_value = state.get(state_key, "1970-01-01T00:00:00" if col_type else None)
-        
+
         # Build the query based on whether we have an incremental column
         if incremental_column and last_value:
             query = f"SELECT * FROM {table_name} WHERE {incremental_column} > '{last_value}' ORDER BY {incremental_column}"
-            safe_log("info", f"Syncing table '{table_name}' incrementally using column '{incremental_column}'")
+            safe_log(
+                "info",
+                f"Syncing table '{table_name}' incrementally using column '{incremental_column}'",
+            )
         else:
             query = f"SELECT * FROM {table_name}"
             safe_log("info", f"Syncing table '{table_name}' (full sync)")
-        
+
         # Fetch and upsert data
         fetch_and_upsert(
             cursor=cursor,
@@ -511,9 +517,9 @@ def sync_table(connection, table_name: str, state: dict):
             table_name=table_name,
             state=state,
             incremental_column=incremental_column,
-            batch_size=1000
+            batch_size=1000,
         )
-        
+
     except Exception as e:
         safe_log("warning", f"Error syncing table '{table_name}': {str(e)}")
         raise
@@ -532,7 +538,7 @@ def update(configuration: dict, state: dict):
         The state dictionary is empty for the first sync or for any full re-sync
     """
     connection = None
-    
+
     try:
         safe_log("info", "Sybase ASE Connector - Multi-Table Sync - Starting")
 
@@ -544,32 +550,35 @@ def update(configuration: dict, state: dict):
         safe_log("info", "Creating database connection...")
         connection = create_sybase_connection(configuration=configuration)
         database = configuration.get("database")
-        
+
         # Get all tables from the database
         safe_log("info", "Discovering tables...")
         all_tables = get_sybase_tables(connection, database)
-        
+
         # Check if user has specified tables to sync
         selected_tables = configuration.get("tables", all_tables)
-        
+
         # If selected_tables is a string (comma-separated), convert to list
         if isinstance(selected_tables, str):
             selected_tables = [t.strip() for t in selected_tables.split(",")]
-        
-        safe_log("info", f"Starting sync for {len(selected_tables)} tables: {', '.join(selected_tables)}")
-        
+
+        safe_log(
+            "info",
+            f"Starting sync for {len(selected_tables)} tables: {', '.join(selected_tables)}",
+        )
+
         # Sync each selected table
         for table_name in selected_tables:
             if table_name not in all_tables:
                 safe_log("warning", f"Table '{table_name}' not found in database. Skipping.")
                 continue
-            
+
             safe_log("info", f"Syncing table: {table_name}")
             sync_table(connection, table_name, state)
             safe_log("info", f"Completed syncing table: {table_name}")
-        
+
         safe_log("info", "Sync completed successfully")
-        
+
     except ValueError as e:
         safe_log("error", f"Configuration error: {str(e)}")
         raise
@@ -579,6 +588,7 @@ def update(configuration: dict, state: dict):
     except Exception as e:
         safe_log("error", f"Unexpected error during sync: {str(e)}")
         import traceback
+
         safe_log("error", f"Traceback: {traceback.format_exc()}")
         raise
     finally:
