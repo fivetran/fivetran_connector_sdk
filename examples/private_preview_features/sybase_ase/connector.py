@@ -341,16 +341,16 @@ def get_table_incremental_column(connection, table_name: str):
     cursor = connection.cursor()
     try:
         # First, try to find datetime columns
-        query = f"""
+        query = """
         SELECT c.name, t.name as type_name
         FROM syscolumns c
         JOIN systypes t ON c.usertype = t.usertype
         JOIN sysobjects o ON c.id = o.id
-        WHERE o.name = '{table_name}'
+        WHERE o.name = ?
         AND t.name IN ('datetime', 'smalldatetime', 'bigdatetime', 'date')
         ORDER BY c.colid
         """
-        cursor.execute(query)
+        cursor.execute(query, (table_name,))
         result = cursor.fetchone()
         if result:
             return result[0], result[1]
