@@ -16,6 +16,7 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
+from decimal import Decimal
 
 
 def validate_configuration(configuration: dict):
@@ -60,6 +61,29 @@ def get_sybase_tables(connection, database: str):
         return []
     finally:
         cursor.close()
+
+
+def get_selected_tables(connection, configuration: dict):
+    """
+    Resolve the list of tables to sync based on configuration.
+    If 'tables' is specified in configuration, validate and return those.
+    Otherwise return all user tables discovered in the database.
+    Args:
+        connection: A connection object to the Sybase ASE database.
+        configuration (dict): The connector configuration dictionary.
+    Returns:
+        tuple: (all_tables, selected_tables) both as lists of table name strings.
+    """
+    database = configuration.get("database")
+    all_tables = get_sybase_tables(connection, database)
+
+    selected_tables = configuration.get("tables", all_tables)
+
+    # If selected_tables is a comma-separated string, convert to list
+    if isinstance(selected_tables, str):
+        selected_tables = [t.strip() for t in selected_tables.split(",")]
+
+    return all_tables, selected_tables
 
 
 def get_table_primary_keys(connection, table_name: str):
@@ -128,16 +152,17 @@ def get_table_columns(connection, table_name: str):
     """
     cursor = connection.cursor()
     try:
-        # Query to get column information from syscolumns
-        query = f"""
+        # Query to get column information from syscolumns using a parameterised query
+        # to prevent SQL injection
+        query = """
         SELECT c.name, t.name as type_name, c.length, c.prec, c.scale
         FROM syscolumns c
         JOIN systypes t ON c.usertype = t.usertype
         JOIN sysobjects o ON c.id = o.id
-        WHERE o.name = '{table_name}'
+        WHERE o.name = ?
         ORDER BY c.colid
         """
-        cursor.execute(query)
+        cursor.execute(query, (table_name,))
         columns = {}
         for row in cursor.fetchall():
             col_name = row[0]
@@ -229,20 +254,9 @@ def schema(configuration: dict):
 
     # Create connection to discover schema
     connection = create_sybase_connection(configuration)
-    database = configuration.get("database")
 
     try:
-        # Get all tables from the database
-        all_tables = get_sybase_tables(connection, database)
-
-        # Check if user has specified tables to sync
-        # If 'tables' is provided in configuration, only sync those tables
-        # Otherwise, sync all tables
-        selected_tables = configuration.get("tables", all_tables)
-
-        # If selected_tables is a string (comma-separated), convert to list
-        if isinstance(selected_tables, str):
-            selected_tables = [t.strip() for t in selected_tables.split(",")]
+        all_tables, selected_tables = get_selected_tables(connection, configuration)
 
         # Build schema for selected tables
         schema_list = []
@@ -340,7 +354,7 @@ def get_table_incremental_column(connection, table_name: str):
     """
     cursor = connection.cursor()
     try:
-        # First, try to find datetime columns
+        # Find datetime columns using a parameterised query to prevent SQL injection
         query = """
         SELECT c.name, t.name as type_name
         FROM syscolumns c
@@ -416,7 +430,7 @@ def fetch_and_upsert(
             for key, value in row_data.items():
                 if value is not None:
                     # Convert Decimal to string for Fivetran DECIMAL type
-                    if hasattr(value, "__class__") and value.__class__.__name__ == "Decimal":
+                    if isinstance(value, Decimal):
                         row_data[key] = str(value)
                     # Convert datetime to ISO format string
                     elif hasattr(value, "isoformat"):
@@ -524,18 +538,10 @@ def update(configuration: dict, state: dict):
         # Create a connection to the Sybase ASE database using the provided configuration
         log.info("Creating database connection...")
         connection = create_sybase_connection(configuration=configuration)
-        database = configuration.get("database")
 
-        # Get all tables from the database
+        # Discover and filter tables using shared helper
         log.info("Discovering tables...")
-        all_tables = get_sybase_tables(connection, database)
-
-        # Check if user has specified tables to sync
-        selected_tables = configuration.get("tables", all_tables)
-
-        # If selected_tables is a string (comma-separated), convert to list
-        if isinstance(selected_tables, str):
-            selected_tables = [t.strip() for t in selected_tables.split(",")]
+        all_tables, selected_tables = get_selected_tables(connection, configuration)
 
         log.info(f"Starting sync for {len(selected_tables)} tables: {', '.join(selected_tables)}")
 
