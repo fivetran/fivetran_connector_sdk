@@ -415,6 +415,16 @@ def _sync_table_thread(table_schema: TableSchema, state: dict, pool: ConnectionP
         mode = _determine_mode(table_state, table_schema)
         log.info(f"{table_name}: mode={mode}")
 
+        # When a forced full resync is requested, clear any prior cursor so the
+        # full load restarts from the beginning rather than from the last committed
+        # value. Without this, keyset pagination would start at last_seen_replication_value
+        # and find no rows because the cursor is already at the table's maximum value.
+        if DEFAULT_FORCE_FULL_RESYNC:
+            table_state.pop("last_seen_replication_value", None)
+            table_state.pop("last_offset", None)
+            table_state.pop("rows_synced", None)
+            table_state.pop("sync_completed_at", None)
+
         if mode in ("full", "full_offset"):
             _sync_full(table_schema, state, table_state, pool, BATCH_SIZE, CHECKPOINT_INTERVAL)
         elif mode == "incremental":
@@ -553,7 +563,12 @@ def update(configuration: dict, state: dict):
 
         if failed_tables:
             log.warning(f"The following tables failed to sync: {failed_tables}")
-
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state)
         log.info("EHI Connector sync complete")
 

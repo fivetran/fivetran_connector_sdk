@@ -1,4 +1,4 @@
-# EHI Connector Example
+# High-Volume EHI Connector Example
 
 ## Connector overview
 
