@@ -36,7 +36,6 @@ from fivetran_connector_sdk import Operations as op
 # it does not read the source EMPLOYEE table during incremental syncs.
 import ibm_db
 import json
-from datetime import datetime, timezone
 from decimal import Decimal
 
 # ASN schema and CD table name as created by setup_cdc.sh
