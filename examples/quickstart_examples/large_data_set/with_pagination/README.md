@@ -20,7 +20,20 @@ Each page contains 100 Pokémon records, and the connector continues fetching un
 
 
 ## Getting started
-Refer to the [Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
+
+To initialize a new Connector SDK project using this connector as a starting point, run:
+
+```bash
+fivetran init <project-path> --template examples/quickstart_examples/large_data_set/with_pagination
+```
+
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`. By default, you get a functional example connector to build from. Use the `--template` option to initialize from a community connector for a more complete starting point aligned to your use case. You can also configure the context for the AI assistant of your choice.
+
+| Flag | Required | Description |
+| --- | --- | --- |
+| `"<project path>"` | Optional | Specifies the project path, absolute or relative. If not provided, the command runs in the current directory. |
+| `--template <repository path>` | Optional | Specifies the connector example repository path, relative to the `fivetran_connector_sdk` repository. If not provided, the [default template connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_connector) from the `/template_connector` directory is used. |
 
 
 ## Features
