@@ -5,27 +5,7 @@ See the Technical Reference documentation (https://fivetran.com/docs/connectors/
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 """
 
-"""
-How the log pipeline works:
-  Db2 transaction log
-      └─► asncap daemon (reads log via db2ReadLog C API)
-              └─► DB2INST1.CDEMPLOYEE (Change Data table — one row per INSERT/UPDATE/DELETE)
-                      └─► this connector (reads CD table, applies to destination)
-
-The connector never reads the source EMPLOYEE table after the initial full load.
-All incremental syncs are driven exclusively by what asncap wrote to the CD table
-after reading the transaction log — making this genuine log-based replication.
-
-Prerequisites (run setup_cdc.sh inside the Db2 Docker container):
-  1. Db2 Community Edition running locally via docker-compose.yml
-  2. ARCHIVE_LOGS=true set in docker-compose.yml (enables archival logging)
-  3. EMPLOYEE table with DATA CAPTURE CHANGES enabled
-  4. ASN control tables and CD table created by setup_cdc.sh
-  5. asncap daemon running (started by setup_cdc.sh)
-"""
-
-# Import required classes from fivetran_connector_sdk.
-# For supporting Connector operations like update() and schema()
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
 # For enabling logs in your connector code
@@ -56,7 +36,7 @@ CD_TABLE = "CDEMPLOYEE"
 
 # Number of CD rows to process before writing an intermediate checkpoint.
 # Checkpointing regularly prevents re-processing large batches on retry.
-CHECKPOINT_INTERVAL = 500
+__CHECKPOINT_INTERVAL = 500
 
 
 def schema(configuration: dict):
@@ -230,7 +210,7 @@ def perform_initial_load(connection, schema_name: str) -> str:
         op.upsert("employee", normalize_row(database_row))
         row_count += 1
 
-        if row_count % CHECKPOINT_INTERVAL == 0:
+        if row_count % __CHECKPOINT_INTERVAL == 0:
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
@@ -323,13 +303,16 @@ def process_cdc_changes(connection, last_commit_sequence: str) -> str:
             log.info(
                 f"  LOG EVENT [D] id={record.get('id')} — sourced from Db2 transaction log via asncap"
             )
+            # The 'delete' operation is used to delete data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be deleted.
             op.delete("employee", {"id": record["id"]})
         else:
             log.warning(f"Unrecognised ASN operation '{change_operation}'; skipping row.")
 
         row_count += 1
 
-        if row_count % CHECKPOINT_INTERVAL == 0:
+        if row_count % __CHECKPOINT_INTERVAL == 0:
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
