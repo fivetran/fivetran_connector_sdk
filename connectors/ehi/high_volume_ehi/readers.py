@@ -24,7 +24,6 @@ from client import ConnectionPool
 # TableSchema defines the structure of the table
 from models import TableSchema
 
-
 # Pre-built tuple used by isinstance() check in convert_value().
 # Defined at module level so it is not recreated on every call.
 _DATETIME_TYPES = (datetime, date, _time)
