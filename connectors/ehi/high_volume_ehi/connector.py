@@ -496,13 +496,6 @@ def update(configuration: dict, state: dict):
     log.warning("Example: Connectors - EHI")
     schema_name = configuration.get("mssql_schema", "dbo")
     table_include, table_exclude = _parse_table_list()
-
-    log.info(
-        f"EHI Connector starting: schema={schema_name}, "
-        f"max_workers={MAX_WORKERS}, "
-        f"force_full_resync={DEFAULT_FORCE_FULL_RESYNC}"
-    )
-
     pool_size = MAX_WORKERS + 2
     pool = ConnectionPool(configuration=configuration, size=pool_size)
 
@@ -534,11 +527,6 @@ def update(configuration: dict, state: dict):
 
         size_map = _get_table_sizes_batch(pool, schema_name, discovered_tables)
         sorted_tables = sorted(discovered_tables, key=lambda tbl: size_map.get(tbl, 0))
-        log.info(
-            "Table order (small first): "
-            + ", ".join(f"{tbl}({size_map.get(tbl, 0):,})" for tbl in sorted_tables)
-        )
-
         state["_sync_start"] = datetime.now(timezone.utc).isoformat()
 
         failed_tables = []

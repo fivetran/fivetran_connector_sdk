@@ -6,13 +6,22 @@ OffsetReader  — fallback for tables with no replication key; O(n²) database c
 IncrementalReader — reads only rows changed since the last committed cursor value
 """
 
+# base64 is used for encoding binary data
 import base64
+
+# datetime types are converted to ISO8601 strings for JSON serialization
 from datetime import datetime, date, time as _time
 
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
+# Constants for batch size and other tuning parameters
 from constants import BATCH_SIZE
+
+# ConnectionPool manages a pool of MSSQLConnection instances
 from client import ConnectionPool
+
+# TableSchema defines the structure of the table
 from models import TableSchema
 
 
@@ -24,10 +33,8 @@ _DATETIME_TYPES = (datetime, date, _time)
 def convert_value(value, python_type):
     """
     Convert a raw pyodbc value to a JSON-serialisable Python scalar.
-
     Ordering: str is checked first because it is the most common SQL Server
     type (varchar, nvarchar, datetime, etc.), reducing average branch evaluations.
-
     Args:
         value:       raw value from a pyodbc cursor row
         python_type: target type (int, float, str, bool, bytes) or None to skip
@@ -57,11 +64,9 @@ def convert_value(value, python_type):
 class KeysetReader:
     """
     Reads a table in order using keyset (seek) pagination.
-
     O(n) cost regardless of table size — avoids the OFFSET O(n²) problem.
     Each batch acquires its own connection from the pool so multiple tables
     can stream in parallel without connection starvation.
-
     When use_pk_tiebreak=True and the table has exactly one integer primary key,
     a composite keyset (repl_col, pk_col) prevents data loss when multiple rows
     share the same replication key value across page boundaries.

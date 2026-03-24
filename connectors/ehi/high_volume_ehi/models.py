@@ -2,12 +2,19 @@
 Data models and schema detection logic for the SQL Server connector.
 """
 
+# data classes for column and table metadata
 from dataclasses import dataclass, field
+
+# For parallel schema detection across multiple tables
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
+# Constants for schema detection and replication key inference
 from constants import KNOWN_REPLICATION_KEY_PATTERNS
+
+# ConnectionPool for acquiring database connections to query metadata
 from client import ConnectionPool
 
 
