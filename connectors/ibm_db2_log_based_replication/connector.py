@@ -65,13 +65,14 @@ def schema(configuration: dict):
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required parameters.
+    Validate the configuration dictionary to ensure it contains all required parameters
+    and that each value meets format and constraint requirements.
     This function is called at the start of the update method to ensure that the connector
     has all necessary configuration values before attempting a database connection.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Raises:
-        ValueError: if any required configuration parameter is missing.
+        ValueError: if any required configuration parameter is missing, empty, or invalid.
     """
     required_configuration_keys = [
         "hostname",
@@ -84,6 +85,23 @@ def validate_configuration(configuration: dict):
     for key in required_configuration_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
+
+    # Validate that string fields are non-empty.
+    for key in ("hostname", "database", "user_id", "password", "schema_name"):
+        if not str(configuration[key]).strip():
+            raise ValueError(f"Configuration value for '{key}' must not be empty.")
+
+    # Validate port is an integer in the valid TCP range (1–65535).
+    try:
+        port_number = int(configuration["port"])
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Configuration value for 'port' must be an integer, got: '{configuration['port']}'"
+        )
+    if not (1 <= port_number <= 65535):
+        raise ValueError(
+            f"Configuration value for 'port' must be between 1 and 65535, got: {port_number}"
+        )
 
 
 def create_connection_string(configuration: dict) -> str:
@@ -338,14 +356,10 @@ def update(configuration: dict, state: dict):
     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
-    First sync:  full initial load from EMPLOYEE, cursor set to current log marker.
-    All later syncs: read only from the ASN CD table (log events), never the source table.
-
     Args:
         configuration: A dictionary containing connection details.
         state: A dictionary containing state information from previous runs.
-               The state dictionary is empty for the first sync or for any full re-sync.
+        The state dictionary is empty for the first sync or for any full re-sync.
     """
     log.warning("Example: Source Examples: IBM Db2 Log-Based Replication")
 
