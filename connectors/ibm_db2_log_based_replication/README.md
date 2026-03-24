@@ -2,109 +2,44 @@
 
 ## Connector overview
 
-This connector demonstrates **log-based Change Data Capture (CDC)** for IBM Db2 using the Fivetran Connector SDK and IBM's SQL Replication ASN (Apply-Snapshot-Notify) framework.
+This connector demonstrates log-based Change Data Capture (CDC) for IBM Db2 using the Fivetran Connector SDK and IBM's SQL Replication ASN (Apply-Snapshot-Notify) framework.
 
-Unlike timestamp-based or trigger-based polling, this connector reads changes that the **ASN Capture daemon** (`asncap`) extracted directly from the Db2 **transaction log** — the same low-level log file that records every INSERT, UPDATE, and DELETE committed to the database (analogous to MySQL's binlog).
+The ASN Capture daemon (`asncap`) reads the Db2 transaction log and writes every INSERT, UPDATE, and DELETE to a Change Data (CD) table. This connector reads exclusively from that CD table after the initial full load — it never queries the source table again, making this genuine log-based replication.
 
 ```
 Db2 transaction log
-    └─► asncap daemon  (reads log via db2ReadLog C API)
-            └─► ASN.IBMSNAP_EMPCD  (Change Data table)
+    └─► asncap daemon  (reads Db2 transaction log)
+            └─► DB2INST1.CDEMPLOYEE  (Change Data table)
                     └─► this connector  (reads CD table → Fivetran destination)
 ```
 
-After the initial full load, the connector **never queries the source `EMPLOYEE` table again**. All incremental syncs are driven exclusively by what `asncap` wrote after reading the transaction log.
 
 ## Requirements
 
-* [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
-* [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
-* Operating system:
-  * Windows: 10 or later (64-bit only)
-  * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
-  * Linux: Ubuntu 20.04+, Debian 10+, or Amazon Linux 2+ (arm64 or x86_64)
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+
 
 ## Getting started
 
-### 1. Start the Db2 Docker container
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
 
-```bash
-docker-compose up -d
-```
 
-The first start takes **3–5 minutes** while Db2 initialises. Wait for the healthcheck to report `healthy`:
+## Features
 
-```bash
-docker-compose ps   # STATUS column should show "(healthy)"
-```
+- Log-based CDC using the ASN SQL Replication framework — no polling of the source table after the initial load
+- Full initial load on first sync followed by incremental log-event processing on subsequent syncs
+- Ordered change application using `IBMSNAP_COMMITSEQ` (the Db2 Log Sequence Number) as the cursor
+- Handles inserts, updates, and deletes sourced from the Db2 transaction log
+- Regular checkpointing every 500 rows for resumable syncs
 
-### 2. Run the CDC setup script
-
-Copy the setup script into the container and execute it as the `db2inst1` user:
-
-```bash
-docker cp setup_cdc.sh db2_cdc:/tmp/setup_cdc.sh
-docker exec -it db2_cdc su - db2inst1 -c "bash /tmp/setup_cdc.sh"
-```
-
-The script:
-1. Creates the `EMPLOYEE` source table and enables `DATA CAPTURE CHANGES`
-2. Creates the ASN control tables and the `IBMSNAP_EMPCD` Change Data table
-3. Registers `EMPLOYEE` for capture
-4. Starts the `asncap` daemon, which begins reading the transaction log
-
-### 3. Configure the connector
-
-Edit `configuration.json` — for the local Docker setup the defaults are:
-
-```json
-{
-    "hostname": "localhost",
-    "port": "50000",
-    "database": "SAMPLE",
-    "user_id": "db2inst1",
-    "password": "password123",
-    "schema_name": "DB2INST1"
-}
-```
-
-### 4. Run the connector
-
-```bash
-fivetran debug
-```
-
-## How log-based replication works in Db2
-
-### Archival logging (`ARCHIVE_LOGS=true`)
-
-By default Db2 uses **circular logging** — log files are overwritten once they are no longer needed for crash recovery.
-Setting `ARCHIVE_LOGS=true` in `docker-compose.yml` switches Db2 to **archival logging**, which preserves log files on disk. This is a prerequisite for any log-reading tool and is equivalent to enabling `binlog_format=ROW` in MySQL.
-
-### `DATA CAPTURE CHANGES`
-
-```sql
-ALTER TABLE DB2INST1.EMPLOYEE DATA CAPTURE CHANGES;
-```
-
-This tells Db2 to write **full before/after row images** into the transaction log for every mutation to `EMPLOYEE`. Without this flag the log only records which columns changed, not their values — the `asncap` daemon cannot reconstruct the row.
-
-### ASN Capture daemon (`asncap`)
-
-`asncap` is the IBM SQL Replication capture agent shipped with Db2. Internally it calls the **`db2ReadLog` C API** to stream log records in LSN (Log Sequence Number) order. For every log record that belongs to a registered table it writes one row to the corresponding **Change Data (CD) table**, tagging it with:
-
-| Column | Meaning |
-|--------|---------|
-| `IBMSNAP_OPERATION` | `'I'` insert, `'U'` update, `'D'` delete |
-| `IBMSNAP_COMMITSEQ` | LSN of the committing transaction (ordering key) |
-| `IBMSNAP_LOGMARKER` | Wall-clock timestamp copied from the log record |
-| source columns | Row data at the time of the change |
-
-### What the connector reads
-
-The connector queries `ASN.IBMSNAP_EMPCD` (the CD table for `EMPLOYEE`) filtering by `IBMSNAP_LOGMARKER > last_log_marker`. It checkpoints the new high-water `IBMSNAP_LOGMARKER` after each sync so only new log events are processed next time.
 
 ## Configuration file
+
+The connector uses `configuration.json` to define the connection parameters for the IBM Db2 database.
 
 ```json
 {
@@ -117,74 +52,82 @@ The connector queries `ASN.IBMSNAP_EMPCD` (the CD table for `EMPLOYEE`) filterin
 }
 ```
 
-| Parameter | Description |
-|-----------|-------------|
-| `hostname` | Hostname or IP of the Db2 server (`localhost` for Docker) |
-| `port` | TCP port — default `50000` |
-| `database` | Db2 database name (`SAMPLE` in the Docker setup) |
-| `user_id` | Username (`db2inst1` in the Docker setup) |
-| `password` | Password |
-| `schema_name` | Schema owning the `EMPLOYEE` table (`DB2INST1`) |
+The configuration parameters are:
+- `hostname` – hostname or IP of the Db2 server
+- `port` – TCP port number; default Db2 port is `50000`
+- `database` – Db2 database name
+- `user_id` – username used to authenticate with Db2
+- `password` – password used to authenticate with Db2
+- `schema_name` – schema that owns the source `EMPLOYEE` table
 
-Do not check `configuration.json` into version control.
+Note: When submitting connector code as a [Community Connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors) or enhancing an [example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples) in the open-source [Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main), ensure the `configuration.json` file has placeholder values.
+When adding the connector to your production repository, ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
 
 ## Requirements file
+
+The `requirements.txt` file specifies the Python library required by the connector:
 
 ```
 ibm_db==3.2.6
 ```
 
-Note: `fivetran_connector_sdk` and `requests` are pre-installed in the Fivetran environment; do not declare them in `requirements.txt`.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
 
 ## Authentication
 
-The connector authenticates with IBM Db2 using `user_id` and `password` supplied via `configuration.json`. SSL is not added to the local Docker connection string; add `SECURITY=SSL` to `create_connection_string()` for cloud-hosted Db2 instances that require it.
+The connector authenticates with IBM Db2 using `user_id` and `password` supplied via `configuration.json`. These credentials are passed to the `ibm_db.connect()` call inside `connect_to_database()`. Add `SECURITY=SSL` to `create_connection_string()` for Db2 instances that require encrypted connections.
+
 
 ## Data handling
 
-| Sync phase | Behaviour |
-|------------|-----------|
-| **First sync** | Full scan of `EMPLOYEE`; all rows are upserted. The `IBMSNAP_LOGMARKER` high-water mark is captured *before* the scan so concurrent writes are not missed. |
-| **Subsequent syncs** | Reads `ASN.IBMSNAP_EMPCD WHERE IBMSNAP_LOGMARKER > last_log_marker`. `'I'`/`'U'` rows → `op.upsert()`; `'D'` rows → `op.delete()`. |
-| **Checkpointing** | Every 500 CD rows and at the end of each sync. |
+The ASN Capture daemon (`asncap`) reads the Db2 transaction log and writes one row to the Change Data table (`DB2INST1.CDEMPLOYEE`) for every committed INSERT, UPDATE, or DELETE on the source table. Each CD row contains:
+
+- `IBMSNAP_OPERATION` – `'I'` insert, `'U'` update, `'D'` delete
+- `IBMSNAP_COMMITSEQ` – binary Log Sequence Number (LSN) of the commit, used as the ordering key and cursor
+- `IBMSNAP_INTENTSEQ` – position within the transaction, used as secondary ordering key
+- source columns – row data at the time of the change
+
+The connector processes this data in two phases:
+
+Initial sync:
+- `perform_initial_load()` performs a full scan of the `EMPLOYEE` table and upserts every row to the destination.
+- The `IBMSNAP_COMMITSEQ` high-water mark is captured before the scan starts, so any changes written to the CD table during the scan are not missed on the next sync.
+
+Incremental sync:
+- `process_cdc_changes()` reads only the rows in the Change Data table that are newer than the last processed commit sequence, ensuring changes are applied in the exact order they were committed to the database.
+- `'I'` and `'U'` rows are applied as `op.upsert()`; `'D'` rows are applied as `op.delete()`.
+- The new high-water `IBMSNAP_COMMITSEQ` hex value is saved to state after processing.
+
+Checkpointing:
+- State is checkpointed every 500 CD rows and once more at the end of each sync, so a mid-sync failure resumes from the last checkpoint rather than from the beginning.
+
 
 ## Error handling
 
-- **Missing configuration keys**: `validate_configuration()` raises `ValueError` before any connection is attempted.
-- **Connection failures**: caught, logged with `log.severe()`, and re-raised.
-- **Unknown ASN operations**: logged as a warning and skipped; the sync continues.
-- **Resumable syncs**: the `IBMSNAP_LOGMARKER` cursor is checkpointed regularly so a mid-sync failure resumes from the last checkpoint.
+Refer to `validate_configuration()` and `connect_to_database()` for implementation details.
+
+- Missing or empty configuration keys – `validate_configuration()` raises a `ValueError` before any connection is attempted, identifying the missing key.
+- Invalid port – `validate_configuration()` checks that `port` is an integer in the range 1–65535 and raises a `ValueError` with the actual value if not.
+- Connection failures – caught in `connect_to_database()`, logged with `log.severe()`, and re-raised as a `RuntimeError`.
+- Unknown ASN operations – logged as a warning by `process_cdc_changes()` and skipped; the sync continues.
+- Resumable syncs – the `IBMSNAP_COMMITSEQ` cursor is checkpointed regularly so a mid-sync failure resumes from the last checkpoint.
+
 
 ## Tables created
 
-### `employee`
+The connector creates and syncs the `employee` table in the destination:
 
-```json
-{
-    "table": "employee",
-    "primary_key": ["id"],
-    "columns": {
-        "id": "INT",
-        "first_name": "STRING",
-        "last_name": "STRING",
-        "email": "STRING",
-        "department": "STRING",
-        "salary": "FLOAT"
-    }
-}
-```
+| Column | Type | Primary key |
+|--------|------|-------------|
+| `id` | INT | Yes |
+| `first_name` | STRING | No |
+| `last_name` | STRING | No |
+| `email` | STRING | No |
+| `department` | STRING | No |
+| `salary` | FLOAT | No |
 
-## Source objects created by setup_cdc.sh
-
-| Object | Type | Purpose |
-|--------|------|---------|
-| `DB2INST1.EMPLOYEE` | Table | Source table (`DATA CAPTURE CHANGES` enabled) |
-| `ASN.IBMSNAP_EMPCD` | Table | Change Data table written by `asncap` from the transaction log |
-| `ASN.IBMSNAP_REGISTER` | Table | ASN control — maps source tables to their CD tables |
-| `ASN.IBMSNAP_CAPPARMS` | Table | ASN Capture daemon configuration parameters |
-| `ASN.IBMSNAP_PRUNCNTL` | Table | ASN pruning coordination |
-| `ASN.IBMSNAP_CAPMON` | Table | ASN Capture monitoring/heartbeat |
-| `asncap` (process) | Daemon | Reads Db2 transaction log → writes to `IBMSNAP_EMPCD` |
 
 ## Additional considerations
 
