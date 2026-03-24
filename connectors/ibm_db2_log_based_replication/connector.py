@@ -1,48 +1,61 @@
-# This is an example for how to work with the fivetran_connector_sdk module.
-# It demonstrates log-based Change Data Capture (CDC) for IBM Db2 using the
-# IBM SQL Replication ASN (Apply-Snapshot-Notify) framework.
-#
-# How the log pipeline works:
-#   Db2 transaction log
-#       └─► asncap daemon (reads log via db2ReadLog C API)
-#               └─► ASN.IBMSNAP_EMPCD  (Change Data table — one row per INSERT/UPDATE/DELETE)
-#                       └─► this connector (reads CD table, applies to destination)
-#
-# The connector never reads the source EMPLOYEE table after the initial full load.
-# All incremental syncs are driven exclusively by what asncap wrote to the CD table
-# after reading the transaction log — making this genuine log-based replication.
-#
-# Prerequisites (run setup_cdc.sh inside the Db2 Docker container):
-#   1. Db2 Community Edition running locally via docker-compose.yml
-#   2. ARCHIVE_LOGS=true set in docker-compose.yml (enables archival logging)
-#   3. EMPLOYEE table with DATA CAPTURE CHANGES enabled
-#   4. ASN control tables and CD table created by setup_cdc.sh
-#   5. asncap daemon running (started by setup_cdc.sh)
-#
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""This connector demonstrates log-based Change Data Capture (CDC) for IBM Db2 using the ASN SQL Replication framework.
+The asncap daemon reads the Db2 transaction log and writes every INSERT, UPDATE, and DELETE to a Change Data table;
+the connector reads exclusively from that table after the initial full load, making this genuine log-based replication.
+See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
+and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+"""
+
+"""
+How the log pipeline works:
+  Db2 transaction log
+      └─► asncap daemon (reads log via db2ReadLog C API)
+              └─► DB2INST1.CDEMPLOYEE (Change Data table — one row per INSERT/UPDATE/DELETE)
+                      └─► this connector (reads CD table, applies to destination)
+
+The connector never reads the source EMPLOYEE table after the initial full load.
+All incremental syncs are driven exclusively by what asncap wrote to the CD table
+after reading the transaction log — making this genuine log-based replication.
+
+Prerequisites (run setup_cdc.sh inside the Db2 Docker container):
+  1. Db2 Community Edition running locally via docker-compose.yml
+  2. ARCHIVE_LOGS=true set in docker-compose.yml (enables archival logging)
+  3. EMPLOYEE table with DATA CAPTURE CHANGES enabled
+  4. ASN control tables and CD table created by setup_cdc.sh
+  5. asncap daemon running (started by setup_cdc.sh)
+"""
 
 # Import required classes from fivetran_connector_sdk.
-# For supporting Connector operations like Update() and Schema()
+# For supporting Connector operations like update() and schema()
 from fivetran_connector_sdk import Connector
 
-# For enabling Logs in your connector code
+# For enabling logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-# ibm_db is used only to query the ASN Change Data table —
-# it does not read the source EMPLOYEE table during incremental syncs.
+# ibm_db is the IBM Db2 driver used to connect and query the database.
+# It is used only to query the ASN Change Data table during incremental syncs
+# and the source EMPLOYEE table during the initial full load.
 import ibm_db
+
+# For reading configuration from a JSON file
 import json
+
+# For coercing DECIMAL column values returned as Python Decimal objects
 from decimal import Decimal
 
-# ASN schema and CD table name as created by setup_cdc.sh
-ASN_SCHEMA = "ASN"
-CD_TABLE = "IBMSNAP_EMPCD"
+# Schema that owns the Change Data (CD) table created by ASNCLP for the EMPLOYEE table.
+# ASNCLP places the CD table in the source owner's schema by default.
+CD_SCHEMA = "DB2INST1"
 
-# How many CD rows to process before writing an intermediate checkpoint
+# Change Data table written to by the asncap daemon.
+# asncap reads the Db2 transaction log and inserts one row here per INSERT/UPDATE/DELETE.
+# ASNCLP names this table CD<source_table>, so EMPLOYEE → CDEMPLOYEE.
+CD_TABLE = "CDEMPLOYEE"
+
+# Number of CD rows to process before writing an intermediate checkpoint.
+# Checkpointing regularly prevents re-processing large batches on retry.
 CHECKPOINT_INTERVAL = 500
 
 
@@ -50,15 +63,15 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
-            "table": "employee",
-            "primary_key": ["id"],
-            "columns": {
+            "table": "employee",  # Name of the table in the destination, required.
+            "primary_key": ["id"],  # Primary key column(s) for the table.
+            "columns": {  # Definition of columns and their types.
                 "id": "INT",
                 "first_name": "STRING",
                 "last_name": "STRING",
@@ -72,12 +85,23 @@ def schema(configuration: dict):
 
 def validate_configuration(configuration: dict):
     """
-    Validate the configuration dictionary to ensure it contains all required fields.
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector
+    has all necessary configuration values before attempting a database connection.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
     """
-    required_keys = ["hostname", "port", "database", "user_id", "password", "schema_name"]
-    for key in required_keys:
+    required_configuration_keys = [
+        "hostname",
+        "port",
+        "database",
+        "user_id",
+        "password",
+        "schema_name",
+    ]
+    for key in required_configuration_keys:
         if key not in configuration:
             raise ValueError(f"Missing required configuration key: {key}")
 
@@ -100,177 +124,230 @@ def create_connection_string(configuration: dict) -> str:
     )
 
 
-def connect_to_db(configuration: dict):
+def connect_to_database(configuration: dict):
     """
-    Establish a connection to the IBM Db2 database.
+    Establish a connection to the IBM Db2 database using ibm_db.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     Returns:
-        conn: A connection object if the connection is successful.
+        connection: A connection object if the connection is successful.
+    Raises:
+        RuntimeError: if the connection attempt fails.
     """
-    conn_str = create_connection_string(configuration)
+    connection_string = create_connection_string(configuration)
     try:
-        conn = ibm_db.connect(conn_str, "", "")
+        connection = ibm_db.connect(connection_string, "", "")
         log.info("Connected to IBM Db2 successfully.")
-        return conn
+        return connection
     except Exception as e:
         log.severe(f"Connection failed: {e}")
         raise RuntimeError("Connection failed") from e
 
 
-def standardize_row(row: dict) -> dict:
+def normalize_row(database_row: dict) -> dict:
     """
     Lower-case all column keys and coerce values to Python-native types.
+    ibm_db returns column names in uppercase and may return DECIMAL columns as
+    Python str — this function normalises both before passing records to the SDK.
     Args:
-        row: A dictionary representing a row fetched from the database.
+        database_row: A dictionary representing a row fetched from the database.
     Returns:
-        A new dictionary with lower-cased keys and coerced values.
+        A new dictionary with lower-cased keys and coerced primitive values.
     """
-    result = {}
-    for key, value in row.items():
-        key = key.lower()
-        if isinstance(value, int):
-            result[key] = int(value)
-        elif isinstance(value, (float, Decimal)):
-            result[key] = float(value)
-        elif isinstance(value, str):
-            result[key] = value.strip()
+    normalized_record = {}
+    for column_name, column_value in database_row.items():
+        column_name = column_name.lower()
+        if isinstance(column_value, int):
+            normalized_record[column_name] = int(column_value)
+        elif isinstance(column_value, (float, Decimal)):
+            normalized_record[column_name] = float(column_value)
+        elif isinstance(column_value, str):
+            normalized_record[column_name] = column_value.strip()
         else:
-            result[key] = str(value) if value is not None else None
-    return result
+            normalized_record[column_name] = (
+                str(column_value) if column_value is not None else None
+            )
+    return normalized_record
 
 
-def get_current_log_marker(conn) -> str:
+def get_current_commit_sequence(connection) -> str:
     """
-    Return the latest IBMSNAP_LOGMARKER in the CD table as an ISO timestamp string.
+    Return the latest IBMSNAP_COMMITSEQ in the CD table as a hex string.
     This is used to anchor the initial-load cursor: changes written to the CD table
-    during the full scan will have a LOGMARKER after this value, so they will be
+    during the full scan will have a COMMITSEQ after this value, so they will be
     replayed on the first incremental sync without any rows being missed.
     Args:
-        conn: A connection object to the IBM Db2 database.
+        connection: A connection object to the IBM Db2 database.
     Returns:
-        str: ISO timestamp of the maximum log marker, or epoch start if table is empty.
+        str: Hex string of the maximum COMMITSEQ, or '0' if the table is empty.
     """
-    sql = f"SELECT COALESCE(MAX(IBMSNAP_LOGMARKER), TIMESTAMP('1970-01-01-00.00.00.000000')) FROM {ASN_SCHEMA}.{CD_TABLE}"
-    stmt = ibm_db.exec_immediate(conn, sql)
-    if not stmt:
-        raise RuntimeError("Failed to query current log marker.")
-    row = ibm_db.fetch_tuple(stmt)
-    ts = row[0] if row else "1970-01-01 00:00:00"
-    # ibm_db returns Db2 timestamps as strings like "2024-01-15 10:30:45.123456"
-    return str(ts).replace("-", "-").strip()
+    query = f"SELECT HEX(MAX(IBMSNAP_COMMITSEQ)) FROM {CD_SCHEMA}.{CD_TABLE}"
+    statement = ibm_db.exec_immediate(connection, query)
+    if not statement:
+        raise RuntimeError("Failed to query current commit sequence.")
+    result_row = ibm_db.fetch_tuple(statement)
+    return result_row[0] if (result_row and result_row[0]) else "0"
 
 
-def perform_initial_load(conn, schema_name: str) -> str:
+def perform_initial_load(connection, schema_name: str) -> str:
     """
     Perform a full table scan of EMPLOYEE and upsert every row to the destination.
-    The log marker high-water mark is captured *before* the scan so that any
+    The COMMITSEQ high-water mark is captured *before* the scan so that any
     changes written to the CD table while the initial scan is running will be
     picked up by the first incremental sync.
     Args:
-        conn: A connection object to the IBM Db2 database.
+        connection: A connection object to the IBM Db2 database.
         schema_name: The Db2 schema that owns the EMPLOYEE table.
     Returns:
-        str: The IBMSNAP_LOGMARKER high-water mark captured before the scan.
+        str: The IBMSNAP_COMMITSEQ high-water mark (hex) captured before the scan.
     """
-    # Snapshot the log marker before we start scanning the source table.
-    # ASN Capture may be writing to the CD table concurrently; those rows
-    # will have LOGMARKER > high_water_mark and will be processed on the next run.
-    high_water_mark = get_current_log_marker(conn)
-    log.info(f"Initial load: log marker high-water mark before scan = {high_water_mark}")
+    # Snapshot the COMMITSEQ high-water mark before scanning the source table.
+    # Any CD rows written concurrently will have COMMITSEQ > this value and
+    # will be processed on the first incremental sync.
+    commit_sequence_high_water_mark = get_current_commit_sequence(connection)
+    log.info(
+        f"Initial load: reading directly from source EMPLOYEE table. "
+        f"COMMITSEQ high-water mark = {commit_sequence_high_water_mark}"
+    )
 
-    sql = (
+    query = (
         f"SELECT ID, FIRST_NAME, LAST_NAME, EMAIL, DEPARTMENT, CAST(SALARY AS DOUBLE) AS SALARY "
         f"FROM {schema_name}.EMPLOYEE ORDER BY ID"
     )
-    stmt = ibm_db.exec_immediate(conn, sql)
-    if not stmt:
+    statement = ibm_db.exec_immediate(connection, query)
+    if not statement:
         raise RuntimeError("Failed to execute initial load query.")
 
     row_count = 0
     while True:
-        row = ibm_db.fetch_assoc(stmt)
-        if not row:
+        database_row = ibm_db.fetch_assoc(statement)
+        if not database_row:
             break
-        op.upsert("employee", standardize_row(row))
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert("employee", normalize_row(database_row))
         row_count += 1
 
         if row_count % CHECKPOINT_INTERVAL == 0:
-            op.checkpoint({"last_log_marker": high_water_mark, "initial_load_complete": False})
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(
+                {
+                    "last_commit_sequence": commit_sequence_high_water_mark,
+                    "initial_load_complete": False,
+                }
+            )
 
-    log.info(f"Initial load complete: {row_count} rows upserted.")
-    return high_water_mark
+    log.info(f"Initial load complete: {row_count} rows upserted from EMPLOYEE table.")
+    return commit_sequence_high_water_mark
 
 
-def process_cdc_changes(conn, last_log_marker: str) -> str:
+def process_cdc_changes(connection, last_commit_sequence: str) -> str:
     """
-    Read all rows from the ASN Change Data table with IBMSNAP_LOGMARKER greater
-    than last_log_marker and apply them to the destination in chronological order.
+    Read all rows from the ASN Change Data table (DB2INST1.CDEMPLOYEE) with
+    IBMSNAP_COMMITSEQ greater than last_commit_sequence and apply them to the destination.
 
-    The IBMSNAP_LOGMARKER column contains the wall-clock timestamp that ASN Capture
-    copied from the Db2 transaction log entry — it reflects when the original DML
-    committed on the source database, not when we read it.
+    asncap writes one row to this CD table for every INSERT/UPDATE/DELETE it reads
+    from the Db2 transaction log — the connector never queries EMPLOYEE directly.
 
     IBMSNAP_OPERATION values written by asncap:
       'I' – row was inserted  → op.upsert()
-      'U' – row was updated   → op.upsert()  (new values)
+      'U' – row was updated   → op.upsert()  (new-image values)
       'D' – row was deleted   → op.delete()
 
     Args:
-        conn: A connection object to the IBM Db2 database.
-        last_log_marker: ISO timestamp string from the previous checkpoint.
+        connection: A connection object to the IBM Db2 database.
+        last_commit_sequence: Hex string of the last processed COMMITSEQ.
     Returns:
-        str: The new IBMSNAP_LOGMARKER high-water mark after processing all changes.
+        str: The new IBMSNAP_COMMITSEQ high-water mark (hex) after processing.
     """
-    sql = (
-        f"SELECT IBMSNAP_OPERATION, IBMSNAP_LOGMARKER, "
+    # If no prior cursor exists, start from the very beginning of the CD table.
+    if last_commit_sequence == "0":
+        where_clause = "1=1"
+    else:
+        where_clause = f"HEX(IBMSNAP_COMMITSEQ) > '{last_commit_sequence}'"
+
+    query = (
+        f"SELECT IBMSNAP_OPERATION, HEX(IBMSNAP_COMMITSEQ) AS COMMITSEQ_HEX, "
         f"ID, FIRST_NAME, LAST_NAME, EMAIL, DEPARTMENT, CAST(SALARY AS DOUBLE) AS SALARY "
-        f"FROM {ASN_SCHEMA}.{CD_TABLE} "
-        f"WHERE IBMSNAP_LOGMARKER > TIMESTAMP('{last_log_marker}') "
+        f"FROM {CD_SCHEMA}.{CD_TABLE} "
+        f"WHERE {where_clause} "
         f"ORDER BY IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ"
     )
-    stmt = ibm_db.exec_immediate(conn, sql)
-    if not stmt:
+    log.info(
+        f"Incremental sync: reading from {CD_SCHEMA}.{CD_TABLE} "
+        f"(populated by asncap from Db2 transaction log). "
+        f"Cursor COMMITSEQ = {last_commit_sequence}"
+    )
+    statement = ibm_db.exec_immediate(connection, query)
+    if not statement:
         raise RuntimeError("Failed to query CD table.")
 
-    current_marker = last_log_marker
+    current_commit_sequence = last_commit_sequence
     row_count = 0
 
     while True:
-        row = ibm_db.fetch_assoc(stmt)
-        if not row:
+        database_row = ibm_db.fetch_assoc(statement)
+        if not database_row:
             break
 
-        operation = row["IBMSNAP_OPERATION"].strip()
-        log_marker = str(row["IBMSNAP_LOGMARKER"]).strip()
+        change_operation = database_row["IBMSNAP_OPERATION"].strip()
+        current_commit_sequence = str(database_row["COMMITSEQ_HEX"]).strip()
 
-        # Build the source-table payload (strip ASN metadata columns)
-        payload = standardize_row(
-            {k: v for k, v in row.items() if k not in ("IBMSNAP_OPERATION", "IBMSNAP_LOGMARKER")}
+        # Build the source-table record, stripping ASN metadata columns.
+        record = normalize_row(
+            {
+                column_name: column_value
+                for column_name, column_value in database_row.items()
+                if column_name not in ("IBMSNAP_OPERATION", "COMMITSEQ_HEX")
+            }
         )
 
-        if operation in ("I", "U"):
-            # INSERT or UPDATE: upsert the latest version of the row into the destination.
-            # ASN Capture stores new-image values for both operations.
-            op.upsert("employee", payload)
-        elif operation == "D":
-            # DELETE: remove the row from the destination.
-            # The CD row still contains the key column value so we know which row to drop.
-            op.delete("employee", {"id": payload["id"]})
+        if change_operation in ("I", "U"):
+            # INSERT or UPDATE: asncap wrote new-image values from the transaction log.
+            log.info(
+                f"  LOG EVENT [{change_operation}] id={record.get('id')} — sourced from Db2 transaction log via asncap"
+            )
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert("employee", record)
+        elif change_operation == "D":
+            # DELETE: the CD row still carries the key so we know which row to remove.
+            log.info(
+                f"  LOG EVENT [D] id={record.get('id')} — sourced from Db2 transaction log via asncap"
+            )
+            op.delete("employee", {"id": record["id"]})
         else:
-            log.warning(f"Unrecognised ASN operation '{operation}'; skipping row.")
+            log.warning(f"Unrecognised ASN operation '{change_operation}'; skipping row.")
 
-        current_marker = log_marker
         row_count += 1
 
         if row_count % CHECKPOINT_INTERVAL == 0:
-            op.checkpoint({"last_log_marker": current_marker, "initial_load_complete": True})
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(
+                {
+                    "last_commit_sequence": current_commit_sequence,
+                    "initial_load_complete": True,
+                }
+            )
 
     log.info(
-        f"CDC sync complete: {row_count} log event(s) applied. "
-        f"New log marker: {current_marker}"
+        f"CDC sync complete: {row_count} log event(s) applied from {CD_SCHEMA}.{CD_TABLE}. "
+        f"New COMMITSEQ cursor = {current_commit_sequence}"
     )
-    return current_marker
+    return current_commit_sequence
 
 
 def update(configuration: dict, state: dict):
@@ -291,34 +368,45 @@ def update(configuration: dict, state: dict):
 
     validate_configuration(configuration)
 
-    conn = connect_to_db(configuration)
+    connection = connect_to_database(configuration)
     schema_name = configuration["schema_name"]
 
     try:
-        last_log_marker = state.get("last_log_marker")
+        last_commit_sequence = state.get("last_commit_sequence")
 
-        if last_log_marker is None:
+        if last_commit_sequence is None:
             # ── First sync: full initial load ──────────────────────────────────
             # Reads directly from the source EMPLOYEE table once to populate the
-            # destination. After this, all changes come from the ASN CD table.
-            log.info("No previous state found. Starting initial full load.")
-            last_log_marker = perform_initial_load(conn, schema_name)
-            new_state = {"last_log_marker": last_log_marker, "initial_load_complete": True}
+            # destination. After this, all changes come from the ASN CD table
+            # (DB2INST1.CDEMPLOYEE), which is written by the asncap daemon from
+            # the Db2 transaction log.
+            log.info("No previous state found. Starting initial full load from EMPLOYEE table.")
+            last_commit_sequence = perform_initial_load(connection, schema_name)
+            new_state = {
+                "last_commit_sequence": last_commit_sequence,
+                "initial_load_complete": True,
+            }
         else:
-            # ── Subsequent syncs: read from the ASN CD table ───────────────────
-            # The CD table was populated by the asncap daemon reading the Db2
-            # transaction log — this connector never queries EMPLOYEE again.
-            log.info(f"Resuming incremental sync from log marker: {last_log_marker}")
-            last_log_marker = process_cdc_changes(conn, last_log_marker)
-            new_state = {"last_log_marker": last_log_marker, "initial_load_complete": True}
+            # ── Subsequent syncs: read from DB2INST1.CDEMPLOYEE ────────────────
+            # asncap wrote these rows by reading the Db2 transaction log.
+            # This connector never queries EMPLOYEE again after the first sync.
+            log.info(f"Resuming incremental sync from COMMITSEQ: {last_commit_sequence}")
+            last_commit_sequence = process_cdc_changes(connection, last_commit_sequence)
+            new_state = {
+                "last_commit_sequence": last_commit_sequence,
+                "initial_load_complete": True,
+            }
 
-        # Save the final state so the next sync knows where to continue from.
-        # Learn more about checkpointing:
-        # https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(new_state)
 
     finally:
-        ibm_db.close(conn)
+        ibm_db.close(connection)
         log.info("IBM Db2 connection closed.")
 
 
@@ -327,8 +415,14 @@ connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
-# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
+#
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
+#   fivetran debug
+#
+# This local testing block is provided as a convenience for quick debugging during development,
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
+# Note: This method is not called by Fivetran when executing your connector in production.
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
     with open("configuration.json", "r") as f:
