@@ -100,7 +100,7 @@ Incremental sync:
 - `'I'` and `'U'` rows are applied as `op.upsert()`; `'D'` rows are applied as `op.delete()`.
 - The new high-water `IBMSNAP_COMMITSEQ` hex value is saved to state after processing.
 
-Checkpointing:
+### Checkpointing
 - State is checkpointed every 500 CD rows and once more at the end of each sync, so a mid-sync failure resumes from the last checkpoint rather than from the beginning.
 
 
@@ -110,8 +110,8 @@ Refer to `validate_configuration()` and `connect_to_database()` for implementati
 
 - Missing or empty configuration keys – `validate_configuration()` raises a `ValueError` before any connection is attempted, identifying the missing key.
 - Invalid port – `validate_configuration()` checks that `port` is an integer in the range 1–65535 and raises a `ValueError` with the actual value if not.
-- Connection failures – caught in `connect_to_database()`, logged with `log.severe()`, and re-raised as a `RuntimeError`.
-- Unknown ASN operations – logged as a warning by `process_cdc_changes()` and skipped; the sync continues.
+- Connection failures – these are caught in `connect_to_database()`, logged with `log.severe()`, and re-raised as a `RuntimeError`.
+- Unknown ASN operations – these are logged as a warning by `process_cdc_changes()` and skipped; the sync continues.
 - Resumable syncs – the `IBMSNAP_COMMITSEQ` cursor is checkpointed regularly so a mid-sync failure resumes from the last checkpoint.
 
 
