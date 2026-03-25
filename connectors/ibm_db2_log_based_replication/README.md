@@ -48,7 +48,7 @@ The connector uses `configuration.json` to define the connection parameters for 
     "database": "<YOUR_Db2_DATABASE_NAME>",
     "user_id": "<YOUR_Db2_USER_ID>",
     "password": "<YOUR_Db2_PASSWORD>",
-    "schema_name": "<YOUR_Db2_SCHEMA>"
+    "schema_name": "<YOUR_Db2_SCHEMA_NAME>"
 }
 ```
 
