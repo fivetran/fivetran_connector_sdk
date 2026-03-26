@@ -1,0 +1,7 @@
+{
+  "server": "your-sybase-server.example.com",
+  "port": "5000",
+  "database": "your_database",
+  "user_id": "your_username",
+  "password": "your_password"
+}

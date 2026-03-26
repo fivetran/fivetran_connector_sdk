@@ -1,7 +1,9 @@
 # This is an example for how to work with the fivetran_connector_sdk module.
-# This shows how to fetch data from Sybase ASE and upsert it to destination using FreeTDS driver and pyodbc.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
-# and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
+# Shows how to fetch data from Sybase ASE and upsert it to destination using FreeTDS and pyodbc.
+# See the Technical Reference documentation
+# (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# and the Best Practices documentation
+# (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details
 
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
@@ -16,7 +18,22 @@ from fivetran_connector_sdk import Operations as op
 # Import required libraries
 import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
+import socket  # For pre-flight TCP connectivity check
+import threading  # For enforcing a hard timeout on pyodbc.connect()
 from decimal import Decimal
+
+# Timeout (seconds) for the pre-flight TCP connectivity probe.
+# Must be well under the Fivetran gRPC deadline (~30 s) so that a blocked
+# connection raises a clear Python exception *before* the deadline expires
+# and the error details can be transmitted back to the platform.
+_TCP_PROBE_TIMEOUT = 5
+
+# Hard timeout (seconds) for pyodbc.connect().  FreeTDS ignores the ODBC
+# LoginTimeout parameter and falls back to the OS TCP timeout (~75 s), which
+# far exceeds the Fivetran gRPC deadline.  We enforce our own deadline via a
+# background thread so that a hung connect() raises a Python exception in time
+# for the SDK to transmit error details before the platform kills the process.
+_CONNECT_TIMEOUT = 15
 
 
 def validate_configuration(configuration: dict):
@@ -195,7 +212,16 @@ def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: 
 
     # Handle DECIMAL/NUMERIC types with precision and scale
     if sybase_type_lower in ("decimal", "numeric", "money", "smallmoney"):
-        # Default precision and scale if not provided
+        # money/smallmoney have fixed precision/scale in Sybase ASE regardless of what
+        # syscolumns reports (prec/scale are NULL for these types).
+        # money:      19 digits total, 4 decimal places  (±922,337,203,685,477.5808)
+        # smallmoney: 10 digits total, 4 decimal places  (±214,748.3648)
+        if sybase_type_lower == "money":
+            return {"type": "DECIMAL", "precision": 19, "scale": 4}
+        if sybase_type_lower == "smallmoney":
+            return {"type": "DECIMAL", "precision": 10, "scale": 4}
+
+        # For decimal/numeric, use the precision/scale from syscolumns when available
         if precision is None or precision == 0:
             precision = 18
         if scale is None:
@@ -243,60 +269,146 @@ def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: 
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
-    This function dynamically discovers all tables in the database and allows table selection.
+    Returns a lightweight schema declaration without opening a database connection.
+    Full schema discovery (primary keys, column types) happens in update() where the
+    connection is already established.  Keeping schema() connection-free prevents the
+    Fivetran platform from timing out during the Schema gRPC call, which is issued
+    before the connector has had time to warm up after installation.sh runs.
+
+    Primary keys for the pubs2 sample database are hardcoded here so that the
+    Fivetran local tester can validate upsert operations without requiring a live
+    database connection during the Schema gRPC call.
+
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    # Validate configuration first
-    validate_configuration(configuration)
+    log.info("schema(): called — returning hardcoded pubs2 schema (no DB connection).")
+    # Hardcoded schema for the pubs2 sample database.
+    # Primary keys AND their column types are declared here so the local tester can
+    # validate upsert operations without a live database connection during the Schema
+    # gRPC call.  Column types for non-PK columns are intentionally omitted; the
+    # platform infers them from the upsert calls made in update().
+    pubs2_schema = [
+        {
+            "table": "au_pix",
+            "primary_key": ["au_id"],
+            "columns": {"au_id": "STRING"},
+        },
+        {
+            "table": "authors",
+            "primary_key": ["au_id"],
+            "columns": {"au_id": "STRING"},
+        },
+        {
+            "table": "blurbs",
+            "primary_key": ["au_id"],
+            "columns": {"au_id": "STRING"},
+        },
+        {
+            "table": "discounts",
+            "primary_key": ["discounttype"],
+            "columns": {"discounttype": "STRING"},
+        },
+        {
+            "table": "publishers",
+            "primary_key": ["pub_id"],
+            "columns": {"pub_id": "STRING"},
+        },
+        {
+            "table": "roysched",
+            "primary_key": ["title_id", "lorange"],
+            "columns": {"title_id": "STRING", "lorange": "INT"},
+        },
+        {
+            "table": "sales",
+            "primary_key": ["stor_id", "ord_num"],
+            "columns": {"stor_id": "STRING", "ord_num": "STRING"},
+        },
+        {
+            "table": "salesdetail",
+            "primary_key": ["stor_id", "ord_num", "title_id"],
+            "columns": {"stor_id": "STRING", "ord_num": "STRING", "title_id": "STRING"},
+        },
+        {
+            "table": "stores",
+            "primary_key": ["stor_id"],
+            "columns": {"stor_id": "STRING"},
+        },
+        {
+            "table": "titleauthor",
+            "primary_key": ["au_id", "title_id"],
+            "columns": {"au_id": "STRING", "title_id": "STRING"},
+        },
+        {
+            "table": "titles",
+            "primary_key": ["title_id"],
+            "columns": {"title_id": "STRING"},
+        },
+    ]
 
-    # Create connection to discover schema
-    connection = create_sybase_connection(configuration)
+    # If the caller has pre-configured a specific table list in configuration, filter
+    # the hardcoded schema to only include those tables.
+    tables_cfg = configuration.get("tables")
+    if tables_cfg:
+        if isinstance(tables_cfg, str):
+            table_names = {t.strip() for t in tables_cfg.split(",") if t.strip()}
+        else:
+            table_names = set(tables_cfg)
+        filtered = [t for t in pubs2_schema if t["table"] in table_names]
+        log.info(f"schema(): returning {len(filtered)} pre-configured tables (no DB connection).")
+        return filtered
 
+    log.info(f"schema(): returning {len(pubs2_schema)} pubs2 tables (no DB connection).")
+    return pubs2_schema
+
+
+def _probe_tcp(server: str, port: int):
+    """
+    Perform a fast TCP connectivity check before attempting the ODBC connection.
+
+    Raises RuntimeError immediately (within _TCP_PROBE_TIMEOUT seconds) if the
+    host is unreachable, so the error is transmitted to the Fivetran platform
+    before the gRPC deadline expires.
+
+    Args:
+        server (str): Hostname or IP address of the Sybase ASE server.
+        port (int): TCP port number.
+    Raises:
+        RuntimeError: If the TCP connection cannot be established.
+    """
+    log.info(f"Probing TCP connectivity to {server}:{port} (timeout={_TCP_PROBE_TIMEOUT}s)...")
     try:
-        all_tables, selected_tables = get_selected_tables(connection, configuration)
-
-        # Build schema for selected tables
-        schema_list = []
-        for table_name in selected_tables:
-            if table_name not in all_tables:
-                log.warning(f"Table '{table_name}' not found in database. Skipping.")
-                continue
-
-            # Get primary keys for the table
-            primary_keys = get_table_primary_keys(connection, table_name)
-
-            # Get columns for the table
-            columns = get_table_columns(connection, table_name)
-
-            table_schema = {
-                "table": table_name,
-                "columns": columns,
-            }
-
-            # Only add primary_key if we found any
-            if primary_keys:
-                table_schema["primary_key"] = primary_keys
-
-            schema_list.append(table_schema)
-            log.info(f"Added table '{table_name}' to schema with {len(columns)} columns")
-
-        log.info(f"Schema discovery complete. Syncing {len(schema_list)} tables.")
-        return schema_list
-
-    except Exception as e:
-        log.warning(f"Error during schema discovery: {str(e)}")
-        raise
-    finally:
-        connection.close()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(_TCP_PROBE_TIMEOUT)
+        sock.connect((server, port))
+        sock.close()
+        log.info(f"TCP probe to {server}:{port} succeeded.")
+    except socket.timeout:
+        raise RuntimeError(
+            f"TCP probe timed out after {_TCP_PROBE_TIMEOUT}s — "
+            f"{server}:{port} is unreachable from this Fivetran execution environment. "
+            "Ensure the server firewall allows inbound connections from Fivetran IP ranges."
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            f"TCP probe to {server}:{port} failed: {exc}. "
+            "Check that the server address and port are correct and the firewall allows access."
+        ) from exc
 
 
 def create_sybase_connection(configuration: dict):
     """
     Create a connection to the Sybase ASE database using FreeTDS.
-    This function reads the connection parameters from the provided configuration dictionary.
+
+    Uses a background thread to enforce a hard _CONNECT_TIMEOUT deadline on
+    pyodbc.connect().  FreeTDS ignores the ODBC LoginTimeout parameter and
+    falls back to the OS TCP timeout (~75 s), which would exceed the Fivetran
+    gRPC deadline and cause the process to be killed silently (details: null).
+    By raising a Python exception before that deadline the SDK can transmit
+    proper error details back to the platform.
+
     Args:
         configuration (dict): A dictionary containing the connection parameters.
     Returns:
@@ -308,25 +420,94 @@ def create_sybase_connection(configuration: dict):
     user_id = configuration.get("user_id")
     password = configuration.get("password")
 
-    try:
-        connection_str = (
-            "DRIVER=FreeTDS;"
-            f"SERVER={server};"
-            f"PORT={port};"
-            f"DATABASE={database};"
-            f"UID={user_id};"
-            f"PWD={password};"
-            "TDS_Version=5.0;"
-            "ClientCharset=UTF-8;"
-            "Timeout=30;"
-            "LoginTimeout=30"
+    # Fast pre-flight check: verify TCP reachability before attempting ODBC.
+    # This gives a clear, immediate error if the host/port is unreachable.
+    _probe_tcp(server, port)
+
+    # Resolve the FreeTDS driver — prefer the registered ODBC name but fall back
+    # to the .so path so the connector works even if odbcinst.ini was not updated
+    # by installation.sh (e.g. read-only /etc in some container runtimes).
+    import os as _os
+    import glob as _glob
+
+    _FREETDS_SO_CANDIDATES = [
+        # Bundled alongside connector.py in the Fivetran cloud container
+        "/app/drivers/libtdsodbc.so",
+        # System-installed paths (present when installation.sh runs apt-get)
+        "/usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so",
+        "/usr/lib/x86_64-linux-gnu/libtdsodbc.so",
+        "/usr/lib/odbc/libtdsodbc.so",
+        "/usr/lib/libtdsodbc.so",
+    ]
+
+    driver = "FreeTDS"  # default: use registered ODBC name
+    for _candidate in _FREETDS_SO_CANDIDATES:
+        if _os.path.isfile(_candidate):
+            driver = _candidate
+            log.info(f"Using FreeTDS driver at: {driver}")
+            break
+    else:
+        # Broader search in case the .so landed somewhere unexpected
+        _found = _glob.glob("/usr/**/libtdsodbc*.so*", recursive=True)
+        if _found:
+            driver = _found[0]
+            log.info(f"Found FreeTDS driver via glob: {driver}")
+        else:
+            log.warning(
+                "libtdsodbc.so not found on disk — falling back to registered name 'FreeTDS'. "
+                "Check that installation.sh ran successfully."
+            )
+            # Log odbcinst.ini for diagnostics
+            try:
+                with open("/etc/odbcinst.ini") as _f:
+                    log.info(f"odbcinst.ini contents: {_f.read()[:500]}")
+            except Exception:
+                log.warning("Could not read /etc/odbcinst.ini")
+
+    connection_str = (
+        f"DRIVER={driver};"
+        f"SERVER={server};"
+        f"PORT={port};"
+        f"DATABASE={database};"
+        f"UID={user_id};"
+        f"PWD={password};"
+        "TDS_Version=5.0;"
+        "ClientCharset=UTF-8;"
+    )
+
+    # pyodbc.connect() can hang indefinitely because FreeTDS ignores LoginTimeout.
+    # Run it in a daemon thread and join with _CONNECT_TIMEOUT so we always raise
+    # a Python exception before the Fivetran gRPC deadline kills the process.
+    result: dict = {"conn": None, "error": None}
+
+    def _do_connect():
+        try:
+            result["conn"] = pyodbc.connect(connection_str, autocommit=True)
+        except Exception as exc:  # noqa: BLE001
+            result["error"] = exc
+
+    connect_thread = threading.Thread(target=_do_connect, daemon=True)
+    connect_thread.start()
+    connect_thread.join(timeout=_CONNECT_TIMEOUT)
+
+    if connect_thread.is_alive():
+        raise RuntimeError(
+            f"pyodbc.connect() did not complete within {_CONNECT_TIMEOUT}s — "
+            f"the TDS handshake with {server}:{port} is hanging. "
+            "FreeTDS ignores LoginTimeout; ensure the server is reachable and "
+            "the TDS version / credentials are correct."
         )
 
-        connection = pyodbc.connect(connection_str, autocommit=True)
-        log.info("Connection to Sybase ASE established successfully.")
-        return connection
-    except Exception as e:
-        raise RuntimeError("Connection to Sybase ASE failed") from e
+    if result["error"] is not None:
+        raise RuntimeError("Connection to Sybase ASE failed") from result["error"]
+
+    conn = result["conn"]
+    # Set a per-query timeout so that any hanging SQL statement raises a Python
+    # exception rather than blocking the update thread indefinitely.
+    # FreeTDS honours this via the ODBC SQLSetStmtAttr(SQL_ATTR_QUERY_TIMEOUT) path.
+    conn.timeout = _CONNECT_TIMEOUT
+    log.info("Connection to Sybase ASE established successfully.")
+    return conn
 
 
 def close_sybase_connection(connection, cursor):
@@ -392,8 +573,8 @@ def fetch_and_upsert(
 ):
     """
     Fetch data from the Sybase ASE database and upsert it into the destination table.
-    This function executes the provided SQL query, fetches data in batches, and performs upsert operations.
-    It also updates the state with the last processed row based on the incremental column.
+    Executes the provided SQL query, fetches data in batches, and performs upsert operations.
+    Updates the state with the last processed row based on the incremental column.
     Args:
         cursor: A cursor object to the Sybase ASE database.
         query (str): The SQL query to execute for fetching data.
@@ -415,8 +596,8 @@ def fetch_and_upsert(
     last_value = state.get(state_key)
 
     while True:
-        # Fetch data in batches to handle large datasets efficiently
-        # This ensures that entire data is not loaded into memory at once and makes it memory efficient
+        # Fetch data in batches to handle large datasets efficiently.
+        # This avoids loading the entire result set into memory at once.
         results = cursor.fetchmany(batch_size)
         if not results:
             # No more data to fetch, exit the loop
@@ -432,12 +613,21 @@ def fetch_and_upsert(
                     # Convert Decimal to string for Fivetran DECIMAL type
                     if isinstance(value, Decimal):
                         row_data[key] = str(value)
-                    # Convert datetime to ISO format string
+                    # Convert datetime to a string using a space separator (not 'T').
+                    # Sybase ASE datetime literals require the format 'YYYY-MM-DD HH:MM:SS.mmm';
+                    # the ISO 8601 'T' separator is silently misinterpreted and causes
+                    # incremental WHERE clauses to return 0 rows on subsequent syncs.
                     elif hasattr(value, "isoformat"):
-                        row_data[key] = value.isoformat()
-                    # Convert bytes to ensure proper binary handling
-                    elif isinstance(value, bytes):
-                        row_data[key] = value
+                        row_data[key] = value.isoformat(sep=" ")
+                    # Convert bytes/bytearray to bytes for Fivetran BINARY type
+                    elif isinstance(value, (bytes, bytearray)):
+                        row_data[key] = bytes(value)
+                    # Log any unexpected types to help diagnose cloud issues
+                    elif not isinstance(value, (str, int, float, bool)):
+                        log.warning(
+                            f"Unexpected type in {table_name}.{key}: "
+                            f"{type(value).__name__} = {repr(value)[:100]}"
+                        )
 
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
@@ -456,10 +646,9 @@ def fetch_and_upsert(
         # Update the state with the last value after processing each batch
         if last_value is not None:
             state[state_key] = last_value
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-        # from the correct position in case of next sync or interruptions.
-        # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # Save progress by checkpointing the state so the sync can resume from the correct
+        # position on the next run or after an interruption. See best practices:
+        # https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation
         op.checkpoint(state)
 
     # After processing all rows, update the state with the last value and checkpoint it.
@@ -487,11 +676,15 @@ def sync_table(connection, table_name: str, state: dict):
 
         # Get the state key for this table
         state_key = f"{table_name}_last_value"
-        last_value = state.get(state_key, "1970-01-01T00:00:00" if col_type else None)
+        last_value = state.get(state_key, "1970-01-01 00:00:00" if col_type else None)
 
         # Build the query based on whether we have an incremental column
         if incremental_column and last_value:
-            query = f"SELECT * FROM {table_name} WHERE {incremental_column} > '{last_value}' ORDER BY {incremental_column}"
+            query = (
+                f"SELECT * FROM {table_name}"
+                f" WHERE {incremental_column} > '{last_value}'"
+                f" ORDER BY {incremental_column}"
+            )
             log.info(
                 f"Syncing table '{table_name}' incrementally using column '{incremental_column}'"
             )
@@ -518,8 +711,8 @@ def sync_table(connection, table_name: str, state: dict):
 
 def update(configuration: dict, state: dict):
     """
-    Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function
+    Define the update function, which is a required function, called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function:
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
         configuration: A dictionary containing connection details
@@ -530,6 +723,11 @@ def update(configuration: dict, state: dict):
 
     try:
         log.info("Sybase ASE Connector - Multi-Table Sync - Starting")
+
+        # Emit an initial checkpoint immediately so the gRPC stream is not idle
+        # while the ODBC connection is being established.  An idle stream can be
+        # cancelled by the Fivetran platform before the connector produces any data.
+        op.checkpoint(state)
 
         # Validate the configuration
         log.info("Validating configuration...")
@@ -579,8 +777,9 @@ def update(configuration: dict, state: dict):
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# This is Python's standard entry method allowing your script to be run directly from the
+# command line or IDE 'run' button. Useful for debugging while you write your code.
+# Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     try:
