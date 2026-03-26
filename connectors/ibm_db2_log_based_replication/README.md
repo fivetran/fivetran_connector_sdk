@@ -101,7 +101,7 @@ Incremental sync:
 - The new high-water `(IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ)` values are saved to state after processing.
 
 ### Checkpointing
-- Both `last_commit_sequence` (the `IBMSNAP_COMMITSEQ` hex value) and `last_intent_sequence` (the `IBMSNAP_INTENTSEQ` integer) are stored in state. Both values are required because multiple CD rows can share the same `IBMSNAP_COMMITSEQ` — one per statement within a transaction — and using only `IBMSNAP_COMMITSEQ` would cause rows to be re-processed or skipped when resuming from a mid-commit checkpoint.
+- Both `last_commit_sequence` (the `IBMSNAP_COMMITSEQ` hex value) and `last_intent_sequence` (the `IBMSNAP_INTENTSEQ` hex value) are stored in state. Both values are required because multiple CD rows can share the same `IBMSNAP_COMMITSEQ` — one per statement within a transaction — and using only `IBMSNAP_COMMITSEQ` would cause rows to be re-processed or skipped when resuming from a mid-commit checkpoint.
 - State is checkpointed every 500 CD rows and once more at the end of each sync, so a mid-sync failure resumes from the last checkpoint rather than from the beginning.
 
 

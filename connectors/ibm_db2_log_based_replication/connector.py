@@ -28,7 +28,7 @@ from decimal import Decimal
 # Change Data table written to by the asncap daemon.
 # asncap reads the Db2 transaction log and inserts one row here per INSERT/UPDATE/DELETE.
 # ASNCLP names this table CD<source_table>, so EMPLOYEE → CDEMPLOYEE.
-CD_TABLE = "CDEMPLOYEE"
+__CD_TABLE = "CDEMPLOYEE"
 
 # Number of CD rows to process before writing an intermediate checkpoint.
 # Checkpointing regularly prevents re-processing large batches on retry.
@@ -188,7 +188,7 @@ def get_current_cdc_position(connection, cd_schema: str) -> tuple:
     """
     query = (
         f"SELECT HEX(IBMSNAP_COMMITSEQ) AS COMMITSEQ_HEX, HEX(IBMSNAP_INTENTSEQ) AS INTENTSEQ_HEX "
-        f"FROM {cd_schema}.{CD_TABLE} "
+        f"FROM {cd_schema}.{__CD_TABLE} "
         f"ORDER BY IBMSNAP_COMMITSEQ DESC, IBMSNAP_INTENTSEQ DESC "
         f"FETCH FIRST 1 ROW ONLY"
     )
@@ -324,12 +324,12 @@ def process_cdc_changes(
     query = (
         f"SELECT IBMSNAP_OPERATION, HEX(IBMSNAP_COMMITSEQ) AS COMMITSEQ_HEX, HEX(IBMSNAP_INTENTSEQ) AS INTENTSEQ_HEX, "
         f"ID, FIRST_NAME, LAST_NAME, EMAIL, DEPARTMENT, CAST(SALARY AS DOUBLE) AS SALARY "
-        f"FROM {cd_schema}.{CD_TABLE} "
+        f"FROM {cd_schema}.{__CD_TABLE} "
         f"WHERE {where_clause} "
         f"ORDER BY IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ"
     )
     log.info(
-        f"Incremental sync: reading from {cd_schema}.{CD_TABLE} "
+        f"Incremental sync: reading from {cd_schema}.{__CD_TABLE} "
         f"(populated by asncap from Db2 transaction log). "
         f"Cursor = ({last_commit_sequence}, {last_intent_sequence})"
     )
@@ -361,7 +361,8 @@ def process_cdc_changes(
 
         if change_operation in ("I", "U"):
             # INSERT or UPDATE: asncap wrote new-image values from the transaction log.
-            log.info(
+            # Per-row detail is logged at fine level to avoid flooding logs on high-volume streams.
+            log.fine(
                 f"  LOG EVENT [{change_operation}] id={record.get('id')} — sourced from Db2 transaction log via asncap"
             )
             # The 'upsert' operation is used to insert or update data in the destination table.
@@ -370,7 +371,8 @@ def process_cdc_changes(
             op.upsert("employee", record)
         elif change_operation == "D":
             # DELETE: the CD row still carries the key so we know which row to remove.
-            log.info(
+            # Per-row detail is logged at fine level to avoid flooding logs on high-volume streams.
+            log.fine(
                 f"  LOG EVENT [D] id={record.get('id')} — sourced from Db2 transaction log via asncap"
             )
             # The 'delete' operation is used to delete data in the destination table.
@@ -383,6 +385,10 @@ def process_cdc_changes(
         row_count += 1
 
         if row_count % __CHECKPOINT_INTERVAL == 0:
+            log.info(
+                f"CDC progress: {row_count} log event(s) processed so far. "
+                f"Current cursor = ({current_commit_sequence}, {current_intent_sequence})"
+            )
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
             # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
@@ -398,7 +404,7 @@ def process_cdc_changes(
             )
 
     log.info(
-        f"CDC sync complete: {row_count} log event(s) applied from {cd_schema}.{CD_TABLE}. "
+        f"CDC sync complete: {row_count} log event(s) applied from {cd_schema}.{__CD_TABLE}. "
         f"New cursor = ({current_commit_sequence}, {current_intent_sequence})"
     )
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
@@ -420,12 +426,12 @@ def process_cdc_changes(
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function:
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: A dictionary containing connection details.
-        state: A dictionary containing state information from previous runs.
-        The state dictionary is empty for the first sync or for any full re-sync.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Source Examples: IBM Db2 Log-Based Replication")
 
@@ -490,7 +496,7 @@ def update(configuration: dict, state: dict):
         log.info("IBM Db2 connection closed.")
 
 
-# This creates the connector object that will use the update and schema functions defined above.
+# Create the connector object using the schema and update functions
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
@@ -504,8 +510,9 @@ connector = Connector(update=update, schema=schema)
 # Note: This method is not called by Fivetran when executing your connector in production.
 # Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents into a dictionary.
+    # Open the configuration.json file and load its contents.
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE:
+
+    # Test the connector locally
     connector.debug(configuration=configuration)
