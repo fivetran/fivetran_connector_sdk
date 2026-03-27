@@ -55,13 +55,11 @@ To initialize a new Connector SDK project using this connector as a starting poi
 ```bash
 fivetran init <project-path> --template connectors/<connector-name>
 ```
-
-`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`; if configuration is required, you must update `configuration.json` before running.
-Use the `--template` option to initialize from a community connector .
-If you do not provide a `--template`, Fivetran uses the [default template connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_connector).
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`
 If you do not specify a project path, the project is created in your current directory. 
 For more information on `fivetran init` and its options, refer to the [Connector SDK init documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
-
+* Provide this if the connector requires a configuration.json file to run, otherwise delete this note. *
+> Note : If configuration is required to run the connector, ensure you have added a `configuration.json` file with the necessary parameters before running `fivetran debug` for the first time. Refer to the Configuration file section below for details on the required configuration parameters.
 
 ## Features
 - *List key features of the connector, such as supported endpoints, data replication methods, and any special capabilities.*
