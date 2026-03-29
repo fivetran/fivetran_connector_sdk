@@ -60,7 +60,7 @@ If you do not specify a project path, Fivetran creates the project in your curre
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
 
 _Include the following note only if the connector requires a `configuration.json` file to run._
-> Note : Ensure you have added a `configuration.json` file with the necessary parameters before running `fivetran debug` for the first time. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
+> Note : Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
 
 ## Features
 - *List key features of the connector, such as supported endpoints, data replication methods, and any special capabilities.*
