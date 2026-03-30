@@ -132,8 +132,10 @@ def _get_table_sizes_batch(pool: ConnectionPool, schema_name: str, table_names: 
     """
     with pool.acquire() as conn:
         cursor = conn.execute_with_retry(sql, (schema_name,))
-        rows = cursor.fetchall()
-        cursor.close()
+        try:
+            rows = cursor.fetchall()
+        finally:
+            cursor.close()
 
     size_map = {row[0]: int(row[1] or 0) for row in rows}
     return {name: size_map.get(name, 0) for name in table_names}
