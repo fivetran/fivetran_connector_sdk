@@ -40,7 +40,6 @@ DEFAULT_FORCE_FULL_RESYNC = False  # Set True to discard state and re-sync from 
 
 KNOWN_REPLICATION_KEY_PATTERNS = [
     "_LastUpdatedInstant",
-    "_lastupdatedinstant",
     "UpdatedAt",
     "updated_at",
     "UpdatedDate",

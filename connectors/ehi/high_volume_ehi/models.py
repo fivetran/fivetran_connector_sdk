@@ -78,12 +78,12 @@ class SchemaDetector:
             c.DATA_TYPE,
             c.ORDINAL_POSITION,
             COLUMNPROPERTY(
-                OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME),
+                OBJECT_ID('[' + c.TABLE_SCHEMA + '].[' + c.TABLE_NAME + ']'),
                 c.COLUMN_NAME,
                 'IsIdentity'
             ) AS is_identity,
             COLUMNPROPERTY(
-                OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME),
+                OBJECT_ID('[' + c.TABLE_SCHEMA + '].[' + c.TABLE_NAME + ']'),
                 c.COLUMN_NAME,
                 'IsComputed'
             ) AS is_computed,
@@ -117,8 +117,10 @@ class SchemaDetector:
         """
         with self._pool.acquire() as conn:
             cur = conn.execute_with_retry(self._METADATA_SQL, (schema_name, table_name))
-            rows = cur.fetchall()
-            cur.close()
+            try:
+                rows = cur.fetchall()
+            finally:
+                cur.close()
 
         columns = []
         for row in rows:
@@ -179,8 +181,10 @@ class SchemaDetector:
         )
         with self._pool.acquire() as conn:
             cur = conn.execute_with_retry(sql, (schema_name,))
-            rows = cur.fetchall()
-            cur.close()
+            try:
+                rows = cur.fetchall()
+            finally:
+                cur.close()
         return [row[0] for row in rows]
 
     @staticmethod
@@ -235,8 +239,8 @@ class SchemaDetector:
         Map a SQL Server DATA_TYPE string to a Python built-in type used by
         convert_value() in readers.py.
 
-        Returns int, float, str, bool, bytes, or None.
-        None means the column should be excluded from SELECT lists.
+        Returns int, float, str, bool, or bytes.
+        Unknown types are mapped to str so columns are not silently dropped.
 
         Binary and spatial types return bytes — convert_value() base64-encodes
         them so they are stored as ASCII strings in the destination.

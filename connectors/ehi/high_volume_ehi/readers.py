@@ -157,8 +157,10 @@ class KeysetReader:
 
             with self._pool.acquire() as conn:
                 cur = conn.execute_with_retry(sql, params)
-                rows = cur.fetchall()
-                cur.close()
+                try:
+                    rows = cur.fetchall()
+                finally:
+                    cur.close()
 
             if not rows:
                 log.fine(f"{self._schema.table_name}: page {page} returned 0 rows — done")
@@ -246,8 +248,10 @@ class OffsetReader:
         while True:
             with self._pool.acquire() as conn:
                 cur = conn.execute_with_retry(sql, (offset, self._batch_size))
-                rows = cur.fetchall()
-                cur.close()
+                try:
+                    rows = cur.fetchall()
+                finally:
+                    cur.close()
 
             if not rows:
                 return
@@ -298,8 +302,10 @@ class IncrementalReader:
         while True:
             with self._pool.acquire() as conn:
                 cur = conn.execute_with_retry(sql, (current_last, self._batch_size))
-                rows = cur.fetchall()
-                cur.close()
+                try:
+                    rows = cur.fetchall()
+                finally:
+                    cur.close()
 
             if not rows:
                 return

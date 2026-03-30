@@ -46,7 +46,11 @@ def schema(configuration: dict):
                 "_json": "JSON",  # JSON data type.
                 "_null": "STRING",  # String data type, can handle null values.
             },
-        }
+        },
+        {
+            "table": "inference",  # Name of the table in the destination.
+            "primary_key": ["_bool"],  # Primary key column(s) for the table.
+        },
     ]
 
 
@@ -67,6 +71,26 @@ def update(configuration: dict, state: dict):
     log.fine("upserting to table 'specified'")
     op.upsert(
         table="specified",
+        data={
+            "_bool": True,  # Boolean value.
+            "_short": 15,  # Short integer value.
+            "_long": 132353453453635,  # Long integer value.
+            "_dec": "105.34",  # Decimal value as a string.
+            "_float": 10.4,  # Floating-point value.
+            "_double": 1e-4,  # Double precision floating-point value.
+            "_ndate": "2007-12-03",  # Naive date value.
+            "_ndatetime": "2007-12-03T10:15:30",  # Naive date-time value.
+            "_utc": "2007-12-03T10:15:30.123Z",  # UTC date-time value.
+            "_binary": b"\x00\x01\x02\x03",  # Binary data.
+            "_xml": "<tag>This is XML</tag>",  # XML data.
+            "_str": "This is a string",  # String data.
+            "_json": {"a": 10},  # JSON data.
+            "_null": None,  # Null value.
+        },
+    )
+
+    op.upsert(
+        table="inference",
         data={
             "_bool": True,  # Boolean value.
             "_short": 15,  # Short integer value.

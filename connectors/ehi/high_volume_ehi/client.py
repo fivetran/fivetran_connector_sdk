@@ -146,6 +146,7 @@ class MSSQLConnection:
             except Exception as exc:
                 if not _is_retryable_error(exc):
                     log.severe(f"Non-retryable SQL error: {exc}")
+                    self._close()
                     raise
 
                 last_exc = exc
@@ -200,6 +201,9 @@ class ConnectionPool:
         try:
             conn.ensure_open()
             yield conn
+        except Exception as exc:
+            log.warning(f"Connection error during acquire: {exc}")
+            raise
         finally:
             self._queue.put(conn)
 
