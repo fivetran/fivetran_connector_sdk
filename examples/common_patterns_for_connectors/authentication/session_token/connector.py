@@ -74,7 +74,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Common Patterns For Connectors - Authentication - API KEY")
+    log.warning("Example: Common Patterns For Connectors - Authentication - Session Token")
 
     # validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -131,9 +131,10 @@ def sync_items(base_url, params, state, configuration):
     """
     The sync_items function handles the retrieval of API data.
     It performs the following tasks:
-        1. Sends an API request to the specified URL with the provided parameters.
-        2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
-        3. Saves the state periodically to ensure the sync can resume from the correct point.
+        1. Obtains a session token and sends an API request to the data endpoint.
+        2. If the token has expired (HTTP 401), re-authenticates and retries the request once.
+        3. Processes the items returned in the API response by using upsert operations to send to Fivetran.
+        4. Saves the state periodically to ensure the sync can resume from the correct point.
     Args:
         base_url: The URL to the API endpoint.
         params: A dictionary of query parameters to be sent with the API request.
@@ -142,7 +143,17 @@ def sync_items(base_url, params, state, configuration):
     """
     session_token = get_session_token(base_url, configuration)
     items_url = base_url + "/data"
-    response_page = get_api_response(items_url, params, get_auth_headers(session_token))
+
+    response = rq.get(items_url, params=params, headers=get_auth_headers(session_token))
+
+    # If the token has expired, re-authenticate and retry once.
+    if response.status_code == 401:
+        log.warning("Session token expired. Re-authenticating...")
+        session_token = get_session_token(base_url, configuration)
+        response = rq.get(items_url, params=params, headers=get_auth_headers(session_token))
+
+    response.raise_for_status()
+    response_page = response.json()
 
     # Process the items.
     items = response_page.get("data", [])
@@ -175,7 +186,7 @@ def get_api_response(base_url, params, headers):
     Returns:
         response_page: A dictionary containing the parsed JSON response from the API.
     """
-    log.info(f"Making API call to url: {base_url} with params: {params} and headers: {headers}")
+    log.info(f"Making API call to url: {base_url} with params: {params}")
     response = rq.get(base_url, params=params, headers=headers)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     response_page = response.json()
