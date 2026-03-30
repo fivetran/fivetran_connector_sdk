@@ -8,6 +8,8 @@
 
 # Import requests to make HTTP calls to API.
 import requests as rq
+import time
+import json
 
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like Update() and Schema()
@@ -18,7 +20,10 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
-import json
+
+REQUEST_TIMEOUT = 30  # seconds before a request is considered hung
+MAX_RETRIES = 3
+BASE_DELAY_SECONDS = 2  # exponential backoff: 2s, 4s, 8s
 
 
 def schema(configuration: dict):
@@ -79,7 +84,7 @@ def update(configuration: dict, state: dict):
     # validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
 
-    print(
+    log.warning(
         "RECOMMENDATION: Please ensure the base url is properly set, you can also use "
         "https://pypi.org/project/fivetran-api-playground/ to start mock API on your local machine."
     )
@@ -103,9 +108,9 @@ def get_session_token(base_url, config):
     token_url = base_url + "/login"
     body = {"username": username, "password": password}
 
-    log.info(f"Making API call to url: {token_url} with body: {body}")
+    log.info(f"Making API call to url: {token_url}")
 
-    response = rq.post(token_url, json=body)
+    response = rq.post(token_url, json=body, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     response_page = response.json()
     return response_page.get("token")
@@ -127,11 +132,65 @@ def get_auth_headers(session_token):
     return headers
 
 
+def make_request_with_retry(url, params, headers):
+    """
+    Send a GET request with a timeout and bounded retries for transient failures.
+    Retries on network errors (Timeout, ConnectionError) and 5xx server errors using
+    exponential backoff. 4xx client errors are not retried and propagate to the caller.
+    Args:
+        url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+        headers: A dictionary containing request headers, such as the Authorization token.
+    Returns:
+        response: The successful requests.Response object.
+    Raises:
+        requests.exceptions.HTTPError: For 4xx responses (caller must handle 401 re-auth).
+        RuntimeError: If all retry attempts are exhausted.
+    """
+    log.info(f"Making API call to url: {url} with params: {params}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = rq.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            return response
+        except rq.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response is not None else None
+            if status_code is not None and 500 <= status_code < 600:
+                log.warning(f"Server error {status_code} on attempt {attempt + 1}/{MAX_RETRIES}")
+            else:
+                raise  # 4xx errors are not retried; caller handles 401
+        except (rq.exceptions.Timeout, rq.exceptions.ConnectionError) as e:
+            log.warning(f"Transient error on attempt {attempt + 1}/{MAX_RETRIES}: {e}")
+
+        if attempt < MAX_RETRIES - 1:
+            wait = BASE_DELAY_SECONDS * (2**attempt)
+            log.warning(f"Retrying in {wait}s...")
+            time.sleep(wait)
+        else:
+            log.severe(f"Request to {url} failed after {MAX_RETRIES} attempts.")
+            raise RuntimeError(f"Request to {url} failed after {MAX_RETRIES} attempts.")
+
+
+def get_api_response(url, params, headers):
+    """
+    Send a GET request and return the parsed JSON response.
+    Delegates timeout, retry, and backoff behaviour to make_request_with_retry.
+    4xx HTTPErrors propagate to the caller; the caller is responsible for re-auth on 401.
+    Args:
+        url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+        headers: A dictionary containing request headers, such as the Authorization token.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    """
+    return make_request_with_retry(url, params, headers).json()
+
+
 def sync_items(base_url, params, state, configuration):
     """
     The sync_items function handles the retrieval of API data.
     It performs the following tasks:
-        1. Obtains a session token and sends an API request to the data endpoint.
+        1. Obtains a session token and fetches data via get_api_response (timeout + retry included).
         2. If the token has expired (HTTP 401), re-authenticates and retries the request once.
         3. Processes the items returned in the API response by using upsert operations to send to Fivetran.
         4. Saves the state periodically to ensure the sync can resume from the correct point.
@@ -144,16 +203,16 @@ def sync_items(base_url, params, state, configuration):
     session_token = get_session_token(base_url, configuration)
     items_url = base_url + "/data"
 
-    response = rq.get(items_url, params=params, headers=get_auth_headers(session_token))
-
-    # If the token has expired, re-authenticate and retry once.
-    if response.status_code == 401:
-        log.warning("Session token expired. Re-authenticating...")
-        session_token = get_session_token(base_url, configuration)
-        response = rq.get(items_url, params=params, headers=get_auth_headers(session_token))
-
-    response.raise_for_status()
-    response_page = response.json()
+    try:
+        response_page = get_api_response(items_url, params, get_auth_headers(session_token))
+    except rq.exceptions.HTTPError as e:
+        # If the token has expired, re-authenticate and retry once.
+        if e.response is not None and e.response.status_code == 401:
+            log.warning("Received HTTP 401 (unauthorized); re-authenticating and retrying once.")
+            session_token = get_session_token(base_url, configuration)
+            response_page = get_api_response(items_url, params, get_auth_headers(session_token))
+        else:
+            raise
 
     # Process the items.
     items = response_page.get("data", [])
@@ -170,27 +229,6 @@ def sync_items(base_url, params, state, configuration):
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
     op.checkpoint(state)
-
-
-def get_api_response(base_url, params, headers):
-    """
-    The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
-    It performs the following tasks:
-        1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
-        2. Makes the API request using the 'requests' library, passing the URL and parameters.
-        3. Parses the JSON response from the API and returns it as a dictionary.
-    Args:
-        base_url: The URL to which the API request is made.
-        params: A dictionary of query parameters to be included in the API request.
-        headers: A dictionary containing headers for the API request, such as authentication tokens.
-    Returns:
-        response_page: A dictionary containing the parsed JSON response from the API.
-    """
-    log.info(f"Making API call to url: {base_url} with params: {params}")
-    response = rq.get(base_url, params=params, headers=headers)
-    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
-    response_page = response.json()
-    return response_page
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
