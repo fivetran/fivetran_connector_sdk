@@ -132,9 +132,9 @@ def get_auth_headers(session_token):
     return headers
 
 
-def make_request_with_retry(url, params, headers):
+def get_api_response(url, params, headers):
     """
-    Send a GET request with a timeout and bounded retries for transient failures.
+    Send a GET request with retries and return the parsed JSON response.
     Retries on network errors (Timeout, ConnectionError) and 5xx server errors using
     exponential backoff. 4xx client errors are not retried and propagate to the caller.
     Args:
@@ -142,7 +142,7 @@ def make_request_with_retry(url, params, headers):
         params: A dictionary of query parameters to be included in the API request.
         headers: A dictionary containing request headers, such as the Authorization token.
     Returns:
-        response: The successful requests.Response object.
+        response_page: A dictionary containing the parsed JSON response from the API.
     Raises:
         requests.exceptions.HTTPError: For 4xx responses (caller must handle 401 re-auth).
         RuntimeError: If all retry attempts are exhausted.
@@ -152,7 +152,7 @@ def make_request_with_retry(url, params, headers):
         try:
             response = rq.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
-            return response
+            return response.json()
         except rq.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response is not None else None
             if status_code is not None and 500 <= status_code < 600:
@@ -169,21 +169,6 @@ def make_request_with_retry(url, params, headers):
         else:
             log.severe(f"Request to {url} failed after {MAX_RETRIES} attempts.")
             raise RuntimeError(f"Request to {url} failed after {MAX_RETRIES} attempts.")
-
-
-def get_api_response(url, params, headers):
-    """
-    Send a GET request and return the parsed JSON response.
-    Delegates timeout, retry, and backoff behaviour to make_request_with_retry.
-    4xx HTTPErrors propagate to the caller; the caller is responsible for re-auth on 401.
-    Args:
-        url: The URL to which the API request is made.
-        params: A dictionary of query parameters to be included in the API request.
-        headers: A dictionary containing request headers, such as the Authorization token.
-    Returns:
-        response_page: A dictionary containing the parsed JSON response from the API.
-    """
-    return make_request_with_retry(url, params, headers).json()
 
 
 def sync_items(base_url, params, state, configuration):
