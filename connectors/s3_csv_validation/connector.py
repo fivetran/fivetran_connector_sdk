@@ -118,7 +118,7 @@ def validate_int_value(row, value: str):
     try:
         return int(value)
     except (ValueError, TypeError) as e:
-        print_error_message(row, f"Invalid integer value: '{value}'")
+        print_error_message(row, f"Invalid integer value: '{value}'. Error: {e}")
         return None
 
 

@@ -9,6 +9,8 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 # Mock the fivetran_connector_sdk to avoid import errors
+
+
 class MockConnector:
     def __init__(self, update, schema):
         self.update = update
@@ -32,12 +34,14 @@ class MockConnector:
 
         return True
 
+
 class MockOperations:
     def upsert(self, table, data):
         print(f"📝 Mock upsert: table={table}, data keys={list(data.keys()) if isinstance(data, dict) else 'non-dict'}")
 
     def checkpoint(self, state):
         print(f"💾 Mock checkpoint: state keys={list(state.keys())}")
+
 
 class MockLogging:
     def warning(self, msg):
@@ -49,8 +53,8 @@ class MockLogging:
     def severe(self, msg):
         print(f"🚨 {msg}")
 
-# Monkey patch the imports
-import sys
+
+# Monkey patch the imports in the connector module to use the mocks
 sys.modules['fivetran_connector_sdk'] = type(sys)('fivetran_connector_sdk')
 sys.modules['fivetran_connector_sdk'].Connector = MockConnector
 sys.modules['fivetran_connector_sdk'].Operations = MockOperations()
@@ -58,7 +62,7 @@ sys.modules['fivetran_connector_sdk'].Logging = MockLogging()
 
 # Now import and test the connector
 try:
-    from connector import validate_configuration, schema, update, connector
+    from connector import validate_configuration, schema, connector
 
     print("✅ Connector imports successful")
 
