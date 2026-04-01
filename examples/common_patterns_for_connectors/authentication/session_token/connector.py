@@ -21,9 +21,9 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-REQUEST_TIMEOUT = 30  # seconds before a request is considered hung
-MAX_RETRIES = 3
-BASE_DELAY_SECONDS = 2  # exponential backoff: 2s, 4s, 8s
+__REQUEST_TIMEOUT = 30  # seconds before a request is considered hung
+__MAX_RETRIES = 3
+__BASE_DELAY_SECONDS = 2  # exponential backoff: 2s, 4s, 8s
 
 
 def schema(configuration: dict):
