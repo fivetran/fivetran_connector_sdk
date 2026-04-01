@@ -1,5 +1,5 @@
 {
   "api_key": "<YOUR_API_KEY>",
-  "base_url": "https://api.rillet.com",
-  "api_version": "3"
+  "base_url": "<YOUR_BASE_URL>",
+  "api_version": "<YOUR_API_VERSION>"
 }
