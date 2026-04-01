@@ -29,20 +29,6 @@ fivetran init <project-path> --template examples/quickstart_examples/parsing_jso
 If you do not specify a project path, Fivetran creates the project in your current directory.
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
 
-To initialize a new Connector SDK project using this connector as a starting point, run:
-
-```bash
-fivetran init <project-path> --template examples/quickstart_examples/parsing_json_response_in_class
-```
-
-`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`. By default, you get a functional example connector to build from. Use the `--template` option to initialize from a community connector for a more complete starting point aligned to your use case. You can also configure the context for the AI assistant of your choice.
-
-| Flag | Required | Description |
-| --- | --- | --- |
-| `"<project path>"` | Optional | Specifies the project path, absolute or relative. If not provided, the command runs in the current directory. |
-| `--template <repository path>` | Optional | Specifies the connector example repository path, relative to the `fivetran_connector_sdk` repository. If not provided, the [default template connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/template_connector) from the `/template_connector` directory is used. |
-
-
 ## Features
 - Converts API JSON responses into structured Python data classes.
 - Predefined schema maps the structure of incoming data to Fivetran-compatible tables.
