@@ -98,9 +98,9 @@ Individual story details are fetched one at a time from the `/item/{id}.json` en
 
 ## Data handling
 
-The `def update(configuration, state)` function orchestrates the sync by fetching the list of top story IDs, filtering to new stories, and processing them in batches.
+The `def update(configuration, state)` function orchestrates the sync by fetching the list of top story IDs, filtering to new stories, sorting them in ascending order for contiguous state advancement, and processing them in batches. Ascending sort order ensures that if a lower-ID story fails to fetch, the state cursor does not skip past it to a higher-ID success.
 
-For each batch, the `def process_batch(session, configuration, story_ids, is_cortex_enabled, enriched_count, max_enrichments, state)` function fetches individual story details via `def fetch_story(session, story_id)`, optionally enriches them with AI analysis via `def enrich_story(session, configuration, title)`, flattens nested structures, and upserts records to the destination.
+For each batch, the `def process_batch(session, configuration, story_ids, is_cortex_enabled, enriched_count, max_enrichments, state)` function fetches individual story details via `def fetch_story(session, story_id)`, optionally enriches them with AI analysis via `def enrich_story(session, configuration, title)`, flattens nested structures, and upserts records to the destination. The `max_enrichments` limit counts each enrichment attempt regardless of which specific enrichment fields succeed, ensuring cost control is enforced based on Cortex API calls made.
 
 The `def enrich_story(session, configuration, title)` function calls both `def call_cortex_sentiment(session, account, title, pat_token, model, timeout)` and `def call_cortex_classification(session, account, title, pat_token, model, timeout)` to generate sentiment and topic enrichments. Cortex responses are Server-Sent Events parsed by `def parse_cortex_streaming_response(response)`.
 
