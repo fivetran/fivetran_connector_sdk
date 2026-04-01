@@ -110,7 +110,7 @@ def get_session_token(base_url, config):
 
     log.info(f"Making API call to url: {token_url}")
 
-    response = rq.post(token_url, json=body, timeout=REQUEST_TIMEOUT)
+    response = rq.post(token_url, json=body, timeout=__REQUEST_TIMEOUT)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     response_page = response.json()
     return response_page.get("token")
@@ -145,30 +145,32 @@ def get_api_response(url, params, headers):
         response_page: A dictionary containing the parsed JSON response from the API.
     Raises:
         requests.exceptions.HTTPError: For 4xx responses (caller must handle 401 re-auth).
-        RuntimeError: If all retry attempts are exhausted.
     """
     log.info(f"Making API call to url: {url} with params: {params}")
-    for attempt in range(MAX_RETRIES):
+    last_error = None
+    for attempt in range(__MAX_RETRIES):
         try:
-            response = rq.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
+            response = rq.get(url, params=params, headers=headers, timeout=__REQUEST_TIMEOUT)
             response.raise_for_status()
             return response.json()
         except rq.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response is not None else None
             if status_code is not None and 500 <= status_code < 600:
-                log.warning(f"Server error {status_code} on attempt {attempt + 1}/{MAX_RETRIES}")
+                last_error = e
+                log.warning(f"Server error {status_code} on attempt {attempt + 1}/{__MAX_RETRIES}")
             else:
                 raise  # 4xx errors are not retried; caller handles 401
         except (rq.exceptions.Timeout, rq.exceptions.ConnectionError) as e:
-            log.warning(f"Transient error on attempt {attempt + 1}/{MAX_RETRIES}: {e}")
+            last_error = e
+            log.warning(f"Transient error on attempt {attempt + 1}/{__MAX_RETRIES}: {e}")
 
-        if attempt < MAX_RETRIES - 1:
-            wait = BASE_DELAY_SECONDS * (2**attempt)
+        if attempt < __MAX_RETRIES - 1:
+            wait = __BASE_DELAY_SECONDS * (2**attempt)
             log.warning(f"Retrying in {wait}s...")
             time.sleep(wait)
-        else:
-            log.severe(f"Request to {url} failed after {MAX_RETRIES} attempts.")
-            raise RuntimeError(f"Request to {url} failed after {MAX_RETRIES} attempts.")
+
+    log.severe(f"Request to {url} failed after {__MAX_RETRIES} attempts.")
+    raise last_error
 
 
 def sync_items(base_url, params, state, configuration):
