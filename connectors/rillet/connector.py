@@ -208,7 +208,21 @@ def validate_configuration(configuration: Dict):
 
 
 def schema(configuration: Dict):
-    """Defines destination tables for the connector."""
+    """
+    Defines the destination tables and their primary keys for the connector.
+
+    Parameters:
+        configuration (dict): The connector configuration dictionary. This parameter is required by the SDK interface,
+            but is not used in this implementation.
+
+    Returns:
+        list: A list of dictionaries, each specifying a table name and its primary key(s), e.g.,
+            [{"table": "account", "primary_key": ["id"]}, ...] for all supported collections.
+
+    Behavior:
+        This function enumerates all collections defined in SYNC_COLLECTIONS and returns their table names and primary keys,
+        which informs Fivetran which tables will be created and how records are uniquely identified.
+    """
     return [{"table": collection["table"], "primary_key": ["id"]} for collection in SYNC_COLLECTIONS]
 
 
@@ -227,6 +241,11 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
             response = requests.get(url, headers=headers, params=params, timeout=30)
 
             if response.status_code == 429:
+                last_exception = RuntimeError(
+                    f"Rate limit error {response.status_code}: {response.text}"
+                )
+                if attempt == __MAX_RETRIES:
+                    raise last_exception
                 retry_after = int(response.headers.get("Retry-After", "1"))
                 sleep_seconds = max(retry_after, __BACKOFF_BASE ** attempt)
                 log.warning(f"Rate limit received, sleeping {sleep_seconds}s (attempt {attempt})")
@@ -237,6 +256,9 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
                 sleep_seconds = __BACKOFF_BASE ** attempt
                 log.warning(
                     f"Server error {response.status_code}. Retry in {sleep_seconds}s (attempt {attempt})"
+                )
+                last_exception = RuntimeError(
+                    f"Server error {response.status_code}: {response.text}"
                 )
                 time.sleep(sleep_seconds)
                 continue
@@ -258,6 +280,9 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
             log.warning(f"Request exception: {e}. Retry in {sleep_seconds}s (attempt {attempt})")
             time.sleep(sleep_seconds)
 
+    # Ensure last_exception is set before raising to avoid chaining None
+    if last_exception is None:
+        last_exception = RuntimeError(f"Failed to get API response for {url} after {__MAX_RETRIES} attempts")
     raise RuntimeError(f"Failed to get API response for {url}") from last_exception
 
 
@@ -315,6 +340,9 @@ def _get_collection_items(
             if last_synced_at and updated_at and updated_at <= last_synced_at:
                 continue
 
+            # The 'upsert' operation is used to insert or update data in the destination table. 
+            # The first argument is the name of the destination table. 
+            # The second argument is a dictionary containing the record to be upserted. 
             op.upsert(table=table_name, data=item)
             retrieved += 1
 
@@ -343,12 +371,36 @@ def _get_collection_items(
     if supports_updated_gt and highest_updated:
         state[last_updated_key] = highest_updated
 
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state)
     log.info(f"Fetched {retrieved} records for {endpoint}")
 
 
 def update(configuration: Dict, state: Dict):
-    """Main sync function called by Fivetran during each run."""
+    """
+    Main sync function called by Fivetran during each run.
+
+    Parameters:
+        configuration (dict): Connector configuration, including authentication and API settings.
+        state (dict): The current sync state, used for incremental sync and checkpointing.
+
+    Behavior:
+        - Validates the configuration.
+        - Iterates through all defined collections, fetching and upserting records from the Rillet API.
+        - Handles pagination and incremental sync using cursors and last updated timestamps.
+        - Periodically checkpoints state to ensure resumability and data integrity.
+        - Logs sync progress, warnings, and errors according to Fivetran Connector SDK logging standards.
+
+    Side Effects:
+        - Calls op.upsert() to write records to destination tables.
+        - Calls op.checkpoint() to persist sync state.
+        - Emits log messages for monitoring and debugging.
+    """
     log.warning("Example: Source Connector : Rillet API Connector")
 
     validate_configuration(configuration)
