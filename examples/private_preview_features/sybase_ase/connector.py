@@ -20,6 +20,7 @@ import pyodbc  # For connecting to Sybase ASE using FreeTDS
 import json
 import socket  # For pre-flight TCP connectivity check
 import threading  # For enforcing a hard timeout on pyodbc.connect()
+import time  # For retry back-off delays
 from decimal import Decimal
 
 # Timeout (seconds) for the pre-flight TCP connectivity probe.
@@ -34,6 +35,11 @@ _TCP_PROBE_TIMEOUT = 5
 # background thread so that a hung connect() raises a Python exception in time
 # for the SDK to transmit error details before the platform kills the process.
 _CONNECT_TIMEOUT = 15
+
+# Number of times to retry a failed pyodbc.connect() before giving up.
+# A short back-off is applied between attempts to handle transient TDS errors.
+_MAX_CONNECT_RETRIES = 3
+_CONNECT_RETRY_DELAY = 2  # seconds between retries
 
 
 def validate_configuration(configuration: dict):
@@ -478,28 +484,45 @@ def create_sybase_connection(configuration: dict):
     # pyodbc.connect() can hang indefinitely because FreeTDS ignores LoginTimeout.
     # Run it in a daemon thread and join with _CONNECT_TIMEOUT so we always raise
     # a Python exception before the Fivetran gRPC deadline kills the process.
-    result: dict = {"conn": None, "error": None}
+    # Retry up to _MAX_CONNECT_RETRIES times to handle transient TDS errors.
+    last_error: Exception = None
+    for attempt in range(1, _MAX_CONNECT_RETRIES + 1):
+        result: dict = {"conn": None, "error": None}
 
-    def _do_connect():
-        try:
-            result["conn"] = pyodbc.connect(connection_str, autocommit=True)
-        except Exception as exc:  # noqa: BLE001
-            result["error"] = exc
+        def _do_connect():
+            try:
+                result["conn"] = pyodbc.connect(connection_str, autocommit=True)
+            except Exception as exc:  # noqa: BLE001
+                result["error"] = exc
 
-    connect_thread = threading.Thread(target=_do_connect, daemon=True)
-    connect_thread.start()
-    connect_thread.join(timeout=_CONNECT_TIMEOUT)
+        connect_thread = threading.Thread(target=_do_connect, daemon=True)
+        connect_thread.start()
+        connect_thread.join(timeout=_CONNECT_TIMEOUT)
 
-    if connect_thread.is_alive():
-        raise RuntimeError(
-            f"pyodbc.connect() did not complete within {_CONNECT_TIMEOUT}s — "
-            f"the TDS handshake with {server}:{port} is hanging. "
-            "FreeTDS ignores LoginTimeout; ensure the server is reachable and "
-            "the TDS version / credentials are correct."
+        if connect_thread.is_alive():
+            raise RuntimeError(
+                f"pyodbc.connect() did not complete within {_CONNECT_TIMEOUT}s — "
+                f"the TDS handshake with {server}:{port} is hanging. "
+                "FreeTDS ignores LoginTimeout; ensure the server is reachable and "
+                "the TDS version / credentials are correct."
+            )
+
+        if result["error"] is None:
+            break  # success
+
+        last_error = result["error"]
+        log.warning(
+            f"Connection attempt {attempt}/{_MAX_CONNECT_RETRIES} failed: {last_error}. "
+            + (
+                f"Retrying in {_CONNECT_RETRY_DELAY}s..."
+                if attempt < _MAX_CONNECT_RETRIES
+                else "No more retries."
+            )
         )
-
-    if result["error"] is not None:
-        raise RuntimeError("Connection to Sybase ASE failed") from result["error"]
+        if attempt < _MAX_CONNECT_RETRIES:
+            time.sleep(_CONNECT_RETRY_DELAY)
+    else:
+        raise RuntimeError("Connection to Sybase ASE failed after all retries") from last_error
 
     conn = result["conn"]
     # Set a per-query timeout so that any hanging SQL statement raises a Python

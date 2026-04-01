@@ -1,7 +1,7 @@
 {
-  "server": "35.223.102.32",
-  "port": "5000",
-  "database": "pubs2",
-  "user_id": "sa",
-  "password": "**MASKED**"
+  "server": "<host>",
+  "port": "<port>",
+  "database": "<database>",
+  "user_id": "<username>",
+  "password": "<password>"
 }
