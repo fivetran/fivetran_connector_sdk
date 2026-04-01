@@ -8,14 +8,14 @@ See https://docs.api.rillet.com/docs/getting-started
 and https://docs.api.rillet.com/docs/webhooks
 """
 
-import json
-import time
-from typing import Dict
+import json  # For loading connector configuration when running locally in the __main__ block
+import time  # For implementing sleep-based exponential backoff between retry attempts
+from typing import Dict  # For type annotations on configuration, state, and helper function arguments/returns
 
-import requests
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+import requests  # For making HTTP requests to the Rillet API endpoints
+from fivetran_connector_sdk import Connector  # For initializing the connector entry point used by Fivetran
+from fivetran_connector_sdk import Logging as log  # For emitting structured logs within the Fivetran Connector SDK runtime
+from fivetran_connector_sdk import Operations as op  # For performing data operations such as upsert and checkpoint
 
 __DEFAULT_BASE_URL = "https://api.rillet.com"
 __DEFAULT_API_VERSION = "3"
@@ -192,7 +192,24 @@ SYNC_COLLECTIONS = [
 
 
 def validate_configuration(configuration: Dict):
-    """Validate required and optional connector configuration."""
+    """
+    Validates the connector configuration for required and optional fields.
+
+    Required Keys:
+        - api_key (str): The API key for authenticating with the Rillet API. Must be a non-empty string.
+
+    Optional Keys:
+        - base_url (str): The base URL for the Rillet API. Defaults to 'https://api.rillet.com' if not provided.
+        - api_version (str|int): The Rillet API version. Defaults to '3' if not provided.
+
+    Validation Logic:
+        - Ensures all required keys are present and non-empty.
+        - Validates that 'base_url' is a non-empty string if provided.
+        - Validates that 'api_version' is a non-empty string or integer if provided.
+
+    Raises:
+        ValueError: If any required key is missing or empty, or if optional keys are of incorrect type or empty.
+    """
     required_keys = ["api_key"]
     for key in required_keys:
         if key not in configuration or not configuration.get(key):
@@ -227,6 +244,17 @@ def schema(configuration: Dict):
 
 
 def _make_headers(configuration: Dict) -> Dict:
+    """
+    Build the HTTP headers required for Rillet API requests.
+    Args:
+        configuration: A dictionary containing connector configuration values, including the API key and optional API version.
+    Returns:
+        A dictionary of HTTP headers to include with each Rillet API request.
+    Behavior:
+        - Constructs the 'Authorization' header using the provided API key.
+        - Sets the 'accept' header to 'application/json' to specify the expected response format
+        - Includes the 'X-Rillet-API-Version' header based on the provided API version in the configuration, or defaults to a predefined version if not specified.
+    """
     return {
         "Authorization": f"Bearer {configuration['api_key']}",
         "accept": "application/json",
@@ -246,8 +274,20 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
                 )
                 if attempt == __MAX_RETRIES:
                     raise last_exception
-                retry_after = int(response.headers.get("Retry-After", "1"))
-                sleep_seconds = max(retry_after, __BACKOFF_BASE ** attempt)
+                retry_after_header = response.headers.get("Retry-After")
+                retry_after_seconds = None
+                if retry_after_header is not None:
+                    try:
+                        retry_after_seconds = int(retry_after_header)
+                        if retry_after_seconds < 0:
+                            retry_after_seconds = None
+                    except ValueError:
+                        retry_after_seconds = None
+                base_backoff = __BACKOFF_BASE ** attempt
+                if retry_after_seconds is not None:
+                    sleep_seconds = max(retry_after_seconds, base_backoff)
+                else:
+                    sleep_seconds = base_backoff
                 log.warning(f"Rate limit received, sleeping {sleep_seconds}s (attempt {attempt})")
                 time.sleep(sleep_seconds)
                 continue
@@ -362,12 +402,17 @@ def _get_collection_items(
         pagination = payload.get("pagination", {})
         next_cursor = pagination.get("next_cursor")
         if not next_cursor:
+            # No further pages; clear the cursor so we do not persist a stale pagination token.
+            cursor = None
             break
-
         cursor = next_cursor
-
     if supports_pagination:
-        state[cursor_key] = cursor
+        if cursor:
+            # Persist the cursor only when there is a valid next page token.
+            state[cursor_key] = cursor
+        else:
+            # Remove any previous cursor so that the next run falls back to updated.gt.
+            state.pop(cursor_key, None)
     if supports_updated_gt and highest_updated:
         state[last_updated_key] = highest_updated
 
@@ -425,11 +470,23 @@ def update(configuration: Dict, state: Dict):
         raise
 
 
-connector = Connector(update=update, schema=schema)
+# Create the connector object using the schema and update functions 
+connector = Connector(update=update, schema=schema) 
 
+# Check if the script is being run as the main module. 
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button. 
+# 
+# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command: 
+#   fivetran debug 
+# 
+# This local testing block is provided as a convenience for quick debugging during development, 
+# such as using IDE debug tools (breakpoints, step-through debugging, etc.). 
+# Note: This method is not called by Fivetran when executing your connector in production. 
+# Always test using 'fivetran debug' prior to finalizing and deploying your connector. 
+if __name__ == "__main__": 
+    # Open the configuration.json file and load its contents 
+    with open("configuration.json", "r") as f: 
+        configuration = json.load(f) 
 
-if __name__ == "__main__":
-    with open("configuration.json", "r") as f:
-        configuration = json.load(f)
-
-    connector.debug(configuration=configuration)
+    # Test the connector locally 
+    connector.debug(configuration=configuration) 
