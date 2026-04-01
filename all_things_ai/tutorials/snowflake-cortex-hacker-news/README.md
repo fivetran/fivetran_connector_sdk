@@ -70,7 +70,7 @@ The `configuration.json` file contains the parameters needed to connect to the H
 - `cortex_timeout` (optional): Timeout in seconds for Cortex API calls, defaults to 30
 - `max_enrichments` (optional): Maximum number of AI enrichments per sync for cost control, defaults to 50
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+Note: This example repository includes a `configuration.json` file checked into version control, but it contains only placeholder values and no real credentials. In your own production repositories, do not commit `configuration.json` files containing real secrets or environment-specific configuration; instead, use environment variables or a secrets manager to store sensitive values.
 
 
 ## Authentication

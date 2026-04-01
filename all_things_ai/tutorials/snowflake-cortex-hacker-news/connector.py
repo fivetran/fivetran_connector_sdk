@@ -484,8 +484,9 @@ def process_batch(
         if is_cortex_enabled and title and enriched_count < max_enrichments:
             enrichment = enrich_story(session, configuration, title)
             story_data.update(enrichment)
-            if enrichment.get("cortex_sentiment") is not None:
-                enriched_count += 1
+            # Count each enrichment attempt toward the max_enrichments limit,
+            # regardless of which specific enrichment fields are present.
+            enriched_count += 1
 
         # Flatten nested data structures for Fivetran compatibility
         flattened = flatten_dict(story_data)
@@ -547,8 +548,10 @@ def update(configuration: dict, state: dict):
         all_story_ids = fetch_data_with_retry(session, top_stories_url)
         log.info(f"Retrieved {len(all_story_ids)} story IDs from HN API")
 
-        # Filter to only new stories and limit to max_stories
-        new_story_ids = [sid for sid in all_story_ids if sid > last_synced_id]
+        # Filter to only new stories, sort ascending for contiguous state advancement,
+        # and limit to max_stories. Sorting ensures that if a lower-ID story fails,
+        # the state cursor does not skip past it to a higher-ID success.
+        new_story_ids = sorted([sid for sid in all_story_ids if sid > last_synced_id])
         story_ids_to_sync = new_story_ids[:max_stories]
 
         log.info(
