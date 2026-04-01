@@ -132,9 +132,9 @@ op.delete(table, keys)
 - Example:
 ```json
 {
-    "api_key": "string",
-    "base_url": "string",
-    "rate_limit": "string"
+    "api_key": "<YOUR_API_KEY>",
+    "base_url": "<YOUR_BASE_URL>",
+    "rate_limit": "<YOUR_RATE_LIMIT_PER_SECOND>"
 }
 ```
 
