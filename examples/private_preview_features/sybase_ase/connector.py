@@ -661,7 +661,7 @@ def fetch_and_upsert(
 
             # Update the last value if incremental column is specified
             incremental_value = row_data.get(incremental_column) if incremental_column else None
-            if incremental_value:
+            if incremental_value is not None:
                 # Value is already converted to string format above
                 if last_value is None or incremental_value > last_value:
                     last_value = incremental_value
