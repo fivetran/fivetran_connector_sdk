@@ -471,13 +471,14 @@ def create_sybase_connection(configuration: dict):
             break  # success
 
         last_error = result["error"]
+        retry_msg = (
+            f"Retrying in {_CONNECT_RETRY_DELAY}s..."
+            if attempt < _MAX_CONNECT_RETRIES
+            else "No more retries."
+        )
         log.warning(
-            f"Connection attempt {attempt}/{_MAX_CONNECT_RETRIES} failed: {last_error}. "
-            + (
-                f"Retrying in {_CONNECT_RETRY_DELAY}s..."
-                if attempt < _MAX_CONNECT_RETRIES
-                else "No more retries."
-            )
+            f"Connection attempt {attempt}/{_MAX_CONNECT_RETRIES} failed: "
+            f"{last_error}. {retry_msg}"
         )
         if attempt < _MAX_CONNECT_RETRIES:
             time.sleep(_CONNECT_RETRY_DELAY)
@@ -621,7 +622,7 @@ def fetch_and_upsert(
 
             # Update the last value if incremental column is specified
             incremental_value = row_data.get(incremental_column) if incremental_column else None
-            if incremental_value is not None:
+            if incremental_value:
                 # Value is already converted to string format above
                 if last_value is None or incremental_value > last_value:
                     last_value = incremental_value
