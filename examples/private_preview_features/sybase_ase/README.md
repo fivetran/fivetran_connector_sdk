@@ -1,22 +1,26 @@
-# Sybase ASE Connector for Fivetran
+# Sybase ASE Connector Example
 
-A production-ready Fivetran Connector SDK implementation for Sybase ASE that dynamically discovers and syncs all tables in a database to any Fivetran-supported destination.
+## Connector overview
 
----
+This connector uses the Fivetran Connector SDK to replicate data from a Sybase ASE database to any Fivetran-supported destination. It dynamically discovers all user tables in the configured database, detects primary keys and column types, and syncs each table incrementally using a per-table watermark stored in state. A full sync is performed for tables that have no suitable incremental column.
 
-## Repository Contents
+The connector connects to Sybase ASE via FreeTDS and pyodbc, bundling the `libtdsodbc.so` driver directly so that no installation step is required in the Fivetran cloud environment.
 
-| File | Description |
-|------|-------------|
-| `connector.py` | Fivetran Connector SDK implementation |
-| `sybase_ase_load_test.py` | Load testing script for validating database connectivity and performance |
-| `configuration.json.example` | Example configuration file (copy to `configuration.json` and fill in your values) |
-| `requirements.txt` | Python dependencies |
-| `drivers/installation.sh` | FreeTDS driver installation script (Linux) |
 
----
+## Requirements
 
-## Prerequisites
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+- FreeTDS installed locally for development and testing:
+  - macOS: `brew install freetds`
+  - Linux: `bash drivers/installation.sh`
+
+
+## Getting started
+
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
 To initialize a new Connector SDK project using this connector as a starting point, run:
@@ -24,45 +28,34 @@ To initialize a new Connector SDK project using this connector as a starting poi
 ```bash
 fivetran init <project-path> --template examples/private_preview_features/sybase_ase
 ```
+
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
 If you do not specify a project path, Fivetran creates the project in your current directory.
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
 
 > Note: Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
 
-### Python Dependencies
 
-```bash
-pip install pyodbc fivetran-connector-sdk
-```
+## Features
 
-### FreeTDS Driver
+- Dynamic table discovery — all user tables in the configured database are synced automatically, with no manual schema definitions required.
+- Incremental sync — each table is synced using a per-table watermark (prefers `datetime` columns, falls back to the first primary key column).
+- Full sync fallback — tables with no suitable incremental column are fully replicated on every sync.
+- Bundled FreeTDS driver — `libtdsodbc.so` is shipped alongside the connector so no installation step is needed in the Fivetran cloud environment.
+- Retry logic — `pyodbc.connect()` is retried up to 3 times with a 2-second back-off to handle transient TDS errors.
+- Hard connect timeout — a background thread enforces a 15-second deadline on `pyodbc.connect()` so that a hung TDS handshake raises a clear Python exception before the Fivetran gRPC deadline.
+- Optional table filtering — set the `tables` configuration key to a comma-separated list to sync only specific tables.
 
-FreeTDS is required for all connectivity to Sybase ASE.
 
-```bash
-# macOS
-brew install freetds
-
-# Linux (or use the included script)
-bash drivers/installation.sh
-```
-
-### Configuration
-
-Copy the example configuration file and fill in your values:
-
-```bash
-cp configuration.json.example configuration.json
-```
+## Configuration file
 
 ```json
 {
-  "server": "<YOUR_SYBASE_ASE_SERVER>",
-  "port": "<YOUR_SYBASE_ASE_PORT>",
-  "database": "<YOUR_SYBASE_ASE_DATABASE>",
-  "user_id": "<YOUR_SYBASE_ASE_USER_ID>",
-  "password": "<YOUR_SYBASE_ASE_PASSWORD>"
+  "server": "<host>",
+  "port": "<port>",
+  "database": "<database>",
+  "user_id": "<username>",
+  "password": "<password>"
 }
 ```
 
@@ -70,38 +63,44 @@ To sync only specific tables, add an optional `tables` field (comma-separated):
 
 ```json
 {
-  "server": "<YOUR_SYBASE_ASE_SERVER>",
-  "port": "<YOUR_SYBASE_ASE_PORT>",
-  "database": "<YOUR_SYBASE_ASE_DATABASE>",
-  "user_id": "<YOUR_SYBASE_ASE_USER_ID>",
-  "password": "<YOUR_SYBASE_ASE_PASSWORD>",
+  "server": "<host>",
+  "port": "<port>",
+  "database": "<database>",
+  "user_id": "<username>",
+  "password": "<password>",
   "tables": "sales,authors,titles"
 }
 ```
 
 If `tables` is omitted, all user tables in the database are synced automatically.
 
----
+> Note: When submitting connector code as a [Community Connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors) or enhancing an [example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples) in the open-source [Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main), ensure the `configuration.json` file has placeholder values.
+When adding the connector to your production repository, ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
-## Fivetran Connector (connector.py)
 
-### How It Works
+## Requirements file
 
-On each sync the connector:
+The connector requires `pyodbc` to connect to Sybase ASE via the bundled FreeTDS ODBC driver.
 
-1. Connects to Sybase ASE via FreeTDS and pyodbc
-2. Queries `sysobjects` to discover all user tables in the configured database
-3. For each table, detects primary keys via `sp_helpindex` and maps column types from `syscolumns`
-4. Determines the best incremental column per table (prefers `datetime` columns, falls back to the first primary key)
-5. Fetches rows incrementally using a per-table watermark stored in state, or performs a full sync if no incremental column exists
-6. Converts Python types (e.g. `Decimal`, `datetime`) to Fivetran-compatible formats
-7. Upserts rows to the destination in batches of 1,000 and checkpoints state after each batch
+```
+pyodbc==5.3.0
+```
 
-### Schema Discovery
+> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
-The connector dynamically builds the schema at sync time — no manual table or column definitions required. It maps Sybase ASE types to Fivetran types as follows:
 
-| Sybase Type | Fivetran Type |
+## Authentication
+
+The connector authenticates with Sybase ASE using a username and password supplied via `configuration.json`. Credentials are passed directly to the ODBC connection string and are never logged.
+
+
+## Data handling
+
+Refer to `def map_sybase_to_fivetran_type(sybase_type, precision, scale)` for the full type mapping.
+
+Sybase ASE column types are mapped to Fivetran types as follows:
+
+| Sybase type | Fivetran type |
 |-------------|---------------|
 | `char`, `varchar`, `text`, `unichar`, `univarchar` | `STRING` |
 | `int`, `integer` | `INT` |
@@ -118,109 +117,44 @@ The connector dynamically builds the schema at sync time — no manual table or 
 
 Any unmapped type defaults to `STRING`.
 
-### Key Functions
+Python `Decimal` objects are converted to strings before being passed to Fivetran's protobuf layer. `datetime` and `date` objects are serialised to ISO 8601 strings.
 
-| Function | Description |
-|----------|-------------|
-| `validate_configuration(configuration)` | Checks all required fields are present |
-| `schema(configuration)` | Dynamically discovers all tables and returns schema definitions |
-| `get_sybase_tables(connection, database)` | Queries `sysobjects` for all user tables |
-| `get_table_primary_keys(connection, table_name)` | Detects primary keys via `sp_helpindex` |
-| `get_table_incremental_column(connection, table_name)` | Finds the best column for incremental sync |
-| `map_sybase_to_fivetran_type(sybase_type, precision, scale)` | Maps Sybase types to Fivetran types |
-| `create_sybase_connection(configuration)` | Establishes a pyodbc connection via FreeTDS |
-| `fetch_and_upsert(cursor, query, table_name, state, ...)` | Fetches rows in batches and emits upsert operations |
-| `sync_table(connection, table_name, state)` | Orchestrates the sync for a single table |
-| `update(configuration, state)` | Entry point called by Fivetran on each sync |
+Rows are fetched and upserted in batches of 1,000. State is checkpointed after each batch. Refer to `def fetch_and_upsert(cursor, query, table_name, state, ...)` for details.
 
-### Local Testing
 
-```bash
-python connector.py
-```
+## Error handling
 
-This calls `connector.debug()` which initializes the full Fivetran SDK runtime, including logging, and runs a local test sync writing results to `files/warehouse.db`.
+Refer to `def create_sybase_connection(configuration)` for connection error handling.
 
-### Deploying to Fivetran
+- TCP pre-flight check — before attempting an ODBC connection, the connector probes the host and port with a raw TCP socket. A failure here raises an immediate, descriptive error.
+- Connect timeout — `pyodbc.connect()` is run in a daemon thread and joined with a 15-second timeout. If the thread is still alive after the timeout, a `RuntimeError` is raised with a clear message before the Fivetran gRPC deadline expires.
+- Connect retries — if `pyodbc.connect()` raises an exception, it is retried up to 3 times with a 2-second back-off. A hang (thread timeout) is not retried.
+- Per-query timeout — `conn.timeout` is set to 15 seconds so that any hanging SQL statement raises a Python exception rather than blocking the sync indefinitely.
 
-```bash
-fivetran deploy \
-  --api-key <YOUR_API_KEY> \
-  --destination <YOUR_DESTINATION_NAME> \
-  --connection <YOUR_CONNECTION_NAME> \
-  --configuration configuration.json
-```
 
----
+## Tables created
 
-## Load Test (sybase_ase_load_test.py)
+The connector replicates all user tables found in the configured Sybase ASE database. The exact set of tables depends on the database being synced. For the `pubs2` sample database, the tables replicated are:
 
-A script for validating database connectivity and generating workload against the Sybase ASE database.
+- `au_pix`
+- `authors`
+- `blurbs`
+- `discounts`
+- `publishers`
+- `roysched`
+- `sales`
+- `salesdetail`
+- `stores`
+- `titleauthor`
+- `titles`
 
-### Usage
 
-```bash
-python sybase_ase_load_test.py
-```
+## Additional files
 
-Presents an interactive menu:
+- `drivers/installation.sh` – Shell script that registers the bundled `libtdsodbc.so` with `odbcinst.ini`. Kept for local Linux development; not executed by the Fivetran cloud platform.
+- `drivers/libtdsodbc.so` – FreeTDS ODBC driver (Linux x86_64, extracted from `tdsodbc_1.3.17+ds-2_amd64.deb`). Bundled directly so the connector works in the Fivetran cloud environment without any installation step.
 
-```
-1. Run write load test (inserts, updates, deletes)
-2. Run read-only load test (queries only)
-3. Exit
-```
 
-The script reads connection details from `configuration.json` automatically.
+## Additional considerations
 
-### Write Load Test
-
-Generates a realistic mixed workload:
-- Inserts random `sales` records
-- Inserts random `salesdetail` records
-- Updates `titles` prices randomly
-- Deletes old `sales` records (every 5 cycles)
-
-### Read-Only Load Test
-
-Runs SELECT queries only — safe for use against production databases or when the transaction log is constrained.
-
-> **Note:** Write operations require available transaction log space. If you see `transaction log is full` errors, truncate the log before running write tests:
-> ```sql
-> USE <your_database>
-> DUMP TRANSACTION <your_database> WITH TRUNCATE_ONLY
-> ```
-
----
-
-## Troubleshooting
-
-### Connection Failures
-
-```bash
-# Verify basic connectivity
-tsql -S <your_server> -p <your_port> -U <your_user> -P <your_password>
-
-# Check FreeTDS ODBC registration
-odbcinst -q -d
-
-# Enable FreeTDS debug logging
-export TDSDUMP=/tmp/freetds.log
-python connector.py
-cat /tmp/freetds.log
-```
-
-### Tables Not Appearing
-
-Verify the user has `SELECT` access on `sysobjects`, `syscolumns`, and `systypes` in the target database, as these system tables are used for schema discovery.
-
-### DECIMAL Type Errors
-
-The connector converts Python `Decimal` objects to strings before passing them to Fivetran's protobuf layer. If you encounter type errors on numeric columns, ensure you are running the latest version of `connector.py`.
-
----
-
-## Version
-
-Version: 2.0
-Last Updated: 2026-03-20
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
