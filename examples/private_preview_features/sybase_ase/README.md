@@ -126,7 +126,6 @@ Any unmapped type defaults to `STRING`.
 | `schema(configuration)` | Dynamically discovers all tables and returns schema definitions |
 | `get_sybase_tables(connection, database)` | Queries `sysobjects` for all user tables |
 | `get_table_primary_keys(connection, table_name)` | Detects primary keys via `sp_helpindex` |
-| `get_table_columns(connection, table_name)` | Reads column names and types from `syscolumns` |
 | `get_table_incremental_column(connection, table_name)` | Finds the best column for incremental sync |
 | `map_sybase_to_fivetran_type(sybase_type, precision, scale)` | Maps Sybase types to Fivetran types |
 | `create_sybase_connection(configuration)` | Establishes a pyodbc connection via FreeTDS |
