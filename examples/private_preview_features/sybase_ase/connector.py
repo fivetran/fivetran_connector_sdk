@@ -164,46 +164,6 @@ def get_table_primary_keys(connection, table_name: str):
         cursor.close()
 
 
-def get_table_columns(connection, table_name: str):
-    """
-    Retrieve column information for a specific table.
-    Args:
-        connection: A connection object to the Sybase ASE database.
-        table_name (str): The name of the table.
-    Returns:
-        dict: A dictionary mapping column names to Fivetran data types.
-    """
-    cursor = connection.cursor()
-    try:
-        # Query to get column information from syscolumns using a parameterised query
-        # to prevent SQL injection
-        query = """
-        SELECT c.name, t.name as type_name, c.length, c.prec, c.scale
-        FROM syscolumns c
-        JOIN systypes t ON c.usertype = t.usertype
-        JOIN sysobjects o ON c.id = o.id
-        WHERE o.name = ?
-        ORDER BY c.colid
-        """
-        cursor.execute(query, (table_name,))
-        columns = {}
-        for row in cursor.fetchall():
-            col_name = row[0]
-            col_type = row[1]
-            col_precision = row[3]
-            col_scale = row[4]
-
-            # Map Sybase types to Fivetran types
-            fivetran_type = map_sybase_to_fivetran_type(col_type, col_precision, col_scale)
-            columns[col_name] = fivetran_type
-        return columns
-    except Exception as e:
-        log.warning(f"Error fetching columns for table '{table_name}': {str(e)}")
-        return {}
-    finally:
-        cursor.close()
-
-
 def map_sybase_to_fivetran_type(sybase_type: str, precision: int = None, scale: int = None):
     """
     Map Sybase ASE data types to Fivetran data types.
