@@ -10,12 +10,20 @@ and https://docs.api.rillet.com/docs/webhooks
 
 import json  # For loading connector configuration when running locally in the __main__ block
 import time  # For implementing sleep-based exponential backoff between retry attempts
-from typing import Dict  # For type annotations on configuration, state, and helper function arguments/returns
+from typing import (
+    Dict,
+)  # For type annotations on configuration, state, and helper function arguments/returns
 
 import requests  # For making HTTP requests to the Rillet API endpoints
-from fivetran_connector_sdk import Connector  # For initializing the connector entry point used by Fivetran
-from fivetran_connector_sdk import Logging as log  # For emitting structured logs within the Fivetran Connector SDK runtime
-from fivetran_connector_sdk import Operations as op  # For performing data operations such as upsert and checkpoint
+from fivetran_connector_sdk import (
+    Connector,
+)  # For initializing the connector entry point used by Fivetran
+from fivetran_connector_sdk import (
+    Logging as log,
+)  # For emitting structured logs within the Fivetran Connector SDK runtime
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For performing data operations such as upsert and checkpoint
 
 __DEFAULT_BASE_URL = "https://api.rillet.com"
 __DEFAULT_API_VERSION = "3"
@@ -242,7 +250,9 @@ def schema(configuration: Dict):
         This function enumerates all collections defined in SYNC_COLLECTIONS and returns their table names and primary keys,
         which informs Fivetran which tables will be created and how records are uniquely identified.
     """
-    return [{"table": collection["table"], "primary_key": ["id"]} for collection in SYNC_COLLECTIONS]
+    return [
+        {"table": collection["table"], "primary_key": ["id"]} for collection in SYNC_COLLECTIONS
+    ]
 
 
 def _make_headers(configuration: Dict) -> Dict:
@@ -268,7 +278,9 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
     last_exception = None
     for attempt in range(1, __MAX_RETRIES + 1):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS
+            )
 
             if response.status_code == 429:
                 last_exception = RuntimeError(
@@ -285,7 +297,7 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
                             retry_after_seconds = None
                     except ValueError:
                         retry_after_seconds = None
-                base_backoff = __BACKOFF_BASE ** attempt
+                base_backoff = __BACKOFF_BASE**attempt
                 if retry_after_seconds is not None:
                     sleep_seconds = max(retry_after_seconds, base_backoff)
                 else:
@@ -295,7 +307,7 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
                 continue
 
             if 500 <= response.status_code < 600:
-                sleep_seconds = __BACKOFF_BASE ** attempt
+                sleep_seconds = __BACKOFF_BASE**attempt
                 log.warning(
                     f"Server error {response.status_code}. Retry in {sleep_seconds}s (attempt {attempt})"
                 )
@@ -318,13 +330,15 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
             last_exception = e
             if attempt == __MAX_RETRIES:
                 raise RuntimeError(f"Failed to request {url}: {e}")
-            sleep_seconds = __BACKOFF_BASE ** attempt
+            sleep_seconds = __BACKOFF_BASE**attempt
             log.warning(f"Request exception: {e}. Retry in {sleep_seconds}s (attempt {attempt})")
             time.sleep(sleep_seconds)
 
     # Ensure last_exception is set before raising to avoid chaining None
     if last_exception is None:
-        last_exception = RuntimeError(f"Failed to get API response for {url} after {__MAX_RETRIES} attempts")
+        last_exception = RuntimeError(
+            f"Failed to get API response for {url} after {__MAX_RETRIES} attempts"
+        )
     raise RuntimeError(f"Failed to get API response for {url}") from last_exception
 
 
@@ -372,7 +386,9 @@ def _get_collection_items(
 
         items = payload.get(response_key) if isinstance(payload, dict) else None
         if items is None:
-            raise RuntimeError(f"Unexpected response shape for {endpoint}: missing '{response_key}'")
+            raise RuntimeError(
+                f"Unexpected response shape for {endpoint}: missing '{response_key}'"
+            )
 
         if not isinstance(items, list) or len(items) == 0:
             break

@@ -6,6 +6,7 @@ This script validates the connector logic without making real API calls.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 # Mock the fivetran_connector_sdk to avoid import errors
@@ -37,7 +38,9 @@ class MockConnector:
 
 class MockOperations:
     def upsert(self, table, data):
-        print(f"📝 Mock upsert: table={table}, data keys={list(data.keys()) if isinstance(data, dict) else 'non-dict'}")
+        print(
+            f"📝 Mock upsert: table={table}, data keys={list(data.keys()) if isinstance(data, dict) else 'non-dict'}"
+        )
 
     def checkpoint(self, state):
         print(f"💾 Mock checkpoint: state keys={list(state.keys())}")
@@ -55,10 +58,10 @@ class MockLogging:
 
 
 # Monkey patch the imports in the connector module to use the mocks
-sys.modules['fivetran_connector_sdk'] = type(sys)('fivetran_connector_sdk')
-sys.modules['fivetran_connector_sdk'].Connector = MockConnector
-sys.modules['fivetran_connector_sdk'].Operations = MockOperations()
-sys.modules['fivetran_connector_sdk'].Logging = MockLogging()
+sys.modules["fivetran_connector_sdk"] = type(sys)("fivetran_connector_sdk")
+sys.modules["fivetran_connector_sdk"].Connector = MockConnector
+sys.modules["fivetran_connector_sdk"].Operations = MockOperations()
+sys.modules["fivetran_connector_sdk"].Logging = MockLogging()
 
 # Now import and test the connector
 try:
@@ -70,7 +73,7 @@ try:
     test_config = {
         "api_key": "test_key",
         "base_url": "https://api.rillet.com",
-        "api_version": "3"
+        "api_version": "3",
     }
 
     try:
