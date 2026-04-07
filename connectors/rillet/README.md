@@ -75,16 +75,6 @@ The connector defines destination tables in `schema()` and creates one table per
 
 Refer to the `schema()` function in `connectors/rillet/connector.py` for the table definitions.
 
-## Additional files
-- `test_connector.py` — A local validation script that mocks `fivetran_connector_sdk` imports and verifies connector structure, schema generation, and update execution without making real API calls.
-
-To run the validation script locally:
-
-```bash
-cd connectors/rillet
-python test_connector.py
-```
-
 ## Additional considerations
 - `base_url` defaults to `https://api.rillet.com` if omitted.
 - Set `api_version` in config for API stability (defaults to 3).
