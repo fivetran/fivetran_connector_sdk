@@ -19,10 +19,11 @@ from fivetran_connector_sdk import Operations as op  # For performing data opera
 
 __DEFAULT_BASE_URL = "https://api.rillet.com"
 __DEFAULT_API_VERSION = "3"
-__MAX_RETRIES = 5
+__MAX_RETRIES = 8
 __BACKOFF_BASE = 2
 __PAGE_LIMIT = 100
 __CHECKPOINT_INTERVAL = 200
+__REQUEST_TIMEOUT_SECONDS = 60
 
 SYNC_COLLECTIONS = [
     {
@@ -69,6 +70,7 @@ SYNC_COLLECTIONS = [
         "last_updated_key": "contracts_last_updated_at",
         "supports_pagination": True,
         "supports_updated_gt": False,
+        "optional": True,
     },
     {
         "endpoint": "/invoices",
@@ -266,7 +268,7 @@ def _make_request(url: str, headers: Dict, params: Dict, optional: bool = False)
     last_exception = None
     for attempt in range(1, __MAX_RETRIES + 1):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response = requests.get(url, headers=headers, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
 
             if response.status_code == 429:
                 last_exception = RuntimeError(
