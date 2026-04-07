@@ -132,19 +132,22 @@ def get_auth_headers(session_token):
     return headers
 
 
-def get_api_response(url, params, headers):
+def get_api_response(url, params, headers, base_url, configuration):
     """
     Send a GET request with retries and return the parsed JSON response.
     Retries on network errors (Timeout, ConnectionError) and 5xx server errors using
-    exponential backoff. 4xx client errors are not retried and propagate to the caller.
+    exponential backoff. On HTTP 401, re-authenticates once and retries the request.
+    Other 4xx client errors are not retried and propagate to the caller.
     Args:
         url: The URL to which the API request is made.
         params: A dictionary of query parameters to be included in the API request.
         headers: A dictionary containing request headers, such as the Authorization token.
+        base_url: The base URL used to re-authenticate when a 401 is received.
+        configuration: A dictionary containing credentials used for re-authentication.
     Returns:
         response_page: A dictionary containing the parsed JSON response from the API.
     Raises:
-        requests.exceptions.HTTPError: For 4xx responses (caller must handle 401 re-auth).
+        requests.exceptions.HTTPError: For unrecoverable 4xx responses.
     """
     log.info(f"Making API call to url: {url} with params: {params}")
     last_error = None
@@ -158,8 +161,18 @@ def get_api_response(url, params, headers):
             if status_code is not None and 500 <= status_code < 600:
                 last_error = e
                 log.warning(f"Server error {status_code} on attempt {attempt + 1}/{__MAX_RETRIES}")
+            elif status_code == 401:
+                # Token expired — re-authenticate and retry once.
+                log.warning(
+                    "Received HTTP 401 (unauthorized); re-authenticating and retrying once."
+                )
+                new_token = get_session_token(base_url, configuration)
+                headers = get_auth_headers(new_token)
+                response = rq.get(url, params=params, headers=headers, timeout=__REQUEST_TIMEOUT)
+                response.raise_for_status()
+                return response.json()
             else:
-                raise  # 4xx errors are not retried; caller handles 401
+                raise  # Other 4xx errors are not retried
         except (rq.exceptions.Timeout, rq.exceptions.ConnectionError) as e:
             last_error = e
             log.warning(f"Transient error on attempt {attempt + 1}/{__MAX_RETRIES}: {e}")
@@ -178,9 +191,8 @@ def sync_items(base_url, params, state, configuration):
     The sync_items function handles the retrieval of API data.
     It performs the following tasks:
         1. Obtains a session token and fetches data via get_api_response (timeout + retry included).
-        2. If the token has expired (HTTP 401), re-authenticates and retries the request once.
-        3. Processes the items returned in the API response by using upsert operations to send to Fivetran.
-        4. Saves the state periodically to ensure the sync can resume from the correct point.
+        2. Processes the items returned in the API response by using upsert operations to send to Fivetran.
+        3. Saves the state periodically to ensure the sync can resume from the correct point.
     Args:
         base_url: The URL to the API endpoint.
         params: A dictionary of query parameters to be sent with the API request.
@@ -190,16 +202,9 @@ def sync_items(base_url, params, state, configuration):
     session_token = get_session_token(base_url, configuration)
     items_url = base_url + "/data"
 
-    try:
-        response_page = get_api_response(items_url, params, get_auth_headers(session_token))
-    except rq.exceptions.HTTPError as e:
-        # If the token has expired, re-authenticate and retry once.
-        if e.response is not None and e.response.status_code == 401:
-            log.warning("Received HTTP 401 (unauthorized); re-authenticating and retrying once.")
-            session_token = get_session_token(base_url, configuration)
-            response_page = get_api_response(items_url, params, get_auth_headers(session_token))
-        else:
-            raise
+    response_page = get_api_response(
+        items_url, params, get_auth_headers(session_token), base_url, configuration
+    )
 
     # Process the items.
     items = response_page.get("data", [])
