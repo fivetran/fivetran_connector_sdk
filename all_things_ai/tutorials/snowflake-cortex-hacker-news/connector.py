@@ -428,25 +428,37 @@ def fetch_story(session, story_id):
     """
     Fetch a single story from the Hacker News API with retry logic.
 
+    Distinguishes between fetch failures (which should halt state advancement
+    so the failed story is retried next sync) and legitimate skip cases such
+    as non-story item types or deleted items (which should be skipped without
+    halting the sync).
+
     Args:
         session: requests.Session object for connection pooling
         story_id: Hacker News story ID to fetch
 
     Returns:
-        Story data dictionary, or None if fetch fails or story is not valid
+        Story data dictionary if the item is a valid story, or None if the
+        item is a legitimate skip (deleted, missing, or not type "story").
+
+    Raises:
+        RuntimeError: If the API request fails after all retry attempts.
+            Callers should treat this as a fetch failure and stop advancing
+            the state cursor past this story_id.
     """
     url = f"{__BASE_URL_HN}/item/{story_id}.json"
 
-    try:
-        story_data = fetch_data_with_retry(session, url)
-    except RuntimeError:
-        log.warning(f"Failed to fetch story {story_id} after retries")
-        return None
+    # Let RuntimeError propagate from fetch_data_with_retry — fetch failures
+    # are distinct from legitimate skips and must halt state advancement.
+    story_data = fetch_data_with_retry(session, url)
 
+    # Deleted or missing items return null/empty from the HN API. These are
+    # legitimate skips, not failures, and the cursor may advance past them.
     if not story_data or "id" not in story_data:
         return None
 
-    # Filter to only story type items
+    # Filter to only story type items. Comments, jobs, and polls are
+    # legitimate skips that the cursor may advance past.
     if story_data.get("type") != "story":
         return None
 
@@ -475,8 +487,24 @@ def process_batch(
     highest_synced_id = state.get("last_synced_id", 0)
 
     for story_id in story_ids:
-        story_data = fetch_story(session, story_id)
-        if not story_data:
+        try:
+            story_data = fetch_story(session, story_id)
+        except RuntimeError as e:
+            # A fetch failure on a lower-ID story must halt the loop so that
+            # highest_synced_id never advances past it. The failed story will
+            # be retried on the next sync. Returning here preserves the state
+            # cursor at the last contiguously synced ID.
+            log.warning(
+                f"Halting batch at story_id={story_id} due to fetch failure: "
+                f"{str(e)}. State cursor will not advance past this story."
+            )
+            return synced_count, enriched_count, highest_synced_id
+
+        # None means the item is a legitimate skip (deleted item, or not a
+        # "story" type such as comment/job/poll). The cursor may safely
+        # advance past these because they will never become stories.
+        if story_data is None:
+            highest_synced_id = max(highest_synced_id, story_id)
             continue
 
         # Enrich with Cortex if enabled and within enrichment limit
