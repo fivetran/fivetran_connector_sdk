@@ -289,23 +289,13 @@ def _get_collection_items(
 
 def update(configuration: Dict, state: Dict):
     """
-    Main sync function called by Fivetran during each run.
-
-    Parameters:
-        configuration (dict): Connector configuration, including authentication and API settings.
-        state (dict): The current sync state, used for incremental sync and checkpointing.
-
-    Behavior:
-        - Validates the configuration.
-        - Iterates through all defined collections, fetching and upserting records from the Rillet API.
-        - Handles pagination and incremental sync using cursors and last updated timestamps.
-        - Periodically checkpoints state to ensure resumability and data integrity.
-        - Logs sync progress, warnings, and errors according to Fivetran Connector SDK logging standards.
-
-    Side Effects:
-        - Calls op.upsert() to write records to destination tables.
-        - Calls op.checkpoint() to persist sync state.
-        - Emits log messages for monitoring and debugging.
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: Connectors : Rillet API Connector")
 
