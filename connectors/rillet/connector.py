@@ -464,7 +464,7 @@ def update(configuration: Dict, state: Dict):
         - Calls op.checkpoint() to persist sync state.
         - Emits log messages for monitoring and debugging.
     """
-    log.warning("Example: Source Connector : Rillet API Connector")
+    log.warning("Example: Connectors : Rillet API Connector")
 
     validate_configuration(configuration)
 
