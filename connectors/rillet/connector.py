@@ -72,19 +72,11 @@ def validate_configuration(configuration: Dict):
 
 def schema(configuration: Dict):
     """
-    Defines the destination tables and their primary keys for the connector.
-
-    Parameters:
-        configuration (dict): The connector configuration dictionary. This parameter is required by the SDK interface,
-            but is not used in this implementation.
-
-    Returns:
-        list: A list of dictionaries, each specifying a table name and its primary key(s), e.g.,
-            [{"table": "account", "primary_key": ["id"]}, ...] for all supported collections.
-
-    Behavior:
-        This function enumerates all collections defined in SYNC_COLLECTIONS and returns their table names and primary keys,
-        which informs Fivetran which tables will be created and how records are uniquely identified.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": collection["table"], "primary_key": ["id"]} for collection in SYNC_COLLECTIONS
