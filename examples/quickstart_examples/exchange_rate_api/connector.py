@@ -23,6 +23,7 @@ __DEFAULT_CURSOR = "2020-01-01"
 @dataclass
 class ExchangeRate:
     """Represents a single exchange rate record returned by the Frankfurter API."""
+
     date: str
     base: str
     quote: str
@@ -48,8 +49,12 @@ def schema(configuration: dict):
         {
             "table": "exchange_rates",
             "primary_key": ["date", "from_currency", "to_currency"],
-            "columns": {"date": "NAIVE_DATE", "from_currency": "STRING", "to_currency": "STRING",
-                        "rate": {"type": "DECIMAL", "precision": 15, "scale": 2}}
+            "columns": {
+                "date": "NAIVE_DATE",
+                "from_currency": "STRING",
+                "to_currency": "STRING",
+                "rate": {"type": "DECIMAL", "precision": 15, "scale": 6},
+            },
         }
     ]
 
@@ -62,8 +67,7 @@ def update(configuration: dict, state: dict):
     # Validate required configuration keys
     for key in ("from_currency", "to_currency"):
         if key not in configuration or not configuration[key]:
-            log.severe(f"Missing required configuration key: '{key}'")
-            return
+            raise ValueError(f"Missing required configuration key: '{key}'")
 
     from_currency = configuration["from_currency"]
     to_currency = configuration["to_currency"]
@@ -85,7 +89,9 @@ def update(configuration: dict, state: dict):
 
     url = build_api_url(from_currency, to_currency, from_date, to_date)
     log.fine(f"DEBUG request URL: {url}")
-    log.info(f"Fetching exchange rates from {from_date} to {to_date} for {from_currency} -> {to_currency}")
+    log.info(
+        f"Fetching exchange rates from {from_date} to {to_date} for {from_currency} -> {to_currency}"
+    )
 
     # Fetch data with retry and exponential backoff
     exchange_rates = []
@@ -95,7 +101,9 @@ def update(configuration: dict, state: dict):
             response.raise_for_status()
             data = response.json()
             if not isinstance(data, list):
-                log.severe(f"Unexpected API response type: {type(data).__name__}. Expected a list.")
+                log.severe(
+                    f"Unexpected API response type: {type(data).__name__}. Expected a list."
+                )
                 return
             exchange_rates = data
             log.fine(f"DEBUG API response length: {len(exchange_rates)}")
@@ -105,15 +113,12 @@ def update(configuration: dict, state: dict):
         except requests.RequestException as e:
             log.warning(f"Request attempt {attempt}/{__MAX_RETRIES} failed: {e}")
             if attempt < __MAX_RETRIES:
-                delay = __BASE_DELAY ** attempt
+                delay = __BASE_DELAY**attempt
                 log.info(f"Retrying in {delay} seconds...")
                 time.sleep(delay)
             else:
                 log.severe("All retry attempts exhausted. Aborting sync.")
                 return
-
-
-    # exchange_rates = exchange_rates[:5]
 
     # Upsert each record and track the latest date for checkpointing
     last_synced_date = None
@@ -133,10 +138,14 @@ def update(configuration: dict, state: dict):
             upsert_count += 1
             last_synced_date = record.date
         except Exception as e:
-            record_id = exchange_rate.get("date", "unknown") if isinstance(exchange_rate, dict) else str(exchange_rate)
+            record_id = (
+                exchange_rate.get("date", "unknown")
+                if isinstance(exchange_rate, dict)
+                else str(exchange_rate)
+            )
             log.fine(f"DEBUG failed raw record: {exchange_rate}")
-            log.warning(f"Failed to process exchange rate record ({record_id}): {e}.")
-            break
+            log.severe(f"Failed to process exchange rate record ({record_id}): {e}.")
+            raise
 
     log.info(f"Upserted {upsert_count}/{len(exchange_rates)} exchange rates.")
 
