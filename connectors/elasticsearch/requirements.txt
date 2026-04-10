@@ -1,0 +1,2 @@
+requests
+fivetran_connector_sdk

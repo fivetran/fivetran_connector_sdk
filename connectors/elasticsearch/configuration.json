@@ -1,0 +1,9 @@
+{
+  "host": "https://<your-elasticsearch-host>:9200",
+  "auth_method": "api_key",
+  "api_key": "<your-base64-encoded-api-key>",
+  "username": "<your-username>",
+  "password": "<your-password>",
+  "indices": "all",
+  "enable_delete_detection": "false"
+}
