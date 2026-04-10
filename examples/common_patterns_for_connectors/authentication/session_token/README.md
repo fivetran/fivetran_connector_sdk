@@ -28,6 +28,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 ## Features
 - Authenticates via a temporary session token obtained through a `/login` endpoint.
+- Handles token expiry by detecting HTTP 401 responses, re-authenticating, and retrying the request once.
 - Separates credential handling and data retrieval in dedicated helper functions.
 - Retrieves and syncs user records into a Fivetran-managed destination table.
 - Demonstrates session-based authentication handling, error recovery, and state checkpointing.
@@ -71,8 +72,9 @@ This connector retrieves all data in a single request (no pagination). If extend
 - `op.checkpoint()` is called to persist state after a successful sync.
 
 ## Error handling
-- Missing credentials trigger a ValueError in `get_session_token()`.
-- HTTP errors are caught via `raise_for_status()` in the `get_api_response()` function.
+- Missing credentials trigger a ValueError in `validate_configuration()`.
+- HTTP 401 responses (expired token) trigger a single re-authentication and retry in `sync_items()`.
+- All other HTTP errors are caught via `raise_for_status()`.
 - Logging is done using the `fivetran_connector_sdk.Logging` module.
 
 ## Tables created
