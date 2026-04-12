@@ -1,0 +1,12 @@
+{
+    "seed_make": "Toyota",
+    "seed_model": "Tundra",
+    "seed_year": "2022",
+    "discovery_depth": "2",
+    "max_discoveries": "3",
+    "enable_cortex": "true",
+    "snowflake_account": "<your-snowflake-account>.snowflakecomputing.com",
+    "snowflake_pat_token": "<your-snowflake-pat-token>",
+    "cortex_model": "llama3.3-70b",
+    "max_enrichments": "10"
+}
