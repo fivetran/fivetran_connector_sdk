@@ -37,7 +37,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # API Configuration Constants
 __BASE_URL_NHTSA = "https://api.nhtsa.gov"
 __BASE_URL_VPIC = "https://vpic.nhtsa.dot.gov/api/vehicles"
