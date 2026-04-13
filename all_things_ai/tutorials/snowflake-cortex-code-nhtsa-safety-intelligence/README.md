@@ -74,13 +74,13 @@ The connector requires the following configuration parameters in `configuration.
     "seed_make": "<VEHICLE_MAKE>",
     "seed_model": "<VEHICLE_MODEL>",
     "seed_year": "<MODEL_YEAR>",
-    "discovery_depth": "2",
-    "max_discoveries": "3",
-    "enable_cortex": "true",
-    "snowflake_account": "<YOUR_SNOWFLAKE_ACCOUNT>",
+    "discovery_depth": "<DISCOVERY_DEPTH_1_TO_3>",
+    "max_discoveries": "<MAX_VEHICLES_PER_DISCOVERY>",
+    "enable_cortex": "<TRUE_OR_FALSE>",
+    "snowflake_account": "<YOUR_SNOWFLAKE_ACCOUNT_HOSTNAME>",
     "snowflake_pat_token": "<YOUR_SNOWFLAKE_PAT>",
-    "cortex_model": "llama3.3-70b",
-    "max_enrichments": "10"
+    "cortex_model": "<CORTEX_MODEL_NAME>",
+    "max_enrichments": "<MAX_CORTEX_ENRICHMENTS>"
 }
 ```
 
@@ -93,7 +93,7 @@ Configuration parameters:
 - `enable_cortex` (optional) - Enable Snowflake Cortex Agent for discovery and synthesis phases. Defaults to "false"
 - `snowflake_account` (conditional) - Snowflake account URL (e.g., "orgname-acctname.snowflakecomputing.com"), required if Cortex is enabled
 - `snowflake_pat_token` (conditional) - Snowflake Personal Access Token, required if Cortex is enabled
-- `cortex_model` (optional) - Cortex LLM model for analysis. Defaults to "llama3.3-70b"
+- `cortex_model` (optional) - Cortex LLM model for analysis. Defaults to "claude-sonnet-4-6"
 - `max_enrichments` (optional) - Maximum Cortex API calls per sync for cost control. Defaults to "10"
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -138,7 +138,7 @@ The connector processes data through a three-phase pipeline, implemented in `def
 5. Upsert discovery insights with component risk rankings
 
 **Phase 3 - Cross-Vehicle Synthesis (requires Cortex and multiple vehicles):**
-1. Build synthesis prompt with aggregate data via `def build_synthesis_prompt(vehicles_investigated, all_recalls, all_complaints)`
+1. Build synthesis prompt with pre-computed aggregate data via `def build_synthesis_prompt(vehicles_investigated, aggregates)` using component frequency counts instead of full in-memory record lists
 2. Call Cortex Agent for fleet-wide analysis
 3. Upsert safety analysis with component risk rankings and fleet safety grade
 
@@ -159,11 +159,15 @@ Retry logic:
 - Connection errors and timeouts are retried with the same backoff pattern
 - Non-retryable errors (401, 403) are logged and raised immediately
 
-Cortex Agent handling:
-- Agent timeouts are logged as warnings; sync continues without AI enrichment
+Cortex Agent handling via `def call_cortex_agent(configuration, prompt)`:
+- Retry logic with exponential backoff for transient failures (429, 500, 502, 503, 504)
+- Authentication errors (401, 403) are logged and not retried
+- Agent timeouts are retried up to 3 times; sync continues without AI enrichment if all fail
 - Invalid JSON responses from the agent are logged and treated as empty results
 - Empty agent responses result in skipped discovery/synthesis phases
 - Markdown code fences in agent responses are automatically stripped before JSON parsing
+- LLM output is type-validated before use (e.g., recommended_vehicles must be a list of dicts)
+- `max_enrichments` budget is enforced with a counter before each Cortex call
 
 Validation:
 - Configuration validation occurs before sync starts - refer to `def validate_configuration(configuration)`
@@ -179,7 +183,7 @@ The connector creates five tables covering NHTSA safety data and AI-generated in
 
 Vehicle recall campaign records from the NHTSA Recalls API.
 
-Primary key: `nhtsa_campaign_number`, `make`, `model`
+Primary key: `nhtsa_campaign_number`, `make`, `model`, `model_year`
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -281,7 +285,7 @@ Primary key: `analysis_id`
 
 Cortex Agent enrichment costs scale with the discovery depth and number of discovered vehicles:
 
-Example cost projections (using llama3.3-70b model):
+Example cost projections (using claude-sonnet-4-6 model):
 - Data-only mode (enable_cortex=false): $0.00 per sync (NHTSA APIs are free)
 - Discovery only (discovery_depth=1, max_discoveries=3): approximately $0.002 per sync (1 agent call)
 - Full pipeline (discovery_depth=2, max_discoveries=3): approximately $0.004 per sync (2 agent calls)

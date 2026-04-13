@@ -53,7 +53,7 @@ __DEFAULT_DISCOVERY_DEPTH = 2
 __DEFAULT_MAX_DISCOVERIES = 3
 __DEFAULT_MAX_ENRICHMENTS = 10
 __DEFAULT_CORTEX_TIMEOUT = 60
-__DEFAULT_CORTEX_MODEL = "llama3.3-70b"
+__DEFAULT_CORTEX_MODEL = "claude-sonnet-4-6"
 
 # Cortex Agent Configuration
 __CORTEX_AGENT_ENDPOINT = "/api/v2/cortex/inference:complete"
@@ -134,7 +134,10 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
-        {"table": "recalls", "primary_key": ["nhtsa_campaign_number", "make", "model"]},
+        {
+            "table": "recalls",
+            "primary_key": ["nhtsa_campaign_number", "make", "model", "model_year"],
+        },
         {"table": "complaints", "primary_key": ["odi_number"]},
         {"table": "vehicle_specs", "primary_key": ["make_id", "model_id"]},
         {"table": "discovery_insights", "primary_key": ["insight_id"]},
@@ -527,41 +530,38 @@ Return ONLY valid JSON (no markdown, no code fences):
 }}"""
 
 
-def build_synthesis_prompt(vehicles_investigated, all_recalls, all_complaints):
+def build_synthesis_prompt(vehicles_investigated, aggregates):
     """
     Build the Cortex Agent prompt for cross-vehicle safety synthesis.
 
     Args:
         vehicles_investigated: List of (make, model, year) tuples
-        all_recalls: All recall records across all vehicles
-        all_complaints: All complaint records across all vehicles
+        aggregates: Dict with recall/complaint component counts and totals
 
     Returns:
         Prompt string for the Cortex Agent
     """
     vehicle_list = "\n".join([f"  - {v[0]} {v[1]} {v[2]}" for v in vehicles_investigated])
 
-    # Cross-vehicle component analysis
-    component_counts = {}
-    for r in all_recalls:
-        comp = r.get("Component") or r.get("component", "Unknown")
-        component_counts[comp] = component_counts.get(comp, 0) + 1
-
-    top_components = sorted(component_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    # Use pre-computed aggregates instead of iterating full lists
+    recall_components = aggregates.get("recall_components", {})
+    top_components = sorted(recall_components.items(), key=lambda x: x[1], reverse=True)[:10]
 
     component_summary = "\n".join(
         [f"  - {comp}: {count} recalls" for comp, count in top_components]
     )
 
-    total_crashes = sum(1 for c in all_complaints if c.get("crash") or c.get("Crash"))
-    total_fires = sum(1 for c in all_complaints if c.get("fire") or c.get("Fire"))
+    total_recalls = aggregates.get("total_recalls", 0)
+    total_complaints = aggregates.get("total_complaints", 0)
+    total_crashes = aggregates.get("crash_count", 0)
+    total_fires = aggregates.get("fire_count", 0)
 
     return f"""You are an automotive safety analyst. You have investigated multiple vehicles:
 {vehicle_list}
 
 AGGREGATE DATA:
-- Total recalls across all vehicles: {len(all_recalls)}
-- Total complaints across all vehicles: {len(all_complaints)}
+- Total recalls across all vehicles: {total_recalls}
+- Total complaints across all vehicles: {total_complaints}
 - Total crash incidents: {total_crashes}
 - Total fire incidents: {total_fires}
 
@@ -592,8 +592,7 @@ def call_cortex_agent(configuration, prompt):
     """
     Call Snowflake Cortex Agent via REST API for safety analysis.
 
-    Uses SSE streaming response parsing, matching the pattern from
-    the livestock weather intelligence connector.
+    Uses SSE streaming response parsing with retry logic for transient failures.
 
     Args:
         configuration: Configuration dictionary with Snowflake credentials
@@ -622,57 +621,109 @@ def call_cortex_agent(configuration, prompt):
         "max_tokens": 2000,
     }
 
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=timeout, stream=True)
-        response.raise_for_status()
-
+    for attempt in range(__MAX_RETRIES):
         agent_response = ""
-        for line in response.iter_lines():
-            if line:
-                line_text = line.decode("utf-8")
-                if line_text.startswith("data: "):
-                    try:
-                        data = json.loads(line_text[6:])
-                        if not isinstance(data, dict):
+        try:
+            response = requests.post(
+                url, headers=headers, json=payload, timeout=timeout, stream=True
+            )
+            response.raise_for_status()
+
+            for line in response.iter_lines():
+                if line:
+                    line_text = line.decode("utf-8")
+                    if line_text.startswith("data: "):
+                        try:
+                            data = json.loads(line_text[6:])
+                            if not isinstance(data, dict):
+                                continue
+
+                            choices = data.get("choices", [])
+                            for choice in choices:
+                                delta = choice.get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    agent_response += content
+
+                        except json.JSONDecodeError:
                             continue
 
-                        choices = data.get("choices", [])
-                        for choice in choices:
-                            delta = choice.get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                agent_response += content
+                    elif line_text.startswith("event: done"):
+                        break
 
-                    except json.JSONDecodeError:
-                        continue
+            if not agent_response:
+                log.warning("Empty response from Cortex Agent")
+                return None
 
-                elif line_text.startswith("event: done"):
-                    break
+            # Parse the JSON response, handling potential markdown fences
+            cleaned = agent_response.strip()
+            if cleaned.startswith("```"):
+                lines = cleaned.split("\n")
+                lines = [ln for ln in lines if not ln.strip().startswith("```")]
+                cleaned = "\n".join(lines).strip()
 
-        if not agent_response:
-            log.warning("Empty response from Cortex Agent")
+            return json.loads(cleaned)
+
+        except requests.exceptions.Timeout:
+            log.warning(f"Cortex Agent timeout after {timeout}s (attempt {attempt + 1})")
+            if attempt < __MAX_RETRIES - 1:
+                time.sleep(__BASE_DELAY_SECONDS * (2**attempt))
+            else:
+                return None
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response is not None else None
+            if status_code in (401, 403):
+                log.severe(f"Cortex Agent auth error {status_code}: check PAT token")
+                return None
+            if status_code in __RETRYABLE_STATUS_CODES and attempt < __MAX_RETRIES - 1:
+                delay = __BASE_DELAY_SECONDS * (2**attempt)
+                log.warning(f"Cortex Agent HTTP {status_code}, retrying in {delay}s")
+                time.sleep(delay)
+            else:
+                error_body = ""
+                try:
+                    error_body = e.response.text[:500]
+                except (AttributeError, TypeError):
+                    pass
+                log.warning(f"Cortex Agent HTTP error: {e}")
+                if error_body:
+                    log.warning(f"Response body: {error_body}")
+                return None
+        except requests.exceptions.ConnectionError as e:
+            log.warning(f"Cortex Agent connection error: {e}")
+            if attempt < __MAX_RETRIES - 1:
+                time.sleep(__BASE_DELAY_SECONDS * (2**attempt))
+            else:
+                return None
+        except json.JSONDecodeError as e:
+            log.warning(f"Failed to parse Cortex Agent response as JSON: {e}")
+            if agent_response:
+                log.warning(f"Raw response: {agent_response[:500]}")
+            return None
+        except requests.exceptions.RequestException as e:
+            log.warning(f"Cortex Agent request error: {e}")
             return None
 
-        # Parse the JSON response, handling potential markdown fences
-        cleaned = agent_response.strip()
-        if cleaned.startswith("```"):
-            # Remove markdown code fences
-            lines = cleaned.split("\n")
-            lines = [ln for ln in lines if not ln.strip().startswith("```")]
-            cleaned = "\n".join(lines).strip()
+    return None
 
-        return json.loads(cleaned)
 
-    except requests.exceptions.Timeout:
-        log.warning(f"Cortex Agent timeout after {timeout}s")
-        return None
-    except json.JSONDecodeError as e:
-        log.warning(f"Failed to parse Cortex Agent response as JSON: {e}")
-        log.warning(f"Raw response: {agent_response[:500]}")
-        return None
-    except Exception as e:
-        log.warning(f"Cortex Agent error: {e}")
-        return None
+def _build_aggregates(
+    recall_components,
+    complaint_components,
+    crash_count,
+    fire_count,
+    total_recalls,
+    total_complaints,
+):
+    """Build aggregates dict for synthesis prompt."""
+    return {
+        "recall_components": recall_components,
+        "complaint_components": complaint_components,
+        "crash_count": crash_count,
+        "fire_count": fire_count,
+        "total_recalls": total_recalls,
+        "total_complaints": total_complaints,
+    }
 
 
 def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, state):
@@ -693,10 +744,42 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
     seed_model = configuration.get("seed_model")
     seed_year = configuration.get("seed_year")
     max_discoveries = int(configuration.get("max_discoveries", str(__DEFAULT_MAX_DISCOVERIES)))
+    max_enrichments = int(configuration.get("max_enrichments", str(__DEFAULT_MAX_ENRICHMENTS)))
+    enrichment_count = 0
 
-    all_recalls = list(seed_recalls)
-    all_complaints = list(seed_complaints)
+    # Track aggregates instead of full in-memory lists for synthesis prompt
+    recall_components = {}
+    for r in seed_recalls:
+        comp = r.get("Component", r.get("component", "Unknown"))
+        recall_components[comp] = recall_components.get(comp, 0) + 1
+    complaint_components = {}
+    crash_count = 0
+    fire_count = 0
+    for c in seed_complaints:
+        comp = c.get("Component", c.get("component", "Unknown"))
+        complaint_components[comp] = complaint_components.get(comp, 0) + 1
+        if c.get("Crash", c.get("crash", "No")) == "Yes":
+            crash_count += 1
+        if c.get("Fire", c.get("fire", "No")) == "Yes":
+            fire_count += 1
+    total_recalls = len(seed_recalls)
+    total_complaints = len(seed_complaints)
     vehicles_investigated = [(seed_make, seed_model, seed_year)]
+
+    # Check enrichment budget before calling Cortex
+    if enrichment_count >= max_enrichments:
+        log.info(f"Enrichment budget exhausted ({max_enrichments}), skipping discovery")
+        return (
+            _build_aggregates(
+                recall_components,
+                complaint_components,
+                crash_count,
+                fire_count,
+                total_recalls,
+                total_complaints,
+            ),
+            vehicles_investigated,
+        )
 
     # Build discovery prompt and call Cortex Agent
     discovery_prompt = build_discovery_prompt(
@@ -704,10 +787,21 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
     )
     log.info("Calling Cortex Agent for discovery analysis")
     discovery_result = call_cortex_agent(configuration, discovery_prompt)
+    enrichment_count += 1
 
     if not discovery_result:
         log.warning("Cortex Agent returned no discovery results, skipping discovery phase")
-        return all_recalls, all_complaints, vehicles_investigated
+        return (
+            _build_aggregates(
+                recall_components,
+                complaint_components,
+                crash_count,
+                fire_count,
+                total_recalls,
+                total_complaints,
+            ),
+            vehicles_investigated,
+        )
 
     # Upsert discovery insight
     insight_record = {
@@ -738,9 +832,25 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
     # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state=state)
 
-    # Fetch data for agent-recommended vehicles
+    # Fetch data for agent-recommended vehicles (type-check LLM output)
     recommended = discovery_result.get("recommended_vehicles", [])
-    vehicles_to_fetch = recommended[:max_discoveries]
+    if not isinstance(recommended, list):
+        log.warning(
+            f"Expected recommended_vehicles to be a list, got {type(recommended).__name__}. "
+            f"Skipping discovery fetches."
+        )
+        return (
+            _build_aggregates(
+                recall_components,
+                complaint_components,
+                crash_count,
+                fire_count,
+                total_recalls,
+                total_complaints,
+            ),
+            vehicles_investigated,
+        )
+    vehicles_to_fetch = [v for v in recommended if isinstance(v, dict)][:max_discoveries]
 
     log.info(f"Agent recommended {len(recommended)} vehicles, fetching {len(vehicles_to_fetch)}")
 
@@ -773,10 +883,21 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
             discovered_specs = fetch_vehicle_specs(session, v_make)
             upsert_vehicle_specs(discovered_specs, "discovered")
 
-            all_recalls.extend(discovered_recalls)
-            all_complaints.extend(discovered_complaints)
+            # Track aggregates for synthesis prompt
+            for r in discovered_recalls:
+                comp = r.get("Component", r.get("component", "Unknown"))
+                recall_components[comp] = recall_components.get(comp, 0) + 1
+            for c in discovered_complaints:
+                comp = c.get("Component", c.get("component", "Unknown"))
+                complaint_components[comp] = complaint_components.get(comp, 0) + 1
+                if c.get("Crash", c.get("crash", "No")) == "Yes":
+                    crash_count += 1
+                if c.get("Fire", c.get("fire", "No")) == "Yes":
+                    fire_count += 1
+            total_recalls += len(discovered_recalls)
+            total_complaints += len(discovered_complaints)
             vehicles_investigated.append((v_make, v_model, v_year))
-        except Exception as e:
+        except (RuntimeError, requests.exceptions.RequestException) as e:
             log.warning(
                 f"Failed to fetch data for discovered vehicle "
                 f"{v_make} {v_model} {v_year}: {e}. Skipping."
@@ -791,25 +912,34 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state=state)
 
-    return all_recalls, all_complaints, vehicles_investigated
+    return (
+        _build_aggregates(
+            recall_components,
+            complaint_components,
+            crash_count,
+            fire_count,
+            total_recalls,
+            total_complaints,
+        ),
+        vehicles_investigated,
+    )
 
 
-def run_synthesis_phase(configuration, vehicles_investigated, all_recalls, all_complaints, state):
+def run_synthesis_phase(configuration, vehicles_investigated, aggregates, state):
     """
     Run the cross-vehicle synthesis phase: generate fleet-wide safety analysis.
 
     Args:
         configuration: Configuration dictionary
         vehicles_investigated: List of (make, model, year) tuples
-        all_recalls: All recall records across all vehicles
-        all_complaints: All complaint records across all vehicles
+        aggregates: Dict with recall/complaint component counts and totals
         state: State dictionary for checkpointing
     """
     seed_make = configuration.get("seed_make")
     seed_model = configuration.get("seed_model")
     seed_year = configuration.get("seed_year")
 
-    synthesis_prompt = build_synthesis_prompt(vehicles_investigated, all_recalls, all_complaints)
+    synthesis_prompt = build_synthesis_prompt(vehicles_investigated, aggregates)
     log.info("Calling Cortex Agent for cross-vehicle synthesis")
     synthesis_result = call_cortex_agent(configuration, synthesis_prompt)
 
@@ -823,8 +953,8 @@ def run_synthesis_phase(configuration, vehicles_investigated, all_recalls, all_c
         "seed_model": seed_model,
         "seed_year": seed_year,
         "vehicles_analyzed": len(vehicles_investigated),
-        "total_recalls_analyzed": len(all_recalls),
-        "total_complaints_analyzed": len(all_complaints),
+        "total_recalls_analyzed": aggregates.get("total_recalls", 0),
+        "total_complaints_analyzed": aggregates.get("total_complaints", 0),
         "component_risk_rankings": synthesis_result.get("component_risk_rankings"),
         "manufacturer_response_score": synthesis_result.get("manufacturer_response_score"),
         "systemic_issues": synthesis_result.get("systemic_issues"),
@@ -907,7 +1037,7 @@ def update(configuration: dict, state: dict):
         if is_cortex_enabled and discovery_depth >= 1:
             log.info("Phase 2: Starting Agent-Driven Discovery")
 
-            all_recalls, all_complaints, vehicles_investigated = run_discovery_phase(
+            aggregates, vehicles_investigated = run_discovery_phase(
                 session, configuration, seed_recalls, seed_complaints, state
             )
 
@@ -917,8 +1047,7 @@ def update(configuration: dict, state: dict):
                 run_synthesis_phase(
                     configuration,
                     vehicles_investigated,
-                    all_recalls,
-                    all_complaints,
+                    aggregates,
                     state,
                 )
         else:
