@@ -1,0 +1,8 @@
+{
+  "client_id": "YOUR_CLIENT_ID",
+  "client_secret": "YOUR_CLIENT_SECRET",
+  "base_url": "https://demo-api.i3verticals.com",
+  "api_version": "v2",
+  "page_size": "100",
+  "rate_limit_rps": "2"
+}

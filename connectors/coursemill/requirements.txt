@@ -1,0 +1,2 @@
+# No additional dependencies required.
+# requests and fivetran_connector_sdk are pre-installed in the Fivetran runtime.
