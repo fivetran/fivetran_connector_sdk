@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fivetran_connector_sdk import Logging as log
 
 # Constants for schema detection and replication key inference
-from constants import KNOWN_REPLICATION_KEY_PATTERNS
+from constants import KNOWN_REPLICATION_KEY_PATTERNS, DATETIME_TYPE_NAMES
 
 # ConnectionPool for acquiring database connections to query metadata
 from client import ConnectionPool
@@ -219,9 +219,8 @@ class SchemaDetector:
                 return matched_col
 
         # Priority 3: first temporal column
-        datetime_types = {"datetime2", "datetime", "datetimeoffset", "smalldatetime", "date"}
         for col in columns:
-            if col.sql_type.lower() in datetime_types and col.python_type is not None:
+            if col.sql_type.lower() in DATETIME_TYPE_NAMES and col.python_type is not None:
                 log.fine(f"Replication key inferred from datetime column: {col.name}")
                 return col
 

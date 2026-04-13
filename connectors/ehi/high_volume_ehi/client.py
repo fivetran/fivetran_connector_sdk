@@ -177,16 +177,26 @@ class ConnectionPool:
         log.info(f"Initialising connection pool with {size} connection(s)")
         self._queue = queue.Queue(maxsize=size)
         self._all: list = []
-        try:
-            for _ in range(size):
+        for _ in range(size):
+            try:
                 conn = MSSQLConnection(configuration)
                 conn.ensure_open()
                 self._all.append(conn)
                 self._queue.put(conn)
-        except Exception:
-            self.close_all()
-            raise
-        log.info("Connection pool ready")
+            except Exception as exc:
+                log.warning(
+                    f"Failed to open a pool connection: {exc}. Continuing with fewer connections."
+                )
+        opened = len(self._all)
+        if opened == 0:
+            raise RuntimeError(
+                "Could not open any database connections. Check credentials and network connectivity."
+            )
+        if opened < size:
+            log.warning(
+                f"Connection pool started with {opened}/{size} connection(s); some connections failed."
+            )
+        log.info(f"Connection pool ready with {opened} connection(s)")
 
     @contextmanager
     def acquire(self, timeout: float = 30.0):
@@ -202,6 +212,7 @@ class ConnectionPool:
             conn.ensure_open()
             yield conn
         except Exception as exc:
+            conn.close()  # reset so the next acquire gets a fresh connection
             log.warning(f"Connection error during acquire: {exc}")
             raise
         finally:

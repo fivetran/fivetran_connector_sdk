@@ -56,8 +56,11 @@ def convert_value(value, python_type):
         # Binary, spatial, rowversion — encode as base64 ASCII string
         if isinstance(value, (bytes, bytearray, memoryview)):
             return base64.b64encode(bytes(value)).decode("ascii")
-        return None
-    return None  # unknown / None python_type — skip column
+        # Unexpected runtime type — preserve as string rather than silently dropping.
+        # Returning None here would cause the replication-key cursor to stall and
+        # loop forever if this column is used as the replication key.
+        return str(value)
+    return None  # python_type is None — column explicitly excluded; skip
 
 
 class KeysetReader:
@@ -185,9 +188,11 @@ class KeysetReader:
                     for col, raw in zip(sel_cols, row)
                 }
                 batch.append(record)
-                rk_raw = record.get(repl_col)
-                if rk_raw is not None:
-                    last_value = rk_raw
+                # Advance cursor from the pre-computed row index rather than the record dict.
+                # WHERE [repl_col] IS NOT NULL / [repl_col] > ? guarantees non-NULL here,
+                # so convert_value will return a real value; str(raw) is a safety fallback.
+                rk_converted = convert_value(row[repl_col_idx], sel_cols[repl_col_idx].python_type)
+                last_value = rk_converted if rk_converted is not None else str(row[repl_col_idx])
                 if tiebreak_pk:
                     pk_raw = record.get(tiebreak_pk)
                     if pk_raw is not None:
@@ -288,8 +293,12 @@ class IncrementalReader:
         sel_cols = self._schema.selectable_columns
         col_sql = ", ".join(f"[{col.name}]" for col in sel_cols)
         schema_table = f"[{self._schema.schema_name}].[{self._schema.table_name}]"
+        # Pre-compute replication-key index for direct row access during cursor tracking.
+        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), 0)
 
-        # Pre-build SQL template
+        # Pre-build SQL template.
+        # WHERE [repl_col] > ? implicitly excludes NULL replication-key rows —
+        # SQL NULL comparisons always evaluate to UNKNOWN/FALSE, so no explicit IS NOT NULL needed.
         sql = (
             f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
             f"WHERE [{repl_col}] > ? "
@@ -318,9 +327,11 @@ class IncrementalReader:
                     for col, raw in zip(sel_cols, row)
                 }
                 batch.append(record)
-                rk_raw = record.get(repl_col)
-                if rk_raw is not None:
-                    last_value = rk_raw
+                # Advance cursor from the pre-computed row index rather than the record dict.
+                # WHERE [repl_col] > ? guarantees non-NULL; str(raw) is a safety fallback
+                # that prevents an infinite loop if convert_value returns None unexpectedly.
+                rk_converted = convert_value(row[repl_col_idx], sel_cols[repl_col_idx].python_type)
+                last_value = rk_converted if rk_converted is not None else str(row[repl_col_idx])
 
             current_last = last_value
             yield batch, current_last

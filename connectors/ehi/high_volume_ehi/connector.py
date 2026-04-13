@@ -208,7 +208,10 @@ def _save_checkpoint(
         completed: whether the sync is complete (used to set sync_completed_at timestamp)
     """
     if has_repl_key:
-        table_state["last_seen_replication_value"] = marker
+        # Only write the cursor when there is a real value — avoids storing None
+        # into state for tables that returned no rows on the first full load.
+        if marker is not None:
+            table_state["last_seen_replication_value"] = marker
     else:
         table_state["last_offset"] = marker
     table_state["rows_synced"] = rows_synced
@@ -442,6 +445,37 @@ def _sync_table_thread(table_schema: TableSchema, state: dict, pool: ConnectionP
         raise
 
 
+def _discover_table_schemas(
+    pool: ConnectionPool,
+    schema_name: str,
+    table_include,
+    table_exclude,
+    config: dict,
+    max_workers: int,
+) -> dict:
+    """
+    Detect schemas for all requested tables and apply the exclusion filter.
+    Shared by schema() and update() to avoid duplicating the detector + filter logic.
+    Returns dict mapping table_name -> TableSchema.
+    Args:
+        pool: ConnectionPool to acquire connections from
+        schema_name: SQL Server schema name (e.g. 'dbo')
+        table_include: list of table names to include, or None to discover all
+        table_exclude: frozenset of lowercase names to exclude
+        config: connector configuration dict forwarded to detect_all_tables
+        max_workers: thread count for parallel metadata queries
+    """
+    detector = SchemaDetector(pool)
+    table_schemas = detector.detect_all_tables(
+        schema_name, table_include, config=config, max_workers=max_workers
+    )
+    if table_exclude:
+        table_schemas = {
+            name: ts for name, ts in table_schemas.items() if name.lower() not in table_exclude
+        }
+    return table_schemas
+
+
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -458,18 +492,11 @@ def schema(configuration: dict):
 
     pool = ConnectionPool(configuration=configuration, size=1)
     try:
-        detector = SchemaDetector(pool)
-        table_schemas = detector.detect_all_tables(
-            schema_name, table_include, config=configuration, max_workers=1
+        table_schemas = _discover_table_schemas(
+            pool, schema_name, table_include, table_exclude, config=configuration, max_workers=1
         )
     finally:
         pool.close_all()
-
-    # Apply exclusion to any tables discovered when table_include is None
-    if table_exclude:
-        table_schemas = {
-            name: ts for name, ts in table_schemas.items() if name.lower() not in table_exclude
-        }
 
     _CACHED_TABLE_SCHEMAS = table_schemas  # cache for update() reuse
 
@@ -506,19 +533,14 @@ def update(configuration: dict, state: dict):
         if _CACHED_TABLE_SCHEMAS:
             table_schemas = _CACHED_TABLE_SCHEMAS
         else:
-            detector = SchemaDetector(pool)
-            table_schemas = detector.detect_all_tables(
+            table_schemas = _discover_table_schemas(
+                pool,
                 schema_name,
                 table_include,
+                table_exclude,
                 config=configuration,
                 max_workers=min(4, pool_size),
             )
-            if table_exclude:
-                table_schemas = {
-                    name: ts
-                    for name, ts in table_schemas.items()
-                    if name.lower() not in table_exclude
-                }
 
         if not table_schemas:
             log.warning("No tables discovered — nothing to sync")
