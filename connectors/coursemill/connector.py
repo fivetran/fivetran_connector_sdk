@@ -33,6 +33,7 @@ INITIAL_SYNC_LOOKBACK_DAYS = 365
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _camel_to_snake(name: str) -> str:
     """Convert a camelCase or PascalCase string to snake_case."""
     s1 = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
@@ -74,6 +75,7 @@ def _date_str_to_yyyymmdd(date_str: str) -> int:
 # Authentication
 # ---------------------------------------------------------------------------
 
+
 class CoursemillClient:
     """Wraps CourseMill API calls with authentication, pagination, and retry."""
 
@@ -107,15 +109,17 @@ class CoursemillClient:
             except requests.exceptions.HTTPError as e:
                 status = e.response.status_code if e.response is not None else None
                 if status and status >= 500 and attempt < MAX_RETRIES:
-                    wait = 2 ** attempt
-                    log.warning(f"Auth server error {status}, retrying in {wait}s (attempt {attempt + 1})")
+                    wait = 2**attempt
+                    log.warning(
+                        f"Auth server error {status}, retrying in {wait}s (attempt {attempt + 1})"
+                    )
                     time.sleep(wait)
                 else:
                     log.severe(f"Authentication failed after {attempt + 1} attempts: {e}")
                     raise
             except requests.exceptions.RequestException as e:
                 if attempt < MAX_RETRIES:
-                    wait = 2 ** attempt
+                    wait = 2**attempt
                     log.warning(f"Auth request error, retrying in {wait}s: {e}")
                     time.sleep(wait)
                 else:
@@ -130,7 +134,9 @@ class CoursemillClient:
             "Accept": "application/json",
         }
 
-    def _request(self, method: str, path: str, params: dict = None, json_body: dict = None) -> dict:
+    def _request(
+        self, method: str, path: str, params: dict = None, json_body: dict = None
+    ) -> dict:
         """
         Execute an API request with retry logic and automatic re-authentication on 401.
 
@@ -186,8 +192,10 @@ class CoursemillClient:
                 is_retryable = status and (status >= 500 or status == 429)
 
                 if is_retryable and attempt < MAX_RETRIES:
-                    wait = min(2 ** attempt, 30)
-                    log.warning(f"HTTP {status} on {method} {path}, retrying in {wait}s (attempt {attempt + 1})")
+                    wait = min(2**attempt, 30)
+                    log.warning(
+                        f"HTTP {status} on {method} {path}, retrying in {wait}s (attempt {attempt + 1})"
+                    )
                     time.sleep(wait)
                 else:
                     log.severe(f"Request failed: {method} {path} -> {e}")
@@ -195,11 +203,13 @@ class CoursemillClient:
 
             except requests.exceptions.RequestException as e:
                 if attempt < MAX_RETRIES:
-                    wait = min(2 ** attempt, 30)
+                    wait = min(2**attempt, 30)
                     log.warning(f"Request error on {method} {path}, retrying in {wait}s: {e}")
                     time.sleep(wait)
                 else:
-                    log.severe(f"Request failed after {MAX_RETRIES + 1} attempts: {method} {path} -> {e}")
+                    log.severe(
+                        f"Request failed after {MAX_RETRIES + 1} attempts: {method} {path} -> {e}"
+                    )
                     raise
 
     def get(self, path: str, params: dict = None) -> dict:
@@ -256,6 +266,7 @@ class CoursemillClient:
 # Schema
 # ---------------------------------------------------------------------------
 
+
 def schema(configuration: dict):
     """
     Define the schema for all CourseMill tables.
@@ -278,6 +289,7 @@ def schema(configuration: dict):
 # ---------------------------------------------------------------------------
 # Table sync functions
 # ---------------------------------------------------------------------------
+
 
 def sync_organizations(client: CoursemillClient, state: dict):
     """Sync all organizations from GET /api/v1/orgs."""
@@ -460,8 +472,7 @@ def sync_course_prerequisites(client: CoursemillClient, state: dict, courses: li
                 if "prerequisite_course_id" not in row:
                     # Try common field names for the prerequisite ID
                     row["prerequisite_course_id"] = row.get(
-                        "prereq_course_id",
-                        row.get("prerequisite_id", row.get("id", ""))
+                        "prereq_course_id", row.get("prerequisite_id", row.get("id", ""))
                     )
                 op.upsert("course_prerequisites", row)
                 count += 1
@@ -583,6 +594,7 @@ def sync_certificates(client: CoursemillClient, state: dict):
 # Configuration validation
 # ---------------------------------------------------------------------------
 
+
 def validate_configuration(configuration: dict):
     """
     Validate that all required configuration fields are present and non-empty.
@@ -602,6 +614,7 @@ def validate_configuration(configuration: dict):
 # ---------------------------------------------------------------------------
 # Update (main sync entry point)
 # ---------------------------------------------------------------------------
+
 
 def update(configuration: dict, state: dict):
     """

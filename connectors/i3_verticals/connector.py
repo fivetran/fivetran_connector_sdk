@@ -71,6 +71,7 @@ _token_cache = {
 # Configuration
 # ---------------------------------------------------------------------------
 
+
 def validate_configuration(configuration: dict):
     """Validate required configuration fields are present."""
     required = ["client_id", "client_secret", "base_url"]
@@ -96,6 +97,7 @@ def _get_rate_limit_interval(configuration: dict) -> float:
 # ---------------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------------
+
 
 def _get_auth_token(configuration: dict) -> str:
     """Acquire or return a cached OAuth 2.0 Bearer token.
@@ -135,7 +137,10 @@ def _get_auth_token(configuration: dict) -> str:
 # HTTP Helper
 # ---------------------------------------------------------------------------
 
-def _api_request(configuration: dict, method: str, endpoint: str, params: dict = None) -> requests.Response:
+
+def _api_request(
+    configuration: dict, method: str, endpoint: str, params: dict = None
+) -> requests.Response:
     """Make an authenticated API request with retry and rate limiting.
 
     Retries on 429, 503, and 5xx errors with exponential backoff.
@@ -173,9 +178,13 @@ def _api_request(configuration: dict, method: str, endpoint: str, params: dict =
 
         if resp.status_code in (429, 503) or resp.status_code >= 500:
             wait = _backoff_wait(attempt, resp)
-            log.warning(f"HTTP {resp.status_code} on {endpoint} (attempt {attempt}/{__MAX_RETRIES}), retrying in {wait:.1f}s")
+            log.warning(
+                f"HTTP {resp.status_code} on {endpoint} (attempt {attempt}/{__MAX_RETRIES}), retrying in {wait:.1f}s"
+            )
             if attempt == __MAX_RETRIES:
-                raise RuntimeError(f"API returned {resp.status_code} after {__MAX_RETRIES} attempts: {resp.text}")
+                raise RuntimeError(
+                    f"API returned {resp.status_code} after {__MAX_RETRIES} attempts: {resp.text}"
+                )
             time.sleep(wait)
             continue
 
@@ -193,16 +202,17 @@ def _backoff_wait(attempt: int, resp: requests.Response = None) -> float:
             return min(float(resp.headers["Retry-After"]), __RETRY_MAX_SECONDS)
         except ValueError:
             pass
-    return min(__RETRY_BASE_SECONDS ** attempt, __RETRY_MAX_SECONDS)
+    return min(__RETRY_BASE_SECONDS**attempt, __RETRY_MAX_SECONDS)
 
 
 def _backoff_sleep(attempt: int):
-    time.sleep(min(__RETRY_BASE_SECONDS ** attempt, __RETRY_MAX_SECONDS))
+    time.sleep(min(__RETRY_BASE_SECONDS**attempt, __RETRY_MAX_SECONDS))
 
 
 # ---------------------------------------------------------------------------
 # Response Parsing & Record Processing
 # ---------------------------------------------------------------------------
+
 
 def _extract_records(response_json, table_name: str) -> list:
     """Extract the record list from the API response.
@@ -297,14 +307,14 @@ def _normalize_timestamp(value) -> str | None:
 # Schema
 # ---------------------------------------------------------------------------
 
+
 def schema(configuration: dict):
     """Define connector schema: table names and primary keys only.
 
     Column types are inferred by Fivetran from the data, following best practices.
     """
     return [
-        {"table": table_name, "primary_key": [pk]}
-        for table_name, _endpoint, pk, _ts in __TABLES
+        {"table": table_name, "primary_key": [pk]} for table_name, _endpoint, pk, _ts in __TABLES
     ]
 
 
@@ -312,7 +322,10 @@ def schema(configuration: dict):
 # Sync Logic
 # ---------------------------------------------------------------------------
 
-def _sync_table(configuration: dict, state: dict, table_name: str, endpoint: str, pk_field: str, ts_field: str) -> dict:
+
+def _sync_table(
+    configuration: dict, state: dict, table_name: str, endpoint: str, pk_field: str, ts_field: str
+) -> dict:
     """Sync a single table from the Burton Platform API.
 
     Paginates through all records, upserts them, and returns updated state.

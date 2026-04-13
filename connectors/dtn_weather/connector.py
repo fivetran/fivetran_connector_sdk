@@ -72,11 +72,18 @@ def _oauth_headers(configuration: dict, audience: str) -> dict:
 # ---------------------------------------------------------------------------
 # HTTP helper with retry
 # ---------------------------------------------------------------------------
-def _request(method: str, url: str, headers: dict, params: dict = None, json_body: dict = None) -> dict:
+def _request(
+    method: str, url: str, headers: dict, params: dict = None, json_body: dict = None
+) -> dict:
     for attempt in range(1, __MAX_RETRIES + 1):
         try:
             resp = requests.request(
-                method, url, headers=headers, params=params, json=json_body, timeout=__REQUEST_TIMEOUT
+                method,
+                url,
+                headers=headers,
+                params=params,
+                json=json_body,
+                timeout=__REQUEST_TIMEOUT,
             )
             if resp.status_code == 429:
                 wait = int(resp.headers.get("Retry-After", 5))
@@ -125,13 +132,19 @@ def validate_configuration(configuration: dict):
 
     if enabled & {"conditions", "lightning"}:
         if not configuration.get("client_id") or not configuration.get("client_secret"):
-            raise ValueError("Missing required configuration: client_id and client_secret (needed for conditions/lightning APIs)")
+            raise ValueError(
+                "Missing required configuration: client_id and client_secret (needed for conditions/lightning APIs)"
+            )
 
     if "observations" in enabled and not _parse_station_ids(configuration):
-        raise ValueError("Missing required configuration: station_ids (comma-separated station IDs for observations API)")
+        raise ValueError(
+            "Missing required configuration: station_ids (comma-separated station IDs for observations API)"
+        )
 
     if "conditions" in enabled and not _parse_locations(configuration):
-        raise ValueError("Missing required configuration: locations (JSON array of lat/lon for conditions API)")
+        raise ValueError(
+            "Missing required configuration: locations (JSON array of lat/lon for conditions API)"
+        )
 
     if "lightning" in enabled:
         if not configuration.get("lightning_lat") or not configuration.get("lightning_lon"):
@@ -146,17 +159,23 @@ def schema(configuration: dict):
     tables = []
 
     if "observations" in enabled:
-        tables.extend([
-            {"table": "stations", "primary_key": ["station_id"]},
-            {"table": "daily_forecasts", "primary_key": ["station_id", "date"]},
-            {"table": "daily_observations", "primary_key": ["station_id", "date"]},
-            {"table": "hourly_forecasts", "primary_key": ["station_id", "utc_time"]},
-            {"table": "hourly_observations", "primary_key": ["station_id", "utc_time"]},
-        ])
+        tables.extend(
+            [
+                {"table": "stations", "primary_key": ["station_id"]},
+                {"table": "daily_forecasts", "primary_key": ["station_id", "date"]},
+                {"table": "daily_observations", "primary_key": ["station_id", "date"]},
+                {"table": "hourly_forecasts", "primary_key": ["station_id", "utc_time"]},
+                {"table": "hourly_observations", "primary_key": ["station_id", "utc_time"]},
+            ]
+        )
     if "conditions" in enabled:
-        tables.append({"table": "conditions", "primary_key": ["latitude", "longitude", "utc_time"]})
+        tables.append(
+            {"table": "conditions", "primary_key": ["latitude", "longitude", "utc_time"]}
+        )
     if "lightning" in enabled:
-        tables.append({"table": "lightning_strikes", "primary_key": ["latitude", "longitude", "utc_time"]})
+        tables.append(
+            {"table": "lightning_strikes", "primary_key": ["latitude", "longitude", "utc_time"]}
+        )
 
     return tables
 
@@ -207,15 +226,43 @@ def _parse_daily_record(record: dict, station_id: str) -> dict:
         "temp_avg": temps.get("avg"),
         "temp_max": temps.get("max"),
         "temp_min": temps.get("min"),
-        "dew_point_avg": record.get("dewPoint", {}).get("avg") if isinstance(record.get("dewPoint"), dict) else record.get("dewPoint"),
-        "humidity_avg": record.get("humidity", {}).get("avg") if isinstance(record.get("humidity"), dict) else record.get("humidity"),
-        "pressure_avg": record.get("pressure", {}).get("avg") if isinstance(record.get("pressure"), dict) else record.get("pressure"),
-        "wind_speed_avg": record.get("wind", {}).get("speed", {}).get("avg") if isinstance(record.get("wind"), dict) else None,
-        "wind_direction_avg": record.get("wind", {}).get("direction", {}).get("avg") if isinstance(record.get("wind"), dict) else None,
-        "wind_gust_max": record.get("wind", {}).get("gust", {}).get("max") if isinstance(record.get("wind"), dict) else None,
+        "dew_point_avg": (
+            record.get("dewPoint", {}).get("avg")
+            if isinstance(record.get("dewPoint"), dict)
+            else record.get("dewPoint")
+        ),
+        "humidity_avg": (
+            record.get("humidity", {}).get("avg")
+            if isinstance(record.get("humidity"), dict)
+            else record.get("humidity")
+        ),
+        "pressure_avg": (
+            record.get("pressure", {}).get("avg")
+            if isinstance(record.get("pressure"), dict)
+            else record.get("pressure")
+        ),
+        "wind_speed_avg": (
+            record.get("wind", {}).get("speed", {}).get("avg")
+            if isinstance(record.get("wind"), dict)
+            else None
+        ),
+        "wind_direction_avg": (
+            record.get("wind", {}).get("direction", {}).get("avg")
+            if isinstance(record.get("wind"), dict)
+            else None
+        ),
+        "wind_gust_max": (
+            record.get("wind", {}).get("gust", {}).get("max")
+            if isinstance(record.get("wind"), dict)
+            else None
+        ),
         "precipitation_amount": precip_first.get("amount"),
         "precipitation_type": precip_first.get("type"),
-        "feels_like_avg": record.get("feelsLike", {}).get("avg") if isinstance(record.get("feelsLike"), dict) else record.get("feelsLike"),
+        "feels_like_avg": (
+            record.get("feelsLike", {}).get("avg")
+            if isinstance(record.get("feelsLike"), dict)
+            else record.get("feelsLike")
+        ),
         "sunrise": record.get("sunrise"),
         "sunset": record.get("sunset"),
         "minutes_of_sunshine": record.get("minutesOfSunshine"),
@@ -258,7 +305,9 @@ def _sync_daily_forecasts(configuration: dict, state: dict) -> dict:
         params = {"stationId": sid, "days": "15", "units": units}
         try:
             data = _request("GET", f"{__OBS_BASE_URL}/weather/daily-forecasts", headers, params)
-            records = data if isinstance(data, list) else data.get("forecasts", data.get("data", []))
+            records = (
+                data if isinstance(data, list) else data.get("forecasts", data.get("data", []))
+            )
             for rec in records:
                 row = _parse_daily_record(rec, sid)
                 if row["date"]:
@@ -290,7 +339,9 @@ def _sync_daily_observations(configuration: dict, state: dict) -> dict:
         params = {"stationId": sid, "days": str(min(days_back, 30)), "units": units}
         try:
             data = _request("GET", f"{__OBS_BASE_URL}/weather/daily-observations", headers, params)
-            records = data if isinstance(data, list) else data.get("observations", data.get("data", []))
+            records = (
+                data if isinstance(data, list) else data.get("observations", data.get("data", []))
+            )
             for rec in records:
                 row = _parse_daily_record(rec, sid)
                 if row["date"]:
@@ -315,7 +366,9 @@ def _sync_hourly_forecasts(configuration: dict, state: dict) -> dict:
         params = {"stationId": sid, "units": units}
         try:
             data = _request("GET", f"{__OBS_BASE_URL}/weather/hourly-forecasts", headers, params)
-            records = data if isinstance(data, list) else data.get("forecasts", data.get("data", []))
+            records = (
+                data if isinstance(data, list) else data.get("forecasts", data.get("data", []))
+            )
             for rec in records:
                 row = _parse_hourly_record(rec, sid)
                 if row["utc_time"]:
@@ -338,15 +391,21 @@ def _sync_hourly_observations(configuration: dict, state: dict) -> dict:
 
     if cursor:
         cursor_dt = datetime.strptime(cursor, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-        hours_back = max(1, int((datetime.now(timezone.utc) - cursor_dt).total_seconds() / 3600) + 1)
+        hours_back = max(
+            1, int((datetime.now(timezone.utc) - cursor_dt).total_seconds() / 3600) + 1
+        )
     else:
         hours_back = 168  # initial sync: 7 days
 
     for sid in station_ids:
         params = {"stationId": sid, "hours": str(min(hours_back, 168)), "units": units}
         try:
-            data = _request("GET", f"{__OBS_BASE_URL}/weather/hourly-observations", headers, params)
-            records = data if isinstance(data, list) else data.get("observations", data.get("data", []))
+            data = _request(
+                "GET", f"{__OBS_BASE_URL}/weather/hourly-observations", headers, params
+            )
+            records = (
+                data if isinstance(data, list) else data.get("observations", data.get("data", []))
+            )
             for rec in records:
                 row = _parse_hourly_record(rec, sid)
                 if row["utc_time"]:
@@ -391,7 +450,9 @@ def _sync_conditions(configuration: dict, state: dict) -> dict:
         try:
             # Refresh headers in case token expired during prior syncs
             headers = _oauth_headers(configuration, __CONDITIONS_BASE_URL)
-            data = _request("POST", f"{__CONDITIONS_BASE_URL}/v2/conditions/batch", headers, json_body=body)
+            data = _request(
+                "POST", f"{__CONDITIONS_BASE_URL}/v2/conditions/batch", headers, json_body=body
+            )
             count += _parse_and_upsert_conditions(data)
         except Exception as e:
             log.warning(f"Batch conditions request failed: {e}")
@@ -514,7 +575,9 @@ def _sync_lightning(configuration: dict, state: dict) -> dict:
         if window_count % __LIGHTNING_CHECKPOINT_INTERVAL == 0:
             new_state["lightning_cursor"] = current.strftime("%Y-%m-%dT%H:%M:%SZ")
             op.checkpoint(new_state)
-            log.fine(f"Lightning checkpoint at {current} ({window_count} windows, {count} strikes)")
+            log.fine(
+                f"Lightning checkpoint at {current} ({window_count} windows, {count} strikes)"
+            )
 
     new_state["lightning_cursor"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     log.info(f"Synced {count} lightning strike(s) across {window_count} window(s)")
