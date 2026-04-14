@@ -418,11 +418,17 @@ def update(configuration: dict, state: dict):
     for table_name, endpoint, pk_field, ts_field in __TABLES:
         try:
             state = _sync_table(configuration, state, table_name, endpoint, pk_field, ts_field)
-        except Exception as e:
+        except (
+            requests.exceptions.HTTPError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.TooManyRedirects,
+            json.JSONDecodeError,
+        ) as e:
             log.severe(f"Error syncing {table_name}: {e}")
             # Checkpoint what we have so far, then re-raise to signal failure
             op.checkpoint(state)
-            raise RuntimeError(f"Failed to sync {table_name}: {e}")
+            raise RuntimeError(f"Failed to sync {table_name}: {e}") from e
 
     # Final checkpoint with all tables' cursors
     op.checkpoint(state)
