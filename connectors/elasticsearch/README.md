@@ -2,7 +2,7 @@
 
 ## Connector overview
 
-This connector syncs data from Elasticsearch to your Fivetran destination using the Fivetran Connector SDK. It discovers all indices and data streams in your Elasticsearch cluster and incrementally extracts documents, using `_seq_no` for regular indices and `@timestamp` for data streams. The connector supports Elasticsearch 7.12 through 9.x, Elastic Cloud (stateful and serverless), API key and Basic authentication, and opt-in delete detection.
+This connector syncs data from Elasticsearch and OpenSearch to your Fivetran destination using the Fivetran Connector SDK. It discovers all indices and data streams in your cluster and incrementally extracts documents, using `_seq_no` for regular indices and `@timestamp` for data streams. The connector supports Elasticsearch 7.12 through 9.x, Elastic Cloud (stateful and serverless), OpenSearch 2.4+, API key and Basic authentication, and opt-in delete detection. Distribution is detected automatically at runtime.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ This connector syncs data from Elasticsearch to your Fivetran destination using 
   * Windows: 10 or later (64-bit only)
   * macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   * Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-* Elasticsearch 7.12 or later (7.10–7.11 are not supported; the connector uses the `_shard_doc` sort tiebreaker introduced in 7.12)
+* Elasticsearch 7.12 or later (7.10–7.11 are not supported; the connector uses the `_shard_doc` sort tiebreaker introduced in 7.12), **or** OpenSearch 2.4 or later
 
 ## Getting started
 

@@ -1,6 +1,6 @@
 """
 Fivetran Connector SDK — Elasticsearch connector
-Supports: Elasticsearch 7.10+, 8.x, 9.x, Elastic Cloud (stateful + serverless)
+Supports: Elasticsearch 7.12+, 8.x, 9.x, Elastic Cloud (stateful + serverless), OpenSearch 2.4+
 Auth:      API key or Basic auth
 Sync:      Full + incremental via _seq_no (indices) / @timestamp (data streams)
 Pagination: PIT + search_after (replaces deprecated Scroll API)
@@ -103,6 +103,33 @@ def es_request(method: str, url: str, headers: dict, body: dict = None, params: 
                 raise
 
 
+# ── Distribution detection ────────────────────────────────────────────────────
+
+def detect_distribution(configuration: dict) -> str:
+    """
+    Detect whether the cluster is Elasticsearch or OpenSearch.
+    Returns 'opensearch' or 'elasticsearch'.
+    Defaults to 'elasticsearch' on any error.
+
+    OpenSearch differences from Elasticsearch:
+      PIT open:  POST /<index>/_search/point_in_time  (response key: 'pit_id')
+      PIT close: DELETE /_search/point_in_time        (body key: 'pit_id')
+      Sort tiebreaker: '_doc' (not '_shard_doc', which is ES-only)
+    Elasticsearch:
+      PIT open:  POST /<index>/_pit  (response key: 'id')
+      PIT close: DELETE /_pit        (body key: 'id')
+      Sort tiebreaker: '_shard_doc'
+    """
+    try:
+        resp = es_request("GET", base_url(configuration), get_headers(configuration))
+        distribution = resp.get("version", {}).get("distribution", "elasticsearch").lower()
+        log.info(f"Detected cluster distribution: {distribution}")
+        return distribution
+    except Exception as e:
+        log.warning(f"Could not detect cluster distribution, assuming elasticsearch: {e}")
+        return "elasticsearch"
+
+
 # ── Index / data-stream discovery ────────────────────────────────────────────
 
 def discover_targets(configuration: dict) -> dict:
@@ -192,22 +219,26 @@ def mapping_to_columns(properties: dict) -> dict:
 
 # ── PIT helpers ───────────────────────────────────────────────────────────────
 
-def open_pit(configuration: dict, name: str) -> str:
-    resp = es_request(
-        "POST", f"{base_url(configuration)}/{name}/_pit",
-        get_headers(configuration),
-        params={"keep_alive": PIT_KEEP_ALIVE},
-    )
-    return resp["id"]
+def open_pit(configuration: dict, name: str, distribution: str = "elasticsearch") -> str:
+    if distribution == "opensearch":
+        url = f"{base_url(configuration)}/{name}/_search/point_in_time"
+        resp = es_request("POST", url, get_headers(configuration), params={"keep_alive": PIT_KEEP_ALIVE})
+        return resp["pit_id"]
+    else:
+        url = f"{base_url(configuration)}/{name}/_pit"
+        resp = es_request("POST", url, get_headers(configuration), params={"keep_alive": PIT_KEEP_ALIVE})
+        return resp["id"]
 
 
-def close_pit(configuration: dict, pit_id: str) -> None:
+def close_pit(configuration: dict, pit_id: str, distribution: str = "elasticsearch") -> None:
     try:
-        es_request(
-            "DELETE", f"{base_url(configuration)}/_pit",
-            get_headers(configuration),
-            body={"id": pit_id},
-        )
+        if distribution == "opensearch":
+            url = f"{base_url(configuration)}/_search/point_in_time"
+            body = {"pit_id": pit_id}
+        else:
+            url = f"{base_url(configuration)}/_pit"
+            body = {"id": pit_id}
+        es_request("DELETE", url, get_headers(configuration), body=body)
     except Exception as e:
         log.warning(f"Could not close PIT: {e}")
 
@@ -264,13 +295,14 @@ def pit_page(configuration: dict, pit_id: str, sort_fields: list,
 
 # ── Delete detection: full ID scan ────────────────────────────────────────────
 
-def scan_all_ids(configuration: dict, name: str) -> set:
+def scan_all_ids(configuration: dict, name: str, distribution: str = "elasticsearch") -> set:
     """
     Scan every document ID in an index using PIT + search_after.
     Used for opt-in delete detection. _source is suppressed to minimise
     data transfer — only _id is fetched.
     """
-    pit_id = open_pit(configuration, name)
+    tiebreaker = "_doc" if distribution == "opensearch" else "_shard_doc"
+    pit_id = open_pit(configuration, name, distribution)
     search_after = None
     ids = set()
     try:
@@ -279,7 +311,7 @@ def scan_all_ids(configuration: dict, name: str) -> set:
                 "size": PAGE_SIZE,
                 "query": {"match_all": {}},
                 "pit": {"id": pit_id, "keep_alive": PIT_KEEP_ALIVE},
-                "sort": [{"_shard_doc": "asc"}],
+                "sort": [{tiebreaker: "asc"}],
                 "_source": False,
             }
             if search_after:
@@ -294,14 +326,14 @@ def scan_all_ids(configuration: dict, name: str) -> set:
                 ids.add(h["_id"])
             search_after = hits[-1]["sort"]
     finally:
-        close_pit(configuration, pit_id)
+        close_pit(configuration, pit_id, distribution)
     return ids
 
 
 # ── Sync: regular index ───────────────────────────────────────────────────────
 
 def sync_index(configuration: dict, name: str, index_state: dict,
-               enable_delete_detection: bool) -> dict:
+               enable_delete_detection: bool, distribution: str = "elasticsearch") -> dict:
     """
     Sync a regular Elasticsearch index.
 
@@ -332,7 +364,8 @@ def sync_index(configuration: dict, name: str, index_state: dict,
         else:
             query = {"range": {"_seq_no": {"gt": last_max_seq_no, "lte": current_max_seq_no}}}
 
-        pit_id = open_pit(configuration, name)
+        tiebreaker = "_doc" if distribution == "opensearch" else "_shard_doc"
+        pit_id = open_pit(configuration, name, distribution)
         search_after = None
         count = 0
 
@@ -340,7 +373,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
             while True:
                 hits, pit_id = pit_page(
                     configuration, pit_id,
-                    sort_fields=[{"_shard_doc": "asc"}],
+                    sort_fields=[{tiebreaker: "asc"}],
                     search_after=search_after,
                     query=query,
                 )
@@ -352,7 +385,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
                     count += 1
                 search_after = hits[-1]["sort"]
         finally:
-            close_pit(configuration, pit_id)
+            close_pit(configuration, pit_id, distribution)
 
         log.info(f"{name}: upserted {count} documents")
         index_state["last_max_seq_no"] = current_max_seq_no
@@ -362,7 +395,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
     # Delete detection (opt-in)
     if enable_delete_detection:
         log.info(f"{name}: scanning all IDs for delete detection")
-        curr_ids = scan_all_ids(configuration, name)
+        curr_ids = scan_all_ids(configuration, name, distribution)
         prev_ids = set(index_state.get("all_ids", []))
 
         if not is_initial:
@@ -379,7 +412,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
 
 # ── Sync: data stream ─────────────────────────────────────────────────────────
 
-def sync_data_stream(configuration: dict, name: str, index_state: dict) -> dict:
+def sync_data_stream(configuration: dict, name: str, index_state: dict, distribution: str = "elasticsearch") -> dict:
     """
     Sync an Elasticsearch data stream.
 
@@ -401,10 +434,11 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict) -> dict:
     else:
         query = {"match_all": {}}
 
-    # Sort by @timestamp ASC so we can track the cursor, with _shard_doc as tiebreaker
-    sort_fields = [{"@timestamp": "asc"}, {"_shard_doc": "asc"}]
+    # Sort by @timestamp ASC so we can track the cursor, with tiebreaker
+    tiebreaker = "_doc" if distribution == "opensearch" else "_shard_doc"
+    sort_fields = [{"@timestamp": "asc"}, {tiebreaker: "asc"}]
 
-    pit_id = open_pit(configuration, name)
+    pit_id = open_pit(configuration, name, distribution)
     search_after = None
     count = 0
     latest_ts = last_timestamp
@@ -428,7 +462,7 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict) -> dict:
                     latest_ts = ts
             search_after = hits[-1]["sort"]
     finally:
-        close_pit(configuration, pit_id)
+        close_pit(configuration, pit_id, distribution)
 
     if count:
         log.info(f"{name} (data stream): upserted {count} documents")
@@ -477,6 +511,8 @@ def update(configuration: dict, state: dict):
     if enable_delete_detection:
         log.warning("Delete detection is enabled — full ID scans will run after each index sync")
 
+    distribution = detect_distribution(configuration)
+
     targets = discover_targets(configuration)
     if not targets:
         log.warning("No indices or data streams found to sync. Check 'indices' config and permissions.")
@@ -488,9 +524,9 @@ def update(configuration: dict, state: dict):
         index_state = state.get(name, {})
         try:
             if target_type == "data_stream":
-                state[name] = sync_data_stream(configuration, name, index_state)
+                state[name] = sync_data_stream(configuration, name, index_state, distribution)
             else:
-                state[name] = sync_index(configuration, name, index_state, enable_delete_detection)
+                state[name] = sync_index(configuration, name, index_state, enable_delete_detection, distribution)
         except Exception as e:
             log.severe(f"Failed to sync {name}: {e}")
 
