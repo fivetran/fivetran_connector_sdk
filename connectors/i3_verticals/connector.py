@@ -309,9 +309,12 @@ def _normalize_timestamp(value) -> str | None:
 
 
 def schema(configuration: dict):
-    """Define connector schema: table names and primary keys only.
-
-    Column types are inferred by Fivetran from the data, following best practices.
+    """
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": table_name, "primary_key": [pk]} for table_name, _endpoint, pk, _ts in __TABLES
