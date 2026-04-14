@@ -631,6 +631,7 @@ def update(configuration: dict, state: dict):
         configuration: Connector configuration with base_url, username, password.
         state: Persistent state dictionary for incremental syncs and resume.
     """
+    log.warning("Example: <CATEGORY> : <EXAMPLE_NAME>")
     log.info("CourseMill LMS connector sync starting")
     validate_configuration(configuration)
 
