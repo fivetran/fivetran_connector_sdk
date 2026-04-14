@@ -214,6 +214,8 @@ These examples are designed to help you get started with the Connector SDK quick
 
 - [parsing_json_response_in_class](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/parsing_json_response_in_class) - This example shows how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation.
 
+- [pyproject_toml](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/pyproject_toml) - This example shows how to use `pyproject.toml` for dependency management instead of `requirements.txt`. It fetches exchange rates from the Frankfurter API and uses the `tenacity` library (declared in `pyproject.toml`) for retry logic with exponential backoff.
+
 </details>
 
 ### Common Connector SDK patterns
