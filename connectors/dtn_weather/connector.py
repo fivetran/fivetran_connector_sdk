@@ -204,6 +204,9 @@ def _sync_stations(configuration: dict):
                 "has_soil_sensor": data.get("hasSoilSensor"),
                 "last_observation_datetime": data.get("lastObservationDateTime"),
             }
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert("stations", row)
             count += 1
         except Exception as e:
