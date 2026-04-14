@@ -588,31 +588,50 @@ Return ONLY valid JSON (no markdown, no code fences):
 }}"""
 
 
-def call_cortex_agent(configuration, prompt):
+def _create_cortex_session(configuration):
+    """
+    Create a requests.Session for Cortex API calls with connection pooling.
+
+    Separate from the NHTSA session since it carries different auth headers.
+
+    Args:
+        configuration: Configuration dictionary with Snowflake credentials
+
+    Returns:
+        requests.Session configured for Cortex API
+    """
+    cortex_session = requests.Session()
+    pat_token = configuration.get("snowflake_pat_token")
+    cortex_session.headers.update(
+        {
+            "Authorization": f"Bearer {pat_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+    )
+    return cortex_session
+
+
+def call_cortex_agent(configuration, prompt, cortex_session=None):
     """
     Call Snowflake Cortex Agent via REST API for safety analysis.
 
     Uses SSE streaming response parsing with retry logic for transient failures.
+    Accepts an optional session for connection reuse across multiple calls.
 
     Args:
         configuration: Configuration dictionary with Snowflake credentials
         prompt: Analysis prompt for the agent
+        cortex_session: Optional requests.Session for connection reuse
 
     Returns:
         Parsed JSON response as dictionary, or None if call fails
     """
     snowflake_account = configuration.get("snowflake_account")
-    pat_token = configuration.get("snowflake_pat_token")
     cortex_model = configuration.get("cortex_model", __DEFAULT_CORTEX_MODEL)
     timeout = int(configuration.get("cortex_timeout", str(__DEFAULT_CORTEX_TIMEOUT)))
 
     url = f"https://{snowflake_account}{__CORTEX_AGENT_ENDPOINT}"
-
-    headers = {
-        "Authorization": f"Bearer {pat_token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
 
     payload = {
         "model": cortex_model,
@@ -624,32 +643,44 @@ def call_cortex_agent(configuration, prompt):
     for attempt in range(__MAX_RETRIES):
         agent_response = ""
         try:
-            response = requests.post(
-                url, headers=headers, json=payload, timeout=timeout, stream=True
-            )
+            if cortex_session:
+                response = cortex_session.post(url, json=payload, timeout=timeout, stream=True)
+            else:
+                pat_token = configuration.get("snowflake_pat_token")
+                headers = {
+                    "Authorization": f"Bearer {pat_token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
+                response = requests.post(
+                    url, headers=headers, json=payload, timeout=timeout, stream=True
+                )
             response.raise_for_status()
 
-            for line in response.iter_lines():
-                if line:
-                    line_text = line.decode("utf-8")
-                    if line_text.startswith("data: "):
-                        try:
-                            data = json.loads(line_text[6:])
-                            if not isinstance(data, dict):
+            try:
+                for line in response.iter_lines():
+                    if line:
+                        line_text = line.decode("utf-8")
+                        if line_text.startswith("data: "):
+                            try:
+                                data = json.loads(line_text[6:])
+                                if not isinstance(data, dict):
+                                    continue
+
+                                choices = data.get("choices", [])
+                                for choice in choices:
+                                    delta = choice.get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content:
+                                        agent_response += content
+
+                            except json.JSONDecodeError:
                                 continue
 
-                            choices = data.get("choices", [])
-                            for choice in choices:
-                                delta = choice.get("delta", {})
-                                content = delta.get("content", "")
-                                if content:
-                                    agent_response += content
-
-                        except json.JSONDecodeError:
-                            continue
-
-                    elif line_text.startswith("event: done"):
-                        break
+                        elif line_text.startswith("event: done"):
+                            break
+            finally:
+                response.close()
 
             if not agent_response:
                 log.warning("Empty response from Cortex Agent")
@@ -726,7 +757,9 @@ def _build_aggregates(
     }
 
 
-def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, state):
+def run_discovery_phase(
+    session, configuration, seed_recalls, seed_complaints, state, cortex_session=None
+):
     """
     Run the Agent-Driven Discovery phase: analyze seed data and fetch related vehicles.
 
@@ -736,6 +769,7 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
         seed_recalls: Recall records from seed vehicle
         seed_complaints: Complaint records from seed vehicle
         state: State dictionary for checkpointing
+        cortex_session: Optional requests.Session for Cortex connection reuse
 
     Returns:
         Tuple of (all_recalls, all_complaints, vehicles_investigated)
@@ -786,7 +820,7 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
         seed_make, seed_model, seed_year, seed_recalls, seed_complaints
     )
     log.info("Calling Cortex Agent for discovery analysis")
-    discovery_result = call_cortex_agent(configuration, discovery_prompt)
+    discovery_result = call_cortex_agent(configuration, discovery_prompt, cortex_session)
     enrichment_count += 1
 
     if not discovery_result:
@@ -925,7 +959,9 @@ def run_discovery_phase(session, configuration, seed_recalls, seed_complaints, s
     )
 
 
-def run_synthesis_phase(configuration, vehicles_investigated, aggregates, state):
+def run_synthesis_phase(
+    configuration, vehicles_investigated, aggregates, state, cortex_session=None
+):
     """
     Run the cross-vehicle synthesis phase: generate fleet-wide safety analysis.
 
@@ -934,6 +970,7 @@ def run_synthesis_phase(configuration, vehicles_investigated, aggregates, state)
         vehicles_investigated: List of (make, model, year) tuples
         aggregates: Dict with recall/complaint component counts and totals
         state: State dictionary for checkpointing
+        cortex_session: Optional requests.Session for Cortex connection reuse
     """
     seed_make = configuration.get("seed_make")
     seed_model = configuration.get("seed_model")
@@ -941,7 +978,7 @@ def run_synthesis_phase(configuration, vehicles_investigated, aggregates, state)
 
     synthesis_prompt = build_synthesis_prompt(vehicles_investigated, aggregates)
     log.info("Calling Cortex Agent for cross-vehicle synthesis")
-    synthesis_result = call_cortex_agent(configuration, synthesis_prompt)
+    synthesis_result = call_cortex_agent(configuration, synthesis_prompt, cortex_session)
 
     if not synthesis_result:
         log.warning("Cortex Agent returned no synthesis results")
@@ -1037,8 +1074,16 @@ def update(configuration: dict, state: dict):
         if is_cortex_enabled and discovery_depth >= 1:
             log.info("Phase 2: Starting Agent-Driven Discovery")
 
+            # Create Cortex session for connection pooling across discovery + synthesis
+            cortex_session = _create_cortex_session(configuration)
+
             aggregates, vehicles_investigated = run_discovery_phase(
-                session, configuration, seed_recalls, seed_complaints, state
+                session,
+                configuration,
+                seed_recalls,
+                seed_complaints,
+                state,
+                cortex_session,
             )
 
             # Phase 3: Cross-vehicle synthesis (if depth >= 2 and we have multiple vehicles)
@@ -1049,7 +1094,10 @@ def update(configuration: dict, state: dict):
                     vehicles_investigated,
                     aggregates,
                     state,
+                    cortex_session,
                 )
+
+            cortex_session.close()
         else:
             if not is_cortex_enabled:
                 log.info(

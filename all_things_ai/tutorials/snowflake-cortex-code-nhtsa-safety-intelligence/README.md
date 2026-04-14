@@ -159,7 +159,7 @@ Retry logic:
 - Connection errors and timeouts are retried with the same backoff pattern
 - Non-retryable errors (401, 403) are logged and raised immediately
 
-Cortex Agent handling via `def call_cortex_agent(configuration, prompt)`:
+Cortex Agent handling via `def call_cortex_agent(configuration, prompt, cortex_session)`:
 - Retry logic with exponential backoff for transient failures (429, 500, 502, 503, 504)
 - Authentication errors (401, 403) are logged and not retried
 - Agent timeouts are retried up to 3 times; sync continues without AI enrichment if all fail
@@ -168,6 +168,8 @@ Cortex Agent handling via `def call_cortex_agent(configuration, prompt)`:
 - Markdown code fences in agent responses are automatically stripped before JSON parsing
 - LLM output is type-validated before use (e.g., recommended_vehicles must be a list of dicts)
 - `max_enrichments` budget is enforced with a counter before each Cortex call
+- Cortex calls use a dedicated `requests.Session` via `def _create_cortex_session(configuration)` for TCP connection pooling across discovery and synthesis phases
+- Streaming responses are explicitly closed via `response.close()` in a finally block
 
 Validation:
 - Configuration validation occurs before sync starts - refer to `def validate_configuration(configuration)`
