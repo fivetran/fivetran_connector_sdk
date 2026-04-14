@@ -22,7 +22,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 # Import required classes from fivetran_connector_sdk
-# For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
@@ -349,7 +348,14 @@ def _sync_incremental(
         _sync_full(table_schema, state, table_state, pool, batch_size, checkpoint_interval)
         return
 
-    reader = IncrementalReader(pool, table_schema, last_replication_value, batch_size)
+    reader = IncrementalReader(
+        pool,
+        table_schema,
+        last_replication_value,
+        batch_size,
+        use_pk_tiebreak=DEFAULT_USE_PK_TIEBREAK,
+        pk_cols=table_schema.primary_keys,
+    )
     rows_synced = 0
     rows_since_checkpoint = 0
     current_last = last_replication_value

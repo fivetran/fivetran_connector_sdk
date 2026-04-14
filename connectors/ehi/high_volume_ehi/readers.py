@@ -273,6 +273,16 @@ class OffsetReader:
 class IncrementalReader:
     """
     Reads only rows changed since the last committed replication-key value.
+
+    When use_pk_tiebreak=True and the table has exactly one integer primary key,
+    a composite keyset (repl_col, pk_col) is used for within-run pagination so
+    that rows sharing the same replication-key value are never skipped at page
+    boundaries. Using >= alone would re-deliver the same page infinitely;
+    the composite cursor (repl > X) OR (repl = X AND pk > Y) is the only
+    correct solution.
+
+    The yielded cursor is always just the replication-key value so that the
+    state stored across runs stays compatible with a simple > comparison.
     """
 
     def __init__(
@@ -281,36 +291,85 @@ class IncrementalReader:
         schema: TableSchema,
         last_seen_value,
         batch_size: int = BATCH_SIZE,
+        use_pk_tiebreak: bool = False,
+        pk_cols: list = None,
     ) -> None:
         self._pool = pool
         self._schema = schema
         self._last_seen = last_seen_value
         self._batch_size = batch_size
+        self._use_pk_tiebreak = use_pk_tiebreak
+        self._pk_cols = pk_cols or []
+
+    def _get_tiebreak_pk_col(self):
+        """
+        Return the single integer PK column name to use for tiebreaking, or
+        None if not applicable (not enabled, or multiple/non-integer PKs).
+        """
+        if not self._use_pk_tiebreak or len(self._pk_cols) != 1:
+            return None
+        pk_name = self._pk_cols[0]
+        for col in self._schema.columns:
+            if col.name == pk_name and col.python_type is int:
+                return pk_name
+        return None
 
     def read_upsert_batches(self):
-        """Generator yielding (batch: list[dict], last_value) pairs for changed rows."""
+        """Generator yielding (batch: list[dict], last_repl_value) pairs for changed rows."""
         repl_col = self._schema.replication_key.name
         sel_cols = self._schema.selectable_columns
         col_sql = ", ".join(f"[{col.name}]" for col in sel_cols)
         schema_table = f"[{self._schema.schema_name}].[{self._schema.table_name}]"
-        # Pre-compute replication-key index for direct row access during cursor tracking.
-        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), 0)
+        tiebreak_pk = self._get_tiebreak_pk_col()
+        fetch = f"OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY OPTION (FAST {self._batch_size})"
 
-        # Pre-build SQL template.
-        # WHERE [repl_col] > ? implicitly excludes NULL replication-key rows —
-        # SQL NULL comparisons always evaluate to UNKNOWN/FALSE, so no explicit IS NOT NULL needed.
-        sql = (
-            f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
-            f"WHERE [{repl_col}] > ? "
-            f"ORDER BY [{repl_col}] "
-            f"OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY "
-            f"OPTION (FAST {self._batch_size})"
+        # Pre-compute column indices for direct row access during cursor tracking.
+        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), 0)
+        pk_col_idx = (
+            next((i for i, col in enumerate(sel_cols) if col.name == tiebreak_pk), None)
+            if tiebreak_pk
+            else None
         )
 
+        # Two SQL templates are needed when tiebreaking:
+        #   sql_first — first page of each run: only the replication-key cursor applies.
+        #   sql_next  — subsequent pages: composite (repl, pk) cursor prevents skipping rows
+        #               that share the same replication-key value at a page boundary.
+        # WHERE [repl_col] > ? implicitly excludes NULL replication-key rows —
+        # SQL NULL comparisons always evaluate to UNKNOWN/FALSE, so no explicit IS NOT NULL needed.
+        if tiebreak_pk:
+            sql_first = (
+                f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
+                f"WHERE [{repl_col}] > ? "
+                f"ORDER BY [{repl_col}], [{tiebreak_pk}] {fetch}"
+            )
+            sql_next = (
+                f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
+                f"WHERE ([{repl_col}] > ?) OR ([{repl_col}] = ? AND [{tiebreak_pk}] > ?) "
+                f"ORDER BY [{repl_col}], [{tiebreak_pk}] {fetch}"
+            )
+        else:
+            sql_first = (
+                f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
+                f"WHERE [{repl_col}] > ? "
+                f"ORDER BY [{repl_col}] {fetch}"
+            )
+            sql_next = sql_first  # no tiebreak — single cursor, same template every page
+
         current_last = self._last_seen
+        current_last_pk = None
+        is_first_page = True
+
         while True:
+            if is_first_page or not tiebreak_pk:
+                params = (current_last, self._batch_size)
+                sql = sql_first
+            else:
+                params = (current_last, current_last, current_last_pk, self._batch_size)
+                sql = sql_next
+
             with self._pool.acquire() as conn:
-                cur = conn.execute_with_retry(sql, (current_last, self._batch_size))
+                cur = conn.execute_with_retry(sql, params)
                 try:
                     rows = cur.fetchall()
                 finally:
@@ -319,7 +378,9 @@ class IncrementalReader:
             if not rows:
                 return
 
+            is_first_page = False
             last_value = current_last
+            last_pk_value = current_last_pk
             batch = []
             for row in rows:
                 record = {
@@ -327,11 +388,18 @@ class IncrementalReader:
                     for col, raw in zip(sel_cols, row)
                 }
                 batch.append(record)
-                # Advance cursor from the pre-computed row index rather than the record dict.
-                # WHERE [repl_col] > ? guarantees non-NULL; str(raw) is a safety fallback
-                # that prevents an infinite loop if convert_value returns None unexpectedly.
+                # Advance replication-key cursor from the raw row (guaranteed non-NULL by WHERE).
+                # str(raw) fallback ensures the cursor always moves forward.
                 rk_converted = convert_value(row[repl_col_idx], sel_cols[repl_col_idx].python_type)
                 last_value = rk_converted if rk_converted is not None else str(row[repl_col_idx])
+                # Advance PK cursor when tiebreaking is active.
+                if tiebreak_pk and pk_col_idx is not None:
+                    pk_converted = convert_value(row[pk_col_idx], sel_cols[pk_col_idx].python_type)
+                    if pk_converted is not None:
+                        last_pk_value = pk_converted
 
             current_last = last_value
+            current_last_pk = last_pk_value
+            # Yield only the replication-key value as the cursor — the composite PK cursor
+            # is an intra-run pagination detail and does not need to cross sync boundaries.
             yield batch, current_last
