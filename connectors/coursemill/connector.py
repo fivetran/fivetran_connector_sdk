@@ -269,8 +269,11 @@ class CoursemillClient:
 
 def schema(configuration: dict):
     """
-    Define the schema for all CourseMill tables.
-    Only table names and primary keys are specified; data types are auto-detected.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {"table": "organizations", "primary_key": ["org_id"]},
