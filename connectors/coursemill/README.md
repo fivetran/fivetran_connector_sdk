@@ -1,4 +1,4 @@
-# CourseMill LMS Connector
+# CourseMill LMS Connector Example
 
 > Note: This connector is a draft that has not been validated through direct testing against a live API. It is intended as a starting point and example implementation that should be confirmed and tested before production use.
 
