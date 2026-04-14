@@ -22,11 +22,11 @@ from fivetran_connector_sdk import Operations as op
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-PAGE_SIZE = 200
-MAX_RETRIES = 5
-REQUEST_TIMEOUT = 60
-CHECKPOINT_INTERVAL = 500
-INITIAL_SYNC_LOOKBACK_DAYS = 365
+__PAGE_SIZE = 200
+__MAX_RETRIES = 5
+__REQUEST_TIMEOUT = 60
+__CHECKPOINT_INTERVAL = 500
+__INITIAL_SYNC_LOOKBACK_DAYS = 365
 
 
 # ---------------------------------------------------------------------------
