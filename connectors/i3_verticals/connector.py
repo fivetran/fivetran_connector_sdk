@@ -4,14 +4,14 @@ Syncs payment charges, refunds, customers, distributions, merchants, and account
 from the Burton Platform into a Fivetran-managed warehouse.
 """
 
-import json
-import time
-from datetime import datetime, timezone
+import json  # For loading local configuration during connector debugging.
+import time  # For retry backoff delays and token expiry calculations.
+from datetime import datetime, timezone  # For parsing and comparing UTC timestamps.
 
-import requests
-from fivetran_connector_sdk import Connector
-from fivetran_connector_sdk import Logging as log
-from fivetran_connector_sdk import Operations as op
+import requests  # For making HTTP requests to the Burton Platform API and OAuth token endpoint.
+from fivetran_connector_sdk import Connector  # For initializing the Fivetran connector.
+from fivetran_connector_sdk import Logging as log  # For writing logs using the Connector SDK logger.
+from fivetran_connector_sdk import Operations as op  # For performing upsert and checkpoint operations.
 
 # ---------------------------------------------------------------------------
 # Constants
