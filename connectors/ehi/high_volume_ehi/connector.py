@@ -44,7 +44,7 @@ from constants import (
 # client and models for managing SQL Server connections and schema metadata
 from client import ConnectionPool
 from models import SchemaDetector, TableSchema
-from readers import KeysetReader, OffsetReader, IncrementalReader
+from readers import KeysetReader, OffsetReader, IncrementalReader, PKKeysetReader
 
 _CACHED_TABLE_SCHEMAS: dict = {}
 
@@ -82,7 +82,8 @@ def _parse_table_list() -> tuple:
     Parse DEFAULT_TABLE_LIST and DEFAULT_TABLE_EXCLUSION_LIST from constants.
     Returns:
         (included_names, excluded_names) where:
-          included_names — list of table names to sync, or None (= sync all)
+          included_names — list of table names to sync (empty list = sync none),
+                           or None (= sync all)
           excluded_names — frozenset of lowercase names to exclude (applied
                            both to explicit lists and to discovered tables)
     """
@@ -102,7 +103,7 @@ def _parse_table_list() -> tuple:
             for name in DEFAULT_TABLE_LIST.split(",")
             if name.strip() and name.strip().lower() not in excluded_names
         ]
-        return (included_names or None), excluded_names
+        return included_names, excluded_names
 
     # No explicit include list — discover all tables; exclusion applied later
     return None, excluded_names
@@ -111,13 +112,15 @@ def _parse_table_list() -> tuple:
 def _get_table_sizes_batch(pool: ConnectionPool, schema_name: str, table_names: list) -> dict:
     """
     Return estimated row counts in a single SQL query using sys.partitions.
+    Only queries the specific tables in table_names — does not scan the entire schema.
     Returns dict mapping table_name -> int row count (0 when not found).
     Args:
         pool: ConnectionPool to acquire a connection from
         schema_name: SQL Server schema name (e.g. 'dbo')
         table_names: list of table names to get sizes for
     """
-    sql = """
+    placeholders = ", ".join("?" * len(table_names))
+    sql = f"""
         SELECT
             OBJECT_NAME(i.object_id) AS table_name,
             SUM(p.rows)              AS row_count
@@ -127,10 +130,11 @@ def _get_table_sizes_batch(pool: ConnectionPool, schema_name: str, table_names: 
             AND i.index_id  = p.index_id
         WHERE i.index_id <= 1
           AND OBJECT_SCHEMA_NAME(i.object_id) = ?
+          AND OBJECT_NAME(i.object_id)        IN ({placeholders})
         GROUP BY i.object_id
     """
     with pool.acquire() as conn:
-        cursor = conn.execute_with_retry(sql, (schema_name,))
+        cursor = conn.execute_with_retry(sql, (schema_name, *table_names))
         try:
             rows = cursor.fetchall()
         finally:
@@ -144,40 +148,41 @@ def _determine_mode(table_state: dict, table_schema: TableSchema) -> str:
     """
     Decide whether to run a full load or incremental load for a table.
     Decision tree:
-      DEFAULT_FORCE_FULL_RESYNC=True → 'full' or 'full_offset'
-      No prior state                 → 'full' or 'full_offset'
-      mode='full', incomplete        → resume in-progress full load
-      mode='full', completed         → 'incremental' (if replication key exists)
+      DEFAULT_FORCE_FULL_RESYNC=True → 'full'
+      No prior state                 → 'full'
+      mode='full', incomplete        → 'full' (resume in-progress full load)
+      mode='full', completed         → 'incremental' (if replication key exists) else 'full'
       mode='incremental'             → 'incremental'
+
+    A single 'full' mode covers tables both with and without a replication key.
+    The actual reader (KeysetReader vs OffsetReader) and the state key used are
+    determined inside _sync_full from the live schema — not from this string.
     Args:
         table_state: dict from state[table_name] with keys like 'mode' and
                     'sync_completed_at' (ISO 8601 string or None)
         table_schema: TableSchema object with replication_key attribute
     Returns:
-        one of: 'full', 'full_offset', 'incremental'
+        one of: 'full', 'incremental'
     """
     has_replication_key = table_schema.replication_key is not None
 
-    def _full_mode():
-        return "full" if has_replication_key else "full_offset"
-
     if DEFAULT_FORCE_FULL_RESYNC:
-        return _full_mode()
+        return "full"
 
     if not table_state:
-        return _full_mode()
+        return "full"
 
-    prior_mode = table_state.get("mode", "")
+    prior_mode = table_state.get("mode", "full")
 
-    if prior_mode in ("full", "full_offset"):
+    if prior_mode == "full":
         if table_state.get("sync_completed_at") is None:
-            return prior_mode  # resume interrupted full load
-        return "incremental" if has_replication_key else _full_mode()
+            return "full"
+        return "incremental" if has_replication_key else "full"
 
     if prior_mode == "incremental":
         return "incremental"
 
-    return _full_mode()
+    return "full"
 
 
 def _save_checkpoint(
@@ -189,28 +194,34 @@ def _save_checkpoint(
     marker,
     rows_synced: int,
     completed: bool = False,
+    pk_marker=None,
+    use_pk_cursor: bool = False,
 ) -> None:
     """
     Persist cursor position and call op.checkpoint().
-    Uses a single state key ('last_seen_replication_value' for keyset tables,
-    'last_offset' for offset tables) so the duplicated if/else in sync
-    functions is replaced by a single call here.
     Args:
         state: global state dict to update
         table_name: name of the table being synced (state key)
         table_state: dict with existing state for this table, to be updated and saved
-        mode: sync mode string to save in state for next run ('full', 'full_offset
-                or 'incremental')
-        has_repl_key: whether this table has a replication key (determines state key name)
-        marker: the value of the replication key or offset to save as the cursor position
-        rows_synced: total number of rows synced so far, to be saved in state
-        completed: whether the sync is complete (used to set sync_completed_at timestamp)
+        mode: sync mode string to save in state for next run ('full' or 'incremental')
+        has_repl_key: True for KeysetReader/IncrementalReader tables
+        marker: cursor value — replication key, PK cursor, or offset depending on reader
+        rows_synced: total rows processed so far
+        completed: True when the sync finished cleanly (sets sync_completed_at)
+        pk_marker: tiebreak PK cursor for KeysetReader/IncrementalReader; persisted
+                   alongside last_seen_replication_value so resume can reconstruct
+                   the composite (repl, pk) cursor and avoid boundary data loss
+        use_pk_cursor: True when PKKeysetReader is active; writes marker to
+                       last_seen_pk_cursor instead of last_offset
     """
     if has_repl_key:
-        # Only write the cursor when there is a real value — avoids storing None
-        # into state for tables that returned no rows on the first full load.
         if marker is not None:
             table_state["last_seen_replication_value"] = marker
+        if pk_marker is not None:
+            table_state["last_seen_pk_value"] = pk_marker
+    elif use_pk_cursor:
+        if marker is not None:
+            table_state["last_seen_pk_cursor"] = marker
     else:
         table_state["last_offset"] = marker
     table_state["rows_synced"] = rows_synced
@@ -219,12 +230,6 @@ def _save_checkpoint(
         datetime.now(timezone.utc).isoformat() if completed else None
     )
     state[table_name] = table_state
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state)
 
 
@@ -237,9 +242,10 @@ def _sync_full(
     checkpoint_interval: int,
 ) -> None:
     """
-    Full load using keyset (tables with replication key) or offset pagination.
-    Checkpoints every checkpoint_interval rows so an interrupted sync can
-    resume without re-scanning previously committed rows.
+    Full load using keyset (tables with replication key), PK-keyset (tables with a
+    single primary key but no replication key), or offset pagination (fallback).
+    Checkpoints every checkpoint_interval rows so an interrupted sync can resume
+    without re-scanning previously committed rows.
     Args:
         table_schema: TableSchema object with metadata for the table being synced
         state: global state dict to update with progress
@@ -250,71 +256,126 @@ def _sync_full(
     """
     table_name = table_schema.table_name
     has_repl_key = table_schema.replication_key is not None
-    mode = "full" if has_repl_key else "full_offset"
+    pk_cols = table_schema.primary_keys
+    mode = "full"
+    rows_synced = int(table_state.get("rows_synced", 0))
 
-    last_marker = (
-        table_state.get("last_seen_replication_value")
-        if has_repl_key
-        else int(table_state.get("last_offset", 0))
-    )
-
-    reader = (
-        KeysetReader(
+    if has_repl_key:
+        last_marker = table_state.get("last_seen_replication_value")
+        last_pk_marker = table_state.get("last_seen_pk_value")
+        reader = KeysetReader(
             pool,
             table_schema,
             last_marker,
             batch_size,
             use_pk_tiebreak=DEFAULT_USE_PK_TIEBREAK,
-            pk_cols=table_schema.primary_keys,
+            pk_cols=pk_cols,
+            last_seen_pk=last_pk_marker,
         )
-        if has_repl_key
-        else OffsetReader(pool, table_schema, last_marker, batch_size)
-    )
+        log.info(
+            f"{table_name}: starting full keyset load "
+            f"(rows_so_far={rows_synced}, last_marker={last_marker})"
+        )
+        for batch, progress_marker, progress_pk_marker in reader.read_batches():
+            for row in batch:
+                op.upsert(table_name, row)
+            rows_synced += len(batch)
+            last_marker = progress_marker
+            last_pk_marker = progress_pk_marker
+            if rows_synced % checkpoint_interval == 0:
+                _save_checkpoint(
+                    state,
+                    table_name,
+                    table_state,
+                    mode,
+                    True,
+                    last_marker,
+                    rows_synced,
+                    pk_marker=last_pk_marker,
+                )
+                log.info(f"{table_name}: checkpoint at {rows_synced:,} rows")
+        _save_checkpoint(
+            state,
+            table_name,
+            table_state,
+            mode,
+            True,
+            last_marker,
+            rows_synced,
+            completed=True,
+            pk_marker=last_pk_marker,
+        )
 
-    rows_synced = int(table_state.get("rows_synced", 0))
-    rows_since_checkpoint = 0
+    elif len(pk_cols) == 1:
+        last_marker = table_state.get("last_seen_pk_cursor")
+        reader = PKKeysetReader(pool, table_schema, last_marker, batch_size)
+        log.info(
+            f"{table_name}: starting full PK-keyset load "
+            f"(rows_so_far={rows_synced}, last_pk={last_marker})"
+        )
+        for batch, progress_marker in reader.read_batches():
+            for row in batch:
+                op.upsert(table_name, row)
+            rows_synced += len(batch)
+            last_marker = progress_marker
+            if rows_synced % checkpoint_interval == 0:
+                _save_checkpoint(
+                    state,
+                    table_name,
+                    table_state,
+                    mode,
+                    False,
+                    last_marker,
+                    rows_synced,
+                    use_pk_cursor=True,
+                )
+                log.info(f"{table_name}: checkpoint at {rows_synced:,} rows")
+        _save_checkpoint(
+            state,
+            table_name,
+            table_state,
+            mode,
+            False,
+            last_marker,
+            rows_synced,
+            completed=True,
+            use_pk_cursor=True,
+        )
 
-    log.info(
-        f"{table_name}: starting {mode} load "
-        f"(rows_so_far={rows_synced}, last_marker={last_marker})"
-    )
+    else:
+        last_marker = int(table_state.get("last_offset", 0))
+        reader = OffsetReader(pool, table_schema, last_marker, batch_size)
+        log.info(
+            f"{table_name}: starting full offset load "
+            f"(rows_so_far={rows_synced}, last_offset={last_marker})"
+        )
+        for batch, progress_marker in reader.read_batches():
+            for row in batch:
+                op.upsert(table_name, row)
+            rows_synced += len(batch)
+            last_marker = progress_marker
+            if rows_synced % checkpoint_interval == 0:
+                _save_checkpoint(
+                    state,
+                    table_name,
+                    table_state,
+                    mode,
+                    False,
+                    last_marker,
+                    rows_synced,
+                )
+                log.info(f"{table_name}: checkpoint at {rows_synced:,} rows")
+        _save_checkpoint(
+            state,
+            table_name,
+            table_state,
+            mode,
+            False,
+            last_marker,
+            rows_synced,
+            completed=True,
+        )
 
-    for batch, progress_marker in reader.read_batches():
-        for row in batch:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table_name, row)
-
-        batch_len = len(batch)
-        rows_synced += batch_len
-        rows_since_checkpoint += batch_len
-        last_marker = progress_marker
-
-        if rows_since_checkpoint >= checkpoint_interval:
-            _save_checkpoint(
-                state,
-                table_name,
-                table_state,
-                mode,
-                has_repl_key,
-                progress_marker,
-                rows_synced,
-            )
-            rows_since_checkpoint = 0
-            log.info(f"{table_name}: checkpoint at {rows_synced:,} rows")
-
-    # Final checkpoint — uses last_marker so the tail batch is not re-synced
-    _save_checkpoint(
-        state,
-        table_name,
-        table_state,
-        mode,
-        has_repl_key,
-        last_marker,
-        rows_synced,
-        completed=True,
-    )
     log.info(f"{table_name}: full load complete — {rows_synced:,} row(s) synced")
 
 
@@ -348,6 +409,7 @@ def _sync_incremental(
         _sync_full(table_schema, state, table_state, pool, batch_size, checkpoint_interval)
         return
 
+    last_pk_value = table_state.get("last_seen_pk_value")
     reader = IncrementalReader(
         pool,
         table_schema,
@@ -355,26 +417,23 @@ def _sync_incremental(
         batch_size,
         use_pk_tiebreak=DEFAULT_USE_PK_TIEBREAK,
         pk_cols=table_schema.primary_keys,
+        last_seen_pk=last_pk_value,
     )
     rows_synced = 0
-    rows_since_checkpoint = 0
     current_last = last_replication_value
+    current_last_pk = last_pk_value
 
     log.info(f"{table_name}: starting incremental sync from {last_replication_value}")
 
-    for batch, last_seen in reader.read_upsert_batches():
+    for batch, last_seen, last_seen_pk in reader.read_upsert_batches():
         for row in batch:
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table_name, row)
 
-        batch_len = len(batch)
-        rows_synced += batch_len
-        rows_since_checkpoint += batch_len
+        rows_synced += len(batch)
         current_last = last_seen
+        current_last_pk = last_seen_pk
 
-        if rows_since_checkpoint >= checkpoint_interval:
+        if rows_synced % checkpoint_interval == 0:
             _save_checkpoint(
                 state,
                 table_name,
@@ -383,8 +442,8 @@ def _sync_incremental(
                 True,
                 current_last,
                 rows_synced,
+                pk_marker=current_last_pk,
             )
-            rows_since_checkpoint = 0
             log.info(f"{table_name}: incremental checkpoint at {rows_synced:,} rows")
 
     _save_checkpoint(
@@ -396,6 +455,7 @@ def _sync_incremental(
         current_last,
         rows_synced,
         completed=True,
+        pk_marker=current_last_pk,
     )
     log.info(f"{table_name}: incremental sync complete — {rows_synced:,} upserted")
 
@@ -416,8 +476,6 @@ def _sync_table_thread(table_schema: TableSchema, state: dict, pool: ConnectionP
         table_state = dict(state.get(table_name, {}))
         # Initialize metadata on first visit — single field encodes both
         # presence and name of the replication key (None when absent)
-        if "sync_started_at" not in table_state:
-            table_state["sync_started_at"] = datetime.now(timezone.utc).isoformat()
         if "replication_key_col" not in table_state:
             table_state["replication_key_col"] = (
                 table_schema.replication_key.name if table_schema.replication_key else None
@@ -432,11 +490,13 @@ def _sync_table_thread(table_schema: TableSchema, state: dict, pool: ConnectionP
         # and find no rows because the cursor is already at the table's maximum value.
         if DEFAULT_FORCE_FULL_RESYNC:
             table_state.pop("last_seen_replication_value", None)
+            table_state.pop("last_seen_pk_value", None)
+            table_state.pop("last_seen_pk_cursor", None)
             table_state.pop("last_offset", None)
             table_state.pop("rows_synced", None)
             table_state.pop("sync_completed_at", None)
 
-        if mode in ("full", "full_offset"):
+        if mode == "full":
             _sync_full(table_schema, state, table_state, pool, BATCH_SIZE, CHECKPOINT_INTERVAL)
         elif mode == "incremental":
             _sync_incremental(

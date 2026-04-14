@@ -1,8 +1,9 @@
 """
 Readers for full-table and incremental reads using keyset or offset pagination.
 
-KeysetReader  — recommended default; O(n) cost, resumable, supports parallelism
-OffsetReader  — fallback for tables with no replication key; O(n²) database cost
+KeysetReader    — recommended default; O(n) cost, resumable, supports parallelism
+PKKeysetReader  — O(n) full load for tables with a single PK but no replication key
+OffsetReader    — last-resort fallback (no PK, no replication key); O(n²) database cost
 IncrementalReader — reads only rows changed since the last committed cursor value
 """
 
@@ -27,6 +28,11 @@ from models import TableSchema
 # Pre-built tuple used by isinstance() check in convert_value().
 # Defined at module level so it is not recreated on every call.
 _DATETIME_TYPES = (datetime, date, _time)
+
+# SQL Server string types eligible as tiebreak PK columns.
+# uniqueidentifier is excluded: its SQL Server internal sort order does not match
+# lexicographic order, so > comparisons would produce an unreliable keyset cursor.
+_TIEBREAK_ELIGIBLE_STR_TYPES = frozenset({"varchar", "nvarchar", "char", "nchar", "text", "ntext"})
 
 
 def convert_value(value, python_type):
@@ -82,6 +88,7 @@ class KeysetReader:
         batch_size: int = BATCH_SIZE,
         use_pk_tiebreak: bool = False,
         pk_cols: list = None,
+        last_seen_pk=None,
     ) -> None:
         self._pool = pool
         self._schema = schema
@@ -89,23 +96,43 @@ class KeysetReader:
         self._batch_size = batch_size
         self._use_pk_tiebreak = use_pk_tiebreak
         self._pk_cols = pk_cols or []
+        self._last_seen_pk = last_seen_pk
 
     def _get_tiebreak_pk_col(self):
         """
-        Return the single integer PK column name to use for tiebreaking, or
-        None if not applicable (not enabled, or multiple/non-integer PKs).
+        Return the single PK column name to use for tiebreaking, or None if not
+        applicable. Eligible types: integer columns and string columns (varchar,
+        nvarchar, char, nchar, text, ntext). uniqueidentifier is excluded because
+        its SQL Server internal sort order does not match lexicographic order.
         """
-        if not self._use_pk_tiebreak or len(self._pk_cols) != 1:
+        if not self._use_pk_tiebreak:
+            return None
+        if len(self._pk_cols) != 1:
+            if self._pk_cols:
+                log.warning(
+                    f"{self._schema.table_name}: tiebreak requested but table has a "
+                    f"{len(self._pk_cols)}-column composite PK — tiebreak disabled"
+                )
             return None
         pk_name = self._pk_cols[0]
         for col in self._schema.columns:
-            if col.name == pk_name and col.python_type is int:
+            if col.name != pk_name:
+                continue
+            if col.python_type is int:
                 return pk_name
+            if col.python_type is str and col.sql_type.lower() in _TIEBREAK_ELIGIBLE_STR_TYPES:
+                return pk_name
+            log.warning(
+                f"{self._schema.table_name}: tiebreak requested but PK column '{pk_name}' "
+                f"has SQL type '{col.sql_type}' which is not eligible for tiebreaking "
+                f"(uniqueidentifier and other non-orderable types are excluded) — tiebreak disabled"
+            )
+            return None
         return None
 
     def read_batches(self):
         """
-        Generator yielding (batch: list[dict], last_value) pairs.
+        Generator yielding (batch, last_repl_value, last_pk_value) 3-tuples.
 
         SQL templates are built once before the loop to avoid repeated
         f-string formatting across thousands of pages.
@@ -141,12 +168,22 @@ class KeysetReader:
                 f"ORDER BY [{repl_col}] {fetch}"
             )
 
-        # Precompute repl_col index to avoid re-scanning sel_cols for the boundary warning
-        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), 0)
+        # Precompute repl_col index to avoid re-scanning sel_cols for the boundary warning.
+        # Fail fast if the replication key column is absent from selectable_columns (e.g. it is
+        # a computed column excluded from SELECT). Defaulting to index 0 would silently corrupt
+        # cursor tracking by advancing state from the wrong column.
+        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), None)
+        if repl_col_idx is None:
+            raise ValueError(
+                f"{self._schema.table_name}: replication key column '{repl_col}' is not present "
+                "in selectable_columns (it may be a computed column excluded from SELECT). "
+                "Set incremental_column in constants.py to a non-computed column, "
+                "or leave it unset to allow auto-detection to pick a selectable column."
+            )
 
         page = 0
         current_last = self._last_seen
-        current_last_pk = None
+        current_last_pk = self._last_seen_pk
 
         while True:
             if current_last is None:
@@ -205,7 +242,7 @@ class KeysetReader:
                 f"{self._schema.table_name}: page {page} — "
                 f"{len(batch)} rows, last_value={current_last}"
             )
-            yield batch, current_last
+            yield batch, current_last, current_last_pk
 
 
 class OffsetReader:
@@ -228,6 +265,13 @@ class OffsetReader:
         self._schema = schema
         self._last_offset = last_offset
         self._batch_size = batch_size
+        pk_cols = schema.primary_keys
+        if pk_cols:
+            self._order_clause = "ORDER BY " + ", ".join(f"[{pk}]" for pk in pk_cols)
+            self._has_pk_order = True
+        else:
+            self._order_clause = "ORDER BY (SELECT NULL)"
+            self._has_pk_order = False
 
     def read_batches(self):
         """Generator yielding (batch: list[dict], next_offset) pairs."""
@@ -235,16 +279,25 @@ class OffsetReader:
         col_sql = ", ".join(f"[{col.name}]" for col in sel_cols)
         schema_table = f"[{self._schema.schema_name}].[{self._schema.table_name}]"
 
-        log.warning(
-            f"Table {self._schema.table_name} has no replication key — "
-            "using OFFSET pagination (slow for large tables). "
-            "Consider adding an incremental_column to the configuration."
-        )
+        if self._has_pk_order:
+            log.warning(
+                f"Table {self._schema.table_name} has no replication key — "
+                "using OFFSET pagination with stable PK ordering (O(n²) cost). "
+                "Consider adding an incremental_column to the configuration."
+            )
+        else:
+            log.warning(
+                f"Table {self._schema.table_name} has no replication key and no primary key — "
+                "using OFFSET pagination with non-deterministic ordering. "
+                "Row order is not guaranteed stable across pages; rows may be skipped or "
+                "duplicated if the table is modified during sync. "
+                "Consider adding a primary key or an incremental_column to the configuration."
+            )
 
         # Pre-build SQL template
         sql = (
             f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
-            f"ORDER BY (SELECT NULL) "
+            f"{self._order_clause} "
             f"OFFSET ? ROWS FETCH NEXT ? ROWS ONLY "
             f"OPTION (FAST {self._batch_size})"
         )
@@ -281,8 +334,9 @@ class IncrementalReader:
     the composite cursor (repl > X) OR (repl = X AND pk > Y) is the only
     correct solution.
 
-    The yielded cursor is always just the replication-key value so that the
-    state stored across runs stays compatible with a simple > comparison.
+    Yields (batch, last_repl_value, last_pk_value) 3-tuples. Both cursor values
+    are persisted to state so that a resume after a mid-run checkpoint reconstructs
+    the full composite cursor and avoids boundary data loss.
     """
 
     def __init__(
@@ -293,6 +347,7 @@ class IncrementalReader:
         batch_size: int = BATCH_SIZE,
         use_pk_tiebreak: bool = False,
         pk_cols: list = None,
+        last_seen_pk=None,
     ) -> None:
         self._pool = pool
         self._schema = schema
@@ -300,22 +355,42 @@ class IncrementalReader:
         self._batch_size = batch_size
         self._use_pk_tiebreak = use_pk_tiebreak
         self._pk_cols = pk_cols or []
+        self._last_seen_pk = last_seen_pk
 
     def _get_tiebreak_pk_col(self):
         """
-        Return the single integer PK column name to use for tiebreaking, or
-        None if not applicable (not enabled, or multiple/non-integer PKs).
+        Return the single PK column name to use for tiebreaking, or None if not
+        applicable. Eligible types: integer columns and string columns (varchar,
+        nvarchar, char, nchar, text, ntext). uniqueidentifier is excluded because
+        its SQL Server internal sort order does not match lexicographic order.
         """
-        if not self._use_pk_tiebreak or len(self._pk_cols) != 1:
+        if not self._use_pk_tiebreak:
+            return None
+        if len(self._pk_cols) != 1:
+            if self._pk_cols:
+                log.warning(
+                    f"{self._schema.table_name}: tiebreak requested but table has a "
+                    f"{len(self._pk_cols)}-column composite PK — tiebreak disabled"
+                )
             return None
         pk_name = self._pk_cols[0]
         for col in self._schema.columns:
-            if col.name == pk_name and col.python_type is int:
+            if col.name != pk_name:
+                continue
+            if col.python_type is int:
                 return pk_name
+            if col.python_type is str and col.sql_type.lower() in _TIEBREAK_ELIGIBLE_STR_TYPES:
+                return pk_name
+            log.warning(
+                f"{self._schema.table_name}: tiebreak requested but PK column '{pk_name}' "
+                f"has SQL type '{col.sql_type}' which is not eligible for tiebreaking "
+                f"(uniqueidentifier and other non-orderable types are excluded) — tiebreak disabled"
+            )
+            return None
         return None
 
     def read_upsert_batches(self):
-        """Generator yielding (batch: list[dict], last_repl_value) pairs for changed rows."""
+        """Generator yielding (batch, last_repl_value, last_pk_value) 3-tuples for changed rows."""
         repl_col = self._schema.replication_key.name
         sel_cols = self._schema.selectable_columns
         col_sql = ", ".join(f"[{col.name}]" for col in sel_cols)
@@ -324,7 +399,17 @@ class IncrementalReader:
         fetch = f"OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY OPTION (FAST {self._batch_size})"
 
         # Pre-compute column indices for direct row access during cursor tracking.
-        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), 0)
+        # Fail fast if the replication key column is absent from selectable_columns (e.g. it is
+        # a computed column excluded from SELECT). Defaulting to index 0 would silently corrupt
+        # cursor tracking by advancing state from the wrong column.
+        repl_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == repl_col), None)
+        if repl_col_idx is None:
+            raise ValueError(
+                f"{self._schema.table_name}: replication key column '{repl_col}' is not present "
+                "in selectable_columns (it may be a computed column excluded from SELECT). "
+                "Set incremental_column in constants.py to a non-computed column, "
+                "or leave it unset to allow auto-detection to pick a selectable column."
+            )
         pk_col_idx = (
             next((i for i, col in enumerate(sel_cols) if col.name == tiebreak_pk), None)
             if tiebreak_pk
@@ -357,11 +442,10 @@ class IncrementalReader:
             sql_next = sql_first  # no tiebreak — single cursor, same template every page
 
         current_last = self._last_seen
-        current_last_pk = None
-        is_first_page = True
+        current_last_pk = self._last_seen_pk
 
         while True:
-            if is_first_page or not tiebreak_pk:
+            if not tiebreak_pk or current_last_pk is None:
                 params = (current_last, self._batch_size)
                 sql = sql_first
             else:
@@ -377,8 +461,6 @@ class IncrementalReader:
 
             if not rows:
                 return
-
-            is_first_page = False
             last_value = current_last
             last_pk_value = current_last_pk
             batch = []
@@ -400,6 +482,100 @@ class IncrementalReader:
 
             current_last = last_value
             current_last_pk = last_pk_value
-            # Yield only the replication-key value as the cursor — the composite PK cursor
-            # is an intra-run pagination detail and does not need to cross sync boundaries.
+            # Yield the replication-key value and the tiebreak PK cursor together so the
+            # caller can persist both to state. This allows resume to reconstruct the full
+            # composite (repl, pk) cursor and avoid boundary data loss.
+            yield batch, current_last, current_last_pk
+
+
+class PKKeysetReader:
+    """
+    Reads a table in primary-key order using keyset (seek) pagination.
+
+    Used as the preferred full-load strategy for tables that have a single-column
+    primary key but no replication key. Advantages over OffsetReader:
+      - O(n) database cost — no OFFSET penalty regardless of table size
+      - Stable, resumable cursor: an interrupted sync restarts from the last
+        committed PK value rather than a row-count offset
+      - Deterministic ordering even under concurrent writes
+
+    For tables with a composite primary key or no primary key at all, OffsetReader
+    is used as a fallback (O(n²), non-resumable from exact position).
+    """
+
+    def __init__(
+        self,
+        pool: ConnectionPool,
+        schema: TableSchema,
+        last_seen_pk=None,
+        batch_size: int = BATCH_SIZE,
+    ) -> None:
+        self._pool = pool
+        self._schema = schema
+        self._last_seen_pk = last_seen_pk
+        self._batch_size = batch_size
+        self._pk_col = schema.primary_keys[0]  # caller guarantees exactly one PK
+
+    def read_batches(self):
+        """Generator yielding (batch: list[dict], last_pk_value) pairs."""
+        pk_col = self._pk_col
+        sel_cols = self._schema.selectable_columns
+        col_sql = ", ".join(f"[{col.name}]" for col in sel_cols)
+        schema_table = f"[{self._schema.schema_name}].[{self._schema.table_name}]"
+        fetch = f"OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY OPTION (FAST {self._batch_size})"
+
+        sql_first = (
+            f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) " f"ORDER BY [{pk_col}] {fetch}"
+        )
+        sql_next = (
+            f"SELECT {col_sql} FROM {schema_table} WITH (NOLOCK) "
+            f"WHERE [{pk_col}] > ? "
+            f"ORDER BY [{pk_col}] {fetch}"
+        )
+
+        pk_col_idx = next((i for i, col in enumerate(sel_cols) if col.name == pk_col), None)
+        if pk_col_idx is None:
+            raise ValueError(
+                f"{self._schema.table_name}: PK column '{pk_col}' is not present in "
+                "selectable_columns (it may be a computed column). "
+                "This table cannot use PK-keyset pagination."
+            )
+        pk_python_type = sel_cols[pk_col_idx].python_type
+
+        current_last = self._last_seen_pk
+
+        while True:
+            if current_last is None:
+                sql, params = sql_first, (self._batch_size,)
+            else:
+                sql, params = sql_next, (current_last, self._batch_size)
+
+            with self._pool.acquire() as conn:
+                cur = conn.execute_with_retry(sql, params)
+                try:
+                    rows = cur.fetchall()
+                finally:
+                    cur.close()
+
+            if not rows:
+                log.fine(f"{self._schema.table_name}: PK-keyset page returned 0 rows — done")
+                return
+
+            last_pk_value = current_last
+            batch = []
+            for row in rows:
+                record = {
+                    col.name: convert_value(raw, col.python_type)
+                    for col, raw in zip(sel_cols, row)
+                }
+                batch.append(record)
+                pk_converted = convert_value(row[pk_col_idx], pk_python_type)
+                if pk_converted is not None:
+                    last_pk_value = pk_converted
+
+            current_last = last_pk_value
+            log.fine(
+                f"{self._schema.table_name}: PK-keyset page — "
+                f"{len(batch)} rows, last_pk={current_last}"
+            )
             yield batch, current_last

@@ -193,8 +193,6 @@ class SchemaDetector:
         Select the best replication key column using priority order:
         1. config["incremental_column"] user override
         2. Column name matches KNOWN_REPLICATION_KEY_PATTERNS (case-insensitive)
-        3. First datetime2/datetime/datetimeoffset column
-        4. First IDENTITY integer column
 
         Returns ColumnInfo or None.
         """
@@ -217,18 +215,6 @@ class SchemaDetector:
                 matched_col = col_map[pattern.lower()]
                 log.fine(f"Replication key matched pattern '{pattern}': {matched_col.name}")
                 return matched_col
-
-        # Priority 3: first temporal column
-        for col in columns:
-            if col.sql_type.lower() in DATETIME_TYPE_NAMES and col.python_type is not None:
-                log.fine(f"Replication key inferred from datetime column: {col.name}")
-                return col
-
-        # Priority 4: first IDENTITY integer
-        for col in columns:
-            if col.is_identity and col.python_type is int:
-                log.fine(f"Replication key inferred from IDENTITY column: {col.name}")
-                return col
 
         return None
 

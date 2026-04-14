@@ -35,7 +35,9 @@ LOCK_TIMEOUT_NATIVE_ERROR = "1222"
 
 DEFAULT_TABLE_LIST = ""  # Empty = sync every table in the schema
 DEFAULT_TABLE_EXCLUSION_LIST = ""  # Empty = exclude nothing
-DEFAULT_USE_PK_TIEBREAK = False  # Set True for tables with duplicate replication key values
+DEFAULT_USE_PK_TIEBREAK = (
+    True  # Use composite (repl_col, pk) cursor to prevent data loss at page boundaries
+)
 DEFAULT_FORCE_FULL_RESYNC = False  # Set True to discard state and re-sync from scratch
 
 # SQL Server temporal data types eligible as a replication key fallback (priority 3 in detection).
