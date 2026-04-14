@@ -384,20 +384,31 @@ def sync_curriculum_courses(client: CoursemillClient, state: dict, curricula: li
 
         try:
             detail = client.get(f"/curricula/{curriculum_id}")
-            data = detail.get("data", {})
-            courses = data.get("courses", []) if isinstance(data, dict) else []
+        except requests.RequestException as error:
+            log.warning(f"Failed to fetch courses for curriculum {curriculum_id}: {error}")
+            continue
 
-            for course in courses:
-                row = _clean_record(course)
-                row["curriculum_id"] = curriculum_id
-                if "course_id" not in row:
-                    row["course_id"] = row.get("courseId", row.get("id", ""))
-                op.upsert("curriculum_courses", row)
-                count += 1
+        if not isinstance(detail, dict):
+            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: response is not a dictionary")
+            continue
 
-        except Exception as e:
-            log.warning(f"Failed to fetch courses for curriculum {curriculum_id}: {e}")
+        data = detail.get("data", {})
+        if not isinstance(data, dict):
+            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: 'data' is not a dictionary")
+            continue
 
+        courses = data.get("courses", [])
+        if not isinstance(courses, list):
+            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: 'courses' is not a list")
+            continue
+
+        for course in courses:
+            row = _clean_record(course)
+            row["curriculum_id"] = curriculum_id
+            if "course_id" not in row:
+                row["course_id"] = row.get("courseId", row.get("id", ""))
+            op.upsert("curriculum_courses", row)
+            count += 1
         state["curriculum_courses_last_id"] = curriculum_id
         if count % CHECKPOINT_INTERVAL == 0 and count > 0:
             op.checkpoint(state)
