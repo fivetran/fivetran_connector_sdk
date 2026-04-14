@@ -220,48 +220,45 @@ class CoursemillClient:
         """Convenience wrapper for PUT requests."""
         return self._request("PUT", path, params=params, json_body=json_body)
 
-    def get_paginated(self, path: str, params: dict = None) -> list:
+    def get_paginated(self, path: str, params: dict = None):
         """
-        Fetch all pages from a paginated endpoint and return the combined data list.
+        Fetch all pages from a paginated endpoint and yield records as they are received.
 
         Args:
             path: API path.
             params: Additional query parameters.
 
-        Returns:
-            List of all records across all pages.
+        Yields:
+            Individual records across all pages.
         """
-        if params is None:
-            params = {}
-        params["size"] = PAGE_SIZE
-        params["page"] = 0
-
-        all_records = []
+        query_params = dict(params) if params is not None else {}
+        query_params["size"] = PAGE_SIZE
+        query_params["page"] = 0
 
         while True:
-            log.fine(f"Fetching {path} page={params['page']} size={params['size']}")
-            body = self.get(path, params=params)
+            log.fine(f"Fetching {path} page={query_params['page']} size={query_params['size']}")
+            body = self.get(path, params=query_params)
 
             data = body.get("data", [])
             if data is None:
                 data = []
 
             if isinstance(data, dict):
-                # Single-object response wrapped in data
-                all_records.append(data)
+                # Single-object response wrapped in data. Yield immediately to avoid
+                # materializing all pages into memory before processing.
+                yield data
                 break
 
-            all_records.extend(data)
+            # Stream each record from the current page immediately so large tables do
+            # not accumulate in memory across the full pagination loop.
+            for record in data:
+                yield record
 
             is_last = body.get("last", True)
             if is_last:
                 break
 
-            params["page"] = params["page"] + 1
-
-        return all_records
-
-
+            query_params["page"] = query_params["page"] + 1
 # ---------------------------------------------------------------------------
 # Schema
 # ---------------------------------------------------------------------------
