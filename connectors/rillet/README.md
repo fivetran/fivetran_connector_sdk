@@ -42,7 +42,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 - `schema()` defines the table names and primary keys.
 - `update()` loops over configured collections and fetches data from Rillet endpoints.
 - Each record is upserted using `op.upsert`.
-- State keys such as `accounts_cursor`, `accounts_last_updated_at` store progress.
+- State keys such as `accounts_cursor`, `accounts_last_updated_at` in `state.json` store progress.
 
 ## Error handling
 - `validate_configuration()` checks that `api_key` is present and non-empty.
