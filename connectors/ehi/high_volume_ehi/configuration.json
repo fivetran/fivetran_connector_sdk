@@ -5,5 +5,7 @@
     "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
     "mssql_user": "<YOUR_SQL_SERVER_USERNAME>",
     "mssql_password": "<YOUR_SQL_SERVER_PASSWORD>",
-    "mssql_schema": "<YOUR_SQL_SERVER_SCHEMA>"
+    "mssql_schema": "<YOUR_SQL_SERVER_SCHEMA>",
+    "incremental_column": "<OPTIONAL_REPLICATION_KEY_COLUMN_NAME>"
+
 }

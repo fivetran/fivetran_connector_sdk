@@ -26,8 +26,8 @@ Note: Before running locally, install the Microsoft ODBC Driver 18 for SQL Serve
 ## Features
 
 - Automatic schema discovery — all tables in the target schema are discovered and synced without manual configuration
-- Automatic replication key detection using known column name patterns (e.g. `UpdatedAt`, `_LastUpdatedInstant`, `ModifiedDate`) with fallback to the first datetime column or identity column
-- Full load with keyset pagination when a replication key is available, or offset pagination otherwise
+- Automatic replication key detection using known column name patterns (e.g. `UpdatedAt`, `_LastUpdatedInstant`, `ModifiedDate`), or an explicit `incremental_column` override in `configuration.json`
+- Full load with keyset pagination when a replication key is available, Primary keyset pagination for tables with a single primary key but no replication key, or offset pagination as a last resort
 - Incremental sync after a completed full load — only rows where `repl_key > last_synced_value` are fetched
 - Parallel table syncs via a configurable number of worker threads
 - Configurable table include and exclude lists via constants in `constants.py`
@@ -45,7 +45,8 @@ Note: Before running locally, install the Microsoft ODBC Driver 18 for SQL Serve
     "mssql_database": "<YOUR_SQL_SERVER_DATABASE>",
     "mssql_user": "<YOUR_SQL_SERVER_USERNAME>",
     "mssql_password": "<YOUR_SQL_SERVER_PASSWORD>",
-    "mssql_schema": "<YOUR_SQL_SERVER_SCHEMA>"
+    "mssql_schema": "<YOUR_SQL_SERVER_SCHEMA>",
+    "incremental_column": "<OPTIONAL_REPLICATION_KEY_COLUMN_NAME>"
 }
 ```
 
@@ -58,6 +59,7 @@ The configuration keys are:
 - `mssql_user`: SQL Server login username
 - `mssql_password`: SQL Server login password
 - `mssql_schema`: schema to discover and sync tables from; defaults to `dbo`
+- `incremental_column` (optional): column name to use as the replication key for all tables
 
 Note: When submitting connector code as a [Community Connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors) or enhancing an [example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples) in the open-source [Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main), ensure the `configuration.json` file has placeholder values.
 When adding the connector to your production repository, ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -98,11 +100,9 @@ Schema detection queries `INFORMATION_SCHEMA.COLUMNS` and `COLUMNPROPERTY` for e
 
 The replication key for each table is selected using the following priority order:
 
-1. `incremental_column` constant in `constants.py`
-2. Column name matches a known Epic Caboodle pattern (e.g. `_LastUpdatedInstant`, `UpdatedAt`, `ModifiedDate`) — checked case-insensitively
-3. First `datetime2`, `datetime`, or `datetimeoffset` column in ordinal position order
-4. First `IDENTITY` integer column in ordinal position order
-5. None — offset pagination only, no incremental mode available
+1. `incremental_column` key in `configuration.json` — applies the specified column name to every table, overriding auto-detection
+2. Column name matches a known pattern (e.g. `_LastUpdatedInstant`, `UpdatedAt`, `ModifiedDate`) — checked case-insensitively against `KNOWN_REPLICATION_KEY_PATTERNS` in `constants.py`
+3. None — no replication key detected; the table uses PK-keyset or offset pagination and has no incremental mode
 
 Refer to `class SchemaDetector` in `models.py` and `def convert_value` in `readers.py`.
 
@@ -133,7 +133,7 @@ Each table is created in the destination with:
 
 - `client.py` – defines `MSSQLConnection` (single pyodbc connection with retry logic and `READ UNCOMMITTED` isolation) and `ConnectionPool` (fixed-size queue-based pool for multi-threaded access)
 - `models.py` – defines `ColumnInfo` and `TableSchema` dataclasses and `SchemaDetector` (queries `INFORMATION_SCHEMA` to build per-table schemas and detect replication keys)
-- `readers.py` – defines `KeysetReader`, `OffsetReader`, and `IncrementalReader` generators that stream table data in bounded batches, and `convert_value()` for type-safe row serialisation
+- `readers.py` – defines `KeysetReader` (keyset pagination ordered by replication key, with optional PK tiebreak), `PKKeysetReader` (keyset pagination ordered by primary key for tables without a replication key), and `OffsetReader` (offset pagination fallback) generators that stream table data in bounded batches, and `convert_value()` for type-safe row serialisation
 - `constants.py` – tunable parameters: batch size, checkpoint interval, worker thread count, retry settings, replication key detection patterns, and operational defaults (table lists, force full resync, PK tiebreak)
 
 
