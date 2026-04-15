@@ -40,11 +40,6 @@ DEFAULT_USE_PK_TIEBREAK = (
 )
 DEFAULT_FORCE_FULL_RESYNC = False  # Set True to discard state and re-sync from scratch
 
-# SQL Server temporal data types eligible as a replication key fallback (priority 3 in detection).
-DATETIME_TYPE_NAMES = frozenset(
-    {"datetime2", "datetime", "datetimeoffset", "smalldatetime", "date"}
-)
-
 KNOWN_REPLICATION_KEY_PATTERNS = [
     "_LastUpdatedInstant",
     "UpdatedAt",

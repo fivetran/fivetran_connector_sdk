@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from fivetran_connector_sdk import Logging as log
 
 # Constants for schema detection and replication key inference
-from constants import KNOWN_REPLICATION_KEY_PATTERNS, DATETIME_TYPE_NAMES
+from constants import KNOWN_REPLICATION_KEY_PATTERNS
 
 # ConnectionPool for acquiring database connections to query metadata
 from client import ConnectionPool
@@ -32,7 +32,7 @@ class ColumnInfo:
 
     name: str
     sql_type: str
-    python_type: type  # int | float | str | bool | bytes | None
+    python_type: type
     is_primary_key: bool
     is_identity: bool
     is_computed: bool
@@ -49,7 +49,7 @@ class TableSchema:
     table_name: str
     schema_name: str
     columns: list = field(default_factory=list)
-    replication_key: object = None  # ColumnInfo | None
+    replication_key: ColumnInfo = None  # ColumnInfo | None
 
     @property
     def primary_keys(self) -> list:
@@ -226,9 +226,6 @@ class SchemaDetector:
 
         Returns int, float, str, bool, or bytes.
         Unknown types are mapped to str so columns are not silently dropped.
-
-        Binary and spatial types return bytes — convert_value() base64-encodes
-        them so they are stored as ASCII strings in the destination.
         """
         normalized_type = sql_type.lower().strip()
 

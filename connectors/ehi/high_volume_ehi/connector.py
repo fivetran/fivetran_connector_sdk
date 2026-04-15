@@ -44,7 +44,7 @@ from constants import (
 # client and models for managing SQL Server connections and schema metadata
 from client import ConnectionPool
 from models import SchemaDetector, TableSchema
-from readers import KeysetReader, OffsetReader, IncrementalReader, PKKeysetReader
+from readers import KeysetReader, OffsetReader, PKKeysetReader
 
 _CACHED_TABLE_SCHEMAS: dict = {}
 
@@ -140,8 +140,7 @@ def _get_table_sizes_batch(pool: ConnectionPool, schema_name: str, table_names: 
         finally:
             cursor.close()
 
-    size_map = {row[0]: int(row[1] or 0) for row in rows}
-    return {name: size_map.get(name, 0) for name in table_names}
+    return {row[0]: int(row[1] or 0) for row in rows}
 
 
 def _determine_mode(table_state: dict, table_schema: TableSchema) -> str:
@@ -180,7 +179,10 @@ def _determine_mode(table_state: dict, table_schema: TableSchema) -> str:
         return "incremental" if has_replication_key else "full"
 
     if prior_mode == "incremental":
-        return "incremental"
+        # Guard: if the replication key was dropped from the DB schema since the last sync,
+        # fall back to a full load rather than crashing inside KeysetReader when it tries
+        # to access self._schema.replication_key.name (AttributeError on None).
+        return "incremental" if has_replication_key else "full"
 
     return "full"
 
@@ -204,11 +206,11 @@ def _save_checkpoint(
         table_name: name of the table being synced (state key)
         table_state: dict with existing state for this table, to be updated and saved
         mode: sync mode string to save in state for next run ('full' or 'incremental')
-        has_repl_key: True for KeysetReader/IncrementalReader tables
+        has_repl_key: True for KeysetReader tables (have a replication key)
         marker: cursor value — replication key, PK cursor, or offset depending on reader
         rows_synced: total rows processed so far
         completed: True when the sync finished cleanly (sets sync_completed_at)
-        pk_marker: tiebreak PK cursor for KeysetReader/IncrementalReader; persisted
+        pk_marker: tiebreak PK cursor for KeysetReader; persisted
                    alongside last_seen_replication_value so resume can reconstruct
                    the composite (repl, pk) cursor and avoid boundary data loss
         use_pk_cursor: True when PKKeysetReader is active; writes marker to
@@ -410,7 +412,7 @@ def _sync_incremental(
         return
 
     last_pk_value = table_state.get("last_seen_pk_value")
-    reader = IncrementalReader(
+    reader = KeysetReader(
         pool,
         table_schema,
         last_replication_value,
@@ -425,7 +427,7 @@ def _sync_incremental(
 
     log.info(f"{table_name}: starting incremental sync from {last_replication_value}")
 
-    for batch, last_seen, last_seen_pk in reader.read_upsert_batches():
+    for batch, last_seen, last_seen_pk in reader.read_batches():
         for row in batch:
             op.upsert(table_name, row)
 
@@ -473,6 +475,15 @@ def _sync_table_thread(table_schema: TableSchema, state: dict, pool: ConnectionP
     """
     table_name = table_schema.table_name
     try:
+        if not table_schema.selectable_columns:
+            # No columns means the table doesn't exist or has only computed/unknown-type
+            # columns. Proceeding would generate a "SELECT  FROM ..." syntax error.
+            log.warning(
+                f"{table_name}: no selectable columns found — "
+                "table may not exist or may have no supported column types. Skipping."
+            )
+            return
+
         table_state = dict(state.get(table_name, {}))
         # Initialize metadata on first visit — single field encodes both
         # presence and name of the replication key (None when absent)
