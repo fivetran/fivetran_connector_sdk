@@ -44,7 +44,7 @@ The configuration file contains the CourseMill instance URL and admin credential
 
 ```json
 {
-  "base_url": "https://yourinstance.coursemill.com/cm-server",
+  "base_url": "<YOUR_COURSEMILL_BASE_URL>",
   "username": "<YOUR_ADMIN_USERNAME>",
   "password": "<YOUR_ADMIN_PASSWORD>"
 }

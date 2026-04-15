@@ -2,11 +2,11 @@
   "api_key": "<YOUR_DTN_API_KEY>",
   "client_id": "<YOUR_DTN_CLIENT_ID>",
   "client_secret": "<YOUR_DTN_CLIENT_SECRET>",
-  "station_ids": "KMSP,KOKC",
-  "locations": "[{\"lat\":35.46,\"lon\":-97.51},{\"lat\":44.93,\"lon\":-93.2}]",
-  "lightning_lat": "35.46",
-  "lightning_lon": "-97.51",
-  "lightning_radius_km": "50",
-  "enabled_apis": "observations,conditions,lightning",
-  "units": "us"
+  "station_ids": "<COMMA_SEPARATED_STATION_IDS>",
+  "locations": "<JSON_ARRAY_OF_LAT_LON_OBJECTS>",
+  "lightning_lat": "<LIGHTNING_LATITUDE>",
+  "lightning_lon": "<LIGHTNING_LONGITUDE>",
+  "lightning_radius_km": "<LIGHTNING_RADIUS_KM>",
+  "enabled_apis": "<ENABLED_APIS>",
+  "units": "<UNITS>"
 }

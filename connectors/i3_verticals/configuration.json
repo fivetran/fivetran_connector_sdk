@@ -2,6 +2,6 @@
   "client_id": "<YOUR_CLIENT_ID>",
   "client_secret": "<YOUR_CLIENT_SECRET>",
   "base_url": "<YOUR_I3_VERTICALS_BASE_URL>",
-  "page_size": "<PAGE_SIZE>",
-  "rate_limit_rps": "<RATE_LIMIT_REQUESTS_PER_SECOND>"
+  "page_size": "100",
+  "rate_limit_rps": "2"
 }

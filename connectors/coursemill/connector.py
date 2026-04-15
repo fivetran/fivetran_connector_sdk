@@ -93,9 +93,9 @@ class CoursemillClient:
         payload = {"username": self.username, "password": self.password}
         log.info("Authenticating with CourseMill API")
 
-        for attempt in range(MAX_RETRIES + 1):
+        for attempt in range(__MAX_RETRIES + 1):
             try:
-                resp = self.session.post(url, json=payload, timeout=REQUEST_TIMEOUT)
+                resp = self.session.post(url, json=payload, timeout=__REQUEST_TIMEOUT)
                 resp.raise_for_status()
                 body = resp.json()
 
@@ -108,7 +108,7 @@ class CoursemillClient:
 
             except requests.exceptions.HTTPError as e:
                 status = e.response.status_code if e.response is not None else None
-                if status and status >= 500 and attempt < MAX_RETRIES:
+                if status and status >= 500 and attempt < __MAX_RETRIES:
                     wait = 2**attempt
                     log.warning(
                         f"Auth server error {status}, retrying in {wait}s (attempt {attempt + 1})"
@@ -118,7 +118,7 @@ class CoursemillClient:
                     log.severe(f"Authentication failed after {attempt + 1} attempts: {e}")
                     raise
             except requests.exceptions.RequestException as e:
-                if attempt < MAX_RETRIES:
+                if attempt < __MAX_RETRIES:
                     wait = 2**attempt
                     log.warning(f"Auth request error, retrying in {wait}s: {e}")
                     time.sleep(wait)
@@ -151,7 +151,7 @@ class CoursemillClient:
         """
         url = f"{self.api_base}{path}"
 
-        for attempt in range(MAX_RETRIES + 1):
+        for attempt in range(__MAX_RETRIES + 1):
             try:
                 if self.token is None:
                     self.authenticate()
@@ -162,7 +162,7 @@ class CoursemillClient:
                     headers=self._headers(),
                     params=params,
                     json=json_body,
-                    timeout=REQUEST_TIMEOUT,
+                    timeout=__REQUEST_TIMEOUT,
                 )
 
                 # Re-authenticate on 401 and retry
@@ -175,7 +175,7 @@ class CoursemillClient:
                         headers=self._headers(),
                         params=params,
                         json=json_body,
-                        timeout=REQUEST_TIMEOUT,
+                        timeout=__REQUEST_TIMEOUT,
                     )
 
                 resp.raise_for_status()
@@ -191,7 +191,7 @@ class CoursemillClient:
                 status = e.response.status_code if e.response is not None else None
                 is_retryable = status and (status >= 500 or status == 429)
 
-                if is_retryable and attempt < MAX_RETRIES:
+                if is_retryable and attempt < __MAX_RETRIES:
                     wait = min(2**attempt, 30)
                     log.warning(
                         f"HTTP {status} on {method} {path}, retrying in {wait}s (attempt {attempt + 1})"
@@ -202,13 +202,13 @@ class CoursemillClient:
                     raise
 
             except requests.exceptions.RequestException as e:
-                if attempt < MAX_RETRIES:
+                if attempt < __MAX_RETRIES:
                     wait = min(2**attempt, 30)
                     log.warning(f"Request error on {method} {path}, retrying in {wait}s: {e}")
                     time.sleep(wait)
                 else:
                     log.severe(
-                        f"Request failed after {MAX_RETRIES + 1} attempts: {method} {path} -> {e}"
+                        f"Request failed after {__MAX_RETRIES + 1} attempts: {method} {path} -> {e}"
                     )
                     raise
 
@@ -232,7 +232,7 @@ class CoursemillClient:
             Individual records across all pages.
         """
         query_params = dict(params) if params is not None else {}
-        query_params["size"] = PAGE_SIZE
+        query_params["size"] = __PAGE_SIZE
         query_params["page"] = 0
 
         while True:
@@ -259,6 +259,8 @@ class CoursemillClient:
                 break
 
             query_params["page"] = query_params["page"] + 1
+
+
 # ---------------------------------------------------------------------------
 # Schema
 # ---------------------------------------------------------------------------
@@ -299,7 +301,7 @@ def sync_organizations(client: CoursemillClient, state: dict):
     for record in records:
         op.upsert("organizations", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             op.checkpoint(state)
     log.info(f"Organizations synced: {count} records")
     op.checkpoint(state)
@@ -313,7 +315,7 @@ def sync_users(client: CoursemillClient, state: dict):
     for record in records:
         op.upsert("users", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             op.checkpoint(state)
     log.info(f"Users synced: {count} records")
     op.checkpoint(state)
@@ -332,7 +334,7 @@ def sync_courses(client: CoursemillClient, state: dict) -> list:
     for record in records:
         op.upsert("courses", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             op.checkpoint(state)
     log.info(f"Courses synced: {count} records")
     op.checkpoint(state)
@@ -352,7 +354,7 @@ def sync_curricula(client: CoursemillClient, state: dict) -> list:
     for record in records:
         op.upsert("curricula", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             op.checkpoint(state)
     log.info(f"Curricula synced: {count} records")
     op.checkpoint(state)
@@ -386,17 +388,23 @@ def sync_curriculum_courses(client: CoursemillClient, state: dict, curricula: li
             continue
 
         if not isinstance(detail, dict):
-            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: response is not a dictionary")
+            log.warning(
+                f"Failed to parse courses for curriculum {curriculum_id}: response is not a dictionary"
+            )
             continue
 
         data = detail.get("data", {})
         if not isinstance(data, dict):
-            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: 'data' is not a dictionary")
+            log.warning(
+                f"Failed to parse courses for curriculum {curriculum_id}: 'data' is not a dictionary"
+            )
             continue
 
         courses = data.get("courses", [])
         if not isinstance(courses, list):
-            log.warning(f"Failed to parse courses for curriculum {curriculum_id}: 'courses' is not a list")
+            log.warning(
+                f"Failed to parse courses for curriculum {curriculum_id}: 'courses' is not a list"
+            )
             continue
 
         for course in courses:
@@ -407,7 +415,7 @@ def sync_curriculum_courses(client: CoursemillClient, state: dict, curricula: li
             op.upsert("curriculum_courses", row)
             count += 1
         state["curriculum_courses_last_id"] = curriculum_id
-        if count % CHECKPOINT_INTERVAL == 0 and count > 0:
+        if count % __CHECKPOINT_INTERVAL == 0 and count > 0:
             op.checkpoint(state)
 
     # Clear resume cursor after full completion
@@ -443,7 +451,7 @@ def sync_sessions(client: CoursemillClient, state: dict, courses: list):
             log.warning(f"Failed to fetch sessions for course {course_id}: {e}")
 
         state["sessions_last_course_id"] = course_id
-        if count % CHECKPOINT_INTERVAL == 0 and count > 0:
+        if count % __CHECKPOINT_INTERVAL == 0 and count > 0:
             op.checkpoint(state)
 
     state.pop("sessions_last_course_id", None)
@@ -491,7 +499,7 @@ def sync_course_prerequisites(client: CoursemillClient, state: dict, courses: li
             log.warning(f"Failed to fetch prerequisites for course {course_id}: {e}")
 
         state["prerequisites_last_course_id"] = course_id
-        if count % CHECKPOINT_INTERVAL == 0 and count > 0:
+        if count % __CHECKPOINT_INTERVAL == 0 and count > 0:
             op.checkpoint(state)
 
     state.pop("prerequisites_last_course_id", None)
@@ -528,7 +536,7 @@ def sync_enrollments(client: CoursemillClient, state: dict, courses: list):
             log.warning(f"Failed to fetch enrollments for course {course_id}: {e}")
 
         state["enrollments_last_course_id"] = course_id
-        if count % CHECKPOINT_INTERVAL == 0 and count > 0:
+        if count % __CHECKPOINT_INTERVAL == 0 and count > 0:
             op.checkpoint(state)
 
     state.pop("enrollments_last_course_id", None)
@@ -552,7 +560,7 @@ def sync_transcripts(client: CoursemillClient, state: dict):
         start_date = int(last_sync)
     else:
         # First sync: look back one year
-        one_year_ago = datetime.now(timezone.utc) - timedelta(days=INITIAL_SYNC_LOOKBACK_DAYS)
+        one_year_ago = datetime.now(timezone.utc) - timedelta(days=__INITIAL_SYNC_LOOKBACK_DAYS)
         start_date = int(one_year_ago.strftime("%Y%m%d"))
 
     log.info(f"Transcript date range: {start_date} to {today}")
@@ -567,7 +575,7 @@ def sync_transcripts(client: CoursemillClient, state: dict):
     for record in records:
         op.upsert("transcripts", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             state["transcript_last_sync_date"] = str(today)
             op.checkpoint(state)
 
@@ -594,7 +602,7 @@ def sync_certificates(client: CoursemillClient, state: dict):
     for record in data:
         op.upsert("certificates", _clean_record(record))
         count += 1
-        if count % CHECKPOINT_INTERVAL == 0:
+        if count % __CHECKPOINT_INTERVAL == 0:
             op.checkpoint(state)
 
     log.info(f"Certificates synced: {count} records")

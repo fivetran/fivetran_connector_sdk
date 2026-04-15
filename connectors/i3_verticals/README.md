@@ -1,4 +1,4 @@
-# I3 Verticals Burton Platform Connector
+# I3 Verticals Burton Platform Connector Example
 
 > Note: This connector is a draft that has not been validated through direct testing against a live API. It is intended as a starting point and example implementation that should be confirmed and tested before production use.
 
@@ -45,10 +45,9 @@ The configuration file contains OAuth credentials and API connection parameters.
 
 ```json
 {
-  "client_id": "YOUR_CLIENT_ID",
-  "client_secret": "YOUR_CLIENT_SECRET",
-  "base_url": "https://demo-api.i3verticals.com",
-  "api_version": "v2",
+  "client_id": "<YOUR_CLIENT_ID>",
+  "client_secret": "<YOUR_CLIENT_SECRET>",
+  "base_url": "<YOUR_I3_VERTICALS_BASE_URL>",
   "page_size": "100",
   "rate_limit_rps": "2"
 }
@@ -58,7 +57,6 @@ Configuration parameters:
 - `client_id` (required): OAuth 2.0 client ID for the Burton Platform API.
 - `client_secret` (required): OAuth 2.0 client secret for the Burton Platform API.
 - `base_url` (required): Base URL of the Burton Platform API instance.
-- `api_version` (optional): API version string. Defaults to `v2`.
 - `page_size` (optional): Number of records per page for paginated requests. Defaults to `100`.
 - `rate_limit_rps` (optional): Maximum requests per second. Defaults to `2`.
 

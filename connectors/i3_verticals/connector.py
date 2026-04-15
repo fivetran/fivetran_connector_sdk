@@ -10,8 +10,12 @@ from datetime import datetime, timezone  # For parsing and comparing UTC timesta
 
 import requests  # For making HTTP requests to the Burton Platform API and OAuth token endpoint.
 from fivetran_connector_sdk import Connector  # For initializing the Fivetran connector.
-from fivetran_connector_sdk import Logging as log  # For writing logs using the Connector SDK logger.
-from fivetran_connector_sdk import Operations as op  # For performing upsert and checkpoint operations.
+from fivetran_connector_sdk import (
+    Logging as log,
+)  # For writing logs using the Connector SDK logger.
+from fivetran_connector_sdk import (
+    Operations as op,
+)  # For performing upsert and checkpoint operations.
 
 # ---------------------------------------------------------------------------
 # Constants
