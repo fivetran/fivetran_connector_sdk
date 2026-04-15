@@ -1,8 +1,7 @@
 # Rillet Connector Example
 
 ## Connector overview
-This connector fetches core accounting data from the Rillet API and syncs it into Fivetran destination tables.
-It supports incremental updates using cursor-based pagination and checkpointing.  
+This connector fetches core accounting data from the Rillet API and syncs it into Fivetran destination tables. 
 Supported resources: accounts, subsidiaries, products, customers, contracts, invoices, invoice payments, credit memos, vendors, vendor credits, bills, charges, reimbursements, journal entries, bank accounts, bank transactions, tax rates, and fields.
 
 ## Requirements
@@ -14,8 +13,9 @@ Supported resources: accounts, subsidiaries, products, customers, contracts, inv
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/connector-sdk/setup-guide) to get started.
-1. Create an API key in the Rillet dashboard under Organization Settings > API Access.
-2. Copy `connectors/rillet/configuration.json` and populate `api_key`.
+
+1. Obtain an API key following the steps in the [Authentication](#authentication) section.
+2. Copy `connectors/rillet/configuration.json` and populate `api_key` with your generated API key.
 3. Run the connector locally using `fivetran debug --connector connectors/rillet/connector.py`
 
 ## Features
@@ -37,6 +37,18 @@ The connector requires the following configuration parameters:
 ```
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
+## Authentication
+
+This connector uses API key authentication to connect to the Rillet API. The API key is specified in the `configuration.json` file and passed to the API as a Bearer token in the Authorization header.
+
+To set up authentication:
+
+1. **Request Access**: Contact your Rillet Account Manager or Customer Success representative to enable API access for your organization. API keys cannot be generated until this access is activated.
+2. **Navigate to Settings**: Once enabled, log in to the Rillet Dashboard and go to Organization Settings.
+3. **Access API Management**: Select the API Access or API Keys section within the settings.
+4. **Generate the Key**: Click on Create API Key or the Add button. You will be prompted to give your key a descriptive name to identify its purpose.
+5. **Configure the Connector**: Copy `connectors/rillet/configuration.json` and populate `api_key` with your generated API key.
 
 ## Data handling
 - `schema()` defines the table names and primary keys.
@@ -80,3 +92,5 @@ Refer to the `schema()` function in `connectors/rillet/connector.py` for the tab
 - Set `api_version` in config for API stability (defaults to 3).
 - Webhook docs at https://docs.api.rillet.com/docs/webhooks (not used in connector pull sync).
 - For very large datasets, you may further shard by organization subset query parameters.
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
