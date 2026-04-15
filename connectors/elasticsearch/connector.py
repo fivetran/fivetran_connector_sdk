@@ -12,12 +12,16 @@ import time
 
 import requests as rq
 from fivetran_connector_sdk import Connector
+
+# Shared session for connection reuse (keep-alive) across all ES requests
+_session = rq.Session()
+_session.verify = False
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-PAGE_SIZE = 1_000
+PAGE_SIZE = 5_000
 PIT_KEEP_ALIVE = "5m"
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = 30
@@ -78,7 +82,7 @@ def es_request(method: str, url: str, headers: dict, body: dict = None, params: 
     """HTTP request with exponential-backoff retry on 429 / 5xx / transient errors."""
     for attempt in range(MAX_RETRIES + 1):
         try:
-            resp = rq.request(
+            resp = _session.request(
                 method, url,
                 headers=headers,
                 json=body,
