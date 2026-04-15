@@ -121,7 +121,14 @@ def _parse_station_ids(configuration: dict) -> list:
 
 def _parse_locations(configuration: dict) -> list:
     raw = configuration.get("locations", "[]")
-    return json.loads(raw)
+    try:
+        locations = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "locations must be a valid JSON array of {lat, lon} objects, "
+            'e.g. \'[{"lat":35.46,"lon":-97.51}]\''
+        ) from exc
+    return locations
 
 
 def validate_configuration(configuration: dict):

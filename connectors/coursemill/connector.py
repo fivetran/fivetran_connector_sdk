@@ -329,7 +329,7 @@ def sync_courses(client: CoursemillClient, state: dict) -> list:
         List of course records (raw, before cleaning) for use by child-table syncs.
     """
     log.info("Syncing courses")
-    records = client.get_paginated("/courses")
+    records = list(client.get_paginated("/courses"))  # collect before iterating
     count = 0
     for record in records:
         op.upsert("courses", _clean_record(record))
@@ -349,7 +349,7 @@ def sync_curricula(client: CoursemillClient, state: dict) -> list:
         List of curriculum records (raw) for extracting curriculum_courses.
     """
     log.info("Syncing curricula")
-    records = client.get_paginated("/curricula")
+    records = list(client.get_paginated("/curricula"))  # collect before iterating
     count = 0
     for record in records:
         op.upsert("curricula", _clean_record(record))

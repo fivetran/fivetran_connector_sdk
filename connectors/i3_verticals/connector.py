@@ -345,7 +345,6 @@ def _sync_table(
     page_size = _get_page_size(configuration)
     offset = 0
     total_records = 0
-    empty_pages = 0
 
     log.info(f"Syncing {table_name} (cursor: {last_synced_at or 'initial load'})")
 
@@ -365,10 +364,7 @@ def _sync_table(
         records = _extract_records(response_json, table_name)
 
         if not records:
-            empty_pages += 1
-            # Stop after first empty page
-            if empty_pages >= 1:
-                break
+            break
 
         for record in records:
             flat = _flatten_record(record)
@@ -411,10 +407,15 @@ def _sync_table(
 
 
 def update(configuration: dict, state: dict):
-    """Main sync entry point called by Fivetran on each sync run.
-
-    Iterates through all configured tables, syncs each one, and checkpoints state.
     """
+    Define the update function, which is a required function, and is called by Fivetran during each sync.
+    See the technical reference documentation for more details on the update function
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+        state: a dictionary that contains whatever state you have chosen to checkpoint during the prior sync.
+    """
+    log.warning("Example: connector : i3_verticals")
     validate_configuration(configuration)
 
     log.info(f"Starting sync, state: {json.dumps(state) if state else 'empty (initial load)'}")
@@ -423,6 +424,7 @@ def update(configuration: dict, state: dict):
         try:
             state = _sync_table(configuration, state, table_name, endpoint, pk_field, ts_field)
         except (
+            RuntimeError,
             requests.exceptions.HTTPError,
             requests.exceptions.ConnectionError,
             requests.exceptions.Timeout,
