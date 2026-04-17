@@ -273,6 +273,8 @@ These examples demonstrate common patterns and best practices for building conne
 
 - [specified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/specified_types) - This example declares a schema and upserts all data types.
 - [unspecified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/unspecified_types) - This example upserts all data types without specifying a schema.
+- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
+
 
 #### Error handling and resilience
 
@@ -329,10 +331,6 @@ These examples rely on features that are currently in Private preview. To enable
 
 ## Issue
 Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connector_sdk/issues) and get connected to a Fivetran developer.
-
-## Fivetran platform features
-- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
-
 
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
