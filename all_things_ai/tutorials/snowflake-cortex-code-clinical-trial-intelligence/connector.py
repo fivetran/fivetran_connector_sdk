@@ -71,6 +71,10 @@ __DEFAULT_MAX_SEED_TRIALS = 20
 __DEFAULT_MAX_DISCOVERIES = 10
 __DEFAULT_MAX_DEBATES = 5
 
+# Sanity ceiling on max_seed_trials to prevent unbounded memory growth per sync.
+# Users needing larger pulls should run multiple syncs with the incremental cursor.
+__MAX_SEED_TRIALS_CEILING = 500
+
 # Cortex Agent Configuration
 __CORTEX_AGENT_ENDPOINT = "/api/v2/cortex/inference:complete"
 __DEFAULT_CORTEX_MODEL = "claude-sonnet-4-6"
@@ -102,6 +106,82 @@ def flatten_dict(d, parent_key="", sep="_"):
     return dict(items)
 
 
+def _is_placeholder(value):
+    """
+    Check if a configuration value is unset or an angle-bracket placeholder.
+
+    Type-safe: returns False for non-strings (booleans, ints) so the helper
+    can be called on any config value without risking AttributeError.
+    """
+    if value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    if not value:
+        return True
+    return value.startswith("<") and value.endswith(">")
+
+
+def _parse_bool(value, default=False):
+    """
+    Parse a boolean-like configuration value that may be a bool or string.
+
+    Accepts bool directly (for programmatic callers passing real booleans),
+    and string values "true"/"false" (case-insensitive) from JSON config.
+
+    Args:
+        value: bool, string, or None.
+        default: value returned when input is None or a placeholder.
+
+    Returns:
+        bool: parsed boolean.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None or _is_placeholder(value):
+        return default
+    return str(value).strip().lower() == "true"
+
+
+def _optional_int(configuration, key, default):
+    """
+    Read an optional integer config value, treating placeholders/None as unset.
+
+    Args:
+        configuration: Configuration dictionary.
+        key: Key to read.
+        default: Default integer if the value is missing or a placeholder.
+
+    Returns:
+        int: parsed integer or default.
+    """
+    value = configuration.get(key)
+    if _is_placeholder(value):
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def _optional_str(configuration, key, default=None):
+    """
+    Read an optional string config value, treating placeholders/None as unset.
+
+    Args:
+        configuration: Configuration dictionary.
+        key: Key to read.
+        default: Default value if the entry is missing or a placeholder.
+
+    Returns:
+        str or default: the value if a real string, otherwise default.
+    """
+    value = configuration.get(key)
+    if _is_placeholder(value):
+        return default
+    return value
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure all required parameters are present and valid.
@@ -114,35 +194,52 @@ def validate_configuration(configuration: dict):
     """
     # Condition is always required
     condition = configuration.get("condition")
-    if not condition or _is_placeholder(condition):
+    if _is_placeholder(condition):
         raise ValueError("Missing required configuration value: condition")
 
     # Cortex configuration validation
-    is_cortex_enabled = configuration.get("enable_cortex", "false").lower() == "true"
+    is_cortex_enabled = _parse_bool(configuration.get("enable_cortex"), default=False)
     if is_cortex_enabled:
         cortex_required = ["snowflake_account", "snowflake_pat_token"]
         for key in cortex_required:
-            if key not in configuration or not configuration[key]:
+            value = configuration.get(key)
+            if _is_placeholder(value):
                 raise ValueError(f"Missing required Cortex configuration value: {key}")
 
         snowflake_account = configuration.get("snowflake_account", "")
+        # Must be a hostname (no scheme), so reject anything starting with http:// or https://
+        if snowflake_account.startswith("http://") or snowflake_account.startswith("https://"):
+            raise ValueError(
+                "snowflake_account must be a hostname (e.g., "
+                "'xy12345.region.snowflakecomputing.com'), not a full URL. "
+                f"Got: {snowflake_account}"
+            )
         if not snowflake_account.endswith("snowflakecomputing.com"):
             raise ValueError(
                 "snowflake_account must end with 'snowflakecomputing.com'. "
                 f"Got: {snowflake_account}"
             )
 
-    # Validate numeric fields
+    # Validate numeric fields (skip placeholders; enforce a sanity max for max_seed_trials)
     numeric_fields = ["max_seed_trials", "max_discoveries", "max_debates", "page_size"]
     for field in numeric_fields:
         value = configuration.get(field)
-        if value is not None and not _is_placeholder(value):
-            try:
-                int_value = int(value)
-                if int_value < 0:
-                    raise ValueError(f"{field} must be non-negative, got: {value}")
-            except (ValueError, TypeError):
-                raise ValueError(f"{field} must be a valid integer, got: {value}")
+        if _is_placeholder(value):
+            continue
+        try:
+            int_value = int(value)
+            if int_value < 0:
+                raise ValueError(f"{field} must be non-negative, got: {value}")
+        except (ValueError, TypeError):
+            raise ValueError(f"{field} must be a valid integer, got: {value}")
+
+    # Guard against unbounded memory use: cap max_seed_trials at 500
+    max_seed = _optional_int(configuration, "max_seed_trials", __DEFAULT_MAX_SEED_TRIALS)
+    if max_seed > __MAX_SEED_TRIALS_CEILING:
+        raise ValueError(
+            f"max_seed_trials={max_seed} exceeds the connector ceiling of "
+            f"{__MAX_SEED_TRIALS_CEILING}. Reduce the value or run multiple smaller syncs."
+        )
 
 
 def schema(configuration: dict):
@@ -160,11 +257,6 @@ def schema(configuration: dict):
         {"table": "skeptic_assessments", "primary_key": ["nct_id"]},
         {"table": "debate_consensus", "primary_key": ["nct_id"]},
     ]
-
-
-def _is_placeholder(value):
-    """Check if a configuration value is an angle-bracket placeholder."""
-    return not value or value.startswith("<") and value.endswith(">")
 
 
 def create_session():
@@ -337,98 +429,268 @@ def build_trial_record(study):
     return record
 
 
-def fetch_seed_trials(session, configuration, state):
+def _should_skip_for_incremental(update_date, nct_id, last_update_date, synced_at_cursor):
     """
-    Phase 1: Fetch seed trials matching the configured therapeutic area.
+    Decide whether an incoming study has already been captured by a prior sync.
 
-    Uses cursor-based pagination via pageToken and respects max_seed_trials limit.
-    Supports incremental sync by tracking the last seen lastUpdatePostDate.
+    The ClinicalTrials.gov `lastUpdatePostDate` is day-granularity, so an equality
+    check on date alone would drop any trial updated on the same day as the stored
+    cursor. We instead use a composite cursor: the latest `last_update_date` we
+    have fully consumed plus the set of `nct_id` values we have already synced at
+    that exact date. Anything strictly newer than the cursor is a hit; anything at
+    the cursor date only skips if its nct_id is in the synced set.
 
     Args:
-        session: Authenticated requests.Session
-        configuration: Configuration dictionary
-        state: State dictionary for incremental sync
+        update_date: `lastUpdatePostDate` on the incoming study (YYYY-MM-DD) or None.
+        nct_id: NCT identifier on the incoming study.
+        last_update_date: Date cursor stored in state, or None on first sync.
+        synced_at_cursor: Set of nct_ids already synced at `last_update_date`.
 
     Returns:
-        List of raw study dictionaries from the API
+        bool: True if the study should be skipped.
     """
-    condition = configuration.get("condition")
-    max_seed = int(configuration.get("max_seed_trials", str(__DEFAULT_MAX_SEED_TRIALS)))
+    if not last_update_date or not update_date:
+        return False
+    if update_date > last_update_date:
+        return False
+    if update_date < last_update_date:
+        return True
+    # Same-day record: skip only if we've already synced this specific nct_id.
+    return nct_id in synced_at_cursor
+
+
+def _build_seed_params(configuration):
+    """
+    Build the initial query parameters for the seed-trial search.
+
+    Args:
+        configuration: Configuration dictionary.
+
+    Returns:
+        dict: parameters ready to pass to the ClinicalTrials.gov studies endpoint.
+    """
     page_size = min(
-        int(configuration.get("page_size", str(__DEFAULT_PAGE_SIZE))),
+        _optional_int(configuration, "page_size", __DEFAULT_PAGE_SIZE),
         __MAX_PAGE_SIZE,
     )
-
-    # Build query parameters
     params = {
-        "query.cond": condition,
+        "query.cond": configuration.get("condition"),
         "pageSize": page_size,
         "sort": "LastUpdatePostDate",
         "countTotal": "true",
     }
-
-    # Apply optional status filter
-    status_filter = configuration.get("status_filter")
-    if status_filter and not _is_placeholder(status_filter):
+    status_filter = _optional_str(configuration, "status_filter")
+    if status_filter:
         params["filter.overallStatus"] = status_filter
-
-    # Apply optional intervention filter
-    intervention_filter = configuration.get("intervention_filter")
-    if intervention_filter and not _is_placeholder(intervention_filter):
+    intervention_filter = _optional_str(configuration, "intervention_filter")
+    if intervention_filter:
         params["query.intr"] = intervention_filter
-
-    # Apply optional sponsor filter
-    sponsor_filter = configuration.get("sponsor_filter")
-    if sponsor_filter and not _is_placeholder(sponsor_filter):
+    sponsor_filter = _optional_str(configuration, "sponsor_filter")
+    if sponsor_filter:
         params["query.spons"] = sponsor_filter
+    return params
 
-    # Resume pagination from state if available
-    page_token = state.get("seed_page_token")
-    if page_token:
-        params["pageToken"] = page_token
 
-    all_studies = []
+def fetch_and_upsert_seed_trials(session, configuration, state):
+    """
+    Phase 1: Fetch, upsert, and checkpoint seed trials page by page.
+
+    Processes records one page at a time so memory usage stays bounded regardless
+    of `max_seed_trials`, and checkpoints the page token plus composite incremental
+    cursor after every page so an interrupted sync can resume without gaps or
+    duplicate work.
+
+    State fields written:
+        - `seed_page_token`: most recent `nextPageToken` returned by the API,
+          or None when the window is exhausted.
+        - `last_update_post_date`: latest `lastUpdatePostDate` fully consumed.
+        - `synced_nct_ids_at_cursor`: list of nct_ids already synced at that
+          date (composite cursor tie-breaker for day-granularity updates).
+
+    Args:
+        session: Authenticated requests.Session for ClinicalTrials.gov.
+        configuration: Configuration dictionary.
+        state: State dictionary for incremental sync (mutated in place).
+
+    Returns:
+        dict: mapping nct_id -> flat trial record (for downstream phases).
+    """
+    max_seed = _optional_int(configuration, "max_seed_trials", __DEFAULT_MAX_SEED_TRIALS)
+    condition = configuration.get("condition")
     last_update_date = state.get("last_update_post_date")
+    synced_at_cursor = set(state.get("synced_nct_ids_at_cursor", []))
+
+    params = _build_seed_params(configuration)
+    resume_token = state.get("seed_page_token")
+    if resume_token:
+        params["pageToken"] = resume_token
+        params.pop("countTotal", None)
+
+    trial_records = {}
+    total_upserted = 0
 
     log.info(
         f"Fetching seed trials for condition: {condition} "
-        f"(max: {max_seed}, last_update: {last_update_date or 'initial sync'})"
+        f"(max: {max_seed}, last_update: {last_update_date or 'initial sync'}, "
+        f"resume_token: {'yes' if resume_token else 'no'})"
     )
 
-    while len(all_studies) < max_seed:
+    while total_upserted < max_seed:
         data = fetch_data_with_retry(session, __CT_BASE_URL, params=params)
         studies = data.get("studies", [])
         total_count = data.get("totalCount")
 
         if not studies:
+            # End of result set reached — clear the pagination token and stop.
+            state["seed_page_token"] = None
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(state=state)
             break
 
         if total_count:
-            log.info(f"Fetched {len(studies)} trials " f"(total matching: {total_count})")
+            log.info(f"Fetched page with {len(studies)} trials (total matching: {total_count})")
+
+        page_upsert_count = 0
+        latest_in_page = None
+        oldest_in_page = None
+        nct_ids_at_latest_in_page = []
 
         for study in studies:
-            # Incremental filter: skip trials we've already seen
             protocol = study.get("protocolSection", {})
+            identification = protocol.get("identificationModule", {})
             status_mod = protocol.get("statusModule", {})
+            nct_id = identification.get("nctId")
             update_date = status_mod.get("lastUpdatePostDateStruct", {}).get("date")
 
-            if last_update_date and update_date and update_date <= last_update_date:
+            if not nct_id:
                 continue
 
-            all_studies.append(study)
-            if len(all_studies) >= max_seed:
+            if _should_skip_for_incremental(
+                update_date, nct_id, last_update_date, synced_at_cursor
+            ):
+                continue
+
+            record = build_trial_record(study)
+            if not record:
+                continue
+
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table="trials", data=record)
+            trial_records[nct_id] = record
+            page_upsert_count += 1
+            total_upserted += 1
+
+            # Track page-level date extrema for cursor advancement decisions.
+            if update_date:
+                if latest_in_page is None or update_date > latest_in_page:
+                    latest_in_page = update_date
+                    nct_ids_at_latest_in_page = [nct_id]
+                elif update_date == latest_in_page:
+                    nct_ids_at_latest_in_page.append(nct_id)
+                if oldest_in_page is None or update_date < oldest_in_page:
+                    oldest_in_page = update_date
+
+            if total_upserted >= max_seed:
                 break
 
+        log.info(f"Upserted {page_upsert_count} trials from this page (total: {total_upserted})")
+
         next_token = data.get("nextPageToken")
-        if not next_token:
+        reached_cap = total_upserted >= max_seed
+
+        if reached_cap and next_token:
+            # We still have capacity elsewhere in the window; persist the token so
+            # the next sync resumes exactly where we stopped, and advance the
+            # composite cursor conservatively (oldest fetched date + the nct_ids
+            # we already synced at that date).
+            state["seed_page_token"] = next_token
+            if oldest_in_page:
+                _advance_cursor(state, oldest_in_page, [], last_update_date, synced_at_cursor)
+                last_update_date = state["last_update_post_date"]
+                synced_at_cursor = set(state["synced_nct_ids_at_cursor"])
+        elif not next_token:
+            # Window exhausted. Advance cursor to the latest date we saw overall
+            # on this sync and record the nct_ids at that date for next time.
+            state["seed_page_token"] = None
+            if latest_in_page:
+                _advance_cursor(
+                    state,
+                    latest_in_page,
+                    nct_ids_at_latest_in_page,
+                    last_update_date,
+                    synced_at_cursor,
+                )
+                last_update_date = state["last_update_post_date"]
+                synced_at_cursor = set(state["synced_nct_ids_at_cursor"])
+        else:
+            # More pages remain and we haven't hit the cap; persist progress.
+            state["seed_page_token"] = next_token
+            if latest_in_page:
+                _advance_cursor(
+                    state,
+                    latest_in_page,
+                    nct_ids_at_latest_in_page,
+                    last_update_date,
+                    synced_at_cursor,
+                )
+                last_update_date = state["last_update_post_date"]
+                synced_at_cursor = set(state["synced_nct_ids_at_cursor"])
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+        op.checkpoint(state=state)
+
+        if not next_token or reached_cap:
             break
 
         params["pageToken"] = next_token
-        # Remove countTotal after first request (not returned with pageToken)
         params.pop("countTotal", None)
 
-    log.info(f"Total seed trials fetched: {len(all_studies)}")
-    return all_studies
+    log.info(f"Total seed trials fetched: {total_upserted}")
+    return trial_records
+
+
+def _advance_cursor(
+    state, new_date, new_nct_ids_at_date, prior_cursor_date, prior_synced_at_cursor
+):
+    """
+    Advance the composite incremental cursor (date + nct_ids at that date).
+
+    If the new date is strictly newer than the prior cursor, the nct_id set resets
+    to the records we just saw at that date. If the new date matches the prior
+    cursor, we union the nct_id sets so we don't lose prior same-day records.
+    Advancing to an older date is a no-op (we never move the cursor backwards).
+
+    Args:
+        state: Mutable state dict.
+        new_date: Candidate new cursor date (YYYY-MM-DD).
+        new_nct_ids_at_date: nct_ids on records whose lastUpdatePostDate equals new_date.
+        prior_cursor_date: Existing cursor date in state, or None.
+        prior_synced_at_cursor: Set of nct_ids already stored at prior_cursor_date.
+    """
+    if not new_date:
+        return
+    if prior_cursor_date and new_date < prior_cursor_date:
+        return  # Never move the cursor backwards.
+    if prior_cursor_date and new_date == prior_cursor_date:
+        merged = list(prior_synced_at_cursor.union(new_nct_ids_at_date))
+        state["last_update_post_date"] = new_date
+        state["synced_nct_ids_at_cursor"] = merged
+        return
+    # new_date is strictly newer than prior cursor (or we had no cursor).
+    state["last_update_post_date"] = new_date
+    state["synced_nct_ids_at_cursor"] = list(new_nct_ids_at_date)
 
 
 def fetch_single_trial(session, nct_id):
@@ -520,8 +782,10 @@ def call_cortex_agent(configuration, prompt, cortex_session=None):
         Parsed JSON response as dictionary, or None if all retry attempts fail
     """
     snowflake_account = configuration.get("snowflake_account")
-    cortex_model = configuration.get("cortex_model", __DEFAULT_CORTEX_MODEL)
-    timeout = int(configuration.get("cortex_timeout", str(__DEFAULT_CORTEX_TIMEOUT)))
+    # Fall back to defaults when the config value is missing or left as a placeholder;
+    # otherwise a literal "<CORTEX_MODEL>" would be forwarded to the Snowflake API.
+    cortex_model = _optional_str(configuration, "cortex_model", __DEFAULT_CORTEX_MODEL)
+    timeout = _optional_int(configuration, "cortex_timeout", __DEFAULT_CORTEX_TIMEOUT)
 
     url = f"https://{snowflake_account}{__CORTEX_AGENT_ENDPOINT}"
 
@@ -1094,154 +1358,103 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration)
     session = create_session()
 
-    # -------------------------------------------------------------------------
-    # Phase 1: Fetch seed trials from ClinicalTrials.gov
-    # -------------------------------------------------------------------------
-    log.info("Phase 1: Fetching seed trials from ClinicalTrials.gov API")
-    seed_studies = fetch_seed_trials(session, configuration, state)
+    # The ClinicalTrials.gov session is used across all three phases. Wrap the
+    # sync body in try/finally so the session is always closed even when an
+    # unexpected error propagates out of Cortex enrichment.
+    try:
+        # ---------------------------------------------------------------------
+        # Phase 1: Fetch, upsert, and checkpoint seed trials page by page
+        # ---------------------------------------------------------------------
+        log.info("Phase 1: Fetching seed trials from ClinicalTrials.gov API")
+        seed_records = fetch_and_upsert_seed_trials(session, configuration, state)
 
-    if not seed_studies:
-        log.info("No new or modified trials found")
-        # Save the progress by checkpointing the state. This is important for ensuring
-        # that the sync process can resume from the correct position in case of next sync
-        # or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells
-        # Fivetran it is safe to write to destination.
-        # For large datasets, checkpoint regularly (e.g., every N records) not only at
-        # the end.
-        # Learn more about how and where to checkpoint by reading our best practices
-        # documentation
+        if not seed_records:
+            log.info("No new or modified trials found")
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(state=state)
+            return
+
+        log.info(f"Phase 1 complete: {len(seed_records)} seed trial records upserted")
+
+        # Check if Cortex is enabled for Phases 2 and 3
+        is_cortex_enabled = _parse_bool(configuration.get("enable_cortex"), default=False)
+
+        if not is_cortex_enabled:
+            log.info("Cortex enrichment disabled, skipping Discovery and Debate phases")
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+            op.checkpoint(state=state)
+            log.info("Sync complete")
+            return
+
+        # ---------------------------------------------------------------------
+        # Phase 2: Agent-Driven Discovery
+        # ---------------------------------------------------------------------
+        log.info("Phase 2: Running Agent-Driven Discovery with Cortex")
+        discovered_studies, discovery_result = run_discovery_phase(
+            session, configuration, seed_records, state
+        )
+
+        all_records = dict(seed_records)
+
+        if discovered_studies:
+            disc_count, disc_records = upsert_trials(discovered_studies)
+            log.info(f"Upserted {disc_count} discovered trial records")
+            all_records.update(disc_records)
+
+            # Upsert per-trial discovery insights for discovered trials
+            if discovery_result:
+                for nct_id in disc_records:
+                    insight_record = {
+                        "nct_id": nct_id,
+                        "assessment_type": "discovery",
+                        "discovery_source": "agent_recommended",
+                        "assessed_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    # The 'upsert' operation is used to insert or update data in the destination table.
+                    # The first argument is the name of the destination table.
+                    # The second argument is a dictionary containing the record to be upserted.
+                    op.upsert(table="discovery_insights", data=insight_record)
+
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state=state)
-        return
 
-    # Upsert seed trial records
-    seed_count, seed_records = upsert_trials(seed_studies)
-    log.info(f"Upserted {seed_count} seed trial records")
+        # ---------------------------------------------------------------------
+        # Phase 3: Multi-Agent Debate
+        # ---------------------------------------------------------------------
+        log.info("Phase 3: Running Multi-Agent Debate with Cortex")
+        debate_count, disagreement_count = run_debate_phase(configuration, all_records, state)
+        log.info(
+            f"Multi-Agent Debate complete: {debate_count} trials debated, "
+            f"{disagreement_count} with significant disagreements"
+        )
 
-    # Update state with the latest update date from seed trials
-    latest_update = None
-    oldest_update = None
-    for record in seed_records.values():
-        update_date = record.get("last_update_post_date")
-        if update_date:
-            if latest_update is None or update_date > latest_update:
-                latest_update = update_date
-            if oldest_update is None or update_date < oldest_update:
-                oldest_update = update_date
-
-    # If we hit max_seed_trials, advance to oldest to prevent data loss
-    max_seed = int(configuration.get("max_seed_trials", str(__DEFAULT_MAX_SEED_TRIALS)))
-    is_capped = len(seed_studies) >= max_seed
-    if is_capped and oldest_update:
-        state["last_update_post_date"] = oldest_update
-        log.info(f"Results capped at {max_seed}, advancing cursor to oldest: " f"{oldest_update}")
-    elif latest_update:
-        state["last_update_post_date"] = latest_update
-        log.info(f"Advancing cursor to latest: {latest_update}")
-
-    # Clear pagination token since we completed the seed phase
-    state.pop("seed_page_token", None)
-
-    # Save the progress by checkpointing the state. This is important for ensuring
-    # that the sync process can resume from the correct position in case of next sync
-    # or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells
-    # Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at
-    # the end.
-    # Learn more about how and where to checkpoint by reading our best practices
-    # documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-    op.checkpoint(state=state)
-
-    # Check if Cortex is enabled for Phases 2 and 3
-    is_cortex_enabled = configuration.get("enable_cortex", "false").lower() == "true"
-
-    if not is_cortex_enabled:
-        log.info("Cortex enrichment disabled, skipping Discovery and Debate phases")
         # Final checkpoint
-        # Save the progress by checkpointing the state. This is important for ensuring
-        # that the sync process can resume from the correct position in case of next sync
-        # or interruptions.
-        # You should checkpoint even if you are not using incremental sync, as it tells
-        # Fivetran it is safe to write to destination.
-        # For large datasets, checkpoint regularly (e.g., every N records) not only at
-        # the end.
-        # Learn more about how and where to checkpoint by reading our best practices
-        # documentation
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state=state)
+
         log.info("Sync complete")
-        return
-
-    # -------------------------------------------------------------------------
-    # Phase 2: Agent-Driven Discovery
-    # -------------------------------------------------------------------------
-    log.info("Phase 2: Running Agent-Driven Discovery with Cortex")
-    discovered_studies, discovery_result = run_discovery_phase(
-        session, configuration, seed_records, state
-    )
-
-    all_records = dict(seed_records)
-
-    if discovered_studies:
-        disc_count, disc_records = upsert_trials(discovered_studies)
-        log.info(f"Upserted {disc_count} discovered trial records")
-        all_records.update(disc_records)
-
-        # Upsert per-trial discovery insights for discovered trials
-        if discovery_result:
-            for nct_id in disc_records:
-                insight_record = {
-                    "nct_id": nct_id,
-                    "assessment_type": "discovery",
-                    "discovery_source": "agent_recommended",
-                    "assessed_at": datetime.now(timezone.utc).isoformat(),
-                }
-                # The 'upsert' operation is used to insert or update data in the
-                # destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be
-                # upserted.
-                op.upsert(table="discovery_insights", data=insight_record)
-
-    # Save the progress by checkpointing the state. This is important for ensuring
-    # that the sync process can resume from the correct position in case of next sync
-    # or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells
-    # Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at
-    # the end.
-    # Learn more about how and where to checkpoint by reading our best practices
-    # documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-    op.checkpoint(state=state)
-
-    # -------------------------------------------------------------------------
-    # Phase 3: Multi-Agent Debate
-    # -------------------------------------------------------------------------
-    log.info("Phase 3: Running Multi-Agent Debate with Cortex")
-    debate_count, disagreement_count = run_debate_phase(configuration, all_records, state)
-    log.info(
-        f"Multi-Agent Debate complete: {debate_count} trials debated, "
-        f"{disagreement_count} with significant disagreements"
-    )
-
-    # Final checkpoint
-    # Save the progress by checkpointing the state. This is important for ensuring
-    # that the sync process can resume from the correct position in case of next sync
-    # or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells
-    # Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at
-    # the end.
-    # Learn more about how and where to checkpoint by reading our best practices
-    # documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-    op.checkpoint(state=state)
-
-    log.info("Sync complete")
+    finally:
+        session.close()
 
 
 # Create the connector object using the schema and update functions
