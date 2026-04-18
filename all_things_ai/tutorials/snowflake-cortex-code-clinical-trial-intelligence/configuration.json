@@ -8,7 +8,7 @@
     "max_debates": "<MAX_DEBATES>",
     "page_size": "<PAGE_SIZE>",
     "enable_cortex": "<TRUE_OR_FALSE>",
-    "snowflake_account": "<SNOWFLAKE_ACCOUNT_URL>",
+    "snowflake_account": "<SNOWFLAKE_ACCOUNT_HOSTNAME>",
     "snowflake_pat_token": "<SNOWFLAKE_PAT_TOKEN>",
     "cortex_model": "<CORTEX_MODEL>",
     "cortex_timeout": "<CORTEX_TIMEOUT_SECONDS>"

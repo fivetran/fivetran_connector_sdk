@@ -48,7 +48,7 @@ The `configuration.json` file accepts the following parameters:
     "max_debates": "<MAX_DEBATES>",
     "page_size": "<PAGE_SIZE>",
     "enable_cortex": "<TRUE_OR_FALSE>",
-    "snowflake_account": "<SNOWFLAKE_ACCOUNT_URL>",
+    "snowflake_account": "<SNOWFLAKE_ACCOUNT_HOSTNAME>",
     "snowflake_pat_token": "<SNOWFLAKE_PAT_TOKEN>",
     "cortex_model": "<CORTEX_MODEL>",
     "cortex_timeout": "<CORTEX_TIMEOUT_SECONDS>"
@@ -59,12 +59,12 @@ The `configuration.json` file accepts the following parameters:
 - `status_filter` (optional): Filter by overall trial status (e.g., "RECRUITING", "COMPLETED", "ACTIVE_NOT_RECRUITING"). Omit or use placeholder to include all statuses
 - `intervention_filter` (optional): Additional filter by intervention/treatment name
 - `sponsor_filter` (optional): Additional filter by sponsor organization name
-- `max_seed_trials` (optional): Maximum number of seed trials to fetch per sync. Default: 20
+- `max_seed_trials` (optional): Maximum number of seed trials to fetch per sync. Default: 20. Hard ceiling: 500. For larger pulls, run multiple syncs and rely on the incremental cursor to advance.
 - `max_discoveries` (optional): Maximum number of new trials to discover via agent recommendations. Default: 10
 - `max_debates` (optional): Maximum number of trials to run through Multi-Agent Debate per sync. Default: 5
 - `page_size` (optional): Number of trials per API page request. Default: 20, maximum: 1000
 - `enable_cortex` (optional): Set to "true" to enable Cortex Agent for Discovery and Debate phases. Default: "false"
-- `snowflake_account` (required when Cortex enabled): Full Snowflake account URL ending in snowflakecomputing.com
+- `snowflake_account` (required when Cortex enabled): Snowflake account hostname ending in `snowflakecomputing.com` (for example, `xy12345.us-west-2.snowflakecomputing.com`). Do not include a scheme like `http://` or `https://` — the connector constructs the request URL itself.
 - `snowflake_pat_token` (required when Cortex enabled): Snowflake Programmatic Access Token for Cortex API authentication
 - `cortex_model` (optional): Cortex model to use. Default: claude-sonnet-4-6
 - `cortex_timeout` (optional): Timeout in seconds for Cortex API calls. Default: 60
@@ -82,15 +82,17 @@ For Cortex Agent enrichment (Phases 2 and 3), the connector authenticates with S
 3. Create a new token with appropriate permissions for Cortex inference
 4. Copy the token value and set it as `snowflake_pat_token` in your configuration
 
+Set `snowflake_account` to the Snowflake hostname only (for example, `xy12345.us-west-2.snowflakecomputing.com`). The connector rejects configuration values that start with `http://` or `https://`.
+
 ## Pagination
 
-The connector uses cursor-based pagination via the ClinicalTrials.gov API v2.0 `pageToken` mechanism. Each API response includes a `nextPageToken` value that the connector passes to the next request to retrieve the following page of results. The `pageSize` parameter controls how many trials are returned per page (default: 20, maximum: 1000). The connector continues paginating until it reaches the configured `max_seed_trials` limit or exhausts all available results.
+The connector uses cursor-based pagination via the ClinicalTrials.gov API v2.0 `pageToken` mechanism. Each API response includes a `nextPageToken` value that the connector passes to the next request to retrieve the following page of results. The `pageSize` parameter controls how many trials are returned per page (default: 20, maximum: 1000). The connector continues paginating until it reaches the configured `max_seed_trials` limit or exhausts all available results. After each page, the connector upserts the records it received, persists the `nextPageToken` and composite incremental cursor to state, and checkpoints so that an interrupted sync can resume without duplicate work or gaps.
 
 ## Data handling
 
 The `def update(configuration, state)` function orchestrates three sequential phases:
 
-Phase 1 (Seed): The `def fetch_seed_trials(session, configuration, state)` function queries the ClinicalTrials.gov API for trials matching the configured condition. It applies optional filters for status, intervention, and sponsor. For incremental syncs, it skips trials with a `lastUpdatePostDate` earlier than the stored cursor. The `def build_trial_record(study)` function extracts key fields from the deeply nested API response and flattens them into a single-level dictionary.
+Phase 1 (Seed): The `def fetch_and_upsert_seed_trials(session, configuration, state)` function queries the ClinicalTrials.gov API for trials matching the configured condition. It applies optional filters for status, intervention, and sponsor. Records are upserted one page at a time so peak memory stays bounded regardless of the configured `max_seed_trials` value. For incremental syncs, the function uses a composite cursor of `last_update_post_date` plus the set of `nct_id` values already synced on that date (stored in `synced_nct_ids_at_cursor`). Because `lastUpdatePostDate` is day-granularity, this composite cursor guarantees that trials sharing the cursor date are not skipped when `max_seed_trials` caps a prior window. The `def build_trial_record(study)` function extracts key fields from the deeply nested API response and flattens them into a single-level dictionary.
 
 Phase 2 (Discovery): The `def run_discovery_phase(session, configuration, trial_records, state)` function sends seed trial summaries to a Cortex Agent that identifies competing therapies, related drug classes, and recruitment overlaps. The agent returns recommended search terms, which the connector executes against the ClinicalTrials.gov API to fetch new trials not in the seed set.
 
