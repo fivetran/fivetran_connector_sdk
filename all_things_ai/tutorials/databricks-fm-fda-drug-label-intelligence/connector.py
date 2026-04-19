@@ -485,6 +485,23 @@ def call_ai_query(session, configuration, prompt):
         result = response.json()
         state = result.get("status", {}).get("state", "")
 
+        # Poll for PENDING/RUNNING statements that exceed the
+        # SQL wait timeout (large enrichment prompts)
+        statement_id = result.get("statement_id")
+        poll_count = 0
+        max_polls = 12
+        poll_interval_seconds = 10
+
+        while state in ("PENDING", "RUNNING") and poll_count < max_polls:
+            poll_count += 1
+            time.sleep(poll_interval_seconds)
+            poll_url = f"{url}/{statement_id}"
+            poll_resp = session.get(poll_url, headers=headers, timeout=timeout)
+            poll_resp.raise_for_status()
+            result = poll_resp.json()
+            state = result.get("status", {}).get("state", "")
+            log.info(f"ai_query() poll {poll_count}/{max_polls}: {state}")
+
         if state == "SUCCEEDED":
             data_array = result.get("result", {}).get("data_array", [])
             if data_array and data_array[0]:
@@ -493,7 +510,7 @@ def call_ai_query(session, configuration, prompt):
             error = result.get("status", {}).get("error", {})
             log.warning(f"ai_query() failed: {error.get('message', 'Unknown')}")
         else:
-            log.warning(f"ai_query() returned state: {state}")
+            log.warning(f"ai_query() final state: {state}")
 
         return None
 
