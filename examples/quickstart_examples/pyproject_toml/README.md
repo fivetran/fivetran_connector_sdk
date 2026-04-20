@@ -1,4 +1,4 @@
-# Using pyproject.toml for Dependency Management
+# Pyproject.toml Dependency Management Connector Example
 
 ## Connector overview
 This connector demonstrates how to use a `pyproject.toml` file for dependency management instead of a `requirements.txt` file with the Fivetran Connector SDK.
@@ -47,8 +47,8 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 The connector requires the following configuration parameters:
 ```json
 {
-  "from_currency": "USD",
-  "to_currency": "INR"
+  "from_currency": "<YOUR_FROM_CURRENCY>",
+  "to_currency": "<YOUR_TO_CURRENCY>"
 }
 ```
 
@@ -97,7 +97,7 @@ Not applicable - the connector fetches only the latest exchange rate in a single
 - The connector calls the Frankfurter `/v2/rates/latest` endpoint to get the most recent exchange rate.
 - API calls use `tenacity`'s `@retry` decorator for automatic retry with exponential backoff on transient failures.
 - If the API returns no records, the connector logs a warning and exits gracefully.
-- The exchange rate record is upserted to the `EXCHANGE_RATES` destination table using `op.upsert()`.
+- The exchange rate record is upserted to the `exchange_rates` destination table using `op.upsert()`.
 
 
 ## Error handling
@@ -109,7 +109,7 @@ Not applicable - the connector fetches only the latest exchange rate in a single
 
 
 ## Tables created
-The connector creates an `EXCHANGE_RATES` table:
+The connector creates an `exchange_rates` table:
 
 ```json
 {

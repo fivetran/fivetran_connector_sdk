@@ -27,12 +27,18 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # API endpoint for the latest exchange rates.
-API_URL = "https://api.frankfurter.dev/v2/rates/latest?base={from_currency}&quotes={to_currency}"
-REQUEST_TIMEOUT = 60  # seconds
+__API_URL = "https://api.frankfurter.dev/v2/rates/latest?base={from_currency}&quotes={to_currency}"
+__REQUEST_TIMEOUT = 60  # seconds for HTTP request timeout
 
 
 def log_before_retry(retry_state):
-    """Custom before_sleep callback that logs retry attempts using the Fivetran SDK logger."""
+    """
+    Custom before_sleep callback that logs retry attempts using the Fivetran SDK logger.
+    This is passed to tenacity's @retry decorator and invoked before each retry sleep.
+    Args:
+        retry_state: a tenacity RetryCallState object containing attempt_number,
+            the raised exception (via outcome.exception()), and next_action.sleep.
+    """
     log.warning(
         f"Retry attempt {retry_state.attempt_number} failed: {retry_state.outcome.exception()}. "
         f"Retrying in {retry_state.next_action.sleep:.0f}s..."
@@ -52,9 +58,19 @@ def log_before_retry(retry_state):
     reraise=True,
 )
 def fetch_exchange_rates(url: str) -> list:
-    """Fetch exchange rates from the Frankfurter API with automatic retry on failure."""
+    """
+    Fetch exchange rates from the Frankfurter API with automatic retry on failure.
+    The @retry decorator retries the call up to 3 times on requests.RequestException
+    before re-raising the last exception to the caller.
+    Args:
+        url: the fully formatted Frankfurter API URL to request.
+    Returns:
+        A list of dictionaries, each containing a date, base currency, quote currency, and rate.
+    Raises:
+        requests.RequestException: if all retry attempts fail (network/HTTP errors).
+    """
     log.info(f"Requesting: {url}")
-    response = requests.get(url, timeout=REQUEST_TIMEOUT)
+    response = requests.get(url, timeout=__REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.json()
 
@@ -107,7 +123,7 @@ def update(configuration: dict, state: dict):
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.info("Example: QuickStart Examples - pyproject.toml")
+    log.warning("Example: QuickStart Examples - pyproject.toml")
 
     # Validate the configuration to ensure it contains all required values.
     validate_configuration(configuration=configuration)
@@ -117,7 +133,7 @@ def update(configuration: dict, state: dict):
     log.info(f"Fetching latest exchange rate for {from_currency} -> {to_currency}")
 
     # Build the API URL for the latest exchange rates.
-    url = API_URL.format(from_currency=from_currency, to_currency=to_currency)
+    url = __API_URL.format(from_currency=from_currency, to_currency=to_currency)
 
     # Fetch data using tenacity-powered retry logic (declared as a dependency in pyproject.toml).
     # tenacity retries up to 3 times on network/HTTP errors with exponential backoff.
@@ -138,7 +154,9 @@ def update(configuration: dict, state: dict):
         f"Exchange rate for {record.get('date')}: {record.get('base')} -> {record.get('quote')} = {record.get('rate')}"
     )
 
-    # Upsert the exchange rate record to the destination table.
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(
         table="exchange_rates",
         data={
@@ -151,6 +169,8 @@ def update(configuration: dict, state: dict):
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
+    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
     # Learn more about how and where to checkpoint by reading our best practices documentation
     # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state)
