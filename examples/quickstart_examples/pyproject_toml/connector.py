@@ -1,8 +1,8 @@
 # This is an example for how to use pyproject.toml for dependency management with the Fivetran Connector SDK.
 # Instead of declaring dependencies in a requirements.txt file, this connector uses a pyproject.toml file.
-# The pyproject.toml file is the modern Python standard (PEP 621) for declaring project metadata and dependencies.
+# The pyproject.toml file is the modern Python standard for declaring project metadata and dependencies.
 # The Connector SDK prioritizes pyproject.toml over requirements.txt when both are present.
-# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
+# See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
 # This connector fetches the latest exchange rates from the Frankfurter API (https://frankfurter.dev),
@@ -14,18 +14,16 @@ import requests  # Import the requests module for making HTTP requests. Pre-inst
 
 # Import tenacity for robust API retry logic with exponential backoff.
 # This dependency is declared in pyproject.toml under [project.dependencies].
-# In production connectors, tenacity is preferred over hand-rolled retry loops because it provides
-# configurable retry strategies and cleaner separation of retry logic from business logic.
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # Import required classes from fivetran_connector_sdk
-# For supporting Connector operations like Update() and Schema()
+# For supporting Connector operations like update() and schema()
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # API endpoint for the latest exchange rates.
@@ -103,7 +101,7 @@ def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
@@ -154,7 +152,7 @@ def update(configuration: dict, state: dict):
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
     # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state)
 
 
@@ -173,9 +171,8 @@ if __name__ == "__main__":
     connector.debug(configuration=configuration)
 
 # Resulting table:
-# ┌────────────┬───────────────┬─────────────┬────────┐
-# │    date    │ from_currency │ to_currency │  rate  │
-# │    date    │    varchar    │   varchar   │ decimal│
-# ├────────────┼───────────────┼─────────────┼────────┤
-# │ 2026-04-14 │ USD           │ INR         │  93.00 │
-# └────────────┴───────────────┴─────────────┴────────┘
+# ┌────────────┬───────────────┬─────────────┬───────────────┐
+# │    date    │ from_currency │ to_currency │     rate      │
+# ├────────────┼───────────────┼─────────────┼───────────────┤
+# │ 2026-04-20 │ USD           │ INR         │     92.950000 │
+# └────────────┴───────────────┴─────────────┴───────────────┘

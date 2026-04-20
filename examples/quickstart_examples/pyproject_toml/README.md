@@ -119,7 +119,7 @@ The connector creates an `EXCHANGE_RATES` table:
     "date": "NAIVE_DATE",
     "from_currency": "STRING",
     "to_currency": "STRING",
-    "rate": "DECIMAL(15,6)"
+    "rate": {"type": "DECIMAL", "precision": 15, "scale": 6}
   }
 }
 ```
