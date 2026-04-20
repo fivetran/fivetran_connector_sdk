@@ -7,5 +7,5 @@ version = "0.1.0"
 description = "A Fivetran connector example demonstrating pyproject.toml for dependency management"
 requires-python = ">=3.10"
 dependencies = [
-    "tenacity>=8.2",
+    "tenacity==9.1.4",
 ]
