@@ -6,7 +6,7 @@ This connector demonstrates how to use a `pyproject.toml` file for dependency ma
 It fetches the latest exchange rate from the [Frankfurter API](https://frankfurter.dev), a free, open-source API that requires no authentication, and uses the `tenacity` library (declared in `pyproject.toml`) for production-grade API retry logic with exponential backoff.
 
 It illustrates:
-- How to declare dependencies in `pyproject.toml` using the PEP 621 standard
+- How to declare dependencies in `pyproject.toml`
 - How the Connector SDK automatically detects and uses `pyproject.toml` for dependency installation
 - How to use an external library (`tenacity`) declared in `pyproject.toml` for retry handling
 - How to fetch data from a live API and upsert it to a destination table
@@ -61,7 +61,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## pyproject.toml file
-This connector uses a `pyproject.toml` file to declare dependencies instead of a `requirements.txt` file. The `pyproject.toml` follows the PEP 621 standard:
+This connector uses a `pyproject.toml` file to declare dependencies instead of a `requirements.txt` file:
 ```toml
 [project]
 name = "pyproject-toml-example"
@@ -78,7 +78,7 @@ dependencies = [
 |---|---|---|
 | Format | One package per line (e.g., `tenacity>=8.2`) | TOML format under `[project.dependencies]` |
 | Metadata | Dependencies only | Project name, version, description, Python version, and dependencies |
-| Standard | pip convention | PEP 621 (Python packaging standard) |
+| Standard | pip convention | Python packaging standard |
 | Precedence | Used if no `pyproject.toml` present | Takes precedence over `requirements.txt` |
 
 ### Important notes

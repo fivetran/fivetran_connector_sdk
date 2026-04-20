@@ -1,4 +1,4 @@
-# This pyproject.toml declares project metadata and dependencies using the PEP 621 standard.
+# This pyproject.toml declares project metadata and dependencies.
 # The Connector SDK prioritizes pyproject.toml over requirements.txt when both are present.
 
 [project]
