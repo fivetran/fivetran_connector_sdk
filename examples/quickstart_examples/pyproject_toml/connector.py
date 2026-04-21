@@ -32,6 +32,12 @@ from fivetran_connector_sdk import Operations as op
 __API_URL = "https://api.frankfurter.dev/v2/rates/latest?base={from_currency}&quotes={to_currency}"
 __REQUEST_TIMEOUT = 60  # seconds for HTTP request timeout
 
+# Retry configuration for the tenacity @retry decorator.
+__MAX_RETRY_ATTEMPTS = 3  # Maximum number of attempts before giving up.
+__RETRY_WAIT_MULTIPLIER = 2  # Exponential backoff multiplier.
+__RETRY_WAIT_MIN_SECONDS = 2  # Minimum wait time between retries in seconds.
+__RETRY_WAIT_MAX_SECONDS = 10  # Maximum wait time between retries in seconds.
+
 
 def log_before_retry(retry_state):
     """
@@ -48,13 +54,17 @@ def log_before_retry(retry_state):
 
 
 # Use tenacity's @retry decorator to handle transient API failures automatically.
-# - stop_after_attempt(3): Give up after 3 failed attempts.
-# - wait_exponential(multiplier=2, min=2, max=10): Wait 2s, 4s, 8s (capped at 10s) between retries.
+# - stop_after_attempt: Give up after __MAX_RETRY_ATTEMPTS failed attempts.
+# - wait_exponential: Exponential backoff bounded by __RETRY_WAIT_MIN_SECONDS and __RETRY_WAIT_MAX_SECONDS.
 # - retry_if_exception_type: Only retry on network/HTTP errors, not on programming errors.
 # - before_sleep: Uses a custom callback to log retries via the Fivetran SDK logger (log.warning).
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=10),
+    stop=stop_after_attempt(__MAX_RETRY_ATTEMPTS),
+    wait=wait_exponential(
+        multiplier=__RETRY_WAIT_MULTIPLIER,
+        min=__RETRY_WAIT_MIN_SECONDS,
+        max=__RETRY_WAIT_MAX_SECONDS,
+    ),
     retry=retry_if_exception_type(requests.RequestException),
     before_sleep=log_before_retry,
     reraise=True,
@@ -62,8 +72,8 @@ def log_before_retry(retry_state):
 def fetch_exchange_rates(url: str) -> list:
     """
     Fetch exchange rates from the Frankfurter API with automatic retry on failure.
-    The @retry decorator retries the call up to 3 times on requests.RequestException
-    before re-raising the last exception to the caller.
+    The @retry decorator retries the call up to __MAX_RETRY_ATTEMPTS times on
+    requests.RequestException before re-raising the last exception to the caller.
     Args:
         url: the fully formatted Frankfurter API URL to request.
     Returns:
@@ -138,12 +148,12 @@ def update(configuration: dict, state: dict):
     url = __API_URL.format(from_currency=from_currency, to_currency=to_currency)
 
     # Fetch data using tenacity-powered retry logic (declared as a dependency in pyproject.toml).
-    # tenacity retries up to 3 times on network/HTTP errors with exponential backoff.
+    # tenacity retries up to __MAX_RETRY_ATTEMPTS times on network/HTTP errors with exponential backoff.
     # If all attempts fail, the exception is re-raised and caught below for graceful handling.
     try:
         exchange_rates = fetch_exchange_rates(url)
     except requests.RequestException as e:
-        log.severe(f"API request failed after 3 retry attempts: {e}")
+        log.severe(f"API request failed after {__MAX_RETRY_ATTEMPTS} retry attempts: {e}")
         raise RuntimeError(f"Failed to fetch exchange rates from API: {e}") from e
 
     # The API returns a single record for the configured currency pair.

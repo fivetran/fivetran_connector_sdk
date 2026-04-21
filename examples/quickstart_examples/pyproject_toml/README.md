@@ -5,12 +5,6 @@ This connector demonstrates how to use a `pyproject.toml` file for dependency ma
 
 It fetches the latest exchange rate from the [Frankfurter API](https://frankfurter.dev), a free, open-source API that requires no authentication, and uses the `tenacity` library (declared in `pyproject.toml`) for production-grade API retry logic with exponential backoff.
 
-It illustrates:
-- How to declare dependencies in `pyproject.toml`
-- How the Connector SDK automatically detects and uses `pyproject.toml` for dependency installation
-- How to use an external library (`tenacity`) declared in `pyproject.toml` for retry handling
-- How to fetch data from a live API and upsert it to a destination table
-
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
