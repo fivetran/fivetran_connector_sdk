@@ -1,0 +1,23 @@
+fivetran_platform_features/soft_delete/connector.py
+  3306b17e3617a3da 2-5,31,33,68-74,87,89-92,94-96,100-102,109,123,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "4cd7c0b224662dd3e22c2ba20a15ee455deed642",
+  "prompts": {
+    "3306b17e3617a3da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e560cf6c-4d59-4f3e-bf83-60168279404c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 86,
+      "accepted_lines": 29,
+      "overriden_lines": 0
+    }
+  }
+}
