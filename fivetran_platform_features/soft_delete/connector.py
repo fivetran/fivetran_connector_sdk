@@ -1,10 +1,8 @@
 # This example demonstrates Fivetran's soft delete feature using the truncate-and-reload pattern.
-# On the first sync, a full set of records is upserted.
-# On the second sync, we simulate a source where some records have been removed:
-#   1. Records missing from the new snapshot are explicitly deleted via op.delete(),
-#      which marks them with _fivetran_deleted = True in the warehouse.
-#   2. The surviving records are re-upserted.
-# This mirrors the "truncate + re-import" pattern described in Fivetran's soft-delete documentation.
+# On each sync, op.truncate() marks all existing warehouse rows as soft-deleted
+# (_fivetran_deleted = True), then the full current snapshot is re-upserted.
+# Any row that reappears in the upsert has its _fivetran_deleted flag cleared automatically.
+# Rows absent from the new snapshot stay marked deleted — this is the soft-delete behaviour.
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
@@ -21,18 +19,18 @@ from fivetran_connector_sdk import Operations as op
 # --------------------------------------------------------------------------- #
 
 SNAPSHOT_1 = [
-    {"id": 1, "name": "Alice",   "department": "Engineering", "active": True},
-    {"id": 2, "name": "Bob",     "department": "Marketing",   "active": True},
-    {"id": 3, "name": "Charlie", "department": "Engineering", "active": True},
-    {"id": 4, "name": "Diana",   "department": "HR",          "active": True},
-    {"id": 5, "name": "Edward",  "department": "Finance",     "active": True},
+    {"id": 1, "name": "Alice",   "department": "Engineering"},
+    {"id": 2, "name": "Bob",     "department": "Marketing"},
+    {"id": 3, "name": "Charlie", "department": "Engineering"},
+    {"id": 4, "name": "Diana",   "department": "HR"},
+    {"id": 5, "name": "Edward",  "department": "Finance"},
 ]
 
 SNAPSHOT_2 = [
-    {"id": 1, "name": "Alice",   "department": "Engineering", "active": True},
-    {"id": 2, "name": "Bob",     "department": "Data",        "active": True},  # department updated
-    {"id": 3, "name": "Charlie", "department": "Engineering", "active": True},
-    # IDs 4 and 5 are gone — they will be soft-deleted in the warehouse
+    {"id": 1, "name": "Alice",   "department": "Engineering"},
+    {"id": 2, "name": "Bob",     "department": "Marketing"},
+    {"id": 3, "name": "Charlie", "department": "Engineering"},
+    # IDs 4 and 5 are gone — op.truncate() will leave them soft-deleted after the upserts
 ]
 
 
@@ -49,7 +47,6 @@ def schema(configuration: dict):
                 "id":         "INT",
                 "name":       "STRING",
                 "department": "STRING",
-                "active":     "BOOLEAN",
             },
         }
     ]
@@ -68,11 +65,13 @@ def update(configuration: dict, state: dict):
 
     Soft-delete flow (truncate-and-reload pattern)
     -----------------------------------------------
-    First sync  : upsert all 5 records → checkpoint.
-    Second sync : compare new snapshot to previous snapshot.
-                  Call op.delete() for every ID present before but absent now —
-                  Fivetran marks those rows _fivetran_deleted = True in the warehouse.
-                  Upsert surviving / updated records → checkpoint.
+    Step 1 — op.truncate(): marks every existing row in the warehouse table as
+             _fivetran_deleted = True.  No rows are physically removed.
+    Step 2 — op.upsert() for each record in the current snapshot: rows that still
+             exist at the source are re-inserted / updated, and their
+             _fivetran_deleted flag is cleared back to False automatically.
+             Rows absent from the snapshot remain soft-deleted.
+    Step 3 — op.checkpoint(): persists state so the next sync knows its sequence number.
 
     Args:
         configuration: dictionary containing any secrets or parameters.
@@ -82,44 +81,34 @@ def update(configuration: dict, state: dict):
     sync_count = state.get("sync_count", 0) + 1
     log.warning(f"Example: Fivetran Platform Features - Soft Delete (sync #{sync_count})")
 
-    # IDs seen in the previous sync are carried in state so we can detect removals.
-    previous_ids = set(state.get("seen_ids", []))
-
     current_snapshot = fetch_snapshot(sync_count)
-    current_ids = {row["id"] for row in current_snapshot}
 
     # ------------------------------------------------------------------ #
-    # Step 1 — soft-delete rows that disappeared from the source.
+    # Step 1 — truncate: mark all existing warehouse rows as soft-deleted.
     #
-    # op.delete() tells Fivetran to set _fivetran_deleted = True for the
-    # given primary key.  This is the soft-delete equivalent of a
-    # "truncate then re-upsert" pattern: rows are never physically removed;
-    # instead the ones no longer present at the source are flagged.
+    # Skipped on the first sync because the table is empty — nothing to mark.
+    # From sync 2 onwards, op.truncate() sets _fivetran_deleted = True for
+    # every row in the destination table.  The subsequent upserts clear that
+    # flag for any row still present at the source.
     # ------------------------------------------------------------------ #
-    removed_ids = previous_ids - current_ids
-    if removed_ids:
-        log.info(f"Soft-deleting {len(removed_ids)} record(s) no longer in source: {sorted(removed_ids)}")
-        for missing_id in sorted(removed_ids):
-            op.delete(table="employees", keys={"id": missing_id})
-    else:
-        log.info("No records removed since last sync.")
+    if state:
+        log.info("Truncating 'employees' table — all existing rows marked as soft-deleted.")
+        op.truncate(table="employees")
 
     # ------------------------------------------------------------------ #
     # Step 2 — upsert the full current snapshot.
-    #          Inserts new rows and applies any field-level updates.
+    #          Re-inserts surviving rows (clearing _fivetran_deleted) and
+    #          applies any field-level updates.  Rows not present here stay
+    #          soft-deleted from the truncate above.
     # ------------------------------------------------------------------ #
     log.info(f"Upserting {len(current_snapshot)} record(s) from current snapshot.")
     for record in current_snapshot:
         op.upsert(table="employees", data=record)
 
     # ------------------------------------------------------------------ #
-    # Step 3 — checkpoint: persist state so the next sync knows which IDs
-    #          were present and how many syncs have completed.
+    # Step 3 — checkpoint: persist state for the next sync.
     # ------------------------------------------------------------------ #
-    new_state = {
-        "sync_count": sync_count,
-        "seen_ids": sorted(current_ids),
-    }
+    new_state = {"sync_count": sync_count}
     op.checkpoint(new_state)
     log.info(f"Checkpoint saved: {new_state}")
 
@@ -131,30 +120,28 @@ if __name__ == "__main__":
     print("\n========== SYNC 1: Full initial load ==========")
     connector.debug(state={})
 
-    # Sync 2: incremental — IDs 4 & 5 are gone from the source.
-    # Pass the state produced by sync 1 so the connector detects the removals
-    # and soft-deletes them via op.delete().
+    # Sync 2: IDs 4 & 5 are gone from the source.
     print("\n========== SYNC 2: IDs 4 & 5 removed at source ==========")
-    connector.debug(state={"sync_count": 1, "seen_ids": [1, 2, 3, 4, 5]})
+    connector.debug(state={"sync_count": 1})
 
     # After Sync 1 — employees table:
-    # ┌────┬─────────┬─────────────┬────────┬──────────────────┐
-    # │ id │  name   │ department  │ active │ _fivetran_deleted │
-    # ├────┼─────────┼─────────────┼────────┼──────────────────┤
-    # │  1 │ Alice   │ Engineering │  true  │      false        │
-    # │  2 │ Bob     │ Marketing   │  true  │      false        │
-    # │  3 │ Charlie │ Engineering │  true  │      false        │
-    # │  4 │ Diana   │ HR          │  true  │      false        │
-    # │  5 │ Edward  │ Finance     │  true  │      false        │
-    # └────┴─────────┴─────────────┴────────┴──────────────────┘
+    # ┌────┬─────────┬─────────────┬──────────────────┐
+    # │ id │  name   │ department  │ _fivetran_deleted │
+    # ├────┼─────────┼─────────────┼──────────────────┤
+    # │  1 │ Alice   │ Engineering │      false        │
+    # │  2 │ Bob     │ Marketing   │      false        │
+    # │  3 │ Charlie │ Engineering │      false        │
+    # │  4 │ Diana   │ HR          │      false        │
+    # │  5 │ Edward  │ Finance     │      false        │
+    # └────┴─────────┴─────────────┴──────────────────┘
     #
-    # After Sync 2 — IDs 4 & 5 soft-deleted, Bob's department updated:
-    # ┌────┬─────────┬─────────────┬────────┬──────────────────┐
-    # │ id │  name   │ department  │ active │ _fivetran_deleted │
-    # ├────┼─────────┼─────────────┼────────┼──────────────────┤
-    # │  1 │ Alice   │ Engineering │  true  │      false        │
-    # │  2 │ Bob     │ Data        │  true  │      false        │  ← department changed
-    # │  3 │ Charlie │ Engineering │  true  │      false        │
-    # │  4 │ Diana   │ HR          │  true  │      true         │  ← soft-deleted
-    # │  5 │ Edward  │ Finance     │  true  │      true         │  ← soft-deleted
-    # └────┴─────────┴─────────────┴────────┴──────────────────┘
+    # After Sync 2 — IDs 4 & 5 soft-deleted
+    # ┌────┬─────────┬─────────────┬──────────────────┐
+    # │ id │  name   │ department  │ _fivetran_deleted │
+    # ├────┼─────────┼─────────────┼──────────────────┤
+    # │  1 │ Alice   │ Engineering │      false        │
+    # │  2 │ Bob     │ Marketing   │      false        │
+    # │  3 │ Charlie │ Engineering │      false        │
+    # │  4 │ Diana   │ HR          │      true         │  ← soft-deleted
+    # │  5 │ Edward  │ Finance     │      true         │  ← soft-deleted
+    # └────┴─────────┴─────────────┴──────────────────┘
