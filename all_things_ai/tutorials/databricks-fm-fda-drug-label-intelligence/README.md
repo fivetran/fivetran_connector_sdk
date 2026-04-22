@@ -10,7 +10,7 @@ The connector demonstrates the full Fivetran data lifecycle on Databricks:
 - TRANSFORM: Enrich each label with AI analysis via `ai_query()` running on the SQL Warehouse
 - AGENT: Create a Genie Space with pharma-specific instructions and sample questions
 
-AI enrichment uses `ai_query()` through the Databricks SQL Statement Execution API, which runs on the SQL Warehouse. This avoids the need for a separate Foundation Model serving endpoint and works with any PAT that has SQL execution permissions. The default model is `databricks-claude-sonnet-4-6`.
+AI enrichment uses `ai_query()` through the Databricks SQL Statement Execution API, which runs on the SQL warehouse. This avoids the need for a separate foundation model serving endpoint and works with any personal access token (PAT) that has SQL execution permissions. The default model is `databricks-claude-sonnet-4-6`.
 
 Enrichments include drug interaction risk classification (HIGH/MEDIUM/LOW), plain-English contraindication summaries, black box warning detection and summarization, patient-friendly drug descriptions, and AI-classified therapeutic categories.
 
@@ -23,8 +23,8 @@ This is the first Databricks AI tutorial connector in the Fivetran SDK repositor
   - Windows: 10 or later (64-bit only)
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
-- A Databricks workspace with a SQL Warehouse that supports `ai_query()` (required for AI enrichment; optional for data-only mode)
-- A Databricks Personal Access Token (PAT) with SQL execution permissions
+- A Databricks workspace with a SQL warehouse that supports `ai_query()` (required for AI enrichment; optional for data-only mode)
+- A Databricks personal access token (PAT) with SQL execution permissions
 
 ## Getting started
 
@@ -61,14 +61,15 @@ The `configuration.json` file contains the following parameters:
   "databricks_timeout": "<DATABRICKS_TIMEOUT_SECONDS>"
 }
 ```
+Configuration parameters:
 
 - `databricks_workspace_url` (required when enrichment or Genie enabled): Full Databricks workspace URL including `https://` (e.g., `https://dbc-xxxxx.cloud.databricks.com`)
-- `databricks_token` (required when enrichment or Genie enabled): Databricks Personal Access Token with SQL execution permissions
+- `databricks_token` (required when enrichment or Genie enabled): Databricks personal access token with SQL execution permissions
 - `databricks_warehouse_id` (required when enrichment or Genie enabled): SQL Warehouse ID to execute `ai_query()` statements and create Genie Spaces
 - `databricks_model` (optional): Databricks Foundation Model name for `ai_query()`. Default: `databricks-claude-sonnet-4-6`
 - `enable_enrichment` (optional): Set to `false` to sync drug labels without AI enrichment. Default: `true`
 - `enable_genie_space` (optional): Set to `true` to create a Genie Space on the enriched data after sync. Default: `false`
-- `genie_table_identifier` (required when Genie enabled): Unity Catalog table path for the Genie Space data source (format: `catalog.schema.table`)
+- `genie_table_identifier` (required when Genie enabled): Unity Catalog table path for the Genie Space data source in the following format: `catalog.schema.table`
 - `max_labels` (optional): Maximum number of drug labels to sync per run. Default: `25`. Maximum: `500`
 - `batch_size` (optional): Number of labels to process per batch before checkpointing. Default: `5`
 - `max_enrichments` (optional): Maximum number of `ai_query()` enrichment calls per sync to control costs. Default: `25`. Maximum: `500`
@@ -80,38 +81,39 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 The OpenFDA Drug Labeling API is free and requires no authentication.
 
-Databricks access requires a Personal Access Token (PAT) with SQL execution permissions:
+Databricks access requires a personal access token (PAT) with SQL execution permissions. To obtain the PAT:
 
-1. Navigate to your Databricks workspace
-2. Click your username in the top-right corner and select **Settings**
-3. Click **Developer** in the left panel
-4. Click **Manage** next to **Access tokens**
-5. Click **Generate new token**, provide a description, and click **Generate**
-6. Copy the token value and set it as `databricks_token` in your `configuration.json`
+1. Navigate to your Databricks workspace.
+2. Click your username in the top-right corner and select **Settings**.
+3. Click **Developer** in the left panel.
+4. Select **Manage** next to **Access tokens**.
+5. Click **Generate new token**.
+6. Provide a description and click **Generate**.
+7. Copy the token value and set it as `databricks_token` in your `configuration.json.
 
-The PAT must have permissions to execute SQL statements on the specified SQL Warehouse. The `ai_query()` function is available on Databricks SQL Warehouses with Foundation Model APIs enabled.
+The PAT must have permissions to execute SQL statements on the specified SQL warehouse. The `ai_query()` function is available on Databricks SQL Warehouses with Foundation Model APIs enabled.
 
 ## Pagination
 
-The connector uses offset-based pagination with the OpenFDA API. Each sync fetches labels in batches controlled by the `batch_size` parameter (default: 5). The connector tracks progress via the `skip` parameter and checkpoints state after each batch so that interrupted syncs resume from the last completed batch rather than restarting.
+The connector uses offset-based pagination with the OpenFDA API. Each sync fetches labels in batches controlled by the `batch_size` parameter (default: `5`). The connector tracks progress via the `skip` parameter and checkpoints state after each batch so that interrupted syncs resume from the last completed batch rather than restarting.
 
 ## Data handling
 
 The `def update(configuration, state)` function orchestrates a three-phase sync pipeline:
 
 Phase 1 (MOVE):
-1. Validates configuration via `def validate_configuration(configuration)` including Databricks credential checks when enrichment or Genie Space creation is enabled
-2. Builds an incremental date filter from the saved `last_effective_time` state cursor
-3. Fetches drug labels page by page from the OpenFDA API via `def fetch_labels_page(session, skip, limit, effective_date_filter)`
+1. Validates configuration via `def validate_configuration(configuration)` including Databricks credential checks when enrichment or Genie Space creation is enabled.
+2. Builds an incremental date filter from the saved `last_effective_time` state cursor.
+3. Fetches drug labels page by page from the OpenFDA API via `def fetch_labels_page(session, skip, limit, effective_date_filter)`.
 
 Phase 2 (TRANSFORM):
-4. For each label, builds a normalized record via `def build_label_record(label, label_id)` extracting brand name, generic name, manufacturer, route, substance, and clinical section indicators
-5. If enrichment is enabled and within the enrichment budget, extracts clinical text sections via `def extract_label_text_sections(label)` and calls `ai_query()` via `def enrich_drug_label(session, configuration, sections)` for AI analysis
-6. Flattens any nested structures via `def flatten_dict(d, parent_key, sep)` and upserts to the destination table
-7. Checkpoints state after each batch with the latest effective time cursor
+1. For each label, builds a normalized record via `def build_label_record(label, label_id)` extracting brand name, generic name, manufacturer, route, substance, and clinical section indicators.
+2. If enrichment is enabled and within the enrichment budget, extracts clinical text sections via `def extract_label_text_sections(label)` and calls `ai_query()` via `def enrich_drug_label(session, configuration, sections)` for AI analysis.
+3. Flattens any nested structures via `def flatten_dict(d, parent_key, sep)` and upserts to the destination table.
+4. Checkpoints state after each batch with the latest effective time cursor.
 
 Phase 3 (AGENT):
-8. If Genie Space creation is enabled and data was synced, creates a Genie Space via `def create_genie_space(session, configuration, state)` with pharma-specific instructions and sample questions pointed at the destination table
+If Genie Space creation is enabled and data was synced, creates a Genie Space via `def create_genie_space(session, configuration, state)` with pharma-specific instructions and sample questions pointed at the destination table.
 
 ## Error handling
 
@@ -176,6 +178,6 @@ This is the first Databricks AI tutorial connector in the Fivetran SDK repositor
 
 The OpenFDA API is free and does not require authentication. Rate limits apply (240 requests per minute without an API key, higher with a key). The connector includes rate limiting delays between requests to stay within these limits.
 
-Databricks `ai_query()` consumes SQL Warehouse compute credits. Costs vary by model and token usage. Use the `max_enrichments` parameter to control costs during development and testing. Set `enable_enrichment` to `false` to test the data pipeline without incurring compute costs.
+Databricks `ai_query()` consumes SQL warehouse compute credits. Costs vary by model and token usage. Use the `max_enrichments` parameter to control costs during development and testing. Set `enable_enrichment` to `false` to test the data pipeline without incurring compute costs.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
