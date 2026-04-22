@@ -144,12 +144,8 @@ connector = Connector(update=update, schema=schema)
 # Note: This method is not called by Fivetran when executing your connector in production.
 # Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Test the connector locally
-    # Sync 1: full load — all 5 employees upserted, state saved.
-    connector.debug(state={})
-
-    # Sync 2: IDs 4 & 5 are gone from the source.
-    connector.debug(state={"sync_count": 1})
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug()
 
 # Tables created
 # After Sync 1 — employees table:
