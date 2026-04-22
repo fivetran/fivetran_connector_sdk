@@ -20,7 +20,6 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-
 # Dummy data representing the source data
 # Snapshot 1 : Initial full load with 5 employee records
 __SNAPSHOT_1 = [
