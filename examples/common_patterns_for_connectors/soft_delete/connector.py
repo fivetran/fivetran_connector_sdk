@@ -41,8 +41,11 @@ __SNAPSHOT_2 = [
 
 def schema(configuration: dict):
     """
-    Define the schema for the 'employees' table.
-    The primary key must be declared so Fivetran can track individual rows for soft-delete.
+    Define the schema function which lets you configure the schema your connector delivers.
+    See the technical reference documentation for more details on the schema function:
+    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    Args:
+       configuration: a dictionary that holds the configuration settings for the connector.
     """
     return [
         {
@@ -61,7 +64,9 @@ def fetch_snapshot(sync_count: int) -> list:
     """
     Return dummy source data for the given sync number
     Args:
-    sync_count: The current sync number, starting at 1 for the first sync.
+         sync_count: The current sync number, starting at 1 for the first sync.
+    Returns:
+         The employee snapshot for the requested sync number.
     """
     return __SNAPSHOT_1 if sync_count == 1 else __SNAPSHOT_2
 
@@ -86,7 +91,7 @@ def update(configuration: dict, state: dict):
              Rows absent from the snapshot remain soft-deleted.
     Step 3 — op.checkpoint(): persists state so the next sync knows its sequence number.
     """
-    log.warning(f"Example: Common patterns for connectors - Soft Delete")
+    log.warning("Example: Common patterns for connectors - Soft Delete")
 
     # Store the sync count in the state to determine which snapshot to fetch.
     # This is just for demonstration purposes
