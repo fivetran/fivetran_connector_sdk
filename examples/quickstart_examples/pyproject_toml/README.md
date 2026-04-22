@@ -46,10 +46,10 @@ The connector requires the following configuration parameters:
 }
 ```
 
-| Parameter | Description |
-|---|---|
-| `from_currency` | The base currency code (e.g., `USD`, `EUR`, `GBP`) |
-| `to_currency` | The target currency code (e.g., `INR`, `JPY`, `CAD`) |
+Configuration paramaters:
+
+- `from_currency` (required): The base currency code (e.g., `USD`, `EUR`, `GBP`) .
+- `to_currency` (required): The target currency code (e.g., `INR`, `JPY`, `CAD`) .
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -103,7 +103,7 @@ Not applicable - the connector fetches only the latest exchange rate in a single
 
 
 ## Tables created
-The connector creates an `exchange_rates` table:
+The connector creates the `EXCHANGE_RATES` table:
 
 ```json
 {
