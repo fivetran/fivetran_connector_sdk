@@ -1,0 +1,10 @@
+{
+    "max_stories": "50",
+    "batch_size": "10",
+    "enable_cortex": "true",
+    "snowflake_account": "<YOUR_SNOWFLAKE_ACCOUNT.snowflakecomputing.com>",
+    "snowflake_pat_token": "<YOUR_SNOWFLAKE_PAT>",
+    "cortex_model": "mistral-large2",
+    "cortex_timeout": "30",
+    "max_enrichments": "50"
+}
