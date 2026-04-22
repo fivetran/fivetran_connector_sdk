@@ -1,0 +1,25 @@
+examples/common_patterns_for_connectors/soft_delete/README.md
+  a3697a845ecf4cb7 92-105
+examples/common_patterns_for_connectors/soft_delete/connector.py
+  a3697a845ecf4cb7 148-151,153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "5eb1948b5cdfce1cb5635aa2f261bba597724158",
+  "prompts": {
+    "a3697a845ecf4cb7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74b70ca7-c027-4c25-93bd-ea0e8e55d127",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 1,
+      "accepted_lines": 19,
+      "overriden_lines": 0
+    }
+  }
+}
