@@ -145,7 +145,12 @@ connector = Connector(update=update, schema=schema)
 # Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug()
+    try:
+        with open("files/state.json", "r") as f:
+            state = json.load(f)
+    except FileNotFoundError:
+        state = {}
+    connector.debug(state=state)
 
 # Tables created
 # After Sync 1 — employees table:

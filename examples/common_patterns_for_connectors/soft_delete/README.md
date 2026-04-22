@@ -89,6 +89,20 @@ After sync 2 — IDs 4 and 5 soft-deleted:
 | 5 | Edward | Finance | true |
 
 
+## Testing the truncate effect
+
+To observe the soft delete behavior across two syncs, run the connector twice:
+
+```bash
+fivetran debug   # Sync 1 — loads all 5 employees, writes state to files/state.json
+fivetran debug   # Sync 2 — reads saved state, runs op.truncate(), soft-deletes IDs 4 and 5
+```
+
+After the first run, all 5 rows appear with `_fivetran_deleted = false`. After the second run, IDs 4 and 5 are marked `_fivetran_deleted = true` because they are absent from the second snapshot.
+
+If running directly from your IDE via `connector.debug()`, the same applies — run the script twice. The connector reads state from `files/state.json` automatically on the second run.
+
+
 ## Additional considerations
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
