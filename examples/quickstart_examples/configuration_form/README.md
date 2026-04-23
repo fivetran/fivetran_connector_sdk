@@ -20,11 +20,23 @@ Refer to `def configuration_form()` and `def connection_test()` in `connector.py
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
-To run the connector locally:
+1. Run the `fivetran configuration` command to interactively provide values for each form field. This generates (or overrides) a `configuration.json` file in the project directory.
 
-```bash
-fivetran debug --configuration configuration.json
-```
+   ```bash
+   fivetran configuration
+   ```
+
+2. Optionally, run setup tests to validate your inputs without running a full sync.
+
+   ```bash
+   fivetran configuration --test
+   ```
+
+3. Run the connector locally using the generated `configuration.json`.
+
+   ```bash
+   fivetran debug --configuration configuration.json
+   ```
 
 ## Features
 
