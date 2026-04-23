@@ -1,0 +1,7 @@
+{
+  "api_base_url": "https://jsonplaceholder.typicode.com",
+  "api_key": "demo_key",
+  "batch_size": "10",
+  "enable_metrics": "true",
+  "sync_mode": "incremental"
+}
