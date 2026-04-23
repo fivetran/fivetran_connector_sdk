@@ -24,9 +24,12 @@ from fivetran_connector_sdk import form_field
 # For returning success/failure responses from setup test functions
 from fivetran_connector_sdk import Test
 
+# For reading configuration from the local configuration.json file during debug runs
 import json
 import os
+import re
 
+# For making HTTP requests to the example API in the connection test and sync logic
 import requests
 
 
@@ -71,6 +74,7 @@ def configuration_form():
             label="Batch Size",
             description="Number of records to fetch per API request.",
             values=[10, 100, 500],
+            required=True,
         )
     )
 
@@ -124,6 +128,8 @@ def connection_test(configuration: dict):
 
     if not api_base_url:
         return test.failure("api_base_url is required.")
+    if not re.match(r"^https?://", api_base_url):
+        return test.failure("api_base_url must start with http:// or https://.")
     if not api_key:
         return test.failure("api_key is required.")
 
@@ -151,7 +157,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -169,9 +175,9 @@ def update(configuration: dict, state: dict):
     See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-        state: a dictionary that holds the state of the connector.
-              The state dictionary is empty for the first sync or for any full re-sync.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: QuickStart Examples - Configuration Form")
 
@@ -207,10 +213,12 @@ def update(configuration: dict, state: dict):
         total_records += len(posts)
         cursor += len(posts)
 
-        # Save the progress by checkpointing the state. This is important for ensuring that the sync
-        # process can resume from the correct position in case of next sync or interruptions.
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
         # Learn more about how and where to checkpoint by reading our best practices documentation
-        # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint({"cursor": cursor})
 
         if len(posts) < batch_size:
