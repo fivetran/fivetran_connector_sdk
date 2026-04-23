@@ -5,10 +5,6 @@
 # See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 
-import json
-
-import requests
-
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
@@ -27,6 +23,11 @@ from fivetran_connector_sdk import form_field
 
 # For returning success/failure responses from setup test functions
 from fivetran_connector_sdk import Test
+
+import json
+import os
+
+import requests
 
 
 def configuration_form():
@@ -162,19 +163,6 @@ def schema(configuration: dict):
     ]
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
-    """
-    for key in ("api_base_url", "api_key"):
-        if not configuration.get(key):
-            raise ValueError(f"Missing required configuration value: '{key}'")
-
-
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
@@ -187,19 +175,15 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: QuickStart Examples - Configuration Form")
 
-    validate_configuration(configuration)
-
-    api_base_url = configuration["api_base_url"].rstrip("/")
-    api_key = configuration["api_key"]
+    api_base_url = configuration.get("api_base_url", "").rstrip("/")
+    api_key = configuration.get("api_key", "")
     batch_size = int(configuration.get("batch_size", 100))
-    enable_metrics = str(configuration.get("enable_metrics", "false")).lower() == "true"
+    is_metrics_enabled = str(configuration.get("enable_metrics", "false")).lower() == "true"
     sync_mode = configuration.get("sync_mode", "full")
 
-    # In incremental mode, resume from where the last sync left off
     cursor = state.get("cursor", 0) if sync_mode == "incremental" else 0
 
     total_records = 0
-    total_bytes = 0
 
     while True:
         response = requests.get(
@@ -215,25 +199,25 @@ def update(configuration: dict, state: dict):
             break
 
         for post in posts:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
             op.upsert(table="post", data=post)
-            if enable_metrics:
-                total_bytes += len(json.dumps(post).encode("utf-8"))
 
         total_records += len(posts)
         cursor += len(posts)
 
         # Save the progress by checkpointing the state. This is important for ensuring that the sync
-        # process can resume from the correct position in case of the next sync or interruptions.
+        # process can resume from the correct position in case of next sync or interruptions.
         # Learn more about how and where to checkpoint by reading our best practices documentation
         # (https://fivetran.com/docs/connectors/connector-sdk/best-practices#largedatasetrecommendation).
         op.checkpoint({"cursor": cursor})
 
-        # JSONPlaceholder returns all results when the offset exceeds total; stop when partial page received
         if len(posts) < batch_size:
             break
 
-    if enable_metrics:
-        log.info(f"Sync complete: {total_records} records, {total_bytes} bytes extracted")
+    if is_metrics_enabled:
+        log.info(f"Sync complete: {total_records} records extracted")
 
 
 # This creates the connector object that will use the update, schema, and configuration_form
@@ -246,17 +230,8 @@ connector = Connector(update=update, schema=schema, configuration_form=configura
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
     # Open the configuration.json file and load its contents into a dictionary.
-    with open("configuration.json", "r") as f:
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configuration.json")
+    with open(config_path, "r") as f:
         configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
-
-# Resulting table:
-# ┌─────┬────────┬───────────────────────┬──────────────────────────────────┐
-# │ id  │ userId │         title         │               body               │
-# │ int │  int   │        varchar        │             varchar              │
-# ├─────┼────────┼───────────────────────┼──────────────────────────────────┤
-# │  1  │   1    │ sunt aut facere ...   │ quia et suscipit suscipit ...    │
-# │  2  │   1    │ qui est esse          │ est rerum tempore vitae ...      │
-# │ ... │  ...   │          ...          │               ...                │
-# └─────┴────────┴───────────────────────┴──────────────────────────────────┘
