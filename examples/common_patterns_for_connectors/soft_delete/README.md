@@ -1,4 +1,4 @@
-# Soft delete example
+# Soft Delete Implementation Example
 
 ## Connector overview
 
@@ -89,7 +89,7 @@ After sync 2 — IDs 4 and 5 soft-deleted:
 | 5 | Edward | Finance | true |
 
 
-## Testing the truncate effect
+## Testing soft delete behavior
 
 To observe the soft delete behavior across two syncs, run the connector twice:
 
