@@ -108,7 +108,7 @@ def configuration_form():
     )
 
     # Register a setup test — Fivetran calls connection_test() when the user clicks "Test Connection"
-    config_form.add_test(connection_test, label="Test connection")
+    config_form.add_test(label="Test connection", func=connection_test)
 
     return config_form
 
