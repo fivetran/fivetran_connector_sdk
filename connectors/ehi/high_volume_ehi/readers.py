@@ -36,6 +36,11 @@ _DATETIME_TYPES = (datetime, date, _time)
 # lexicographic order, so > comparisons would produce an unreliable keyset cursor.
 _TIEBREAK_ELIGIBLE_STR_TYPES = frozenset({"varchar", "nvarchar", "char", "nchar", "text", "ntext"})
 
+# SQL Server types with sub-microsecond precision (7 decimal places). Python datetime
+# only holds microseconds (6 places), so pyodbc truncates the 7th digit. KeysetReader
+# selects these columns as strings to preserve all 7 digits for cursor tracking.
+_DATETIME2_SQL_TYPES = frozenset({"datetime2", "datetimeoffset"})
+
 
 def convert_value(value, python_type):
     """
@@ -159,6 +164,22 @@ class KeysetReader:
         tb_pk = self._tiebreak_pk
         fetch = f"OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY OPTION (FAST {self._batch_size})"
 
+        # DATETIME2(7) and DATETIMEOFFSET(7) store 100-nanosecond precision (7 decimal places).
+        # Python datetime only holds microseconds (6 decimal places), so pyodbc truncates the
+        # 7th digit. The truncated cursor is always slightly less than the actual row value,
+        # causing the same row to satisfy > cursor on every page — an infinite loop.
+        # Fix: select the replication key as a SQL Server string (style 127 = ISO 8601 with all
+        # 7 digits) and use that string directly as the cursor. zip(sel_cols, row) stops at
+        # len(sel_cols) so the extra column is never included in the upserted record.
+        repl_col_type = self._schema.replication_key.sql_type.lower()
+        _needs_str_cursor = repl_col_type in _DATETIME2_SQL_TYPES
+        if _needs_str_cursor:
+            col_sql_select = col_sql + f", CONVERT(NVARCHAR(50), [{repl_col}], 127)"
+            _repl_str_idx = len(sel_cols)
+        else:
+            col_sql_select = col_sql
+            _repl_str_idx = None
+
         # Fail fast if the replication key column is absent from selectable_columns (e.g. it is
         # a computed column excluded from SELECT). Defaulting to index 0 would silently corrupt
         # cursor tracking by advancing state from the wrong column.
@@ -183,28 +204,28 @@ class KeysetReader:
         # SQL NULL comparisons always evaluate to UNKNOWN/FALSE, so no explicit IS NOT NULL needed.
         if tb_pk:
             sql_start = (
-                f"SELECT {col_sql} FROM {tbl} WITH (NOLOCK) "
+                f"SELECT {col_sql_select} FROM {tbl} WITH (NOLOCK) "
                 f"WHERE [{repl_col}] IS NOT NULL "
                 f"ORDER BY [{repl_col}], [{tb_pk}] {fetch}"
             )
             sql_from = (
-                f"SELECT {col_sql} FROM {tbl} WITH (NOLOCK) "
+                f"SELECT {col_sql_select} FROM {tbl} WITH (NOLOCK) "
                 f"WHERE [{repl_col}] > ? "
                 f"ORDER BY [{repl_col}], [{tb_pk}] {fetch}"
             )
             sql_composite = (
-                f"SELECT {col_sql} FROM {tbl} WITH (NOLOCK) "
+                f"SELECT {col_sql_select} FROM {tbl} WITH (NOLOCK) "
                 f"WHERE ([{repl_col}] > ?) OR ([{repl_col}] = ? AND [{tb_pk}] > ?) "
                 f"ORDER BY [{repl_col}], [{tb_pk}] {fetch}"
             )
         else:
             sql_start = (
-                f"SELECT {col_sql} FROM {tbl} WITH (NOLOCK) "
+                f"SELECT {col_sql_select} FROM {tbl} WITH (NOLOCK) "
                 f"WHERE [{repl_col}] IS NOT NULL "
                 f"ORDER BY [{repl_col}] {fetch}"
             )
             sql_from = (
-                f"SELECT {col_sql} FROM {tbl} WITH (NOLOCK) "
+                f"SELECT {col_sql_select} FROM {tbl} WITH (NOLOCK) "
                 f"WHERE [{repl_col}] > ? "
                 f"ORDER BY [{repl_col}] {fetch}"
             )
@@ -273,9 +294,13 @@ class KeysetReader:
                 }
                 batch.append(record)
                 # Advance replication-key cursor from the raw row (guaranteed non-NULL by WHERE).
-                # str(raw) fallback ensures the cursor always moves forward.
-                rk = convert_value(row[repl_idx], sel_cols[repl_idx].python_type)
-                last_rk = rk if rk is not None else str(row[repl_idx])
+                # For DATETIME2/DATETIMEOFFSET use the pre-selected full-precision string to
+                # avoid the 7th-decimal-digit truncation that causes an infinite loop.
+                if _needs_str_cursor:
+                    last_rk = row[_repl_str_idx]
+                else:
+                    rk = convert_value(row[repl_idx], sel_cols[repl_idx].python_type)
+                    last_rk = rk if rk is not None else str(row[repl_idx])
                 # Advance PK cursor when tiebreaking is active.
                 if tb_pk and pk_idx is not None:
                     pk = convert_value(row[pk_idx], sel_cols[pk_idx].python_type)

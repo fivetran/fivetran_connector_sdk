@@ -88,7 +88,7 @@ def _parse_table_list() -> tuple:
                            both to explicit lists and to discovered tables)
     """
     excluded_names = (
-        frozenset(
+        frozenset(  # Use frozenset for O(1) lookups and immutability since this is a global constant
             name.strip().lower()
             for name in DEFAULT_TABLE_EXCLUSION_LIST.split(",")
             if name.strip()
