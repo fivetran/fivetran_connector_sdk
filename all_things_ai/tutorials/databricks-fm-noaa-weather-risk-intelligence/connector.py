@@ -852,7 +852,12 @@ def run_discovery_phase(
         state: State dict for checkpointing
 
     Returns:
-        Set of all states analyzed (seed + discovered)
+        Tuple of (set of all states analyzed, ai_query call count).
+        The call count is the number of ai_query() calls made during
+        discovery and is threaded into run_debate_phase() so that
+        max_enrichments enforces a single combined budget across both
+        phases (contract: max_enrichments = total ai_query() calls for
+        discovery + debate combined).
     """
     max_enrichments = _optional_int(
         configuration,
@@ -980,15 +985,15 @@ def run_discovery_phase(
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state=state)
 
-    return all_states
+    return all_states, enrichment_count
 
 
 def run_debate_phase(
     session,
     configuration,
     events,
-    event_records,
     state,
+    starting_enrichment_count=0,
 ):
     """
     Run Multi-Agent Debate: Emergency vs Planning analysts
@@ -998,21 +1003,29 @@ def run_debate_phase(
         session: requests.Session
         configuration: Configuration dictionary
         events: List of event records to debate
-        event_records: Dict mapping event_id to records
         state: State dict for checkpointing
+        starting_enrichment_count: ai_query() call count carried in
+            from run_discovery_phase() so max_enrichments enforces a
+            single combined budget across both phases.
 
     Returns:
-        Tuple of (debate_count, disagreement_count)
+        Tuple of (total_enrichment_count, disagreement_count,
+        events_debated). total_enrichment_count is the cumulative
+        ai_query() call count including discovery.
     """
     max_enrichments = _optional_int(
         configuration,
         "max_enrichments",
         __DEFAULT_MAX_ENRICHMENTS,
     )
-    enrichment_count = 0
+    enrichment_count = starting_enrichment_count
     disagreement_count = 0
+    events_debated = 0
 
-    # Filter to significant events for debate
+    # Filter to significant events for debate. Cap candidate list at
+    # the best-case number of events that could fit in the remaining
+    # budget (2 calls per event minimum: emergency + planning). The
+    # per-call budget checks below are the tight enforcement.
     severity_filter = _optional_str(
         configuration,
         "severity_filter",
@@ -1020,16 +1033,22 @@ def run_debate_phase(
     )
     severity_levels = [s.strip() for s in severity_filter.split(",")]
 
-    debate_events = [e for e in events if e.get("severity") in severity_levels][:max_enrichments]
+    remaining_budget = max(0, max_enrichments - enrichment_count)
+    max_candidate_events = remaining_budget // 2
+    debate_events = [e for e in events if e.get("severity") in severity_levels][
+        :max_candidate_events
+    ]
 
     log.info(
         f"Starting debate for {len(debate_events)} "
-        f"significant events (3 ai_query() calls each)"
+        f"significant events (up to 3 ai_query() calls each, "
+        f"remaining budget: {remaining_budget})"
     )
 
     for event in debate_events:
-        if enrichment_count >= max_enrichments:
-            log.info("Enrichment budget exhausted")
+        # Need at least 2 calls to meaningfully debate an event.
+        if enrichment_count + 2 > max_enrichments:
+            log.info("Enrichment budget exhausted — cannot fit both " "analysts for next event")
             break
 
         event_id = event.get("event_id")
@@ -1040,6 +1059,7 @@ def run_debate_phase(
             configuration,
             build_emergency_prompt(event),
         )
+        enrichment_count += 1
         emergency_result = extract_json_from_content(emergency_content)
         upsert_assessment(
             "emergency_assessments",
@@ -1054,6 +1074,7 @@ def run_debate_phase(
             configuration,
             build_planning_prompt(event),
         )
+        enrichment_count += 1
         planning_result = extract_json_from_content(planning_content)
         upsert_assessment(
             "planning_assessments",
@@ -1062,31 +1083,38 @@ def run_debate_phase(
             "planning",
         )
 
-        # Agent 3: Consensus
+        # Agent 3: Consensus (only if both analysts succeeded AND
+        # budget allows one more call).
         if emergency_result and planning_result:
-            consensus_content = call_ai_query(
-                session,
-                configuration,
-                build_consensus_prompt(
-                    event,
-                    emergency_result,
-                    planning_result,
-                ),
-            )
-            consensus_result = extract_json_from_content(consensus_content)
-            upsert_assessment(
-                "debate_consensus",
-                event_id,
-                consensus_result,
-                "consensus",
-            )
+            if enrichment_count >= max_enrichments:
+                log.warning(
+                    f"Skipping consensus for {event_id}: " f"budget exhausted after planning call"
+                )
+            else:
+                consensus_content = call_ai_query(
+                    session,
+                    configuration,
+                    build_consensus_prompt(
+                        event,
+                        emergency_result,
+                        planning_result,
+                    ),
+                )
+                enrichment_count += 1
+                consensus_result = extract_json_from_content(consensus_content)
+                upsert_assessment(
+                    "debate_consensus",
+                    event_id,
+                    consensus_result,
+                    "consensus",
+                )
 
-            if consensus_result and consensus_result.get("disagreement_flag"):
-                disagreement_count += 1
+                if consensus_result and consensus_result.get("disagreement_flag"):
+                    disagreement_count += 1
         else:
             log.warning(f"Skipping consensus for {event_id}: " f"missing analyst assessment")
 
-        enrichment_count += 1
+        events_debated += 1
 
         # Save the progress by checkpointing the state.
         # This is important for ensuring that the sync
@@ -1102,7 +1130,7 @@ def run_debate_phase(
         # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state=state)
 
-    return enrichment_count, disagreement_count
+    return enrichment_count, disagreement_count, events_debated
 
 
 def create_genie_space(session, configuration, state):
@@ -1313,9 +1341,10 @@ def update(configuration: dict, state: dict):
         op.checkpoint(state=state)
 
         # --- Phase 2: DISCOVERY ---
+        discovery_enrichment_count = 0
         if is_enrichment and is_discovery:
             log.info("Phase 2 (DISCOVERY): Agent-Driven " "Discovery of related regions")
-            all_states = run_discovery_phase(
+            all_states, discovery_enrichment_count = run_discovery_phase(
                 session,
                 configuration,
                 seed_states,
@@ -1323,27 +1352,31 @@ def update(configuration: dict, state: dict):
                 event_records_by_state,
                 state,
             )
-            log.info(f"Discovery complete: " f"{len(all_states)} total states " f"analyzed")
+            log.info(
+                f"Discovery complete: "
+                f"{len(all_states)} total states analyzed "
+                f"({discovery_enrichment_count} ai_query() calls)"
+            )
 
         # --- Phase 3: DEBATE ---
         if is_enrichment:
             log.info("Phase 3 (DEBATE): Multi-Agent Debate " "on significant events")
 
-            event_records = {e["event_id"]: e for e in all_events}
-
-            debate_count, disagreement_count = run_debate_phase(
+            total_enrichment_count, disagreement_count, events_debated = run_debate_phase(
                 session,
                 configuration,
                 all_events,
-                event_records,
                 state,
+                starting_enrichment_count=discovery_enrichment_count,
             )
 
             log.info(
-                f"Debate complete: {debate_count} events "
-                f"debated, {disagreement_count} with "
+                f"Debate complete: {events_debated} events debated "
+                f"({total_enrichment_count - discovery_enrichment_count} "
+                f"ai_query() calls), {disagreement_count} with "
                 f"disagreement flags"
             )
+            log.info(f"Total ai_query() calls this sync: " f"{total_enrichment_count}")
         else:
             log.info("Enrichment disabled, skipping discovery " "and debate.")
 
