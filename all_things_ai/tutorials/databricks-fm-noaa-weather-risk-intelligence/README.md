@@ -162,6 +162,9 @@ The `WEATHER_EVENTS` table consists of the following columns:
 - `sent` (STRING): Time the alert was issued
 - `effective` (STRING): Time the alert became effective
 - `sender_name` (STRING): Name of the issuing NWS office
+- `status` (STRING): NOAA alert status (Actual, Exercise, System, Test, Draft)
+- `message_type` (STRING): Alert message type (Alert, Update, Cancel, Ack, Error)
+- `category` (STRING): NOAA category code (Met, Geo, Safety, Security, Rescue, Fire, Health, Env, Transport, Infra, CBRNE, Other)
 - `source` (STRING): Whether this event was from a "seed" state or "discovered" by the AI
 
 ### DISCOVERY_INSIGHTS
