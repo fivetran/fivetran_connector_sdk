@@ -129,16 +129,23 @@ class TestDiscoveryRegionsCeiling:
 
 
 class TestDatabricksTimeoutValidation:
-    """databricks_timeout is not validated (fix #5). XFAILs until fixed."""
+    """databricks_timeout must be a positive integer (fix #570-5)."""
 
-    @pytest.mark.xfail(reason="Fix #570-5: databricks_timeout not validated")
     def test_databricks_timeout_negative_rejected(self, base_config):
         base_config["databricks_timeout"] = "-30"
         with pytest.raises(ValueError, match="positive integer"):
             connector.validate_configuration(base_config)
 
-    @pytest.mark.xfail(reason="Fix #570-5: databricks_timeout not validated")
     def test_databricks_timeout_zero_rejected(self, base_config):
         base_config["databricks_timeout"] = "0"
         with pytest.raises(ValueError, match="positive integer"):
             connector.validate_configuration(base_config)
+
+    def test_databricks_timeout_non_numeric_rejected(self, base_config):
+        base_config["databricks_timeout"] = "soon"
+        with pytest.raises(ValueError, match="positive integer"):
+            connector.validate_configuration(base_config)
+
+    def test_databricks_timeout_valid_value_accepted(self, base_config):
+        base_config["databricks_timeout"] = "60"
+        connector.validate_configuration(base_config)  # should not raise
