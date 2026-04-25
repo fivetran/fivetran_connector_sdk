@@ -241,7 +241,12 @@ def validate_configuration(configuration: dict):
             missing or invalid.
     """
     # Validate numeric parameters
-    for param in ["max_events", "max_enrichments", "max_discovery_regions"]:
+    for param in [
+        "max_events",
+        "max_enrichments",
+        "max_discovery_regions",
+        "databricks_timeout",
+    ]:
         value = configuration.get(param)
         if value is not None and not _is_placeholder(value):
             try:
