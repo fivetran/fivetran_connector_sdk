@@ -88,15 +88,10 @@ class TestDataOnlyMode:
         base_config["databricks_warehouse_id"] = "<WAREHOUSE>"
         connector.validate_configuration(base_config)
 
-    @pytest.mark.xfail(
-        reason="Fix #570-6: enable_enrichment=false should short-circuit "
-        "discovery cred check, but current code checks is_discovery flag "
-        "independently"
-    )
     def test_enrichment_off_with_discovery_on_no_creds_needed(self, base_config):
-        """Bug: enable_enrichment=false but enable_discovery=true (or
-        defaulted) forces Databricks creds even though discovery can't run
-        without enrichment."""
+        """Discovery runs only when enable_enrichment=true; flipping
+        enable_enrichment to false should release the credential gate
+        regardless of enable_discovery's value (fix #570-6)."""
         base_config["enable_enrichment"] = "false"
         base_config["enable_discovery"] = "true"  # irrelevant when enrichment off
         base_config["enable_genie_space"] = "false"
@@ -104,6 +99,29 @@ class TestDataOnlyMode:
         base_config["databricks_token"] = "<TOKEN>"
         base_config["databricks_warehouse_id"] = "<WAREHOUSE>"
         connector.validate_configuration(base_config)  # should NOT raise
+
+    def test_enrichment_off_with_discovery_defaulted_no_creds_needed(self, base_config):
+        """The same flow with enable_discovery left unset (defaults to true)
+        — most common form of the bug because new users typically only
+        toggle enable_enrichment."""
+        base_config["enable_enrichment"] = "false"
+        base_config.pop("enable_discovery", None)  # use default (true)
+        base_config["enable_genie_space"] = "false"
+        base_config["databricks_workspace_url"] = "<WORKSPACE_URL>"
+        base_config["databricks_token"] = "<TOKEN>"
+        base_config["databricks_warehouse_id"] = "<WAREHOUSE>"
+        connector.validate_configuration(base_config)  # should NOT raise
+
+    def test_genie_on_still_requires_creds(self, base_config):
+        """enable_genie_space=true must still require Databricks creds even
+        if enrichment is off — Genie Space creation hits the Databricks API
+        directly and is independent of the enrichment phase."""
+        base_config["enable_enrichment"] = "false"
+        base_config["enable_genie_space"] = "true"
+        base_config["genie_table_identifier"] = "catalog.schema.weather_events"
+        base_config["databricks_token"] = "<TOKEN>"
+        with pytest.raises(ValueError, match="databricks_token"):
+            connector.validate_configuration(base_config)
 
 
 class TestDiscoveryRegionsCeiling:

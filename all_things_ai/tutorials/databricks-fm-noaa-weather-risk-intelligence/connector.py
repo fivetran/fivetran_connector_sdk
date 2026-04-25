@@ -283,12 +283,16 @@ def validate_configuration(configuration: dict):
             f"ceiling of {__MAX_DISCOVERY_REGIONS_CEILING}."
         )
 
-    # Validate Databricks credentials
+    # Validate Databricks credentials.
+    # Discovery is a phase inside enrichment — it cannot run when
+    # enable_enrichment=false regardless of its own flag, so the credential
+    # gate keys off enrichment + genie only. This preserves "data-only mode"
+    # (enable_enrichment=false) without forcing users to also explicitly
+    # disable discovery.
     is_enrichment = _parse_bool(configuration.get("enable_enrichment"), default=True)
-    is_discovery = _parse_bool(configuration.get("enable_discovery"), default=True)
     is_genie = _parse_bool(configuration.get("enable_genie_space"), default=False)
 
-    if is_enrichment or is_discovery or is_genie:
+    if is_enrichment or is_genie:
         for key in [
             "databricks_workspace_url",
             "databricks_token",
