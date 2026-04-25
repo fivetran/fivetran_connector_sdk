@@ -80,7 +80,6 @@ __DEFAULT_SEVERITY_FILTER = "Severe,Extreme"
 # Databricks SQL Statement API
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
-__DATABRICKS_RATE_LIMIT_DELAY = 0.5
 
 # Genie Space API
 __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
@@ -109,24 +108,6 @@ __GENIE_SPACE_SAMPLE_QUESTIONS = [
     "List events where the debate winner was the emergency analyst",
     "What weather event types have the highest consensus risk scores?",
 ]
-
-# US state adjacency for discovery validation
-__STATE_ADJACENCY = {
-    "TX": ["OK", "AR", "LA", "NM"],
-    "OK": ["TX", "KS", "AR", "MO", "CO", "NM"],
-    "KS": ["OK", "NE", "MO", "CO"],
-    "FL": ["GA", "AL"],
-    "CA": ["OR", "NV", "AZ"],
-    "LA": ["TX", "AR", "MS"],
-    "AR": ["TX", "OK", "MO", "TN", "MS", "LA"],
-    "MO": ["OK", "KS", "AR", "TN", "KY", "IL", "IA", "NE"],
-    "AL": ["FL", "GA", "TN", "MS"],
-    "GA": ["FL", "AL", "TN", "NC", "SC"],
-    "MS": ["LA", "AR", "TN", "AL"],
-    "NE": ["KS", "MO", "IA", "SD", "WY", "CO"],
-    "CO": ["OK", "KS", "NE", "WY", "UT", "NM"],
-    "NM": ["TX", "OK", "CO", "AZ", "UT"],
-}
 
 
 def flatten_dict(d, parent_key="", sep="_"):

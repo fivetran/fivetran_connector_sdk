@@ -18,6 +18,26 @@ python3 -m flake8 connector.py
 echo "=== 2/6 black --check (formatting, line-length=$LINE_LEN) ==="
 python3 -m black --check --line-length=$LINE_LEN connector.py
 
+echo "=== 3a/6 dead module-level constants ==="
+# Module-level constants prefixed with `__` (the convention in this repo for
+# private constants) must be referenced at least once outside their definition.
+# Catches the class of issue raised on PR #570 where __STATE_ADJACENCY was
+# defined but never used.
+DEAD_CONSTS=""
+while IFS= read -r const; do
+    [ -z "$const" ] && continue
+    # Count occurrences. If only 1, it's the definition (dead).
+    occurrences=$(grep -cE "\b${const}\b" connector.py)
+    if [ "$occurrences" -le 1 ]; then
+        DEAD_CONSTS="$DEAD_CONSTS\n  - $const"
+    fi
+done < <(grep -oE '^__[A-Z][A-Z0-9_]+\s*=' connector.py | tr -d '= ')
+if [ -n "$DEAD_CONSTS" ]; then
+    echo -e "ERROR: dead module-level constants (defined but never referenced):$DEAD_CONSTS"
+    exit 1
+fi
+echo "clean"
+
 echo "=== 3/6 PII scan (emails in source, embedded tokens) ==="
 # Flag any email address in connector.py except role-based addresses
 # (developers@, noreply@, hello@, support@, api@, admin@, security@).
