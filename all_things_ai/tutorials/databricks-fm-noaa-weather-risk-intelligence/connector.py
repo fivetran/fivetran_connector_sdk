@@ -483,8 +483,18 @@ def call_ai_query(session, configuration, prompt):
         result = response.json()
         sql_state = result.get("status", {}).get("state", "")
 
-        # Poll for PENDING/RUNNING
+        # Poll for PENDING/RUNNING. Guard against a missing statement_id —
+        # without it, the poll URL would become `.../None` and produce a
+        # confusing HTTP error. Treat as an unrecoverable response.
         statement_id = result.get("statement_id")
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                "ai_query() returned state="
+                f"{sql_state} without a statement_id; cannot poll. "
+                "Returning None."
+            )
+            return None
+
         poll_count = 0
         max_polls = 12
         poll_interval = 10
