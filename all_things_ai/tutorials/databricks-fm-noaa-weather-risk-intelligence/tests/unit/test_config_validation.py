@@ -107,15 +107,24 @@ class TestDataOnlyMode:
 
 
 class TestDiscoveryRegionsCeiling:
-    """max_discovery_regions has a ceiling constant but it is not enforced
-    (fix #4). This test currently XFAILs until the fix is applied."""
+    """max_discovery_regions has a ceiling constant; validate_configuration
+    enforces it as a positive int and against the ceiling (fix #570-4)."""
 
-    @pytest.mark.xfail(reason="Fix #570-4: __MAX_DISCOVERY_REGIONS_CEILING not enforced")
     def test_max_discovery_regions_ceiling_enforced(self, base_config):
         base_config["max_discovery_regions"] = str(
             getattr(connector, "__MAX_DISCOVERY_REGIONS_CEILING") + 1
         )
         with pytest.raises(ValueError, match="exceeds"):
+            connector.validate_configuration(base_config)
+
+    def test_max_discovery_regions_negative_rejected(self, base_config):
+        base_config["max_discovery_regions"] = "-1"
+        with pytest.raises(ValueError, match="positive integer"):
+            connector.validate_configuration(base_config)
+
+    def test_max_discovery_regions_non_numeric_rejected(self, base_config):
+        base_config["max_discovery_regions"] = "lots"
+        with pytest.raises(ValueError, match="positive integer"):
             connector.validate_configuration(base_config)
 
 

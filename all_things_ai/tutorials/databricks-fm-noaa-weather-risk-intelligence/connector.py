@@ -241,7 +241,7 @@ def validate_configuration(configuration: dict):
             missing or invalid.
     """
     # Validate numeric parameters
-    for param in ["max_events", "max_enrichments"]:
+    for param in ["max_events", "max_enrichments", "max_discovery_regions"]:
         value = configuration.get(param)
         if value is not None and not _is_placeholder(value):
             try:
@@ -265,6 +265,17 @@ def validate_configuration(configuration: dict):
         raise ValueError(
             f"max_enrichments={max_enrichments} exceeds "
             f"ceiling of {__MAX_ENRICHMENTS_CEILING}."
+        )
+
+    max_discovery_regions = _optional_int(
+        configuration,
+        "max_discovery_regions",
+        __DEFAULT_MAX_DISCOVERY_REGIONS,
+    )
+    if max_discovery_regions > __MAX_DISCOVERY_REGIONS_CEILING:
+        raise ValueError(
+            f"max_discovery_regions={max_discovery_regions} exceeds "
+            f"ceiling of {__MAX_DISCOVERY_REGIONS_CEILING}."
         )
 
     # Validate Databricks credentials
