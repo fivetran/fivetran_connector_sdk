@@ -12,13 +12,13 @@ cd "$(dirname "$0")/.."
 # Line length matches repo's .flake8 (max-line-length=99) and .github/git_hooks/pre-commit (black --line-length=99).
 LINE_LEN=99
 
-echo "=== 1/5 flake8 (code quality) ==="
+echo "=== 1/6 flake8 (code quality) ==="
 python3 -m flake8 connector.py
 
-echo "=== 2/5 black --check (formatting, line-length=$LINE_LEN) ==="
+echo "=== 2/6 black --check (formatting, line-length=$LINE_LEN) ==="
 python3 -m black --check --line-length=$LINE_LEN connector.py
 
-echo "=== 3/5 PII scan (emails in source, embedded tokens) ==="
+echo "=== 3/6 PII scan (emails in source, embedded tokens) ==="
 # Flag any email address in connector.py except role-based addresses
 # (developers@, noreply@, hello@, support@, api@, admin@, security@).
 FLAGGED_EMAILS=$(grep -En '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' connector.py \
@@ -35,10 +35,10 @@ if grep -En 'dapi[a-f0-9]{20,}|Bearer\s+[A-Za-z0-9_-]{30,}' connector.py ; then
 fi
 echo "clean"
 
-echo "=== 4/5 pytest (unit + integration) ==="
+echo "=== 4/6 pytest (unit + integration) ==="
 python3 -m pytest tests/ -v --tb=short
 
-echo "=== 5/5 README/config drift check ==="
+echo "=== 5/6 README/config drift check ==="
 if [ -f configuration.json ]; then
     python3 - <<'PY'
 import json
@@ -56,6 +56,36 @@ if missing:
     raise SystemExit(1)
 print(f"All {len(cfg)} configuration keys documented in README.")
 PY
+fi
+
+echo "=== 6/6 root README link integrity ==="
+# Catch the case where the root README links to a tutorial dir that doesn't
+# exist on this branch (would create a broken link in published docs once
+# this branch lands). Resolve any github.com/.../tree/main/all_things_ai/tutorials/X
+# link to a local path and verify it exists.
+ROOT_README="$(git rev-parse --show-toplevel)/README.md"
+if [ -f "$ROOT_README" ]; then
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    BROKEN=""
+    # Capture full URL paths (including subdirs); filter out file links by extension.
+    while IFS= read -r path; do
+        [ -z "$path" ] && continue
+        # Only check if the link points to what should be a directory (no file extension on last segment).
+        last_segment="${path##*/}"
+        case "$last_segment" in
+            *.md|*.py|*.json|*.txt|*.yaml|*.yml|*.sh) continue ;;
+        esac
+        if [ ! -d "$REPO_ROOT/$path" ] && [ ! -f "$REPO_ROOT/$path" ]; then
+            BROKEN="$BROKEN\n  - $path"
+        fi
+    done < <(grep -oE 'tree/main/all_things_ai/tutorials/[a-zA-Z0-9_./-]+' "$ROOT_README" \
+                | sed 's|tree/main/||' | sort -u)
+    if [ -n "$BROKEN" ]; then
+        echo -e "ERROR: root README links to tutorial dirs missing on this branch:$BROKEN"
+        echo "Each PR should add only its own connector link; siblings add their own when they merge."
+        exit 1
+    fi
+    echo "All tutorial links resolve to dirs present in this branch."
 fi
 
 echo ""
