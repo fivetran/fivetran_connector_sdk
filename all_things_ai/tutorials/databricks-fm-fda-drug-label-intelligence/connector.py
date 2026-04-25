@@ -709,16 +709,36 @@ def fetch_labels_page(session, skip, limit, effective_date_filter=None):
     # OpenFDA search syntax uses brackets and + signs that must NOT be
     # percent-encoded. Build the URL manually when a search filter is
     # present to avoid requests double-encoding these characters.
+    # Sort ascending by (effective_time, id) so the cursor advances
+    # deterministically. Required for the (last_effective_time, last_label_id)
+    # compound cursor to skip already-synced records reliably across syncs.
     if effective_date_filter:
         search_param = f"effective_time:{effective_date_filter}"
-        url = f"{__BASE_URL_FDA}?search={search_param}"
+        url = f"{__BASE_URL_FDA}?search={search_param}&sort=effective_time:asc"
         data = fetch_data_with_retry(session, url, params=params)
     else:
+        params = dict(params)
+        params["sort"] = "effective_time:asc"
         data = fetch_data_with_retry(session, __BASE_URL_FDA, params=params)
 
     results = data.get("results", [])
     total = data.get("meta", {}).get("results", {}).get("total", 0)
     return results, total
+
+
+def build_label_id(label):
+    """Stable, deterministic identifier for a drug label.
+
+    Combines set_id + version when present; falls back to label.id, then to
+    a hash of the raw payload. Used as both the destination primary key
+    and the secondary key on the (effective_time, label_id) compound
+    cursor that drives incremental sync.
+    """
+    set_id = label.get("set_id", "")
+    version = label.get("version", "")
+    if set_id:
+        return f"{set_id}_{version}"
+    return label.get("id", str(hash(str(label))))
 
 
 def process_batch(
@@ -728,41 +748,67 @@ def process_batch(
     is_enrichment_enabled,
     enriched_count,
     max_enrichments,
+    last_effective_time=None,
+    last_label_id=None,
 ):
     """
     Process a batch of drug labels: build records, enrich, and upsert.
+
+    Skips records already synced according to the compound
+    (effective_time, label_id) cursor. The OpenFDA `[X+TO+Y]` filter is
+    inclusive on the lower bound, so without this skip a sync that hit
+    `max_labels` mid-day would re-process the same records on the next
+    sync (and loop indefinitely if a single day exceeds `max_labels`).
 
     Args:
         session: requests.Session object for connection pooling
         configuration: Configuration dictionary
         labels: List of raw OpenFDA drug label dictionaries
+            (assumed sorted asc by effective_time then label_id)
         is_enrichment_enabled: Whether ai_query() enrichment is active
         enriched_count: Current count of enrichments performed
         max_enrichments: Maximum enrichments allowed per sync
+        last_effective_time: Cursor lower-bound effective_time from state
+        last_label_id: Cursor lower-bound label_id from state (tie-break
+            within the same effective_time)
 
     Returns:
-        Tuple of (synced_count, enriched_count, latest_effective_time)
+        Tuple of (synced_count, enriched_count, latest_effective_time,
+        latest_label_id). The two latest_* values together form the
+        compound cursor saved to state.
     """
     synced_count = 0
     latest_effective_time = None
+    latest_label_id = None
 
     for label in labels:
-        # Build unique label ID from set_id + version
-        set_id = label.get("set_id", "")
-        version = label.get("version", "")
-        label_id = f"{set_id}_{version}" if set_id else label.get("id", str(hash(str(label))))
+        label_id = build_label_id(label)
+        effective_time = label.get("effective_time", "")
+
+        # Skip records already synced (compound cursor comparison).
+        # OpenFDA's date filter is inclusive on the lower bound, so the
+        # first batch of records on the cursor day will be re-fetched
+        # every sync — they must be filtered out client-side.
+        if last_effective_time is not None and last_label_id is not None:
+            if (effective_time, label_id) <= (last_effective_time, last_label_id):
+                continue
 
         # Build normalized record
         record = build_label_record(label, label_id)
 
-        # Track latest effective time for incremental cursor
-        effective_time = label.get("effective_time")
-        if effective_time:
-            if (
-                latest_effective_time is None  # noqa: W503
-                or effective_time > latest_effective_time  # noqa: W503
-            ):
-                latest_effective_time = effective_time
+        # Track the highest (effective_time, label_id) processed in this
+        # batch. With server-side asc sort, this is the last record we
+        # see — but we compare anyway to be defensive against unsorted
+        # responses.
+        if latest_effective_time is None or (  # noqa: W503
+            effective_time,
+            label_id,
+        ) > (  # noqa: W503
+            latest_effective_time,
+            latest_label_id or "",
+        ):  # noqa: W503
+            latest_effective_time = effective_time
+            latest_label_id = label_id
 
         # Enrich with ai_query() if enabled and within budget
         if is_enrichment_enabled and enriched_count < max_enrichments:  # noqa: W503  # noqa: W503
@@ -792,7 +838,7 @@ def process_batch(
 
         synced_count += 1
 
-    return synced_count, enriched_count, latest_effective_time
+    return synced_count, enriched_count, latest_effective_time, latest_label_id
 
 
 def create_genie_space(session, configuration, state):
@@ -931,9 +977,14 @@ def update(configuration: dict, state: dict):
     if is_genie_enabled:
         log.info("Genie Space creation ENABLED")
 
-    # Retrieve state for incremental sync
+    # Retrieve state for incremental sync. The cursor is compound
+    # (effective_time, label_id) so we can skip records already synced
+    # within a partially-completed day on the next run.
     last_effective_time = state.get("last_effective_time")
-    log.info(f"Last synced effective time: {last_effective_time}")
+    last_label_id = state.get("last_label_id")
+    log.info(
+        f"Last synced cursor: effective_time={last_effective_time}, " f"label_id={last_label_id}"
+    )
 
     # Build date filter for incremental sync
     effective_date_filter = None
@@ -977,6 +1028,7 @@ def update(configuration: dict, state: dict):
         total_synced = 0
         enriched_count = 0
         overall_latest_time = last_effective_time
+        overall_latest_label_id = last_label_id
         skip = 0
 
         while total_synced < max_labels:
@@ -995,27 +1047,33 @@ def update(configuration: dict, state: dict):
             batch_num = (skip // batch_size) + 1
             log.info(f"Processing batch {batch_num} " f"({len(results)} labels)")
 
-            synced, enriched_count, latest_time = process_batch(
+            synced, enriched_count, latest_time, latest_label_id = process_batch(
                 session,
                 configuration,
                 results,
                 is_enrichment_enabled,
                 enriched_count,
                 max_enrichments,
+                last_effective_time=overall_latest_time,
+                last_label_id=overall_latest_label_id,
             )
 
             total_synced += synced
             skip += len(results)
 
-            if latest_time:
-                if (
-                    overall_latest_time is None  # noqa: W503
-                    or latest_time > overall_latest_time  # noqa: W503  # noqa: W503
+            # Advance the compound cursor only if this batch produced a
+            # strictly greater (effective_time, label_id) tuple.
+            if latest_time and latest_label_id:
+                if overall_latest_time is None or (latest_time, latest_label_id) > (
+                    overall_latest_time,
+                    overall_latest_label_id or "",
                 ):
                     overall_latest_time = latest_time
+                    overall_latest_label_id = latest_label_id
 
             if overall_latest_time:
                 state["last_effective_time"] = overall_latest_time
+                state["last_label_id"] = overall_latest_label_id
 
             # Save the progress by checkpointing the state. This is
             # important for ensuring that the sync process can resume
@@ -1031,7 +1089,11 @@ def update(configuration: dict, state: dict):
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state=state)
 
-            log.info(f"Checkpointed at effective_time " f"{overall_latest_time}")
+            log.info(
+                f"Checkpointed at cursor: effective_time="
+                f"{overall_latest_time}, label_id="
+                f"{overall_latest_label_id}"
+            )
 
             if total_synced >= max_labels or len(results) < batch_size:  # noqa: W503  # noqa: W503
                 break
