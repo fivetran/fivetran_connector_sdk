@@ -60,9 +60,7 @@ from fivetran_connector_sdk import Operations as op
 # NOAA Weather API Configuration
 __BASE_URL_NOAA = "https://api.weather.gov"
 __API_TIMEOUT_SECONDS = 30
-__NOAA_USER_AGENT = (
-    "Fivetran-NOAA-Weather-Databricks-Connector/1.0 " "(kelly.kohlleffel@fivetran.com)"
-)
+__NOAA_USER_AGENT = "Fivetran-NOAA-Weather-Databricks-Connector/1.0 " "(developers@fivetran.com)"
 
 # Retry and Rate Limiting Constants
 __MAX_RETRIES = 3
