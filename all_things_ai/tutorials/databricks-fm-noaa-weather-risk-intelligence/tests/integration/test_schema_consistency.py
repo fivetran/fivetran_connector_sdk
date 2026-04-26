@@ -12,8 +12,6 @@ that build_event_record() actually emits.
 import re
 from pathlib import Path
 
-import pytest
-
 import connector
 
 

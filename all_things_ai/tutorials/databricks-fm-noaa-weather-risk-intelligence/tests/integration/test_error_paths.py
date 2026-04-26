@@ -4,7 +4,6 @@ These tests mock `requests.Session` responses to exercise the failure
 branches that `fivetran debug` doesn't touch on the happy path.
 """
 
-import json
 from unittest.mock import MagicMock
 
 import pytest
