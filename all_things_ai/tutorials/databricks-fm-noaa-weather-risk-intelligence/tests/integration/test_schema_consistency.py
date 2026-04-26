@@ -14,7 +14,6 @@ from pathlib import Path
 
 import connector
 
-
 README_PATH = Path(__file__).parent.parent.parent / "README.md"
 
 
