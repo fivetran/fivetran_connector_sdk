@@ -1,0 +1,25 @@
+examples/common_patterns_for_connectors/records_with_no_created_at_timestamp/README.md
+  63865f0315c36751 1,5,7,9,11-33,37,46,54,59-63,68-72,76,79,86,93,95,100,102,107-111,115-117,121,127,129-135,141-149,152,154,157-159
+examples/common_patterns_for_connectors/records_with_no_created_at_timestamp/connector.py
+  63865f0315c36751 1-27,30,32-38,49-52,54-68,83-85,87-94,112-122,124-133,135-138,147-153,175-178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "fb205fd1417e8c9622fee12b4e7faebaca7a6c53",
+  "prompts": {
+    "63865f0315c36751": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4db356ff-c9de-4eb7-bee7-41815e92c587",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 217,
+      "total_deletions": 99,
+      "accepted_lines": 199,
+      "overriden_lines": 0
+    }
+  }
+}
