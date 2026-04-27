@@ -41,7 +41,6 @@ def configuration_form():
     Returns:
         ConfigurationForm: the completed form with fields and tests.
     """
-    log.info("Building configuration form")
     config_form = ConfigurationForm()
 
     # Plain text field — visible input, suitable for non-sensitive values like URLs
