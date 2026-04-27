@@ -4,7 +4,7 @@
 
 This example demonstrates how to define a connector setup form using `ConfigurationForm`, `form_field`, and `Test` from the Fivetran Connector SDK. It covers all available field types — plain text, password, dropdown, toggle, and descriptive dropdown — and shows how to register a connection test that Fivetran runs when the user clicks **Test Connection** during setup.
 
-The API fields (`api_base_url`, `api_key`) in the configuration form are included to illustrate how a real connector would collect credentials — they are not required for this example to run. The `configuration.json` file provided contains sample values used only to demonstrate the form fields when running locally.
+The API fields (`api_base_url`, `api_key`) in the configuration form are included to illustrate how a real connector would collect credentials. However, they are not required for this example to run. The `configuration.json` file provided contains sample values used only to demonstrate the form fields when running locally.
 
 Refer to `def configuration_form()` and `def connection_test()` in `connector.py` for the main setup form and test implementation.
 
@@ -55,7 +55,7 @@ This connector has no third-party dependencies. The `requirements.txt` file is p
 
 ## Data handling
 
-The connector uses hardcoded sample records to illustrate the sync pattern without requiring a live data source. Configuration values from the form are read in `update()` to control sync behavior: `sync_mode` determines whether all records are re-synced or only records added since the last checkpoint, `batch_size` shows how a page limit would be applied, and `enable_metrics` controls whether extraction stats are logged.
+The example uses hardcoded sample records to illustrate the sync pattern without requiring a live data source. Configuration values from the form are read in `update()` to control sync behavior. `sync_mode` determines whether all records are re-synced or only records added since the last checkpoint, `batch_size` shows how a page limit would be applied, and `enable_metrics` controls whether extraction stats are logged.
 
 Refer to `def update()` for details.
 
