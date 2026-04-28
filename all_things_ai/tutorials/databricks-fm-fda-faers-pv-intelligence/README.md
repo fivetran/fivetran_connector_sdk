@@ -98,7 +98,7 @@ Databricks access requires a Personal Access Token (PAT) with SQL execution perm
 
 ## Pagination
 
-The OpenFDA Drug Event API supports offset-based pagination via `skip` and `limit` parameters (max 100 per page). The connector fetches up to `max_events` records per sync and uses the `receivedate` field as an incremental cursor for subsequent syncs. The search URL is built manually to avoid requests percent-encoding the Lucene query syntax brackets and plus signs.
+The OpenFDA Drug Event API supports offset-based pagination via `skip` and `limit` parameters (max 100 per page). The connector paginates with `def fetch_all_events(session, search_query, max_events)` until either `max_events` records have been collected or the API runs out of matching events. Incremental sync uses a compound `(last_receive_date, last_safety_report_id)` cursor: because OpenFDA's `receivedate` range filter is inclusive, the connector skips any event whose `(receivedate, safety_report_id)` tuple is at or below the persisted cursor so a sync that hits `max_events` mid-day re-resumes correctly without duplicating records. The search URL is built manually to preserve Lucene syntax; the user-supplied `search_drug` is Lucene-escaped and URL-encoded by `def _build_search_query(start_date, end_date, search_drug)` before being placed in the URL.
 
 ## Data handling
 
@@ -106,21 +106,22 @@ The `def update(configuration, state)` function orchestrates a three-phase sync 
 
 Phase 1 (MOVE):
 1. Validates configuration via `def validate_configuration(configuration)`
-2. Builds a Lucene search query from the `last_receive_date` state cursor (or `lookback_days` for initial sync) and optional `search_drug` filter
-3. Fetches adverse events via `def fetch_adverse_events(session, search_query, limit, skip)` with manual URL construction to preserve Lucene syntax
-4. Builds normalized records via `def build_event_record(event)` extracting primary drug, primary reaction, patient demographics, seriousness indicators, and full drug/reaction lists
-5. Upserts records and checkpoints with the latest receive date
+2. Builds a Lucene search query from the `last_receive_date` state cursor (or `lookback_days` for initial sync) and optional `search_drug` filter via `def _build_search_query(start_date, end_date, search_drug)`
+3. Fetches adverse events via `def fetch_all_events(session, search_query, max_events)` which paginates with `def fetch_adverse_events(session, search_query, limit, skip)` under the hood and reports whether the cap was hit
+4. Skips any event whose `(receivedate, safety_report_id)` tuple is at or below the cursor (handles OpenFDA's inclusive range semantics)
+5. Builds normalized records via `def build_event_record(event)` extracting primary drug, primary reaction, patient demographics, seriousness indicators, and full drug/reaction lists
+6. Upserts records and checkpoints with the latest `(receivedate, safety_report_id)` cursor
 
 Phase 2 (DEBATE):
-6. Filters to serious events only for debate (events where `serious = "1"`)
-7. For each serious event, runs three ai_query() calls via `def run_multi_agent_debate(session, configuration, events, event_records, state)`:
+7. Filters to serious events only for debate (events where `serious = "1"`)
+8. For each serious event, runs three ai_query() calls via `def run_multi_agent_debate(session, configuration, events, event_records, state)`:
    - `def build_safety_prompt(event_record)` for the Safety Advocate (signal detection, escalation recommendation)
    - `def build_clinical_prompt(event_record)` for the Clinical Realist (causality assessment, clinical context)
    - `def build_consensus_prompt(event_record, safety_result, clinical_result)` for synthesis
-8. Checkpoints after each event is debated
+9. Checkpoints after each event is debated
 
 Phase 3 (AGENT):
-9. If enabled, creates a Genie Space via `def create_genie_space(session, configuration, state)`
+10. If enabled, creates a Genie Space via `def create_genie_space(session, configuration, state)`
 
 ## Error handling
 

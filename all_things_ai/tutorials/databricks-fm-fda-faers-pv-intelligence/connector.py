@@ -39,6 +39,9 @@ import json
 # For time-based operations and rate limiting
 import time
 
+# For URL-encoding the user-supplied portion of the OpenFDA Lucene query
+import urllib.parse
+
 # For date calculations in incremental sync
 from datetime import datetime, timedelta
 
@@ -77,6 +80,16 @@ __DEFAULT_LOOKBACK_DAYS = 30
 # Databricks SQL Statement API Configuration
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
+__SQL_POLL_INTERVAL_SECONDS = 10
+__SQL_MAX_POLL_ATTEMPTS = 12
+
+# OpenFDA pagination
+__FDA_PAGE_SIZE = 100
+
+# Lucene reserved characters that must be backslash-escaped before being
+# embedded in an OpenFDA search query so user input cannot inject Lucene
+# operators or break the query syntax.
+__LUCENE_RESERVED_CHARS = '\\+-&|!(){}[]^"~*?:/'
 
 # Genie Space API Configuration
 __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
@@ -135,6 +148,13 @@ def _is_placeholder(value):
     """
     Check if a configuration value is unset or an angle-bracket
     placeholder. Type-safe for non-strings.
+
+    Args:
+        value: Configuration value to evaluate.
+
+    Returns:
+        True if the value is None, an empty string, or an angle-bracket
+        placeholder (e.g., "<DRUG_NAME>"); otherwise False.
     """
     if value is None:
         return True
@@ -202,6 +222,89 @@ def _optional_str(configuration, key, default=None):
     return value
 
 
+def _validate_positive_int(configuration, key):
+    """
+    Raise ValueError if `key` is set to a non-positive-integer value.
+    Placeholders and missing keys are treated as unset (no error) so the
+    caller's defaults take over.
+
+    Args:
+        configuration: Configuration dictionary
+        key: Configuration key to validate
+    """
+    value = configuration.get(key)
+    if value is None or _is_placeholder(value):
+        return
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{key} must be a positive integer")
+    if parsed < 1:
+        raise ValueError(f"{key} must be a positive integer")
+
+
+def _validate_bool_flag(configuration, key):
+    """
+    Raise ValueError if `key` is set to anything other than the literal
+    strings 'true' or 'false' (case-insensitive). Placeholders and missing
+    keys are treated as unset.
+
+    Args:
+        configuration: Configuration dictionary
+        key: Configuration key to validate
+    """
+    value = configuration.get(key)
+    if value is None or _is_placeholder(value):
+        return
+    if isinstance(value, bool):
+        return
+    if str(value).strip().lower() not in ("true", "false"):
+        raise ValueError(f"{key} must be 'true' or 'false' (got {value!r})")
+
+
+def _escape_lucene_value(value):
+    """
+    Backslash-escape Lucene reserved characters in a user-supplied value
+    so it cannot inject Lucene operators or break the search query.
+
+    Args:
+        value: User-supplied string
+
+    Returns:
+        Escaped string safe to embed in a Lucene field:value clause
+        (still needs URL-encoding before being placed in a URL).
+    """
+    return "".join("\\" + c if c in __LUCENE_RESERVED_CHARS else c for c in value)
+
+
+def _build_search_query(start_date, end_date, search_drug):
+    """
+    Build the OpenFDA Drug Event search query. The OpenFDA convention
+    uses literal `+` as a space within the search parameter and `+AND+`
+    as the boolean joiner; ranges use `[X+TO+Y]`.
+
+    User-supplied `search_drug` is Lucene-escaped (so reserved characters
+    like `+ : ( ) " :` cannot inject a clause) and URL-encoded so spaces
+    and other URL-reserved characters survive the round-trip intact.
+
+    Args:
+        start_date: Inclusive lower bound of the receivedate range (YYYYMMDD)
+        end_date: Inclusive upper bound of the receivedate range (YYYYMMDD)
+        search_drug: Optional drug name to filter on; None or empty
+            string means no drug filter.
+
+    Returns:
+        Search query string ready to be embedded in the OpenFDA URL
+        after `?search=`.
+    """
+    parts = [f"receivedate:[{start_date}+TO+{end_date}]"]
+    if search_drug:
+        escaped = _escape_lucene_value(search_drug)
+        encoded = urllib.parse.quote(escaped, safe="")
+        parts.append(f"patient.drug.medicinalproduct:{encoded}")
+    return "+AND+".join(parts)
+
+
 def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure all required
@@ -215,15 +318,16 @@ def validate_configuration(configuration: dict):
         ValueError: if any required configuration parameter is
             missing or invalid.
     """
-    for param in ["max_events", "max_enrichments"]:
-        value = configuration.get(param)
-        if value is not None and not _is_placeholder(value):
-            try:
-                parsed = int(value)
-            except (TypeError, ValueError):
-                raise ValueError(f"{param} must be a positive integer")
-            if parsed < 1:
-                raise ValueError(f"{param} must be a positive integer")
+    for param in [
+        "max_events",
+        "max_enrichments",
+        "lookback_days",
+        "databricks_timeout",
+    ]:
+        _validate_positive_int(configuration, param)
+
+    for flag in ["enable_enrichment", "enable_genie_space"]:
+        _validate_bool_flag(configuration, flag)
 
     max_events = _optional_int(configuration, "max_events", __DEFAULT_MAX_EVENTS)
     if max_events > __MAX_EVENTS_CEILING:
@@ -383,16 +487,22 @@ def call_ai_query(session, configuration, prompt):
 
         statement_id = result.get("statement_id")
         poll_count = 0
-        max_polls = 12
 
-        while sql_state in ("PENDING", "RUNNING") and poll_count < max_polls:
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                "ai_query() returned PENDING/RUNNING without a statement_id; "
+                "cannot poll. Treating as failure."
+            )
+            return None
+
+        while sql_state in ("PENDING", "RUNNING") and poll_count < __SQL_MAX_POLL_ATTEMPTS:
             poll_count += 1
-            time.sleep(10)
+            time.sleep(__SQL_POLL_INTERVAL_SECONDS)
             poll_resp = session.get(f"{url}/{statement_id}", headers=headers, timeout=timeout)
             poll_resp.raise_for_status()
             result = poll_resp.json()
             sql_state = result.get("status", {}).get("state", "")
-            log.info(f"ai_query() poll {poll_count}/{max_polls}: {sql_state}")
+            log.info(f"ai_query() poll {poll_count}/{__SQL_MAX_POLL_ATTEMPTS}: {sql_state}")
 
         if sql_state == "SUCCEEDED":
             data_array = result.get("result", {}).get("data_array", [])
@@ -450,10 +560,12 @@ def extract_json_from_content(content):
 
 def fetch_adverse_events(session, search_query, limit, skip):
     """
-    Fetch adverse events from the OpenFDA Drug Event API.
+    Fetch a single page of adverse events from the OpenFDA Drug Event API.
 
-    Builds URL manually to avoid requests percent-encoding
-    the Lucene search syntax brackets and plus signs.
+    Builds URL manually to avoid requests percent-encoding the Lucene
+    search syntax brackets and plus signs. The user-supplied portion of
+    `search_query` is already Lucene-escaped + URL-encoded by
+    _build_search_query() so embedding it into the URL is safe.
 
     Args:
         session: requests.Session
@@ -474,6 +586,54 @@ def fetch_adverse_events(session, search_query, limit, skip):
     total = data.get("meta", {}).get("results", {}).get("total", 0)
     time.sleep(__FDA_RATE_LIMIT_DELAY)
     return results, total
+
+
+def fetch_all_events(session, search_query, max_events):
+    """
+    Paginate the OpenFDA Drug Event API up to `max_events` records.
+
+    Loops with skip+limit until either:
+      - max_events have been collected (cap_hit=True), or
+      - the API returns an empty page or skip>=total (cap_hit=False
+        because we exhausted the matching set).
+
+    The caller uses cap_hit to decide whether it is safe to advance the
+    incremental cursor: if cap_hit is True there are still un-synced
+    records on the server and the cursor MUST stay where it was so the
+    next sync re-fetches them.
+
+    Args:
+        session: requests.Session
+        search_query: Built by _build_search_query()
+        max_events: Hard cap on records fetched in this run
+
+    Returns:
+        Tuple of (events_list, total_count, cap_hit_bool)
+    """
+    events = []
+    skip = 0
+    total = 0
+    page_size = min(__FDA_PAGE_SIZE, max_events)
+
+    while len(events) < max_events:
+        remaining = max_events - len(events)
+        current_limit = min(page_size, remaining)
+        page, page_total = fetch_adverse_events(session, search_query, current_limit, skip)
+
+        if skip == 0:
+            total = page_total
+
+        if not page:
+            return events, total, False
+
+        events.extend(page)
+        skip += len(page)
+
+        if skip >= total or len(page) < current_limit:
+            return events, total, False
+
+    cap_hit = total > len(events)
+    return events, total, cap_hit
 
 
 def build_event_record(event):
@@ -858,8 +1018,14 @@ def update(configuration: dict, state: dict):
     else:
         log.info("Multi-Agent Debate DISABLED")
 
-    # Build search query
+    # Compound cursor: (last_receive_date, last_safety_report_id).
+    # The OpenFDA receivedate range filter is inclusive, so when more than
+    # max_events records exist on a given date the next sync re-receives
+    # the same records. We dedupe via the (date, id) tuple — see
+    # databricks-fm-fda-drug-label-intelligence/connector.py for the
+    # canonical version of this pattern (PR #567 Codex P1 fix).
     last_receive_date = state.get("last_receive_date")
+    last_safety_report_id = state.get("last_safety_report_id")
     if last_receive_date:
         start_date = last_receive_date
     else:
@@ -868,11 +1034,7 @@ def update(configuration: dict, state: dict):
 
     end_date = datetime.now().strftime("%Y%m%d")
 
-    search_parts = [f"receivedate:[{start_date}+TO+{end_date}]"]
-    if search_drug:
-        search_parts.append(f"patient.drug.medicinalproduct:{search_drug}")
-
-    search_query = "+AND+".join(search_parts)
+    search_query = _build_search_query(start_date, end_date, search_drug)
 
     log.info(f"Fetching events: {search_query}")
 
@@ -882,8 +1044,15 @@ def update(configuration: dict, state: dict):
         # --- Phase 1: MOVE ---
         log.info("Phase 1 (MOVE): Fetching adverse events from OpenFDA FAERS")
 
-        events, total = fetch_adverse_events(session, search_query, min(max_events, 100), 0)
+        events, total, cap_hit = fetch_all_events(session, search_query, max_events)
         log.info(f"OpenFDA reports {total} matching events, fetched {len(events)}")
+
+        if cap_hit:
+            log.info(
+                f"Reached max_events ({max_events}) of {total} matching "
+                f"events; remaining records will be picked up on subsequent "
+                f"syncs via the (receivedate, safety_report_id) cursor."
+            )
 
         if not events:
             log.info("No adverse events found")
@@ -899,13 +1068,35 @@ def update(configuration: dict, state: dict):
             op.checkpoint(state=state)
             return
 
-        # Upsert event records
+        # Upsert event records, skipping any whose compound cursor tuple
+        # (receivedate, safety_report_id) is at or below the last cursor.
+        # OpenFDA's range filter is inclusive on the lower bound, so the
+        # API will always re-emit records dated last_receive_date — the
+        # tuple comparison is what guarantees no duplicates.
         event_records = {}
         latest_date = last_receive_date
+        latest_id = last_safety_report_id
+        skipped = 0
 
-        for event in events[:max_events]:
+        cursor_tuple = (last_receive_date or "", last_safety_report_id or "")
+        latest_tuple = cursor_tuple
+
+        for event in events:
             report_id = event.get("safetyreportid")
             if not report_id:
+                continue
+
+            recv_date = event.get("receivedate", "")
+            if not recv_date:
+                continue
+
+            event_tuple = (recv_date, report_id)
+            # OpenFDA's range filter is inclusive, so the API will re-emit
+            # records dated last_receive_date. Skip every event whose
+            # (date, id) tuple is at or below the cursor — that covers
+            # both "earlier date" and "same date, already-synced id".
+            if last_receive_date is not None and event_tuple <= cursor_tuple:
+                skipped += 1
                 continue
 
             record = build_event_record(event)
@@ -918,14 +1109,20 @@ def update(configuration: dict, state: dict):
 
             event_records[report_id] = record
 
-            recv_date = event.get("receivedate", "")
-            if recv_date and (latest_date is None or recv_date > latest_date):
-                latest_date = recv_date
+            if event_tuple > latest_tuple:
+                latest_tuple = event_tuple
 
-        log.info(f"Phase 1 complete: {len(event_records)} events upserted")
+        latest_date, latest_id = latest_tuple
+
+        log.info(
+            f"Phase 1 complete: {len(event_records)} events upserted, "
+            f"{skipped} skipped as already synced"
+        )
 
         if latest_date:
             state["last_receive_date"] = latest_date
+        if latest_id:
+            state["last_safety_report_id"] = latest_id
 
         # Save the progress by checkpointing the state. This is important for ensuring that the
         # sync process can resume from the correct position in case of next sync or interruptions.
@@ -940,7 +1137,7 @@ def update(configuration: dict, state: dict):
         if is_enrichment and event_records:
             log.info("Phase 2 (DEBATE): Starting Multi-Agent Debate")
             debate_count, disagreement_count = run_multi_agent_debate(
-                session, configuration, events[:max_events], event_records, state
+                session, configuration, events, event_records, state
             )
             log.info(
                 f"Debate complete: {debate_count} events debated, "
@@ -977,8 +1174,13 @@ def update(configuration: dict, state: dict):
 
         log.info(f"Sync complete: {len(event_records)} events synced")
 
-    except Exception as e:
-        log.severe(f"Unexpected error during sync: {str(e)}")
+    except (
+        RuntimeError,
+        ValueError,
+        requests.exceptions.RequestException,
+        json.JSONDecodeError,
+    ) as e:
+        log.severe(f"Sync failed: {str(e)}")
         raise
 
     finally:
