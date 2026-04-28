@@ -20,6 +20,8 @@ Refer to `def configuration_form()` and `def connection_test()` in `connector.py
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
+For available CLI commands, refer to the [Connector SDK Commands](https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/connector-sdk-commands) reference.
+
 1. Run the `fivetran configuration` command to interactively provide values for each form field. This generates (or overrides) a `configuration.json` file in the project directory.
 
    ```bash
