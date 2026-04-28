@@ -76,6 +76,8 @@ __DEFAULT_LOOKBACK_DAYS = 90
 # Databricks SQL Statement API Configuration
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
+__SQL_POLL_INTERVAL_SECONDS = 10
+__SQL_MAX_POLL_ATTEMPTS = 12
 __DATABRICKS_RATE_LIMIT_DELAY = 0.5
 
 # Genie Space API Configuration
@@ -465,18 +467,16 @@ def call_ai_query(session, configuration, prompt):
         # Poll for PENDING/RUNNING statements
         statement_id = result.get("statement_id")
         poll_count = 0
-        max_polls = 12
-        poll_interval_seconds = 10
 
-        while sql_state in ("PENDING", "RUNNING") and poll_count < max_polls:
+        while sql_state in ("PENDING", "RUNNING") and poll_count < __SQL_MAX_POLL_ATTEMPTS:
             poll_count += 1
-            time.sleep(poll_interval_seconds)
+            time.sleep(__SQL_POLL_INTERVAL_SECONDS)
             poll_url = f"{url}/{statement_id}"
             poll_resp = session.get(poll_url, headers=headers, timeout=timeout)
             poll_resp.raise_for_status()
             result = poll_resp.json()
             sql_state = result.get("status", {}).get("state", "")
-            log.info(f"ai_query() poll {poll_count}/" f"{max_polls}: {sql_state}")
+            log.info(f"ai_query() poll {poll_count}/{__SQL_MAX_POLL_ATTEMPTS}: {sql_state}")
 
         if sql_state == "SUCCEEDED":
             data_array = result.get("result", {}).get("data_array", [])
