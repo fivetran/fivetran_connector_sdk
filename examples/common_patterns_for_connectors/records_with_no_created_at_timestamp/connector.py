@@ -39,15 +39,16 @@ import json
 # Microsoft SQL Server database driver
 import pytds
 
-# For timestamp handling
-from datetime import datetime
-
 # For handling DECIMAL values returned by pytds
 from decimal import Decimal
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
+
+# For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
+
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
 # Number of rows fetched from the database per round-trip
@@ -64,7 +65,15 @@ __MAX_TABLES = 10
 __INITIAL_CURSOR = "1970-01-01 00:00:00"
 
 
-def _validate_configuration(configuration: dict) -> None:
+def validate_configuration(configuration: dict) -> None:
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
     required = [
         "mssql_server",
         "mssql_database",
@@ -76,6 +85,16 @@ def _validate_configuration(configuration: dict) -> None:
     for key in required:
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
+        if not str(configuration[key]).strip():
+            raise ValueError(f"Configuration value for '{key}' must not be empty")
+
+    port = configuration["mssql_port"]
+    try:
+        port_int = int(port)
+    except (ValueError, TypeError):
+        raise ValueError(f"'mssql_port' must be a valid integer, got: {port!r}")
+    if not (1 <= port_int <= 65535):
+        raise ValueError(f"'mssql_port' must be between 1 and 65535, got: {port_int}")
 
 
 def _connect(configuration: dict):
@@ -93,8 +112,11 @@ def _connect(configuration: dict):
             f"Connected to {configuration['mssql_database']} on {configuration['mssql_server']}"
         )
         return connection
-    except Exception as e:
-        log.severe(f"Failed to connect to SQL Server: {e}")
+    except pytds.LoginError as e:
+        log.severe(f"Authentication failed — check mssql_user and mssql_password: {e}")
+        raise
+    except pytds.InterfaceError as e:
+        log.severe(f"Connection failed — check mssql_server and mssql_port: {e}")
         raise
 
 
@@ -260,7 +282,7 @@ def schema(configuration: dict):
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
-    _validate_configuration(configuration)
+    validate_configuration(configuration)
     incremental_col = configuration["incremental_column"]
     schema_name = configuration.get("mssql_schema", "dbo")
 
@@ -314,7 +336,7 @@ def update(configuration: dict, state: dict):
         "Example: Common Patterns For Connectors - History Mode Mimicry Using Composite Primary Key"
     )
 
-    _validate_configuration(configuration)
+    validate_configuration(configuration)
     incremental_col = configuration["incremental_column"]
     schema_name = configuration.get("mssql_schema", "dbo")
 
@@ -386,8 +408,11 @@ def update(configuration: dict, state: dict):
             op.checkpoint(state)
             log.info(f"Finished {destination_table}: {records_processed} rows processed")
 
-    except Exception as e:
-        log.severe(f"Sync failed: {e}")
+    except pytds.ProgrammingError as e:
+        log.severe(f"SQL error during sync (permanent — check query or schema): {e}")
+        raise
+    except pytds.InterfaceError as e:
+        log.severe(f"Connection lost during sync (transient — will retry on next run): {e}")
         raise
     finally:
         connection.close()
