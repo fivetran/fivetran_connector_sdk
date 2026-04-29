@@ -74,7 +74,7 @@ def validate_configuration(configuration: dict) -> None:
     Raises:
         ValueError: if any required configuration parameter is missing.
     """
-    required = [
+    required_keys = [
         "mssql_server",
         "mssql_database",
         "mssql_user",
@@ -82,19 +82,19 @@ def validate_configuration(configuration: dict) -> None:
         "mssql_port",
         "incremental_column",
     ]
-    for key in required:
-        if key not in configuration:
-            raise ValueError(f"Missing required configuration value: {key}")
-        if not str(configuration[key]).strip():
-            raise ValueError(f"Configuration value for '{key}' must not be empty")
+    for config_key in required_keys:
+        if config_key not in configuration:
+            raise ValueError(f"Missing required configuration value: {config_key}")
+        if not str(configuration[config_key]).strip():
+            raise ValueError(f"Configuration value for '{config_key}' must not be empty")
 
-    port = configuration["mssql_port"]
+    port_raw = configuration["mssql_port"]
     try:
-        port_int = int(port)
+        port_number = int(port_raw)
     except (ValueError, TypeError):
-        raise ValueError(f"'mssql_port' must be a valid integer, got: {port!r}")
-    if not (1 <= port_int <= 65535):
-        raise ValueError(f"'mssql_port' must be between 1 and 65535, got: {port_int}")
+        raise ValueError(f"'mssql_port' must be a valid integer, got: {port_raw!r}")
+    if not (1 <= port_number <= 65535):
+        raise ValueError(f"'mssql_port' must be between 1 and 65535, got: {port_number}")
 
 
 def _connect(configuration: dict):
@@ -112,11 +112,11 @@ def _connect(configuration: dict):
             f"Connected to {configuration['mssql_database']} on {configuration['mssql_server']}"
         )
         return connection
-    except pytds.LoginError as e:
-        log.severe(f"Authentication failed — check mssql_user and mssql_password: {e}")
+    except pytds.LoginError as login_error:
+        log.severe(f"Authentication failed — check mssql_user and mssql_password: {login_error}")
         raise
-    except pytds.InterfaceError as e:
-        log.severe(f"Connection failed — check mssql_server and mssql_port: {e}")
+    except pytds.InterfaceError as interface_error:
+        log.severe(f"Connection failed — check mssql_server and mssql_port: {interface_error}")
         raise
 
 
@@ -132,9 +132,9 @@ def _get_tables(connection, schema_name: str) -> list[str]:
     """
     with connection.cursor() as cursor:
         cursor.execute(query, (schema_name,))
-        tables = [row[0] for row in cursor.fetchall()]
-    log.info(f"Discovered {len(tables)} tables in schema '{schema_name}': {tables}")
-    return tables
+        table_names = [table_row[0] for table_row in cursor.fetchall()]
+    log.info(f"Discovered {len(table_names)} tables in schema '{schema_name}': {table_names}")
+    return table_names
 
 
 def _get_natural_primary_keys(connection, schema_name: str, table_name: str) -> list[str]:
@@ -151,7 +151,7 @@ def _get_natural_primary_keys(connection, schema_name: str, table_name: str) -> 
     """
     with connection.cursor() as cursor:
         cursor.execute(query, (schema_name, table_name))
-        return [row[0] for row in cursor.fetchall()]
+        return [pk_row[0] for pk_row in cursor.fetchall()]
 
 
 def _table_has_column(connection, schema_name: str, table_name: str, column_name: str) -> bool:
@@ -168,24 +168,24 @@ def _table_has_column(connection, schema_name: str, table_name: str, column_name
 
 def _map_sql_type(sql_type: str) -> str:
     """Map a SQL Server data type string to a Fivetran SDK column type."""
-    t = sql_type.lower()
-    if t == "bit":
+    normalized_type = sql_type.lower()
+    if normalized_type == "bit":
         return "BOOLEAN"
-    if t in ("tinyint", "smallint"):
+    if normalized_type in ("tinyint", "smallint"):
         return "SHORT"
-    if t in ("int", "integer"):
+    if normalized_type in ("int", "integer"):
         return "INT"
-    if t == "bigint":
+    if normalized_type == "bigint":
         return "LONG"
-    if t in ("float", "real", "decimal", "numeric", "money", "smallmoney"):
+    if normalized_type in ("float", "real", "decimal", "numeric", "money", "smallmoney"):
         return "FLOAT"
-    if t == "date":
+    if normalized_type == "date":
         return "NAIVE_DATE"
-    if t in ("datetime", "datetime2", "smalldatetime"):
+    if normalized_type in ("datetime", "datetime2", "smalldatetime"):
         return "NAIVE_DATETIME"
-    if t == "datetimeoffset":
+    if normalized_type == "datetimeoffset":
         return "UTC_DATETIME"
-    if t in ("binary", "varbinary", "image"):
+    if normalized_type in ("binary", "varbinary", "image"):
         return "BINARY"
     return "STRING"
 
@@ -200,14 +200,16 @@ def _get_columns(connection, schema_name: str, table_name: str) -> dict[str, str
     """
     with connection.cursor() as cursor:
         cursor.execute(query, (schema_name, table_name))
-        return {row[0]: _map_sql_type(row[1]) for row in cursor.fetchall()}
+        return {
+            column_name: _map_sql_type(sql_type) for column_name, sql_type in cursor.fetchall()
+        }
 
 
-def _serialize(value):
+def _serialize(column_value):
     """Convert Decimal to float for SDK compatibility."""
-    if isinstance(value, Decimal):
-        return float(value)
-    return value
+    if isinstance(column_value, Decimal):
+        return float(column_value)
+    return column_value
 
 
 def _fetch_rows(
@@ -224,49 +226,52 @@ def _fetch_rows(
     cursor_value using a keyset cursor to handle timestamp ties correctly.
 
     Keyset logic (single natural PK):
-        WHERE (incremental_col > cursor)
-           OR (incremental_col = cursor AND pk_col > last_pk_value)
-        ORDER BY incremental_col, pk_col
+        WHERE (incremental_col > cursor_value)
+           OR (incremental_col = cursor_value AND tiebreaker_pk_column > last_pk_value)
+        ORDER BY incremental_col, tiebreaker_pk_column
 
     This ensures that if multiple rows share the same timestamp, none are skipped.
     For tables with no natural PK or a composite PK, falls back to a simple > filter.
     """
-    qualified = f"[{schema_name}].[{table_name}]"
+    fully_qualified_table = f"[{schema_name}].[{table_name}]"
     with connection.cursor() as db_cursor:
         if incremental_col:
-            pk_col = natural_pks[0] if len(natural_pks) == 1 else None
+            tiebreaker_pk_column = natural_pks[0] if len(natural_pks) == 1 else None
 
-            if pk_col and last_pk_value is not None:
+            if tiebreaker_pk_column and last_pk_value is not None:
                 # Keyset cursor: handles ties on incremental_col correctly.
                 db_cursor.execute(
-                    f"""SELECT * FROM {qualified}
+                    f"""SELECT * FROM {fully_qualified_table}
                         WHERE ([{incremental_col}] > %s)
-                           OR ([{incremental_col}] = %s AND [{pk_col}] > %s)
-                        ORDER BY [{incremental_col}], [{pk_col}]""",
+                           OR ([{incremental_col}] = %s AND [{tiebreaker_pk_column}] > %s)
+                        ORDER BY [{incremental_col}], [{tiebreaker_pk_column}]""",
                     (cursor_value, cursor_value, last_pk_value),
                 )
                 log.info(
-                    f"Incremental fetch {schema_name}.{table_name}: {incremental_col} > '{cursor_value}' OR (= '{cursor_value}' AND {pk_col} > {last_pk_value})"
+                    f"Incremental fetch {schema_name}.{table_name}: {incremental_col} > '{cursor_value}' OR (= '{cursor_value}' AND {tiebreaker_pk_column} > {last_pk_value})"
                 )
             else:
                 db_cursor.execute(
-                    f"SELECT * FROM {qualified} WHERE [{incremental_col}] > %s ORDER BY [{incremental_col}]",
+                    f"SELECT * FROM {fully_qualified_table} WHERE [{incremental_col}] > %s ORDER BY [{incremental_col}]",
                     (cursor_value,),
                 )
                 log.info(
                     f"Incremental fetch {schema_name}.{table_name}: {incremental_col} > '{cursor_value}'"
                 )
         else:
-            db_cursor.execute(f"SELECT * FROM {qualified}")
+            db_cursor.execute(f"SELECT * FROM {fully_qualified_table}")
             log.info(f"Full scan of {schema_name}.{table_name}")
 
-        col_names = [desc[0] for desc in db_cursor.description]
+        column_names = [column_description[0] for column_description in db_cursor.description]
         while True:
-            rows = db_cursor.fetchmany(__BATCH_SIZE)
-            if not rows:
+            batch = db_cursor.fetchmany(__BATCH_SIZE)
+            if not batch:
                 break
-            for row in rows:
-                yield {col: _serialize(val) for col, val in zip(col_names, row)}
+            for row in batch:
+                yield {
+                    column_name: _serialize(column_value)
+                    for column_name, column_value in zip(column_names, row)
+                }
 
 
 def schema(configuration: dict):
@@ -283,35 +288,35 @@ def schema(configuration: dict):
 
     connection = _connect(configuration)
     try:
-        tables = _get_tables(connection, schema_name)
-        schema_list = []
+        table_names = _get_tables(connection, schema_name)
+        table_schemas = []
 
-        for table_name in tables:
+        for table_name in table_names:
             natural_pks = _get_natural_primary_keys(connection, schema_name, table_name)
             log.fine("Natural Primary Keys: {}".format(natural_pks))
-            columns = _get_columns(connection, schema_name, table_name)
-            has_incremental = _table_has_column(
+            column_definitions = _get_columns(connection, schema_name, table_name)
+            table_has_incremental_column = _table_has_column(
                 connection, schema_name, table_name, incremental_col
             )
 
-            if has_incremental and incremental_col not in natural_pks:
+            if table_has_incremental_column and incremental_col not in natural_pks:
                 # Append the incremental column to the composite primary key.
                 # This is the key change that mimics History Mode: a new value of
                 # incremental_col means a new composite PK, so a new row is inserted
                 # rather than the existing row being overwritten.
-                composite_pk = natural_pks + [incremental_col]
+                composite_primary_key = natural_pks + [incremental_col]
             else:
-                composite_pk = natural_pks
+                composite_primary_key = natural_pks
 
-            schema_list.append(
+            table_schemas.append(
                 {
                     "table": f"{schema_name}_{table_name}",
-                    "primary_key": composite_pk if composite_pk else None,
-                    "columns": columns if columns else None,
+                    "primary_key": composite_primary_key if composite_primary_key else None,
+                    "columns": column_definitions if column_definitions else None,
                 }
             )
 
-        return schema_list
+        return table_schemas
     finally:
         connection.close()
 
@@ -336,35 +341,43 @@ def update(configuration: dict, state: dict):
 
     connection = _connect(configuration)
     try:
-        tables = _get_tables(connection, schema_name)
+        table_names = _get_tables(connection, schema_name)
 
-        for table_name in tables:
+        for table_name in table_names:
             destination_table = f"{schema_name}_{table_name}"
             natural_pks = _get_natural_primary_keys(connection, schema_name, table_name)
-            has_incremental = _table_has_column(
+            table_has_incremental_column = _table_has_column(
                 connection, schema_name, table_name, incremental_col
             )
-            pk_col = natural_pks[0] if len(natural_pks) == 1 else None
+            tiebreaker_pk_column = natural_pks[0] if len(natural_pks) == 1 else None
 
             # State per table is a dict: {"cursor": <timestamp>, "last_pk": <pk_value>}
             # This supports keyset pagination to handle timestamp ties correctly.
             table_state = state.get(destination_table, {})
-            cursor_value = table_state.get("cursor", __INITIAL_CURSOR) if has_incremental else None
-            last_pk_value = table_state.get("last_pk") if has_incremental and pk_col else None
+            cursor_value = (
+                table_state.get("cursor", __INITIAL_CURSOR)
+                if table_has_incremental_column
+                else None
+            )
+            last_pk_value = (
+                table_state.get("last_pk")
+                if table_has_incremental_column and tiebreaker_pk_column
+                else None
+            )
 
             log.info(
                 f"Starting {destination_table}: cursor='{cursor_value}', last_pk={last_pk_value}"
             )
 
             records_processed = 0
-            latest_cursor = cursor_value
-            latest_pk = last_pk_value
+            latest_cursor_value = cursor_value
+            latest_pk_value = last_pk_value
 
             for record in _fetch_rows(
                 connection,
                 schema_name,
                 table_name,
-                incremental_col if has_incremental else None,
+                incremental_col if table_has_incremental_column else None,
                 cursor_value,
                 natural_pks,
                 last_pk_value,
@@ -375,19 +388,22 @@ def update(configuration: dict, state: dict):
                 op.upsert(table=destination_table, data=record)
                 records_processed += 1
 
-                if has_incremental:
-                    raw = record.get(incremental_col)
-                    if raw is not None:
+                if table_has_incremental_column:
+                    incremental_column_value = record.get(incremental_col)
+                    if incremental_column_value is not None:
                         # Use str() not isoformat() — pytds datetime objects stringify with a space
                         # separator ("2026-04-24 04:57:58.588") which SQL Server accepts directly.
                         # isoformat() produces a T separator which causes SQL Server conversion errors.
-                        latest_cursor = str(raw)
-                    if pk_col:
-                        latest_pk = record.get(pk_col)
+                        latest_cursor_value = str(incremental_column_value)
+                    if tiebreaker_pk_column:
+                        latest_pk_value = record.get(tiebreaker_pk_column)
 
                 if records_processed % __CHECKPOINT_INTERVAL == 0:
-                    if has_incremental:
-                        state[destination_table] = {"cursor": latest_cursor, "last_pk": latest_pk}
+                    if table_has_incremental_column:
+                        state[destination_table] = {
+                            "cursor": latest_cursor_value,
+                            "last_pk": latest_pk_value,
+                        }
                     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
                     # from the correct position in case of next sync or interruptions.
                     # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
@@ -397,8 +413,11 @@ def update(configuration: dict, state: dict):
                     op.checkpoint(state)
 
             # Advance the cursor for this table and checkpoint after all rows are processed.
-            if has_incremental and latest_cursor:
-                state[destination_table] = {"cursor": latest_cursor, "last_pk": latest_pk}
+            if table_has_incremental_column and latest_cursor_value:
+                state[destination_table] = {
+                    "cursor": latest_cursor_value,
+                    "last_pk": latest_pk_value,
+                }
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.
@@ -409,11 +428,13 @@ def update(configuration: dict, state: dict):
             op.checkpoint(state)
             log.info(f"Finished {destination_table}: {records_processed} rows processed")
 
-    except pytds.ProgrammingError as e:
-        log.severe(f"SQL error during sync (permanent — check query or schema): {e}")
+    except pytds.ProgrammingError as sql_error:
+        log.severe(f"SQL error during sync (permanent — check query or schema): {sql_error}")
         raise
-    except pytds.InterfaceError as e:
-        log.severe(f"Connection lost during sync (transient — will retry on next run): {e}")
+    except pytds.InterfaceError as connection_error:
+        log.severe(
+            f"Connection lost during sync (transient — will retry on next run): {connection_error}"
+        )
         raise
     finally:
         connection.close()
