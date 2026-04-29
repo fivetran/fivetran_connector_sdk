@@ -1,10 +1,10 @@
 {
-  "mssql_server": "<YOUR-SQL-SERVER-HOST>",
-  "mssql_cert_server": "<YOUR-CERT-SERVER-OR-EMPTY>",
-  "mssql_port": "<YOUR-PORT>",
-  "mssql_database": "<YOUR-DATABASE>",
-  "mssql_user": "<YOUR-USERNAME>",
-  "mssql_password": "<YOUR-PASSWORD>",
-  "mssql_schema": "<YOUR-SCHEMA>",
-  "incremental_column": "<YOUR-INCREMENTAL-COLUMN>"
+    "mssql_server": "<YOUR_SQL_SERVER_HOST>",
+    "mssql_cert_server": "<YOUR_CERT_SERVER_OR_EMPTY>",
+    "mssql_port": "<YOUR_PORT>",
+    "mssql_database": "<YOUR_DATABASE>",
+    "mssql_user": "<YOUR_USERNAME>",
+    "mssql_password": "<YOUR_PASSWORD>",
+    "mssql_schema": "<YOUR_SCHEMA>",
+    "incremental_column": "<YOUR_INCREMENTAL_COLUMN>"
 }
