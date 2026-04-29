@@ -2,11 +2,11 @@
 
 ## Connector overview
 
-Fivetran's [History Mode](https://fivetran.com/docs/core-concepts/sync-modes/history-mode) is a sync mode that preserves all historical versions of a record in the destination. Instead of overwriting a row when a source record changes, History Mode inserts a new row for every observed state, keeping a full audit trail.
+The [Fivetran history mode](https://fivetran.com/docs/core-concepts/sync-modes/history-mode) is a sync mode that preserves all historical versions of a record in the destination. Instead of overwriting a row when a source record changes, history mode inserts a new row for every observed state, keeping a full audit trail.
 
-The Connector SDK does not support History Mode natively. However, you can mimic its behavior by including a timestamp column as part of a composite primary key.
+The Connector SDK does not support history mode natively. However, you can mimic its behavior by including a timestamp column as part of a composite primary key.
 
-This connector demonstrates that pattern using a Microsoft SQL Server source. For every table that contains the configured incremental column (e.g. `_LastUpdatedInstant`), the connector appends it to the table's natural primary keys to form a composite primary key. When a record's timestamp changes between syncs, Fivetran inserts a new row rather than overwriting the existing one — History Mode behavior without native History Mode support.
+This connector demonstrates that pattern using a Microsoft SQL Server source. For every table that contains the configured incremental column (e.g. `_LastUpdatedInstant`), the connector appends it to the table's natural primary keys to form a composite primary key. When a record's timestamp changes between syncs, Fivetran inserts a new row rather than overwriting the existing one — history mode behavior without native history mode support.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)   
@@ -32,7 +32,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 ## Features
 
-- Mimics Fivetran's History Mode without requiring native History Mode support.
+- Mimics Fivetran's history mode without requiring native History Mode support.
 - Dynamically discovers tables in the configured schema using `INFORMATION_SCHEMA`.
 - Builds composite primary keys at runtime: `natural_pks + [incremental_column]`.
 - Uses the incremental column as a cursor for incremental syncs — only changed rows are fetched.
@@ -57,17 +57,16 @@ The connector requires a `configuration.json` file with the following fields:
     "incremental_column": "<YOUR_INCREMENTAL_COLUMN>"
 }
 ```
+Configuration parameters:
 
-| Field | Description |
-|---|---|
-| `mssql_server` | Hostname or IP of the SQL Server instance |
-| `mssql_cert_server` | TLS certificate server name (leave empty to skip validation) |
-| `mssql_port` | TCP port (typically `1433`) |
-| `mssql_database` | Database name to connect to |
-| `mssql_user` | SQL Server login username |
-| `mssql_password` | SQL Server login password |
-| `mssql_schema` | Schema to discover tables from (e.g. `dbo`) |
-| `incremental_column` | Column used as the incremental cursor and composite PK component (e.g. `_LastUpdatedInstant`) |
+- `mssql_server` (required) — hostname or IP of the SQL Server instance.
+- `mssql_cert_server` (optional) — TLS certificate server name; leave empty to skip validation.
+- `mssql_port` (required) — TCP port (typically `1433`).
+- `mssql_database` (required) — database name to connect to.
+- `mssql_user` (required) — SQL Server login username.
+- `mssql_password` (required) — SQL Server login password.
+- `mssql_schema` (optional) — schema to discover tables from; defaults to `dbo` if not provided.
+- `incremental_column` (required) — column used as the incremental cursor and composite PK component (e.g. `_LastUpdatedInstant`).
 
 > Note: When submitting connector code as a [Community Connector](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors) or enhancing an [example](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples) in the open-source [Connector SDK repository](https://github.com/fivetran/fivetran_connector_sdk/tree/main), ensure the `configuration.json` file has placeholder values.
 When adding the connector to your production repository, ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
@@ -107,7 +106,7 @@ For tables with no natural primary key or a composite natural primary key, the c
 
 - Tables are discovered dynamically from `INFORMATION_SCHEMA.TABLES` in the configured schema (up to 10 tables).
 - Natural primary keys are resolved from `INFORMATION_SCHEMA.KEY_COLUMN_USAGE` joined with `INFORMATION_SCHEMA.TABLE_CONSTRAINTS`.
-- The composite primary key for each table is `natural_pks + [incremental_column]`. This is the key mechanism for History Mode mimicry.
+- The composite primary key for each table is `natural_pks + [incremental_column]`. This is the key mechanism for history mode mimicry.
 - Column types are mapped from SQL Server types to Fivetran SDK types via `_map_sql_type()`.
 - `Decimal` values are serialized to `float` before upsert for SDK compatibility.
 - Destination table names follow the pattern `{schema_name}_{table_name}` (e.g. `dbo_Users`).
@@ -126,7 +125,7 @@ The connector handles specific `pytds` exception types:
 
 ## Tables created
 
-Tables are created dynamically based on schema discovery. For each discovered table, the connector creates a destination table named `{schema_name}_{table_name}` with:
+Tables are created dynamically based on schema discovery. For each discovered table, the connector creates a destination table named `{SCHEMA_NAME}_{TABLE_NAME}` with:
 
 - All columns type-mapped from SQL Server types
 - Composite primary key: `[natural_pk_columns..., incremental_column]`
@@ -134,7 +133,7 @@ Tables are created dynamically based on schema discovery. For each discovered ta
 For example, a source table `dbo.Users` with natural PK `UserId` and incremental column `_LastUpdatedInstant` produces:
 
 ```text
-table: dbo_Users
+table: DBO_USERS
 primary_key: ["UserId", "_LastUpdatedInstant"]
 ```
 
@@ -142,7 +141,7 @@ primary_key: ["UserId", "_LastUpdatedInstant"]
 
 - The incremental column must be reliable and monotonically increasing per record. If two updates to the same record can share the same timestamp, the older row will be overwritten rather than preserved.
 - Do not use a low-granularity timestamp (e.g. date-only) as the composite key — two updates on the same day would collapse into one row.
-- Tables without the incremental column fall back to a full scan on every sync and do not get the History Mode composite PK.
+- Tables without the incremental column fall back to a full scan on every sync and do not get the history mode composite PK.
 - To adapt this pattern to a different source, replace the `pytds` connection with your driver and adjust `_fetch_rows()` accordingly. The composite PK logic in `schema()` applies to any source.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.

@@ -239,7 +239,7 @@ def _fetch_rows(
             tiebreaker_pk_column = natural_pks[0] if len(natural_pks) == 1 else None
 
             if tiebreaker_pk_column and last_pk_value is not None:
-                # Keyset cursor: handles ties on incremental_col correctly.
+                # Keyset cursor: resume mid-timestamp-group after a batch boundary.
                 db_cursor.execute(
                     f"""SELECT * FROM {fully_qualified_table}
                         WHERE ([{incremental_col}] > %s)
@@ -250,7 +250,20 @@ def _fetch_rows(
                 log.info(
                     f"Incremental fetch {schema_name}.{table_name}: {incremental_col} > '{cursor_value}' OR (= '{cursor_value}' AND {tiebreaker_pk_column} > {last_pk_value})"
                 )
+            elif tiebreaker_pk_column:
+                # First sync for this table: no last_pk yet, but still sort by (timestamp, pk)
+                # so rows within the same timestamp arrive in a stable, deterministic order.
+                db_cursor.execute(
+                    f"""SELECT * FROM {fully_qualified_table}
+                        WHERE [{incremental_col}] > %s
+                        ORDER BY [{incremental_col}], [{tiebreaker_pk_column}]""",
+                    (cursor_value,),
+                )
+                log.info(
+                    f"Incremental fetch {schema_name}.{table_name}: {incremental_col} > '{cursor_value}' (ordered by {incremental_col}, {tiebreaker_pk_column})"
+                )
             else:
+                # Composite or missing natural PK — fall back to timestamp-only ordering.
                 db_cursor.execute(
                     f"SELECT * FROM {fully_qualified_table} WHERE [{incremental_col}] > %s ORDER BY [{incremental_col}]",
                     (cursor_value,),
