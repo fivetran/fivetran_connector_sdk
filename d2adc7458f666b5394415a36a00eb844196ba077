@@ -1,0 +1,23 @@
+examples/common_patterns_for_connectors/records_with_no_created_at_timestamp/connector.py
+  63865f0315c36751 1-2,11,14-19,21-24,28,36-37,39-40,42-46,53-217,219-227,235-239,243-247,255-259,263-275,281,283,289,291-299,317-319,321-331,334-336,338-345,347-359,370-372
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "d2adc7458f666b5394415a36a00eb844196ba077",
+  "prompts": {
+    "63865f0315c36751": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4db356ff-c9de-4eb7-bee7-41815e92c587",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 441,
+      "total_deletions": 133,
+      "accepted_lines": 409,
+      "overriden_lines": 12
+    }
+  }
+}
