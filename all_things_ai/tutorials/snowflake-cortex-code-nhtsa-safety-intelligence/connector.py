@@ -28,6 +28,9 @@ import time
 # For making HTTP requests to external APIs
 import requests
 
+# For URL-encoding user-supplied path segments (vPIC GetModelsForMake/{make})
+import urllib.parse
+
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
@@ -121,6 +124,10 @@ def validate_configuration(configuration: dict):
             raise ValueError("snowflake_account is required when enable_cortex is true")
         if not snowflake_pat_token:
             raise ValueError("snowflake_pat_token is required when enable_cortex is true")
+        if snowflake_account.startswith(("http://", "https://")):
+            raise ValueError(
+                "snowflake_account must be a hostname (no scheme), " f"got: {snowflake_account}"
+            )
         if not snowflake_account.endswith("snowflakecomputing.com"):
             raise ValueError("snowflake_account must end with 'snowflakecomputing.com'")
 
@@ -303,7 +310,12 @@ def fetch_vehicle_specs(session, make):
     Returns:
         List of vehicle spec record dictionaries
     """
-    url = f"{__BASE_URL_VPIC}/GetModelsForMake/{make}"
+    # URL-encode the make path segment. AI-recommended makes (or user-supplied
+    # seed_make values) may contain spaces ("Land Rover"), slashes
+    # ("Mercedes/Benz"), or other URL-reserved characters that would otherwise
+    # produce malformed URLs or inject unintended path segments.
+    encoded_make = urllib.parse.quote(make, safe="")
+    url = f"{__BASE_URL_VPIC}/GetModelsForMake/{encoded_make}"
     params = {"format": "json"}
 
     data = fetch_data_with_retry(session, url, params=params)
@@ -813,6 +825,7 @@ def run_discovery_phase(
                 total_complaints,
             ),
             vehicles_investigated,
+            enrichment_count,
         )
 
     # Build discovery prompt and call Cortex Agent
@@ -835,6 +848,7 @@ def run_discovery_phase(
                 total_complaints,
             ),
             vehicles_investigated,
+            enrichment_count,
         )
 
     # Upsert discovery insight
@@ -883,6 +897,7 @@ def run_discovery_phase(
                 total_complaints,
             ),
             vehicles_investigated,
+            enrichment_count,
         )
     vehicles_to_fetch = [v for v in recommended if isinstance(v, dict)][:max_discoveries]
 
@@ -956,6 +971,7 @@ def run_discovery_phase(
             total_complaints,
         ),
         vehicles_investigated,
+        enrichment_count,
     )
 
 
@@ -1077,7 +1093,11 @@ def update(configuration: dict, state: dict):
             # Create Cortex session for connection pooling across discovery + synthesis
             cortex_session = _create_cortex_session(configuration)
 
-            aggregates, vehicles_investigated = run_discovery_phase(
+            max_enrichments = int(
+                configuration.get("max_enrichments", str(__DEFAULT_MAX_ENRICHMENTS))
+            )
+
+            aggregates, vehicles_investigated, enrichment_count = run_discovery_phase(
                 session,
                 configuration,
                 seed_recalls,
@@ -1086,8 +1106,12 @@ def update(configuration: dict, state: dict):
                 cortex_session,
             )
 
-            # Phase 3: Cross-vehicle synthesis (if depth >= 2 and we have multiple vehicles)
-            if discovery_depth >= 2 and len(vehicles_investigated) > 1:
+            # Phase 3: Cross-vehicle synthesis. Gated on three conditions:
+            # - discovery_depth >= 2 (user opted into synthesis)
+            # - len(vehicles_investigated) > 1 (something to synthesize across)
+            # - enrichment_count < max_enrichments (budget remaining for one more Cortex call)
+            budget_remaining = enrichment_count < max_enrichments
+            if discovery_depth >= 2 and len(vehicles_investigated) > 1 and budget_remaining:
                 log.info("Phase 3: Starting cross-vehicle synthesis")
                 run_synthesis_phase(
                     configuration,
