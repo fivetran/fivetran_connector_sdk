@@ -220,18 +220,26 @@ def validate_configuration(configuration: dict):
                 f"Got: {snowflake_account}"
             )
 
-    # Validate numeric fields (skip placeholders; enforce a sanity max for max_seed_trials)
-    numeric_fields = ["max_seed_trials", "max_discoveries", "max_debates", "page_size"]
+    # Validate numeric fields. Each field consumed via int() at runtime must be
+    # in this loop. Placeholder values fall through to the runtime default;
+    # values must be positive integers (zero or negative rejected).
+    numeric_fields = [
+        "max_seed_trials",
+        "max_discoveries",
+        "max_debates",
+        "page_size",
+        "cortex_timeout",
+    ]
     for field in numeric_fields:
         value = configuration.get(field)
-        if _is_placeholder(value):
+        if value is None or _is_placeholder(value):
             continue
         try:
             int_value = int(value)
-            if int_value < 0:
-                raise ValueError(f"{field} must be non-negative, got: {value}")
         except (ValueError, TypeError):
-            raise ValueError(f"{field} must be a valid integer, got: {value}")
+            raise ValueError(f"{field} must be a positive integer, got: {value!r}")
+        if int_value <= 0:
+            raise ValueError(f"{field} must be a positive integer, got: {value!r}")
 
     # Guard against unbounded memory use: cap max_seed_trials at 500
     max_seed = _optional_int(configuration, "max_seed_trials", __DEFAULT_MAX_SEED_TRIALS)
@@ -536,6 +544,12 @@ def fetch_and_upsert_seed_trials(session, configuration, state):
     )
 
     while total_upserted < max_seed:
+        # Capture the token used to fetch THIS page BEFORE we fetch — needed
+        # so a capped sync can persist the current-page token (not the next
+        # page's) and re-fetch THIS page on resume to pick up records that
+        # didn't fit in the cap. Without this, capping mid-page silently
+        # skips the unread tail of the page on the next sync.
+        current_page_token = params.get("pageToken")
         data = fetch_data_with_retry(session, __CT_BASE_URL, params=params)
         studies = data.get("studies", [])
         total_count = data.get("totalCount")
@@ -606,13 +620,20 @@ def fetch_and_upsert_seed_trials(session, configuration, state):
         reached_cap = total_upserted >= max_seed
 
         if reached_cap and next_token:
-            # We still have capacity elsewhere in the window; persist the token so
-            # the next sync resumes exactly where we stopped, and advance the
-            # composite cursor conservatively (oldest fetched date + the nct_ids
-            # we already synced at that date).
-            state["seed_page_token"] = next_token
-            if oldest_in_page:
-                _advance_cursor(state, oldest_in_page, [], last_update_date, synced_at_cursor)
+            # Capped mid-page. Persist the CURRENT page's token (not the next
+            # one) so the next sync re-fetches THIS page and the unread tail
+            # is picked up. The composite cursor (latest_in_page +
+            # nct_ids_at_latest_in_page) ensures already-synced records are
+            # skipped on the re-fetch via _should_skip_for_incremental.
+            state["seed_page_token"] = current_page_token
+            if latest_in_page:
+                _advance_cursor(
+                    state,
+                    latest_in_page,
+                    nct_ids_at_latest_in_page,
+                    last_update_date,
+                    synced_at_cursor,
+                )
                 last_update_date = state["last_update_post_date"]
                 synced_at_cursor = set(state["synced_nct_ids_at_cursor"])
         elif not next_token:
@@ -1282,7 +1303,7 @@ def run_debate_phase(configuration, trial_records, state):
     Returns:
         Tuple of (debate_count, disagreement_count)
     """
-    max_debates = int(configuration.get("max_debates", str(__DEFAULT_MAX_DEBATES)))
+    max_debates = _optional_int(configuration, "max_debates", __DEFAULT_MAX_DEBATES)
     debate_count = 0
     disagreement_count = 0
 
