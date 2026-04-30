@@ -32,6 +32,9 @@ import json
 # For time-based operations and rate limiting
 import time
 
+# For URL-encoding user-supplied path segments
+import urllib.parse
+
 # For generating unique IDs for Genie Space config elements
 import uuid
 
@@ -69,6 +72,9 @@ __DEFAULT_BATCH_SIZE = 25
 __DEFAULT_MAX_ENRICHMENTS = 10
 __DEFAULT_DATABRICKS_MODEL = "databricks-claude-sonnet-4-6"
 __DEFAULT_DATABRICKS_TIMEOUT = 120
+
+# Best Buy Products API hard limit on pageSize per request.
+__BESTBUY_API_MAX_PAGE_SIZE = 100
 
 # Databricks SQL Statement API
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
@@ -371,6 +377,17 @@ def call_ai_query(session, configuration, prompt):
         sql_state = result.get("status", {}).get("state", "")
 
         statement_id = result.get("statement_id")
+
+        # Pre-poll guard: when state is PENDING/RUNNING the initial response is
+        # structurally allowed to omit statement_id. Polling f"{url}/None"
+        # silently 404s and the failure mode is invisible. Surface it instead.
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                "ai_query() initial response state=%s but missing statement_id; "
+                "cannot poll. Returning None." % sql_state
+            )
+            return None
+
         poll_count = 0
         max_polls = 12
 
@@ -460,7 +477,9 @@ def build_product_record(product):
         "customer_review_average": product.get("customerReviewAverage"),
         "customer_review_count": product.get("customerReviewCount"),
         "manufacturer": product.get("manufacturer"),
-        "short_description": (product.get("shortDescription") or "")[:500] or None,
+        "short_description": (
+            (product.get("shortDescription") or "")[:__MAX_DESCRIPTION_CHARS] or None
+        ),
         "category": categories[-1] if categories else None,
         "category_path": json.dumps(categories) if categories else None,
         "condition": product.get("condition"),
@@ -642,28 +661,73 @@ def update(configuration: dict, state: dict):
         # --- Phase 1: MOVE ---
         log.info("Phase 1 (MOVE): Fetching products from Best Buy")
 
-        params = {
-            "apiKey": api_key,
-            "format": "json",
-            "pageSize": min(batch_size, max_products),
-            "show": __BESTBUY_PRODUCT_FIELDS,
-            "sort": "customerReviewCount.dsc",
-        }
-
-        # Best Buy category filter goes in the URL path,
-        # not as a query parameter
+        # Best Buy category filter goes in the URL path. URL-encode the
+        # user-supplied value so spaces and reserved chars (e.g., parens)
+        # cannot break the URL or inject path segments.
         if search_category:
-            fetch_url = f"{__BASE_URL_BESTBUY}" f"(categoryPath.name={search_category})"
+            encoded_category = urllib.parse.quote(search_category, safe="")
+            fetch_url = f"{__BASE_URL_BESTBUY}(categoryPath.name={encoded_category})"
         else:
             fetch_url = __BASE_URL_BESTBUY
 
-        data = fetch_data_with_retry(session, fetch_url, params=params)
-        products = data.get("products", [])
-        total = data.get("total", 0)
+        # Best Buy caps a single page at __BESTBUY_API_MAX_PAGE_SIZE; iterate
+        # pages until we hit max_products or the API returns no more.
+        page_size = min(batch_size, max_products, __BESTBUY_API_MAX_PAGE_SIZE)
+        page = 1
+        total_synced = 0
+        enriched_count = 0
+        api_total = None
 
-        log.info(f"Best Buy reports {total} products, fetched {len(products)}")
+        while total_synced < max_products:
+            params = {
+                "apiKey": api_key,
+                "format": "json",
+                "pageSize": page_size,
+                "page": page,
+                "show": __BESTBUY_PRODUCT_FIELDS,
+                "sort": "customerReviewCount.dsc",
+            }
+            data = fetch_data_with_retry(session, fetch_url, params=params)
+            products = data.get("products", [])
 
-        if not products:
+            if api_total is None:
+                api_total = data.get("total", 0)
+                log.info(f"Best Buy reports {api_total} products, max_products={max_products}")
+
+            if not products:
+                break
+
+            for product in products:
+                if total_synced >= max_products:
+                    break
+
+                record = build_product_record(product)
+                if not record.get("sku"):
+                    continue
+
+                # Enrich if enabled and within budget
+                if is_enrichment and enriched_count < max_enrichments:
+                    has_content = record.get("name") and record.get("sale_price")
+                    if has_content:
+                        enrichment = enrich_product(session, configuration, record)
+                        record.update(enrichment)
+                        enriched_count += 1
+
+                flattened = flatten_dict(record)
+
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The first argument is the name of the destination table.
+                # The second argument is a dictionary containing the record to be upserted.
+                op.upsert(table="products_enriched", data=flattened)
+
+                total_synced += 1
+
+            # Stop if the API page returned fewer than requested (final page).
+            if len(products) < page_size:
+                break
+            page += 1
+
+        if total_synced == 0:
             log.info("No products found")
             # Save the progress by checkpointing the state. This is important for ensuring that
             # the sync process can resume from the correct position in case of next sync or
@@ -676,33 +740,6 @@ def update(configuration: dict, state: dict):
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state=state)
             return
-
-        # Process products
-        total_synced = 0
-        enriched_count = 0
-
-        for product in products[:max_products]:
-            record = build_product_record(product)
-
-            if not record.get("sku"):
-                continue
-
-            # Enrich if enabled and within budget
-            if is_enrichment and enriched_count < max_enrichments:
-                has_content = record.get("name") and record.get("sale_price")
-                if has_content:
-                    enrichment = enrich_product(session, configuration, record)
-                    record.update(enrichment)
-                    enriched_count += 1
-
-            flattened = flatten_dict(record)
-
-            # The 'upsert' operation is used to insert or update data in the destination table.
-            # The first argument is the name of the destination table.
-            # The second argument is a dictionary containing the record to be upserted.
-            op.upsert(table="products_enriched", data=flattened)
-
-            total_synced += 1
 
         log.info(f"Phase 1 complete: {total_synced} products, {enriched_count} enriched")
 
