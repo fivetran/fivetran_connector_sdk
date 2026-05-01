@@ -486,8 +486,19 @@ def call_ai_query(session, configuration, prompt):
         state = result.get("status", {}).get("state", "")
 
         # Poll for PENDING/RUNNING statements that exceed the
-        # SQL wait timeout (large enrichment prompts)
+        # SQL wait timeout (large enrichment prompts).
+        # Pre-poll guard: when state is PENDING/RUNNING the initial response
+        # is structurally allowed to omit statement_id. Polling f"{url}/None"
+        # silently 404s 12 times before giving up; the failure mode is invisible.
+        # Surface it instead. Same fix shape as PR #570 NOAA.
         statement_id = result.get("statement_id")
+        if state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                f"ai_query() returned state={state} without a statement_id; "
+                "cannot poll. Returning None."
+            )
+            return None
+
         poll_count = 0
         max_polls = 12
         poll_interval_seconds = 10
