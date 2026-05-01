@@ -38,7 +38,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Optional Genie Space creation with financial risk-specific instructions and sample questions
 - Data-only mode when `enable_enrichment` is set to `false` for syncing filings without AI analysis
 - Per-company checkpointing for reliable resumable syncs across all three phases
-- Exponential backoff retry logic for both SEC EDGAR and Databricks SQL Statement API calls
+- Exponential backoff retry logic for SEC EDGAR API calls; bounded async polling (12 attempts × 10s) on PENDING/RUNNING ai_query() statements with explicit pre-poll guard for missing `statement_id`
 - Async polling for long-running ai_query() statements that exceed the SQL wait timeout
 
 ## Configuration file

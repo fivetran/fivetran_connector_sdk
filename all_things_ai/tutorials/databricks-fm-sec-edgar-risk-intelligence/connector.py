@@ -52,7 +52,7 @@ from fivetran_connector_sdk import Operations as op
 __BASE_URL_SUBMISSIONS = "https://data.sec.gov/submissions"
 __BASE_URL_FACTS = "https://data.sec.gov/api/xbrl/companyfacts"
 __API_TIMEOUT_SECONDS = 30
-__SEC_USER_AGENT = "Fivetran-SEC-EDGAR-Databricks-Connector/1.0 " "(kelly.kohlleffel@fivetran.com)"
+__SEC_USER_AGENT = "Fivetran-SEC-EDGAR-Databricks-Connector/1.0 (developers@fivetran.com)"
 
 # Retry and Rate Limiting Constants
 __MAX_RETRIES = 3
@@ -61,7 +61,6 @@ __RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504]
 __SEC_RATE_LIMIT_DELAY = 0.15
 
 # Default Configuration Values
-__DEFAULT_MAX_SEED_COMPANIES = 5
 __DEFAULT_MAX_DISCOVERY_COMPANIES = 3
 __DEFAULT_MAX_ENRICHMENTS = 10
 __DEFAULT_DATABRICKS_MODEL = "databricks-claude-sonnet-4-6"
@@ -70,7 +69,6 @@ __DEFAULT_DATABRICKS_TIMEOUT = 120
 # Databricks SQL Statement API Configuration
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
-__DATABRICKS_RATE_LIMIT_DELAY = 0.5
 
 # Genie Space API Configuration
 __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
@@ -247,9 +245,22 @@ def validate_configuration(configuration: dict):
         ValueError: if any required configuration parameter is
             missing or invalid.
     """
-    # seed_companies is always required
-    if _is_placeholder(configuration.get("seed_companies")):
+    # seed_companies is always required and must be a comma-separated list
+    # of one-or-more numeric CIKs (10-digit zero-padded or any positive int).
+    seed_value = configuration.get("seed_companies")
+    if _is_placeholder(seed_value):
         raise ValueError("seed_companies is required (comma-separated CIK numbers)")
+    seed_parts = [s.strip() for s in str(seed_value).split(",") if s.strip()]
+    if not seed_parts:
+        raise ValueError("seed_companies must contain at least one CIK after parsing")
+    for part in seed_parts:
+        if not part.isdigit():
+            raise ValueError(f"seed_companies entries must be numeric CIKs, got: {part!r}")
+    if len(seed_parts) > __MAX_SEED_COMPANIES_CEILING:
+        raise ValueError(
+            f"seed_companies has {len(seed_parts)} entries, exceeds ceiling "
+            f"of {__MAX_SEED_COMPANIES_CEILING}."
+        )
 
     # Validate numeric parameters
     numeric_params = {
@@ -510,12 +521,14 @@ def extract_latest_facts(facts_data, cik):
         if not usd_values:
             continue
 
-        # Filter to 10-K and 10-Q filings, get latest
+        # Filter to 10-K and 10-Q filings, get the actual most recent by
+        # filed date. SEC API ordering is not guaranteed, so sort explicitly
+        # rather than trusting list position.
         filing_values = [v for v in usd_values if v.get("form") in ("10-K", "10-Q")]
         if not filing_values:
             continue
 
-        latest = filing_values[-1]
+        latest = max(filing_values, key=lambda v: v.get("filed", ""))
 
         records.append(
             {
@@ -627,8 +640,19 @@ def call_ai_query(session, configuration, prompt):
         sql_state = result.get("status", {}).get("state", "")
 
         # Poll for PENDING/RUNNING statements (synthesis prompts
-        # can exceed the 50s wait_timeout)
+        # can exceed the 50s wait_timeout). Pre-poll guard: when state
+        # is PENDING/RUNNING the initial response is structurally allowed
+        # to omit statement_id; polling f"{url}/None" silently 404s 12
+        # times. Surface the failure mode explicitly. Same fix shape as
+        # PR #570 NOAA and PR #567 FDA.
         statement_id = result.get("statement_id")
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                f"ai_query() returned state={sql_state} without a statement_id; "
+                "cannot poll. Returning None."
+            )
+            return None
+
         poll_count = 0
         max_polls = 12
         poll_interval_seconds = 10
@@ -923,7 +947,9 @@ def run_discovery_phase(
     )
     enrichment_count = 0
     all_companies = list(seed_companies)
-    discovered_ciks = set()
+    # Initialize discovered_ciks with the seed CIKs so that LLM-recommended
+    # companies that overlap the seed set are not re-fetched.
+    discovered_ciks = {cik for cik, _ in seed_companies}
 
     for cik, name in seed_companies:
         if enrichment_count >= max_enrichments:
@@ -1126,6 +1152,11 @@ def create_genie_space(session, configuration, state):
     token = configuration.get("databricks_token")
     warehouse_id = configuration.get("databricks_warehouse_id")
     table_identifier = configuration.get("genie_table_identifier")
+    timeout = _optional_int(
+        configuration,
+        "databricks_timeout",
+        __DEFAULT_DATABRICKS_TIMEOUT,
+    )
 
     url = f"{workspace_url}{__GENIE_SPACE_ENDPOINT}"
 
@@ -1165,7 +1196,7 @@ def create_genie_space(session, configuration, state):
     }
 
     try:
-        response = session.post(url, headers=headers, json=payload, timeout=60)
+        response = session.post(url, headers=headers, json=payload, timeout=timeout)
         response.raise_for_status()
         result = response.json()
         space_id = result.get("space_id")
@@ -1242,6 +1273,10 @@ def update(configuration: dict, state: dict):
             if name:
                 seed_companies.append((cik, name))
                 all_facts[cik] = facts
+            # Per-company checkpoint inside Phase 1 so the seed loop is
+            # resumable from any partial-failure boundary, matching the
+            # discovery and debate-phase checkpointing cadence.
+            op.checkpoint(state=state)
 
         log.info(f"Phase 1 complete: {len(seed_companies)} " f"companies fetched")
 
