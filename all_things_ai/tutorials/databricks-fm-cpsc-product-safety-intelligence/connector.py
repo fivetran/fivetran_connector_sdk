@@ -78,7 +78,6 @@ __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
 __SQL_POLL_INTERVAL_SECONDS = 10
 __SQL_MAX_POLL_ATTEMPTS = 12
-__DATABRICKS_RATE_LIMIT_DELAY = 0.5
 
 # Genie Space API Configuration
 __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
@@ -224,6 +223,8 @@ def validate_configuration(configuration: dict):
     numeric_params = {
         "max_recalls": "max_recalls must be a positive integer",
         "max_enrichments": ("max_enrichments must be a positive integer"),
+        "lookback_days": "lookback_days must be a positive integer",
+        "databricks_timeout": "databricks_timeout must be a positive integer",
     }
 
     for param, error_msg in numeric_params.items():
@@ -464,8 +465,18 @@ def call_ai_query(session, configuration, prompt):
         result = response.json()
         sql_state = result.get("status", {}).get("state", "")
 
-        # Poll for PENDING/RUNNING statements
+        # Poll for PENDING/RUNNING statements. Pre-poll guard: when state is
+        # PENDING/RUNNING the initial response is structurally allowed to omit
+        # statement_id; polling f"{url}/None" silently 404s. Surface explicitly.
+        # Same fix shape as PR #570 NOAA / PR #567 FDA / PR #568 SEC EDGAR.
         statement_id = result.get("statement_id")
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning(
+                f"ai_query() returned state={sql_state} without a statement_id; "
+                "cannot poll. Returning None."
+            )
+            return None
+
         poll_count = 0
 
         while sql_state in ("PENDING", "RUNNING") and poll_count < __SQL_MAX_POLL_ATTEMPTS:
