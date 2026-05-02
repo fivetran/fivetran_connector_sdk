@@ -22,7 +22,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init --template examples/common_patterns_for_connectors/history_mode_mimicry
+fivetran init --template examples/common_patterns_for_connectors/history_mode
 ```
 
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
