@@ -44,7 +44,7 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ## Examples
 
-Explore working connector code examples for common Connector SDK use cases. These [examples](https://github.com/fivetran/fivetran_csdk_connectors/blob/main/examples/README.md) help you understand core implementation patterns and quickly adapt them to your own connector.
+Explore working connector code examples for common Connector SDK use cases. These [examples](examples/README.md) help you understand core implementation patterns and quickly adapt them to your own connector.
 
 ## Community connectors
 
@@ -52,7 +52,7 @@ Explore ready-to-use full connectors that require only minimal changes to get st
 
 ## AI and Connector SDK
 
-AI coding tools can significantly speed up Connector SDK development. Start with the [Readme](https://github.com/fivetran/fivetran_connector_sdk/blob/main/all_things_ai/tutorials/README.md) to learn how to configure AI tools for Connector SDK work, then use [agents.md](https://github.com/fivetran/fivetran_connector_sdk/blob/main/all_things_ai/ai_agents/AGENTS.md) in any IDE, API call, or AI conversation to develop Connector SDK solutions rapidly while following best practices. For examples, see [Connectors built using an AI agent](https://github.com/fivetran/fivetran_csdk_connectors/blob/main/examples/README.md#ai-assistedconnectorexamples).
+AI coding tools can significantly speed up Connector SDK development. Start with the [Readme](https://github.com/fivetran/fivetran_connector_sdk/blob/main/all_things_ai/tutorials/README.md) to learn how to configure AI tools for Connector SDK work, then use [agents.md](https://github.com/fivetran/fivetran_connector_sdk/blob/main/all_things_ai/ai_agents/AGENTS.md) in any IDE, API call, or AI conversation to develop Connector SDK solutions rapidly while following best practices. For examples, see [Connectors built using an AI agent](examples/README.md#ai-assisted-connector-examples).
 
 ## Issue
 
@@ -60,7 +60,7 @@ Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connecto
 
 ## Fivetran platform features
 
-- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
+- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/blob/main/examples/common_patterns_for_connectors/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
 
 
 ## Support
@@ -96,7 +96,7 @@ This repository is open source and intended specifically for Connector SDK examp
 ### Getting started
 
 Before contributing, please:
-- Read through existing [examples](#quickstart-examples) to understand our coding patterns
+- Read through existing [examples](examples/README.md#quickstart-examples) to understand our coding patterns
 - Run the setup script: `.github/scripts/setup-hooks.sh`
 - Follow the [Python coding standards](https://github.com/fivetran/fivetran_connector_sdk/blob/main/PYTHON_CODING_STANDARDS.md)
 - Test your connector thoroughly before submitting
