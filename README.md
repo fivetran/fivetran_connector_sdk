@@ -113,6 +113,8 @@ There are many Community Connectors (nearly 100) and we are adding more all the 
 - [ibm_db2](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ibm_db2) - This example shows how to connect and sync data from IBM Db2 using Connector SDK. It uses the `ibm_db` library to connect to the database and fetch data.
 - [ibm_informix_using_ibm_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ibm_informix_using_ibm_db) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `ibm_db` library to connect to the Informix database and fetch data.
 - [i3_verticals](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/i3_verticals) - This example shows how to sync payment and transaction data from the I3 Verticals Burton Platform REST API using Connector SDK. It fetches charges, refunds, customers, distributions, merchants, and accounts. You need to provide your I3 Verticals OAuth credentials for this example to work.
+- [ibm_db2_log_based_replication](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ibm/ibm_db2_log_based_replication) - This example demonstrates log-based Change Data Capture (CDC) for IBM Db2 using the ASN SQL Replication framework. The `asncap` daemon reads the Db2 transaction log and writes every INSERT, UPDATE, and DELETE to a Change Data table; the connector reads exclusively from that table after the initial load, making this genuine log-based replication without polling the source.
+- [ibm_informix_using_ibm_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/ibm/ibm_informix_using_ibm_db) - This example shows how to connect and sync data from IBM Informix using Connector SDK. This example uses the `ibm_db` library to connect to the Informix database and fetch data.
 - [influx_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/influx_db) - This example shows how to sync data from InfluxDB using Connector SDK. It uses the `influxdb3_python` library to connect to InfluxDB and fetch time-series data from a specified measurement.
 - [iterate](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/iterate) - This example shows how to sync NPS survey data from the Iterate REST API and load it into your destination using Connector SDK. The connector fetches NPS surveys and their individual responses, providing complete survey analytics data for downstream analysis.
 - [janus_graph](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/janus_graph) - This example shows how to sync data from the Janus Graph database using the Connector SDK. You need to provide your Janus Graph credentials for this example to work.
@@ -157,6 +159,7 @@ There are many Community Connectors (nearly 100) and we are adding more all the 
   - [large_data_volumes](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/redshift/large_data_volume) - This example shows how to sync large data volumes from Redshift by using Connector SDK. You need to provide your Redshift credentials for this example to work.
   - [using_unload](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/redshift/using_unload) - This example shows how to sync data from Redshift with Connector SDK using Redshift's UNLOAD to S3 feature. You need to provide your Redshift and S3 credentials for this example to work.
 - [rethink_db](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/rethink_db) - This example shows how to sync data from RethinkDB, an open-source database designed for real-time applications, using Connector SDK. It features automatic schema discovery, intelligent incremental syncing using timestamp fields, and complex data type handling. You need to provide your RethinkDB connection details for this example to work.
+- [rillet](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/rillet) - This example shows how to use the Connector SDK to integrate with Rillet's API and sync accounting data. You need to provide the API key for this example to work.
 - [s3_csv_validation](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/s3_csv_validation) - This is an example of how to read .CSV file from Amazon S3 and validate the data. You need to provide your AWS S3 credentials for this example to work.
 - [sam_gov](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/sam_gov) - This example shows how to sync government contracting opportunities from the SAM.gov (System for Award Management) API using the Connector SDK. It demonstrates incremental sync with a sliding-window strategy, pagination for large datasets, and a normalized data structure with breakout tables. You need to provide your SAM.gov API key for this example to work.
 - [SAP HANA SQL](https://github.com/fivetran/fivetran_connector_sdk/tree/main/connectors/sap_hana_sql) - This example uses hdbcli to connect to SAP HANA SQL Server for syncing data using Connector SDK. You need to provide your SAP HANA SQL Server credentials for this example to work.
@@ -216,6 +219,8 @@ These examples are designed to help you get started with the Connector SDK quick
 
 - [parsing_json_response_in_class](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/parsing_json_response_in_class) - This example shows how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation.
 
+- [pyproject_toml](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/quickstart_examples/pyproject_toml) - This example shows how to use `pyproject.toml` for dependency management instead of `requirements.txt`. It fetches exchange rates from the Frankfurter API and uses the `tenacity` library (declared in `pyproject.toml`) for retry logic with exponential backoff.
+
 </details>
 
 ### Common Connector SDK patterns
@@ -246,7 +251,7 @@ These examples demonstrate common patterns and best practices for building conne
 - [marketstack](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/marketstack) - This code retrieves different stock tickers and the daily price for those tickers using Marketstack API. Refer to Marketstack's [documentation](https://polygon.io/docs/stocks/getting-started).
 - [multiple_tables_with_cursors](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/multiple_tables_with_cursors) - The parent-child relationship between tables from incremental API endpoints, with the complex cursor.
 - [time_window](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/cursors/time_window) - This is an example of how to move the state forward in time by a set number of days until current time is reached.
-- [records_with_no_created_at_timestamp](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/records_with_no_created_at_timestamp) - This example shows how to work with records where the source does not provide a `created_at` (or equivalent) field. It is useful when it's desired to keep track of when the record was first observed.
+- [history_mode](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/history_mode) - This example demonstrates how to mimic [Fivetran History Mode](https://fivetran.com/docs/core-concepts/syncoverview/sync-modes/history-mode) using a composite primary key. The Connector SDK does not natively support History Mode, but by including a timestamp column (e.g. `_LastUpdatedInstant`) as part of the composite primary key, each update to a record produces a new row rather than overwriting the existing one. Uses a SQL Server source via `python-tds`.
 
 #### Export
 
@@ -275,6 +280,8 @@ These examples demonstrate common patterns and best practices for building conne
 
 - [specified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/specified_types) - This example declares a schema and upserts all data types.
 - [unspecified_types](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/unspecified_types) - This example upserts all data types without specifying a schema.
+- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/schema_change) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
+
 
 #### Error handling and resilience
 
@@ -331,10 +338,6 @@ These examples rely on features that are currently in Private preview. To enable
 
 ## Issue
 Found an issue? Submit the [issue](https://github.com/fivetran/fivetran_connector_sdk/issues) and get connected to a Fivetran developer.
-
-## Fivetran platform features
-- [schema_change](https://github.com/fivetran/fivetran_connector_sdk/fivetran_platform_features/schema_change/README.md) - This is an example that illustrates how a deployed Connector SDK connection uses Fivetran's native [data type changes](https://fivetran.com/docs/core-concepts#changingdatatype) to change data types in the destination if they are changed in the source data.
-
 
 ## Support
 Learn how we [support Fivetran Connector SDK](https://fivetran.com/docs/connector-sdk#support).
