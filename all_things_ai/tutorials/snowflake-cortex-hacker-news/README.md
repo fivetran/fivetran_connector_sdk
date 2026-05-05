@@ -65,7 +65,7 @@ Configuration parameters:
 
 - `max_stories` (optional): Maximum number of stories to sync per run, defaults to `50`
 - `batch_size` (optional): Number of stories to process before checkpointing, defaults to `10`
-- `enable_cortex` (optional): Enable or disable Cortex AI enrichment, defaults to `true
+- `enable_cortex` (optional): Enable or disable Cortex AI enrichment, defaults to `true`
 - `snowflake_account` (conditional): Full Snowflake account domain, required when enable_cortex is `true`
 - `snowflake_pat_token` (conditional): Snowflake personal access token, required when enable_cortex is `true`
 - `cortex_model` (optional): Cortex LLM model name for inference, defaults to `mistral-large2`
@@ -89,7 +89,7 @@ Snowflake Cortex REST API:
   1. Go to **Profile** > **Account Settings**.
   2. Select **Security** and then go to **Personal Access Tokens**.
   3. You must grant the user the `snowflake.cortex_user` database role for Cortex inference access.
-- The token is sent in the Authorization header as `Bearer <token>` on every Cortex API request
+- The token is sent in the Authorization header as `Bearer <token>` on every Cortex API request.
 
 
 ## Pagination
