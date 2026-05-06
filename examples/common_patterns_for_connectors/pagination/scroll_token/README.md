@@ -50,7 +50,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 ## Configuration file
 This example does not require a configuration file.
 
-For production connectors, `configuration.json` might contain API tokens, base URLs, or page size settings.
+For production connectors, `configuration.json` might contain API tokens or base URLs.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -58,7 +58,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 ## Requirements file
 This connector has no additional Python dependencies.
 
-The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment.
+Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
 
 ## Authentication
@@ -85,9 +85,9 @@ Note: different APIs use different field names for the scroll token (e.g. `curso
 
 
 ## Error handling
+- Exceptions from `sync_items()` are caught in `update()` and re-raised as `RuntimeError` with context preserved.
 - API errors raise exceptions via `raise_for_status()`.
-- Empty pages halt pagination gracefully.
-- Missing scroll token in response is treated as end of data.
+- Empty pages and missing scroll token are both treated as end of data — state is cleared and checkpointed before exiting.
 
 
 ## Tables created
