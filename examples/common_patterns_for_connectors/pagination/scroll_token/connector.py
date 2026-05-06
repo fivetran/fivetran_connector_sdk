@@ -8,7 +8,7 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 """
 
 # Import requests to make HTTP calls to API.
-import requests as rq
+import requests
 
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like update() and schema()
@@ -21,6 +21,29 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 __BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
+__STATE_KEY_SCROLL_TOKEN = "scroll_token"
+__RESPONSE_KEY_SCROLL_PARAM = "scroll_param"
+__RESPONSE_KEY_DATA = "data"
+__REQUEST_TIMEOUT_SECONDS = 30
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing.
+    """
+    # No configuration required for this example connector.
+    # When building your own connector, validate required keys here.
+    # Example:
+    # required_configs = ["api_key", "base_url"]
+    # for key in required_configs:
+    #     if key not in configuration:
+    #         raise ValueError(f"Missing required configuration value: {key}")
+    pass
 
 
 def schema(configuration: dict):
@@ -66,13 +89,13 @@ def update(configuration: dict, state: dict):
         "Install and start it with: pip install fivetran-api-playground && fivetran_api_playground start. "
         "See https://pypi.org/project/fivetran-api-playground/ for details."
     )
-    # Retrieve the scroll token from state. An empty string means this is the first page of a new sync.
-    scroll_token = state.get("scroll_token", "")
 
-    try:
-        sync_items(__BASE_URL, scroll_token, state)
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}") from e
+    validate_configuration(configuration)
+
+    # Retrieve the scroll token from state. An empty string means this is the first page of a new sync.
+    scroll_token = state.get(__STATE_KEY_SCROLL_TOKEN, "")
+
+    sync_items(__BASE_URL, scroll_token, state)
 
 
 def sync_items(base_url, scroll_token, state):
@@ -92,6 +115,10 @@ def sync_items(base_url, scroll_token, state):
           ],
           "scroll_param": "n3h3nbj23n-213f-wef2-344s-9n3idn34if"
         }
+    Args:
+        base_url: The URL to the API endpoint.
+        scroll_token: The token representing the current scroll position. Empty string for the first page.
+        state: A dictionary representing the current state of the sync.
     """
     while True:
         # Build request params. The scroll token is absent on the first request and present on all subsequent ones.
@@ -99,15 +126,19 @@ def sync_items(base_url, scroll_token, state):
         # Check your API documentation for the correct parameter name to pass.
         params = {}
         if scroll_token:
-            params["scroll_param"] = scroll_token
+            params[__RESPONSE_KEY_SCROLL_PARAM] = scroll_token
 
         response_page = get_api_response(base_url, params)
 
-        items = response_page.get("data", [])
+        items = response_page.get(__RESPONSE_KEY_DATA, [])
         if not items:
             # No records returned — pagination complete.
             # Clear the token from state so the next sync starts from the beginning.
-            state.pop("scroll_token", None)
+            state.pop(__STATE_KEY_SCROLL_TOKEN, None)
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
+            # resume from the correct position in case of next sync or interruptions.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state)
             break
 
@@ -117,15 +148,19 @@ def sync_items(base_url, scroll_token, state):
         )
 
         for user in items:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The op.upsert method is called with two arguments:
+            # - The first argument is the name of the table to upsert the data into.
+            # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table="user", data=user)
 
         # Check whether there are more pages. The API returns a scroll token for the next page,
         # or null/absent when the end of the dataset has been reached.
-        scroll_token = response_page.get("scroll_param") or ""
+        scroll_token = response_page.get(__RESPONSE_KEY_SCROLL_PARAM) or ""
 
         if not scroll_token:
             # Sync complete. Clear the token from state so the next sync starts from the beginning.
-            state.pop("scroll_token", None)
+            state.pop(__STATE_KEY_SCROLL_TOKEN, None)
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
             # resume from the correct position in case of next sync or interruptions.
             # Learn more about how and where to checkpoint by reading our best practices documentation
@@ -135,7 +170,11 @@ def sync_items(base_url, scroll_token, state):
 
         # Persist the token in state after each page.
         # If the sync is interrupted, the next run resumes from the last checkpointed token.
-        state["scroll_token"] = scroll_token
+        state[__STATE_KEY_SCROLL_TOKEN] = scroll_token
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
+        # resume from the correct position in case of next sync or interruptions.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
         op.checkpoint(state)
 
 
@@ -153,7 +192,7 @@ def get_api_response(base_url, params):
         response_page: A dictionary containing the parsed JSON response from the API.
     """
     log.info(f"Making API call to url: {base_url} with params: {params}")
-    response = rq.get(base_url, params=params)
+    response = requests.get(base_url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
     response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
     return response.json()
 
@@ -161,17 +200,14 @@ def get_api_response(base_url, params):
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-#
-# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
-#   fivetran debug
-#
-# This local testing block is provided as a convenience for quick debugging during development,
-# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
-# Note: This method is not called by Fivetran when executing your connector in production.
-# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
+# Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
+# be run directly from the command line or IDE 'run' button. This is useful for debugging while you write your code.
+# Note this method is not called by Fivetran when executing your connector in production. Please test using the
+# Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # This example does not require a configuration.json file.
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
+    # your IDE.
     connector.debug()
 
 # Resulting table:

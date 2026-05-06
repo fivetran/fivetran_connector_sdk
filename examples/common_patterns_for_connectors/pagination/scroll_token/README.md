@@ -5,8 +5,6 @@ This connector demonstrates how to implement scroll token pagination for syncing
 
 Scroll tokens are a common pattern for APIs that maintain server-side scroll state and return an opaque identifier (sometimes called `cursor`, `next_cursor`, `scroll_id`, or `scroll_param` depending on the API). The connector continues fetching pages until the API returns no token, then clears the token from state so the next sync starts fresh.
 
-This differs from the [keyset pagination example](../keyset), which combines an `updated_since` timestamp filter with a scroll token for incremental syncing. This example demonstrates the pure scroll token pattern: no filtering on the first request, just an opaque token to walk through the entire dataset page by page.
-
 This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
 
 
@@ -44,7 +42,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 - Persists the scroll token in state after each page for mid-sync resumability.
 - Clears the token from state when the full dataset has been synced.
 - Implements `op.checkpoint()` for resumable syncs.
-- Parses and upserts all paginated results into a `USER` table.
+- Parses and upserts all paginated results into a `user` table.
 
 
 ## Configuration file
@@ -56,7 +54,9 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
-This connector has no additional Python dependencies.
+This connector has no additional runtime Python dependencies beyond what the Fivetran SDK environment already provides.
+
+For local testing of this example, you must install and run the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) mock server as described in [Getting started](#getting-started). This is a local development dependency and should not be added to your `requirements.txt`.
 
 Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
 
@@ -91,7 +91,7 @@ Note: different APIs use different field names for the scroll token (e.g. `curso
 
 
 ## Tables created
-The connector creates the `USER` table:
+The connector creates the `user` table:
 
 ```
 {
