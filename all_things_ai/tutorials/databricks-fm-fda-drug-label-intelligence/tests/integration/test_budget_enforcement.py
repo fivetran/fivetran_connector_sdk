@@ -57,6 +57,43 @@ class TestMaxEnrichmentsCap:
         assert len(labels_with_enrichment) <= budget
 
 
+class TestFailedEnrichmentNotCounted:
+    """When call_ai_query returns content that extract_json_from_content
+    cannot parse, enrich_drug_label must signal failure so the budget
+    counter does not advance. Otherwise a streak of broken responses
+    would silently consume the user's max_enrichments quota."""
+
+    def test_unparseable_response_does_not_increment_counter(
+        self, base_config, captured_upserts, monkeypatch
+    ):
+        # Always return non-JSON content — extract_json_from_content returns None.
+        monkeypatch.setattr(
+            connector,
+            "call_ai_query",
+            lambda session, configuration, prompt: "the model refused to comply",
+        )
+
+        labels = [_make_label(f"set_{i:03d}") for i in range(3)]
+        base_config["enable_enrichment"] = "true"
+        base_config["max_enrichments"] = "1"
+
+        _, enriched_count, _, _ = connector.process_batch(
+            session=None,
+            configuration=base_config,
+            labels=labels,
+            is_enrichment_enabled=True,
+            enriched_count=0,
+            max_enrichments=1,
+            last_effective_time=None,
+            last_label_id=None,
+        )
+
+        # All 3 labels still upsert (with NULL enrichment columns) but the
+        # counter stays at 0 because no enrichment actually succeeded.
+        assert enriched_count == 0
+        assert len(captured_upserts["upserts"]) == 3
+
+
 class TestEnrichmentDisabledShortCircuits:
     """When enable_enrichment=false, no ai_query calls are made regardless
     of max_enrichments."""

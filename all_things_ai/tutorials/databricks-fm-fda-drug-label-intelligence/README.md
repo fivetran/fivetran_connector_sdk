@@ -89,7 +89,7 @@ Databricks access requires a personal access token (PAT) with SQL execution perm
 4. Select **Manage** next to **Access tokens**.
 5. Click **Generate new token**.
 6. Provide a description and click **Generate**.
-7. Copy the token value and set it as `databricks_token` in your `configuration.json.
+7. Copy the token value and set it as `databricks_token` in your `configuration.json`.
 
 The PAT must have permissions to execute SQL statements on the specified SQL warehouse. The `ai_query()` function is available on Databricks SQL Warehouses with Foundation Model APIs enabled.
 

@@ -287,7 +287,15 @@ def schema(configuration: dict):
         configuration: a dictionary that holds the configuration settings
             for the connector.
     """
-    return [{"table": "drug_labels_enriched", "primary_key": ["label_id"]}]
+    return [
+        {
+            "table": "drug_labels_enriched",
+            "primary_key": ["label_id"],
+            "columns": {
+                "label_id": "STRING",
+            },
+        }
+    ]
 
 
 def create_session():
@@ -584,7 +592,11 @@ def enrich_drug_label(session, configuration, sections):
         sections: Dictionary of extracted label text sections
 
     Returns:
-        Dictionary with all enrichment fields populated
+        Tuple of (enrichment_dict, success_flag). The dict is always
+        returned so the destination columns are populated (NULL on
+        failure); the flag is True only when ai_query() returned a
+        parseable JSON response. Callers should only count successful
+        enrichments against the budget.
     """
     model = _optional_str(configuration, "databricks_model", __DEFAULT_DATABRICKS_MODEL)
 
@@ -634,8 +646,9 @@ def enrich_drug_label(session, configuration, sections):
 
     content = call_ai_query(session, configuration, prompt)
     result = extract_json_from_content(content)
+    success = bool(result) and isinstance(result, dict)
 
-    if result and isinstance(result, dict):
+    if success:
         enrichment["interaction_risk_level"] = result.get("interaction_risk_level")
         enrichment["contraindication_summary"] = result.get("contraindication_summary")
         has_bbw = result.get("has_black_box_warning")
@@ -646,7 +659,7 @@ def enrich_drug_label(session, configuration, sections):
         enrichment["therapeutic_category"] = result.get("therapeutic_category")
 
     time.sleep(__DATABRICKS_RATE_LIMIT_DELAY)
-    return enrichment
+    return enrichment, success
 
 
 def build_label_record(label, label_id):
@@ -833,9 +846,13 @@ def process_batch(
                 ]
             )
             if has_content:
-                enrichment = enrich_drug_label(session, configuration, sections)
+                enrichment, enrichment_ok = enrich_drug_label(session, configuration, sections)
                 record.update(enrichment)
-                enriched_count += 1
+                # Only count toward the budget when ai_query() returned
+                # parseable JSON; failed calls leave enrichment columns
+                # NULL but do not consume the user's enrichment quota.
+                if enrichment_ok:
+                    enriched_count += 1
 
         # Flatten any remaining nested structures
         flattened = flatten_dict(record)
