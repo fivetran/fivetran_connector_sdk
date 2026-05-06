@@ -37,7 +37,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 - Tracks sync progress using a `(updated_at, id)` boundary stored in state.
 - Uses a tie-breaker `id` to handle rows that share the same `updated_at` timestamp.
 - Implements `op.checkpoint()` for resumable and incremental syncs.
-- Parses and upserts all paginated results into a `USER` table.
+- Parses and upserts all paginated results into a `user` table.
 
 
 ## Configuration file
@@ -86,13 +86,12 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 
 ## Error handling
-- Exceptions from `sync_items()` are caught in `update()` and re-raised as `RuntimeError` with context preserved.
 - SQLite connection is closed in a `finally` block inside `sync_items()` to prevent resource leaks.
 - Empty result sets halt pagination gracefully.
 
 
 ## Tables created
-The connector creates the `USER` table:
+The connector creates the `user` table:
 
 ```
 {
