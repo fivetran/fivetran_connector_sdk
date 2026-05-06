@@ -1,4 +1,4 @@
-"""This connector demonstrates keyset (seek method) pagination for syncing data from a database source.
+"""This connector demonstrates keyset pagination for syncing data from a database source.
 It queries a local SQLite database, paging through rows using a WHERE (updated_at, id) > (?, ?) boundary
 that advances after each page. The database is created and seeded automatically on the first run.
 THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA.
@@ -22,7 +22,7 @@ from fivetran_connector_sdk import Logging as log
 # For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-__PAGE_SIZE = 25
+__ROWS_PER_PAGE = 25
 __DB_FILE = "users.db"
 __STATE_KEY_UPDATED_AFTER = "updated_after"
 __STATE_KEY_LAST_ID = "last_id"
@@ -101,8 +101,7 @@ def sync_items(db_file, last_updated_at, last_id, state):
         5. Continues until no more rows are returned.
 
     Keyset pagination uses a WHERE clause on a monotonic column (updated_at) and a tie-breaker (id)
-    to skip already-seen rows without relying on OFFSET. This avoids the performance penalty and
-    row-shift issues of LIMIT/OFFSET and is recommended for large or frequently updated tables.
+    to skip already-seen rows.
 
     Query pattern:
         SELECT id, name, email, updated_at FROM users
@@ -134,7 +133,7 @@ def sync_items(db_file, last_updated_at, last_id, state):
                 ORDER BY updated_at, id
                 LIMIT ?
                 """,
-                (last_updated_at, last_id, __PAGE_SIZE),
+                (last_updated_at, last_id, __ROWS_PER_PAGE),
             )
             rows = cursor.fetchall()
 
@@ -182,34 +181,36 @@ def _seed_database_if_needed(db_file):
     log.info(f"Seeding local database '{db_file}' with sample data for the first time.")
 
     conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        CREATE TABLE users (
-            id         INTEGER PRIMARY KEY,
-            name       TEXT NOT NULL,
-            email      TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+        cursor.execute(
+            """
+            CREATE TABLE users (
+                id         INTEGER PRIMARY KEY,
+                name       TEXT NOT NULL,
+                email      TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
         )
-        """
-    )
 
-    # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
-    # Timestamps are 3 minutes apart starting from 2026-01-01, giving a spread across ~10 hours.
-    rows = [
-        (
-            i,
-            f"User {i}",
-            f"user{i}@example.com",
-            f"2026-01-01T{(i * 3) // 60:02d}:{(i * 3) % 60:02d}:00+00:00",
-        )
-        for i in range(1, 201)
-    ]
-    cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?)", rows)
+        # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
+        # Timestamps are 3 minutes apart starting from 2026-01-01, giving a spread across ~10 hours.
+        rows = [
+            (
+                i,
+                f"User {i}",
+                f"user{i}@example.com",
+                f"2026-01-01T{(i * 3) // 60:02d}:{(i * 3) % 60:02d}:00+00:00",
+            )
+            for i in range(1, 201)
+        ]
+        cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?)", rows)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+    finally:
+        conn.close()
 
     log.info("Database seeded successfully with 200 rows.")
 

@@ -1,7 +1,7 @@
 # Database Keyset Pagination Connector Example
 
 ## Connector overview
-This connector demonstrates how to implement keyset pagination (also known as the seek method) for syncing data from a relational database. The connector queries a local SQLite database that is automatically created and seeded on the first run — no external service is required.
+This connector demonstrates how to implement keyset pagination for syncing data from a relational database. The connector queries a local SQLite database that is automatically created and seeded on the first run — no external service is required.
 
 Keyset pagination filters rows using a `WHERE (updated_at, id) > (last_updated_at, last_id)` clause and orders by those same columns. After each page, the boundary advances to the last row of the page. This approach is stable under concurrent writes and performs consistently regardless of dataset size, because the database uses an index to find the starting row directly.
 
@@ -32,11 +32,11 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 
 ## Features
-- Demonstrates keyset (seek method) pagination against a local SQLite database.
+- Demonstrates keyset pagination against a local SQLite database.
 - Automatically creates and seeds the database with 200 sample rows on the first run.
 - Tracks sync progress using a `(updated_at, id)` boundary stored in state.
 - Uses a tie-breaker `id` to handle rows that share the same `updated_at` timestamp.
-- Implements `op.checkpoint()` for resumable and incremental syncs.
+- Implements `op.checkpoint()` for resumable syncs.
 - Parses and upserts all paginated results into a `user` table.
 
 
@@ -80,13 +80,13 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 ## Data handling
 - On the first run, creates and seeds a local `users.db` SQLite file with 200 rows.
 - Subsequent runs reuse the existing database file.
-- Fetches rows in pages of 25 using the keyset query.
+- Fetches 25 rows per page using the keyset query.
 - Syncs each row to Fivetran using `op.upsert(table="user", data=...)`.
 - Checkpoints state after each page to support reliable resume.
 
 
 ## Error handling
-- SQLite connection is closed in a `finally` block inside `sync_items()` to prevent resource leaks.
+- SQLite connections in `sync_items()` and `_seed_database_if_needed()` are closed in a `finally` block to prevent resource leaks.
 - Empty result sets halt pagination gracefully.
 
 
