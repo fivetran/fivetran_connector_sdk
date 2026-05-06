@@ -1,0 +1,116 @@
+# Scroll Token Pagination Connector Example
+
+## Connector overview
+This connector demonstrates how to implement scroll token pagination for syncing data from a REST API that returns an opaque token in each response. The connector retrieves user records from a mock API that returns a `scroll_param` token, which is passed back on each subsequent request to fetch the next page of results.
+
+Scroll tokens are a common pattern for APIs that maintain server-side scroll state and return an opaque identifier (sometimes called `cursor`, `next_cursor`, `scroll_id`, or `scroll_param` depending on the API). The connector continues fetching pages until the API returns no token, then clears the token from state so the next sync starts fresh.
+
+This differs from the [keyset pagination example](../keyset), which combines an `updated_since` timestamp filter with a scroll token for incremental syncing. This example demonstrates the pure scroll token pattern: no filtering on the first request, just an opaque token to walk through the entire dataset page by page.
+
+This example is intended for learning purposes and uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) package to mock the API responses locally. It is not meant for production use.
+
+
+## Requirements
+- [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
+- Operating system:
+  - Windows: 10 or later (64-bit only)
+  - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
+  - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
+
+
+## Getting started
+Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
+
+This example requires the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) mock server to be running locally before you run `fivetran debug`. Start it with:
+
+```bash
+pip install fivetran-api-playground
+fivetran_api_playground start
+```
+
+To initialize a new Connector SDK project using this connector as a starting point, run:
+
+```bash
+fivetran init <project-path> --template examples/common_patterns_for_connectors/pagination/scroll_token
+```
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
+If you do not specify a project path, Fivetran creates the project in your current directory.
+For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
+
+
+## Features
+- Demonstrates pure scroll token pagination.
+- Fetches pages of data using an opaque `scroll_param` token returned by the API.
+- Persists the scroll token in state after each page for mid-sync resumability.
+- Clears the token from state when the full dataset has been synced.
+- Implements `op.checkpoint()` for resumable syncs.
+- Parses and upserts all paginated results into a `USER` table.
+
+
+## Configuration file
+This example does not require a configuration file.
+
+For production connectors, `configuration.json` might contain API tokens, base URLs, or page size settings.
+
+Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+
+
+## Requirements file
+This connector has no additional Python dependencies.
+
+The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment.
+
+
+## Authentication
+This connector does not use authentication.
+
+In real-world scenarios, modify `get_api_response()` to add `Authorization` headers or include API keys in query parameters.
+
+
+## Pagination
+Pagination is handled using a scroll token from the API response:
+- On the first request, no token is sent — the API returns the first page of results and a scroll token.
+- Each subsequent request passes the scroll token as `scroll_param` to fetch the next page.
+- When the API returns no scroll token, all data has been retrieved.
+- The token is persisted in state after each page so a mid-sync interruption can resume from the last page.
+- When the full scroll completes, the token is cleared from state so the next sync starts from the beginning.
+
+Note: different APIs use different field names for the scroll token (e.g. `cursor`, `next_cursor`, `scroll_id`). Update the field names in `sync_items()` and `get_api_response()` to match your API's response structure.
+
+
+## Data handling
+- Fetches and processes paginated records from a REST endpoint.
+- Syncs each item to Fivetran using `op.upsert(table="user", data=...)`.
+- Checkpoints state after each page to support reliable resume.
+
+
+## Error handling
+- API errors raise exceptions via `raise_for_status()`.
+- Empty pages halt pagination gracefully.
+- Missing scroll token in response is treated as end of data.
+
+
+## Tables created
+The connector creates the `USER` table:
+
+```
+{
+  "table": "user",
+  "primary_key": ["id"],
+  "columns": {
+    "id": "STRING",
+    "name": "STRING",
+    "email": "STRING",
+    "address": "STRING",
+    "company": "STRING",
+    "job": "STRING",
+    "updatedAt": "UTC_DATETIME",
+    "createdAt": "UTC_DATETIME"
+  }
+}
+```
+
+
+## Additional considerations
+
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
