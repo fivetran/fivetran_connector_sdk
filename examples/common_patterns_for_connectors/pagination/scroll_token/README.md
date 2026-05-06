@@ -85,7 +85,6 @@ Note: different APIs use different field names for the scroll token (e.g. `curso
 
 
 ## Error handling
-- Exceptions from `sync_items()` are caught in `update()` and re-raised as `RuntimeError` with context preserved.
 - API errors raise exceptions via `raise_for_status()`.
 - Empty pages and missing scroll token are both treated as end of data — state is cleared and checkpointed before exiting.
 

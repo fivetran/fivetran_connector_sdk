@@ -22,7 +22,7 @@ from fivetran_connector_sdk import Operations as op
 
 __BASE_URL = "http://127.0.0.1:5001/pagination/keyset"
 __STATE_KEY_SCROLL_TOKEN = "scroll_token"
-__RESPONSE_KEY_SCROLL_PARAM = "scroll_param"
+__SCROLL_PARAM_KEY = "scroll_param"
 __RESPONSE_KEY_DATA = "data"
 __REQUEST_TIMEOUT_SECONDS = 30
 
@@ -31,18 +31,11 @@ def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This example requires no configuration, so no validation is performed.
+    When building your own connector, add validation for required keys here.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
-    Raises:
-        ValueError: if any required configuration parameter is missing.
     """
-    # No configuration required for this example connector.
-    # When building your own connector, validate required keys here.
-    # Example:
-    # required_configs = ["api_key", "base_url"]
-    # for key in required_configs:
-    #     if key not in configuration:
-    #         raise ValueError(f"Missing required configuration value: {key}")
     pass
 
 
@@ -126,14 +119,13 @@ def sync_items(base_url, scroll_token, state):
         # Check your API documentation for the correct parameter name to pass.
         params = {}
         if scroll_token:
-            params[__RESPONSE_KEY_SCROLL_PARAM] = scroll_token
+            params[__SCROLL_PARAM_KEY] = scroll_token
 
         response_page = get_api_response(base_url, params)
 
         items = response_page.get(__RESPONSE_KEY_DATA, [])
         if not items:
             # No records returned — pagination complete.
-            # Clear the token from state so the next sync starts from the beginning.
             state.pop(__STATE_KEY_SCROLL_TOKEN, None)
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
             # resume from the correct position in case of next sync or interruptions.
@@ -156,7 +148,7 @@ def sync_items(base_url, scroll_token, state):
 
         # Check whether there are more pages. The API returns a scroll token for the next page,
         # or null/absent when the end of the dataset has been reached.
-        scroll_token = response_page.get(__RESPONSE_KEY_SCROLL_PARAM) or ""
+        scroll_token = response_page.get(__SCROLL_PARAM_KEY) or ""
 
         if not scroll_token:
             # Sync complete. Clear the token from state so the next sync starts from the beginning.
