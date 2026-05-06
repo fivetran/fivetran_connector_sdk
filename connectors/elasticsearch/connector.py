@@ -8,18 +8,29 @@ Pagination: PIT + search_after (replaces deprecated Scroll API)
 
 import base64
 import json
+import queue
+import threading
 import time
 
 import requests as rq
 from fivetran_connector_sdk import Connector
-
-# Shared session for connection reuse (keep-alive) across all ES requests
-_session = rq.Session()
-_session.verify = False
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
+# Thread-local sessions: each worker thread gets its own Session with its own
+# connection pool, avoiding the thread-safety issues of a shared singleton.
+_thread_local = threading.local()
+
+def _session() -> rq.Session:
+    if not hasattr(_thread_local, "session"):
+        s = rq.Session()
+        s.verify = False
+        _thread_local.session = s
+    return _thread_local.session
+
 # ── Constants ─────────────────────────────────────────────────────────────────
+
+_DONE = object()  # sentinel: signals a worker thread has finished
 
 PAGE_SIZE = 5_000
 PIT_KEEP_ALIVE = "5m"
@@ -82,7 +93,7 @@ def es_request(method: str, url: str, headers: dict, body: dict = None, params: 
     """HTTP request with exponential-backoff retry on 429 / 5xx / transient errors."""
     for attempt in range(MAX_RETRIES + 1):
         try:
-            resp = _session.request(
+            resp = _session().request(
                 method, url,
                 headers=headers,
                 json=body,
@@ -285,7 +296,6 @@ def pit_page(configuration: dict, pit_id: str, sort_fields: list,
         "query": query or {"match_all": {}},
         "pit": {"id": pit_id, "keep_alive": PIT_KEEP_ALIVE},
         "sort": sort_fields,
-        "seq_no_primary_term": True,
     }
     if search_after:
         body["search_after"] = search_after
@@ -337,7 +347,8 @@ def scan_all_ids(configuration: dict, name: str, distribution: str = "elasticsea
 # ── Sync: regular index ───────────────────────────────────────────────────────
 
 def sync_index(configuration: dict, name: str, index_state: dict,
-               enable_delete_detection: bool, distribution: str = "elasticsearch") -> dict:
+               enable_delete_detection: bool, distribution: str = "elasticsearch",
+               out_queue: queue.Queue = None) -> dict:
     """
     Sync a regular Elasticsearch index.
 
@@ -348,6 +359,18 @@ def sync_index(configuration: dict, name: str, index_state: dict,
     connector). The _seq_no incremental logic matches the existing connector's
     scrollDocsWithSeqNoGreaterThan approach.
     """
+    def _upsert(data):
+        if out_queue is not None:
+            out_queue.put(("upsert", name, data))
+        else:
+            op.upsert(table=name, data=data)
+
+    def _delete(keys):
+        if out_queue is not None:
+            out_queue.put(("delete", name, keys))
+        else:
+            op.delete(table=name, keys=keys)
+
     last_max_seq_no = index_state.get("last_max_seq_no", -1)
     is_initial = last_max_seq_no == -1
 
@@ -385,7 +408,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
                     break
                 for hit in hits:
                     doc = {"_id": hit["_id"], **(hit.get("_source") or {})}
-                    op.upsert(table=name, data=doc)
+                    _upsert(doc)
                     count += 1
                 search_after = hits[-1]["sort"]
         finally:
@@ -405,7 +428,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
         if not is_initial:
             deleted = prev_ids - curr_ids
             for did in deleted:
-                op.delete(table=name, keys={"_id": did})
+                _delete({"_id": did})
             if deleted:
                 log.info(f"{name}: marked {len(deleted)} deleted documents")
 
@@ -416,7 +439,8 @@ def sync_index(configuration: dict, name: str, index_state: dict,
 
 # ── Sync: data stream ─────────────────────────────────────────────────────────
 
-def sync_data_stream(configuration: dict, name: str, index_state: dict, distribution: str = "elasticsearch") -> dict:
+def sync_data_stream(configuration: dict, name: str, index_state: dict,
+                     distribution: str = "elasticsearch", out_queue: queue.Queue = None) -> dict:
     """
     Sync an Elasticsearch data stream.
 
@@ -428,6 +452,12 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict, distribu
     Data streams are append-only by design (updates/deletes are uncommon
     and discouraged by Elasticsearch).
     """
+    def _upsert(data):
+        if out_queue is not None:
+            out_queue.put(("upsert", name, data))
+        else:
+            op.upsert(table=name, data=data)
+
     last_timestamp = index_state.get("last_timestamp")
     is_initial = last_timestamp is None
     mode = "full" if is_initial else "incremental"
@@ -459,7 +489,7 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict, distribu
                 break
             for hit in hits:
                 doc = {"_id": hit["_id"], **(hit.get("_source") or {})}
-                op.upsert(table=name, data=doc)
+                _upsert(doc)
                 count += 1
                 ts = (hit.get("_source") or {}).get("@timestamp")
                 if ts and (latest_ts is None or ts > latest_ts):
@@ -522,21 +552,47 @@ def update(configuration: dict, state: dict):
         log.warning("No indices or data streams found to sync. Check 'indices' config and permissions.")
         return
 
-    log.info(f"Syncing {len(targets)} target(s): {list(targets.keys())}")
+    log.info(f"Syncing {len(targets)} target(s) in parallel: {list(targets.keys())}")
 
-    for name, target_type in targets.items():
+    out_queue = queue.Queue(maxsize=PAGE_SIZE * len(targets) * 2)
+
+    def worker(name, target_type):
         index_state = state.get(name, {})
         try:
             if target_type == "data_stream":
-                state[name] = sync_data_stream(configuration, name, index_state, distribution)
+                new_state = sync_data_stream(configuration, name, index_state, distribution, out_queue)
             else:
-                state[name] = sync_index(configuration, name, index_state, enable_delete_detection, distribution)
+                new_state = sync_index(configuration, name, index_state, enable_delete_detection, distribution, out_queue)
         except Exception as e:
             log.severe(f"Failed to sync {name}: {e}")
+            new_state = index_state
+        out_queue.put((_DONE, name, new_state))
 
-        # Checkpoint after each index/stream so progress is preserved
-        # even if a later index fails
-        op.checkpoint(state)
+    threads = [
+        threading.Thread(target=worker, args=(name, target_type), daemon=True)
+        for name, target_type in targets.items()
+    ]
+    for t in threads:
+        t.start()
+
+    # Main thread drains the queue: apply ops and checkpoint as each index finishes.
+    pending = len(targets)
+    while pending > 0:
+        item = out_queue.get()
+        if item[0] is _DONE:
+            _, name, new_state = item
+            state[name] = new_state
+            op.checkpoint(state)
+            pending -= 1
+        elif item[0] == "upsert":
+            _, table, data = item
+            op.upsert(table=table, data=data)
+        else:
+            _, table, keys = item
+            op.delete(table=table, keys=keys)
+
+    for t in threads:
+        t.join()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
