@@ -1,0 +1,27 @@
+all_things_ai/sdk_marketplace/app.py
+  153578889459401a 3-9,13-17,19-20,23-35,38-39,41,46-123,125-148,150-249,251-338,340-399,401-420,422-431,434-438,440-452,454,457-472,476-478,480-481,484-626,628,631-665,667-676,678-681,683-684,686-742,744-754
+connectors/newsapi/configuration_form.json
+  153578889459401a 1-32
+all_things_ai/sdk_marketplace/requirements.txt
+  153578889459401a 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "0bbd23837d33a77aa414751a267e401363e438e1",
+  "prompts": {
+    "153578889459401a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d35cd05c-844f-4771-95e7-6ab42af9a0a2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Monica Dholwani <monica.dholwani@fivetran.com>",
+      "messages": [],
+      "total_additions": 1857,
+      "total_deletions": 1472,
+      "accepted_lines": 746,
+      "overriden_lines": 0
+    }
+  }
+}
