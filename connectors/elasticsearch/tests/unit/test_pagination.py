@@ -53,10 +53,9 @@ class TestOpenPit:
     def test_elasticsearch_keep_alive_param_is_set(self, mock_req):
         mock_req.return_value = {"id": "pit-id"}
         connector.open_pit(_cfg(), "idx", distribution="elasticsearch")
-        params = mock_req.call_args[1].get("params") or mock_req.call_args[0][4] if len(mock_req.call_args[0]) > 4 else mock_req.call_args.kwargs.get("params")
-        # Check keep_alive is passed
-        call_kwargs = mock_req.call_args
-        assert "keep_alive" in str(call_kwargs)
+        params = mock_req.call_args.kwargs.get("params")
+        assert params is not None
+        assert params.get("keep_alive") == connector.PIT_KEEP_ALIVE
 
     @patch("connector.es_request")
     def test_default_distribution_is_elasticsearch(self, mock_req):
@@ -90,7 +89,7 @@ class TestClosePit:
     def test_elasticsearch_body_uses_id_key(self, mock_req):
         mock_req.return_value = {}
         connector.close_pit(_cfg(), "my-pit-id", distribution="elasticsearch")
-        body = mock_req.call_args.kwargs.get("body") or mock_req.call_args[1].get("body")
+        body = mock_req.call_args.kwargs["body"]
         assert body == {"id": "my-pit-id"}
 
     @patch("connector.es_request")
@@ -104,7 +103,7 @@ class TestClosePit:
     def test_opensearch_body_uses_pit_id_key(self, mock_req):
         mock_req.return_value = {}
         connector.close_pit(_cfg(), "os-pit-id", distribution="opensearch")
-        body = mock_req.call_args.kwargs.get("body") or mock_req.call_args[1].get("body")
+        body = mock_req.call_args.kwargs["body"]
         assert body == {"pit_id": "os-pit-id"}
 
     @patch("connector.es_request")
@@ -166,7 +165,7 @@ class TestPitPage:
         connector.pit_page(
             _cfg(), "p", sort_fields=[{"_shard_doc": "asc"}], search_after=[42]
         )
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert "search_after" in body_sent
         assert body_sent["search_after"] == [42]
 
@@ -176,14 +175,14 @@ class TestPitPage:
         connector.pit_page(
             _cfg(), "p", sort_fields=[{"_shard_doc": "asc"}], search_after=None
         )
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert "search_after" not in body_sent
 
     @patch("connector.es_request")
     def test_default_query_is_match_all(self, mock_req):
         mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
         connector.pit_page(_cfg(), "p", sort_fields=[{"_shard_doc": "asc"}])
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert body_sent["query"] == {"match_all": {}}
 
     @patch("connector.es_request")
@@ -191,7 +190,7 @@ class TestPitPage:
         mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
         custom_q = {"range": {"_seq_no": {"gt": 10}}}
         connector.pit_page(_cfg(), "p", sort_fields=[{"_shard_doc": "asc"}], query=custom_q)
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert body_sent["query"] == custom_q
 
     @patch("connector.es_request")
@@ -205,7 +204,7 @@ class TestPitPage:
     def test_page_size_matches_constant(self, mock_req):
         mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
         connector.pit_page(_cfg(), "p", sort_fields=[{"_shard_doc": "asc"}])
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert body_sent["size"] == connector.PAGE_SIZE
 
     @patch("connector.es_request")
@@ -213,7 +212,7 @@ class TestPitPage:
         mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
         sort = [{"@timestamp": "asc"}, {"_doc": "asc"}]
         connector.pit_page(_cfg(), "p", sort_fields=sort)
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert body_sent["sort"] == sort
 
     @patch("connector.es_request")
@@ -266,12 +265,12 @@ class TestGetMaxSeqNo:
     def test_sorts_by_seq_no_descending(self, mock_req):
         mock_req.return_value = {"hits": {"hits": []}}
         connector.get_max_seq_no(_cfg(), "idx")
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert {"_seq_no": "desc"} in body_sent["sort"]
 
     @patch("connector.es_request")
     def test_requests_size_one(self, mock_req):
         mock_req.return_value = {"hits": {"hits": []}}
         connector.get_max_seq_no(_cfg(), "idx")
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
+        body_sent = mock_req.call_args.kwargs["body"]
         assert body_sent["size"] == 1
