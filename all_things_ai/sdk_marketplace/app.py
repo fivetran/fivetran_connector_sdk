@@ -17,6 +17,7 @@ import tempfile
 from base64 import b64encode
 from pathlib import Path
 
+import anthropic
 import requests
 import streamlit as st
 
@@ -32,6 +33,7 @@ ENV = {
     "api_key":    os.environ.get("FIVETRAN_API_KEY", ""),
     "api_secret": os.environ.get("FIVETRAN_API_SECRET", ""),
     "group_id":   os.environ.get("FIVETRAN_GROUP_ID", ""),
+    "anthropic_key": os.environ.get("ANTHROPIC_API_KEY", ""),
 }
 
 st.set_page_config(
@@ -219,6 +221,45 @@ def deploy_and_connect(connector_id: str, schema: str, secrets: list[dict]) -> d
     finally:
         if config_path.exists():
             config_path.unlink()
+
+
+# ── AI form generation ────────────────────────────────────────────────────────
+
+def generate_form_with_ai(connector_code: str) -> dict:
+    client = anthropic.Anthropic(api_key=ENV["anthropic_key"] or os.environ.get("ANTHROPIC_API_KEY", ""))
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": f"""Analyze this Fivetran connector code and produce a setup form definition.
+
+Return ONLY valid JSON — no explanation, no markdown fences:
+{{
+  "fields": [
+    {{
+      "name": "config_key_exactly_as_in_code",
+      "label": "Human Readable Label",
+      "description": "One sentence: what is this and where does the user find it?",
+      "type": "password|text|dropdown|toggle",
+      "required": true,
+      "placeholder": "example value"
+    }}
+  ]
+}}
+
+Rules:
+- Include only fields actually read from configuration dict in the code
+- type="password" for API keys, secrets, tokens, passwords, credentials
+- type="text" for URLs, hostnames, usernames, database names, IDs, numeric settings
+- Descriptions must tell the user WHERE to get the value (e.g. "Your API key from app.example.com/settings")
+- placeholder should be a realistic example value
+
+Connector code:
+{connector_code}"""}],
+    )
+    raw = msg.content[0].text.strip()
+    # Strip markdown fences if model adds them anyway
+    raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("`").strip()
+    return json.loads(raw)
 
 
 # ── Connector discovery ───────────────────────────────────────────────────────
@@ -473,9 +514,21 @@ def page_setup():
         st.session_state.page = "marketplace"
         st.rerun()
 
-    form_def = c.get("form_def", {})
     icon     = c["icon"]
     live     = api_connected()
+
+    # Resolve which form to use: pre-built rich → live AI-generated → inferred
+    ai_form_key = f"ai_form_{c['id']}"
+    ai_form     = st.session_state.get(ai_form_key)
+    if c["has_rich_form"]:
+        form_def    = c.get("form_def", {})
+        form_source = "rich"
+    elif ai_form:
+        form_def    = ai_form
+        form_source = "ai_live"
+    else:
+        form_def    = c.get("form_def", {})
+        form_source = "inferred"
 
     st.markdown('<div class="shell">', unsafe_allow_html=True)
     if st.button("← Back to marketplace"):
@@ -486,11 +539,12 @@ def page_setup():
     left, right = st.columns([3, 1], gap="large")
 
     with left:
-        badge = (
-            '<span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:8px">✨ AI-generated form</span>'
-            if c["has_rich_form"] else
-            '<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 8px;font-size:11px">inferred from config</span>'
-        )
+        if form_source == "rich":
+            badge = '<span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:8px">✨ AI-generated form</span>'
+        elif form_source == "ai_live":
+            badge = '<span style="background:#ede9fe;color:#5b21b6;border-radius:4px;padding:1px 8px;font-size:11px;font-weight:700;margin-left:8px">✨ AI-generated live</span>'
+        else:
+            badge = '<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 8px;font-size:11px">inferred from config</span>'
         st.markdown(f"""
 <div class="form-wrap">
   <div class="form-head">
@@ -501,6 +555,29 @@ def page_setup():
     </div>
   </div>
 """, unsafe_allow_html=True)
+
+        # "Generate with AI" button — shown for connectors without a rich form
+        if form_source == "inferred":
+            st.markdown("""
+<div style="background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:10px;
+     padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px">
+  <span style="font-size:22px">✨</span>
+  <div>
+    <div style="font-size:13px;font-weight:700;color:#5b21b6">This connector has a basic form</div>
+    <div style="font-size:12px;color:#7c3aed;margin-top:2px">
+      Click below to let AI analyze the connector code and generate labeled fields with descriptions.
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
+            if st.button("✨ Generate setup form with AI", use_container_width=False):
+                connector_code = (CONNECTORS_DIR / c["id"] / "connector.py").read_text()
+                with st.spinner("Claude is analyzing the connector code…"):
+                    try:
+                        generated = generate_form_with_ai(connector_code)
+                        st.session_state[ai_form_key] = generated
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"AI generation failed: {e}")
 
         with st.form("setup_form"):
             st.markdown('<div class="fsec">Connection Details</div>', unsafe_allow_html=True)
