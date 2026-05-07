@@ -15,7 +15,11 @@ import time
 import pytest
 import requests
 
-from tests.integration._helpers import run_update, seed_docs, delete_doc, create_index
+from tests.integration._helpers import (
+    run_update, seed_docs, delete_doc, create_index,
+    create_alias, delete_alias,
+    create_data_stream, delete_data_stream, index_data_stream_doc,
+)
 
 
 pytestmark = pytest.mark.integration
@@ -313,3 +317,133 @@ class TestDeleteDetection:
         assert "gone" in deleted_ids, (
             f"Expected 'gone' in deletes; got: {deleted_ids}"
         )
+
+
+# ─── Test: data stream sync ───────────────────────────────────────────────────
+
+class TestDataStreamSync:
+    """Connector syncs data streams using @timestamp as the incremental cursor."""
+
+    def test_initial_sync_upserts_all_docs(self, es_config):
+        name = "it_ds_initial"
+        create_data_stream(es_config["host"], name)
+        index_data_stream_doc(es_config["host"], name, "2024-01-01T00:00:00Z", value=1)
+        index_data_stream_doc(es_config["host"], name, "2024-01-02T00:00:00Z", value=2)
+
+        config = {**es_config, "indices": name}
+        result = run_update(config, {})
+
+        assert len(result.upserts) == 2
+
+    def test_table_name_matches_data_stream_name(self, es_config):
+        name = "it_ds_table"
+        create_data_stream(es_config["host"], name)
+        index_data_stream_doc(es_config["host"], name, "2024-01-01T00:00:00Z", v=1)
+
+        config = {**es_config, "indices": name}
+        result = run_update(config, {})
+
+        assert result.upserts
+        for u in result.upserts:
+            assert u["table"] == name
+
+    def test_incremental_sync_uses_timestamp_cursor(self, es_config):
+        name = "it_ds_incremental"
+        create_data_stream(es_config["host"], name)
+        index_data_stream_doc(es_config["host"], name, "2024-01-01T00:00:00Z", v=1)
+
+        config = {**es_config, "indices": name}
+        first_result = run_update(config, {})
+        first_state = first_result.last_state
+
+        index_data_stream_doc(es_config["host"], name, "2024-01-02T00:00:00Z", v=2)
+
+        second_result = run_update(config, first_state)
+
+        assert len(second_result.upserts) == 1
+        assert second_result.upserts[0]["data"]["v"] == 2
+
+    def test_state_records_last_timestamp(self, es_config):
+        name = "it_ds_state"
+        create_data_stream(es_config["host"], name)
+        index_data_stream_doc(es_config["host"], name, "2024-06-15T12:00:00Z", v=1)
+
+        config = {**es_config, "indices": name}
+        result = run_update(config, {})
+
+        state = result.last_state
+        assert name in state
+        assert "last_timestamp" in state[name], (
+            f"State should have last_timestamp: {state}"
+        )
+
+
+# ─── Test: system index exclusion ─────────────────────────────────────────────
+
+class TestSystemIndexExclusion:
+    """Indices whose names begin with '.' are never synced."""
+
+    def test_system_index_is_excluded(self, es_config):
+        host = es_config["host"]
+        _delete_index(host, "it_system_normal")
+        seed_docs(host, "it_system_normal", [{"_id": "1", "v": 1}])
+
+        # Attempt to create a dot-prefixed index; may be silently rejected on ES 8.x
+        create_index(host, ".it_system_test")
+
+        config = {**es_config, "indices": "all"}
+        result = run_update(config, {})
+
+        tables_synced = {u["table"] for u in result.upserts}
+        assert "it_system_normal" in tables_synced
+        dot_tables = {t for t in tables_synced if t.startswith(".")}
+        assert not dot_tables, f"System indices should be excluded from sync: {dot_tables}"
+
+
+# ─── Test: alias handling ──────────────────────────────────────────────────────
+
+class TestAliasHandling:
+    """Aliases resolve transparently to their backing index; no duplicate table is created."""
+
+    def test_alias_does_not_create_duplicate_table(self, es_config):
+        host = es_config["host"]
+        index = "it_alias_target"
+        alias = "it_alias_name"
+
+        _delete_index(host, index)
+        seed_docs(host, index, [{"_id": "1", "v": 1}])
+        create_alias(host, index, alias)
+
+        try:
+            config = {**es_config, "indices": "all"}
+            result = run_update(config, {})
+
+            tables_synced = {u["table"] for u in result.upserts}
+            assert index in tables_synced
+            assert alias not in tables_synced, (
+                f"Alias '{alias}' should not appear as a separate table"
+            )
+        finally:
+            delete_alias(host, index, alias)
+
+
+# ─── Test: indices=all ─────────────────────────────────────────────────────────
+
+class TestIndicesAll:
+    """When indices=all, every non-system index is discovered and synced."""
+
+    def test_all_indices_are_synced(self, es_config):
+        host = es_config["host"]
+        indices = ["it_all_a", "it_all_b", "it_all_c"]
+        for idx in indices:
+            _delete_index(host, idx)
+            seed_docs(host, idx, [{"_id": "1", "src": idx}])
+
+        config = {**es_config, "indices": "all"}
+        result = run_update(config, {})
+
+        tables_synced = {u["table"] for u in result.upserts}
+        for idx in indices:
+            assert idx in tables_synced, (
+                f"Index '{idx}' not found in synced tables: {tables_synced}"
+            )

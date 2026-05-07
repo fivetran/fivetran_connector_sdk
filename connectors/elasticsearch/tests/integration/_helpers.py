@@ -120,3 +120,77 @@ def create_index(host: str, index: str) -> None:
     if resp.status_code not in (200, 400):
         resp.raise_for_status()
     requests.post(f"{host}/{index}/_refresh", timeout=10)
+
+
+def create_alias(host: str, index: str, alias: str) -> None:
+    """Create an alias pointing at an existing index."""
+    requests.put(
+        f"{host}/{index}/_alias/{alias}",
+        timeout=10,
+    ).raise_for_status()
+
+
+def delete_alias(host: str, index: str, alias: str) -> None:
+    """Delete an alias (silently ignore 404)."""
+    resp = requests.delete(f"{host}/{index}/_alias/{alias}", timeout=10)
+    if resp.status_code not in (200, 404):
+        resp.raise_for_status()
+
+
+def create_data_stream(host: str, name: str) -> None:
+    """
+    Create an index template and a data stream backed by it.
+
+    Documents must include an ``@timestamp`` field (ISO 8601).
+    Silently deletes any pre-existing data stream and template with the same
+    name so tests can be re-run without manual cleanup.
+    """
+    # Clean up any previous run
+    requests.delete(f"{host}/_data_stream/{name}", timeout=10)
+    requests.delete(f"{host}/_index_template/{name}_tmpl", timeout=10)
+
+    # Index template with data_stream enabled
+    requests.put(
+        f"{host}/_index_template/{name}_tmpl",
+        json={
+            "index_patterns": [f"{name}*"],
+            "data_stream": {},
+            "template": {
+                "mappings": {
+                    "properties": {
+                        "@timestamp": {"type": "date"},
+                    }
+                }
+            },
+        },
+        headers={"Content-Type": "application/json"},
+        timeout=10,
+    ).raise_for_status()
+
+    # Create the data stream
+    requests.put(f"{host}/_data_stream/{name}", timeout=10).raise_for_status()
+
+
+def delete_data_stream(host: str, name: str) -> None:
+    """Delete a data stream and its backing index template (ignore 404)."""
+    for url in (f"{host}/_data_stream/{name}", f"{host}/_index_template/{name}_tmpl"):
+        resp = requests.delete(url, timeout=10)
+        if resp.status_code not in (200, 404):
+            resp.raise_for_status()
+
+
+def index_data_stream_doc(host: str, name: str, timestamp: str, **fields) -> None:
+    """
+    Append a single document to a data stream.
+
+    ``timestamp`` must be an ISO 8601 string (e.g. ``"2024-01-01T00:00:00Z"``).
+    Additional keyword arguments are included as document fields.
+    """
+    doc = {"@timestamp": timestamp, **fields}
+    requests.post(
+        f"{host}/{name}/_doc",
+        json=doc,
+        headers={"Content-Type": "application/json"},
+        timeout=10,
+    ).raise_for_status()
+    requests.post(f"{host}/{name}/_refresh", timeout=10)

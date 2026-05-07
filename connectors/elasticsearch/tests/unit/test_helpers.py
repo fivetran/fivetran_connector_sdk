@@ -178,3 +178,108 @@ class TestDetectDistribution:
         mock_req.return_value = {}
         result = connector.detect_distribution(self._make_config())
         assert result == "elasticsearch"
+
+
+# ── es_request retry logic ────────────────────────────────────────────────────
+
+class TestRetryLogic:
+    """Tests for exponential-backoff retry in es_request()."""
+
+    @patch("connector._session")
+    @patch("time.sleep")
+    def test_retries_on_429_then_succeeds(self, mock_sleep, mock_session_fn):
+        mock_429 = MagicMock()
+        mock_429.status_code = 429
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.json.return_value = {"ok": True}
+
+        mock_sess = MagicMock()
+        mock_sess.request.side_effect = [mock_429, mock_200]
+        mock_session_fn.return_value = mock_sess
+
+        result = connector.es_request("GET", "http://localhost:9200", {})
+
+        assert result == {"ok": True}
+        assert mock_sess.request.call_count == 2
+        mock_sleep.assert_called_once_with(1)
+
+    @patch("connector._session")
+    @patch("time.sleep")
+    def test_retries_on_5xx_then_succeeds(self, mock_sleep, mock_session_fn):
+        mock_503 = MagicMock()
+        mock_503.status_code = 503
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.json.return_value = {"status": "ok"}
+
+        mock_sess = MagicMock()
+        mock_sess.request.side_effect = [mock_503, mock_200]
+        mock_session_fn.return_value = mock_sess
+
+        result = connector.es_request("GET", "http://localhost:9200", {})
+
+        assert result == {"status": "ok"}
+        assert mock_sess.request.call_count == 2
+        mock_sleep.assert_called_once_with(1)
+
+    @patch("connector._session")
+    @patch("time.sleep")
+    def test_exhausted_retries_raises(self, mock_sleep, mock_session_fn):
+        from requests.exceptions import HTTPError
+
+        mock_429 = MagicMock()
+        mock_429.status_code = 429
+        mock_429.raise_for_status.side_effect = HTTPError("429 Too Many Requests")
+
+        mock_sess = MagicMock()
+        mock_sess.request.return_value = mock_429
+        mock_session_fn.return_value = mock_sess
+
+        with pytest.raises(HTTPError):
+            connector.es_request("GET", "http://localhost:9200", {})
+
+        assert mock_sess.request.call_count == connector.MAX_RETRIES + 1
+        assert mock_sleep.call_count == connector.MAX_RETRIES
+
+    @patch("connector._session")
+    @patch("time.sleep")
+    def test_retries_on_connection_error(self, mock_sleep, mock_session_fn):
+        import requests as rq
+
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.json.return_value = {"recovered": True}
+
+        mock_sess = MagicMock()
+        mock_sess.request.side_effect = [
+            rq.exceptions.ConnectionError("Connection refused"),
+            mock_200,
+        ]
+        mock_session_fn.return_value = mock_sess
+
+        result = connector.es_request("GET", "http://localhost:9200", {})
+
+        assert result == {"recovered": True}
+        assert mock_sess.request.call_count == 2
+        mock_sleep.assert_called_once_with(1)
+
+    @patch("connector._session")
+    @patch("time.sleep")
+    def test_exponential_backoff_sleep_values(self, mock_sleep, mock_session_fn):
+        from unittest.mock import call
+
+        mock_429 = MagicMock()
+        mock_429.status_code = 429
+        mock_200 = MagicMock()
+        mock_200.status_code = 200
+        mock_200.json.return_value = {}
+
+        mock_sess = MagicMock()
+        # Three 429s followed by a success — exercises all three sleep calls
+        mock_sess.request.side_effect = [mock_429, mock_429, mock_429, mock_200]
+        mock_session_fn.return_value = mock_sess
+
+        connector.es_request("GET", "http://localhost:9200", {})
+
+        assert mock_sleep.call_args_list == [call(1), call(2), call(4)]

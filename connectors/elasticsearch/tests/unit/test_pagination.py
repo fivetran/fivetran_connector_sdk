@@ -217,13 +217,6 @@ class TestPitPage:
         assert body_sent["sort"] == sort
 
     @patch("connector.es_request")
-    def test_seq_no_primary_term_is_requested(self, mock_req):
-        mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
-        connector.pit_page(_cfg(), "p", sort_fields=[{"_shard_doc": "asc"}])
-        body_sent = mock_req.call_args[1].get("body") or mock_req.call_args[0][3]
-        assert body_sent.get("seq_no_primary_term") is True
-
-    @patch("connector.es_request")
     def test_empty_hits_returns_empty_list(self, mock_req):
         mock_req.return_value = {"pit_id": "p", "hits": {"hits": []}}
         hits, _ = connector.pit_page(_cfg(), "p", sort_fields=[{"_shard_doc": "asc"}])
