@@ -1,0 +1,23 @@
+README.md
+  63865f0315c36751 249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "7aabcc9158ee4a30e6ecba7c2d2f31bf1e18ed93",
+  "prompts": {
+    "63865f0315c36751": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4db356ff-c9de-4eb7-bee7-41815e92c587",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 105,
+      "total_deletions": 71,
+      "accepted_lines": 93,
+      "overriden_lines": 0
+    }
+  }
+}

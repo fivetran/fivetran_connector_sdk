@@ -1,0 +1,23 @@
+examples/common_patterns_for_connectors/history_mode_mimicry/README.md
+  63865f0315c36751 9,31,36-41,46,48-59,61-70,72-73,78,80-82,88,93,95-101,103,108-115,120,122-124,129,131-132,134,136-138,143,145-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "edce73393d279835ef17a12776cd422a3c0f0fc3",
+  "prompts": {
+    "63865f0315c36751": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4db356ff-c9de-4eb7-bee7-41815e92c587",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 87,
+      "total_deletions": 5,
+      "accepted_lines": 154,
+      "overriden_lines": 0
+    }
+  }
+}

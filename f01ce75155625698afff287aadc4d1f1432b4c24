@@ -1,0 +1,23 @@
+connectors/ehi/high_volume_ehi/readers.py
+  00022be3d0464ee0 39-42,167-182,207,212,217,223,228,297-301
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "f01ce75155625698afff287aadc4d1f1432b4c24",
+  "prompts": {
+    "00022be3d0464ee0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5fad1d19-ac16-4a8c-b0dc-7eba672ebe6b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 67,
+      "total_deletions": 27,
+      "accepted_lines": 59,
+      "overriden_lines": 0
+    }
+  }
+}
