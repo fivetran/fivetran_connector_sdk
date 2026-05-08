@@ -27,9 +27,7 @@ fivetran init --template examples/common_patterns_for_connectors/pagination/scro
 ```
 
 
-`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
-If you do not specify a project path, Fivetran creates the project in your current directory.
-For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`. For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/connector-sdk-commands#fivetraninit).
 
 
 ## Features
@@ -46,7 +44,7 @@ This example does not require a configuration file.
 
 For production connectors, `configuration.json` might contain API tokens or base URLs.
 
-Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
+> Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 
 ## Requirements file
@@ -54,7 +52,7 @@ This connector has no additional runtime Python dependencies beyond what the Fiv
 
 For local testing of this example, you must install and run the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) mock server as described in [Getting started](#getting-started). This is a local development dependency and should not be added to your `requirements.txt`.
 
-Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+> Note: [Some packages](https://fivetran.com/docs/connector-sdk/technical-reference#preinstalledpackages) are pre-installed in the Connector SDK runtime environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`. 
 
 
 ## Authentication
