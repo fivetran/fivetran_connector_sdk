@@ -1,16 +1,18 @@
-"""This connector demonstrates keyset pagination for syncing data from a database source.
-It queries a local SQLite database, paging through rows using a WHERE (updated_at, id) > (?, ?) boundary
-that advances after each page. The database is created and seeded automatically on the first run.
-THIS EXAMPLE IS TO HELP YOU UNDERSTAND CONCEPTS USING DUMMY DATA.
+"""This connector demonstrates keyset pagination for syncing data from a PostgreSQL database.
+It pages through rows using a WHERE (updated_at, id) > (%s, %s) boundary that advances after each page.
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
 """
 
-# Import sqlite3 for local database access (part of Python standard library, no installation required).
-import sqlite3
+# Import json library for handling JSON data
+import json
 
-# Import os to check whether the seed database file already exists.
-import os
+# Import datetime for handling date and time
+from datetime import datetime
+
+# Import the psycopg2 library for PostgreSQL database connections
+import psycopg2
+from psycopg2 import sql
 
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like update() and schema()
@@ -23,7 +25,6 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 __ROWS_PER_PAGE = 25
-__DB_FILE = "users.db"
 __STATE_KEY_UPDATED_AFTER = "updated_after"
 __STATE_KEY_LAST_ID = "last_id"
 __DEFAULT_CURSOR = "0001-01-01T00:00:00+00:00"
@@ -34,12 +35,51 @@ def validate_configuration(configuration: dict):
     """
     Validate the configuration dictionary to ensure it contains all required parameters.
     This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    This example requires no configuration, so no validation is performed.
-    When building your own connector, add validation for required keys here.
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
+    Raises:
+        ValueError: if any required configuration parameter is missing or invalid.
     """
-    pass
+    required_configs = ["hostname", "port", "database", "username", "password", "table_name"]
+
+    for config in required_configs:
+        if config not in configuration or not configuration[config]:
+            raise ValueError(f"Missing required configuration parameter: {config}")
+
+    if configuration.get("sslmode") not in (None, "disable", "require", ""):
+        raise ValueError(f"Invalid sslmode value: {configuration['sslmode']}")
+
+
+def connect_to_database(configuration: dict):
+    """
+    Connect to PostgreSQL using credentials provided in configuration.
+    Args:
+        configuration: A dictionary containing the database connection details.
+    Returns:
+        connection: A connection object to the PostgreSQL database.
+    Raises:
+        RuntimeError: If connection fails, with original exception preserved in chain.
+    """
+    host = configuration["hostname"]
+    port = int(configuration.get("port", 5432))
+    database = configuration["database"]
+    username = configuration["username"]
+    password = configuration["password"]
+    sslmode = configuration.get("sslmode", "disable")
+
+    try:
+        connection = psycopg2.connect(
+            host=host,
+            port=port,
+            dbname=database,
+            user=username,
+            password=password,
+            sslmode=sslmode,
+        )
+        log.info("Successfully connected to database")
+        return connection
+    except Exception as e:
+        raise RuntimeError(f"Failed to connect to database: {str(e)}") from e
 
 
 def schema(configuration: dict):
@@ -76,21 +116,53 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Pagination - Database Keyset")
 
-    validate_configuration(configuration)
+    validate_configuration(configuration=configuration)
 
-    # Seed the local SQLite database with sample data on the first run.
-    # In a real connector, you would connect to an external database instead.
-    _seed_database_if_needed(__DB_FILE)
+    table_name = configuration["table_name"]
+
+    """
+    Ensure that the source table exists and contains the required columns.
+    If the table does not exist, create it and insert sample data using the following SQL:
+
+    CREATE TABLE users (
+        id         SERIAL PRIMARY KEY,
+        name       VARCHAR(255) NOT NULL,
+        email      VARCHAR(255) NOT NULL,
+        updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    );
+
+    INSERT INTO users (name, email, updated_at)
+    SELECT
+        'User ' || i,
+        'user' || i || '@example.com',
+        '2026-01-01 00:00:00+00'::TIMESTAMPTZ + (i * INTERVAL '3 minutes')
+    FROM generate_series(1, 200) AS i;
+    """
 
     # Retrieve the keyset boundary from state.
     # On the first sync, start before all records by using the earliest possible values.
-    last_updated_at = state.get(__STATE_KEY_UPDATED_AFTER, __DEFAULT_CURSOR)
+    last_updated_at = datetime.fromisoformat(
+        state.get(__STATE_KEY_UPDATED_AFTER, __DEFAULT_CURSOR)
+    )
     last_id = int(state.get(__STATE_KEY_LAST_ID, __DEFAULT_LAST_ID))
 
-    sync_items(__DB_FILE, last_updated_at, last_id, state)
+    connection = connect_to_database(configuration)
+
+    try:
+        sync_items(connection, table_name, last_updated_at, last_id, state)
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch or upsert data: {str(e)}") from e
+    finally:
+        try:
+            connection.close()
+            log.info("Closed database connection")
+        except Exception as close_error:
+            raise RuntimeError(
+                f"Failed to close database connection: {str(close_error)}"
+            ) from close_error
 
 
-def sync_items(db_file, last_updated_at, last_id, state):
+def sync_items(connection, table_name, last_updated_at, last_id, state):
     """
     The sync_items function handles the retrieval and processing of paginated database rows using keyset pagination.
     It performs the following tasks:
@@ -104,48 +176,39 @@ def sync_items(db_file, last_updated_at, last_id, state):
     to skip already-seen rows.
 
     Query pattern:
-        SELECT id, name, email, updated_at FROM users
-        WHERE (updated_at, id) > (last_updated_at, last_id)
+        SELECT id, name, email, updated_at FROM {table}
+        WHERE (updated_at, id) > (%s, %s)
         ORDER BY updated_at, id
-        LIMIT page_size;
+        LIMIT rows_per_page;
     Args:
-        db_file: Path to the SQLite database file.
+        connection: A connection object to the PostgreSQL database.
+        table_name: The source table name.
         last_updated_at: The updated_at timestamp of the last processed row (keyset boundary).
         last_id: The id of the last processed row (tie-breaker for rows with identical updated_at).
         state: A dictionary representing the current state of the sync.
     """
-    conn = sqlite3.connect(db_file)
-    # row_factory enables column name access on rows (e.g. row["id"]) and allows dict(row) conversion.
-    conn.row_factory = sqlite3.Row
+    cursor = connection.cursor()
 
     try:
-        cursor = conn.cursor()
-
         while True:
             # Fetch the next page of rows beyond the current keyset boundary.
-            # The (updated_at, id) > (?, ?) row-value comparison is supported in SQLite 3.15+,
-            # which is bundled with Python 3.8 and later.
-            cursor.execute(
-                """
+            # The (updated_at, id) > (%s, %s) row-value comparison is a standard PostgreSQL feature.
+            query = sql.SQL("""
                 SELECT id, name, email, updated_at
-                FROM users
-                WHERE (updated_at, id) > (?, ?)
+                FROM {table}
+                WHERE (updated_at, id) > (%s, %s)
                 ORDER BY updated_at, id
-                LIMIT ?
-                """,
-                (last_updated_at, last_id, __ROWS_PER_PAGE),
-            )
-            rows = cursor.fetchall()
+                LIMIT %s
+                """).format(table=sql.Identifier(table_name))
 
-            if not rows:
-                # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-                # from the correct position in case of next sync or interruptions.
-                # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-                # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-                # Learn more about how and where to checkpoint by reading our best practices documentation
-                # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-                op.checkpoint(state)
+            cursor.execute(query, (last_updated_at, last_id, __ROWS_PER_PAGE))
+            columns = [col[0].lower() for col in cursor.description]
+            raw_rows = cursor.fetchall()
+
+            if not raw_rows:
                 break  # No more rows — pagination complete.
+
+            rows = [dict(zip(columns, row)) for row in raw_rows]
 
             log.info(
                 f"processing page of rows. First row id: {rows[0]['id']}, Total rows: {len(rows)}"
@@ -153,15 +216,20 @@ def sync_items(db_file, last_updated_at, last_id, state):
 
             for row in rows:
                 # The 'upsert' operation is used to insert or update data in the destination table.
-                # The first argument is the name of the destination table.
-                # The second argument is a dictionary containing the record to be upserted.
-                op.upsert(table="user", data=dict(row))
+                # The op.upsert method is called with two arguments:
+                # The first argument is the name of the table to upsert the data into.
+                # The second argument is a dictionary containing the data to be upserted.
+                op.upsert(table="user", data=row)
 
             # Advance the keyset boundary to the last row of this page.
             # Both updated_at and id are stored in state to handle rows with identical timestamps.
             last_updated_at = rows[-1]["updated_at"]
             last_id = rows[-1]["id"]
-            state[__STATE_KEY_UPDATED_AFTER] = last_updated_at
+            state[__STATE_KEY_UPDATED_AFTER] = (
+                last_updated_at.isoformat()
+                if hasattr(last_updated_at, "isoformat")
+                else last_updated_at
+            )
             state[__STATE_KEY_LAST_ID] = str(last_id)
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
@@ -170,53 +238,7 @@ def sync_items(db_file, last_updated_at, last_id, state):
             # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state)
     finally:
-        conn.close()
-
-
-def _seed_database_if_needed(db_file):
-    """
-    Creates and populates the SQLite database with sample data if it does not already exist.
-    This function is called once on the first run and skipped on subsequent runs.
-    In a real connector, you would connect to an external source database instead of seeding locally.
-    Args:
-        db_file: Path to the SQLite database file to create.
-    """
-    if os.path.exists(db_file):
-        return
-
-    log.info(f"Seeding local database '{db_file}' with sample data for the first time.")
-
-    conn = sqlite3.connect(db_file)
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE users (
-                id         INTEGER PRIMARY KEY,
-                name       TEXT NOT NULL,
-                email      TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-            """)
-
-        # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
-        # Timestamps are 3 minutes apart starting from 2026-01-01, giving a spread across ~10 hours.
-        rows = [
-            (
-                i,
-                f"User {i}",
-                f"user{i}@example.com",
-                f"2026-01-01T{(i * 3) // 60:02d}:{(i * 3) % 60:02d}:00+00:00",
-            )
-            for i in range(1, 201)
-        ]
-        cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?)", rows)
-
-        conn.commit()
-    finally:
-        conn.close()
-
-    log.info("Database seeded successfully with 200 rows.")
+        cursor.close()
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
@@ -227,18 +249,9 @@ connector = Connector(update=update, schema=schema)
 # Note this method is not called by Fivetran when executing your connector in production. Please test using the
 # Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # This example does not require a configuration.json file.
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
-    # your IDE.
-    connector.debug()
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
 
-# Resulting table:
-# ┌─────┬────────┬───────────────────────┬──────────────────────────────┐
-# │ id  │  name  │         email         │          updated_at          │
-# │ int │ string │        string         │      timestamp with UTC      │
-# ├─────┼────────┼───────────────────────┼──────────────────────────────┤
-# │  1  │ User 1 │ user1@example.com     │ 2026-01-01T00:03:00+00:00    │
-# │  2  │ User 2 │ user2@example.com     │ 2026-01-01T00:06:00+00:00    │
-# ├─────┴────────┴───────────────────────┴──────────────────────────────┤
-# │  2 rows                                                   4 columns │
-# └────────────────────────────────────────────────────────────────────┘
+    # Test the connector locally
+    connector.debug(configuration=configuration)

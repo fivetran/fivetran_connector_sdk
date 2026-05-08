@@ -1,7 +1,7 @@
 # Database Keyset Pagination Connector Example
 
 ## Connector overview
-This connector demonstrates how to implement keyset pagination for syncing data from a relational database. The connector queries a local SQLite database that is automatically created and seeded on the first run — no external service is required.
+This connector demonstrates how to implement keyset pagination for syncing data from a PostgreSQL database.
 
 Keyset pagination filters rows using a `WHERE (updated_at, id) > (last_updated_at, last_id)` clause and orders by those same columns. After each page, the boundary advances to the last row of the page.
 
@@ -19,19 +19,40 @@ This example is intended for learning purposes. It is not meant for production u
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
+Before running `fivetran debug`, create the source table and insert sample data in your PostgreSQL database:
+
+```sql
+CREATE TABLE users (
+    id         SERIAL PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    email      VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO users (name, email, updated_at)
+SELECT
+    'User ' || i,
+    'user' || i || '@example.com',
+    '2026-01-01 00:00:00+00'::TIMESTAMPTZ + (i * INTERVAL '3 minutes')
+FROM generate_series(1, 200) AS i;
+```
+
+Then update `configuration.json` with your PostgreSQL connection details and set `table_name` to `users`.
+
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init <project-path> --template examples/common_patterns_for_connectors/pagination/database_keyset
+fivetran init --template examples/common_patterns_for_connectors/pagination/database_keyset
 ```
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
 If you do not specify a project path, Fivetran creates the project in your current directory.
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
 
+Note: Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
+
 
 ## Features
-- Demonstrates keyset pagination against a local SQLite database.
-- Automatically creates and seeds the database with 200 sample rows on the first run.
+- Demonstrates keyset pagination against a PostgreSQL database.
 - Tracks sync progress using a `(updated_at, id)` boundary stored in state.
 - Uses a tie-breaker `id` to handle rows that share the same `updated_at` timestamp.
 - Implements `op.checkpoint()` for resumable syncs.
@@ -39,27 +60,49 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 
 ## Configuration file
-This example does not require a configuration file.
+The connector requires the following configuration keys in the `configuration.json` file:
 
-For production connectors, `configuration.json` would contain database connection details such as host, port, database name, username, and password.
+```json
+{
+  "hostname": "<YOUR_POSTGRESQL_HOSTNAME>",
+  "port": "<YOUR_POSTGRESQL_PORT>",
+  "database": "<YOUR_POSTGRESQL_DATABASE_NAME>",
+  "username": "<YOUR_POSTGRESQL_USERNAME>",
+  "password": "<YOUR_POSTGRESQL_PASSWORD>",
+  "sslmode": "<YOUR_SSL_MODE>",
+  "table_name": "<YOUR_POSTGRESQL_TABLE_NAME>"
+}
+```
+
+Configuration parameters:
+
+- `hostname` (required): PostgreSQL server hostname or IP address.
+- `port` (required): PostgreSQL server port (typically 5432).
+- `database` (required): Name of the database to connect to.
+- `username` (required): Database username for authentication.
+- `password` (required): Database password for authentication.
+- `table_name` (required): Name of the source table to sync data from.
+- `sslmode` (optional): SSL mode for connection security. Valid values: `disable`, `require`, or empty string. Defaults to `disable`.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
 
 ## Requirements file
-This connector has no additional Python dependencies.
+The `requirements.txt` file specifies the Python libraries required by the connector:
 
-`sqlite3` is part of the Python standard library and requires no installation.
+```
+psycopg2_binary==2.9.12
+```
+
+- `psycopg2_binary`: PostgreSQL database adapter for Python, used to establish connections and execute queries.
 
 Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
 
-For production connectors that connect to PostgreSQL or MySQL, add the appropriate driver (e.g. `psycopg2-binary` or `PyMySQL`) to `requirements.txt`.
-
 
 ## Authentication
-This example uses a local SQLite file and does not require authentication.
+The connector uses standard PostgreSQL username/password authentication.
 
-In real-world scenarios, replace the SQLite connection in `sync_items()` with a connection to your source database using the appropriate driver and credentials from `configuration`.
+Ensure the database user has `SELECT` privilege on the source table and `CONNECT` privilege on the database.
 
 
 ## Pagination
@@ -76,22 +119,25 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 
 ## Data handling
-- On the first run, creates and seeds a local `users.db` SQLite file with 200 rows.
-- Subsequent runs reuse the existing database file.
-- Fetches 25 rows per page using the keyset query.
+- Fetches rows in pages of 25 using the keyset query.
+- Converts psycopg2 row tuples to dictionaries using `cursor.description` for column names.
 - Syncs each row to Fivetran using `op.upsert(table="user", data=...)`.
 - Checkpoints state after each page to support reliable resume.
 
 
 ## Error handling
-- SQLite connections in `sync_items()` and `_seed_database_if_needed()` are closed in a `finally` block to prevent resource leaks.
+- Validates all required configuration parameters before connecting.
+- Validates `sslmode` against allowed values.
+- Wraps connection and sync failures in `RuntimeError` with the original exception preserved.
+- Database connection is always closed in a `finally` block in `update()`.
+- Cursor is always closed in a `finally` block in `sync_items()`.
 - Empty result sets halt pagination gracefully.
 
 
 ## Tables created
 The connector creates the `user` table:
 
-```json
+```
 {
   "table": "user",
   "primary_key": ["id"],
