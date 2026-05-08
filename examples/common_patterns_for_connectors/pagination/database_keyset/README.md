@@ -3,9 +3,7 @@
 ## Connector overview
 This connector demonstrates how to implement keyset pagination for syncing data from a relational database. The connector queries a local SQLite database that is automatically created and seeded on the first run — no external service is required.
 
-Keyset pagination filters rows using a `WHERE (updated_at, id) > (last_updated_at, last_id)` clause and orders by those same columns. After each page, the boundary advances to the last row of the page. This approach is stable under concurrent writes and performs consistently regardless of dataset size, because the database uses an index to find the starting row directly.
-
-This differs from [LIMIT/OFFSET pagination](../database_limit_offset), which skips rows by counting from the beginning of the result set. Keyset is the recommended approach for large or frequently updated tables.
+Keyset pagination filters rows using a `WHERE (updated_at, id) > (last_updated_at, last_id)` clause and orders by those same columns. After each page, the boundary advances to the last row of the page.
 
 This example is intended for learning purposes. It is not meant for production use.
 
@@ -93,7 +91,7 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 ## Tables created
 The connector creates the `user` table:
 
-```
+```json
 {
   "table": "user",
   "primary_key": ["id"],
