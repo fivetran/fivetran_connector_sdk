@@ -63,7 +63,13 @@ class TestUpsertRecalls:
 
     def test_normalizes_to_snake_case(self, captured_upserts):
         connector.upsert_recalls(
-            [{"NHTSACampaignNumber": "22V001000", "Component": "Brakes", "Summary": "x"}],
+            [
+                {
+                    "NHTSACampaignNumber": "22V001000",
+                    "Component": "Brakes",
+                    "Summary": "x",
+                }
+            ],
             "Toyota",
             "Tundra",
             "2022",
@@ -109,7 +115,13 @@ class TestUpsertComplaints:
 
     def test_normalizes_camelCase_to_snake_case(self, captured_upserts):
         connector.upsert_complaints(
-            [{"odiNumber": "10000001", "numberOfInjuries": 2, "dateOfIncident": "20220101"}],
+            [
+                {
+                    "odiNumber": "10000001",
+                    "numberOfInjuries": 2,
+                    "dateOfIncident": "20220101",
+                }
+            ],
             "seed",
         )
         record = captured_upserts["upserts"][0]["data"]

@@ -58,7 +58,7 @@ def make_recall(campaign_number, component="Brakes", make="Toyota", model="Tundr
     }
 
 
-def make_complaint(odi_number, components="brakes", crash="No", fire="No"):
+def make_complaint(odi_number, components="brakes", crash=False, fire=False):
     """Build a minimal raw NHTSA complaint record (lowercased API field names)."""
     return {
         "odiNumber": odi_number,
@@ -112,15 +112,35 @@ def sample_discovery_response():
     """Canonical Cortex Agent JSON content for the discovery prompt."""
     return {
         "top_components": [
-            {"component": "Brakes", "recall_count": 3, "complaint_count": 2, "severity": "HIGH"},
+            {
+                "component": "Brakes",
+                "recall_count": 3,
+                "complaint_count": 2,
+                "severity": "HIGH",
+            },
         ],
         "severity_score": 7,
         "crash_count": 1,
         "fire_count": 0,
         "recommended_vehicles": [
-            {"make": "Toyota", "model": "Sequoia", "year": "2022", "reason": "shared platform"},
-            {"make": "Toyota", "model": "Tundra", "year": "2023", "reason": "adjacent year"},
-            {"make": "Ford", "model": "F-150", "year": "2022", "reason": "competitor in class"},
+            {
+                "make": "Toyota",
+                "model": "Sequoia",
+                "year": "2022",
+                "reason": "shared platform",
+            },
+            {
+                "make": "Toyota",
+                "model": "Tundra",
+                "year": "2023",
+                "reason": "adjacent year",
+            },
+            {
+                "make": "Ford",
+                "model": "F-150",
+                "year": "2022",
+                "reason": "competitor in class",
+            },
         ],
         "analysis_summary": "Brake-related issues recurring.",
     }
@@ -131,7 +151,12 @@ def sample_synthesis_response():
     """Canonical Cortex Agent JSON content for the synthesis prompt."""
     return {
         "component_risk_rankings": [
-            {"component": "Brakes", "affected_vehicles": 3, "total_recalls": 9, "risk_score": 8},
+            {
+                "component": "Brakes",
+                "affected_vehicles": 3,
+                "total_recalls": 9,
+                "risk_score": 8,
+            },
         ],
         "manufacturer_response_score": 7,
         "systemic_issues": [

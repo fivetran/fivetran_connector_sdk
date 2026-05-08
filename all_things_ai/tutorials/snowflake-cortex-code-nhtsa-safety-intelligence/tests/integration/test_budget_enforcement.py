@@ -88,7 +88,12 @@ class TestMaxEnrichmentsBudget:
 
     @pytest.mark.parametrize("budget", [0, 1, 2, 5])
     def test_actual_calls_never_exceed_budget(
-        self, budget, base_config, captured_upserts, cortex_call_counter, stubbed_fetches
+        self,
+        budget,
+        base_config,
+        captured_upserts,
+        cortex_call_counter,
+        stubbed_fetches,
     ):
         """Across realistic budget values, the cumulative Cortex call count
         stays at or below the configured max."""
@@ -124,7 +129,12 @@ class TestMaxDiscoveriesCap:
             "crash_count": 0,
             "fire_count": 0,
             "recommended_vehicles": [
-                {"make": f"Make{i}", "model": f"Model{i}", "year": "2022", "reason": "x"}
+                {
+                    "make": f"Make{i}",
+                    "model": f"Model{i}",
+                    "year": "2022",
+                    "reason": "x",
+                }
                 for i in range(5)
             ],
             "analysis_summary": "x",

@@ -804,9 +804,9 @@ def run_discovery_phase(
     for c in seed_complaints:
         comp = c.get("Component", c.get("component", "Unknown"))
         complaint_components[comp] = complaint_components.get(comp, 0) + 1
-        if c.get("Crash", c.get("crash", "No")) == "Yes":
+        if c.get("crash") or c.get("Crash"):
             crash_count += 1
-        if c.get("Fire", c.get("fire", "No")) == "Yes":
+        if c.get("fire") or c.get("Fire"):
             fire_count += 1
     total_recalls = len(seed_recalls)
     total_complaints = len(seed_complaints)
@@ -1111,7 +1111,8 @@ def update(configuration: dict, state: dict):
             # - len(vehicles_investigated) > 1 (something to synthesize across)
             # - enrichment_count < max_enrichments (budget remaining for one more Cortex call)
             budget_remaining = enrichment_count < max_enrichments
-            if discovery_depth >= 2 and len(vehicles_investigated) > 1 and budget_remaining:
+            enough_vehicles = len(vehicles_investigated) > 1
+            if discovery_depth >= 2 and enough_vehicles and budget_remaining:
                 log.info("Phase 3: Starting cross-vehicle synthesis")
                 run_synthesis_phase(
                     configuration,

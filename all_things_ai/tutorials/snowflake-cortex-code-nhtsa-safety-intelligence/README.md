@@ -157,7 +157,7 @@ Retry logic:
 - Connection errors and timeouts are retried with the same backoff pattern
 - Non-retryable errors (401, 403) are logged and raised immediately
 
-Cortex Agent handling via `def call_cortex_agent(configuration, prompt, cortex_session)`:
+Cortex Agent handling via `def call_cortex_agent(configuration, prompt, cortex_session=None)`:
 - Retry logic with exponential backoff for transient failures (429, 500, 502, 503, 504)
 - Authentication errors (401, 403) are logged and not retried
 - Agent timeouts are retried up to 3 times; sync continues without AI enrichment if all fail

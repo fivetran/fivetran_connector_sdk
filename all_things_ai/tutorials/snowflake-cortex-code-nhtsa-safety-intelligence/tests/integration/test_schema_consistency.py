@@ -89,8 +89,8 @@ class TestComplaintsSchemaParity:
         record = {
             "odiNumber": "10000001",
             "manufacturer": "Toyota",
-            "crash": "No",
-            "fire": "No",
+            "crash": False,
+            "fire": False,
             "numberOfInjuries": 0,
             "numberOfDeaths": 0,
             "dateOfIncident": "20220101",
