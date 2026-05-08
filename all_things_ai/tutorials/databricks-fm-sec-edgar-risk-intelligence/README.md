@@ -96,7 +96,7 @@ The SEC EDGAR Company Facts API returns all XBRL financial facts for a company i
 
 ## Data handling
 
-The `def update(configuration, state)` function orchestrates a four-phase sync pipeline:
+The `def update(configuration, state)` function orchestrates a three-phase core sync pipeline (plus optional Genie Space creation):
 
 Phase 1 (SEED):
 1. Validates configuration via `def validate_configuration(configuration)` including Databricks credential checks and sanity ceiling enforcement

@@ -67,7 +67,16 @@ class TestNoSqlReservedKeywordsAsColumnNames:
             "0000320193",
             "seed",
         )
-        sql_reserved = {"by", "from", "select", "where", "order", "group", "join", "table"}
+        sql_reserved = {
+            "by",
+            "from",
+            "select",
+            "where",
+            "order",
+            "group",
+            "join",
+            "table",
+        }
         clashing = set(record.keys()) & sql_reserved
         assert not clashing, (
             f"Column name(s) collide with SQL reserved keywords: {clashing}. "

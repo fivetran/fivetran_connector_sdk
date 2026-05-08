@@ -1014,11 +1014,11 @@ def run_discovery_phase(
             )
             continue
 
-        companies_to_fetch = [
-            c
-            for c in recommended
-            if isinstance(c, dict) and c.get("cik") and c.get("cik") not in discovered_ciks
-        ][:max_discovery]
+        def _valid_company(c):
+            cik = c.get("cik") if isinstance(c, dict) else None
+            return cik and cik not in discovered_ciks
+
+        companies_to_fetch = [c for c in recommended if _valid_company(c)][:max_discovery]
 
         log.info(
             f"Agent recommended {len(recommended)} companies, "
@@ -1340,9 +1340,9 @@ def update(configuration: dict, state: dict):
                 "synthesis. Set enable_enrichment=true to enable."
             )
 
-        # --- Phase 4: AGENT --- Create Genie Space
+        # --- AGENT (optional) --- Create Genie Space
         if is_genie_enabled:
-            log.info("Phase 4 (AGENT): Creating Genie Space")
+            log.info("(AGENT): Creating Genie Space")
             space_id = create_genie_space(session, configuration, state)
             if space_id:
                 state["genie_space_id"] = space_id
