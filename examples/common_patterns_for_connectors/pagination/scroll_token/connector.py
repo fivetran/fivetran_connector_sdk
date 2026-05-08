@@ -27,18 +27,6 @@ __RESPONSE_KEY_DATA = "data"
 __REQUEST_TIMEOUT_SECONDS = 30
 
 
-def validate_configuration(configuration: dict):
-    """
-    Validate the configuration dictionary to ensure it contains all required parameters.
-    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
-    This example requires no configuration, so no validation is performed.
-    When building your own connector, add validation for required keys here.
-    Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-    """
-    pass
-
-
 def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
@@ -83,8 +71,6 @@ def update(configuration: dict, state: dict):
         "See https://pypi.org/project/fivetran-api-playground/ for details."
     )
 
-    validate_configuration(configuration)
-
     # Retrieve the scroll token from state. An empty string means this is the first page of a new sync.
     scroll_token = state.get(__STATE_KEY_SCROLL_TOKEN, "")
 
@@ -124,15 +110,6 @@ def sync_items(base_url, scroll_token, state):
         response_page = get_api_response(base_url, params)
 
         items = response_page.get(__RESPONSE_KEY_DATA, [])
-        if not items:
-            # No records returned — pagination complete.
-            state.pop(__STATE_KEY_SCROLL_TOKEN, None)
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
-            # resume from the correct position in case of next sync or interruptions.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-            op.checkpoint(state)
-            break
 
         summary_first_item = {"id": items[0]["id"], "name": items[0]["name"]}
         log.info(
