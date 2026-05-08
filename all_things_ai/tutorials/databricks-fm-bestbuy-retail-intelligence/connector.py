@@ -221,7 +221,7 @@ def validate_configuration(configuration: dict):
     if _is_placeholder(configuration.get("api_key")):
         raise ValueError("api_key is required (Best Buy Developer API key)")
 
-    for param in ["max_products", "max_enrichments"]:
+    for param in ["max_products", "max_enrichments", "batch_size"]:
         value = configuration.get(param)
         if value is not None and not _is_placeholder(value):
             try:
@@ -241,6 +241,12 @@ def validate_configuration(configuration: dict):
     if max_enrichments > __MAX_ENRICHMENTS_CEILING:
         raise ValueError(
             f"max_enrichments={max_enrichments} exceeds ceiling of {__MAX_ENRICHMENTS_CEILING}."
+        )
+
+    batch_size = _optional_int(configuration, "batch_size", __DEFAULT_BATCH_SIZE)
+    if batch_size > __BESTBUY_API_MAX_PAGE_SIZE:
+        raise ValueError(
+            f"batch_size={batch_size} exceeds ceiling of {__BESTBUY_API_MAX_PAGE_SIZE}."
         )
 
     is_enrichment = _parse_bool(configuration.get("enable_enrichment"), default=True)
@@ -591,14 +597,12 @@ def create_genie_space(session, configuration, state):
         "version": 2,
         "config": {
             "sample_questions": [
-                {"id": uuid.uuid4().hex, "question": [q]} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
+                {"id": uuid.uuid4().hex, "question": q} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
             ]
         },
         "data_sources": {"tables": [{"identifier": table_id}]},
         "instructions": {
-            "text_instructions": [
-                {"id": uuid.uuid4().hex, "content": [__GENIE_SPACE_INSTRUCTIONS]}
-            ]
+            "text_instructions": [{"id": uuid.uuid4().hex, "content": __GENIE_SPACE_INSTRUCTIONS}]
         },
     }
 
