@@ -110,6 +110,15 @@ class TestAssessmentTablesSchemaParity:
 class TestNoSqlReservedKeywordsAsColumnNames:
     def test_recalls_no_reserved_keywords(self, minimal_recall):
         record = connector.build_recall_record(minimal_recall)
-        sql_reserved = {"by", "from", "select", "where", "order", "group", "join", "table"}
+        sql_reserved = {
+            "by",
+            "from",
+            "select",
+            "where",
+            "order",
+            "group",
+            "join",
+            "table",
+        }
         clashing = set(record.keys()) & sql_reserved
         assert not clashing, f"Column name(s) collide with SQL reserved keywords: {clashing}."

@@ -35,7 +35,9 @@ def captured_upserts(monkeypatch):
 
     captured = {"upserts": [], "checkpoints": []}
     monkeypatch.setattr(
-        connector.op, "upsert", lambda t, d: captured["upserts"].append({"table": t, "data": d})
+        connector.op,
+        "upsert",
+        lambda table, data: captured["upserts"].append({"table": table, "data": data}),
     )
     monkeypatch.setattr(
         connector.op,

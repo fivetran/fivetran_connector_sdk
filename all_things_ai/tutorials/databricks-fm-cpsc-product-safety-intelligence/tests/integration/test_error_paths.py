@@ -39,7 +39,8 @@ class TestCallAiQueryHappyPath:
                 "result": {"data_array": [['{"safety_score": 8}']]},
             }
         )
-        assert connector.call_ai_query(session, base_config, "test") == '{"safety_score": 8}'
+        result = connector.call_ai_query(session, base_config, "test")
+        assert result == '{"safety_score": 8}'
 
 
 class TestCallAiQueryFailures:

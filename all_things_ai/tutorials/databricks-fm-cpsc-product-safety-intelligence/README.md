@@ -112,7 +112,7 @@ Phase 2 (DEBATE):
    - `def build_safety_prompt(recall_record)` generates the Product Safety Analyst perspective (risk-maximizing)
    - `def build_quality_prompt(recall_record)` generates the Manufacturing Quality Engineer perspective (context-aware skeptic)
    - `def build_consensus_prompt(recall_record, safety_result, quality_result)` synthesizes both into a final assessment with disagreement_flag and debate_winner
-6. Checkpoints after each recalled is debated for reliable resumability
+6. Checkpoints after each recall is debated for reliable resumability
 
 Phase 3 (AGENT):
 7. If enabled, creates a Genie Space via `def create_genie_space(session, configuration, state)` with product safety-specific instructions and sample questions

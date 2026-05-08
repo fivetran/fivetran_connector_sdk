@@ -278,6 +278,15 @@ def validate_configuration(configuration: dict):
         if _is_placeholder(configuration.get("genie_table_identifier")):
             raise ValueError("genie_table_identifier is required for " "Genie Space")
 
+    recall_date_start = configuration.get("recall_date_start")
+    if recall_date_start and not _is_placeholder(recall_date_start):
+        try:
+            datetime.strptime(recall_date_start, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                f"recall_date_start must be in YYYY-MM-DD format, got: {recall_date_start}"
+            )
+
 
 def schema(configuration: dict):
     """
@@ -930,7 +939,7 @@ def create_genie_space(session, configuration, state):
         "version": 2,
         "config": {
             "sample_questions": [
-                {"id": uuid.uuid4().hex, "question": [q]} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
+                {"id": uuid.uuid4().hex, "question": q} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
             ]
         },
         "data_sources": {"tables": [{"identifier": table_identifier}]},
@@ -938,7 +947,7 @@ def create_genie_space(session, configuration, state):
             "text_instructions": [
                 {
                     "id": uuid.uuid4().hex,
-                    "content": [__GENIE_SPACE_INSTRUCTIONS],
+                    "content": __GENIE_SPACE_INSTRUCTIONS,
                 }
             ]
         },
