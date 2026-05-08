@@ -180,16 +180,14 @@ def _seed_database_if_needed(db_file):
     try:
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE users (
                 id         INTEGER PRIMARY KEY,
                 name       TEXT NOT NULL,
                 email      TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
-            """
-        )
+            """)
 
         # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
         # Timestamps are 3 minutes apart starting from 2024-01-01, giving a spread across ~10 hours.
