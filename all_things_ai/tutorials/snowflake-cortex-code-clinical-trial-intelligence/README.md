@@ -2,13 +2,17 @@
 
 ## Connector overview
 
-This connector syncs clinical trial records from the ClinicalTrials.gov API v2.0 and enriches them with AI-powered analysis using Snowflake Cortex Agent. It combines two advanced architectural patterns to deliver automated clinical trial landscape intelligence:
+This connector syncs clinical trial records from the ClinicalTrials.gov API v2.0 and enriches them with AI-powered analysis using Snowflake Cortex Agent. It's designed for pharmaceutical companies, biotech firms, clinical research organizations, and investment firms that need automated monitoring of clinical trial landscapes for competitive intelligence, portfolio management, and regulatory strategy.
 
-Pattern A (Agent-Driven Discovery): A Cortex Agent analyzes seed trials fetched for a configured therapeutic area and recommends related trials to fetch automatically. The agent identifies competing therapies, same drug class trials, same patient population studies, and competing sponsor programs. The connector then fetches those discovered trials without human intervention, expanding coverage beyond the original search.
+The connector combines two advanced architectural patterns to deliver automated clinical trial landscape intelligence:
 
-Pattern B (Multi-Agent Debate): Two Cortex Agent personas with opposing expert perspectives evaluate each trial. An Optimist evaluates trial design strengths (sample size, randomization, blinding, endpoint selection, sponsor track record). A Skeptic flags methodology risks (dropout potential, endpoint concerns, statistical power, regulatory hurdles). A Consensus synthesizer produces a balanced evaluation with a disagreement flag that highlights trials where the agents significantly disagree, directing human expert attention to the trials that matter most.
+### Pattern A (Agent-Driven Discovery)
 
-The connector is designed for pharmaceutical companies, biotech firms, clinical research organizations, and investment firms that need automated monitoring of clinical trial landscapes for competitive intelligence, portfolio management, and regulatory strategy.
+A Cortex Agent analyzes seed trials fetched for a configured therapeutic area and recommends related trials to fetch automatically. The agent identifies competing therapies, same drug class trials, same patient population studies, and competing sponsor programs. The connector then fetches those discovered trials without human intervention, expanding coverage beyond the original search.
+
+### Pattern B (Multi-Agent Debate)
+
+Two Cortex Agent personas with opposing expert perspectives evaluate each trial. An Optimist evaluates trial design strengths (sample size, randomization, blinding, endpoint selection, sponsor track record). A Skeptic flags methodology risks (dropout potential, endpoint concerns, statistical power, regulatory hurdles). A Consensus synthesizer produces a balanced evaluation with a disagreement flag that highlights trials where the agents significantly disagree, directing human expert attention to the trials that matter most.
 
 ## Requirements
 
@@ -55,19 +59,19 @@ The `configuration.json` file accepts the following parameters:
 }
 ```
 
-- `condition` (required): Therapeutic area or condition to search for (e.g., "breast cancer", "type 2 diabetes")
-- `status_filter` (optional): Filter by overall trial status (e.g., "RECRUITING", "COMPLETED", "ACTIVE_NOT_RECRUITING"). Omit or use placeholder to include all statuses
+- `condition` (required): Therapeutic area or condition to search for (e.g., `breast cancer`, `type 2 diabetes`)
+- `status_filter` (optional): Filter by overall trial status (e.g., `RECRUITING`, `COMPLETED`, `ACTIVE_NOT_RECRUITING`). Omit or use placeholder to include all statuses
 - `intervention_filter` (optional): Additional filter by intervention/treatment name
 - `sponsor_filter` (optional): Additional filter by sponsor organization name
-- `max_seed_trials` (optional): Maximum number of seed trials to fetch per sync. Default: 20. Hard ceiling: 500. For larger pulls, run multiple syncs and rely on the incremental cursor to advance.
-- `max_discoveries` (optional): Maximum number of new trials to discover via agent recommendations. Default: 10
-- `max_debates` (optional): Maximum number of trials to run through Multi-Agent Debate per sync. Default: 5
-- `page_size` (optional): Number of trials per API page request. Default: 20, maximum: 1000
-- `enable_cortex` (optional): Set to "true" to enable Cortex Agent for Discovery and Debate phases. Default: "false"
+- `max_seed_trials` (optional): Maximum number of seed trials to fetch per sync. Default: `20`, max: `500`. For larger pulls, run multiple syncs and rely on the incremental cursor to advance.
+- `max_discoveries` (optional): Maximum number of new trials to discover via agent recommendations. Default: `10`
+- `max_debates` (optional): Maximum number of trials to run through Multi-Agent Debate per sync. Default: `5`
+- `page_size` (optional): Number of trials per API page request. Default: `20`, max: `1000`
+- `enable_cortex` (optional): Set to `true` to enable Cortex Agent for Discovery and Debate phases. Default: `false`
 - `snowflake_account` (required when Cortex enabled): Snowflake account hostname ending in `snowflakecomputing.com` (for example, `xy12345.us-west-2.snowflakecomputing.com`). Do not include a scheme like `http://` or `https://` — the connector constructs the request URL itself.
 - `snowflake_pat_token` (required when Cortex enabled): Snowflake Programmatic Access Token for Cortex API authentication
-- `cortex_model` (optional): Cortex model to use. Default: claude-sonnet-4-6
-- `cortex_timeout` (optional): Timeout in seconds for Cortex API calls. Default: 60
+- `cortex_model` (optional): Cortex model to use. Default: `claude-sonnet-4-6`
+- `cortex_timeout` (optional): Timeout in seconds for Cortex API calls. Default: `60`
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
@@ -77,16 +81,18 @@ The ClinicalTrials.gov API v2.0 requires no authentication. The connector can fe
 
 For Cortex Agent enrichment (Phases 2 and 3), the connector authenticates with Snowflake using a Programmatic Access Token (PAT). To generate a PAT:
 
-1. Log in to your Snowflake account
-2. Navigate to **Settings** > **Security** > **Programmatic access tokens**
-3. Create a new token with appropriate permissions for Cortex inference
-4. Copy the token value and set it as `snowflake_pat_token` in your configuration
+1. Log in to your Snowflake account.
+2. Go to **Settings** > **Security** > **Programmatic access tokens**.
+3. Create a new token. The Snowflake user must have the `SNOWFLAKE.CORTEX_USER` database role granted to use Cortex inference.
+4. Copy the token value and set it as `snowflake_pat_token` in your configuration.
 
 Set `snowflake_account` to the Snowflake hostname only (for example, `xy12345.us-west-2.snowflakecomputing.com`). The connector rejects configuration values that start with `http://` or `https://`.
 
 ## Pagination
 
-The connector uses cursor-based pagination via the ClinicalTrials.gov API v2.0 `pageToken` mechanism. Each API response includes a `nextPageToken` value that the connector passes to the next request to retrieve the following page of results. The `pageSize` parameter controls how many trials are returned per page (default: 20, maximum: 1000). The connector continues paginating until it reaches the configured `max_seed_trials` limit or exhausts all available results. After each page, the connector upserts the records it received, persists the `nextPageToken` and composite incremental cursor to state, and checkpoints so that an interrupted sync can resume without duplicate work or gaps.
+The connector uses cursor-based pagination via the ClinicalTrials.gov API v2.0 `pageToken` mechanism. Each API response includes a `nextPageToken` value that the connector passes to the next request to retrieve the following page of results. The `pageSize` parameter controls how many trials are returned per page (default: `20`, maximum: `1000`).
+
+The connector continues paginating until it reaches the configured `max_seed_trials` limit or exhausts all available results. After each page, the connector upserts the records it received, persists the `nextPageToken` and composite incremental cursor to state, and checkpoints so that an interrupted sync can resume without duplicate work or gaps.
 
 ## Data handling
 
