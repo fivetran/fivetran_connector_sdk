@@ -532,7 +532,7 @@ def extract_latest_facts(facts_data, cik):
 
         records.append(
             {
-                "fact_id": f"{cik}_{metric}_{latest.get('filed', 'unknown')}",
+                "fact_id": f"{cik}_{metric}",
                 "cik": cik,
                 "metric": metric,
                 "value": latest.get("val"),
@@ -1092,7 +1092,7 @@ def run_synthesis_phase(session, configuration, companies_analyzed, all_facts, s
         return
 
     analysis = {
-        "analysis_id": "synthesis_" + "_".join([c[0] for c in companies_analyzed[:5]]),
+        "analysis_id": "portfolio_synthesis",
         "companies_analyzed": len(companies_analyzed),
         "company_list": json.dumps([{"cik": c[0], "name": c[1]} for c in companies_analyzed]),
         "portfolio_risk_score": result.get("portfolio_risk_score"),

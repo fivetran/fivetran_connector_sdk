@@ -115,8 +115,8 @@ Phase 3 (SYNTHESIS):
 10. The AI identifies systemic risks, counterparty exposure, and assigns a portfolio-level grade
 11. Uses async polling for long-running synthesis queries that exceed the SQL wait timeout
 
-Phase 4 (AGENT):
-12. If enabled, creates a Genie Space via `def create_genie_space(session, configuration, state)` with financial risk-specific instructions and sample questions
+Phase 4 (AGENT — optional, disabled by default):
+12. If `enable_genie_space=true`, creates a Genie Space via `def create_genie_space(session, configuration, state)` with financial risk-specific instructions and sample questions. This phase is independent of the three-phase core architecture (SEED, DISCOVERY, SYNTHESIS) and can be enabled without affecting other phases.
 
 ## Error handling
 
