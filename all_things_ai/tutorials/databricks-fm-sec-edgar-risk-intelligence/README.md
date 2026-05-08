@@ -153,7 +153,7 @@ The `COMPANY_FILINGS` table consists of the following columns:
 
 The `FINANCIAL_FACTS` table consists of the following columns:
 
-- `fact_id` (STRING, primary key): Unique identifier composed of CIK, metric name, and filing date
+- `fact_id` (STRING, primary key): Unique identifier composed of CIK and metric name
 - `cik` (STRING): SEC EDGAR Central Index Key
 - `metric` (STRING): XBRL financial metric name (e.g., "Assets", "Revenues", "NetIncomeLoss", "LongTermDebt")
 - `value` (FLOAT): Metric value in USD
