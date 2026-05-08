@@ -1169,7 +1169,7 @@ def create_genie_space(session, configuration, state):
         "version": 2,
         "config": {
             "sample_questions": [
-                {"id": uuid.uuid4().hex, "question": [q]} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
+                {"id": uuid.uuid4().hex, "question": q} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
             ]
         },
         "data_sources": {"tables": [{"identifier": table_identifier}]},
@@ -1177,7 +1177,7 @@ def create_genie_space(session, configuration, state):
             "text_instructions": [
                 {
                     "id": uuid.uuid4().hex,
-                    "content": [__GENIE_SPACE_INSTRUCTIONS],
+                    "content": __GENIE_SPACE_INSTRUCTIONS,
                 }
             ]
         },
@@ -1334,17 +1334,6 @@ def update(configuration: dict, state: dict):
                     all_facts,
                     state,
                 )
-        elif is_enrichment_enabled:
-            log.info("Discovery disabled, running enrichment only")
-            # Still run discovery insights for seed companies
-            # but without fetching discovered companies
-            all_companies = run_discovery_phase(
-                session,
-                configuration,
-                seed_companies,
-                all_facts,
-                state,
-            )
         else:
             log.info(
                 "Enrichment disabled, skipping discovery and "
