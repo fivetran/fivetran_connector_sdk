@@ -19,18 +19,14 @@ This example is intended for learning purposes and uses the [fivetran-api-playgr
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
-This example requires the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) mock server to be running locally before you run `fivetran debug`. Start it with:
-
-```bash
-pip install fivetran-api-playground
-fivetran_api_playground start
-```
 
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init <project-path> --template examples/common_patterns_for_connectors/pagination/scroll_token
+fivetran init --template examples/common_patterns_for_connectors/pagination/scroll_token
 ```
+
+
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
 If you do not specify a project path, Fivetran creates the project in your current directory.
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).

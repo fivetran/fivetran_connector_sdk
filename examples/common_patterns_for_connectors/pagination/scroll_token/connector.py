@@ -77,7 +77,7 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Pagination - Scroll Token")
 
-    print(
+    log.warning(
         "RECOMMENDATION: This example requires the fivetran-api-playground mock server running locally. "
         "Install and start it with: pip install fivetran-api-playground && fivetran_api_playground start. "
         "See https://pypi.org/project/fivetran-api-playground/ for details."
