@@ -2,13 +2,13 @@
 
 ## Connector overview
 
-This connector syncs vehicle recall campaigns, consumer safety complaints, and vehicle specifications from NHTSA (National Highway Traffic Safety Administration) public APIs, then uses Snowflake Cortex Agent to analyze the data and autonomously discover related vehicles to investigate. This is the Agent-Driven Discovery pattern: the AI analyzes initial safety data and decides which additional vehicles to fetch next based on shared components, platform similarities, and cross-manufacturer safety trends.
+This connector syncs vehicle recall campaigns, consumer safety complaints, and vehicle specifications from NHTSA (National Highway Traffic Safety Administration) public APIs, then uses Snowflake Cortex Agent to analyze the data and autonomously discover related vehicles to investigate. This is the agent-driven discovery pattern: the AI analyzes initial safety data and decides which additional vehicles to fetch next based on shared components, platform similarities, and cross-manufacturer safety trends.
 
 Built entirely with Snowflake Cortex Code and the Fivetran Connector Builder Skill.
 
 Use cases:
 - Automotive safety intelligence - Analyze recall and complaint patterns across vehicle makes, models, and years to identify systemic safety issues
-- Agent-Driven Discovery - Let Snowflake Cortex Agent autonomously decide which related vehicles to investigate based on component failure patterns
+- Agent-driven discovery - Let Snowflake Cortex Agent autonomously decide which related vehicles to investigate based on component failure patterns
 - Cross-vehicle synthesis - Generate fleet-wide safety grades and component risk rankings across multiple vehicles
 - Regulatory monitoring - Track NHTSA recall campaigns and consumer complaints for specific vehicles or entire manufacturer fleets
 
@@ -56,8 +56,6 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 ## Features
 
-- Three-phase orchestration: Seed fetch, Agent-Driven Discovery, cross-vehicle synthesis
-- Agent-Driven Discovery: Cortex Agent analyzes safety data and autonomously recommends related vehicles to investigate
 - Data-only mode: Works without Snowflake Cortex for pure NHTSA data sync
 - Configurable discovery limits: Control how many vehicles the agent can discover per sync
 - Exponential backoff retry logic for transient API failures and rate limiting
@@ -130,9 +128,9 @@ The connector processes data through a three-phase pipeline, implemented in `def
 3. Fetch vehicle specs from NHTSA vPIC API via `def fetch_vehicle_specs(session, make)`
 4. Normalize PascalCase API field names to snake_case and upsert records
 
-**Phase 2 - Agent-Driven Discovery (requires Cortex):**
+**Phase 2 - Agent-driven discovery (requires Cortex):**
 1. Build analysis prompt with component failure summaries via `def build_discovery_prompt(make, model, year, recalls, complaints)`
-2. Call Cortex Agent for pattern analysis via `def call_cortex_agent(configuration, prompt)`
+2. Call Cortex Agent for pattern analysis via `def call_cortex_agent(configuration, prompt, cortex_session)`
 3. Agent recommends related vehicles based on shared components and safety patterns
 4. Fetch recalls, complaints, and specs for each discovered vehicle
 5. Upsert discovery insights with component risk rankings
@@ -301,7 +299,7 @@ This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohll
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
-Agent-Driven Discovery pattern:
+Agent-driven discovery pattern:
 - The agent analyzes component failure patterns and recommends related vehicles based on shared platforms, competitor vehicles in the same class, and adjacent model years
 - Discovery is bounded by `max_discoveries` to prevent runaway API usage
 - The agent returns structured JSON that the connector parses to determine next fetch targets
