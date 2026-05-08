@@ -77,7 +77,7 @@ __DEFAULT_LOOKBACK_DAYS = 90
 __SQL_STATEMENT_ENDPOINT = "/api/2.0/sql/statements"
 __SQL_WAIT_TIMEOUT = "50s"
 __SQL_POLL_INTERVAL_SECONDS = 10
-__SQL_MAX_POLL_ATTEMPTS = 12
+__MAX_POLL_ATTEMPTS = 12
 
 # Genie Space API Configuration
 __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
@@ -479,7 +479,7 @@ def call_ai_query(session, configuration, prompt):
 
         poll_count = 0
 
-        while sql_state in ("PENDING", "RUNNING") and poll_count < __SQL_MAX_POLL_ATTEMPTS:
+        while sql_state in ("PENDING", "RUNNING") and poll_count < __MAX_POLL_ATTEMPTS:
             poll_count += 1
             time.sleep(__SQL_POLL_INTERVAL_SECONDS)
             poll_url = f"{url}/{statement_id}"
@@ -487,7 +487,7 @@ def call_ai_query(session, configuration, prompt):
             poll_resp.raise_for_status()
             result = poll_resp.json()
             sql_state = result.get("status", {}).get("state", "")
-            log.info(f"ai_query() poll {poll_count}/{__SQL_MAX_POLL_ATTEMPTS}: {sql_state}")
+            log.info(f"ai_query() poll {poll_count}/{__MAX_POLL_ATTEMPTS}: {sql_state}")
 
         if sql_state == "SUCCEEDED":
             data_array = result.get("result", {}).get("data_array", [])
