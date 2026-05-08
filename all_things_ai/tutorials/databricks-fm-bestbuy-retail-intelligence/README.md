@@ -97,7 +97,8 @@ The `def update(configuration, state)` function orchestrates the sync:
 2. Fetches products from Best Buy API with optional category filtering via `def fetch_data_with_retry(session, url, params)`
 3. Builds normalized records via `def build_product_record(product)` extracting SKU, pricing, reviews, manufacturer, category, and availability
 4. If enrichment is enabled, enriches each product via `def enrich_product(session, configuration, record)` using ai_query() for competitive positioning, price optimization, and sentiment analysis
-5. Upserts enriched records and checkpoints
+5. Upserts each enriched record and checkpoints state after each batch so interrupted syncs resume from the last completed batch rather than restarting from the beginning
+6. If `enable_genie_space` is `true` and data was synced, creates a Genie Space via `def create_genie_space(session, configuration, state)` with retail-specific instructions and sample questions pointed at the destination table
 
 ## Error handling
 
@@ -108,6 +109,18 @@ The connector implements error handling at multiple levels:
 - `def validate_configuration(configuration)` validates all parameters using `def _is_placeholder(value)`
 - Sanity ceilings enforce maximum values for `max_products` (500) and `max_enrichments` (100)
 - The session is always closed via a try/finally block
+
+## Genie Space
+
+When `enable_genie_space` is set to `true`, the connector creates a Databricks Genie Space after data lands. The Genie Space is configured with:
+
+- Retail-specific instructions that guide the Genie agent to focus on competitive positioning, pricing trends, and customer sentiment insights
+- Sample questions for common retail analytics queries
+- A pointer to the destination table specified in `genie_table_identifier`
+
+The Genie Space is created only once. The `genie_space_id` is persisted in the connector state to avoid creating duplicates on subsequent syncs.
+
+Note: The `genie_table_identifier` must be a fully qualified Unity Catalog path (e.g., `my_catalog.my_schema.products_enriched`). The table must exist in the Databricks workspace before the Genie Space can query it, so the Genie Space is most useful after at least one successful sync with `fivetran deploy`.
 
 ## Tables created
 
