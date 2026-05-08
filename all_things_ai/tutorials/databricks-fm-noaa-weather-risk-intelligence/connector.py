@@ -1176,7 +1176,7 @@ def create_genie_space(session, configuration, state):
             "sample_questions": [
                 {
                     "id": uuid.uuid4().hex,
-                    "question": [q],
+                    "question": q,
                 }
                 for q in __GENIE_SPACE_SAMPLE_QUESTIONS
             ]
@@ -1186,7 +1186,7 @@ def create_genie_space(session, configuration, state):
             "text_instructions": [
                 {
                     "id": uuid.uuid4().hex,
-                    "content": [__GENIE_SPACE_INSTRUCTIONS],
+                    "content": __GENIE_SPACE_INSTRUCTIONS,
                 }
             ]
         },
