@@ -160,6 +160,80 @@ class TestExceptionSpecificity:
             connector.call_ai_query(session, base_config, "test prompt")
 
 
+class TestFetchDataWithRetry:
+    """fetch_data_with_retry() retries on transient failures and raises after
+    exhausting all attempts."""
+
+    def test_retryable_500_retries_and_succeeds(self, monkeypatch):
+        """A 500 on the first attempt is retried; success on the second attempt
+        returns the JSON body."""
+        call_count = [0]
+
+        def fake_get(*args, **kwargs):
+            call_count[0] += 1
+            resp = MagicMock()
+            if call_count[0] == 1:
+                resp.status_code = 500
+                err = _requests.exceptions.HTTPError("500 Server Error")
+                err.response = resp
+                resp.raise_for_status.side_effect = err
+            else:
+                resp.status_code = 200
+                resp.raise_for_status.return_value = None
+                resp.json.return_value = {"products": [{"sku": 1}], "total": 1}
+            return resp
+
+        session = MagicMock()
+        session.get = fake_get
+        monkeypatch.setattr(connector.time, "sleep", lambda *_: None)
+
+        result = connector.fetch_data_with_retry(session, "https://example.com", {})
+        assert result == {"products": [{"sku": 1}], "total": 1}
+        assert call_count[0] == 2
+
+    def test_all_retries_exhausted_raises(self, monkeypatch):
+        """When all 3 attempts return a retryable error, a RuntimeError is raised."""
+        call_count = [0]
+
+        def fake_get(*args, **kwargs):
+            call_count[0] += 1
+            resp = MagicMock()
+            resp.status_code = 429
+            err = _requests.exceptions.HTTPError("429 Too Many Requests")
+            err.response = resp
+            resp.raise_for_status.side_effect = err
+            return resp
+
+        session = MagicMock()
+        session.get = fake_get
+        monkeypatch.setattr(connector.time, "sleep", lambda *_: None)
+
+        with pytest.raises(RuntimeError):
+            connector.fetch_data_with_retry(session, "https://example.com", {})
+        assert call_count[0] == 3  # __MAX_RETRIES = 3
+
+    def test_auth_error_not_retried(self, monkeypatch):
+        """A 401 is not retried — raises immediately."""
+        call_count = [0]
+
+        def fake_get(*args, **kwargs):
+            call_count[0] += 1
+            resp = MagicMock()
+            resp.status_code = 401
+            err = _requests.exceptions.HTTPError("401 Unauthorized")
+            err.response = resp
+            resp.raise_for_status.side_effect = err
+            return resp
+
+        session = MagicMock()
+        session.get = fake_get
+        monkeypatch.setattr(connector.time, "sleep", lambda *_: None)
+
+        with pytest.raises(RuntimeError, match="401"):
+            connector.fetch_data_with_retry(session, "https://example.com", {})
+        assert call_count[0] == 1, "Auth errors must not be retried"
+
+
 class TestEmptyProductsShortCircuit:
     """When Best Buy returns zero products, update() must checkpoint and
     return cleanly without invoking ai_query()."""
