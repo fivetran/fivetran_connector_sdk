@@ -13,17 +13,31 @@ import sqlite3
 import os
 
 # Import required classes from fivetran_connector_sdk.
-# For supporting Connector operations like Update() and Schema()
+# For supporting Connector operations like update() and schema()
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
 from fivetran_connector_sdk import Logging as log
 
-# For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
+# For supporting Data operations like upsert(), update(), delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
 
-__PAGE_SIZE = 25
+__ROWS_PER_PAGE = 25
 __DB_FILE = "users.db"
+__STATE_KEY_OFFSET = "offset"
+__DEFAULT_OFFSET = 0
+
+
+def validate_configuration(configuration: dict):
+    """
+    Validate the configuration dictionary to ensure it contains all required parameters.
+    This function is called at the start of the update method to ensure that the connector has all necessary configuration values.
+    This example requires no configuration, so no validation is performed.
+    When building your own connector, add validation for required keys here.
+    Args:
+        configuration: a dictionary that holds the configuration settings for the connector.
+    """
+    pass
 
 
 def schema(configuration: dict):
@@ -60,17 +74,16 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Pagination - Database LIMIT/OFFSET")
 
+    validate_configuration(configuration)
+
     # Seed the local SQLite database with sample data on the first run.
     # In a real connector, you would connect to an external database instead.
     _seed_database_if_needed(__DB_FILE)
 
     # Retrieve the current offset from state. On the first sync, start from the beginning.
-    offset = int(state.get("offset", 0))
+    offset = int(state.get(__STATE_KEY_OFFSET, __DEFAULT_OFFSET))
 
-    try:
-        sync_items(__DB_FILE, offset, state)
-    except Exception as e:
-        raise RuntimeError(f"Failed to sync data: {str(e)}") from e
+    sync_items(__DB_FILE, offset, state)
 
 
 def sync_items(db_file, offset, state):
@@ -94,7 +107,7 @@ def sync_items(db_file, offset, state):
     Query pattern:
         SELECT id, name, email, updated_at FROM users
         ORDER BY updated_at, id
-        LIMIT page_size OFFSET offset;
+        LIMIT rows_per_page OFFSET offset;
     Args:
         db_file: Path to the SQLite database file.
         offset: The row offset to start the current page from.
@@ -109,8 +122,7 @@ def sync_items(db_file, offset, state):
 
         while True:
             # Fetch a page of rows. A deterministic ORDER BY is required so that OFFSET refers to a
-            # consistent position across requests. Without it, row-shift from concurrent writes can
-            # cause the same row to appear on multiple pages or be skipped entirely.
+            # consistent position across requests.
             cursor.execute(
                 """
                 SELECT id, name, email, updated_at
@@ -118,7 +130,7 @@ def sync_items(db_file, offset, state):
                 ORDER BY updated_at, id
                 LIMIT ? OFFSET ?
                 """,
-                (__PAGE_SIZE, offset),
+                (__ROWS_PER_PAGE, offset),
             )
             rows = cursor.fetchall()
 
@@ -130,11 +142,17 @@ def sync_items(db_file, offset, state):
             )
 
             for row in rows:
+                # The 'upsert' operation is used to insert or update data in the destination table.
+                # The op.upsert method is called with two arguments:
+                # - The first argument is the name of the table to upsert the data into.
+                # - The second argument is a dictionary containing the data to be upserted.
                 op.upsert(table="user", data=dict(row))
 
-            # Advance offset by the number of rows processed on this page.
-            offset += __PAGE_SIZE
-            state["offset"] = offset
+            # Advance offset by the actual number of rows returned on this page.
+            # Using len(rows) rather than __ROWS_PER_PAGE ensures the offset is accurate
+            # when the last page contains fewer rows than the page size.
+            offset += len(rows)
+            state[__STATE_KEY_OFFSET] = offset
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can
             # resume from the correct position in case of next sync or interruptions.
@@ -159,34 +177,36 @@ def _seed_database_if_needed(db_file):
     log.info(f"Seeding local database '{db_file}' with sample data for the first time.")
 
     conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        CREATE TABLE users (
-            id         INTEGER PRIMARY KEY,
-            name       TEXT NOT NULL,
-            email      TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+        cursor.execute(
+            """
+            CREATE TABLE users (
+                id         INTEGER PRIMARY KEY,
+                name       TEXT NOT NULL,
+                email      TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
         )
-        """
-    )
 
-    # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
-    # Timestamps are 3 minutes apart starting from 2024-01-01, giving a spread across ~10 hours.
-    rows = [
-        (
-            i,
-            f"User {i}",
-            f"user{i}@example.com",
-            f"2024-01-01T{(i * 3) // 60:02d}:{(i * 3) % 60:02d}:00+00:00",
-        )
-        for i in range(1, 201)
-    ]
-    cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?)", rows)
+        # Insert 200 rows with staggered timestamps so multiple pages are visible during fivetran debug.
+        # Timestamps are 3 minutes apart starting from 2024-01-01, giving a spread across ~10 hours.
+        rows = [
+            (
+                i,
+                f"User {i}",
+                f"user{i}@example.com",
+                f"2024-01-01T{(i * 3) // 60:02d}:{(i * 3) % 60:02d}:00+00:00",
+            )
+            for i in range(1, 201)
+        ]
+        cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?)", rows)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+    finally:
+        conn.close()
 
     log.info("Database seeded successfully with 200 rows.")
 
@@ -194,26 +214,23 @@ def _seed_database_if_needed(db_file):
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module.
-# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
-#
-# IMPORTANT: The recommended way to test your connector is using the Fivetran debug command:
-#   fivetran debug
-#
-# This local testing block is provided as a convenience for quick debugging during development,
-# such as using IDE debug tools (breakpoints, step-through debugging, etc.).
-# Note: This method is not called by Fivetran when executing your connector in production.
-# Always test using 'fivetran debug' prior to finalizing and deploying your connector.
+# Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
+# be run directly from the command line or IDE 'run' button. This is useful for debugging while you write your code.
+# Note this method is not called by Fivetran when executing your connector in production. Please test using the
+# Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # This example does not require a configuration.json file.
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
+    # your IDE.
     connector.debug()
 
 # Resulting table:
-# ┌─────┬────────┬───────────────────────┬─────────────────────┐
-# │ id  │  name  │         email         │      updated_at     │
-# │ int │ string │        string         │  timestamp with UTC │
-# ├─────┼────────┼───────────────────────┼─────────────────────┤
-# │  1  │ User 1 │ user1@example.com     │ 2024-01-01T00:03:00+00:00 │
-# │  2  │ User 2 │ user2@example.com     │ 2024-01-01T00:06:00+00:00 │
-# ├─────┴────────┴───────────────────────┴─────────────────────┤
-# │  2 rows                                          4 columns │
-# └────────────────────────────────────────────────────────────┘
+# ┌─────┬────────┬───────────────────────┬──────────────────────────────┐
+# │ id  │  name  │         email         │          updated_at          │
+# │ int │ string │        string         │      timestamp with UTC      │
+# ├─────┼────────┼───────────────────────┼──────────────────────────────┤
+# │  1  │ User 1 │ user1@example.com     │ 2024-01-01T00:03:00+00:00    │
+# │  2  │ User 2 │ user2@example.com     │ 2024-01-01T00:06:00+00:00    │
+# ├─────┴────────┴───────────────────────┴──────────────────────────────┤
+# │  2 rows                                                   4 columns │
+# └────────────────────────────────────────────────────────────────────┘

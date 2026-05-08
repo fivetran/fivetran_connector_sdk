@@ -38,7 +38,7 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 - Automatically creates and seeds the database with 200 sample rows on the first run.
 - Tracks sync progress using a numeric `offset` stored in state.
 - Implements `op.checkpoint()` for resumable syncs.
-- Parses and upserts all paginated results into a `USER` table.
+- Parses and upserts all paginated results into a `user` table.
 
 
 ## Configuration file
@@ -69,7 +69,7 @@ In real-world scenarios, replace the SQLite connection in `sync_items()` with a 
 Pagination is handled using a numeric offset stored in state:
 - On the first sync, `offset` starts at `0`.
 - Each query fetches 25 rows starting at the current offset: `LIMIT 25 OFFSET <offset>`.
-- After each page, the offset advances by `PAGE_SIZE` and is checkpointed in state.
+- After each page, the offset advances by the number of rows returned and is checkpointed in state.
 - Pagination ends when the query returns no rows.
 - A deterministic `ORDER BY updated_at, id` is used on every query to ensure a consistent row order across requests.
 
@@ -85,13 +85,12 @@ Important: if rows are inserted or deleted in the source table while paging is i
 
 
 ## Error handling
-- Exceptions from `sync_items()` are caught in `update()` and re-raised as `RuntimeError` with context preserved.
-- SQLite connection is closed in a `finally` block inside `sync_items()` to prevent resource leaks.
+- SQLite connections in `sync_items()` and `_seed_database_if_needed()` are closed in a `finally` block to prevent resource leaks.
 - Empty result sets halt pagination gracefully.
 
 
 ## Tables created
-The connector creates the `USER` table:
+The connector creates the `user` table:
 
 ```
 {
