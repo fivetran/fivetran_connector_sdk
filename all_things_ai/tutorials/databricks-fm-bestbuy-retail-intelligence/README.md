@@ -128,29 +128,33 @@ Note: The `genie_table_identifier` must be a fully qualified Unity Catalog path 
 
 The `PRODUCTS_ENRICHED` table consists of the following columns:
 
-- `sku` (STRING, primary key): Best Buy SKU identifier
-- `name` (STRING): Product name
-- `sale_price` (FLOAT): Current sale price in USD
-- `regular_price` (FLOAT): Regular (non-sale) price in USD
-- `on_sale` (BOOLEAN): Whether the product is currently on sale
-- `percent_savings` (FLOAT): Percentage savings from regular price
-- `customer_review_average` (FLOAT): Average customer review score (0-5)
-- `customer_review_count` (INTEGER): Number of customer reviews
-- `manufacturer` (STRING): Product manufacturer name
-- `short_description` (STRING): Product description (truncated to 500 chars)
-- `category` (STRING): Product category name
-- `category_path` (STRING): JSON array of full category hierarchy
-- `condition` (STRING): Product condition (New, Refurbished, etc.)
-- `free_shipping` (BOOLEAN): Whether free shipping is available
-- `in_store_available` (BOOLEAN): In-store availability
-- `online_available` (BOOLEAN): Online availability
-- `url` (STRING): Product page URL on bestbuy.com
-- `competitive_positioning` (STRING): AI-classified market positioning (PREMIUM, MID_MARKET, VALUE, BUDGET). Populated when enrichment is enabled
-- `price_optimization` (STRING): AI-generated price optimization recommendation. Populated when enrichment is enabled
-- `price_action` (STRING): AI-recommended price action (INCREASE, MAINTAIN, DECREASE, CLEARANCE). Populated when enrichment is enabled
-- `sentiment_summary` (STRING): AI-generated customer sentiment analysis. Populated when enrichment is enabled
-- `retail_category_ai` (STRING): AI-classified retail category. Populated when enrichment is enabled
-- `enrichment_model` (STRING): Databricks Foundation Model used for enrichment
+Primary key: `sku`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `sku` | STRING | Best Buy SKU identifier |
+| `name` | STRING | Product name |
+| `sale_price` | FLOAT | Current sale price in USD |
+| `regular_price` | FLOAT | Regular (non-sale) price in USD |
+| `on_sale` | BOOLEAN | Whether the product is currently on sale |
+| `percent_savings` | FLOAT | Percentage savings from regular price |
+| `customer_review_average` | FLOAT | Average customer review score (0-5) |
+| `customer_review_count` | INTEGER | Number of customer reviews |
+| `manufacturer` | STRING | Product manufacturer name |
+| `short_description` | STRING | Product description (truncated to 500 chars) |
+| `category` | STRING | Product category name |
+| `category_path` | STRING | JSON array of full category hierarchy |
+| `condition` | STRING | Product condition (New, Refurbished, etc.) |
+| `free_shipping` | BOOLEAN | Whether free shipping is available |
+| `in_store_available` | BOOLEAN | In-store availability |
+| `online_available` | BOOLEAN | Online availability |
+| `url` | STRING | Product page URL on bestbuy.com |
+| `competitive_positioning` | STRING | AI-classified market positioning (PREMIUM, MID_MARKET, VALUE, BUDGET). Populated when enrichment is enabled |
+| `price_optimization` | STRING | AI-generated price optimization recommendation. Populated when enrichment is enabled |
+| `price_action` | STRING | AI-recommended price action (INCREASE, MAINTAIN, DECREASE, CLEARANCE). Populated when enrichment is enabled |
+| `sentiment_summary` | STRING | AI-generated customer sentiment analysis. Populated when enrichment is enabled |
+| `retail_category_ai` | STRING | AI-classified retail category. Populated when enrichment is enabled |
+| `enrichment_model` | STRING | Databricks Foundation Model used for enrichment |
 
 ## Additional considerations
 
