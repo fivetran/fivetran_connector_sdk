@@ -1,8 +1,8 @@
 # Overview
 
-This section brings together working Connector SDK examples organized by use case, so you can quickly find the right starting point for your connector.
+This section brings together working Connector SDK examples organized by use case, so you can quickly find the right starting point for your custom connector.
 
-Use these examples to learn core implementation patterns, adapt common approaches, and build connectors faster. 
+Use these examples to learn core implementation patterns, adapt common approaches, and build custom connectors faster. 
 
 ## Quickstart examples
 
@@ -38,7 +38,7 @@ These are graded examples designed to help you get started with the Connector SD
 
 ## Common SDK patterns
 
-These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as authentication, error handling, data extraction, and more.
+These examples demonstrate common patterns and best practices for building connectors using the Connector SDK. They cover various aspects such as [authentication](https://fivetran.com/docs/connector-sdk/connector-sdk-concepts/authentication), [data handling](https://fivetran.com/docs/connector-sdk/connector-sdk-concepts/data-handling), [schema management](https://fivetran.com/docs/connector-sdk/connector-sdk-concepts/schema-management), pagination, [state management](https://fivetran.com/docs/connector-sdk/connector-sdk-concepts/state-management), and error handling.
 
 <details class="details-heading" open="open">
 <summary>List of connectors for common SDK patterns</summary>
@@ -117,7 +117,7 @@ These examples demonstrate common patterns and best practices for building conne
 
 ## Private Preview examples
 
-These examples rely on features that are currently in Private preview. To enable them for your connector, please contact Fivetran professional services.
+These examples rely on features that are currently in [Private Preview](https://fivetran.com/docs/core-concepts#releasephases). To enable them for your connector, please contact Fivetran professional services.
 
 <details open>
 <summary>List of connectors that use Private Preview features</summary>
