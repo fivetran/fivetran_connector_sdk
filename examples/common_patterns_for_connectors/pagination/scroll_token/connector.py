@@ -179,7 +179,7 @@ def get_api_response(base_url, params):
 
             if response.status_code in __RETRYABLE_STATUS_CODES:
                 if attempt < __MAX_RETRIES - 1:
-                    delay = __BASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+                    delay = __BASE_RETRY_DELAY_SECONDS * (2**attempt)
                     log.warning(
                         f"Request failed with status {response.status_code}, retrying in {delay}s "
                         f"(attempt {attempt + 1}/{__MAX_RETRIES})"
@@ -192,7 +192,7 @@ def get_api_response(base_url, params):
 
         except requests.exceptions.ConnectionError as e:
             if attempt < __MAX_RETRIES - 1:
-                delay = __BASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+                delay = __BASE_RETRY_DELAY_SECONDS * (2**attempt)
                 log.warning(
                     f"Connection error, retrying in {delay}s "
                     f"(attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
