@@ -232,6 +232,12 @@ def sync_items(connection, table_name, offset, state):
                 # from this exact row rather than re-fetching the full current page.
                 if (index + 1) % __CHECKPOINT_INTERVAL == 0:
                     state[__STATE_KEY_OFFSET] = offset + (index + 1)
+                    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+                    # from the correct position in case of next sync or interruptions.
+                    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+                    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+                    # Learn more about how and where to checkpoint by reading our best practices documentation
+                    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
                     op.checkpoint(state)
 
             # Advance offset by the actual number of rows returned on this page.
