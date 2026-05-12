@@ -65,7 +65,7 @@ def connect_to_database(configuration: dict):
     database = configuration["database"]
     username = configuration["username"]
     password = configuration["password"]
-    sslmode = configuration.get("sslmode", "disable")
+    sslmode = configuration.get("sslmode") or "disable"
 
     try:
         connection = psycopg2.connect(
@@ -157,9 +157,8 @@ def update(configuration: dict, state: dict):
             connection.close()
             log.info("Closed database connection")
         except Exception as close_error:
-            raise RuntimeError(
-                f"Failed to close database connection: {str(close_error)}"
-            ) from close_error
+            # Log and suppress the close error so it does not mask the original sync exception.
+            log.warning(f"Failed to close database connection: {str(close_error)}")
 
 
 def sync_items(connection, table_name, last_updated_at, last_id, state):
