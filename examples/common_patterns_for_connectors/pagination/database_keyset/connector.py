@@ -14,8 +14,7 @@ from datetime import datetime
 import psycopg2
 from psycopg2 import sql
 
-# Import required classes from fivetran_connector_sdk.
-# For supporting Connector operations like update() and schema()
+# Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
 
 # For enabling Logs in your connector code
