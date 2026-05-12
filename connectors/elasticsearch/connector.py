@@ -33,6 +33,7 @@ def _session() -> rq.Session:
 _DONE = object()  # sentinel: signals a worker thread has finished
 
 PAGE_SIZE = 5_000
+QUEUE_BATCH_SIZE = 100  # docs bundled per queue item to reduce lock contention
 PIT_KEEP_ALIVE = "5m"
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = 30
@@ -359,13 +360,23 @@ def sync_index(configuration: dict, name: str, index_state: dict,
     connector). The _seq_no incremental logic matches the existing connector's
     scrollDocsWithSeqNoGreaterThan approach.
     """
+    _upsert_batch: list = []
+
+    def _flush_upsert_batch():
+        if _upsert_batch and out_queue is not None:
+            out_queue.put(("upsert_batch", name, list(_upsert_batch)))
+            _upsert_batch.clear()
+
     def _upsert(data):
         if out_queue is not None:
-            out_queue.put(("upsert", name, data))
+            _upsert_batch.append(data)
+            if len(_upsert_batch) >= QUEUE_BATCH_SIZE:
+                _flush_upsert_batch()
         else:
             op.upsert(table=name, data=data)
 
     def _delete(keys):
+        _flush_upsert_batch()  # preserve ordering before a delete
         if out_queue is not None:
             out_queue.put(("delete", name, keys))
         else:
@@ -414,6 +425,7 @@ def sync_index(configuration: dict, name: str, index_state: dict,
         finally:
             close_pit(configuration, pit_id, distribution)
 
+        _flush_upsert_batch()
         log.info(f"{name}: upserted {count} documents")
         index_state["last_max_seq_no"] = current_max_seq_no
     else:
@@ -452,9 +464,18 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict,
     Data streams are append-only by design (updates/deletes are uncommon
     and discouraged by Elasticsearch).
     """
+    _upsert_batch: list = []
+
+    def _flush_upsert_batch():
+        if _upsert_batch and out_queue is not None:
+            out_queue.put(("upsert_batch", name, list(_upsert_batch)))
+            _upsert_batch.clear()
+
     def _upsert(data):
         if out_queue is not None:
-            out_queue.put(("upsert", name, data))
+            _upsert_batch.append(data)
+            if len(_upsert_batch) >= QUEUE_BATCH_SIZE:
+                _flush_upsert_batch()
         else:
             op.upsert(table=name, data=data)
 
@@ -496,6 +517,7 @@ def sync_data_stream(configuration: dict, name: str, index_state: dict,
                     latest_ts = ts
             search_after = hits[-1]["sort"]
     finally:
+        _flush_upsert_batch()
         close_pit(configuration, pit_id, distribution)
 
     if count:
@@ -584,6 +606,10 @@ def update(configuration: dict, state: dict):
             state[name] = new_state
             op.checkpoint(state)
             pending -= 1
+        elif item[0] == "upsert_batch":
+            _, table, batch = item
+            for data in batch:
+                op.upsert(table=table, data=data)
         elif item[0] == "upsert":
             _, table, data = item
             op.upsert(table=table, data=data)
