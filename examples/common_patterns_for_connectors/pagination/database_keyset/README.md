@@ -81,7 +81,7 @@ psycopg2_binary==2.9.12
 
 - `psycopg2_binary`: PostgreSQL database adapter for Python, used to establish connections and execute queries.
 
-Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare it in your `requirements.txt`.
+> Note: [Some packages](https://fivetran.com/docs/connector-sdk/technical-reference#preinstalledpackages) are pre-installed in the Connector SDK runtime environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`. 
 
 
 ## Authentication
