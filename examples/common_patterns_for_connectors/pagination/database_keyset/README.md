@@ -22,33 +22,12 @@ This example is intended for learning purposes. It is not meant for production u
 
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
-Before running `fivetran debug`, create the source table and insert sample data in your PostgreSQL database:
-
-```sql
-CREATE TABLE users (
-    id         SERIAL PRIMARY KEY,
-    name       VARCHAR(255) NOT NULL,
-    email      VARCHAR(255) NOT NULL,
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
-
-INSERT INTO users (name, email, updated_at)
-SELECT
-    'User ' || i,
-    'user' || i || '@example.com',
-    '2026-01-01 00:00:00+00'::TIMESTAMPTZ + (i * INTERVAL '3 minutes')
-FROM generate_series(1, 200) AS i;
-```
-
-Then update `configuration.json` with your PostgreSQL connection details and set `table_name` to `users`.
-
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
 fivetran init --template examples/common_patterns_for_connectors/pagination/database_keyset
 ```
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
-If you do not specify a project path, Fivetran creates the project in your current directory.
 For more information on `fivetran init`, refer to the [Connector SDK `init` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#createyourcustomconnector).
 
 Note: Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
