@@ -99,7 +99,7 @@ Not applicable - the connector fetches only the latest exchange rate in a single
 - API request failures (timeouts, network errors, HTTP errors) are retried up to 3 times with exponential backoff (2s, 4s, up to 10s) using `tenacity`.
 - After all retry attempts are exhausted, `tenacity` re-raises the last exception, which is caught, logged at `SEVERE` level, and wrapped as a `RuntimeError`.
 - If the API returns an empty response, the connector logs a warning and returns without upserting.
-- Logs are written using `log.warning()`, `log.info()`, and `log.severe()` to trace execution.
+- Logs are written using `log.warning()`, `log.info()`, and `log.error()` to trace execution.
 
 
 ## Tables created

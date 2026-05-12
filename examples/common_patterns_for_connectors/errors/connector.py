@@ -28,9 +28,9 @@ def handle_critical_error(error_message, error_details=None):
         error_message (str): The main error message to log.
         error_details (str, optional): Additional details about the error, if available.
     """
-    log.severe(f"CRITICAL ERROR: {error_message}")
+    log.error(f"CRITICAL ERROR: {error_message}")
     if error_details:
-        log.severe(f"Error details: {error_details}")
+        log.error(f"Error details: {error_details}")
     raise Exception(f"CRITICAL ERROR: {error_message}")
 
 
