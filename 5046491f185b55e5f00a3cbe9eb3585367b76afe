@@ -1,0 +1,29 @@
+all_things_ai/tutorials/claude/agents/ft-csdk-fix.md
+  c11ff98b3cff3050 173
+all_things_ai/ai_agents/claude_code/.claude/agents/ft-csdk-generate.md
+  c11ff98b3cff3050 144,153
+all_things_ai/ai_agents/claude_code/.claude/agents/ft-csdk-fix.md
+  c11ff98b3cff3050 270
+.github/instructions/python-review.instructions.md
+  c11ff98b3cff3050 191-194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "5046491f185b55e5f00a3cbe9eb3585367b76afe",
+  "prompts": {
+    "c11ff98b3cff3050": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "763b63a6-7a12-44f1-99f1-8d7512a04233",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 16,
+      "accepted_lines": 10,
+      "overriden_lines": 0
+    }
+  }
+}

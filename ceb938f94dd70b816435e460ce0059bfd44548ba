@@ -1,0 +1,36 @@
+examples/quickstart_examples/multiple_code_files_with_sub_directory_structure/README.md
+  c11ff98b3cff3050 73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "ceb938f94dd70b816435e460ce0059bfd44548ba",
+  "prompts": {
+    "4729c4a7cd58c374": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2549c416-7ab7-43d9-9740-eaf3f8e078b1",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 44,
+      "total_deletions": 85,
+      "accepted_lines": 1,
+      "overriden_lines": 4
+    },
+    "c11ff98b3cff3050": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "763b63a6-7a12-44f1-99f1-8d7512a04233",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
