@@ -1,6 +1,7 @@
 # Database Keyset Pagination Connector Example
 
 ## Connector overview
+
 This connector demonstrates how to implement keyset pagination for syncing data from a PostgreSQL database.
 
 Keyset pagination filters rows using a `WHERE (updated_at, id) > (last_updated_at, last_id)` clause and orders by those same columns. After each page, the boundary advances to the last row of the page.
@@ -9,6 +10,7 @@ This example is intended for learning purposes. It is not meant for production u
 
 
 ## Requirements
+
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
 - Operating system:
   - Windows: 10 or later (64-bit only)
@@ -17,6 +19,7 @@ This example is intended for learning purposes. It is not meant for production u
 
 
 ## Getting started
+
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
 
 Before running `fivetran debug`, create the source table and insert sample data in your PostgreSQL database:
@@ -52,6 +55,7 @@ Note: Ensure you have updated the `configuration.json` file with the necessary p
 
 
 ## Features
+
 - Demonstrates keyset pagination against a PostgreSQL database.
 - Tracks sync progress using a `(updated_at, id)` boundary stored in state.
 - Uses a tie-breaker `id` to handle rows that share the same `updated_at` timestamp.
@@ -60,6 +64,7 @@ Note: Ensure you have updated the `configuration.json` file with the necessary p
 
 
 ## Configuration file
+
 The connector requires the following configuration keys in the `configuration.json` file:
 
 ```json
@@ -88,6 +93,7 @@ Note: Ensure that the `configuration.json` file is not checked into version cont
 
 
 ## Requirements file
+
 The `requirements.txt` file specifies the Python libraries required by the connector:
 
 ```
@@ -100,12 +106,14 @@ Note: The `fivetran_connector_sdk:latest` package is pre-installed in the Fivetr
 
 
 ## Authentication
+
 The connector uses standard PostgreSQL username/password authentication.
 
 Ensure the database user has `SELECT` privilege on the source table and `CONNECT` privilege on the database.
 
 
 ## Pagination
+
 Pagination is handled using a keyset boundary stored in state:
 - On the first sync, the boundary starts before all records: `updated_at = '0001-01-01T00:00:00+00:00'`, `id = 0`.
 - Each query fetches rows where `(updated_at, id) > (last_updated_at, last_id)`, ordered by `updated_at, id`.
@@ -119,6 +127,7 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 
 ## Data handling
+
 - Fetches rows in pages of 25 using the keyset query.
 - Converts psycopg2 row tuples to dictionaries using `cursor.description` for column names.
 - Syncs each row to Fivetran using `op.upsert(table="user", data=...)`.
@@ -126,6 +135,7 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 
 ## Error handling
+
 - Validates all required configuration parameters before connecting.
 - Validates `sslmode` against allowed values.
 - Wraps connection and sync failures in `RuntimeError` with the original exception preserved.
@@ -135,6 +145,7 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 
 ## Tables created
+
 The connector creates the `user` table:
 
 ```
