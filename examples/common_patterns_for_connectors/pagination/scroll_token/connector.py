@@ -10,6 +10,9 @@ and the Best Practices documentation (https://fivetran.com/docs/connectors/conne
 # Import requests to make HTTP calls to API.
 import requests
 
+# Import time for retry backoff delays.
+import time
+
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like update() and schema()
 from fivetran_connector_sdk import Connector
@@ -25,6 +28,10 @@ __STATE_KEY_SCROLL_TOKEN = "scroll_token"
 __SCROLL_PARAM_KEY = "scroll_param"
 __RESPONSE_KEY_DATA = "data"
 __REQUEST_TIMEOUT_SECONDS = 30
+__MAX_RETRIES = 3
+__BASE_RETRY_DELAY_SECONDS = 1
+__CHECKPOINT_INTERVAL = 25
+__RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 def schema(configuration: dict):
@@ -116,12 +123,16 @@ def sync_items(base_url, scroll_token, state):
             f"processing page of items. First item starts: {summary_first_item}, Total items: {len(items)}"
         )
 
-        for user in items:
+        for index, user in enumerate(items):
             # The 'upsert' operation is used to insert or update data in the destination table.
             # The op.upsert method is called with two arguments:
             # - The first argument is the name of the table to upsert the data into.
             # - The second argument is a dictionary containing the data to be upserted.
             op.upsert(table="user", data=user)
+
+            # Checkpoint every __CHECKPOINT_INTERVAL records to commit upserts to the destination.
+            if (index + 1) % __CHECKPOINT_INTERVAL == 0:
+                op.checkpoint(state)
 
         # Check whether there are more pages. The API returns a scroll token for the next page,
         # or null/absent when the end of the dataset has been reached.
@@ -153,17 +164,42 @@ def get_api_response(base_url, params):
     It performs the following tasks:
         1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
         2. Makes the API request using the 'requests' library, passing the URL and parameters.
-        3. Parses the JSON response from the API and returns it as a dictionary.
+        3. Retries on transient errors (429, 5xx, connection errors) with exponential backoff.
+        4. Parses the JSON response from the API and returns it as a dictionary.
     Args:
         base_url: The URL to which the API request is made.
         params: A dictionary of query parameters to be included in the API request.
     Returns:
         response_page: A dictionary containing the parsed JSON response from the API.
     """
-    log.info(f"Making API call to url: {base_url} with params: {params}")
-    response = requests.get(base_url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
-    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
-    return response.json()
+    for attempt in range(__MAX_RETRIES):
+        try:
+            log.info(f"Making API call to url: {base_url} with params: {params}")
+            response = requests.get(base_url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
+
+            if response.status_code in __RETRYABLE_STATUS_CODES:
+                if attempt < __MAX_RETRIES - 1:
+                    delay = __BASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+                    log.warning(
+                        f"Request failed with status {response.status_code}, retrying in {delay}s "
+                        f"(attempt {attempt + 1}/{__MAX_RETRIES})"
+                    )
+                    time.sleep(delay)
+                    continue
+
+            response.raise_for_status()  # Raise immediately for non-retryable errors.
+            return response.json()
+
+        except requests.exceptions.ConnectionError as e:
+            if attempt < __MAX_RETRIES - 1:
+                delay = __BASE_RETRY_DELAY_SECONDS * (2 ** attempt)
+                log.warning(
+                    f"Connection error, retrying in {delay}s "
+                    f"(attempt {attempt + 1}/{__MAX_RETRIES}): {str(e)}"
+                )
+                time.sleep(delay)
+            else:
+                raise
 
 
 # Create the connector object using the schema and update functions
