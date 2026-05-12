@@ -215,9 +215,9 @@ def sync_items(connection, table_name, last_updated_at, last_id, state):
 
             for row in rows:
                 # The 'upsert' operation is used to insert or update data in the destination table.
-                # The op.upsert method is called with two arguments:
-                # The first argument is the name of the table to upsert the data into.
-                # The second argument is a dictionary containing the data to be upserted.
+          # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table="user", data=row)
 
             # Advance the keyset boundary to the last row of this page.
