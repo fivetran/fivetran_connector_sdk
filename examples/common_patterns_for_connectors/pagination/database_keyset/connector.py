@@ -24,6 +24,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 __ROWS_PER_PAGE = 25
+__CHECKPOINT_INTERVAL = 10
 __STATE_KEY_UPDATED_AFTER = "updated_after"
 __STATE_KEY_LAST_ID = "last_id"
 __DEFAULT_CURSOR = "0001-01-01T00:00:00+00:00"
@@ -48,6 +49,18 @@ def validate_configuration(configuration: dict):
     if configuration.get("sslmode") not in (None, "disable", "require", ""):
         raise ValueError(f"Invalid sslmode value: {configuration['sslmode']}")
 
+    # Validate port is an integer in the valid TCP range (1–65535).
+    try:
+        port_number = int(configuration["port"])
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Configuration value for 'port' must be an integer, got: '{configuration['port']}'"
+        )
+    if not (1 <= port_number <= 65535):
+        raise ValueError(
+            f"Configuration value for 'port' must be between 1 and 65535, got: {port_number}"
+        )
+
 
 def connect_to_database(configuration: dict):
     """
@@ -60,7 +73,7 @@ def connect_to_database(configuration: dict):
         RuntimeError: If connection fails, with original exception preserved in chain.
     """
     host = configuration["hostname"]
-    port = int(configuration.get("port", 5432))
+    port = int(configuration["port"])
     database = configuration["database"]
     username = configuration["username"]
     password = configuration["password"]
@@ -212,23 +225,27 @@ def sync_items(connection, table_name, last_updated_at, last_id, state):
                 f"processing page of rows. First row id: {rows[0]['id']}, Total rows: {len(rows)}"
             )
 
-            for row in rows:
+            for index, row in enumerate(rows):
                 # The 'upsert' operation is used to insert or update data in the destination table.
           # The 'upsert' operation is used to insert or update data in the destination table.
             # The first argument is the name of the destination table.
             # The second argument is a dictionary containing the record to be upserted.
                 op.upsert(table="user", data=row)
 
-            # Advance the keyset boundary to the last row of this page.
-            # Both updated_at and id are stored in state to handle rows with identical timestamps.
-            last_updated_at = rows[-1]["updated_at"]
-            last_id = rows[-1]["id"]
-            state[__STATE_KEY_UPDATED_AFTER] = (
-                last_updated_at.isoformat()
-                if hasattr(last_updated_at, "isoformat")
-                else last_updated_at
-            )
-            state[__STATE_KEY_LAST_ID] = str(last_id)
+                # Advance the keyset boundary after every record so a mid-page checkpoint
+                # captures the exact position — on resume, only unprocessed rows are re-fetched.
+                last_updated_at = row["updated_at"]
+                last_id = row["id"]
+                state[__STATE_KEY_UPDATED_AFTER] = (
+                    last_updated_at.isoformat()
+                    if hasattr(last_updated_at, "isoformat")
+                    else last_updated_at
+                )
+                state[__STATE_KEY_LAST_ID] = str(last_id)
+
+                # Checkpoint every __CHECKPOINT_INTERVAL records to commit upserts to the destination.
+                if (index + 1) % __CHECKPOINT_INTERVAL == 0:
+                    op.checkpoint(state)
 
             # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
             # from the correct position in case of next sync or interruptions.

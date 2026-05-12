@@ -93,11 +93,12 @@ Ensure the database user has `SELECT` privilege on the source table and `CONNECT
 
 ## Pagination
 
-Pagination is handled using a keyset boundary stored in state:
-- On the first sync, the boundary starts before all records: `updated_at = '0001-01-01T00:00:00+00:00'`, `id = 0`.
+Pagination is handled by tracking the `(updated_at, id)` values of the last processed row in state. Each query uses these values in a `WHERE (updated_at, id) > (%s, %s)` clause to fetch only the next set of rows, skipping everything already processed.
+
+- On the first sync, `updated_at = '0001-01-01T00:00:00+00:00'` and `id = 0` are used so all rows are returned.
 - Each query fetches rows where `(updated_at, id) > (last_updated_at, last_id)`, ordered by `updated_at, id`.
-- After each page, the boundary advances to the `updated_at` and `id` of the last row in the page.
-- Both values are stored in state and checkpointed after each page.
+- After processing each row, `last_updated_at` and `last_id` are updated to that row's values and saved to state.
+- State is checkpointed every `__CHECKPOINT_INTERVAL` records and at the end of each page.
 - Pagination ends when the query returns no rows.
 
 The `id` tie-breaker ensures that rows sharing the same `updated_at` timestamp are handled correctly and no rows are skipped or duplicated.
@@ -107,10 +108,11 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 ## Data handling
 
-- Fetches rows in pages of 25 using the keyset query.
+- Fetches rows in pages of `__ROWS_PER_PAGE` using the keyset query.
 - Converts psycopg2 row tuples to dictionaries using `cursor.description` for column names.
 - Syncs each row to Fivetran using `op.upsert(table="user", data=...)`.
-- Checkpoints state after each page to support reliable resume.
+- Updates `last_updated_at` and `last_id` in state after every row.
+- Checkpoints state every `__CHECKPOINT_INTERVAL` records and at the end of each page.
 
 
 ## Error handling
@@ -125,7 +127,7 @@ Note: this pattern requires an indexed monotonic column. For best performance in
 
 ## Tables created
 
-The connector creates the `user` table:
+The connector creates the `USER` table:
 
 ```
 {
