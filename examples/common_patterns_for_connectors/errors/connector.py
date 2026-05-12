@@ -23,7 +23,7 @@ import random  # For generating random data
 
 def handle_critical_error(error_message, error_details=None):
     """
-    Handle critical errors by logging them as severe and stopping Connector SDK execution.
+    Handle critical errors by logging them as error and stopping Connector SDK execution.
     Args:
         error_message (str): The main error message to log.
         error_details (str, optional): Additional details about the error, if available.
