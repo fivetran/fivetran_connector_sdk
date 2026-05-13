@@ -56,8 +56,6 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 ## Features
 
-- Data-only mode: Works without Snowflake Cortex for pure NHTSA data sync
-- Configurable discovery limits: Control how many vehicles the agent can discover per sync
 - Exponential backoff retry logic for transient API failures and rate limiting
 - Automatic PascalCase-to-snake_case field normalization for warehouse compatibility
 - Nested structure flattening and list-to-JSON serialization
@@ -130,7 +128,7 @@ The connector processes data through a three-phase pipeline, implemented in `def
 
 **Phase 2 - Agent-driven discovery (requires Cortex):**
 1. Build analysis prompt with component failure summaries via `def build_discovery_prompt(make, model, year, recalls, complaints)`
-2. Call Cortex Agent for pattern analysis via `def call_cortex_agent(configuration, prompt, cortex_session)`
+2. Call Cortex Agent for pattern analysis via `def call_cortex_agent(configuration, prompt, cortex_session=None)`
 3. Agent recommends related vehicles based on shared components and safety patterns
 4. Fetch recalls, complaints, and specs for each discovered vehicle
 5. Upsert discovery insights with component risk rankings
