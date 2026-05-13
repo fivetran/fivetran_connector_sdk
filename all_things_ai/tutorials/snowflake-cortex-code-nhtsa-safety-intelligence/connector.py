@@ -62,6 +62,37 @@ __DEFAULT_CORTEX_MODEL = "claude-sonnet-4-6"
 __CORTEX_AGENT_ENDPOINT = "/api/v2/cortex/inference:complete"
 
 
+def _is_placeholder(value) -> bool:
+    """Return True when value is an angle-bracket placeholder (not a real credential)."""
+    return isinstance(value, str) and value.startswith("<") and value.endswith(">")
+
+
+def _parse_bool(value, default: bool = False) -> bool:
+    """Parse a config value as boolean, handling both string and native bool inputs."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return default
+
+
+def _optional_str(value, default: str) -> str:
+    """Return default when value is None, empty, or a placeholder."""
+    if value is None or _is_placeholder(value):
+        return default
+    return str(value) if value else default
+
+
+def _optional_int(value, default: int) -> int:
+    """Return default when value is None, empty, or a placeholder; otherwise cast to int."""
+    if value is None or _is_placeholder(value):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def flatten_dict(d, parent_key="", sep="_"):
     """
     Flatten nested dictionaries and serialize lists to JSON strings.
@@ -115,14 +146,14 @@ def validate_configuration(configuration: dict):
                 raise ValueError(f"Invalid {key} value: must be a number")
 
     # Validate Cortex configuration if enabled
-    is_cortex_enabled = configuration.get("enable_cortex", "false").lower() == "true"
+    is_cortex_enabled = _parse_bool(configuration.get("enable_cortex"), default=False)
     if is_cortex_enabled:
         snowflake_account = configuration.get("snowflake_account", "")
         snowflake_pat_token = configuration.get("snowflake_pat_token", "")
 
-        if not snowflake_account:
+        if not snowflake_account or _is_placeholder(snowflake_account):
             raise ValueError("snowflake_account is required when enable_cortex is true")
-        if not snowflake_pat_token:
+        if not snowflake_pat_token or _is_placeholder(snowflake_pat_token):
             raise ValueError("snowflake_pat_token is required when enable_cortex is true")
         if snowflake_account.startswith(("http://", "https://")):
             raise ValueError(
@@ -640,8 +671,8 @@ def call_cortex_agent(configuration, prompt, cortex_session=None):
         Parsed JSON response as dictionary, or None if call fails
     """
     snowflake_account = configuration.get("snowflake_account")
-    cortex_model = configuration.get("cortex_model", __DEFAULT_CORTEX_MODEL)
-    timeout = int(configuration.get("cortex_timeout", str(__DEFAULT_CORTEX_TIMEOUT)))
+    cortex_model = _optional_str(configuration.get("cortex_model"), __DEFAULT_CORTEX_MODEL)
+    timeout = _optional_int(configuration.get("cortex_timeout"), __DEFAULT_CORTEX_TIMEOUT)
 
     url = f"https://{snowflake_account}{__CORTEX_AGENT_ENDPOINT}"
 
@@ -789,8 +820,12 @@ def run_discovery_phase(
     seed_make = configuration.get("seed_make")
     seed_model = configuration.get("seed_model")
     seed_year = configuration.get("seed_year")
-    max_discoveries = int(configuration.get("max_discoveries", str(__DEFAULT_MAX_DISCOVERIES)))
-    max_enrichments = int(configuration.get("max_enrichments", str(__DEFAULT_MAX_ENRICHMENTS)))
+    max_discoveries = _optional_int(
+        configuration.get("max_discoveries"), __DEFAULT_MAX_DISCOVERIES
+    )
+    max_enrichments = _optional_int(
+        configuration.get("max_enrichments"), __DEFAULT_MAX_ENRICHMENTS
+    )
     enrichment_count = 0
 
     # Track aggregates instead of full in-memory lists for synthesis prompt
@@ -802,7 +837,7 @@ def run_discovery_phase(
     crash_count = 0
     fire_count = 0
     for c in seed_complaints:
-        comp = c.get("Component", c.get("component", "Unknown"))
+        comp = c.get("components") or c.get("Components", "Unknown")
         complaint_components[comp] = complaint_components.get(comp, 0) + 1
         if c.get("crash") or c.get("Crash"):
             crash_count += 1
@@ -937,11 +972,11 @@ def run_discovery_phase(
                 comp = r.get("Component", r.get("component", "Unknown"))
                 recall_components[comp] = recall_components.get(comp, 0) + 1
             for c in discovered_complaints:
-                comp = c.get("Component", c.get("component", "Unknown"))
+                comp = c.get("components") or c.get("Components", "Unknown")
                 complaint_components[comp] = complaint_components.get(comp, 0) + 1
-                if c.get("Crash", c.get("crash", "No")) == "Yes":
+                if c.get("crash") or c.get("Crash"):
                     crash_count += 1
-                if c.get("Fire", c.get("fire", "No")) == "Yes":
+                if c.get("fire") or c.get("Fire"):
                     fire_count += 1
             total_recalls += len(discovered_recalls)
             total_complaints += len(discovered_complaints)
@@ -1055,7 +1090,7 @@ def update(configuration: dict, state: dict):
     seed_make = configuration.get("seed_make")
     seed_model = configuration.get("seed_model")
     seed_year = configuration.get("seed_year")
-    is_cortex_enabled = configuration.get("enable_cortex", "false").lower() == "true"
+    is_cortex_enabled = _parse_bool(configuration.get("enable_cortex"), default=False)
     discovery_depth = int(configuration.get("discovery_depth", str(__DEFAULT_DISCOVERY_DEPTH)))
 
     session = create_session()
@@ -1093,8 +1128,8 @@ def update(configuration: dict, state: dict):
             # Create Cortex session for connection pooling across discovery + synthesis
             cortex_session = _create_cortex_session(configuration)
 
-            max_enrichments = int(
-                configuration.get("max_enrichments", str(__DEFAULT_MAX_ENRICHMENTS))
+            max_enrichments = _optional_int(
+                configuration.get("max_enrichments"), __DEFAULT_MAX_ENRICHMENTS
             )
 
             aggregates, vehicles_investigated, enrichment_count = run_discovery_phase(
@@ -1170,4 +1205,4 @@ if __name__ == "__main__":
         configuration = json.load(f)
 
     # Test the connector locally
-    connector.debug()
+    connector.debug(configuration=configuration)
