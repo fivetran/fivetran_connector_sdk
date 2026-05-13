@@ -1,0 +1,27 @@
+connectors/prometheus/README.md
+  b78c3476adb0fc59 126
+connectors/owasp_api_vulns/README.md
+  b78c3476adb0fc59 97
+connectors/data_camp/connector.py
+  b78c3476adb0fc59 189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "a0367996b51a899b405cbfefed7e98def6b0f6d0",
+  "prompts": {
+    "b78c3476adb0fc59": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "623eb7db-98af-4822-b20c-02b5dd12f95e",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Sinchana Hegde <sinchana.hegde@fivetran.com>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
