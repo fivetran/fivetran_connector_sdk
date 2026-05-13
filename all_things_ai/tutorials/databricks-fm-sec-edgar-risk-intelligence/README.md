@@ -6,13 +6,13 @@ This connector syncs SEC EDGAR financial filing data (10-K/10-Q filings and XBRL
 
 This is the second Databricks AI tutorial connector in the Fivetran SDK repository, demonstrating the Agent-Driven Discovery pattern. Unlike the simple enrichment pattern (FDA Drug Labels, PR #567), the AI here decides what additional data to fetch, making the data pipeline adaptive rather than static.
 
-Three-phase architecture:
+Three-phase core architecture:
 
 - Phase 1 (SEED): Fetch company info and XBRL financial facts for configured seed companies from SEC EDGAR
 - Phase 2 (DISCOVERY): ai_query() analyzes each seed company's financials, identifies credit risk signals, and recommends related companies to investigate (suppliers, competitors, counterparties). The connector fetches data for discovered companies automatically.
 - Phase 3 (SYNTHESIS): ai_query() synthesizes patterns across all companies (seed + discovered) to identify systemic exposure, counterparty risks, and portfolio-level risk grades
 
-Optional [Genie Space](https://docs.databricks.com/en/genie/index.html) creation after data lands for natural language analytics on the enriched financial data.
+Optional phase (disabled by default): [Genie Space](https://docs.databricks.com/en/genie/index.html) creation after data lands for natural language analytics on the enriched financial data. Enable via `enable_genie_space=true` in configuration. This phase is independent of the three-phase core architecture and can be enabled without affecting other phases.
 
 ## Requirements
 
