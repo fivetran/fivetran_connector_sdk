@@ -4,9 +4,7 @@
 
 This connector syncs severe weather alerts from the [NOAA Weather API](https://www.weather.gov/documentation/services-web-api) and enriches them with AI-powered hybrid analysis using the Databricks [ai_query()](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. It combines Agent-Driven Discovery (identifying related regions affected by the same weather system) with Multi-Agent Debate (Emergency Response vs Resource Planning perspectives) in a single connector.
 
-This is the fourth and final Databricks AI tutorial connector in the Fivetran SDK repository, demonstrating the Hybrid pattern that combines both advanced AI patterns from the series. It is the capstone connector that produces the richest AI-enriched dataset.
-
-Four-phase architecture:
+The connector features a four-phase architecture:
 
 - Phase 1 (MOVE): Fetch weather alerts from NOAA Weather API for configured states
 - Phase 2 (DISCOVERY): ai_query() analyzes weather patterns and recommends additional states to investigate for related weather system impact. The connector fetches alerts for discovered states automatically.
@@ -90,12 +88,12 @@ The NOAA Weather API is free and requires no authentication. A `User-Agent` head
 
 Databricks access requires a Personal Access Token (PAT) with SQL execution permissions:
 
-1. Navigate to your Databricks workspace
-2. Click your username in the top-right corner and select **Settings**
-3. Click **Developer** in the left panel
-4. Click **Manage** next to **Access tokens**
-5. Click **Generate new token**, provide a description, and click **Generate**
-6. Copy the token value and set it as `databricks_token` in your `configuration.json`
+1. Go to your Databricks workspace.
+2. Click your username in the top-right corner and select **Settings**.
+3. Click **Developer** in the left panel.
+4. Click **Manage** next to **Access tokens**.
+5. Click **Generate new token**, provide a description, and click **Generate**.
+6. Copy the token value and set it as `databricks_token` in your `configuration.json`.
 
 ## Pagination
 
