@@ -205,7 +205,16 @@ class TestNoSqlReservedKeywordsAsColumnNames:
 
     def test_weather_events_no_reserved_keywords(self, minimal_noaa_alert_feature):
         record = connector.build_event_record(minimal_noaa_alert_feature, "seed")
-        sql_reserved = {"by", "from", "select", "where", "order", "group", "join", "table"}
+        sql_reserved = {
+            "by",
+            "from",
+            "select",
+            "where",
+            "order",
+            "group",
+            "join",
+            "table",
+        }
         clashing = set(record.keys()) & sql_reserved
         assert not clashing, (
             f"weather_events column(s) collide with SQL reserved keywords: {clashing}. "
