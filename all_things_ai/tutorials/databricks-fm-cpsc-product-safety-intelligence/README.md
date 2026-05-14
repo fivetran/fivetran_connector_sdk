@@ -4,9 +4,7 @@
 
 This connector syncs consumer product recall data from the [CPSC SaferProducts API](https://www.saferproducts.gov/RestWebServices) and enriches each recall with AI-powered multi-agent debate analysis using the Databricks [ai_query()](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. Two AI personas with opposing expert perspectives analyze each product safety incident, then a consensus agent synthesizes both views and flags disagreements for human review.
 
-This is the third Databricks AI tutorial connector in the Fivetran SDK repository, demonstrating the Multi-Agent Debate pattern. Unlike simple enrichment (FDA Drug Labels, PR #567) or agent-driven discovery (SEC EDGAR, PR #568), this pattern produces richer and more balanced analysis by having two AI experts debate the same incident. The `disagreement_flag` column identifies recalls where the experts significantly disagree, flagging them for human quality review.
-
-Two-phase architecture:
+The connector features a two-phase architecture:
 
 - Phase 1 (MOVE): Fetch product recall data from the CPSC SaferProducts API
 - Phase 2 (DEBATE): For each recall, three ai_query() calls produce competing analyses:
