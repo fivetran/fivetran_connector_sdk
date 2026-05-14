@@ -186,7 +186,7 @@ def fetch_endpoint(base_url: str, endpoint: str, bearer_token: str) -> List[Any]
         List[Any]: List of records from the API endpoint
 
     Raises:
-        Exception: Logs error-level errors but returns empty list on failure after all retries
+        Exception: Logs errors but returns empty list on failure after all retries
     """
     url = base_url.rstrip("/") + endpoint
     headers = {"Accept": "application/json", "Authorization": f"Bearer {bearer_token}"}
