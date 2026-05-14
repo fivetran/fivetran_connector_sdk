@@ -143,9 +143,7 @@ def get_primary_key_columns(connection, schema_name: str, table_name: str):
         pk_columns = [row[0] for row in cursor.fetchall()]
         return pk_columns
     except psycopg2.Error as e:
-        log.error(
-            f"Failed to fetch primary key columns for table '{schema_name}.{table_name}'", e
-        )
+        log.error(f"Failed to fetch primary key columns for table '{schema_name}.{table_name}'", e)
         raise
     finally:
         cursor.close()

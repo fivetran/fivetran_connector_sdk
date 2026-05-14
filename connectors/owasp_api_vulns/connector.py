@@ -284,9 +284,7 @@ def _build_request_params(cwe: str, state: dict, force_full_sync: bool):
                 f"lastModEndDate={params['lastModEndDate']}"
             )
         except ValueError as e:
-            log.error(
-                f"Critical error: Invalid last_sync_time format in state for CWE {cwe}: {e}"
-            )
+            log.error(f"Critical error: Invalid last_sync_time format in state for CWE {cwe}: {e}")
             raise ValueError(f"Malformed state for {cwe}: last_sync_time is invalid: {e}")
     else:
         params["resultsPerPage"] = __RESULTS_PER_PAGE

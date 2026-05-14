@@ -767,9 +767,7 @@ def fetch_region_data_with_retry(
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.error(
-                    f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}"
-                )
+                log.error(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
                 log.error(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
         except Exception as e:
             # Catch other unexpected exceptions from pytrends library
@@ -782,9 +780,7 @@ def fetch_region_data_with_retry(
                 # Exponential: 60s, 120s, 240s, 480s, 960s + Random jitter: 0-30s
                 handle_retry_sleep(retry, error_type, error_msg)
             else:
-                log.error(
-                    f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}"
-                )
+                log.error(f"All {__MAX_RETRIES} retry attempts exhausted for region {region_code}")
                 log.error(f"[DEBUG] Final error type: {error_type}, message: {error_msg}")
 
     # All retries exhausted - re-raise the last error

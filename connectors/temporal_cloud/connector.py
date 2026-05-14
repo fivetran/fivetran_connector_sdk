@@ -301,9 +301,7 @@ async def fetch_temporal_data(client, state: dict, process_fn, data_type: str):
 
             # Last attempt - raise error
             if attempt == __MAX_RETRIES - 1:
-                log.error(
-                    f"All {__MAX_RETRIES} retry attempts exhausted for fetching {data_type}"
-                )
+                log.error(f"All {__MAX_RETRIES} retry attempts exhausted for fetching {data_type}")
                 raise
 
             # Retry with exponential backoff

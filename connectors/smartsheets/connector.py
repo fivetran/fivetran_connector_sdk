@@ -465,7 +465,9 @@ class SmartsheetAPI:
                 break
 
             all_rows.extend(rows)
-            log.debug(f"Retrieved {len(rows)} rows from page {page}, total so far: {len(all_rows)}")
+            log.debug(
+                f"Retrieved {len(rows)} rows from page {page}, total so far: {len(all_rows)}"
+            )
 
             # Check if we've reached the end (less rows than requested)
             if len(rows) < page_size:

@@ -212,9 +212,7 @@ def handle_retryable_error(attempt, status_code, operation_name):
         )
         time.sleep(delay)
     else:
-        log.error(
-            f"{operation_name} failed after {__MAX_RETRIES} attempts. Status: {status_code}"
-        )
+        log.error(f"{operation_name} failed after {__MAX_RETRIES} attempts. Status: {status_code}")
         raise RuntimeError(f"{operation_name} failed after {__MAX_RETRIES} attempts")
 
 
