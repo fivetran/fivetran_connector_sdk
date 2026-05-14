@@ -4,9 +4,7 @@
 
 This connector syncs adverse event reports from the [FDA Adverse Event Reporting System (FAERS)](https://open.fda.gov/apis/drug/event/) via the OpenFDA Drug Event API and enriches each serious event with AI-powered multi-agent debate analysis using the Databricks [ai_query()](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. Two AI personas with opposing pharmacovigilance perspectives analyze each event, then a consensus agent synthesizes both views and flags disagreements for human PV review.
 
-This connector pairs with the FDA Drug Label Intelligence connector (PR #567) to provide a complete drug safety pipeline on Databricks: labels for drug information + adverse events for post-market surveillance.
-
-Two-phase architecture:
+The connector features a two-phase architecture:
 
 - Phase 1 (MOVE): Fetch adverse event reports from the OpenFDA Drug Event API, optionally filtered by drug name
 - Phase 2 (DEBATE): For each serious event, three ai_query() calls produce competing analyses:
