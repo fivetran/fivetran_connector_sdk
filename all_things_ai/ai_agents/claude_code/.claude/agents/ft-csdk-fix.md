@@ -269,4 +269,4 @@ After completing the fix, provide a comprehensive explanation:
 ## **Logging Method Errors** 
 - **Pattern**: `AttributeError: 'Logging' object has no attribute 'severe'`
 - **Solution**: Use correct logging method names in Fivetran Connector SDK
-- **Fix**: Replace `log.severe()` with `log.error()` - use `log.error()` for error-level logs
+- **Fix**: Replace `log.error()` with `log.error()` - use `log.error()` for error-level logs
