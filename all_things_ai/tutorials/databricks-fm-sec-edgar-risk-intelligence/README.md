@@ -4,9 +4,7 @@
 
 This connector syncs SEC EDGAR financial filing data (10-K/10-Q filings and XBRL financial facts) from the [SEC EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) and enriches it with AI-powered credit risk analysis using the Databricks [ai_query()](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. The connector uses an Agent-Driven Discovery pattern where the AI analyzes seed company financials and autonomously recommends related companies to investigate for systemic risk exposure.
 
-This is the second Databricks AI tutorial connector in the Fivetran SDK repository, demonstrating the Agent-Driven Discovery pattern. Unlike the simple enrichment pattern (FDA Drug Labels, PR #567), the AI here decides what additional data to fetch, making the data pipeline adaptive rather than static.
-
-Three-phase core architecture:
+The connector features a three-phase core architecture:
 
 - Phase 1 (SEED): Fetch company info and XBRL financial facts for configured seed companies from SEC EDGAR
 - Phase 2 (DISCOVERY): ai_query() analyzes each seed company's financials, identifies credit risk signals, and recommends related companies to investigate (suppliers, competitors, counterparties). The connector fetches data for discovered companies automatically.
