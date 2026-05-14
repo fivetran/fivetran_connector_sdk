@@ -44,11 +44,11 @@ Run the `.github/scripts/setup-hooks.sh` script from the root of the repository 
 
 ## Examples
 
-Explore working connector code examples for common Connector SDK use cases. These [examples](examples/README.md) help you understand core implementation patterns and quickly adapt them to your own connector.
+Explore working code examples for common Connector SDK use cases. These [examples](examples/README.md) help you understand core implementation patterns and quickly adapt them to your own connector.
 
 ## Community connectors
 
-Explore ready-to-use full connectors that require only minimal changes to get started. These connectors are useful when you want a stronger starting point or want to adapt an existing implementation for your source. For the full list, see the [Community Connectors Catalog](https://github.com/fivetran/fivetran_csdk_connectors/blob/main/README.md).
+Explore ready-to-use full connectors to get started. These connectors are useful when you want a stronger starting point or want to adapt an existing implementation for your source. For the full list, see the [Community Connectors Catalog](https://github.com/fivetran/fivetran_csdk_connectors/blob/main/README.md).
 
 
 ## AI and Connector SDK
