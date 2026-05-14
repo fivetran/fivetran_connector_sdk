@@ -224,14 +224,6 @@ The `DEBATE_CONSENSUS` table consists of the following columns:
 
 This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel).
 
-This is the fourth and final Databricks AI tutorial connector in the Fivetran SDK repository, completing the progression:
-1. FDA Drug Label Intelligence (PR #567) -- Simple Enrichment
-2. SEC EDGAR Risk Intelligence (PR #568) -- Agent-Driven Discovery
-3. CPSC Product Safety Intelligence (PR #569) -- Multi-Agent Debate
-4. NOAA Weather Risk Intelligence (this PR) -- Hybrid (Discovery + Debate)
-
-The NOAA Weather API is free and requires no authentication. The connector includes rate limiting delays between requests and a descriptive User-Agent header per NOAA API policies.
-
-Databricks `ai_query()` consumes SQL Warehouse compute credits. The hybrid pattern makes multiple ai_query() calls per sync: one per seed state for discovery analysis, plus 3 per significant event for debate. Use `max_enrichments` to control costs. Set `enable_enrichment` to `false` for data-only mode, or `enable_discovery` to `false` to skip discovery and run debate only.
+Databricks `ai_query()` consumes SQL Warehouse compute credits. The hybrid pattern makes multiple `ai_query()` calls per sync: one per seed state for discovery analysis, plus 3 per significant event for debate. Use `max_enrichments` to control costs. Set `enable_enrichment` to `false` for data-only mode, or `enable_discovery` to `false` to skip discovery and run debate only.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
