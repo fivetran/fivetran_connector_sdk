@@ -12,9 +12,9 @@ The connector features a two-phase architecture:
   2. Clinical Realist: context-aware clinical perspective, considers patient demographics and concomitant medications
   3. Consensus Agent: synthesizes both, produces disagreement_flag and debate_winner
 
-The disagreement_flag identifies adverse events where the two experts significantly disagree on whether the event represents a real safety signal, flagging them for human pharmacovigilance review.
+The `disagreement_flag` identifies adverse events where the two experts significantly disagree on whether the event represents a real safety signal, flagging them for human pharmacovigilance review.
 
-Optional [Genie Space](https://docs.databricks.com/en/genie/index.html) creation after data lands for natural language analytics.
+Optionally, the connector can create a [Genie Space](https://docs.databricks.com/en/genie/index.html) for natural language analytics after the data lands.
 
 ## Requirements
 
@@ -87,12 +87,12 @@ The OpenFDA Drug Event API is free and requires no authentication. An optional A
 
 Databricks access requires a Personal Access Token (PAT) with SQL execution permissions:
 
-1. Navigate to your Databricks workspace
-2. Click your username in the top-right corner and select **Settings**
-3. Click **Developer** in the left panel
-4. Click **Manage** next to **Access tokens**
-5. Click **Generate new token**, provide a description, and click **Generate**
-6. Copy the token value and set it as `databricks_token` in your `configuration.json`
+1. Go to your Databricks workspace.
+2. Click your username in the top-right corner and select **Settings**.
+3. Click **Developer** in the left panel.
+4. Click **Manage** next to **Access tokens**.
+5. Click **Generate new token**, provide a description, and click **Generate**.
+6. Copy the token value and set it as `databricks_token` in your `configuration.json`.
 
 ## Pagination
 
@@ -119,7 +119,7 @@ Phase 2 (DEBATE):
 9. Checkpoints after each event is debated
 
 Phase 3 (AGENT):
-10. If enabled, creates a Genie Space via `def create_genie_space(session, configuration, state)`
+10. If enabled, the connection creates a Genie Space via `def create_genie_space(session, configuration, state)`
 
 ## Error handling
 
@@ -133,6 +133,8 @@ The connector implements error handling at multiple levels:
 - The session is always closed via a try/finally block
 
 ## Tables created
+
+The connector creates the `ADVERSE_EVENTS`, `SAFETY_ASSESSMENTS`, `CLINICAL_ASSESSMENTS`, and `DEBATE_CONSENSUS` tables.
 
 ### ADVERSE_EVENTS
 
@@ -213,7 +215,7 @@ The Genie Space is created only once. The `space_id` is persisted in the connect
 
 This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel).
 
-This connector pairs with the FDA Drug Label Intelligence connector (PR #567) to provide a complete drug safety pipeline on Databricks. Drug labels provide the reference data (interactions, contraindications, black box warnings) while FAERS adverse events provide post-market surveillance data. Together they map directly to the Databricks BioPharma outcome "Pharmacovigilance (Drug Safety and Adverse Event Detection)."
+This connector pairs with the FDA Drug Label Intelligence connector to provide a complete drug safety pipeline on Databricks. Drug labels provide the reference data (interactions, contraindications, black box warnings) while FAERS adverse events provide post-market surveillance data. Together they map directly to the Databricks BioPharma outcome "Pharmacovigilance (Drug Safety and Adverse Event Detection)."
 
 The OpenFDA Drug Event API is free and requires no authentication. Rate limits apply (240 requests per minute without key). The connector includes rate limiting delays between requests.
 
