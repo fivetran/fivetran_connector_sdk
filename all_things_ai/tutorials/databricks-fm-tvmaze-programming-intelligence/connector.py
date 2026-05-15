@@ -131,22 +131,24 @@ def validate_configuration(configuration: dict):
     Raises:
         ValueError: if any required configuration parameter is missing or invalid.
     """
-    required_keys = [
-        "databricks_workspace_url",
-        "databricks_token",
-        "databricks_warehouse_id",
-    ]
-    for key in required_keys:
-        if key not in configuration or _is_placeholder(configuration.get(key)):
-            raise ValueError(f"Missing required configuration value: {key}")
-
     for bool_key in ("enable_enrichment", "enable_genie_space"):
         raw = configuration.get(bool_key, "false")
         if not _is_placeholder(raw) and not isinstance(raw, bool):
             if str(raw).strip().lower() not in ("true", "false", "1", "0", "yes", "no"):
                 raise ValueError(f"Configuration value for '{bool_key}' must be true or false")
 
-    if _parse_bool(configuration.get("enable_genie_space", "false")):
+    enable_enrichment = _parse_bool(configuration.get("enable_enrichment", "false"))
+    enable_genie_space = _parse_bool(configuration.get("enable_genie_space", "false"))
+
+    if enable_enrichment or enable_genie_space:
+        for key in ("databricks_workspace_url", "databricks_token", "databricks_warehouse_id"):
+            if key not in configuration or _is_placeholder(configuration.get(key)):
+                raise ValueError(
+                    f"Missing required configuration value: {key} "
+                    f"(required when enable_enrichment or enable_genie_space is true)"
+                )
+
+    if enable_genie_space:
         genie_table = configuration.get("genie_table_identifier")
         if _is_placeholder(genie_table):
             raise ValueError(
@@ -581,12 +583,14 @@ def run_debate(databricks_session, configuration, show_record, embedded, state):
             renewal_rating = str(consensus.get("renewal_rating", "MEDIUM")).upper()
             if renewal_rating not in ("HIGH", "MEDIUM", "LOW"):
                 renewal_rating = "MEDIUM"
-            disagreement_flag = bool(consensus.get("disagreement_flag", False))
+            disagreement_flag = _parse_bool(consensus.get("disagreement_flag", False))
             debate_winner = str(consensus.get("debate_winner", "DRAW")).upper()
             if debate_winner not in ("OPTIMIST", "SKEPTIC", "DRAW"):
                 debate_winner = "DRAW"
             consensus_rationale = str(consensus.get("consensus_rationale", ""))
-            human_review_recommended = bool(consensus.get("human_review_recommended", False))
+            human_review_recommended = _parse_bool(
+                consensus.get("human_review_recommended", False)
+            )
         except (json.JSONDecodeError, TypeError, ValueError):
             log.warning(f"Could not parse consensus JSON for show {show_id}")
 
@@ -828,10 +832,13 @@ def update(configuration: dict, state: dict):
             last_poll = state.get("last_updates_poll", 0)
             log.info(f"Incremental sync: shows updated since timestamp {last_poll}")
 
+            # TVMaze /updates/shows accepts day/week/month — use month (widest window)
+            # to avoid missing updates when the connector is paused for up to 30 days.
+            # Updates older than last_updates_poll are filtered out client-side below.
             updates_data = fetch_data_with_retry(
                 tvmaze_session,
                 f"{__TVMAZE_BASE_URL}/updates/shows",
-                params={"since": "week"},
+                params={"since": "month"},
             )
 
             if updates_data:
