@@ -1,0 +1,38 @@
+examples/common_patterns_for_connectors/backoff/configuration.json
+  a86441e18c859756 1,4
+examples/common_patterns_for_connectors/backoff/connector.py
+  a86441e18c859756 1-20,23,25-28,30-75,79,87-143,159-197,199,201-202,204,206,208-211,213-216,218-221,223-228,230-255,257-264
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.1",
+  "base_commit_sha": "fc44ebeb9b1f01f88931150943c41a22515ab006",
+  "prompts": {
+    "5e9ff84bfd611247": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1ba0676d-101a-47cc-b1ad-d6189c3eae9a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 19,
+      "total_deletions": 12,
+      "accepted_lines": 15,
+      "overriden_lines": 0
+    },
+    "a86441e18c859756": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b56f9e8b-97cb-4d78-9983-3f752c8fdf70",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "fivetran-JenasVimal <jenas.vimal@fivetran.com>",
+      "messages": [],
+      "total_additions": 237,
+      "total_deletions": 0,
+      "accepted_lines": 227,
+      "overriden_lines": 5
+    }
+  }
+}
