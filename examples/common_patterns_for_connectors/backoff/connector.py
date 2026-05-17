@@ -3,7 +3,7 @@ This example demonstrates six backoff strategies for handling 429 Too Many Reque
 The strategy is selected via the 'backoff_strategy' field in configuration.json.
 
 Requires the fivetran-api-playground package to run:
-  playground start --rate-limit --capacity 5
+  playground start --rate-limit --capacity 1
 
 See the Technical Reference documentation (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -18,17 +18,16 @@ from fivetran_connector_sdk import Connector
 from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
-DEFAULT_API_BASE_URL = "http://127.0.0.1:5001"
-PAGINATION_PATH = "/pagination/next_page_url"
-MAX_RETRIES = 5
-REQUEST_TIMEOUT_SECONDS = 10
-FIXED_DELAY = 2
-BASE_DELAY = 0.5
-MAX_DELAY = 10
-CHECKPOINT_INTERVAL = 50
-BATCH_REQUESTS = 3
+__DEFAULT_API_URL = "http://127.0.0.1:5001/pagination/next_page_url"
+__MAX_RETRIES = 5
+__REQUEST_TIMEOUT_SECONDS = 10
+__FIXED_DELAY = 2
+__BASE_DELAY = 0.5
+__MAX_DELAY = 10
+__CHECKPOINT_INTERVAL = 50
+__BATCH_REQUESTS = 3
 
-VALID_STRATEGIES = {
+__VALID_STRATEGIES = {
     "fixed",
     "linear",
     "exponential",
@@ -42,7 +41,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
@@ -75,20 +74,19 @@ def validate_configuration(configuration: dict):
     strategy = configuration.get("backoff_strategy")
     if not strategy:
         raise ValueError("Missing required configuration value: 'backoff_strategy'")
-    if strategy not in VALID_STRATEGIES:
+    if strategy not in __VALID_STRATEGIES:
         raise ValueError(
-            f"Invalid backoff_strategy '{strategy}'. Must be one of: {sorted(VALID_STRATEGIES)}"
+            f"Invalid backoff_strategy '{strategy}'. Must be one of: {sorted(__VALID_STRATEGIES)}"
         )
 
-    api_base_url = configuration.get("api_base_url", DEFAULT_API_BASE_URL)
-    if not isinstance(api_base_url, str) or not api_base_url.strip():
-        raise ValueError("Invalid configuration value: 'api_base_url' must be a non-empty string")
+    api_url = configuration.get("api_url", __DEFAULT_API_URL)
+    if not isinstance(api_url, str) or not api_url.strip():
+        raise ValueError("Invalid configuration value: 'api_url' must be a non-empty string")
 
 
-def get_base_url(configuration: dict) -> str:
+def get_api_url(configuration: dict) -> str:
     """Return the fully qualified pagination endpoint based on configuration."""
-    api_base_url = configuration.get("api_base_url", DEFAULT_API_BASE_URL).rstrip("/")
-    return f"{api_base_url}{PAGINATION_PATH}"
+    return configuration.get("api_url", __DEFAULT_API_URL)
 
 
 def compute_delay(strategy: str, attempt: int, retry_after_seconds: float = None) -> float:
@@ -99,7 +97,7 @@ def compute_delay(strategy: str, attempt: int, retry_after_seconds: float = None
       fixed                  — constant delay regardless of attempt number
       linear                 — delay grows linearly with each attempt
       exponential            — delay doubles after each attempt
-      exponential_with_cap   — exponential growth capped at MAX_DELAY
+      exponential_with_cap   — exponential growth capped at __MAX_DELAY
       exponential_with_jitter — randomised exponential to avoid thundering-herd
       retry_after            — honour the server's Retry-After header; fall back to exponential_with_cap
 
@@ -111,25 +109,25 @@ def compute_delay(strategy: str, attempt: int, retry_after_seconds: float = None
         Seconds to sleep before the next request.
     """
     if strategy == "fixed":
-        return FIXED_DELAY
+        return __FIXED_DELAY
 
     if strategy == "linear":
-        return BASE_DELAY * attempt
+        return __BASE_DELAY * attempt
 
     if strategy == "exponential":
-        return BASE_DELAY * (2**attempt)
+        return __BASE_DELAY * (2**attempt)
 
     if strategy == "exponential_with_cap":
-        return min(MAX_DELAY, BASE_DELAY * (2**attempt))
+        return min(__MAX_DELAY, __BASE_DELAY * (2**attempt))
 
     if strategy == "exponential_with_jitter":
-        return random.uniform(0, BASE_DELAY * (2**attempt))
+        return random.uniform(0, __BASE_DELAY * (2**attempt))
 
     if strategy == "retry_after":
         if retry_after_seconds is not None:
             return retry_after_seconds
         # Fallback: exponential with cap when the header is absent
-        return min(MAX_DELAY, BASE_DELAY * (2**attempt))
+        return min(__MAX_DELAY, __BASE_DELAY * (2**attempt))
 
     raise ValueError(f"Unknown strategy: {strategy}")
 
@@ -144,16 +142,16 @@ def get_api_response(url: str, params: dict, strategy: str) -> dict:
     Returns:
         Parsed JSON response as a dictionary.
     Raises:
-        Exception: when MAX_RETRIES is exceeded or a non-retryable HTTP error occurs.
+        Exception: when __MAX_RETRIES is exceeded or a non-retryable HTTP error occurs.
     """
-    for attempt in range(1, MAX_RETRIES + 1):
-        log.info(f"API call attempt {attempt}/{MAX_RETRIES}: {url}")
+    for attempt in range(1, __MAX_RETRIES + 1):
+        log.info(f"API call attempt {attempt}/{__MAX_RETRIES}: {url}")
         try:
-            response = rq.get(url, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+            response = rq.get(url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
         except rq.RequestException as exc:
-            if attempt == MAX_RETRIES:
+            if attempt == __MAX_RETRIES:
                 raise Exception(
-                    f"API request failed after {MAX_RETRIES} attempts for {url}: {exc}"
+                    f"API request failed after {__MAX_RETRIES} attempts for {url}: {exc}"
                 ) from exc
 
             delay = compute_delay(strategy, attempt)
@@ -184,9 +182,30 @@ def get_api_response(url: str, params: dict, strategy: str) -> dict:
             time.sleep(delay)
             continue
 
+        if 500 <= response.status_code < 600:
+            if attempt == __MAX_RETRIES:
+                raise Exception(
+                    f"API request failed after {__MAX_RETRIES} attempts for {url}: "
+                    f"server returned HTTP {response.status_code}"
+                )
+
+            delay = compute_delay(strategy, attempt)
+            log.warning(
+                f"Server error ({response.status_code}). Strategy='{strategy}', "
+                f"attempt={attempt}, sleeping {delay:.2f}s"
+            )
+            time.sleep(delay)
+            continue
+
+        if 400 <= response.status_code < 500:
+            raise Exception(
+                f"Non-retryable client error for {url}: HTTP {response.status_code}, "
+                f"response body: {response.text}"
+            )
+
         response.raise_for_status()
 
-    raise Exception(f"Exceeded {MAX_RETRIES} retries for {url}")
+    raise Exception(f"Exceeded {__MAX_RETRIES} retries for {url}")
 
 
 def sync_items(current_url: str, params: dict, state: dict, strategy: str):
@@ -202,7 +221,7 @@ def sync_items(current_url: str, params: dict, state: dict, strategy: str):
     rows_since_checkpoint = 0
 
     while more_data:
-        for _ in range(BATCH_REQUESTS):
+        for _ in range(__BATCH_REQUESTS):
             response_page = get_api_response(current_url, params, strategy)
 
             items = response_page.get("data", [])
@@ -217,7 +236,7 @@ def sync_items(current_url: str, params: dict, state: dict, strategy: str):
                 state["last_updated_at"] = user["updatedAt"]
                 rows_since_checkpoint += 1
 
-                if rows_since_checkpoint >= CHECKPOINT_INTERVAL:
+                if rows_since_checkpoint >= __CHECKPOINT_INTERVAL:
                     op.checkpoint(state)
                     log.info(f"Checkpoint saved at cursor: {state['last_updated_at']}")
                     rows_since_checkpoint = 0
@@ -239,13 +258,14 @@ def sync_items(current_url: str, params: dict, state: dict, strategy: str):
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
-    See the technical reference documentation for more details on the update function:
+    See the technical reference documentation for more details on the update function
     https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
     Args:
-        configuration: a dictionary that holds the configuration settings for the connector.
-        state: a dictionary containing state information from previous runs.
+        configuration: A dictionary containing connection details
+        state: A dictionary containing state information from previous runs
+        The state dictionary is empty for the first sync or for any full re-sync
     """
-    log.warning("Example: Common Patterns For Connectors - Backoff Strategies")
+    log.warning("Example: Common Patterns For Connectors : Backoff Strategies")
 
     validate_configuration(configuration)
 
@@ -260,7 +280,7 @@ def update(configuration: dict, state: dict):
         "per_page": 50,
     }
 
-    sync_items(get_base_url(configuration), params, state, strategy)
+    sync_items(get_api_url(configuration), params, state, strategy)
 
 
 connector = Connector(update=update, schema=schema)
