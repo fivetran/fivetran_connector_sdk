@@ -70,6 +70,9 @@ __GENIE_SPACE_ENDPOINT = "/api/2.0/genie/spaces"
 __MAX_PATIENTS_CEILING = 500
 __MAX_ENRICHMENTS_CEILING = 20
 
+# Per-patient resource fetch cap (prevents unbounded memory on large histories)
+__MAX_RESOURCES_PER_PATIENT = 100
+
 # Genie Space configuration
 __GENIE_SPACE_INSTRUCTIONS = (
     "You are a population health intelligence agent. This dataset contains "
@@ -231,10 +234,9 @@ def validate_configuration(configuration: dict):
 
     # Validate Databricks credentials when enrichment is enabled
     is_enrichment = _parse_bool(configuration.get("enable_enrichment"), default=True)
-    is_discovery = _parse_bool(configuration.get("enable_discovery"), default=True)
     is_genie = _parse_bool(configuration.get("enable_genie_space"), default=False)
 
-    if is_enrichment or is_discovery or is_genie:
+    if is_enrichment or is_genie:
         for key in [
             "databricks_workspace_url",
             "databricks_token",
@@ -376,6 +378,7 @@ def call_ai_query(session, configuration, prompt):
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
     }
 
     escaped = prompt.replace("'", "''")
@@ -388,7 +391,32 @@ def call_ai_query(session, configuration, prompt):
     }
 
     try:
-        response = session.post(url, headers=headers, json=payload, timeout=timeout_seconds)
+        # Retry initial POST for transient failures
+        response = None
+        for attempt in range(__MAX_RETRIES):
+            try:
+                response = session.post(
+                    url, headers=headers, json=payload, timeout=timeout_seconds
+                )
+                if response.status_code in __RETRYABLE_STATUS_CODES:
+                    delay = __BASE_DELAY_SECONDS * (2**attempt)
+                    log.warning(
+                        f"ai_query() attempt {attempt + 1} returned {response.status_code}, retrying in {delay}s"
+                    )
+                    time.sleep(delay)
+                    continue
+                if response.status_code in (401, 403):
+                    response.raise_for_status()
+                break
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                if attempt < __MAX_RETRIES - 1:
+                    delay = __BASE_DELAY_SECONDS * (2**attempt)
+                    log.warning(
+                        f"ai_query() attempt {attempt + 1} failed: {e}, retrying in {delay}s"
+                    )
+                    time.sleep(delay)
+                else:
+                    raise
         response.raise_for_status()
 
         result = response.json()
@@ -396,6 +424,9 @@ def call_ai_query(session, configuration, prompt):
 
         # Poll for PENDING/RUNNING states
         statement_id = result.get("statement_id")
+        if sql_state in ("PENDING", "RUNNING") and not statement_id:
+            log.warning("ai_query() returned PENDING/RUNNING with no statement_id — cannot poll")
+            return None
         poll_count = 0
         max_polls = 12
         poll_interval_seconds = 10
@@ -1010,7 +1041,7 @@ def build_consensus_prompt(patient_record, clinical_result, resource_result):
         '  "winner_rationale": "...",\n'
         '  "agreement_areas": ["..."],\n'
         '  "disagreement_areas": ["..."],\n'
-        '  "disagreement_flag": true,\n'
+        '  "disagreement_flag": true|false,\n'
         '  "disagreement_severity": "NONE|MINOR|SIGNIFICANT|FUNDAMENTAL",\n'
         '  "recommended_next_step": "...",\n'
         '  "executive_summary": "..."\n'
@@ -1035,8 +1066,9 @@ def upsert_assessment(table_name, patient_id, assessment, assessment_type):
         log.warning(f"Skipping {assessment_type} for {patient_id}: no response")
         return False
 
-    record = {"patient_id": patient_id, "assessment_type": assessment_type}
-    record.update(flatten_dict(assessment))
+    record = flatten_dict(assessment) if assessment else {}
+    record["patient_id"] = patient_id
+    record["assessment_type"] = assessment_type
 
     # The 'upsert' operation is used to insert or update data in the destination table.
     # The first argument is the name of the destination table.
@@ -1069,6 +1101,9 @@ def run_move_phase(session, base_url, max_patients, condition_filter, state):
     medication_records_by_patient = {}
 
     patient_params = {"_count": str(__DEFAULT_PAGE_SIZE), "_sort": "-_lastUpdated"}
+    last_sync = state.get("last_sync")
+    if last_sync:
+        patient_params["_lastUpdated"] = f"gt{last_sync}"
     if condition_filter:
         patient_params["_has:Condition:patient:code"] = condition_filter
 
@@ -1103,6 +1138,7 @@ def run_move_phase(session, base_url, max_patients, condition_filter, state):
             session,
             f"{base_url}/Condition",
             params={"patient": pid, "_count": "100"},
+            max_results=__MAX_RESOURCES_PER_PATIENT,
         )
         patient_conditions = []
         for cond_resource in condition_resources:
@@ -1120,6 +1156,7 @@ def run_move_phase(session, base_url, max_patients, condition_filter, state):
             session,
             f"{base_url}/Observation",
             params={"patient": pid, "category": "laboratory", "_count": "100"},
+            max_results=__MAX_RESOURCES_PER_PATIENT,
         )
         patient_observations = []
         for obs_resource in obs_resources:
@@ -1137,6 +1174,7 @@ def run_move_phase(session, base_url, max_patients, condition_filter, state):
             session,
             f"{base_url}/MedicationRequest",
             params={"patient": pid, "_count": "100"},
+            max_results=__MAX_RESOURCES_PER_PATIENT,
         )
         patient_medications = []
         for med_resource in med_resources:
@@ -1191,7 +1229,7 @@ def run_discovery_phase(
         return
 
     condition_label = (condition_filter or "all_conditions").replace(" ", "_")
-    insight_id = f"insight_{condition_label}_{len(patient_records)}"
+    insight_id = f"insight_{condition_label}"
 
     insight_record = {
         "insight_id": insight_id,
@@ -1362,7 +1400,7 @@ def create_genie_space(session, configuration, state):
         "version": 2,
         "config": {
             "sample_questions": [
-                {"id": uuid.uuid4().hex, "question": [q]} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
+                {"id": uuid.uuid4().hex, "question": q} for q in __GENIE_SPACE_SAMPLE_QUESTIONS
             ]
         },
         "data_sources": {"tables": [{"identifier": table_id}]},
@@ -1370,7 +1408,7 @@ def create_genie_space(session, configuration, state):
             "text_instructions": [
                 {
                     "id": uuid.uuid4().hex,
-                    "content": [__GENIE_SPACE_INSTRUCTIONS],
+                    "content": __GENIE_SPACE_INSTRUCTIONS,
                 }
             ]
         },
@@ -1387,7 +1425,14 @@ def create_genie_space(session, configuration, state):
     }
 
     try:
-        resp = session.post(url, headers=headers, json=payload, timeout=60)
+        resp = session.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=_optional_int(
+                configuration, "databricks_timeout", __DEFAULT_DATABRICKS_TIMEOUT
+            ),
+        )
         resp.raise_for_status()
         result = resp.json()
         space_id = result.get("space_id")

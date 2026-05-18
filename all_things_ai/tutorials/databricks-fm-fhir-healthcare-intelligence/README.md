@@ -36,6 +36,8 @@ The `configuration.json` file holds the connection parameters. Copy the template
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
+Note: The `fivetran_connector_sdk` and `requests` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
 | Parameter | Description | Required | Default |
 |---|---|---|---|
 | fhir_base_url | Base URL of the FHIR R4 server | No | https://hapi.fhir.org/baseR4 |
@@ -62,7 +64,7 @@ Databricks authentication uses a Personal Access Token (PAT). Generate a PAT fro
 
 FHIR R4 servers return resources as paginated Bundle resources. The connector follows `Bundle.link` entries with `relation=next` to retrieve subsequent pages until no next link is present or the configured `max_patients` limit is reached. The next-page URL is used directly as provided by the server; query parameters are only passed on the initial request.
 
-Databricks SQL Statement API results may be paginated via `next_chunk_internal_link`. The connector follows these links to retrieve all rows from large `ai_query()` results.
+Databricks SQL Statement API responses can be paginated via `next_chunk_internal_link`, but this tutorial connector reads the immediate `ai_query()` result only and does not follow chunk-pagination links. The included AI queries return a single result value rather than a large multi-row result set.
 
 ## Data handling
 
@@ -78,7 +80,7 @@ All remaining nested dictionaries are flattened using `flatten_dict()` before up
 
 FHIR API requests are retried up to 3 times with exponential backoff for status codes 429, 500, 502, 503, and 504. Authentication errors (401, 403) are not retried and raise an immediate error with a credential check message.
 
-Databricks `ai_query()` failures are handled gracefully: if an enrichment call fails or times out, that patient's assessment is skipped and a warning is logged, but the sync continues. Checkpoints are written after each patient debate and after each enrichment phase so that progress is not lost if a sync is interrupted.
+Databricks `ai_query()` calls retry the initial POST up to 3 times with exponential backoff for status codes 429, 500, 502, 503, and 504. If all retry attempts fail, or if the statement returns a final FAILED state, that patient's assessment is skipped and a warning is logged, but the sync continues. Checkpoints are written after each patient debate and after each enrichment phase so that progress is not lost if a sync is interrupted.
 
 ## Tables created
 
@@ -235,6 +237,6 @@ The `DEBATE_CONSENSUS` table consists of the following columns:
 
 ## Additional considerations
 
-This connector was built by David Millman (david.millman@fivetran.com) during a working session with Kelly Kohlleffel. It follows the Hybrid (Discovery + Debate) pattern established by the NOAA Weather Risk Intelligence connector (PR #570) and the FDA FAERS Pharmacovigilance Intelligence connector (PR #571). The HAPI FHIR public test server (`https://hapi.fhir.org/baseR4`) is used as the default data source and contains synthetic clinical data suitable for demonstration purposes.
+This connector was built by David Millman during a working session with Kelly Kohlleffel. It follows the Hybrid (Discovery + Debate) pattern established by the NOAA Weather Risk Intelligence connector (PR #570) and the FDA FAERS Pharmacovigilance Intelligence connector (PR #571). The HAPI FHIR public test server (`https://hapi.fhir.org/baseR4`) is used as the default data source and contains synthetic clinical data suitable for demonstration purposes.
 
 The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
