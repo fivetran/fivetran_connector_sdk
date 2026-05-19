@@ -25,7 +25,6 @@ __FIXED_DELAY = 2
 __BASE_DELAY = 0.5
 __MAX_DELAY = 10
 __CHECKPOINT_INTERVAL = 50
-__BATCH_REQUESTS = 3
 
 __VALID_STRATEGIES = {
     "fixed",
@@ -221,38 +220,36 @@ def sync_items(current_url: str, params: dict, state: dict, strategy: str):
     rows_since_checkpoint = 0
 
     while more_data:
-        for _ in range(__BATCH_REQUESTS):
-            response_page = get_api_response(current_url, params, strategy)
+        response_page = get_api_response(current_url, params, strategy)
 
-            items = response_page.get("data", [])
-            if not items:
-                more_data = False
-                break
+        items = response_page.get("data", [])
+        if not items:
+            more_data = False
+            break
 
-            log.info(f"Processing page with {len(items)} items")
+        log.info(f"Processing page with {len(items)} items")
 
-            for user in items:
-                op.upsert(table="user", data=user)
-                state["last_updated_at"] = user["updatedAt"]
-                rows_since_checkpoint += 1
+        for user in items:
+            op.upsert(table="user", data=user)
+            state["last_updated_at"] = user["updatedAt"]
+            rows_since_checkpoint += 1
 
-                if rows_since_checkpoint >= __CHECKPOINT_INTERVAL:
-                    op.checkpoint(state)
-                    log.info(f"Checkpoint saved at cursor: {state['last_updated_at']}")
-                    rows_since_checkpoint = 0
+            if rows_since_checkpoint >= __CHECKPOINT_INTERVAL:
+                op.checkpoint(state)
+                log.info(f"Checkpoint saved at cursor: {state['last_updated_at']}")
+                rows_since_checkpoint = 0
 
-            # Checkpoint at the end of every page as well
-            op.checkpoint(state)
-            log.info(f"Page complete. Cursor: {state['last_updated_at']}")
-            rows_since_checkpoint = 0
+        # Checkpoint at the end of every page as well
+        op.checkpoint(state)
+        log.info(f"Page complete. Cursor: {state['last_updated_at']}")
+        rows_since_checkpoint = 0
 
-            next_page_url = response_page.get("next_page_url")
-            if next_page_url:
-                current_url = next_page_url
-                params = {}
-            else:
-                more_data = False
-                break
+        next_page_url = response_page.get("next_page_url")
+        if next_page_url:
+            current_url = next_page_url
+            params = {}
+        else:
+            more_data = False
 
 
 def update(configuration: dict, state: dict):
