@@ -10,7 +10,7 @@ The connector uses a hardcoded product catalog to walk through six stages. The r
 **Key behaviors illustrated:**
 
 - `truncate(table)` — soft-deletes every row in the table at the time of the call.
-- `delete(table, keys)` — soft-deletes a single row identified by its primary key; unlike `op.truncate()`, it targets a single row.
+- `delete(table, keys)` — soft-deletes a single row identified by its primary key; unlike `truncate()`, it targets a single row.
 - Rows upserted after `truncate()` in the same sync land with `_fivetran_deleted = false`.
 - Upserting a row whose primary key was previously truncated or deleted sets `_fivetran_deleted = false` and applies the new column values.
 
