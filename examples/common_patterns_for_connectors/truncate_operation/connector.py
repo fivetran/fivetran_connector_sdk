@@ -20,15 +20,45 @@ from fivetran_connector_sdk import Operations as op
 
 # Simulated product catalog - initial batch loaded into the destination.
 INITIAL_PRODUCTS = [
-    {"product_id": 1, "name": "Laptop",        "category": "Electronics", "price": 999.99, "in_stock": True},
-    {"product_id": 2, "name": "Wireless Mouse", "category": "Electronics", "price":  29.99, "in_stock": True},
-    {"product_id": 3, "name": "Desk Chair",     "category": "Furniture",   "price": 349.99, "in_stock": False},
+    {
+        "product_id": 1,
+        "name": "Laptop",
+        "category": "Electronics",
+        "price": 999.99,
+        "in_stock": True,
+    },
+    {
+        "product_id": 2,
+        "name": "Wireless Mouse",
+        "category": "Electronics",
+        "price": 29.99,
+        "in_stock": True,
+    },
+    {
+        "product_id": 3,
+        "name": "Desk Chair",
+        "category": "Furniture",
+        "price": 349.99,
+        "in_stock": False,
+    },
 ]
 
 # Replacement catalog loaded after truncate.
 NEW_CATALOG = [
-    {"product_id": 4, "name": "Mechanical Keyboard", "category": "Electronics", "price": 129.99, "in_stock": True},
-    {"product_id": 5, "name": "Standing Desk",        "category": "Furniture",   "price": 599.99, "in_stock": True},
+    {
+        "product_id": 4,
+        "name": "Mechanical Keyboard",
+        "category": "Electronics",
+        "price": 129.99,
+        "in_stock": True,
+    },
+    {
+        "product_id": 5,
+        "name": "Standing Desk",
+        "category": "Furniture",
+        "price": 599.99,
+        "in_stock": True,
+    },
 ]
 
 
@@ -46,10 +76,10 @@ def schema(configuration: dict):
             "primary_key": ["product_id"],
             "columns": {
                 "product_id": "INT",
-                "name":        "STRING",
-                "category":    "STRING",
-                "price":       "FLOAT",
-                "in_stock":    "BOOLEAN",
+                "name": "STRING",
+                "category": "STRING",
+                "price": "FLOAT",
+                "in_stock": "BOOLEAN",
             },
         }
     ]
@@ -143,7 +173,16 @@ def update(configuration: dict, state: dict):
     # Stage 5: Revive a truncated row by upserting it again.
     # Upserting a previously soft-deleted row sets _fivetran_deleted = false and applies new values.
     log.info("Stage 5: reviving Laptop with updated details")
-    op.upsert(table="products", data={"product_id": 1, "name": "Laptop Pro", "category": "Electronics", "price": 1249.99, "in_stock": True})
+    op.upsert(
+        table="products",
+        data={
+            "product_id": 1,
+            "name": "Laptop Pro",
+            "category": "Electronics",
+            "price": 1249.99,
+            "in_stock": True,
+        },
+    )
     # Checkpoint flushes the revived row to the destination.
     op.checkpoint(state)
 
