@@ -56,7 +56,7 @@ Not applicable. This connector emits a static hardcoded dataset.
 
 
 ## Data handling
-Each sync run walks through six stages on the `products` table:
+Each sync walks through six stages on the `PRODUCTS` table:
 
 - **Stage 1 — upsert:** Inserts 3 products; all active (`_fivetran_deleted = false`).
 - **Stage 2 — update:** Patches Laptop price only; other columns unchanged.
