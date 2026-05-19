@@ -19,7 +19,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Simulated product catalog - initial batch loaded into the destination.
-__INITIAL_PRODUCTS = [
+__INITIAL_CATALOG = [
     {
         "product_id": 1,
         "name": "Laptop",
