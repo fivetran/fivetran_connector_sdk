@@ -19,7 +19,7 @@ from fivetran_connector_sdk import Logging as log
 from fivetran_connector_sdk import Operations as op
 
 # Simulated product catalog - initial batch loaded into the destination.
-INITIAL_PRODUCTS = [
+__INITIAL_PRODUCTS = [
     {
         "product_id": 1,
         "name": "Laptop",
@@ -44,7 +44,7 @@ INITIAL_PRODUCTS = [
 ]
 
 # Replacement catalog loaded after truncate.
-NEW_CATALOG = [
+__NEW_CATALOG = [
     {
         "product_id": 4,
         "name": "Mechanical Keyboard",
@@ -97,13 +97,13 @@ def update(configuration: dict, state: dict):
     """
     log.warning("Example: Common Patterns For Connectors - Using Truncate")
 
-    # NOTE: Each stage below calls op.checkpoint() so that records are flushed to the destination
-    # before the next stage begins. This makes the "Destination after" tables accurate at each step.
-
     # Stage 1: Upsert initial product catalog.
     # All 3 rows land as active rows (_fivetran_deleted = false).
     log.info("Stage 1: upserting initial product catalog")
-    for product in INITIAL_PRODUCTS:
+    for product in __INITIAL_PRODUCTS:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="products", data=product)
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
@@ -140,7 +140,12 @@ def update(configuration: dict, state: dict):
     # Marks ALL rows that exist in the destination up to this point as soft-deleted
     # (_fivetran_deleted = true). Rows inserted after this call in the same sync are NOT affected.
     log.info("Stage 3: truncating products table")
+    # The 'truncate' operation soft-deletes all rows currently in the destination table.
+    # The first argument is the name of the destination table.
+    # Rows upserted after this call in the same sync are not affected.
     op.truncate(table="products")
+    # Checkpoint flushes the truncate to the destination.
+    op.checkpoint(state)
 
     # Destination after Stage 3 — truncate (all existing rows soft-deleted):
     # ┌────────────┬────────────────┬─────────────┬────────┬──────────┬───────────────────┐
@@ -154,7 +159,10 @@ def update(configuration: dict, state: dict):
     # Stage 4: Upsert new catalog rows after truncate.
     # These rows are emitted after op.truncate(), so they are not soft-deleted.
     log.info("Stage 4: upserting new catalog after truncate")
-    for product in NEW_CATALOG:
+    for product in __NEW_CATALOG:
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
         op.upsert(table="products", data=product)
     # Checkpoint flushes the new rows to the destination.
     op.checkpoint(state)
@@ -173,6 +181,9 @@ def update(configuration: dict, state: dict):
     # Stage 5: Revive a truncated row by upserting it again.
     # Upserting a previously soft-deleted row sets _fivetran_deleted = false and applies new values.
     log.info("Stage 5: reviving Laptop with updated details")
+    # The 'upsert' operation is used to insert or update data in the destination table.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the record to be upserted.
     op.upsert(
         table="products",
         data={
@@ -198,8 +209,13 @@ def update(configuration: dict, state: dict):
     # └────────────┴─────────────────────┴─────────────┴─────────┴──────────┴───────────────────┘
 
     # Stage 6: Delete a specific row by primary key.
-    # op.delete() soft-deletes one row by primary key. Unlike truncate(), it targets a single row.
+    # op.delete() soft-deletes a single row identified by its primary key. This is different from
+    # op.truncate(), which soft-deletes ALL rows in the table at the time of the call.
+    # Use op.delete() when you know exactly which row to remove; use op.truncate() for a full reset.
     log.info("Stage 6: deleting Standing Desk by primary key")
+    # The 'delete' operation soft-deletes a single row by its primary key.
+    # The first argument is the name of the destination table.
+    # The second argument is a dictionary containing the primary key column(s) identifying the row.
     op.delete(table="products", keys={"product_id": 5})
     # Checkpoint flushes the delete to the destination.
     op.checkpoint(state)

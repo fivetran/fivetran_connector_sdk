@@ -1,11 +1,18 @@
 # Truncate Operation Connector Example
 
 ## Connector overview
-This connector demonstrates the `truncate()` operation in the Fivetran Connector SDK, showing how it interacts with `upsert()`, `update()`, and `delete()` on a single table.
+This connector demonstrates the [`truncate()` operation](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-operations#truncate) in the Fivetran Connector SDK, showing how it interacts with `upsert()`, `update()`, and `delete()` on a single table.
 
-`op.truncate()` soft-deletes all rows that exist in the destination at the point it is called by setting `_fivetran_deleted = true`. Rows emitted after `truncate()` within the same sync are not affected. This makes it useful for full-refresh patterns where the source replaces its entire dataset each sync.
+`truncate()` soft-deletes all rows that exist in the destination at the point it is called by setting `_fivetran_deleted = true`. Rows emitted after `truncate()` within the same sync are not affected. This makes it useful for full-refresh patterns where the source replaces its entire dataset each sync.
 
 The connector uses a hardcoded product catalog to walk through six stages. The resulting destination table state after each stage is shown as inline comments in `connector.py`.
+
+**Key behaviors illustrated:**
+
+- `truncate(table)` — soft-deletes every row in the table at the time of the call.
+- `delete(table, keys)` — soft-deletes a single row identified by its primary key; unlike `op.truncate()`, it targets a single row.
+- Rows upserted after `truncate()` in the same sync land with `_fivetran_deleted = false`.
+- Upserting a row whose primary key was previously truncated or deleted sets `_fivetran_deleted = false` and applies the new column values.
 
 
 ## Requirements
@@ -63,20 +70,7 @@ Each sync walks through six stages on the `PRODUCTS` table:
 - **Stage 3 — truncate:** All 3 existing rows soft-deleted (`_fivetran_deleted = true`).
 - **Stage 4 — upsert after truncate:** Inserts 2 new products; not soft-deleted because they are emitted after `truncate()`.
 - **Stage 5 — revive:** Upserting a previously truncated primary key sets `_fivetran_deleted = false` and applies new values.
-- **Stage 6 — delete:** Soft-deletes Standing Desk by primary key using `op.delete()`.
-
-
-## Key behaviors illustrated
-
-**`truncate()` vs `delete()`**
-- `op.truncate(table)` — soft-deletes every row in the table at the time of the call.
-- `op.delete(table, keys)` — soft-deletes a single row identified by its primary key.
-
-**Rows emitted after `truncate()` are not deleted**  
-Any row upserted after `op.truncate()` in the same sync lands with `_fivetran_deleted = false`.
-
-**Reviving a soft-deleted row**  
-Upserting a row whose primary key was previously truncated or deleted sets `_fivetran_deleted = false` and applies the new column values.
+- **Stage 6 — delete:** Soft-deletes a product by primary key using `op.delete()`.
 
 
 ## Tables created
