@@ -1,7 +1,7 @@
 # Truncate Operation Connector Example
 
 ## Connector overview
-This connector demonstrates the `truncate` operation in the Fivetran Connector SDK, showing how it interacts with `upsert()`, `update()`, and `delete()` on a single table.
+This connector demonstrates the `truncate()` operation in the Fivetran Connector SDK, showing how it interacts with `upsert()`, `update()`, and `delete()` on a single table.
 
 `op.truncate()` soft-deletes all rows that exist in the destination at the point it is called by setting `_fivetran_deleted = true`. Rows emitted after `truncate()` within the same sync are not affected. This makes it useful for full-refresh patterns where the source replaces its entire dataset each sync.
 
