@@ -108,8 +108,6 @@ Refer to `sync_items` and `get_api_response`.
 
 Refer to `schema` and `sync_items`.
 
-This example also issues requests in batches of 3 (`__BATCH_REQUESTS = 3`) to intentionally trigger rate limiting faster when playground capacity is small.
-
 ## Error handling
 
 Retry logic is applied with a max retry cap:

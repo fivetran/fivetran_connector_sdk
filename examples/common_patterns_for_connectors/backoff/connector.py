@@ -131,9 +131,71 @@ def compute_delay(strategy: str, attempt: int, retry_after_seconds: float = None
     raise ValueError(f"Unknown strategy: {strategy}")
 
 
+def is_retryable_response(response) -> bool:
+    """Return True for responses that should use the configured backoff strategy."""
+    return response.status_code == 429 or 500 <= response.status_code < 600
+
+
+def get_retry_after_seconds(response, strategy: str):
+    """Read Retry-After only for the retry_after strategy."""
+    if response.status_code != 429 or strategy != "retry_after":
+        return None
+
+    retry_after_header = response.headers.get("Retry-After")
+    if retry_after_header is None:
+        return None
+
+    try:
+        return float(retry_after_header)
+    except ValueError:
+        return None
+
+
+def get_retry_reason(response, strategy: str) -> str:
+    """Build a concise log message for retryable HTTP responses."""
+    if response.status_code == 429:
+        retry_after_header = None
+        if strategy == "retry_after":
+            retry_after_header = response.headers.get("Retry-After")
+        return f"Rate limited (429), Retry-After header={retry_after_header}"
+
+    return f"Server error ({response.status_code})"
+
+
+def retry_or_raise(
+    url: str, strategy: str, attempt: int, reason: str, retry_after_seconds: float = None
+):
+    """
+    Sleep before the next retry or raise when retry attempts are exhausted.
+    Args:
+        url: the endpoint URL.
+        strategy: the backoff strategy name.
+        attempt: 1-based retry attempt number.
+        reason: short description of the retryable failure.
+        retry_after_seconds: value from Retry-After, only used by retry_after strategy.
+    """
+    if attempt == __MAX_RETRIES:
+        raise Exception(f"API request failed after {__MAX_RETRIES} attempts for {url}: {reason}")
+
+    delay = compute_delay(strategy, attempt, retry_after_seconds)
+    log.warning(f"{reason}. Strategy='{strategy}', attempt={attempt}, sleeping {delay:.2f}s")
+    time.sleep(delay)
+
+
+def raise_for_non_retryable_response(response, url: str):
+    """Raise an actionable error for non-retryable HTTP responses."""
+    if 400 <= response.status_code < 500:
+        raise Exception(
+            f"Non-retryable client error for {url}: HTTP {response.status_code}, "
+            f"response body: {response.text}"
+        )
+
+    response.raise_for_status()
+
+
 def get_api_response(url: str, params: dict, strategy: str) -> dict:
     """
-    Send a GET request and retry on 429 using the chosen backoff strategy.
+    Send a GET request and retry transient failures using the chosen backoff strategy.
     Args:
         url: the endpoint URL.
         params: query parameters for the request.
@@ -148,61 +210,28 @@ def get_api_response(url: str, params: dict, strategy: str) -> dict:
         try:
             response = rq.get(url, params=params, timeout=__REQUEST_TIMEOUT_SECONDS)
         except rq.RequestException as exc:
-            if attempt == __MAX_RETRIES:
-                raise Exception(
-                    f"API request failed after {__MAX_RETRIES} attempts for {url}: {exc}"
-                ) from exc
-
-            delay = compute_delay(strategy, attempt)
-            log.warning(
-                f"Request failed ({type(exc).__name__}): {exc}. "
-                f"Strategy='{strategy}', attempt={attempt}, sleeping {delay:.2f}s"
+            retry_or_raise(
+                url,
+                strategy,
+                attempt,
+                f"Request failed ({type(exc).__name__}): {exc}",
             )
-            time.sleep(delay)
             continue
 
         if response.status_code == 200:
             return response.json()
 
-        if response.status_code == 429:
-            retry_after = None
-            retry_after_header = response.headers.get("Retry-After")
-            if retry_after_header is not None:
-                try:
-                    retry_after = float(retry_after_header)
-                except ValueError:
-                    pass
-
-            delay = compute_delay(strategy, attempt, retry_after)
-            log.warning(
-                f"Rate limited (429). Strategy='{strategy}', attempt={attempt}, "
-                f"Retry-After header={retry_after_header}, sleeping {delay:.2f}s"
+        if is_retryable_response(response):
+            retry_or_raise(
+                url,
+                strategy,
+                attempt,
+                get_retry_reason(response, strategy),
+                get_retry_after_seconds(response, strategy),
             )
-            time.sleep(delay)
             continue
 
-        if 500 <= response.status_code < 600:
-            if attempt == __MAX_RETRIES:
-                raise Exception(
-                    f"API request failed after {__MAX_RETRIES} attempts for {url}: "
-                    f"server returned HTTP {response.status_code}"
-                )
-
-            delay = compute_delay(strategy, attempt)
-            log.warning(
-                f"Server error ({response.status_code}). Strategy='{strategy}', "
-                f"attempt={attempt}, sleeping {delay:.2f}s"
-            )
-            time.sleep(delay)
-            continue
-
-        if 400 <= response.status_code < 500:
-            raise Exception(
-                f"Non-retryable client error for {url}: HTTP {response.status_code}, "
-                f"response body: {response.text}"
-            )
-
-        response.raise_for_status()
+        raise_for_non_retryable_response(response, url)
 
     raise Exception(f"Exceeded {__MAX_RETRIES} retries for {url}")
 
