@@ -30,7 +30,6 @@ For more information on `fivetran init`, refer to the [Connector SDK `init` docu
 
 
 ## Features
-- Demonstrates `op.truncate()` and how it interacts with `upsert()`, `update()`, and `delete()`.
 - Shows destination table state after each operation as inline comments in `connector.py`.
 - Uses hardcoded realistic data — no external APIs or configuration required.
 - Covers key soft-delete behaviors: bulk truncate, post-truncate inserts, and row revival.
