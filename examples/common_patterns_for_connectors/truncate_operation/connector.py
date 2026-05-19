@@ -100,7 +100,7 @@ def update(configuration: dict, state: dict):
     # Stage 1: Upsert initial product catalog.
     # All 3 rows land as active rows (_fivetran_deleted = false).
     log.info("Stage 1: upserting initial product catalog")
-    for product in __INITIAL_PRODUCTS:
+    for product in __INITIAL_CATALOG:
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
