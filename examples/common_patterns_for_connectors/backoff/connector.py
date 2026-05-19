@@ -132,12 +132,25 @@ def compute_delay(strategy: str, attempt: int, retry_after_seconds: float = None
 
 
 def is_retryable_response(response) -> bool:
-    """Return True for responses that should use the configured backoff strategy."""
+    """
+    Check whether an HTTP response should be retried.
+    Args:
+        response: the HTTP response returned by requests.
+    Returns:
+        True when the status code is retryable, otherwise False.
+    """
     return response.status_code == 429 or 500 <= response.status_code < 600
 
 
 def get_retry_after_seconds(response, strategy: str):
-    """Read Retry-After only for the retry_after strategy."""
+    """
+    Extract Retry-After seconds when the selected strategy should honor it.
+    Args:
+        response: the HTTP response returned by requests.
+        strategy: the backoff strategy name.
+    Returns:
+        The Retry-After value as seconds when present and valid, otherwise None.
+    """
     if response.status_code != 429 or strategy != "retry_after":
         return None
 
@@ -152,7 +165,14 @@ def get_retry_after_seconds(response, strategy: str):
 
 
 def get_retry_reason(response, strategy: str) -> str:
-    """Build a concise log message for retryable HTTP responses."""
+    """
+    Build a concise retry reason for logs and final errors.
+    Args:
+        response: the HTTP response returned by requests.
+        strategy: the backoff strategy name.
+    Returns:
+        A retry reason string.
+    """
     if response.status_code == 429:
         retry_after_header = None
         if strategy == "retry_after":
@@ -173,6 +193,8 @@ def retry_or_raise(
         attempt: 1-based retry attempt number.
         reason: short description of the retryable failure.
         retry_after_seconds: value from Retry-After, only used by retry_after strategy.
+    Raises:
+        Exception: when retry attempts are exhausted.
     """
     if attempt == __MAX_RETRIES:
         raise Exception(f"API request failed after {__MAX_RETRIES} attempts for {url}: {reason}")
@@ -183,7 +205,15 @@ def retry_or_raise(
 
 
 def raise_for_non_retryable_response(response, url: str):
-    """Raise an actionable error for non-retryable HTTP responses."""
+    """
+    Raise an actionable error for non-retryable HTTP responses.
+    Args:
+        response: the HTTP response returned by requests.
+        url: the endpoint URL.
+    Raises:
+        Exception: when the response is a non-retryable client error.
+        requests.HTTPError: when requests raises for any other non-success response.
+    """
     if 400 <= response.status_code < 500:
         raise Exception(
             f"Non-retryable client error for {url}: HTTP {response.status_code}, "
