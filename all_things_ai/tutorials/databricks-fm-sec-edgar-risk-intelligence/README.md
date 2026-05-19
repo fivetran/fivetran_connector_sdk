@@ -2,15 +2,15 @@
 
 ## Connector overview
 
-This connector syncs SEC EDGAR financial filing data (10-K/10-Q filings and XBRL financial facts) from the [SEC EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) and enriches it with AI-powered credit risk analysis using the Databricks [ai_query()](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. The connector uses an Agent-Driven Discovery pattern where the AI analyzes seed company financials and autonomously recommends related companies to investigate for systemic risk exposure.
+This connector syncs SEC EDGAR financial filing data (10-K/10-Q filings and XBRL financial facts) from the [SEC EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) and enriches it with AI-powered credit risk analysis using the Databricks [`ai_query()`](https://docs.databricks.com/en/large-language-models/ai-functions.html) SQL function. The connector uses an Agent-Driven Discovery pattern where the AI analyzes seed company financials and autonomously recommends related companies to investigate for systemic risk exposure.
 
 The connector features a three-phase core architecture:
 
 - Phase 1 (SEED): Fetch company info and XBRL financial facts for configured seed companies from SEC EDGAR
 - Phase 2 (DISCOVERY): ai_query() analyzes each seed company's financials, identifies credit risk signals, and recommends related companies to investigate (suppliers, competitors, counterparties). The connector fetches data for discovered companies automatically.
-- Phase 3 (SYNTHESIS): ai_query() synthesizes patterns across all companies (seed + discovered) to identify systemic exposure, counterparty risks, and portfolio-level risk grades
+- Phase 3 (SYNTHESIS): `ai_query()` synthesizes patterns across all companies (seed + discovered) to identify systemic exposure, counterparty risks, and portfolio-level risk grades
 
-Optional phase (disabled by default): [Genie Space](https://docs.databricks.com/en/genie/index.html) creation after data lands for natural language analytics on the enriched financial data. Enable via `enable_genie_space=true` in configuration. This phase is independent of the three-phase core architecture and can be enabled without affecting other phases.
+Optionally, the connector can create a [Genie Space](https://docs.databricks.com/en/genie/index.html) for natural language analytics on the enriched financial data. This is disabled by default. Enable it with `enable_genie_space=true` in configuration. This phase is independent of the three-phase core architecture and can be enabled without affecting other phases.
 
 ## Requirements
 
@@ -36,7 +36,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connectors/co
 - Optional Genie Space creation with financial risk-specific instructions and sample questions
 - Data-only mode when `enable_enrichment` is set to `false` for syncing filings without AI analysis
 - Per-company checkpointing for reliable resumable syncs across all three phases
-- Exponential backoff retry logic for SEC EDGAR API calls; bounded async polling (12 attempts × 10s) on PENDING/RUNNING ai_query() statements with explicit pre-poll guard for missing `statement_id`
+- Exponential backoff retry logic for SEC EDGAR API calls; bounded async polling (12 attempts × 10s) on PENDING/RUNNING `ai_query()` statements with explicit pre-poll guard for missing `statement_id`
 - Async polling for long-running ai_query() statements that exceed the SQL wait timeout
 
 ## Configuration file
@@ -81,12 +81,12 @@ The SEC EDGAR APIs are free and do not require authentication. A `User-Agent` he
 
 Databricks access requires a Personal Access Token (PAT) with SQL execution permissions:
 
-1. Navigate to your Databricks workspace
-2. Click your username in the top-right corner and select **Settings**
-3. Click **Developer** in the left panel
-4. Click **Manage** next to **Access tokens**
-5. Click **Generate new token**, provide a description, and click **Generate**
-6. Copy the token value and set it as `databricks_token` in your `configuration.json`
+1. Go to your Databricks workspace.
+2. Click your username in the top-right corner and select **Settings**.
+3. Click **Developer** in the left panel.
+4. Click **Manage** next to **Access tokens**.
+5. Click **Generate new token**, provide a description, and click **Generate**.
+6. Copy the token value and set it as `databricks_token` in your `configuration.json`.
 
 ## Pagination
 
@@ -114,7 +114,7 @@ Phase 3 (SYNTHESIS):
 11. Uses async polling for long-running synthesis queries that exceed the SQL wait timeout
 
 Phase 4 (AGENT — optional, disabled by default):
-12. If `enable_genie_space=true`, creates a Genie Space via `def create_genie_space(session, configuration, state)` with financial risk-specific instructions and sample questions. This phase is independent of the three-phase core architecture (SEED, DISCOVERY, SYNTHESIS) and can be enabled without affecting other phases.
+12. If the `enable_genie_space=` is set to `true`, the connector creates a Genie Space via `def create_genie_space(session, configuration, state)` with financial risk-specific instructions and sample questions. This phase is independent of the three-phase core architecture (SEED, DISCOVERY, SYNTHESIS) and can be enabled without affecting other phases.
 
 ## Error handling
 
@@ -129,6 +129,8 @@ The connector implements error handling at multiple levels:
 - The session is always closed via a try/finally block in `def update(configuration, state)` to release resources even on unexpected errors
 
 ## Tables created
+
+The connector creates the `COMPANY_FILINGS`, `FINANCIAL_FACTS`, `DISCOVERY_INSIGHTS`, and `RISK_ANALYSIS` tables.
 
 ### COMPANY_FILINGS
 
@@ -199,10 +201,8 @@ The Genie Space is created only once. The `space_id` is persisted in the connect
 
 This example was contributed by [Kelly Kohlleffel](https://github.com/kellykohlleffel).
 
-This is the second Databricks AI tutorial connector in the Fivetran SDK repository, following the FDA Drug Label Intelligence connector (PR #567). It demonstrates the Agent-Driven Discovery pattern where the AI autonomously decides what additional data to fetch based on its analysis, making the data pipeline adaptive rather than static.
+The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
 
 The SEC EDGAR APIs are free and do not require authentication. Rate limits apply (10 requests per second). The connector includes rate limiting delays between requests to stay within these limits. A `User-Agent` header with contact information is required per SEC fair access policies.
 
 Databricks `ai_query()` consumes SQL Warehouse compute credits. The discovery pattern makes multiple `ai_query()` calls per sync (one per seed company for discovery analysis, plus one for cross-company synthesis). Use `max_enrichments` to control costs during development. Set `enable_enrichment` to `false` to test the data pipeline without AI costs, or set `enable_discovery` to `false` to run AI analysis on seed companies only without discovering related companies.
-
-The examples provided are intended to help you effectively use Fivetran's Connector SDK. While we've tested the code, Fivetran cannot be held responsible for any unexpected or negative consequences that may arise from using these examples. For inquiries, please reach out to our Support team.
