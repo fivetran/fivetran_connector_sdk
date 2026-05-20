@@ -1,0 +1,4 @@
+{
+  "backoff_strategy": "<YOUR_BACKOFF_STRATEGY>",
+  "api_url": "<YOUR_API_URL>"
+}
