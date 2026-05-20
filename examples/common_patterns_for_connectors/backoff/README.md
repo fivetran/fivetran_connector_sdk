@@ -2,20 +2,16 @@
 
 ## Connector overview
 
-This connector demonstrates retry and backoff handling with the Fivetran Connector SDK against a paginated REST API endpoint.
+This connector demonstrates retry and backoff handling for a paginated REST API endpoint using the Fivetran Connector SDK. It uses [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) as the mock source.
 
-It uses the [fivetran-api-playground](https://pypi.org/project/fivetran-api-playground/) service as the mock source and reads from:
+The connector supports these retry strategies through the `backoff_strategy` field in `configuration.json`:
 
-- `GET http://127.0.0.1:5001/pagination/next_page_url`
-
-The connector supports these retry strategies through configuration:
-
-- `fixed`
-- `linear`
-- `exponential`
-- `exponential_with_cap`
-- `exponential_with_jitter`
-- `retry_after`
+- `fixed`: waits the same number of seconds before every retry.
+- `linear`: increases the wait time by a fixed amount on each retry.
+- `exponential`: doubles the wait time on each retry.
+- `exponential_with_cap`: uses exponential growth but limits the maximum wait time.
+- `exponential_with_jitter`: uses a randomized exponential wait to reduce synchronized retries.
+- `retry_after`: honors the source API's `Retry-After` header when present and falls back to capped exponential backoff.
 
 ## Requirements
 
@@ -96,17 +92,17 @@ Behavior:
 3. Move to `next_page_url` when present.
 4. Stop when page has no data or no `next_page_url`.
 
-Refer to `sync_items` and `get_api_response`.
+Refer to the `sync_items` and `get_api_response` functions in `connector.py` .
 
 ## Data handling
 
-- Destination table: `user`
+- Destination table: `USER`
 - Primary key: `id`
 - State key: `last_updated_at`
 - Checkpointing after every page.
 - Checkpointing after each checkpoint interval.
 
-Refer to `schema` and `sync_items`.
+Refer to the `schema` and `sync_items` functions in `connector.py`.
 
 ## Error handling
 
@@ -119,14 +115,14 @@ Backoff behavior by category:
 
 - `429`: retries using configured strategy and `Retry-After` header when strategy is `retry_after`.
 - `5xx`: retries using configured strategy.
-- request exceptions (connection/timeouts): retries using configured strategy.
-- non-`429` `4xx`: fails immediately as non-retryable.
+- Request exceptions (connection/timeouts): retries using configured strategy.
+- Non-`429` `4xx`: fails immediately as non-retryable.
 
-Refer to `validate_configuration`, `compute_delay`, and `get_api_response`.
+Refer to the `validate_configuration`, `compute_delay`, and `get_api_response` functions in `connector.py.
 
 ## Tables created
 
-- `user`
+- `USER`
 
 Columns:
 
@@ -138,11 +134,6 @@ Columns:
 - `job`
 - `updatedAt`
 - `createdAt`
-
-## Additional files
-
-- **`connector.py`**: connector implementation.
-- **`configuration.json`**: runtime configuration.
 
 ## Additional considerations
 
