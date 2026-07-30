@@ -1,5 +1,5 @@
 {
-  "bastion_host": "<YOUR_BASTION_PUBLIC_IP_OR_DNS>",
+  "bastion_host": "<YOUR_BASTION_IP_OR_HOSTNAME>",
   "bastion_port": "<YOUR_BASTION_SSH_PORT>",
   "bastion_user": "<YOUR_BASTION_USERNAME>",
   "bastion_private_key": "<YOUR_BASE64_ENCODED_BASTION_PEM>",

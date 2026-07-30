@@ -39,12 +39,12 @@ The connector includes the following features:
 ## Configuration file
 The connector reads the `configuration.json` to establish the SSH tunnel and DB connection.
 
-- `bastion_host`: Public DNS/IP of the bastion.
+- `bastion_host`: IP/hostname of the bastion.
 - `bastion_port`: SSH port on bastion (default 22).
 - `bastion_user`: SSH user for bastion.
 - `bastion_private_key`: Base64‑encoded private key (PEM).
 - `bastion_passphrase`: Optional passphrase for the private key.
-- `db_host`: Private IP/DNS of PostgreSQL inside the network.
+- `db_host`: Private IP/hostname of PostgreSQL inside the network.
 - `db_port`: PostgreSQL port.
 - `db_user`: Database user.
 - `db_password`: Database password.
@@ -52,7 +52,7 @@ The connector reads the `configuration.json` to establish the SSH tunnel and DB 
 
 ```json
 {
-  "bastion_host": "<YOUR_BASTION_PUBLIC_IP_OR_DNS>",
+  "bastion_host": "<YOUR_BASTION_IP_OR_HOSTNAME>",
   "bastion_port": "<YOUR_BASTION_SSH_PORT>",
   "bastion_user": "<YOUR_BASTION_USERNAME>",
   "bastion_private_key": "<YOUR_BASE64_ENCODED_BASTION_PEM>",
