@@ -47,7 +47,6 @@ def schema(configuration: dict) -> list:
                 "doc_id": "STRING",
                 "doc_name": "STRING",
                 "doc_version": "STRING",
-                "synced_at": "STRING",
             },
         }
     ]
@@ -92,7 +91,7 @@ def update(configuration: dict, state: dict):
         log.info(f"File size: {file_size} bytes")
         
         # Upload the file with metadata using op.upsert()
-        # After sync completes, the destination will show:
+        # After this operation, this will be the state in the destination:
         # | doc_id     | doc_name           | doc_version | _fivetran_file_path          |
         # |------------|--------------------|-------------|------------------------------|
         # | demo_doc_1 | tracemonkey_v1.pdf | v1          | documents/v1/tracemonkey.pdf |
@@ -104,7 +103,6 @@ def update(configuration: dict, state: dict):
                 "doc_id": "demo_doc_1",
                 "doc_name": "tracemonkey_v1.pdf",
                 "doc_version": "v1",
-                "synced_at": datetime.now(timezone.utc).isoformat(),
             },
             file=FileUpload(path="documents/v1/tracemonkey.pdf", stream=response.raw)
         )
@@ -118,7 +116,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # PHASE 2: UPDATE (Replace existing file)
     # ==========================================================================
-    log.info("\n🔄 PHASE 2: UPDATE - Replacing existing file")
+    log.info("\n PHASE 2: UPDATE - Replacing existing file")
     log.info("-" * 80)
     
     try:
@@ -139,7 +137,7 @@ def update(configuration: dict, state: dict):
         log.info("\nApproach 1: Using op.upsert() - must provide ALL columns")
         
         # upsert() requires ALL column values (unprovided columns become NULL)
-        # After sync, the destination will show:
+        # After this operation, this will be the state in the destination:
         # | doc_id     | doc_name           | doc_version | _fivetran_file_path          |
         # |------------|--------------------| ------------|------------------------------|
         # | demo_doc_1 | tracemonkey_v2.csv | v2          | documents/v2/tracemonkey.csv |
@@ -151,8 +149,7 @@ def update(configuration: dict, state: dict):
             data={
                 "doc_id": "demo_doc_1",  # Same primary key as before - this triggers the update
                 "doc_name": "tracemonkey_v2.csv",
-                "doc_version": "v2",
-                "synced_at": datetime.now(timezone.utc).isoformat(),  # ALL columns must be provided
+                "doc_version": "v2",  # ALL columns must be provided
             },
             file=FileUpload(path="documents/v2/tracemonkey.csv", stream=io.BytesIO(file_content))
         )
@@ -171,13 +168,13 @@ def update(configuration: dict, state: dict):
         file_content2 = response2.content
         
         # update() only requires primary key + columns you want to change
-        # Other columns (like synced_at from v2) remain unchanged
-        # After sync, the destination will show:
-        # | doc_id     | doc_name         | doc_version | synced_at (unchanged) | _fivetran_file_path          |
-        # |------------|------------------| ------------|-----------------------|------------------------------|
-        # | demo_doc_1 | tracemonkey_v3.csv | v3        | 2026-01-01...         | documents/v3/tracemonkey.csv |
+        # Other columns (like doc_name from v2) remain unchanged
+        # After this operation, this will be the state in the destination:
+        # | doc_id     | doc_name (unchanged)  | doc_version | _fivetran_file_path          |
+        # |------------|---------------------- | ------------|------------------------------|
+        # | demo_doc_1 | tracemonkey_v2.csv    | v3          | documents/v3/tracemonkey.csv |
         #
-        # Notice: doc_version and file path changed, but synced_at remains from v2
+        # Notice: Only doc_version and file path changed, doc_name remains from v2
         # The old documents/v2/tracemonkey.csv is replaced
         op.update(
             table="documents",
@@ -191,7 +188,7 @@ def update(configuration: dict, state: dict):
         
         log.info("File updated with update() - only specified columns changed")
         
-        log.info("\n✅ Both update approaches demonstrated successfully")
+        log.info("\n Both update approaches demonstrated successfully")
         
     except Exception as e:
         log.error(f"Update failed: {e}")
@@ -200,15 +197,15 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # PHASE 3: DELETE (Soft-delete)
     # ==========================================================================
-    log.info("\n🗑️  PHASE 3: DELETE - Soft-delete behavior")
+    log.info("\n️  PHASE 3: DELETE - Soft-delete behavior")
     log.info("-" * 80)
     
     try:
         # Soft-delete marks the row with _fivetran_deleted = True
-        # After sync completes, the destination will show:
+        # After this operation, this will be the state in the destination:
         # | doc_id     | doc_name           | doc_version | _fivetran_deleted | _fivetran_file_path          |
         # |------------|--------------------| ------------|-------------------|------------------------------|
-        # | demo_doc_1 | tracemonkey_v3.csv | v3          | True              | documents/v3/tracemonkey.csv |
+        # | demo_doc_1 | tracemonkey_v2.csv | v3          | True              | documents/v3/tracemonkey.csv |
         #
         # Notice: Row is still present with _fivetran_deleted = True
         # The file ALSO remains in the destination stage
@@ -217,7 +214,7 @@ def update(configuration: dict, state: dict):
         # SELECT * FROM documents WHERE _fivetran_deleted IS NULL OR _fivetran_deleted = False;
         op.delete(
             table="documents",
-            data={"doc_id": "demo_doc_1"}
+            keys={"doc_id": "demo_doc_1"}
         )
         
         log.info("Row soft-deleted successfully (_fivetran_deleted = True)")
@@ -237,14 +234,8 @@ def update(configuration: dict, state: dict):
     log.info("\n💾 STATE MANAGEMENT")
     log.info("-" * 80)
     
-    # Update state to track what we've done
-    # This allows incremental syncs where you:
-    #   - Read last_sync timestamp from state
-    #   - Fetch only new/modified files since last_sync
-    #   - Update state with new timestamp
-    #   - Checkpoint to save for next sync
-    state["last_sync"] = datetime.now(timezone.utc).isoformat()
-    state["operations_completed"] = ["upload", "update", "delete"]
+    # Update state for incremental syncs
+    state["last_updated"] = datetime.now(timezone.utc).isoformat()
     
     # Checkpoint saves the state for the next sync
     op.checkpoint(state)
