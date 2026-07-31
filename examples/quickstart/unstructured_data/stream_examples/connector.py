@@ -317,8 +317,6 @@ def update(configuration: dict, state: dict):
     log.info("  ✓ _fivetran_file_path stores relative path from FileUpload.path")
     log.info("=" * 80)
 
-    return state
-
 
 # Create the connector instance
 connector = Connector(update=update, schema=schema)

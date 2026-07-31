@@ -270,8 +270,6 @@ def update(configuration: dict, state: dict):
     log.info("  ✓ Checkpoint saves state for incremental syncs")
     log.info("=" * 80)
 
-    return state
-
 
 # Create the connector instance
 connector = Connector(update=update, schema=schema)
