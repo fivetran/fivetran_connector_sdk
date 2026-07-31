@@ -35,12 +35,12 @@ REQUEST_TIMEOUT = 30
 def schema(configuration: dict) -> list:
     """
     Define schema for file tracking.
-    
-    When you upload files using FileUpload, Fivetran automatically adds a 
+
+    When you upload files using FileUpload, Fivetran automatically adds a
     _fivetran_file_path column that stores the path from FileUpload.path.
-    
+
     You DON'T need to define _fivetran_file_path in columns - it's automatic!
-    
+
     Returns:
         List with one table schema
     """
@@ -74,7 +74,7 @@ def compute_file_id(file_name: str) -> str:
 class CustomBufferedReader:
     """
     Custom buffered reader implementing read(size) method.
-    
+
     Demonstrates how to create a custom stream class that implements
     the required read(size) -> bytes method for FileUpload.
     """
@@ -87,10 +87,10 @@ class CustomBufferedReader:
     def read(self, size: int = -1) -> bytes:
         """
         Read up to size bytes from the stream.
-        
+
         Args:
             size: Number of bytes to read (-1 means read all remaining)
-            
+
         Returns:
             Bytes read from current position
         """
@@ -109,22 +109,22 @@ class CustomBufferedReader:
 def update(configuration: dict, state: dict):
     """
     Demonstrate different file streaming approaches.
-    
+
     This shows three main streaming approaches:
     1. HTTP response.raw - Direct streaming from HTTP responses
     2. BytesIO - In-memory file handling
     3. Custom reader - Fine-grained control over streaming
-    
+
     IMPORTANT: The file types (PDF, CSV, JSON) are just examples!
     - You can use response.raw for ANY file type (PDF, CSV, JSON, images, etc.)
     - You can use BytesIO for ANY file type
     - You can use CustomReader for ANY file type
-    
+
     The choice depends on your needs, not the file format:
     - Use response.raw when streaming directly from HTTP
     - Use BytesIO when working with in-memory content
     - Use CustomReader when you need fine-grained control
-    
+
     Args:
         configuration: Connector configuration
         state: Previous sync state (empty for first run)

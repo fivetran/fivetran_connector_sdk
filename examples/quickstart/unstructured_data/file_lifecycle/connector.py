@@ -30,12 +30,12 @@ import requests
 def schema(configuration: dict) -> list:
     """
     Define schema for file tracking.
-    
-    When you upload files using FileUpload, Fivetran automatically adds a 
+
+    When you upload files using FileUpload, Fivetran automatically adds a
     _fivetran_file_path column that stores the path from FileUpload.path.
-    
+
     You DON'T need to define _fivetran_file_path in columns - it's automatic!
-    
+
     Returns:
         List with one table schema
     """
@@ -55,14 +55,14 @@ def schema(configuration: dict) -> list:
 def update(configuration: dict, state: dict):
     """
     Demonstrate file upload, update, and delete lifecycle.
-    
+
     This shows:
     - How to upload a new file
     - How to update an existing file (same primary key, new file)
     - How to delete a file
     - How _fivetran_file_path changes through the lifecycle
     - Basic state management with checkpoint
-    
+
     Args:
         configuration: Connector configuration
         state: Previous sync state (empty for first run)

@@ -35,6 +35,10 @@ These are graded examples designed to help you get started with the Connector SD
 
 - [parsing_json_response_in_class](https://github.com/fivetran/connector_sdk/tree/main/examples/quickstart/parsing_json_response_in_class) - This example shows how to fetch JSON data from a public API and map it into a Python dataclass (POJO-style object) for easy parsing and transformation.
 
+- [unstructured_data](https://github.com/fivetran/connector_sdk/tree/main/examples/quickstart/unstructured_data) - Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connector SDK. Includes two examples:
+  - [file_lifecycle](https://github.com/fivetran/connector_sdk/tree/main/examples/quickstart/unstructured_data/file_lifecycle) - Complete file operation lifecycle including upload, update (upsert vs update), and delete behavior
+  - [stream_examples](https://github.com/fivetran/connector_sdk/tree/main/examples/quickstart/unstructured_data/stream_examples) - Different file streaming approaches (HTTP response, BytesIO, custom readers)
+
 </details>
 
 
