@@ -67,29 +67,31 @@ def update(configuration: dict, state: dict):
         configuration: Connector configuration
         state: Previous sync state (empty for first run)
     """
-    
+
     log.info("=" * 80)
     log.info("BASIC UPLOAD EXAMPLE: File Lifecycle Demonstration")
     log.info("=" * 80)
-    
+
     # ==========================================================================
     # PHASE 1: UPLOAD (Create new file)
     # ==========================================================================
     log.info("\n PHASE 1: UPLOAD - Creating new file")
     log.info("-" * 80)
-    
+
     try:
         # Fetch a simple PDF from a public URL
-        pdf_url = "https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/tracemonkey.pdf"
-        
+        pdf_url = (
+            "https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/tracemonkey.pdf"
+        )
+
         log.info(f"Fetching file from: {pdf_url}")
         response = requests.get(pdf_url, stream=True, timeout=30)
         response.raise_for_status()
         response.raw.decode_content = True
-        
+
         file_size = int(response.headers.get("content-length", 0))
         log.info(f"File size: {file_size} bytes")
-        
+
         # Upload the file with metadata using op.upsert()
         # After this operation, this will be the state in the destination:
         # | doc_id     | doc_name           | doc_version | _fivetran_file_path          |
@@ -104,38 +106,38 @@ def update(configuration: dict, state: dict):
                 "doc_name": "tracemonkey_v1.pdf",
                 "doc_version": "v1",
             },
-            file=FileUpload(path="documents/v1/tracemonkey.pdf", stream=response.raw)
+            file=FileUpload(path="documents/v1/tracemonkey.pdf", stream=response.raw),
         )
-        
+
         log.info("File uploaded successfully")
-        
+
     except Exception as e:
         log.error(f"Upload failed: {e}")
         raise
-    
+
     # ==========================================================================
     # PHASE 2: UPDATE (Replace existing file)
     # ==========================================================================
     log.info("\n PHASE 2: UPDATE - Replacing existing file")
     log.info("-" * 80)
-    
+
     try:
         # Fetch a different file (simulating an update)
         csv_url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv"
-        
+
         log.info(f"Fetching new file from: {csv_url}")
         response = requests.get(csv_url, timeout=30)
         response.raise_for_status()
-        
+
         file_content = response.content
         file_size = len(file_content)
         log.info(f"New file size: {file_size} bytes")
-        
+
         # ======================================================================
         # Approach 1: Using op.upsert() - Replaces ALL columns
         # ======================================================================
         log.info("\nApproach 1: Using op.upsert() - must provide ALL columns")
-        
+
         # upsert() requires ALL column values (unprovided columns become NULL)
         # After this operation, this will be the state in the destination:
         # | doc_id     | doc_name           | doc_version | _fivetran_file_path          |
@@ -151,22 +153,22 @@ def update(configuration: dict, state: dict):
                 "doc_name": "tracemonkey_v2.csv",
                 "doc_version": "v2",  # ALL columns must be provided
             },
-            file=FileUpload(path="documents/v2/tracemonkey.csv", stream=io.BytesIO(file_content))
+            file=FileUpload(path="documents/v2/tracemonkey.csv", stream=io.BytesIO(file_content)),
         )
-        
+
         log.info("File updated with upsert() - all columns replaced")
-        
+
         # ======================================================================
         # Approach 2: Using op.update() - Updates only specified columns
         # ======================================================================
         log.info("\nApproach 2: Using op.update() - only provide columns to change (RECOMMENDED)")
-        
+
         # Fetch another file for the second update
         json_url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
         response2 = requests.get(json_url, timeout=30)
         response2.raise_for_status()
         file_content2 = response2.content
-        
+
         # update() only requires primary key + columns you want to change
         # Other columns (like doc_name from v2) remain unchanged
         # After this operation, this will be the state in the destination:
@@ -179,27 +181,27 @@ def update(configuration: dict, state: dict):
         op.update(
             table="documents",
             modified={
-                "doc_id": "demo_doc_1",           # Primary key (required)
-                "doc_name": "tracemonkey_v3.csv", # Only columns you want to change
+                "doc_id": "demo_doc_1",  # Primary key (required)
+                "doc_name": "tracemonkey_v3.csv",  # Only columns you want to change
                 # doc_version is NOT provided, so it keeps the value from v2
             },
-            file=FileUpload(path="documents/v3/tracemonkey.csv", stream=io.BytesIO(file_content2))
+            file=FileUpload(path="documents/v3/tracemonkey.csv", stream=io.BytesIO(file_content2)),
         )
-        
+
         log.info("File updated with update() - only specified columns changed")
-        
+
         log.info("\n Both update approaches demonstrated successfully")
-        
+
     except Exception as e:
         log.error(f"Update failed: {e}")
         raise
-    
+
     # ==========================================================================
     # PHASE 3: DELETE (Soft-delete)
     # ==========================================================================
     log.info("\n️  PHASE 3: DELETE - Soft-delete behavior")
     log.info("-" * 80)
-    
+
     try:
         # Soft-delete marks the row with _fivetran_deleted = True
         # After this operation, this will be the state in the destination:
@@ -209,39 +211,36 @@ def update(configuration: dict, state: dict):
         #
         # Notice: Row is still present with _fivetran_deleted = True
         # The file ALSO remains in the destination stage
-        # 
+        #
         # To query only active (non-deleted) rows:
         # SELECT * FROM documents WHERE _fivetran_deleted IS NULL OR _fivetran_deleted = False;
-        op.delete(
-            table="documents",
-            keys={"doc_id": "demo_doc_1"}
-        )
-        
+        op.delete(table="documents", keys={"doc_id": "demo_doc_1"})
+
         log.info("Row soft-deleted successfully (_fivetran_deleted = True)")
         log.info("Note: Both row and file remain in the destination")
-        
+
     except Exception as e:
         log.error(f"Delete failed: {e}")
         raise
-    
-    # NOTE: The old file is automatically deleted only when you update the row with a 
-    # DIFFERENT file path (see PHASE 2: UPDATE above). There is no way to delete only 
+
+    # NOTE: The old file is automatically deleted only when you update the row with a
+    # DIFFERENT file path (see PHASE 2: UPDATE above). There is no way to delete only
     # the file while keeping the metadata row.
-    
+
     # ==========================================================================
     # STATE MANAGEMENT
     # ==========================================================================
     log.info("\n💾 STATE MANAGEMENT")
     log.info("-" * 80)
-    
+
     # Update state for incremental syncs
     state["last_updated"] = datetime.now(timezone.utc).isoformat()
-    
+
     # Checkpoint saves the state for the next sync
     op.checkpoint(state)
-    
+
     log.info("Checkpoint saved")
-    
+
     # ==========================================================================
     # SUMMARY
     # ==========================================================================
@@ -250,10 +249,18 @@ def update(configuration: dict, state: dict):
     log.info("=" * 80)
     log.info("")
     log.info("Operation Flow:")
-    log.info("  1. Upload      → doc_id: 'demo_doc_1', file: v1.pdf, path: documents/v1/tracemonkey.pdf")
-    log.info("  2. Update (upsert) → doc_id: 'demo_doc_1', file: v2.csv, path: documents/v2/tracemonkey.csv (all columns)")
-    log.info("  3. Update (update) → doc_id: 'demo_doc_1', file: v3.csv, path: documents/v3/tracemonkey.csv (partial columns)")
-    log.info("  4. Delete      → Row marked with _fivetran_deleted=True, row AND file remain in destination")
+    log.info(
+        "  1. Upload      → doc_id: 'demo_doc_1', file: v1.pdf, path: documents/v1/tracemonkey.pdf"
+    )
+    log.info(
+        "  2. Update (upsert) → doc_id: 'demo_doc_1', file: v2.csv, path: documents/v2/tracemonkey.csv (all columns)"
+    )
+    log.info(
+        "  3. Update (update) → doc_id: 'demo_doc_1', file: v3.csv, path: documents/v3/tracemonkey.csv (partial columns)"
+    )
+    log.info(
+        "  4. Delete      → Row marked with _fivetran_deleted=True, row AND file remain in destination"
+    )
     log.info("")
     log.info("Key Takeaways:")
     log.info("  ✓ _fivetran_file_path is auto-generated (you don't create it)")
@@ -262,7 +269,7 @@ def update(configuration: dict, state: dict):
     log.info("  ✓ Old file deleted automatically when updating with different path")
     log.info("  ✓ Checkpoint saves state for incremental syncs")
     log.info("=" * 80)
-    
+
     return state
 
 

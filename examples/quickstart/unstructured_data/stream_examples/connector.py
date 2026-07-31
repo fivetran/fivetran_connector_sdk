@@ -28,7 +28,6 @@ import requests
 # For generating unique file IDs
 import hashlib
 
-
 REQUEST_TIMEOUT = 30
 
 
@@ -78,12 +77,12 @@ class CustomBufferedReader:
     Demonstrates how to create a custom stream class that implements
     the required read(size) -> bytes method for FileUpload.
     """
-    
+
     def __init__(self, data: bytes, chunk_size: int = 16384):
         self.data = data
         self.chunk_size = chunk_size
         self.position = 0
-    
+
     def read(self, size: int = -1) -> bytes:
         """
         Read up to size bytes from the stream.
@@ -96,7 +95,7 @@ class CustomBufferedReader:
         """
         if size == -1:
             # Read all remaining data
-            result = self.data[self.position:]
+            result = self.data[self.position :]
             self.position = len(self.data)
             return result
         else:
@@ -129,7 +128,7 @@ def update(configuration: dict, state: dict):
         configuration: Connector configuration
         state: Previous sync state (empty for first run)
     """
-    
+
     log.info("=" * 80)
     log.info("STREAM EXAMPLES: Different File Streaming Approaches")
     log.info("=" * 80)
@@ -137,28 +136,30 @@ def update(configuration: dict, state: dict):
     log.info("NOTE: We use PDF/CSV/JSON as examples, but each streaming approach")
     log.info("      works with ANY file type. Choose based on your use case!")
     log.info("=" * 80)
-    
+
     # ==========================================================================
     # APPROACH 1: HTTP Response Streaming (response.raw)
     # ==========================================================================
     log.info("\n📄 APPROACH 1: HTTP Response Streaming (response.raw)")
     log.info("   Example: PDF file (but works for ANY file type from HTTP)")
     log.info("-" * 80)
-    
+
     try:
         # Fetch a PDF file from Mozilla's PDF.js test suite
-        pdf_url = "https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/tracemonkey.pdf"
-        
+        pdf_url = (
+            "https://raw.githubusercontent.com/mozilla/pdf.js/master/test/pdfs/tracemonkey.pdf"
+        )
+
         log.info(f"Fetching PDF file from: {pdf_url}")
         response = requests.get(pdf_url, stream=True, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
-        
+
         # IMPORTANT: Set decode_content=True to handle compressed responses
         response.raw.decode_content = True
-        
+
         file_size = int(response.headers.get("content-length", 0))
         log.info(f"File size: {file_size} bytes")
-        
+
         # Upload using response.raw directly
         # response.raw implements the required read(size) -> bytes method
         #
@@ -176,35 +177,35 @@ def update(configuration: dict, state: dict):
                 "file_type": "pdf",
                 "file_size_bytes": file_size,
             },
-            file=FileUpload(path="streams/pdf/tracemonkey.pdf", stream=response.raw)
+            file=FileUpload(path="streams/pdf/tracemonkey.pdf", stream=response.raw),
         )
-        
+
         log.info("✓ PDF file uploaded using response.raw streaming")
-        
+
     except Exception as e:
         log.error(f"Approach 1 failed: {e}")
         raise
-    
+
     # ==========================================================================
     # APPROACH 2: BytesIO Streaming
     # ==========================================================================
     log.info("\n📊 APPROACH 2: BytesIO Streaming")
     log.info("   Example: CSV file (but works for ANY file type in memory)")
     log.info("-" * 80)
-    
+
     try:
         # Fetch a CSV file from Seaborn datasets
         csv_url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv"
-        
+
         log.info(f"Fetching CSV file from: {csv_url}")
         response = requests.get(csv_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
-        
+
         # Wrap response content in BytesIO
         file_bytes = io.BytesIO(response.content)
         file_size = len(response.content)
         log.info(f"File size: {file_size} bytes")
-        
+
         # Upload using BytesIO with expected_bytes for validation
         # BytesIO implements the required read(size) -> bytes method
         #
@@ -223,38 +224,38 @@ def update(configuration: dict, state: dict):
             file=FileUpload(
                 path="streams/csv/iris.csv",
                 stream=file_bytes,
-                expected_bytes=file_size  # Optional: Fivetran validates the file size
-            )
+                expected_bytes=file_size,  # Optional: Fivetran validates the file size
+            ),
         )
-        
+
         log.info("✓ CSV file uploaded using BytesIO streaming")
-        
+
     except Exception as e:
         log.error(f"Approach 2 failed: {e}")
         raise
-    
+
     # ==========================================================================
     # APPROACH 3: Custom Reader Streaming
     # ==========================================================================
     log.info("\n🔧 APPROACH 3: Custom Reader Streaming")
     log.info("   Example: JSON file (but works for ANY file type with custom logic)")
     log.info("-" * 80)
-    
+
     try:
         # Fetch a JSON file from Vega datasets
         json_url = "https://raw.githubusercontent.com/vega/vega-datasets/master/data/cars.json"
-        
+
         log.info(f"Fetching JSON file from: {json_url}")
         response = requests.get(json_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
-        
+
         file_content = response.content
         file_size = len(file_content)
         log.info(f"File size: {file_size} bytes")
-        
+
         # Create custom reader with 16KB chunk size
         buffered_reader = CustomBufferedReader(file_content, chunk_size=16384)
-        
+
         # Upload using custom reader
         # CustomBufferedReader implements the required read(size) -> bytes method
         #
@@ -271,32 +272,30 @@ def update(configuration: dict, state: dict):
                 "file_size_bytes": file_size,
             },
             file=FileUpload(
-                path="streams/json/cars.json",
-                stream=buffered_reader,
-                expected_bytes=file_size
-            )
+                path="streams/json/cars.json", stream=buffered_reader, expected_bytes=file_size
+            ),
         )
-        
+
         log.info("✓ JSON file uploaded using custom reader streaming")
-        
+
     except Exception as e:
         log.error(f"Approach 3 failed: {e}")
         raise
-    
+
     # ==========================================================================
     # STATE MANAGEMENT
     # ==========================================================================
     log.info("\n💾 STATE MANAGEMENT")
     log.info("-" * 80)
-    
+
     # Update state for incremental syncs
     state["last_updated"] = datetime.now(timezone.utc).isoformat()
-    
+
     # Checkpoint saves the state for the next sync
     op.checkpoint(state)
-    
+
     log.info("Checkpoint saved")
-    
+
     # ==========================================================================
     # SUMMARY
     # ==========================================================================
@@ -317,7 +316,7 @@ def update(configuration: dict, state: dict):
     log.info("    • CustomReader works for any file needing custom buffering")
     log.info("  ✓ _fivetran_file_path stores relative path from FileUpload.path")
     log.info("=" * 80)
-    
+
     return state
 
 
