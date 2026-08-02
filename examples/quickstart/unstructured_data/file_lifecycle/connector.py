@@ -199,7 +199,7 @@ def update(configuration: dict, state: dict):
     log.info("✓ Checkpoint saved - file lifecycle demonstration complete")
 
 
-# Create the connector instance
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
 # Check if the script is being run as the main module.
