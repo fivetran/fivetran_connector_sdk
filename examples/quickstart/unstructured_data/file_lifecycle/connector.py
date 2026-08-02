@@ -68,7 +68,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # PHASE 1: UPLOAD (Create new file)
     # ==========================================================================
-    log.info("\nPHASE 1: UPLOAD - Creating new file")
+    log.info("PHASE 1: UPLOAD - Creating new file")
     log.info("-" * 80)
 
     try:
@@ -108,7 +108,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # PHASE 2: UPDATE (Replace existing file)
     # ==========================================================================
-    log.info("\nPHASE 2: UPDATE - Replacing existing file")
+    log.info("PHASE 2: UPDATE - Replacing existing file")
     log.info("-" * 80)
 
     try:
@@ -124,7 +124,7 @@ def update(configuration: dict, state: dict):
         log.info(f"New file size: {file_size} bytes")
 
         # Approach 1: Using op.upsert() - Replaces ALL columns
-        log.info("\nApproach 1: Using op.upsert()")
+        log.info("Approach 1: Using op.upsert()")
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
@@ -142,7 +142,7 @@ def update(configuration: dict, state: dict):
         log.info("✓ File updated with upsert()")
 
         # Approach 2: Using op.update() - Updates only specified columns (RECOMMENDED)
-        log.info("\nApproach 2: Using op.update() - RECOMMENDED")
+        log.info("Approach 2: Using op.update() - RECOMMENDED")
 
         # Fetch another file for the second update
         csv_url2 = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
@@ -169,7 +169,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # PHASE 3: DELETE (Soft-delete)
     # ==========================================================================
-    log.info("\nPHASE 3: DELETE - Soft-delete behavior")
+    log.info("PHASE 3: DELETE - Soft-delete behavior")
     log.info("-" * 80)
 
     try:
@@ -186,7 +186,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # STATE MANAGEMENT
     # ==========================================================================
-    log.info("\nSTATE MANAGEMENT")
+    log.info("STATE MANAGEMENT")
     log.info("-" * 80)
 
     # Update state for incremental syncs

@@ -119,7 +119,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # APPROACH 1: HTTP Response Streaming (response.raw)
     # ==========================================================================
-    log.info("\nAPPROACH 1: HTTP Response Streaming (response.raw)")
+    log.info("APPROACH 1: HTTP Response Streaming (response.raw)")
     log.info("-" * 80)
 
     try:
@@ -162,7 +162,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # APPROACH 2: BytesIO Streaming
     # ==========================================================================
-    log.info("\nAPPROACH 2: BytesIO Streaming")
+    log.info("APPROACH 2: BytesIO Streaming")
     log.info("-" * 80)
 
     try:
@@ -206,7 +206,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # APPROACH 3: Custom Reader Streaming
     # ==========================================================================
-    log.info("\nAPPROACH 3: Custom Reader Streaming")
+    log.info("APPROACH 3: Custom Reader Streaming")
     log.info("-" * 80)
 
     try:
@@ -250,7 +250,7 @@ def update(configuration: dict, state: dict):
     # ==========================================================================
     # STATE MANAGEMENT
     # ==========================================================================
-    log.info("\nSTATE MANAGEMENT")
+    log.info("STATE MANAGEMENT")
     log.info("-" * 80)
 
     # Update state for incremental syncs
