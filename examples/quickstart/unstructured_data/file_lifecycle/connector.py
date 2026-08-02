@@ -32,14 +32,12 @@ def schema(configuration: dict) -> list:
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
-
-    When you upload files using FileUpload, Fivetran automatically adds a
-    _fivetran_file_path column that stores the path from FileUpload.path.
-    You DON'T need to define _fivetran_file_path in columns - it's automatic!
-
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
+    # When you upload files using FileUpload, Fivetran automatically adds a
+    # _fivetran_file_path column that stores the path from FileUpload.path.
+    # You DON'T need to define _fivetran_file_path in columns - it's automatic!
     return [
         {
             "table": "documents",
@@ -57,16 +55,15 @@ def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
-    Demonstrates file upload, update, and delete lifecycle operations.
-
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: QuickStart Examples - File Lifecycle")
+
+    # This example demonstrates file upload, update, and delete lifecycle operations.
 
     # ==========================================================================
     # PHASE 1: UPLOAD (Create new file)
@@ -88,7 +85,10 @@ def update(configuration: dict, state: dict):
         file_size = int(response.headers.get("content-length", 0))
         log.info(f"File size: {file_size} bytes")
 
-        # Upload the file with metadata
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
         op.upsert(
             table="documents",
             data={
@@ -125,6 +125,10 @@ def update(configuration: dict, state: dict):
 
         # Approach 1: Using op.upsert() - Replaces ALL columns
         log.info("\nApproach 1: Using op.upsert()")
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
         op.upsert(
             table="documents",
             data={
@@ -141,8 +145,8 @@ def update(configuration: dict, state: dict):
         log.info("\nApproach 2: Using op.update() - RECOMMENDED")
 
         # Fetch another file for the second update
-        json_url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
-        response2 = requests.get(json_url, timeout=30)
+        csv_url2 = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
+        response2 = requests.get(csv_url2, timeout=30)
         response2.raise_for_status()
         file_content2 = response2.content
 

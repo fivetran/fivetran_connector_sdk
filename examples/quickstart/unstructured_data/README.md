@@ -2,9 +2,11 @@
 
 Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connector SDK.
 
+> **Note:** Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only.
+
 ---
 
-## 🚀 Quick Start
+## Quick start
 
 **New to unstructured data?** Start here:
 
@@ -13,7 +15,7 @@ Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connec
 
 ---
 
-## 📚 What is Unstructured Data?
+## What is unstructured data?
 
 **Unstructured data** = Files that don't fit neatly into rows and columns:
 - PDFs (reports, invoices, contracts)
@@ -25,7 +27,7 @@ Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connec
 
 ---
 
-## 🔧 How It Works
+## How it works
 
 ```
 Your Connector
@@ -38,11 +40,11 @@ Your Connector
   ↓
 Fivetran Platform
   ↓
-  Uploads file to cloud storage (S3/GCS/Azure)
+  Loads the file to destination storage
   ↓
   Writes row to destination with _fivetran_file_path
   ↓
-Destination (Snowflake/BigQuery/Redshift/etc.)
+Destination (Snowflake/BigQuery/Databricks)
   ↓
   Table contains metadata columns + _fivetran_file_path
   ↓
@@ -51,7 +53,7 @@ Destination (Snowflake/BigQuery/Redshift/etc.)
 
 ---
 
-## 📂 The `_fivetran_file_path` Column
+## The `_fivetran_file_path` column
 
 When you upload a file, Fivetran **automatically adds** a `_fivetran_file_path` column to your table to track the file location.
 
@@ -95,7 +97,7 @@ SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 
 ---
 
-## 🎯 Choose Your Example
+## Choose your example
 
 | I want to... | Go to |
 |-------------|-------|
@@ -107,7 +109,7 @@ SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 
 ---
 
-## 📖 Key Concepts Covered
+## Key concepts covered
 
 ### [file_lifecycle/](file_lifecycle/)
 - ✅ How to upload a file
@@ -125,7 +127,7 @@ SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 
 ---
 
-## 🐛 Common Troubleshooting
+## Common troubleshooting
 
 ### `_fivetran_file_path` column is missing
 - ❌ Not passing `file=FileUpload(...)` parameter
@@ -145,7 +147,7 @@ SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 
 ---
 
-## 🔑 Key Requirements
+## Key requirements
 
 ### 1. FileUpload with Stream
 ```python
@@ -166,7 +168,7 @@ Operations.upsert(
 
 ---
 
-## 🚦 Getting Started
+## Getting started
 
 ```bash
 # 1. Pick an example
@@ -178,7 +180,7 @@ fivetran debug
 
 ---
 
-## 💡 Pro Tips
+## Pro tips
 
 1. **Start with file_lifecycle/** to understand fundamentals
 2. **Use stream_examples/** to learn different streaming approaches
@@ -187,7 +189,7 @@ fivetran debug
 
 ---
 
-## 📝 Example Workflow
+## Example workflow
 
 ```python
 # 1. Download file with streaming

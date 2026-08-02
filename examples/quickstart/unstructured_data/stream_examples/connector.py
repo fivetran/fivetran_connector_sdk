@@ -36,14 +36,12 @@ def schema(configuration: dict) -> list:
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
     https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
-
-    When you upload files using FileUpload, Fivetran automatically adds a
-    _fivetran_file_path column that stores the path from FileUpload.path.
-    You DON'T need to define _fivetran_file_path in columns - it's automatic!
-
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """
+    # When you upload files using FileUpload, Fivetran automatically adds a
+    # _fivetran_file_path column that stores the path from FileUpload.path.
+    # You DON'T need to define _fivetran_file_path in columns - it's automatic!
     return [
         {
             "table": "files",
@@ -66,9 +64,9 @@ def compute_file_id(file_name: str) -> str:
         file_name: Filename
 
     Returns:
-        SHA256 hash of the filename (first 12 chars)
+        Full SHA256 hash of the filename
     """
-    return hashlib.sha256(file_name.encode()).hexdigest()[:12]
+    return hashlib.sha256(file_name.encode()).hexdigest()
 
 
 class CustomBufferedReader:
@@ -95,31 +93,28 @@ class CustomBufferedReader:
             Bytes read from current position
         """
         if size == -1:
-            # Read all remaining data
-            result = self.data[self.position :]
-            self.position = len(self.data)
-            return result
-        else:
-            # Read up to size bytes
-            result = self.data[self.position : self.position + size]
-            self.position += len(result)
-            return result
+            # Use chunk_size as default when reading all
+            size = self.chunk_size
+
+        # Read up to size bytes
+        result = self.data[self.position : self.position + size]
+        self.position += len(result)
+        return result
 
 
 def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
-
-    Demonstrates different file streaming approaches (HTTP response.raw, BytesIO, custom reader).
-
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update
     Args:
         configuration: A dictionary containing connection details
         state: A dictionary containing state information from previous runs
         The state dictionary is empty for the first sync or for any full re-sync
     """
     log.warning("Example: QuickStart Examples - Stream Examples")
+
+    # This example demonstrates different file streaming approaches (HTTP response.raw, BytesIO, custom reader).
 
     # ==========================================================================
     # APPROACH 1: HTTP Response Streaming (response.raw)
@@ -143,7 +138,10 @@ def update(configuration: dict, state: dict):
         file_size = int(response.headers.get("content-length", 0))
         log.info(f"File size: {file_size} bytes")
 
-        # Upload using response.raw directly (implements read(size) -> bytes)
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
         op.upsert(
             table="files",
             data={
@@ -180,7 +178,10 @@ def update(configuration: dict, state: dict):
         file_size = len(response.content)
         log.info(f"File size: {file_size} bytes")
 
-        # Upload using BytesIO with expected_bytes for validation
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
         op.upsert(
             table="files",
             data={
@@ -223,7 +224,10 @@ def update(configuration: dict, state: dict):
         # Create custom reader with 16KB chunk size
         buffered_reader = CustomBufferedReader(file_content, chunk_size=16384)
 
-        # Upload using custom reader (implements read(size) -> bytes)
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
         op.upsert(
             table="files",
             data={

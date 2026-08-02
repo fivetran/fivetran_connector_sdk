@@ -97,7 +97,7 @@ The connector demonstrates three streaming approaches using the FileUpload API:
 
 ### 1. HTTP response.raw streaming
 
-**Use when:** Streaming directly from HTTP responses
+Use when: Streaming directly from HTTP responses
 
 ```python
 response = requests.get(url, stream=True)
@@ -105,22 +105,22 @@ response.raw.decode_content = True  # Handle compressed responses
 FileUpload(path="streams/pdf/file.pdf", stream=response.raw)
 ```
 
-**Good for:** Any file type downloaded via HTTP (PDF, CSV, JSON, images, etc.)
+Good for: Any file type downloaded via HTTP (PDF, CSV, JSON, images, etc.)
 
 ### 2. BytesIO streaming
 
-**Use when:** Working with in-memory file content
+Use when: Working with in-memory file content
 
 ```python
 file_bytes = io.BytesIO(response.content)
 FileUpload(path="streams/csv/file.csv", stream=file_bytes, expected_bytes=len(response.content))
 ```
 
-**Good for:** Any file type you have in memory (PDF, CSV, JSON, images, etc.)
+Good for: Any file type you have in memory (PDF, CSV, JSON, images, etc.)
 
 ### 3. Custom reader streaming
 
-**Use when:** You need fine-grained control over buffering/chunking
+Use when: You need fine-grained control over buffering/chunking
 
 ```python
 class CustomBufferedReader:
@@ -132,7 +132,7 @@ reader = CustomBufferedReader(file_content)
 FileUpload(path="streams/json/file.json", stream=reader, expected_bytes=len(file_content))
 ```
 
-**Good for:** Any file type needing custom streaming logic (PDF, CSV, JSON, images, etc.)
+Good for: Any file type needing custom streaming logic (PDF, CSV, JSON, images, etc.)
 
 ### Key concepts
 
