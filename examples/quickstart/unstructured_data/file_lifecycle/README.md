@@ -1,16 +1,17 @@
-# File lifecycle
+# File lifecycle example
 
 ## Connector overview
 
-This example demonstrates the complete lifecycle of file operations with the Fivetran Connector SDK: upload, update (using both `upsert()` and `update()`), and delete. It shows how the auto-generated `_fivetran_file_path` column stores the relative path from `FileUpload.path`, and clarifies the difference between `upsert()` (replaces all columns) and `update()` (updates only specified columns).
+This example demonstrates how to upload unstructured files (PDFs, images, etc.) alongside metadata rows using the `FileUpload` class from the Fivetran Connector SDK. It covers the complete file lifecycle: upload, update (replace), and soft-delete operations.
 
-The connector fetches files from public URLs and demonstrates:
-- Uploading a new file
-- Updating with `upsert()` (requires all columns)
-- Updating with `update()` (only columns you want to change)
-- Soft-deleting a row (row and file both remain in destination)
+The example shows:
+- How to upload a new file with metadata
+- How to update (replace) an existing file using both `op.upsert()` and `op.update()`
+- How to soft-delete a row and file using `op.delete()`
+- How the `_fivetran_file_path` column is automatically managed
+- Basic state management with checkpoints
 
-Refer to `def update()` in `connector.py` for implementation details.
+Refer to `def update()` in `connector.py` for the complete lifecycle implementation.
 
 ## Requirements
 
@@ -26,63 +27,98 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 
 For available CLI commands, refer to the [Connector SDK Commands](https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/connector-sdk-commands) reference.
 
-1. Run the connector locally:
+### Using this example
 
-   ```bash
-   fivetran debug
-   ```
+You can either run this example directly or initialize a new connector project based on it.
 
-The connector executes three phases:
-- **Phase 1**: Upload a PDF file (documents/v1/tracemonkey.pdf)
-- **Phase 2**: Update with two approaches - `upsert()` for v2, `update()` for v3
-- **Phase 3**: Soft-delete the row
+#### Option 1: Run this example directly
 
-Each phase logs the state changes in the destination.
+Run the connector locally in debug mode:
+
+```bash
+fivetran debug
+```
+
+#### Option 2: Initialize a new project from this example
+
+Create a new connector project based on this example:
+
+```bash
+fivetran init my-file-connector --example unstructured_data/file_lifecycle
+```
+
+This creates a new directory `my-file-connector` with all example files copied. You can then modify the connector code for your specific use case.
+
+Navigate to your new project:
+
+```bash
+cd my-file-connector
+```
+
+Run the connector:
+
+```bash
+fivetran debug
+```
 
 ## Features
 
-- Demonstrates complete file lifecycle: upload → update (two approaches) → delete
-- Shows `_fivetran_file_path` column (auto-generated, stores relative path from FileUpload.path)
-- Compares `upsert()` vs `update()` for file replacement:
-  - `upsert()`: Replaces ALL columns (must provide all column values)
-  - `update()`: Updates only specified columns (recommended for file updates)
-- Clarifies soft-delete behavior: `delete()` sets `_fivetran_deleted=True`, row and file both remain
-- Uses nested paths (documents/v1/, documents/v2/, documents/v3/) to show path organization
-- State management with checkpoint pattern for incremental syncs
-- Uses real files from public URLs (Mozilla PDF.js, Seaborn datasets)
+- Demonstrates `FileUpload` with `stream` parameter for uploading files from HTTP responses, in-memory content, or file handles
+- Shows the difference between `op.upsert()` (replaces all columns) and `op.update()` (updates specific columns) when replacing files
+- Explains how `_fivetran_file_path` is automatically added to the destination table and stores the relative path from `FileUpload.path`
+- Shows soft-delete behavior: `op.delete()` marks the row as deleted (`_fivetran_deleted = True`) but the row and file remain in the destination
+- Uses nested paths (like `documents/v1/`, `documents/v2/`) to organize files by version
+- Demonstrates state management with `op.checkpoint()` for incremental syncs
 
 ## Requirements file
 
-```txt
-requests>=2.31.0
-```
+This connector has no third-party dependencies and does not include a `requirements.txt` file.
 
-> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt` when deploying.
+> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
+## Tables created
+
+This connector creates one table in your destination:
+
+### documents
+
+Stores document metadata and file references. Fivetran automatically adds the `_fivetran_file_path` column.
+
+| Column Name           | Data Type | Description                                                    |
+|-----------------------|-----------|----------------------------------------------------------------|
+| `doc_id`              | STRING    | Primary key - unique document identifier                       |
+| `doc_name`            | STRING    | Document filename                                              |
+| `doc_version`         | STRING    | Document version (v1, v2, v3, etc.)                            |
+| `_fivetran_file_path` | STRING    | Auto-generated - stores the relative path from FileUpload.path |
 
 ## Data handling
 
-The example uses the FileUpload API to demonstrate the file lifecycle. The connector fetches files from public URLs (Mozilla PDF.js for PDF, Seaborn datasets for CSV/CSV) and uploads them using `Operations.upsert()` and `Operations.update()` with the `file` parameter. The `_fivetran_file_path` column automatically tracks file paths throughout the lifecycle.
+The connector demonstrates three phases of the file lifecycle:
 
-### Key concepts
+1. **Phase 1 - Upload**: Creates a new document with metadata and uploads a file (simulated PDF content). The file is stored at the path specified in `FileUpload.path` (such as `documents/v1/report.pdf`), and this same path is automatically stored in the `_fivetran_file_path` column.
 
-**`_fivetran_file_path` stores relative paths:**
+2. **Phase 2 - Update/Replace**: Shows two approaches to update an existing file:
+   - **Approach 1**: Using `op.upsert()` - Replaces ALL column values (you must provide all columns or they become NULL)
+   - **Approach 2**: Using `op.update()` with `modified={...}` - Updates only specified columns (recommended for partial updates)
 
-When you provide `FileUpload(path="documents/v1/file.pdf", ...)`, the `_fivetran_file_path` column will store `"documents/v1/file.pdf"` — not an absolute cloud URL like `s3://...`. Both `FileUpload.path` and `_fivetran_file_path` contain the same value.
+   Both approaches replace the file by providing a new `FileUpload` with a different path.
 
-**`upsert()` vs `update()` for file replacement:**
+3. **Phase 3 - Soft-delete**: Uses `op.delete()` to mark the row as deleted by setting `_fivetran_deleted = True`. Important: The row remains in the table and the file remains in the destination storage. Files are only removed when you update the row with a different file path.
 
-- `upsert()`: Replaces ALL columns. You must provide all column values, or unprovided columns become NULL.
-- `update()`: Updates only specified columns. Other columns remain unchanged. Recommended for file updates.
+Refer to `def update()` in `connector.py` for the complete implementation with detailed comments.
 
-**Soft-delete behavior:**
+## Error handling
 
-`Operations.delete()` marks the row with `_fivetran_deleted=True`. The row remains in the table, and the file remains in the destination. To query only active rows, filter by `WHERE _fivetran_deleted IS NULL OR _fivetran_deleted = False`.
+The connector includes basic error handling:
+- HTTP errors when fetching files are logged and raised
+- All file operations include try-except blocks with logging
+- Failed operations are logged with clear error messages
 
-**Old file deletion:**
-
-Old files are automatically deleted only when you update the row with a different file path. There is no way to delete only the file while keeping the metadata row.
-
-Refer to `def update()` for implementation details showing all three phases with detailed comments.
+For production connectors, consider adding:
+- Retry logic for transient HTTP errors
+- Validation of file sizes before upload
+- Graceful handling of API rate limits
+- More detailed error context for debugging
 
 ## Additional considerations
 

@@ -4,14 +4,13 @@
 
 This example demonstrates three different file streaming approaches for the Fivetran Connector SDK. It shows when to use HTTP response streams, BytesIO, and custom readers. **Important:** The file types (PDF, CSV, JSON) are just examples — each streaming approach works with ANY file type. Choose your approach based on your use case, not the file format.
 
-The connector fetches files from public URLs and demonstrates:
-1. **HTTP response.raw** - Direct streaming from HTTP (example: PDF)
-2. **BytesIO** - In-memory file handling (example: CSV)
-3. **CustomReader** - Fine-grained control over streaming (example: JSON)
+The example shows:
+- HTTP response.raw - Direct streaming from HTTP responses
+- BytesIO - In-memory file handling
+- CustomReader - Fine-grained control over streaming
+- How all streams must implement the `read(size) -> bytes` method
 
-All streams must implement the `read(size) -> bytes` method.
-
-Refer to `def update()` in `connector.py` for implementation details.
+Refer to `def update()` in `connector.py` for the complete implementation.
 
 ## Requirements
 
@@ -27,42 +26,74 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 
 For available CLI commands, refer to the [Connector SDK Commands](https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/connector-sdk-commands) reference.
 
-1. Run the connector locally:
+### Using this example
 
-   ```bash
-   fivetran debug
-   ```
+You can either run this example directly or initialize a new connector project based on it.
 
-The connector demonstrates three streaming approaches:
-- **Approach 1**: HTTP response.raw (PDF example)
-- **Approach 2**: BytesIO (CSV example)
-- **Approach 3**: Custom BufferedReader (JSON example)
+#### Option 1: Run this example directly
 
-Each approach logs which method was used and the file details.
+Run the connector locally in debug mode:
+
+```bash
+fivetran debug
+```
+
+#### Option 2: Initialize a new project from this example
+
+Create a new connector project based on this example:
+
+```bash
+fivetran init my-stream-connector --example unstructured_data/stream_examples
+```
+
+This creates a new directory `my-stream-connector` with all example files copied. You can then modify the connector code for your specific use case.
+
+Navigate to your new project:
+
+```bash
+cd my-stream-connector
+```
+
+Run the connector:
+
+```bash
+fivetran debug
+```
 
 ## Features
 
 - Demonstrates three main streaming approaches for file uploads
-- Clarifies that streaming approach is independent of file type:
-  - response.raw works for PDF, CSV, JSON, images, any HTTP download
-  - BytesIO works for any file you have in memory
-  - CustomReader works for any file needing custom buffering
+- Clarifies that streaming approach is independent of file type (choose based on use case, not file format)
 - Shows the `read(size) -> bytes` method requirement that all streams must implement
 - Demonstrates `expected_bytes` parameter for integrity checking (optional)
-- Shows `_fivetran_file_path` column (auto-generated, stores relative path)
-- Uses real files from public URLs (Mozilla PDF.js, Seaborn datasets, Vega datasets)
+- Shows how `_fivetran_file_path` is automatically added to store the relative path from `FileUpload.path`
+- Demonstrates state management with `op.checkpoint()` for incremental syncs
 
 ## Requirements file
 
-```txt
-requests>=2.31.0
-```
+This connector has no third-party dependencies and does not include a `requirements.txt` file.
 
-> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt` when deploying.
+> Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre-installed in the Fivetran environment. To avoid dependency conflicts, do not declare them in your `requirements.txt`.
+
+## Tables created
+
+This connector creates one table in your destination:
+
+### files
+
+Stores file metadata and references. Fivetran automatically adds the `_fivetran_file_path` column.
+
+| Column Name           | Data Type | Description                                                    |
+|-----------------------|-----------|----------------------------------------------------------------|
+| `file_id`             | STRING    | Primary key - unique file identifier (SHA-256 hash)            |
+| `file_name`           | STRING    | Filename (sample.pdf, data.csv, etc.)                          |
+| `file_type`           | STRING    | File type (pdf, csv, json, etc.)                               |
+| `file_size_bytes`     | INT       | File size in bytes                                             |
+| `_fivetran_file_path` | STRING    | Auto-generated - stores the relative path from FileUpload.path |
 
 ## Data handling
 
-The example demonstrates three streaming approaches using the FileUpload API. The connector fetches files from public URLs and uploads them using `Operations.upsert()` with the `file` parameter. Different streaming techniques are shown:
+The connector demonstrates three streaming approaches using the FileUpload API:
 
 ### 1. HTTP response.raw streaming
 
@@ -107,23 +138,26 @@ FileUpload(path="streams/json/file.json", stream=reader, expected_bytes=len(file
 
 **All streams must implement `read(size) -> bytes`:**
 
-The SDK requires this method to read data from your stream. Compatible types include:
-- `requests.Response.raw` (from `requests.get(url, stream=True)`)
-- `io.BytesIO(content)`
-- Any custom class implementing `read(size) -> bytes`
+The SDK requires this method to read data from your stream. Compatible types include `requests.Response.raw`, `io.BytesIO`, and any custom class implementing the method.
 
 **File type doesn't dictate the approach:**
 
-The examples use PDF/CSV/JSON, but this is arbitrary. You can use any approach with any file type. Choose based on:
-- Where the file comes from (HTTP → response.raw)
-- Whether it's in memory (memory → BytesIO)
-- Whether you need custom logic (custom needs → CustomReader)
+The examples use PDF/CSV/JSON, but this is arbitrary. Choose your approach based on where the file comes from and whether you need custom logic, not the file type.
 
-**`_fivetran_file_path` stores relative paths:**
+Refer to `def update()` in `connector.py` for the complete implementation with detailed comments.
 
-When you provide `FileUpload(path="streams/pdf/file.pdf", ...)`, the `_fivetran_file_path` column will store `"streams/pdf/file.pdf"` — the same relative path you provided.
+## Error handling
 
-Refer to `def update()` for implementation details showing all three approaches with detailed comments.
+The connector includes basic error handling:
+- HTTP errors when fetching files are logged and raised
+- All file operations include try-except blocks with logging
+- Failed operations are logged with clear error messages
+
+For production connectors, consider adding:
+- Retry logic for transient HTTP errors
+- Validation of file sizes before upload
+- Graceful handling of API rate limits
+- More detailed error context for debugging
 
 ## Additional considerations
 
