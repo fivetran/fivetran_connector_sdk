@@ -2,7 +2,7 @@
 
 Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connector SDK.
 
-> **Note:** Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only.
+> **Note:** Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only. See [Unstructured File Replication](https://fivetran.com/docs/core-concepts/features/unstructured-file-replication) for more details.
 
 ---
 
