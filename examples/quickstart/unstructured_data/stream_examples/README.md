@@ -7,9 +7,9 @@ This example demonstrates three different approaches to file streaming with the 
 > Important: The file types (PDF, CSV, JSON) are just examples — each streaming approach works with any file type. Choose your approach based on your use case, not the file format.
 
 The example shows:
-- HTTP response.raw - Direct streaming from HTTP responses
-- BytesIO - In-memory file handling
-- CustomReader - Fine-grained control over streaming
+- HTTP `response.raw` - Direct streaming from HTTP responses
+- `BytesIO` - In-memory file handling
+- `CustomReader` - Fine-grained control over streaming
 - How all streams must implement the `read(size) -> bytes` method
 
 Refer to `def update()` in `connector.py` for the complete implementation.
