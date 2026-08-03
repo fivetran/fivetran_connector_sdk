@@ -88,10 +88,10 @@ Stores file metadata and references. Fivetran automatically adds the `_fivetran_
 | Column Name           | Data Type | Description                                                    |
 |-----------------------|-----------|----------------------------------------------------------------|
 | `file_id`             | STRING    | Primary key - unique file identifier (SHA-256 hash)            |
-| `file_name`           | STRING    | Filename (sample.pdf, data.csv, etc.)                          |
+| `file_name`           | STRING    | Filename (`sample.pdf`, `data.csv`, etc.)                          |
 | `file_type`           | STRING    | File type (pdf, csv, json, etc.)                               |
 | `file_size_bytes`     | INT       | File size in bytes                                             |
-| `_fivetran_file_path` | STRING    | Auto-generated - stores the relative path from FileUpload.path |
+| `_fivetran_file_path` | STRING    | Auto-generated - stores the relative path from `FileUpload.path` |
 
 ## Data handling
 
