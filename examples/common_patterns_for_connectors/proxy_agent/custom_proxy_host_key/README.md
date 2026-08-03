@@ -54,7 +54,7 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 ## Features
 - PostgreSQL connectivity via `psycopg2`
 - Uses a custom `proxy_host` configuration key instead of the generic `host` key
-- Incremental sync using the `modified_at` column
+- Full table sync using a server-side named cursor with `fetchmany()` for memory-safe streaming
 - Periodic checkpointing every 1000 records
 
 ## How to use a custom proxy host key
@@ -106,10 +106,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Standard PostgreSQL username/password authentication. Credentials are read from `configuration.json` and passed to `psycopg2.connect()`. The Fivetran Proxy Agent is authenticated separately with Fivetran as part of its registration.
 
 ## Data handling
-1. Reads `last_modified` from `state` (defaults to `1970-01-01T00:00:00Z` on the first sync).
-2. Executes a parameterized `SELECT` on `sample_users` for rows where `modified_at > last_modified`.
-3. Upserts each row to the `sample_users` destination table.
-4. Checkpoints every 1000 rows and performs a final checkpoint after all rows.
+1. Opens a PostgreSQL connection via the proxy host address in `configuration["proxy_host"]`.
+2. Opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
+3. Upserts each row to the `test` destination table.
+4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
 ## Error handling
 - Missing configuration parameters (including `proxy_host`) raise a `ValueError` via `validate_configuration`.
@@ -118,7 +118,7 @@ Standard PostgreSQL username/password authentication. Credentials are read from 
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `sample_users` | `id` | Rows fetched incrementally from the source `sample_users` table via the proxy agent. |
+| `test` | `id` | All rows streamed from the source `test` table via the proxy agent. |
 
 ## Additional considerations
 - Make sure the proxy agent has network access to your PostgreSQL instance.

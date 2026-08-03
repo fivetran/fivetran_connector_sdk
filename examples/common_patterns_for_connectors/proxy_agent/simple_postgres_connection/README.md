@@ -1,7 +1,7 @@
 # Proxy Agent - Simple Postgres Connection Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector when running behind the [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs an incremental sync of the `sample_users` table using the `modified_at` column.
+This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector when running behind the [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `test` table using a server-side streaming cursor.
 
 The Fivetran Proxy Agent runs inside your network and forwards traffic between Fivetran-hosted connectors and your private data sources. Because the proxy agent operates transparently at the network layer, your connector code does not need to know about it. You only need to make sure the `host` you configure is reachable through the proxy agent from the Fivetran environment.
 
@@ -49,7 +49,7 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 ## Features
 - Direct PostgreSQL connectivity using `psycopg2`
 - Standard host/port/user/password/database configuration
-- Incremental sync using the `modified_at` column
+- Full table sync using a server-side named cursor with `fetchmany()` for memory-safe streaming
 - Periodic checkpointing every 1000 records
 - Compatible with the Fivetran Proxy Agent without any code changes
 
@@ -86,11 +86,10 @@ This connector uses standard PostgreSQL username/password authentication. Creden
 
 ## Data handling
 The connector processes data as follows:
-1. Reads `last_modified` from `state` (defaults to `1970-01-01T00:00:00Z` on the first sync).
-2. Executes a parameterized `SELECT` on `sample_users` for rows where `modified_at > last_modified`.
-3. Streams rows using `psycopg2.extras.RealDictCursor` and upserts each row to the `sample_users` destination table.
-4. Updates the in-memory `last_modified` cursor and checkpoints every 1000 rows.
-5. Performs a final checkpoint after all rows have been processed.
+1. Opens a PostgreSQL connection using the configured `host`, credentials, and `sslmode=disable`.
+2. Opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
+3. Upserts each row to the `test` destination table.
+4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
 ## Error handling
 The connector includes error handling for:
@@ -101,10 +100,10 @@ The connector includes error handling for:
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `sample_users` | `id` | Rows fetched incrementally from the source `sample_users` table using `modified_at`. |
+| `test` | `id` | All rows streamed from the source `test` table via a server-side cursor. |
 
 ## Additional considerations
-- This example assumes the source table is named `sample_users` and has an `id` column and a `modified_at` timestamp column. Adjust the schema and SQL query for your source.
+- This example assumes the source table is named `test` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
 - When using the Fivetran Proxy Agent, make sure the machine running the agent has network access to the PostgreSQL host and that outbound HTTPS from the proxy agent to Fivetran is allowed.
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` (or stricter) to `psycopg2.connect()`.
 

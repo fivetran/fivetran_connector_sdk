@@ -152,48 +152,49 @@ def fetch_and_upsert_data(database_connection, state):
     Args:
         database_connection: A psycopg2 connection object.
         state: A dictionary containing state information from previous runs.
+def fetch_and_upsert_data(database_connection, state):
     """
-    last_modified = state.get("last_modified", "1970-01-01T00:00:00Z")
+    Fetch all rows from the source table using a server-side named cursor and upsert into the destination.
+    Uses fetchmany() to stream data in batches, avoiding loading all rows into memory at once.
+    Args:
+        database_connection: A psycopg2 connection object.
+        state: A dictionary containing state information from previous runs.
+    """
+    log.info(f"Starting extraction from table: {__TABLE_NAME}")
 
-    # >= ensures rows whose modified_at equals the last checkpoint are included, preventing
-    # gaps when multiple rows share the same timestamp at a sync boundary.
-    sql_query = f"SELECT * FROM {__TABLE_NAME} WHERE modified_at >= %s ORDER BY modified_at ASC;"
-    database_cursor = database_connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    database_cursor.execute(sql_query, (last_modified,))
+    # Use a named server-side cursor to stream results in batches, avoiding loading all rows into memory.
+    database_cursor = database_connection.cursor(
+        name="server_side_cursor",
+        cursor_factory=psycopg2.extras.RealDictCursor
+    )
+    database_cursor.execute(f"SELECT * FROM {__TABLE_NAME};")
 
-    count = 0
-    for row in database_cursor:
-        # The 'upsert' operation is used to insert or update data in the destination table.
-        # The first argument is the name of the destination table.
-        # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table=__TABLE_NAME, data=dict(row))
-        count += 1
+    total_rows = 0
+    while True:
+        rows = database_cursor.fetchmany(__CHECKPOINT_INTERVAL)
+        if not rows:
+            break
 
-        row_modified = row["modified_at"].isoformat()
-        if row_modified > last_modified:
-            last_modified = row_modified
+        for row in rows:
+            # The 'upsert' operation is used to insert or update data in the destination table.
+            # The first argument is the name of the destination table.
+            # The second argument is a dictionary containing the record to be upserted.
+            op.upsert(table=__TABLE_NAME, data=dict(row))
 
-        if count % __CHECKPOINT_INTERVAL == 0:
-            state["last_modified"] = last_modified
-            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-            # from the correct position in case of next sync or interruptions.
-            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-            # Learn more about how and where to checkpoint by reading our best practices documentation
-            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-            op.checkpoint(state)
-
-    state["last_modified"] = last_modified
-    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
-    # from the correct position in case of next sync or interruptions.
-    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
-    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
-    # Learn more about how and where to checkpoint by reading our best practices documentation
-    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
-    op.checkpoint(state)
+        total_rows += len(rows)
+        state["total_rows"] = total_rows
+        # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+        # from the correct position in case of next sync or interruptions.
+        # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+        # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+        # Learn more about how and where to checkpoint by reading our best practices documentation
+        # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
+        op.checkpoint(state)
+        log.info(f"Upserted {total_rows} rows so far from {__TABLE_NAME}")
 
     database_cursor.close()
     database_connection.close()
+    log.info(f"Completed extraction from {__TABLE_NAME}. Total rows: {total_rows}")
 
 
 def schema(configuration: dict):

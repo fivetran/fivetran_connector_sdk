@@ -50,9 +50,9 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 
 ## Features
 - PostgreSQL connectivity via `psycopg2`
-- Accepts a comma-separated list of hosts and iterates in order
+- Accepts a JSON array of hosts and iterates in order
 - Uses a 10-second `connect_timeout` per host to fail fast on unreachable hosts
-- Incremental sync using the `modified_at` column
+- Full table sync using a server-side named cursor with `fetchmany()` for memory-safe streaming
 - Periodic checkpointing every 1000 records
 
 ## How host failover works
@@ -98,10 +98,10 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Standard PostgreSQL username/password authentication is used for all hosts. Credentials are read from `configuration.json` and passed to `psycopg2.connect()`. Each Fivetran Proxy Agent authenticates itself to Fivetran independently as part of its registration.
 
 ## Data handling
-1. Reads `last_modified` from `state` (defaults to `1970-01-01T00:00:00Z` on the first sync).
-2. Executes a parameterized `SELECT` on `sample_users` for rows where `modified_at > last_modified` on the connected host.
-3. Upserts each row to the `sample_users` destination table.
-4. Checkpoints every 1000 rows and performs a final checkpoint after all rows.
+1. Connects to the first reachable host in the `hosts` list.
+2. Opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
+3. Upserts each row to the `test` destination table.
+4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
 ## Error handling
 - Missing configuration parameters (including an empty `hosts`) raise a `ValueError` via `validate_configuration`.
@@ -111,7 +111,7 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `sample_users` | `id` | Rows fetched incrementally from the source `sample_users` table on the first reachable host. |
+| `test` | `id` | All rows streamed from the source `test` table on the first reachable host. |
 
 ## Additional considerations
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()`.
