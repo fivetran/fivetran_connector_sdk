@@ -23,13 +23,11 @@ To initialize a new Connector SDK project using this connector as a starting poi
 fivetran init <project-path> --template examples/common_patterns_for_connectors/proxy_agent/simple_postgres_connection
 ```
 
-`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector.
 If you do not specify a project path, Fivetran creates the project in your current directory.
 
-> Note: Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
-
 ## Deploying the connector
-Once you have tested the connector locally with `fivetran debug`, deploy it to your Fivetran account using the `fivetran deploy` command:
+Deploy it to your Fivetran account using the `fivetran deploy` command:
 
 ```bash
 fivetran deploy \

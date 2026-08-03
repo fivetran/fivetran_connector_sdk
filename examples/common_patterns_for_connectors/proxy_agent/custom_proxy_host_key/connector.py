@@ -65,17 +65,9 @@ def split_host_port(host_entry: str):
     host_entry = (host_entry or "").strip()
     if not host_entry:
         return "", __DEFAULT_POSTGRES_PORT
-
     if ":" in host_entry:
         hostname, port_str = host_entry.rsplit(":", 1)
-        try:
-            port = int(port_str)
-        except ValueError:
-            raise ValueError(
-                f"Invalid port in host entry '{host_entry}'. Expected 'hostname:port'."
-            )
-        return hostname.strip(), port
-
+        return hostname.strip(), int(port_str)
     return host_entry, __DEFAULT_POSTGRES_PORT
 
 
@@ -94,9 +86,7 @@ def get_database_connection(configuration: dict):
     db_secret = configuration.get("db_password")
     db_name = configuration.get("db_name")
 
-    log.info(
-        f"Connecting to PostgreSQL through proxy host {hostname}:{port}, database={db_name}"
-    )
+    log.info(f"Connecting to PostgreSQL through proxy host {hostname}:{port}, database={db_name}")
 
     connect_kwargs = {
         "host": hostname,
@@ -116,21 +106,26 @@ def get_database_connection(configuration: dict):
 def fetch_and_upsert_data(database_connection, state):
     """
     Fetch data incrementally from the source table and upsert into the destination.
+    Uses `modified_at >= last_modified` so that rows sharing the same timestamp as the
+    last checkpoint are re-fetched; upsert idempotency ensures no duplicates in the destination.
     Args:
         database_connection: A psycopg2 connection object.
         state: A dictionary containing state information from previous runs.
     """
     last_modified = state.get("last_modified", "1970-01-01T00:00:00Z")
 
-    sql_query = (
-        "SELECT * FROM sample_users WHERE modified_at > %s ORDER BY modified_at ASC;"
-    )
+    # >= ensures rows whose modified_at equals the last checkpoint are included, preventing
+    # gaps when multiple rows share the same timestamp at a sync boundary.
+    sql_query = "SELECT * FROM sample_users WHERE modified_at >= %s ORDER BY modified_at ASC;"
     database_cursor = database_connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     database_cursor.execute(sql_query, (last_modified,))
 
     count = 0
     for row in database_cursor:
-        op.upsert(table="sample_users", data=row)
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        op.upsert(table="sample_users", data=dict(row))
         count += 1
 
         row_modified = row["modified_at"].isoformat()
@@ -139,9 +134,21 @@ def fetch_and_upsert_data(database_connection, state):
 
         if count % __CHECKPOINT_INTERVAL == 0:
             state["last_modified"] = last_modified
+            # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+            # from the correct position in case of next sync or interruptions.
+            # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+            # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+            # Learn more about how and where to checkpoint by reading our best practices documentation
+            # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
             op.checkpoint(state)
 
     state["last_modified"] = last_modified
+    # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
+    # from the correct position in case of next sync or interruptions.
+    # You should checkpoint even if you are not using incremental sync, as it tells Fivetran it is safe to write to destination.
+    # For large datasets, checkpoint regularly (e.g., every N records) not only at the end.
+    # Learn more about how and where to checkpoint by reading our best practices documentation
+    # (https://fivetran.com/docs/connector-sdk/best-practices#optimizingperformancewhenhandlinglargedatasets).
     op.checkpoint(state)
 
     database_cursor.close()
@@ -152,7 +159,7 @@ def schema(configuration: dict):
     """
     Define the schema function which lets you configure the schema your connector delivers.
     See the technical reference documentation for more details on the schema function:
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#schema
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#schema
     Args:
         configuration: a dictionary that holds the configuration settings for the connector.
     """

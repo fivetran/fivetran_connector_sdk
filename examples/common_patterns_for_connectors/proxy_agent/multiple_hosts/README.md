@@ -1,7 +1,7 @@
-a# Proxy Agent - Multiple Hosts Connector Example
+# Proxy Agent - Multiple Hosts Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance behind a [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when **multiple candidate hosts** are available. The connector reads a comma-separated list of hosts from the `hosts` key in `configuration.json` and attempts to connect to each in order, using the first host that accepts the connection.
+This example demonstrates how to connect to a PostgreSQL instance behind a [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when **multiple candidate hosts** are available. The connector reads a JSON array of hosts from the `hosts` key in `configuration.json` and attempts to connect to each in order, using the first host that accepts the connection.
 
 Typical use cases:
 - Multiple Fivetran Proxy Agents fronting the same PostgreSQL instance for high availability.
@@ -26,12 +26,10 @@ To initialize a new Connector SDK project using this connector as a starting poi
 fivetran init <project-path> --template examples/common_patterns_for_connectors/proxy_agent/multiple_hosts
 ```
 
-`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector you can run immediately with `fivetran debug`.
-
-> Note: Ensure you have updated the `configuration.json` file with the necessary parameters before running `fivetran debug`. See the [Configuration file](#configuration-file) section for details on the required configuration parameters.
+`fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector.
 
 ## Deploying the connector
-Once you have tested the connector locally with `fivetran debug`, deploy it to your Fivetran account using the `fivetran deploy` command:
+Deploy it to your Fivetran account using the `fivetran deploy` command:
 
 ```bash
 fivetran deploy \
@@ -116,8 +114,6 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 | `sample_users` | `id` | Rows fetched incrementally from the source `sample_users` table on the first reachable host. |
 
 ## Additional considerations
-- Ensure every host in the list contains the same data (or at least the same schema for `sample_users`) so that failover does not produce inconsistent results.
-- If you rely on read replicas, make sure replication lag is acceptable for your incremental cursor (`modified_at`).
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()`.
 - Consider extending the connector to remember the last successful host in `state` to bias future syncs, if that fits your operational model.
 
