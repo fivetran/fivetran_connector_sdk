@@ -101,7 +101,7 @@ def update(configuration: dict, state: dict):
 
         log.info("✓ File 1 uploaded successfully")
 
-        log.info("Uploading second document (will remain live)...")
+        log.info("Uploading second document...")
         csv_url_live = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
         response_live = requests.get(csv_url_live, stream=True, timeout=30)
         response_live.raise_for_status()
@@ -122,7 +122,6 @@ def update(configuration: dict, state: dict):
         )
 
         log.info("✓ File 2 uploaded successfully")
-        log.info("Result: 2 live documents in destination")
 
     except Exception as e:
         log.error(f"Upload failed: {e}")
