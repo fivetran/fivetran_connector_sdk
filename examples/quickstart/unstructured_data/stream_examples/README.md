@@ -136,18 +136,6 @@ FileUpload(path="streams/json/file.json", stream=reader, expected_bytes=len(file
 
 Good for: Any file type needing custom streaming logic (PDF, CSV, JSON, images, etc.)
 
-### Key concepts
-
-**All streams must implement `read(size) -> bytes`:**
-
-The SDK requires this method to read data from your stream. Compatible types include `requests.Response.raw`, `io.BytesIO`, and any custom class implementing the method.
-
-**File type doesn't dictate the approach:**
-
-The examples use PDF/CSV/JSON, but this is arbitrary. Choose your approach based on where the file comes from and whether you need custom logic, not the file type.
-
-Refer to `def update()` in `connector.py` for the complete implementation with detailed comments.
-
 ## Error handling
 
 The connector includes basic error handling:

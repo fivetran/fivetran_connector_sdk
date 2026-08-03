@@ -99,7 +99,30 @@ def update(configuration: dict, state: dict):
             file=FileUpload(path="documents/v1/tracemonkey.pdf", stream=response.raw),
         )
 
-        log.info("✓ File uploaded successfully")
+        log.info("✓ File 1 uploaded successfully")
+
+        log.info("Uploading second document (will remain live)...")
+        csv_url_live = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
+        response_live = requests.get(csv_url_live, stream=True, timeout=30)
+        response_live.raise_for_status()
+        response_live.raw.decode_content = True
+
+        # The 'upsert' operation is used to insert or update data in the destination table.
+        # The first argument is the name of the destination table.
+        # The second argument is a dictionary containing the record to be upserted.
+        # The third argument (file) is the FileUpload object with file details associated with the metadata row.
+        op.upsert(
+            table="documents",
+            data={
+                "doc_id": "demo_doc_2",
+                "doc_name": "penguins.csv",
+                "doc_version": "v1",
+            },
+            file=FileUpload(path="documents/v1/penguins.csv", stream=response_live.raw),
+        )
+
+        log.info("✓ File 2 uploaded successfully")
+        log.info("Result: 2 live documents in destination")
 
     except Exception as e:
         log.error(f"Upload failed: {e}")
@@ -178,6 +201,7 @@ def update(configuration: dict, state: dict):
 
         log.info("✓ Row soft-deleted (_fivetran_deleted = True)")
         log.info("Note: Both row and file remain in the destination")
+        log.info("Result: 1 live document (demo_doc_2) + 1 soft-deleted document (demo_doc_1)")
 
     except Exception as e:
         log.error(f"Delete failed: {e}")

@@ -95,15 +95,19 @@ Stores document metadata and file references. Fivetran automatically adds the `_
 
 The connector demonstrates three phases of the file lifecycle:
 
-1. **Phase 1 - Upload**: Creates a new document with metadata and uploads a file (simulated PDF content). The file is stored at the path specified in `FileUpload.path` (such as `documents/v1/report.pdf`), and this same path is automatically stored in the `_fivetran_file_path` column.
+1. **Phase 1 - Upload**: Creates two new documents with metadata and uploads files. The files are stored at the paths specified in `FileUpload.path` (such as `documents/v1/tracemonkey.pdf` and `documents/v1/penguins.csv`), and these same paths are automatically stored in the `_fivetran_file_path` column.
 
-2. **Phase 2 - Update/Replace**: Shows two approaches to update an existing file:
+2. **Phase 2 - Update/Replace**: Shows two approaches to update an existing file (demo_doc_1):
    - **Approach 1**: Using `op.upsert()` - Replaces ALL column values (you must provide all columns or they become NULL)
    - **Approach 2**: Using `op.update()` with `modified={...}` - Updates only specified columns (recommended for partial updates)
 
    Both approaches replace the file by providing a new `FileUpload` with a different path.
 
-3. **Phase 3 - Soft-delete**: Uses `op.delete()` to mark the row as deleted by setting `_fivetran_deleted = True`. Important: The row remains in the table and the file remains in the destination storage. Files are only removed when you update the row with a different file path.
+3. **Phase 3 - Soft-delete**: Uses `op.delete()` to mark one document (demo_doc_1) as deleted by setting `_fivetran_deleted = True`. Important: The row remains in the table and the file remains in the destination storage. Files are only removed when you update the row with a different file path.
+
+**Final state in destination:**
+- 1 live document (demo_doc_2) with an active file
+- 1 soft-deleted document (demo_doc_1) with `_fivetran_deleted = True`
 
 Refer to `def update()` in `connector.py` for the complete implementation with detailed comments.
 
