@@ -2,7 +2,9 @@
 
 ## Connector overview
 
-This example demonstrates three different file streaming approaches for the Fivetran Connector SDK. It shows when to use HTTP response streams, BytesIO, and custom readers. **Important:** The file types (PDF, CSV, JSON) are just examples — each streaming approach works with ANY file type. Choose your approach based on your use case, not the file format.
+This example demonstrates three different approaches to file streaming with the Fivetran Connector SDK. It shows when to use HTTP response streams, BytesIO, and custom readers. 
+
+> Important: The file types (PDF, CSV, JSON) are just examples — each streaming approach works with any file type. Choose your approach based on your use case, not the file format.
 
 The example shows:
 - HTTP response.raw - Direct streaming from HTTP responses
