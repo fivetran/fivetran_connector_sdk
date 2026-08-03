@@ -81,7 +81,7 @@ This connector has no third-party dependencies and does not include a `requireme
 
 This connector creates one table in your destination:
 
-### files
+### FILES
 
 Stores file metadata and references. Fivetran automatically adds the `_fivetran_file_path` column.
 
