@@ -30,6 +30,7 @@ import psycopg2.extras
 __CHECKPOINT_INTERVAL = 1000  # Number of records to process before checkpointing state
 __DEFAULT_POSTGRES_PORT = 5432  # Default PostgreSQL port
 __CONNECT_TIMEOUT_SECONDS = 10  # Per-host connection timeout to fail fast on unreachable hosts
+__TABLE_NAME = "test"  # Name of the source table to sync
 
 
 def validate_configuration(configuration: dict):
@@ -125,10 +126,11 @@ def get_database_connection(configuration: dict):
             "host": hostname,
             "port": port,
             "user": db_user,
+            "password": db_secret,
             "dbname": db_name,
             "connect_timeout": __CONNECT_TIMEOUT_SECONDS,
+            "sslmode": "disable",
         }
-        connect_kwargs["pass" + "word"] = db_secret
 
         try:
             connection = psycopg2.connect(**connect_kwargs)
@@ -155,7 +157,7 @@ def fetch_and_upsert_data(database_connection, state):
 
     # >= ensures rows whose modified_at equals the last checkpoint are included, preventing
     # gaps when multiple rows share the same timestamp at a sync boundary.
-    sql_query = "SELECT * FROM sample_users WHERE modified_at >= %s ORDER BY modified_at ASC;"
+    sql_query = f"SELECT * FROM {__TABLE_NAME} WHERE modified_at >= %s ORDER BY modified_at ASC;"
     database_cursor = database_connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     database_cursor.execute(sql_query, (last_modified,))
 
@@ -164,7 +166,7 @@ def fetch_and_upsert_data(database_connection, state):
         # The 'upsert' operation is used to insert or update data in the destination table.
         # The first argument is the name of the destination table.
         # The second argument is a dictionary containing the record to be upserted.
-        op.upsert(table="sample_users", data=dict(row))
+        op.upsert(table=__TABLE_NAME, data=dict(row))
         count += 1
 
         row_modified = row["modified_at"].isoformat()
@@ -204,7 +206,7 @@ def schema(configuration: dict):
     """
     return [
         {
-            "table": "sample_users",
+            "table": __TABLE_NAME,
             "primary_key": ["id"],
             "columns": {
                 "id": "STRING",

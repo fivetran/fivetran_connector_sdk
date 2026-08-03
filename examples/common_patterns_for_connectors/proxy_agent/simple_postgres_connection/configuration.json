@@ -1,6 +1,6 @@
 {
-  "host": "<YOUR_POSTGRES_HOST>:<YOUR_POSTGRES_PORT>",
-  "db_user": "<YOUR_POSTGRES_USER>",
-  "db_password": "<YOUR_POSTGRES_PASSWORD>",
-  "db_name": "<YOUR_POSTGRES_DATABASE_NAME>"
+  "host": "ec2-3-87-137-205.compute-1.amazonaws.com:5432",
+  "db_user": "testuser",
+  "db_password": "testpassword",
+  "db_name": "testdb"
 }
