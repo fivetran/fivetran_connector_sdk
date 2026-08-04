@@ -99,7 +99,7 @@ Result:
 
 ## Choose your example
 
-| I want to... | Go to |
+| I want to | Go to |
 |-------------|-------|
 | Upload my first file | [file_lifecycle](file_lifecycle/) |
 | Understand upload/update/delete lifecycle | [file_lifecycle](file_lifecycle/) |
