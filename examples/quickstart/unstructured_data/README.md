@@ -54,9 +54,7 @@ Destination (Snowflake/BigQuery/Databricks)
 
 ## The `_fivetran_file_path` column
 
-When you upload a file, Fivetran **automatically adds** a `_fivetran_file_path` column to your table to track the file location.
-
-**You don't define this column** - it's added by the platform automatically.
+When you upload a file, Fivetran automatically adds a `_fivetran_file_path` column to your table to track the file location. You don't define this column; the platform adds it automatically.
 
 ### Example:
 
