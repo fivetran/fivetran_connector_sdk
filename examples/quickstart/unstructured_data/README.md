@@ -58,7 +58,8 @@ When you upload a file, Fivetran automatically adds a `_fivetran_file_path` colu
 
 ### Example:
 
-**Your schema:**
+Your schema:
+
 ```python
 def schema(configuration):
     return [{
