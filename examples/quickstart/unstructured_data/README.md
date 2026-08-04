@@ -143,7 +143,7 @@ SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 
 ### "expected_bytes mismatch"
 - ❌ File size changed during upload
-- ✅ Verify expected_bytes matches actual file size
+- ✅ Verify `expected_bytes` matches the actual file size
 
 ---
 
