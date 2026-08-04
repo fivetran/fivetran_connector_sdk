@@ -16,7 +16,7 @@ Unlike structured data, which has traditional tabular data (rows/columns) that f
 
 ## Getting started
 
-**New to unstructured data?** Start here:
+New to unstructured data? Start here:
 
 -  [file_lifecycle](file_lifecycle/): Upload your first file and understand the upload, update, and delete lifecycle (5 minutes).
 -  [stream_examples](stream_examples/): Learn different streaming approaches and when to use `expected_bytes`.
