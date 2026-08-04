@@ -23,7 +23,6 @@ Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connec
 - Archives (ZIP, TAR)
 - Any binary content
 
-**Structured data** = Traditional tabular data (rows/columns) that fits into database tables.
 
 ---
 
