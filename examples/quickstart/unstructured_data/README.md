@@ -133,4 +133,4 @@ Result:
 
 ---
 
-**Ready to get started?** Head to [file_lifecycle](file_lifecycle/) →
+Ready to get started? Head to [file_lifecycle](file_lifecycle/).
