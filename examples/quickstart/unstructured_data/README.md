@@ -10,8 +10,8 @@ Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connec
 
 **New to unstructured data?** Start here:
 
-1. **[file_lifecycle](file_lifecycle/)** - Upload your first file + understand upload/update/delete lifecycle (5 minutes)
-2. **[stream_examples](stream_examples/)** - Learn different streaming approaches and when to use expected_bytes
+-  [file_lifecycle](file_lifecycle/): Upload your first file and understand the upload, update, and delete lifecycle (5 minutes).
+-  [stream_examples](stream_examples/): Learn different streaming approaches and when to use `expected_bytes`.
 
 ---
 
