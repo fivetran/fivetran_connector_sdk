@@ -124,7 +124,7 @@ Result:
 
 ### File not appearing in destination
 - ❌ Not passing `file=FileUpload(...)` to `Operations.upsert()`
-- ✅ Check your upsert() call includes `file` parameter
+- ✅ Check whether your `upsert()` call includes the `file` parameter
 
 ### "expected_bytes mismatch"
 - ❌ File size changed during upload
