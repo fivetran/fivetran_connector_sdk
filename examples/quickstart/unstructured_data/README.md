@@ -102,7 +102,7 @@ Result:
 | I want to | Go to |
 |-------------|-------|
 | Upload my first file | [file_lifecycle](file_lifecycle/) |
-| Understand upload/update/delete lifecycle | [file_lifecycle](file_lifecycle/) |
+| Understand the upload, update, and delete lifecycle | [file_lifecycle](file_lifecycle/) |
 | Learn `_fivetran_file_path` behavior | [file_lifecycle](file_lifecycle/) |
 | Learn different streaming approaches | [stream_examples](stream_examples/) |
 | Understand when to use expected_bytes | [stream_examples](stream_examples/) |
