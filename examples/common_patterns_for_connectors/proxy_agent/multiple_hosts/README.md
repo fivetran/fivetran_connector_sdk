@@ -56,8 +56,8 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 - Periodic checkpointing every 1000 records
 
 ## How host failover works
-1. `validate_configuration` ensures the `hosts` value is a JSON array and parses into at least one host.
-2. `parse_hosts` iterates over the array, trims each entry, and splits `hostname:port`, preserving order.
+1. `validate_configuration` ensures the `hosts` value is a comma-separated string and parses into at least one host.
+2. `parse_hosts` splits the comma-separated string, trims each entry, and splits `hostname:port`, preserving order.
 3. `get_database_connection` iterates over the parsed list:
    - Attempts `psycopg2.connect(host=<current>, ...)` with a 10-second timeout.
    - On success, logs the connected host and returns the connection.

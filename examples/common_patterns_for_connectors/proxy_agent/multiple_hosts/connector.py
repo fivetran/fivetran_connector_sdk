@@ -1,12 +1,11 @@
 # This example demonstrates how to connect to a PostgreSQL instance behind a Fivetran Proxy Agent when
 # multiple candidate hosts are configured.
-# The connector reads a list of hosts from `configuration.json` (`hosts`, a JSON array where each entry is
-# in `hostname:port` format) and attempts to connect to each in order until one succeeds. This is useful when:
-#   - Multiple proxy agents front the same database for high availability.
-#   - You have a primary and one or more read replicas.
+# The connector reads a list of hosts from `configuration.json` (`hosts`, a comma-separated string where
+# each entry is in `hostname:port` format) and attempts to connect to each host in order, extracting data
+# from all reachable hosts. This is useful when:
+#   - Multiple proxy agents front different database shards.
+#   - You have a primary and one or more read replicas you want to sync from.
 #   - Region-specific hosts share the same credentials.
-# The rest of the sync logic (incremental read on `modified_at`, checkpointing, upsert) is unchanged
-# from the simple example.
 # See the Technical Reference documentation
 # (https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connectors/connector-sdk/best-practices) for details.
@@ -46,11 +45,6 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
-    if not isinstance(configuration["hosts"], list):
-        raise ValueError(
-            "Configuration value 'hosts' must be a JSON array of 'hostname:port' entries."
-        )
-
     parsed = parse_hosts(configuration["hosts"])
     if not parsed:
         raise ValueError(
@@ -78,21 +72,21 @@ def split_host_port(host_entry: str):
 
 def parse_hosts(hosts_value):
     """
-    Parse the `hosts` configuration value into an ordered list of (hostname, port) tuples.
-    The value is expected to be a JSON array where each entry is `hostname:port`
-    (e.g. ["host1:5432", "host2:5433"]).
+    Parse hosts into an ordered list of (hostname, port) tuples.
+    Accepts either a comma-separated string (as delivered by Fivetran in production) or a list
+    (as loaded from configuration.json during local debug). Empty entries are skipped.
     Args:
-        hosts_value: list of host entries from configuration.
+        hosts_value: comma-separated string or list of host entries (e.g. "host1:5432,host2:5433").
     Returns:
-        A list of (hostname, port) tuples preserving the configured order. Empty entries are skipped.
+        A list of (hostname, port) tuples preserving the configured order.
     """
-    if not isinstance(hosts_value, list):
-        return []
+    if isinstance(hosts_value, list):
+        entries = hosts_value
+    else:
+        entries = str(hosts_value).split(",")
 
     parsed = []
-    for entry in hosts_value:
-        if not isinstance(entry, str):
-            continue
+    for entry in entries:
         entry = entry.strip()
         if not entry:
             continue
@@ -102,56 +96,40 @@ def parse_hosts(hosts_value):
     return parsed
 
 
-def get_database_connection(configuration: dict):
+def get_database_connection(hostname: str, port: int, configuration: dict):
     """
-    Attempt to connect to PostgreSQL by iterating over the configured list of hosts.
-    The first host that accepts the connection is used for the sync. Subsequent hosts act as failover
-    targets when running behind multiple Fivetran Proxy Agents or when using read replicas.
+    Attempt to connect to a single PostgreSQL host.
     Args:
+        hostname: The hostname to connect to.
+        port: The port to connect to.
         configuration: a dictionary that holds the connector configuration.
     Returns:
-        A psycopg2 connection object connected to the first reachable host.
-    Raises:
-        ConnectionError: if all configured hosts fail to connect.
+        A psycopg2 connection object, or None if the connection fails.
     """
-    hosts = parse_hosts(configuration.get("hosts", []))
     db_user = configuration.get("db_user")
     db_secret = configuration.get("db_password")
     db_name = configuration.get("db_name")
 
-    last_error = None
-    for hostname, port in hosts:
-        log.info(f"Attempting to connect to PostgreSQL host {hostname}:{port}, database={db_name}")
-        connect_kwargs = {
-            "host": hostname,
-            "port": port,
-            "user": db_user,
-            "password": db_secret,
-            "dbname": db_name,
-            "connect_timeout": __CONNECT_TIMEOUT_SECONDS,
-            "sslmode": "disable",
-        }
+    log.info(f"Attempting to connect to PostgreSQL host {hostname}:{port}, database={db_name}")
+    connect_kwargs = {
+        "host": hostname,
+        "port": port,
+        "user": db_user,
+        "password": db_secret,
+        "dbname": db_name,
+        "connect_timeout": __CONNECT_TIMEOUT_SECONDS,
+        "sslmode": "disable",
+    }
 
-        try:
-            connection = psycopg2.connect(**connect_kwargs)
-            log.info(f"Successfully connected to PostgreSQL host {hostname}:{port}")
-            return connection
-        except psycopg2.Error as e:
-            log.warning(f"Failed to connect to PostgreSQL host {hostname}:{port}: {e}")
-            last_error = e
-
-    log.error("Failed to connect to any configured PostgreSQL host", last_error)
-    raise ConnectionError(f"Unable to connect to any of the configured hosts: {hosts}")
+    try:
+        connection = psycopg2.connect(**connect_kwargs)
+        log.info(f"Successfully connected to PostgreSQL host {hostname}:{port}")
+        return connection
+    except psycopg2.Error as e:
+        log.warning(f"Failed to connect to PostgreSQL host {hostname}:{port}: {e}")
+        return None
 
 
-def fetch_and_upsert_data(database_connection, state):
-    """
-    Fetch data incrementally from the source table and upsert into the destination.
-    Uses `modified_at >= last_modified` so that rows sharing the same timestamp as the
-    last checkpoint are re-fetched; upsert idempotency ensures no duplicates in the destination.
-    Args:
-        database_connection: A psycopg2 connection object.
-        state: A dictionary containing state information from previous runs.
 def fetch_and_upsert_data(database_connection, state):
     """
     Fetch all rows from the source table using a server-side named cursor and upsert into the destination.
@@ -220,7 +198,7 @@ def update(configuration: dict, state: dict):
     """
     Define the update function, which is a required function, and is called by Fivetran during each sync.
     See the technical reference documentation for more details on the update function
-    https://fivetran.com/docs/connectors/connector-sdk/technical-reference#update
+    https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update
     Args:
         configuration: A dictionary containing connection details.
         state: A dictionary containing state information from previous runs.
@@ -230,8 +208,17 @@ def update(configuration: dict, state: dict):
 
     validate_configuration(configuration=configuration)
 
-    connection = get_database_connection(configuration=configuration)
-    fetch_and_upsert_data(database_connection=connection, state=state)
+    hosts = parse_hosts(configuration.get("hosts", ""))
+    connected_any = False
+    for hostname, port in hosts:
+        connection = get_database_connection(hostname=hostname, port=port, configuration=configuration)
+        if connection is None:
+            continue
+        connected_any = True
+        fetch_and_upsert_data(database_connection=connection, state=state)
+
+    if not connected_any:
+        raise ConnectionError(f"Unable to connect to any of the configured hosts: {hosts}")
 
 
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
