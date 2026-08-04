@@ -180,7 +180,7 @@ fivetran debug
 
 ---
 
-## Pro tips
+## Tips
 
 1. **Start with file_lifecycle/** to understand fundamentals
 2. **Use stream_examples/** to learn different streaming approaches
