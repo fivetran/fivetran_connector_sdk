@@ -1,6 +1,6 @@
 # Unstructured Data Examples
 
-Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connector SDK.
+Learn how to upload unstructured data such as PDFs, images, and binaries to a destination using your Connector SDK code.
 
 > **Note:** Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only. See [Unstructured File Replication](https://fivetran.com/docs/core-concepts/features/unstructured-file-replication) for more details.
 
