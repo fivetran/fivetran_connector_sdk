@@ -17,7 +17,7 @@ Learn how to sync files (PDFs, images, binaries, etc.) using the Fivetran Connec
 
 ## What is unstructured data?
 
-**Unstructured data** = Files that don't fit neatly into rows and columns:
+Unlike structured data, which has traditional tabular data (rows/columns) that fits into database tables, unstructured data includes files that don't fit neatly into rows and columns:
 - PDFs (reports, invoices, contracts)
 - Images (photos, screenshots, diagrams)
 - Archives (ZIP, TAR)
