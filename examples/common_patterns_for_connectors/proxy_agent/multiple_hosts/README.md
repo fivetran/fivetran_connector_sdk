@@ -23,7 +23,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init <project-path> --template examples/common_patterns_for_connectors/proxy_agent/multiple_hosts
+fivetran init --template examples/common_patterns_for_connectors/proxy_agent/multiple_hosts
 ```
 
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector.
@@ -44,7 +44,7 @@ fivetran deploy \
 - `--destination`: The name of the destination in your Fivetran account where this connector will load data.
 - `--connection`: The name to assign to the connection in Fivetran. Use a new name for a fresh deployment, or an existing name to update it in place.
 - `--configuration`: Path to the `configuration.json` file. The `hosts` value must be a JSON array of `hostname:port` strings.
-- `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection. If you use multiple proxy agents for failover, pass the primary agent ID here and associate the additional agents with the connection from the Fivetran dashboard.
+- `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection. If you use multiple proxy agents to reach different hosts, pass the primary agent ID here and associate the additional agents with the connection from the Fivetran dashboard.
 
 Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#deployyourconnectortofivetran) for the full list of options.
 
@@ -55,16 +55,24 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 - Full table sync using a server-side named cursor with `fetchmany()` for memory-safe streaming
 - Periodic checkpointing every 1000 records
 
-## How host failover works
+## How multi-host sync works
+This connector does **not** implement failover (it does not stop after the first successful
+connection). It attempts every configured host and syncs from **each one that is reachable**:
+
 1. `validate_configuration` ensures the `hosts` value is a comma-separated string and parses into at least one host.
 2. `parse_hosts` splits the comma-separated string, trims each entry, and splits `hostname:port`, preserving order.
-3. `get_database_connection` iterates over the parsed list:
-   - Attempts `psycopg2.connect(host=<current>, ...)` with a 10-second timeout.
-   - On success, logs the connected host and returns the connection.
-   - On failure, logs a warning and moves to the next host.
+3. `update()` iterates over the parsed list and, for each host:
+   - Calls `get_database_connection`, which attempts `psycopg2.connect(host=<current>, ...)` with a 10-second timeout.
+   - On success, logs the connected host and proceeds to sync from it via `fetch_and_upsert_data`.
+   - On failure, logs a warning and moves to the next host — that host is skipped for this sync.
 4. If every host fails, a `ConnectionError` is raised so Fivetran can retry the sync.
 
-Because the connector always tries hosts in configured order, place your preferred host first (for example, the primary or the closest proxy agent).
+Because every reachable host is synced, this pattern is intended for hosts that hold
+**different, non-overlapping data** (for example, shards) rather than read replicas of the
+same primary — syncing multiple replicas of the same data would re-upsert the same rows
+redundantly on every run. If you need true failover (try hosts in order, stop at the first
+success, sync from only that one), you will need to add a `break` after the first successful
+`fetch_and_upsert_data` call in `update()`.
 
 ## Configuration file
 The connector requires the following configuration parameters:
@@ -98,8 +106,8 @@ Note: The `fivetran_connector_sdk:latest` and `requests:latest` packages are pre
 Standard PostgreSQL username/password authentication is used for all hosts. Credentials are read from `configuration.json` and passed to `psycopg2.connect()`. Each Fivetran Proxy Agent authenticates itself to Fivetran independently as part of its registration.
 
 ## Data handling
-1. Connects to the first reachable host in the `hosts` list.
-2. Opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
+1. Connects to every reachable host in the `hosts` list (not just the first).
+2. For each reachable host, opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
 3. Upserts each row to the `test` destination table.
 4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
@@ -111,10 +119,10 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `test` | `id` | All rows streamed from the source `test` table on the first reachable host. |
+| `test` | `id` | All rows streamed from the source `test` table on every reachable host. |
 
 ## Additional considerations
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()`.
-- Consider extending the connector to remember the last successful host in `state` to bias future syncs, if that fits your operational model.
+- Because rows from every reachable host are upserted using only `id` as the primary key, hosts whose `test` tables can contain the same `id` for different underlying rows (for example, independent shards) will silently overwrite each other's data in the destination. If your hosts don't share a globally unique `id` space, extend the primary key (and upserted row data) to include a per-host discriminator, such as the hostname.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.
