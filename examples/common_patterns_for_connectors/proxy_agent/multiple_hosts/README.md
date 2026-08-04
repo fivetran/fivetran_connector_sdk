@@ -1,12 +1,12 @@
 # Proxy Agent - Multiple Hosts Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance behind a [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when **multiple candidate hosts** are available. The connector reads a JSON array of hosts from the `hosts` key in `configuration.json` and attempts to connect to each in order, using the first host that accepts the connection.
+This example demonstrates how to connect to a PostgreSQL instance behind a [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when **multiple candidate hosts** are available. The connector reads a comma-separated string of hosts from the `hosts` key in `configuration.json` and connects to **each host in order**, extracting data from every reachable host.
 
 Typical use cases:
-- Multiple Fivetran Proxy Agents fronting the same PostgreSQL instance for high availability.
-- A primary host with one or more read replicas that share the same credentials.
-- Region-specific hosts where the connector should prefer a specific ordering.
+- Multiple Fivetran Proxy Agents fronting different PostgreSQL shards, each holding a subset of data.
+- A primary host with one or more read replicas that you want to sync from in parallel.
+- Region-specific hosts where all hosts hold data that should be synced to the destination.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
