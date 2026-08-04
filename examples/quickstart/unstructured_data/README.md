@@ -93,7 +93,7 @@ Result:
 | `FileUpload.path` | You (connector code) | `"documents/report.pdf"` |
 | `_fivetran_file_path` | Fivetran (stores the same value) | `"documents/report.pdf"` |
 
-**Key insight:** The path you provide in `FileUpload.path` is stored in `_fivetran_file_path`. They contain the same value.
+> Note: The path you provide in `FileUpload.path` is stored in `_fivetran_file_path`. They contain the same value.
 
 ---
 
