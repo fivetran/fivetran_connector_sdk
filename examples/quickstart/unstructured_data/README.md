@@ -72,7 +72,8 @@ def schema(configuration):
     }]
 ```
 
-**After sync, query your destination:**
+After sync, query your destination:
+
 ```sql
 SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 ```
