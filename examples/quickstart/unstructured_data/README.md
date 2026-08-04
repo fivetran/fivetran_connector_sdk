@@ -182,10 +182,10 @@ fivetran debug
 
 ## Tips
 
-1. **Start with file_lifecycle/** to understand fundamentals
-2. **Use stream_examples/** to learn different streaming approaches
-3. **Test locally first** with `fivetran debug` before deploying
-4. **Check destination** after sync to verify `_fivetran_file_path` is populated
+1. Start with `file_lifecycle/` to understand fundamentals
+2. Use `stream_examples/` to learn different streaming approaches
+3. Test locally first with `fivetran debug` before deploying
+4. Check destination after sync to verify `_fivetran_file_path` is populated
 
 ---
 
