@@ -142,8 +142,7 @@ def fetch_and_upsert_data(database_connection, state):
 
     # Use a named server-side cursor to stream results in batches, avoiding loading all rows into memory.
     database_cursor = database_connection.cursor(
-        name="server_side_cursor",
-        cursor_factory=psycopg2.extras.RealDictCursor
+        name="server_side_cursor", cursor_factory=psycopg2.extras.RealDictCursor
     )
     database_cursor.execute(f"SELECT * FROM {__TABLE_NAME};")
 
@@ -211,7 +210,9 @@ def update(configuration: dict, state: dict):
     hosts = parse_hosts(configuration.get("hosts", ""))
     connected_any = False
     for hostname, port in hosts:
-        connection = get_database_connection(hostname=hostname, port=port, configuration=configuration)
+        connection = get_database_connection(
+            hostname=hostname, port=port, configuration=configuration
+        )
         if connection is None:
             continue
         connected_any = True
