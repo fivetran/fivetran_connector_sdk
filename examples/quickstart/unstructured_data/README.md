@@ -116,7 +116,7 @@ Result:
 
 ### `_fivetran_file_path` column is missing
 - ❌ Not passing `file=FileUpload(...)` parameter
-- ✅ Check your upsert() or update() call includes `file` parameter
+- ✅ Check whether your `upsert()` or `update()` call  includes the `file` parameter
 
 ### "FileUpload object has no attribute 'read'"
 - ❌ Your stream object doesn't have a `read(size)` method
