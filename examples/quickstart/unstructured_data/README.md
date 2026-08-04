@@ -1,21 +1,8 @@
 # Unstructured Data Examples
 
+## Overview
+
 Learn how to upload unstructured data such as PDFs, images, and binaries to a destination using your Connector SDK code.
-
-> Note: Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only. See [Unstructured File Replication](https://fivetran.com/docs/core-concepts/features/unstructured-file-replication) for more details.
-
----
-
-## Quick start
-
-**New to unstructured data?** Start here:
-
--  [file_lifecycle](file_lifecycle/): Upload your first file and understand the upload, update, and delete lifecycle (5 minutes).
--  [stream_examples](stream_examples/): Learn different streaming approaches and when to use `expected_bytes`.
-
----
-
-## What is unstructured data?
 
 Unlike structured data, which has traditional tabular data (rows/columns) that fits into database tables, unstructured data includes files that don't fit neatly into rows and columns:
 - PDFs (reports, invoices, contracts)
@@ -23,7 +10,26 @@ Unlike structured data, which has traditional tabular data (rows/columns) that f
 - Archives (ZIP, TAR)
 - Any binary content
 
+> Note: Unstructured file support is currently available for Snowflake, BigQuery, and Databricks destinations only. See [Unstructured File Replication](https://fivetran.com/docs/core-concepts/features/unstructured-file-replication) for more details.
 
+---
+
+## Getting started
+
+**New to unstructured data?** Start here:
+
+-  [file_lifecycle](file_lifecycle/): Upload your first file and understand the upload, update, and delete lifecycle (5 minutes).
+-  [stream_examples](stream_examples/): Learn different streaming approaches and when to use `expected_bytes`.
+
+To run an example:
+
+```bash
+# 1. Pick an example
+cd file_lifecycle
+
+# 2. Run locally
+fivetran debug
+```
 ---
 
 ## How it works
@@ -50,13 +56,11 @@ Destination (Snowflake/BigQuery/Databricks)
   You can query/download files using the path
 ```
 
----
-
-## The `_fivetran_file_path` column
+### The `_fivetran_file_path` column
 
 When you upload a file, Fivetran automatically adds a `_fivetran_file_path` column to your table to track the file location. You don't define this column; the platform adds it automatically.
 
-### Example:
+#### Example:
 
 Your schema:
 
@@ -86,7 +90,7 @@ Result:
 | 1       | report.pdf  | documents/report.pdf    |
 ```
 
-### Understanding file paths:
+#### Understanding file paths:
 
 | What | Who Controls It | Example |
 |------|-----------------|---------|
@@ -97,7 +101,7 @@ Result:
 
 ---
 
-## Choose your example
+## Examples
 
 | I want to | Go to |
 |-------------|-------|
@@ -106,9 +110,6 @@ Result:
 | Learn  the `_fivetran_file_path` behavior | [file_lifecycle](file_lifecycle/) |
 | Learn different streaming approaches | [stream_examples](stream_examples/) |
 | Understand when to use expected_bytes | [stream_examples](stream_examples/) |
-
----
-
 
 ---
 
@@ -129,68 +130,6 @@ Result:
 ### "expected_bytes mismatch"
 - ❌ File size changed during upload
 - ✅ Verify `expected_bytes` matches the actual file size
-
----
-
-## Key requirements
-
-### 1. FileUpload with Stream
-```python
-FileUpload(
-    path="documents/filename.pdf",  # Path within table namespace
-    stream=file_stream               # Stream with read(size) method
-)
-```
-
-### 2. Operations.upsert or update with file Parameter
-```python
-Operations.upsert(
-    table="documents",
-    data={"doc_id": "1", "doc_name": "report.pdf"},
-    file=FileUpload(...)  # ← Pass file here
-)
-```
-
----
-
-## Getting started
-
-```bash
-# 1. Pick an example
-cd file_lifecycle
-
-# 2. Run locally
-fivetran debug
-```
-
----
-
-## Tips
-
-1. Start with `file_lifecycle/` to understand fundamentals
-2. Use `stream_examples/` to learn different streaming approaches
-3. Test locally first with `fivetran debug` before deploying
-4. Check destination after sync to verify `_fivetran_file_path` is populated
-
----
-
-## Example workflow
-
-```python
-# 1. Download file with streaming
-response = requests.get(file_url, stream=True)
-response.raw.decode_content = True
-
-# 2. Upload with FileUpload
-Operations.upsert(
-    table="files",
-    data={"file_id": "123", "file_name": "report.pdf"},
-    file=FileUpload(path="files/report.pdf", stream=response.raw)
-)
-
-# 3. Query destination to verify
-# SELECT file_id, file_name, _fivetran_file_path FROM files;
-```
 
 ---
 
