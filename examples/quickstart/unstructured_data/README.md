@@ -109,21 +109,6 @@ Result:
 
 ---
 
-## Key concepts covered
-
-### [file_lifecycle/](file_lifecycle/)
-- ✅ How to upload a file
-- ✅ How to update a file (upsert vs update)
-- ✅ How to delete a file
-- ✅ `_fivetran_file_path` lifecycle
-- ✅ State management with checkpoint
-
-### [stream_examples/](stream_examples/)
-- ✅ HTTP response streams (requests.raw)
-- ✅ In-memory bytes (BytesIO)
-- ✅ File handles (local files)
-- ✅ With expected_bytes (size validation)
-- ✅ Without expected_bytes (unknown size)
 
 ---
 
