@@ -78,7 +78,8 @@ After sync, query your destination:
 SELECT doc_id, doc_name, _fivetran_file_path FROM documents;
 ```
 
-**Result:**
+Result:
+
 ```
 | doc_id  | doc_name    | _fivetran_file_path     |
 |---------|-------------|-------------------------|
