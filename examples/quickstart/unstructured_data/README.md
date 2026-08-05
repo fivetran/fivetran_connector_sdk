@@ -38,13 +38,14 @@ fivetran debug
 
 Uploading a file involves the following steps:
 
-1. **Your Connector** fetches the file from the source (API, Cloud storage)
-2. **Create FileUpload** object with the path where the file should be stored and a stream to read from (`FileUpload(path="file.pdf", stream=...)`)
-3. **Call Operations.upsert** with the file parameter to upload both the file and metadata (`op.upsert(table, data, file=...)`)
-4. **Fivetran Platform** receives the file and metadata from your connector
-5. **Load to destination** storage where the file is stored in the destination's file storage (Snowflake stages, BigQuery Cloud Storage, or Databricks volumes)
-6. **Write metadata row** to the destination table with the automatically added `_fivetran_file_path` column containing the file location
-7. **Query and download files** from your destination by querying the table for the `_fivetran_file_path` value and using it to download the actual file.
+1. Your connector fetches the file from the source (API, cloud storage).
+2. Create a `FileUpload` object with the path for the file in your destination and a stream to read from (`FileUpload(path="file.pdf", stream=...)`).
+3. Call `upsert()` with the file parameter to upload both the file and metadata (`op.upsert(table, data, file=...)`).
+4. The Fivetran platform receives the file and metadata from your connector.
+5. The Fivetran platform stores the file in the destination's file storage (Snowflake stages, BigQuery Cloud Storage, or Databricks volumes).
+6. The Fivetran platform writes a metadata row to the destination table, including the automatically added `_fivetran_file_path` column with the file path.
+
+> To download the file from your destination, query the table to retrieve the `_fivetran_file_path` value, then use that value to download the file.
 
 ### The `_fivetran_file_path` column
 
