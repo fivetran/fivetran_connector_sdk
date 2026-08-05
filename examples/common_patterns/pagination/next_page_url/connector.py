@@ -166,7 +166,53 @@ def should_continue_pagination(current_url, params, response_page):
     """
     has_more_pages = True
 
-    # Check if the script is being run as the main module.
+    # Check if there is a next page URL in the response to continue the pagination
+    next_page_url = get_next_page_url_from_response(response_page)
+
+    if next_page_url:
+        current_url = next_page_url
+        params = {}  # Clear params since the next URL contains the query params
+    else:
+        has_more_pages = False  # End pagination if there is no 'next' URL in the response.
+
+    return current_url, has_more_pages, params
+
+
+def get_api_response(current_url, params):
+    """
+    The get_api_response function sends an HTTP GET request to the provided URL with the specified parameters.
+    It performs the following tasks:
+        1. Logs the URL and query parameters used for the API call for debugging and tracking purposes.
+        2. Makes the API request using the 'requests' library, passing the URL and parameters.
+        3. Parses the JSON response from the API and returns it as a dictionary.
+    Args:
+        current_url: The URL to which the API request is made.
+        params: A dictionary of query parameters to be included in the API request.
+    Returns:
+        response_page: A dictionary containing the parsed JSON response from the API.
+    """
+    log.info(f"Making API call to url: {current_url} with params: {params}")
+    response = rq.get(current_url, params=params)
+    response.raise_for_status()  # Ensure we raise an exception for HTTP errors.
+    response_page = response.json()
+    return response_page
+
+
+def get_next_page_url_from_response(response_page):
+    """
+    The get_next_page_url_from_response function extracts the URL for the next page of data from the API response.
+    Args:
+        response_page: A dictionary representing the parsed JSON response from the API.
+    Returns:
+         The URL for the next page if it exists, otherwise None.
+    """
+    return response_page.get("next_page_url")
+
+
+# This creates the connector object that will use the update and schema functions defined in this connector.py file.
+connector = Connector(update=update, schema=schema)
+
+# Check if the script is being run as the main module.
 # This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.

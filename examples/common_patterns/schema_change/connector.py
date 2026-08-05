@@ -10,6 +10,9 @@
 # Third sync: int_to_string field is a non-numeric string ("forty-two point forty-two")
 # Fourth+ syncs: int_to_string field is a float again (42.43)
 
+# Import json for reading configuration file
+import json
+
 # Import required classes from fivetran_connector_sdk.
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
@@ -19,7 +22,6 @@ from fivetran_connector_sdk import Logging as log
 
 # For supporting Data operations like Upsert(), Update(), Delete() and checkpoint()
 from fivetran_connector_sdk import Operations as op
-import json
 
 
 def update(configuration: dict, state: dict):
@@ -81,9 +83,8 @@ connector = Connector(update=update)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Open the configuration.json file and load its contents
+    # Open the configuration.json file and load its contents into a dictionary.
     with open("configuration.json", "r") as f:
         configuration = json.load(f)
-
-    # Test the connector locally
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
     connector.debug(configuration=configuration)
