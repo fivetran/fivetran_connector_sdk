@@ -46,6 +46,8 @@ fivetran deploy \
 - `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection.
 - `--proxy-host-config-key`: The name of the configuration key in `configuration.json` that holds the source host address.
 
+If your `configuration.json` already uses `host` or `hosts` for the source host details, you do not need to pass `--proxy-host-config-key` during deployment. This argument is optional and is only needed when you use a custom key name such as `proxy_host`. Refer to the `simple_postgres_connection` example for a standard configuration example.
+
 Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#deployyourconnectortofivetran) for the full list of options.
 
 ## Features
